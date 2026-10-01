@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { AiSettingsSection, DeviceSettingsSection } from "./SettingsCenterSections";
+import type { ChatGptConnectionState } from "../../chatgpt/types";
 import type { DesktopUpdaterState } from "../../updater/updaterTypes";
 
 const idleUpdaterState: DesktopUpdaterState = { status: "idle", lastCheckedAt: null };
@@ -91,6 +92,19 @@ describe("AI settings UI", () => {
   const renderAiSettings = (status: "disconnected" | "checking" | "connected" | "failed") =>
     renderToStaticMarkup(<AiSettingsSection
       apiKey={status === "disconnected" ? "" : "fake-key"}
+      chatGptState={{
+        status: "disconnected",
+        email: null,
+        displayName: null,
+        planUsageEnabled: false,
+        clientRegistrationExists: false,
+        showPlanUsageNotice: false,
+        notice: null,
+        isLoading: false,
+        isSigningIn: false,
+        isDisconnecting: false,
+        error: null,
+      }}
       model="gpt-5.6-luna"
       provider="openai"
       state={{
@@ -101,6 +115,8 @@ describe("AI settings UI", () => {
         canRetry: status === "connected",
       }}
       onApiKeyChange={vi.fn()}
+      onChatGptDisconnect={vi.fn()}
+      onChatGptSignIn={vi.fn()}
       onConnect={vi.fn()}
       onDisconnect={vi.fn()}
       onModelChange={vi.fn()}
@@ -115,6 +131,10 @@ describe("AI settings UI", () => {
     expect(markup).toContain("GPT-5.6 Luna");
     expect(markup).toContain('type="password"');
     expect(markup).toContain("API Key는 저장되지 않으며 현재 앱을 실행하는 동안에만 메모리에 유지됩니다.");
+    expect(markup).toContain("ChatGPT 계정");
+    expect(markup).toContain("ChatGPT 계정을 연결하면 지원되는 AI 기능에 ChatGPT 요금제를 사용할 수 있습니다.");
+    expect(markup).toContain("Continue with ChatGPT");
+    expect(markup.indexOf("ChatGPT 계정")).toBeLessThan(markup.indexOf("API Key 방식(OpenAI/Gemini)"));
   });
 
   it("masks the key and shows validation and disconnect actions when connected", () => {
@@ -124,5 +144,45 @@ describe("AI settings UI", () => {
     expect(markup).not.toContain("fake-key");
     expect(markup).toContain("연결 상태 확인");
     expect(markup).toContain("연결 해제");
+    expect(markup).toContain("API Key 방식(OpenAI/Gemini)");
+    expect(markup).toContain('id="ai-provider"');
+    expect(markup).toContain('id="ai-model"');
+    expect(markup).toContain('id="ai-api-key"');
+  });
+
+  it("shows connected ChatGPT account state without credential fields", () => {
+    const chatGptState: ChatGptConnectionState = {
+      status: "connected",
+      email: "teacher@example.test",
+      displayName: "Teacher",
+      planUsageEnabled: true,
+      clientRegistrationExists: true,
+      showPlanUsageNotice: true,
+      notice: null,
+      isLoading: false,
+      isSigningIn: false,
+      isDisconnecting: false,
+      error: null,
+    };
+    const markup = renderToStaticMarkup(<AiSettingsSection
+      apiKey=""
+      chatGptState={chatGptState}
+      model="gpt-5.6-luna"
+      provider="openai"
+      state={{ status: "disconnected", provider: null, model: null, error: null, canRetry: false }}
+      onApiKeyChange={vi.fn()}
+      onChatGptDisconnect={vi.fn()}
+      onChatGptSignIn={vi.fn()}
+      onConnect={vi.fn()}
+      onDisconnect={vi.fn()}
+      onModelChange={vi.fn()}
+      onProviderChange={vi.fn()}
+      onValidate={vi.fn()}
+    />);
+
+    expect(markup).toContain("teacher@example.test");
+    expect(markup).toContain("ChatGPT 요금제 사용: 사용 가능");
+    expect(markup).toContain("ChatGPT 요금제를 사용 중입니다.");
+    expect(markup).not.toMatch(/accessToken|refreshToken|idToken|authorizationCode|pkce/i);
   });
 });

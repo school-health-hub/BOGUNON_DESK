@@ -13,6 +13,7 @@ mod ai;
 mod ai_generation;
 mod auth;
 mod browser_launcher;
+mod chatgpt;
 mod launcher;
 mod meal;
 mod notifications;
@@ -238,6 +239,7 @@ pub fn run() {
 
     builder
         .manage(DesktopState::default())
+        .manage(chatgpt::commands::ChatGptAuthState::default())
         .manage(launcher::WorkPortalAutoOpenState::default())
         .manage(auth::SecureSessionState::default())
         .manage(purchase_helper::PurchaseHelperState::default())
@@ -253,6 +255,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             ai::validate_ai_connection,
             ai_generation::generate_ai_text,
+            chatgpt::commands::chatgpt_get_connection_state,
+            chatgpt::commands::chatgpt_start_sign_in,
+            chatgpt::commands::chatgpt_disconnect,
             execute_desktop_action,
             open_bogunon_search_result,
             launcher::open_quick_memo_url,
