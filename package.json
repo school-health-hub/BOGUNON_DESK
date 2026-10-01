@@ -1,0 +1,41 @@
+{
+  "name": "school-health-desk",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "test": "vitest run",
+    "preview": "vite preview",
+    "release:check": "node scripts/release-preflight.mjs",
+    "release:windows": "npm run release:check && npm test && npx tsc --noEmit && npm run build && cargo test --manifest-path src-tauri/Cargo.toml && cargo check --manifest-path src-tauri/Cargo.toml && git diff --check && npm run tauri build -- --target x86_64-pc-windows-msvc --bundles nsis && node scripts/collect-release-artifacts.mjs",
+    "release:updater:check": "node scripts/updater-release-preflight.mjs",
+    "release:updater": "npm run release:check && npm test && npx tsc --noEmit && npm run build && cargo test --manifest-path src-tauri/Cargo.toml && cargo check --manifest-path src-tauri/Cargo.toml && git diff --check && npm run release:updater:check && node scripts/run-updater-build.mjs && node scripts/collect-release-artifacts.mjs --updater",
+    "release:version:check": "node scripts/verify-release-version.mjs",
+    "release:publish": "node scripts/publish-updater-release.mjs",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@fontsource/pretendard": "^5.3.0",
+    "@supabase/supabase-js": "2.117.2",
+    "@tauri-apps/api": "2.11.1",
+    "@tauri-apps/plugin-deep-link": "2.4.10",
+    "@tauri-apps/plugin-notification": "^2.4.0",
+    "@tauri-apps/plugin-updater": "2.12.0",
+    "lucide-react": "^1.46.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-grid-layout": "^2.2.4"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^6.0.2",
+    "typescript": "~6.0.3",
+    "vite": "^8.0.16",
+    "vitest": "5.0.1"
+  },
+  "license": "Apache-2.0"
+}

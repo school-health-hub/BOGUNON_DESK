@@ -1,0 +1,53 @@
+[package]
+name = "school-health-desk"
+version = "0.2.0"
+description = "Windows desktop work hub for school health teachers"
+authors = ["School Health Desk"]
+license = "Apache-2.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "school_health_desk_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-autostart = "2"
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+tauri-plugin-store = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-notification = "2"
+serde_json = "1"
+tauri-plugin-deep-link = "2"
+tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+calamine = "0.36.1"
+cfb = "0.7.3"
+csv = "1.4.0"
+encoding_rs = "0.8.41"
+rust_xlsxwriter = "0.99.1"
+pdf-extract = "0.12.1"
+quick-xml = "0.42.0"
+zip = { version = "8.6.0", default-features = false, features = ["deflate"] }
+tauri-plugin-updater = "2"
+
+[target.'cfg(windows)'.dependencies]
+windows-dpapi = "0.2.0"
+
+
+# Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true
