@@ -357,6 +357,8 @@
 .official-document-privacy { display: flex; gap: 8px; align-items: flex-start; margin-top: 12px; padding: 9px 10px; border: 1px solid #ead6a1; border-radius: var(--radius-control); color: #725719; background: #fffaf0; font-size: var(--text-xs); line-height: var(--leading-body); }
 .official-document-privacy svg { flex: 0 0 auto; margin-top: 1px; }
 .official-document-ai-state { display: flex; min-height: 32px; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 0 0; color: var(--accent-hover); font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+.official-document-ai-state--routes { flex-direction: column; align-items: flex-start; justify-content: center; }
+.official-document-ai-state--routes span { display: inline-flex; align-items: center; gap: 6px; }
 .official-document-error { margin-top: 8px; color: var(--danger-700); font-size: var(--text-sm); }
 
 .official-document-output { display: grid; align-content: start; gap: 12px; background: var(--workspace-bg); }

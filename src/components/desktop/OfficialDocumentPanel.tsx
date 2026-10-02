@@ -1,6 +1,7 @@
-import { FileText, RotateCcw, ShieldAlert, Sparkles, X } from "lucide-react";
+import { CircleCheck, FileText, RotateCcw, ShieldAlert, Sparkles, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useAiConnection } from "../../ai/AiConnectionContext";
+import { useChatGptConnection } from "../../chatgpt/ChatGptConnectionContext";
 import { generateOfficialDocumentDraft } from "../../official-document/documentGenerator";
 import { copyOfficialDocumentText } from "../../official-document/clipboard";
 import {
@@ -10,9 +11,11 @@ import {
 import { useOfficialDocumentSession } from "../../official-document/OfficialDocumentSessionContext";
 import {
   createOfficialDocumentAiService,
-  createOfficialDocumentAiSendGate,
   getOfficialDocumentAiActionLabel,
+  getOfficialDocumentChatGptPlanActionLabel,
   nextOfficialDocumentAiRequestId,
+  prepareOfficialDocumentAiSend,
+  selectOfficialDocumentAiGenerator,
   type OfficialDocumentAiSendGate,
 } from "../../official-document/officialDocumentAiService";
 import {
@@ -20,10 +23,7 @@ import {
   buildRevisionPrompt,
   buildSummaryPrompt,
 } from "../../official-document/promptBuilder";
-import {
-  inspectOfficialDocumentPrivacy,
-  officialDocumentPrivacyNotice,
-} from "../../official-document/privacyGuard";
+import { officialDocumentPrivacyNotice } from "../../official-document/privacyGuard";
 import { extractOfficialDocumentSummary } from "../../official-document/summaryExtractor";
 import {
   createOfficialDocumentQuickAddDraft,
@@ -31,6 +31,7 @@ import {
 } from "../../official-document/summaryToQuickAddDraft";
 import type { OfficialDocumentMode } from "../../official-document/types";
 import { getDesktopErrorMessage } from "../../desktop/actions";
+import { OfficialDocumentAiConfirmation } from "./OfficialDocumentAiConfirmation";
 import { OfficialDocumentCreateForm } from "./OfficialDocumentCreateForm";
 import { OfficialDocumentOutput } from "./OfficialDocumentOutput";
 import { OfficialDocumentSourceField } from "./OfficialDocumentSourceField";
@@ -55,46 +56,37 @@ type PendingAiConfirmation = {
   readonly providerLabel: string;
 };
 
-export function OfficialDocumentAiConfirmation({
-  confirmation,
-  onCancel,
-  onConfirm,
-}: {
-  readonly confirmation: Pick<PendingAiConfirmation, "prompt" | "providerLabel">;
-  readonly onCancel: () => void;
-  readonly onConfirm: () => void;
-}) {
-  return (
-    <div className="official-document-ai-confirm-backdrop">
-      <section className="official-document-ai-confirm" role="dialog" aria-modal="true" aria-labelledby="official-document-ai-confirm-title">
-        <header>
-          <div>
-            <h3 id="official-document-ai-confirm-title">AI 전송 내용 확인</h3>
-            <p>{confirmation.providerLabel} 서비스로 다음 내용이 전송됩니다.</p>
-          </div>
-          <button type="button" aria-label="AI 전송 취소" onClick={onCancel}><X size={17} /></button>
-        </header>
-        <p className="official-document-ai-confirm__warning">자동 검사는 보조 기능이며 모든 개인정보를 탐지하지 못할 수 있습니다. 내용을 직접 확인한 뒤 전송해 주세요.</p>
-        <pre tabIndex={0} aria-label="AI 서비스로 전송될 내용">{confirmation.prompt}</pre>
-        <footer>
-          <button type="button" onClick={onCancel}>취소</button>
-          <button className="is-primary" type="button" onClick={onConfirm}>확인 후 전송</button>
-        </footer>
-      </section>
-    </div>
-  );
-}
+export { OfficialDocumentAiConfirmation } from "./OfficialDocumentAiConfirmation";
 
 export function OfficialDocumentPanel({ onClose, onNotice, onOpenAiSettings, onSendSummaryToQuickAdd }: OfficialDocumentPanelProps) {
   const ai = useAiConnection();
+  const chatGpt = useChatGptConnection();
   const { state, dispatch } = useOfficialDocumentSession();
   const [importingMode, setImportingMode] = useState<"revision" | "summary" | null>(null);
   const [pendingAiConfirmation, setPendingAiConfirmation] = useState<PendingAiConfirmation | null>(null);
   const output = state.outputs[state.mode];
-  const aiService = useMemo(() => createOfficialDocumentAiService({
-    getConnection: () => ({ status: ai.state.status, provider: ai.state.provider }),
+  const apiConnectionAvailable = ai.state.status === "connected" && ai.state.provider !== null;
+  const chatGptPlanUsageAvailable = chatGpt.state.status === "connected" && chatGpt.state.planUsageEnabled;
+  const selectedChatGptModel = chatGpt.selectedModel === null
+    ? null
+    : chatGpt.models.find((model) => model.slug === chatGpt.selectedModel) ?? null;
+  const chatGptPlanAvailable = chatGptPlanUsageAvailable
+    && !chatGpt.modelsLoading
+    && chatGpt.modelsError === null
+    && selectedChatGptModel !== null;
+  const selectedChatGptModelLabel = selectedChatGptModel?.displayName ?? chatGpt.selectedModel;
+  const apiAiService = useMemo(() => createOfficialDocumentAiService({
+    isAvailable: () => ai.state.status === "connected" && ai.state.provider !== null,
     generateText: ai.generateText,
   }), [ai.generateText, ai.state.provider, ai.state.status]);
+  const chatGptPlanAiService = useMemo(() => createOfficialDocumentAiService({
+    isAvailable: () => chatGpt.state.status === "connected"
+      && chatGpt.state.planUsageEnabled
+      && !chatGpt.modelsLoading
+      && chatGpt.modelsError === null
+      && selectedChatGptModel !== null,
+    generateText: chatGpt.generateText,
+  }), [chatGpt.generateText, chatGpt.modelsError, chatGpt.modelsLoading, selectedChatGptModel, chatGpt.state.planUsageEnabled, chatGpt.state.status]);
 
   const buildPrompt = (): string => {
     const prompt = state.mode === "create"
@@ -112,23 +104,28 @@ export function OfficialDocumentPanel({ onClose, onNotice, onOpenAiSettings, onS
       ? `${state.revisionInput.original}\n${state.revisionInput.request}`
       : state.summaryOriginal;
 
-  const prepareConnectedAi = (): void => {
-    const privacy = inspectOfficialDocumentPrivacy(privateSource);
-    if (!privacy.isSafe) {
+  const prepareConnectedAi = (
+    providerLabel: string,
+    generate: (prompt: string) => Promise<string>,
+  ): void => {
+    const prepared = prepareOfficialDocumentAiSend({
+      privateSource,
+      buildPrompt,
+      generate,
+    });
+    if (prepared.status === "blocked") {
       dispatch({
         type: "setAiStatus",
         status: "error",
-        error: `민감한 개인정보 가능성이 있습니다: ${privacy.findings.join(", ")}. 내용을 제거한 뒤 다시 시도해 주세요.`,
+        error: prepared.error,
       });
       return;
     }
-    if (ai.state.provider === null) return;
-    const prompt = buildPrompt();
     setPendingAiConfirmation({
-      gate: createOfficialDocumentAiSendGate(prompt, aiService.generate),
+      gate: prepared.gate,
       mode: state.mode,
-      prompt,
-      providerLabel: ai.state.provider === "openai" ? "OpenAI" : "Gemini",
+      prompt: prepared.prompt,
+      providerLabel,
     });
   };
 
@@ -217,11 +214,22 @@ export function OfficialDocumentPanel({ onClose, onNotice, onOpenAiSettings, onS
                 {state.mode === "create" && <button className="is-primary" type="button" onClick={() => dispatch({ type: "setDraft", draft: generateOfficialDocumentDraft(state.createInput) })}>기본 초안 만들기</button>}
                 {state.mode === "summary" && <button className="is-primary" type="button" onClick={buildLocalSummary}>기본 핵심정리</button>}
                 <button type="button" onClick={buildPrompt}><Sparkles size={15} /> AI 프롬프트 만들기</button>
-                {ai.state.status === "connected" && ai.state.provider !== null && <button type="button" disabled={state.aiStatus === "generating" || pendingAiConfirmation !== null} onClick={prepareConnectedAi}>{state.aiStatus === "generating" ? "작성 중…" : getOfficialDocumentAiActionLabel(ai.state.provider, state.mode)}</button>}
+                {chatGptPlanAvailable && selectedChatGptModelLabel !== null && <button type="button" disabled={state.aiStatus === "generating" || pendingAiConfirmation !== null} onClick={() => prepareConnectedAi(`ChatGPT 요금제 · ${selectedChatGptModelLabel}`, selectOfficialDocumentAiGenerator("chatGptPlan", { apiConnection: apiAiService.generate, chatGptPlan: chatGptPlanAiService.generate }))}>{state.aiStatus === "generating" ? "작성 중…" : getOfficialDocumentChatGptPlanActionLabel(state.mode)}</button>}
+                {apiConnectionAvailable && ai.state.provider !== null && <button type="button" disabled={state.aiStatus === "generating" || pendingAiConfirmation !== null} onClick={() => prepareConnectedAi(ai.state.provider === "openai" ? "OpenAI" : "Gemini", selectOfficialDocumentAiGenerator("apiConnection", { apiConnection: apiAiService.generate, chatGptPlan: chatGptPlanAiService.generate }))}>{state.aiStatus === "generating" ? "작성 중…" : getOfficialDocumentAiActionLabel(ai.state.provider, state.mode)}</button>}
               </div>
               <p className="official-document-prompt-help">공문 내용과 요청사항을 정리해 ChatGPT, Gemini 등에서 사용할 수 있는 프롬프트를 만듭니다.</p>
               <aside className="official-document-privacy"><ShieldAlert size={16} /><span>{officialDocumentPrivacyNotice}</span></aside>
-              {ai.state.status === "connected" && ai.state.provider !== null ? <p className="official-document-ai-state">✓ {ai.state.provider === "openai" ? "OpenAI" : "Gemini"} 연결됨</p> : <div className="official-document-ai-state"><span>AI 서비스가 연결되지 않았습니다.</span><button type="button" onClick={onOpenAiSettings}>AI 연결 설정</button></div>}
+              {apiConnectionAvailable || chatGptPlanAvailable ? (
+                <div className="official-document-ai-state official-document-ai-state--routes">
+                  {chatGptPlanAvailable && selectedChatGptModelLabel !== null && <span><CircleCheck size={15} /> ChatGPT 요금제 연결됨 · {selectedChatGptModelLabel}</span>}
+                  {apiConnectionAvailable && ai.state.provider !== null && <span><CircleCheck size={15} /> {ai.state.provider === "openai" ? "OpenAI" : "Gemini"} 연결됨</span>}
+                  {chatGptPlanUsageAvailable && !chatGptPlanAvailable && <span>{chatGpt.modelsLoading ? "ChatGPT 모델을 준비 중입니다." : chatGpt.modelsError?.message ?? "ChatGPT 모델을 선택해 주세요."}</span>}
+                </div>
+              ) : chatGptPlanUsageAvailable ? (
+                <div className="official-document-ai-state"><span>{chatGpt.modelsLoading ? "ChatGPT 모델을 준비 중입니다." : chatGpt.modelsError?.message ?? "ChatGPT 모델을 선택해 주세요."}</span><button type="button" onClick={onOpenAiSettings}>AI 연결 설정</button></div>
+              ) : (
+                <div className="official-document-ai-state"><span>AI 서비스가 연결되지 않았습니다.</span><button type="button" onClick={onOpenAiSettings}>AI 연결 설정</button></div>
+              )}
               {state.aiError !== null && <p className="official-document-error" role="alert">{state.aiError}</p>}
             </section>
           </div>
