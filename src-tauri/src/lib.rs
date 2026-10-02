@@ -240,6 +240,7 @@ pub fn run() {
     builder
         .manage(DesktopState::default())
         .manage(chatgpt::commands::ChatGptAuthState::default())
+        .manage(chatgpt::plan::ChatGptPlanState::default())
         .manage(launcher::WorkPortalAutoOpenState::default())
         .manage(auth::SecureSessionState::default())
         .manage(purchase_helper::PurchaseHelperState::default())
@@ -258,6 +259,8 @@ pub fn run() {
             chatgpt::commands::chatgpt_get_connection_state,
             chatgpt::commands::chatgpt_start_sign_in,
             chatgpt::commands::chatgpt_disconnect,
+            chatgpt::commands::chatgpt_list_models,
+            chatgpt::commands::chatgpt_generate_text,
             execute_desktop_action,
             open_bogunon_search_result,
             launcher::open_quick_memo_url,

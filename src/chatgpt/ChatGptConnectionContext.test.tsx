@@ -39,12 +39,12 @@ describe("ChatGptConnectionProvider lifecycle", () => {
     const createService = vi.fn(createStaticService);
 
     const first = renderToStaticMarkup(
-      <ChatGptConnectionProvider createService={createService}>
+      <ChatGptConnectionProvider createService={createService} loadSelectedModel={() => null}>
         <ChatGptStatusProbe />
       </ChatGptConnectionProvider>,
     );
     const second = renderToStaticMarkup(
-      <ChatGptConnectionProvider createService={createService}>
+      <ChatGptConnectionProvider createService={createService} loadSelectedModel={() => null}>
         <ChatGptStatusProbe />
       </ChatGptConnectionProvider>,
     );

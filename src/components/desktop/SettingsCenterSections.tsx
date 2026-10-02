@@ -3,7 +3,7 @@ import type { FormEventHandler } from "react";
 import { aiProviderDefinitions, aiProviderRegistry } from "../../ai/config";
 import type { AiConnectionState, AiProvider } from "../../ai/types";
 import type { AuthStatus, AuthUser } from "../../auth/types";
-import type { ChatGptConnectionState } from "../../chatgpt/types";
+import type { ChatGptConnectionState, ChatGptModel, ChatGptPlanError } from "../../chatgpt/types";
 import { parseWorkPortalAutoOpenDelay, type ConfigurableUrlActionId, type WorkPortalAutoOpenDelay } from "../../desktop/types";
 import {
   screenSettingDefinitions,
@@ -207,12 +207,18 @@ export function ConnectionsSettingsSection(props: ConnectionsSectionProps) {
 type AiSettingsSectionProps = {
   readonly apiKey: string;
   readonly chatGptState: ChatGptConnectionState;
+  readonly chatGptModels: readonly ChatGptModel[];
+  readonly chatGptSelectedModel: string | null;
+  readonly chatGptModelsLoading: boolean;
+  readonly chatGptModelsError: ChatGptPlanError | null;
   readonly model: string;
   readonly provider: AiProvider;
   readonly state: AiConnectionState;
   readonly onApiKeyChange: (apiKey: string) => void;
   readonly onChatGptDisconnect: () => void;
   readonly onChatGptSignIn: () => void;
+  readonly onChatGptModelChange: (model: string) => void;
+  readonly onChatGptRefreshModels: () => void;
   readonly onConnect: () => void;
   readonly onDisconnect: () => void;
   readonly onModelChange: (model: string) => void;
@@ -244,6 +250,12 @@ export function AiSettingsSection(props: AiSettingsSectionProps) {
         state={props.chatGptState}
         onDisconnect={props.onChatGptDisconnect}
         onSignIn={props.onChatGptSignIn}
+        models={props.chatGptModels}
+        selectedModel={props.chatGptSelectedModel}
+        modelsLoading={props.chatGptModelsLoading}
+        modelsError={props.chatGptModelsError}
+        onModelChange={props.onChatGptModelChange}
+        onRefreshModels={props.onChatGptRefreshModels}
       />
 
       <div className="desktop-ai-subsection">

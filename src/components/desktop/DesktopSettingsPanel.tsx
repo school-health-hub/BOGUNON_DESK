@@ -419,12 +419,18 @@ export function DesktopSettingsPanel({
             <AiSettingsSection
               apiKey={ai.apiKey}
               chatGptState={chatgpt.state}
+              chatGptModels={chatgpt.models}
+              chatGptSelectedModel={chatgpt.selectedModel}
+              chatGptModelsLoading={chatgpt.modelsLoading}
+              chatGptModelsError={chatgpt.modelsError}
               model={ai.model}
               provider={ai.provider}
               state={ai.state}
               onApiKeyChange={ai.setApiKey}
               onChatGptDisconnect={() => void chatgpt.disconnect()}
               onChatGptSignIn={() => void chatgpt.startSignIn()}
+              onChatGptModelChange={chatgpt.setSelectedModel}
+              onChatGptRefreshModels={() => void chatgpt.refreshModels()}
               onConnect={() => void ai.connect()}
               onDisconnect={ai.disconnect}
               onModelChange={ai.setModel}

@@ -37,3 +37,30 @@ export type ChatGptConnectionService = {
   readonly startSignIn: () => Promise<void>;
   readonly disconnect: () => Promise<void>;
 };
+
+export type ChatGptModel = {
+  readonly slug: string;
+  readonly displayName: string;
+};
+
+export const chatGptPlanErrorCodes = [
+  "reauthenticationRequired",
+  "accessDenied",
+  "usageLimitExceeded",
+  "usageUnavailable",
+  "rateLimited",
+  "temporaryFailure",
+  "invalidResponse",
+  "unavailable",
+] as const;
+export type ChatGptPlanErrorCode = (typeof chatGptPlanErrorCodes)[number];
+
+export type ChatGptPlanError = {
+  readonly code: ChatGptPlanErrorCode;
+  readonly message: string;
+};
+
+export type ChatGptPlanService = {
+  readonly listModels: () => Promise<readonly ChatGptModel[]>;
+  readonly generateText: (model: string, prompt: string) => Promise<string>;
+};

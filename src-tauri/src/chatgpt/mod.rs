@@ -5,6 +5,7 @@ pub(crate) mod loopback;
 pub(crate) mod model;
 pub(crate) mod oauth;
 pub(crate) mod oidc;
+pub(crate) mod plan;
 pub(crate) mod storage;
 
 #[cfg(test)]

@@ -10,12 +10,48 @@ use super::{
     http::ReqwestTransport,
     lifecycle::{self, BrowserOpener, ChatGptLifecycleError, SignInEnvironment},
     model::ChatGptConnectionStateDto,
+    plan::{self, ChatGptModelDto, ChatGptPlanErrorDto, ChatGptPlanState, GenerateTextRequest},
     storage::{DefaultChatGptStorage, DpapiProtector},
 };
 
 #[derive(Default)]
 pub(crate) struct ChatGptAuthState {
     active: AtomicBool,
+}
+
+#[tauri::command]
+pub(crate) async fn chatgpt_list_models(
+    app: AppHandle,
+    state: State<'_, ChatGptPlanState>,
+) -> Result<Vec<ChatGptModelDto>, ChatGptPlanErrorDto> {
+    let storage = storage_for_app(&app).map_err(|_| ChatGptPlanErrorDto::storage())?;
+    let client = plan::ReqwestPlanTransport::new()?;
+    plan::list_models(
+        &storage,
+        &client,
+        &state,
+        unix_timestamp().map_err(|_| ChatGptPlanErrorDto::clock())?,
+    )
+    .await
+}
+
+#[tauri::command]
+pub(crate) async fn chatgpt_generate_text(
+    app: AppHandle,
+    state: State<'_, ChatGptPlanState>,
+    model: String,
+    prompt: String,
+) -> Result<String, ChatGptPlanErrorDto> {
+    let storage = storage_for_app(&app).map_err(|_| ChatGptPlanErrorDto::storage())?;
+    let client = plan::ReqwestPlanTransport::new()?;
+    plan::generate_text(
+        &storage,
+        &client,
+        &state,
+        unix_timestamp().map_err(|_| ChatGptPlanErrorDto::clock())?,
+        &GenerateTextRequest::new(model, prompt),
+    )
+    .await
 }
 
 impl ChatGptAuthState {
