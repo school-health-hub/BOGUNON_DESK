@@ -2,9 +2,9 @@ import { Activity, BookOpenCheck, Calculator, ClipboardCheck, FileSpreadsheet, F
 import type { ConfigurableUrlActionId, DesktopActionId } from "../desktop/types";
 import type { AccountLauncherLinks } from "../settings/types";
 
-export const healthToolIds = ["aed-check", "record-helper", "checkup-tools"] as const;
+export const healthToolIds = ["aed-check", "checkup-tools"] as const;
 export type HealthToolId = (typeof healthToolIds)[number];
-export const internalToolIds = ["calculator", "purchase-helper", "official-document"] as const;
+export const internalToolIds = ["calculator", "purchase-helper", "official-document", "record-helper"] as const;
 export type InternalToolId = (typeof internalToolIds)[number];
 export type ToolboxToolId = HealthToolId | InternalToolId;
 
@@ -52,17 +52,6 @@ export const healthToolRegistry = {
     settingsActionId: "bogunon",
     settingsKey: "bogunonUrl",
   },
-  "record-helper": {
-    id: "record-helper",
-    label: "생기부 도우미",
-    description: "BOGUNON에서 생기부 도우미 열기",
-    category: "records",
-    icon: BookOpenCheck,
-    kind: "externalAction",
-    launchActionId: "record-helper",
-    settingsActionId: "bogunon",
-    settingsKey: "bogunonUrl",
-  },
   "checkup-tools": {
     id: "checkup-tools",
     label: "검진 도구",
@@ -85,6 +74,15 @@ export const internalToolRegistry = {
     icon: Calculator,
     kind: "internalTool",
     launchActionId: "calculator",
+  },
+  "record-helper": {
+    id: "record-helper",
+    label: "생기부 도우미",
+    description: "비식별 메모를 바탕으로 학생 기록 문구를 준비",
+    category: "records",
+    icon: BookOpenCheck,
+    kind: "internalTool",
+    launchActionId: "record-helper",
   },
   "purchase-helper": {
     id: "purchase-helper",

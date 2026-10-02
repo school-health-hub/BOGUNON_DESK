@@ -14,6 +14,7 @@ import { QuickMemoPanel } from "../desktop/QuickMemoPanel";
 import { WorkFoldersPanel } from "../desktop/WorkFoldersPanel";
 import { PurchaseHelperPanel } from "../desktop/PurchaseHelperPanel";
 import { OfficialDocumentPanel } from "../desktop/OfficialDocumentPanel";
+import { RecordHelperPanel } from "../desktop/RecordHelperPanel";
 import { DesktopPanelProvider } from "../desktop/DesktopPanelContext";
 import { createQuickAddOpenState, type QuickAddOpenOptions } from "./quickAddOpenState";
 import { AppDock } from "../../dock/AppDock";
@@ -81,6 +82,7 @@ export function DashboardCanvas() {
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [isPurchaseHelperOpen, setIsPurchaseHelperOpen] = useState(false);
   const [isOfficialDocumentOpen, setIsOfficialDocumentOpen] = useState(false);
+  const [isRecordHelperOpen, setIsRecordHelperOpen] = useState(false);
   const [purchaseItems, setPurchaseItems] = useState<readonly PurchaseItem[]>([]);
   const [purchaseSources, setPurchaseSources] = useState<readonly PurchaseSourceSummary[]>([]);
   const [purchaseCandidates, setPurchaseCandidates] = useState<readonly PurchaseMappingCandidate[]>([]);
@@ -104,6 +106,7 @@ export function DashboardCanvas() {
     setIsCalculatorOpen,
     setIsPurchaseHelperOpen,
     setIsOfficialDocumentOpen,
+    setIsRecordHelperOpen,
     setIsInboxOpen,
     setIsQuickMemoOpen,
     setIsWorkFoldersOpen,
@@ -143,12 +146,12 @@ export function DashboardCanvas() {
   }, [isWorkFoldersOpen]);
 
   useEffect(() => {
-    if (isEditing || isDesktopSettingsOpen || toolbox.isToolboxOpen || isInboxOpen || isCalculatorOpen || isPurchaseHelperOpen || isOfficialDocumentOpen || isQuickMemoOpen || isWorkFoldersOpen) setIsQuickAddOpen(false);
-  }, [isCalculatorOpen, isPurchaseHelperOpen, isOfficialDocumentOpen, isDesktopSettingsOpen, isEditing, isInboxOpen, isQuickMemoOpen, isWorkFoldersOpen, toolbox.isToolboxOpen]);
+    if (isEditing || isDesktopSettingsOpen || toolbox.isToolboxOpen || isInboxOpen || isCalculatorOpen || isPurchaseHelperOpen || isOfficialDocumentOpen || isRecordHelperOpen || isQuickMemoOpen || isWorkFoldersOpen) setIsQuickAddOpen(false);
+  }, [isCalculatorOpen, isPurchaseHelperOpen, isOfficialDocumentOpen, isRecordHelperOpen, isDesktopSettingsOpen, isEditing, isInboxOpen, isQuickMemoOpen, isWorkFoldersOpen, toolbox.isToolboxOpen]);
 
   useEffect(() => {
-    if (isQuickAddOpen || isDesktopSettingsOpen || toolbox.isToolboxOpen || isInboxOpen || isCalculatorOpen || isPurchaseHelperOpen || isOfficialDocumentOpen || isQuickMemoOpen || isWorkFoldersOpen) setIsCommandPaletteOpen(false);
-  }, [isCalculatorOpen, isPurchaseHelperOpen, isOfficialDocumentOpen, isDesktopSettingsOpen, isInboxOpen, isQuickAddOpen, isQuickMemoOpen, isWorkFoldersOpen, toolbox.isToolboxOpen]);
+    if (isQuickAddOpen || isDesktopSettingsOpen || toolbox.isToolboxOpen || isInboxOpen || isCalculatorOpen || isPurchaseHelperOpen || isOfficialDocumentOpen || isRecordHelperOpen || isQuickMemoOpen || isWorkFoldersOpen) setIsCommandPaletteOpen(false);
+  }, [isCalculatorOpen, isPurchaseHelperOpen, isOfficialDocumentOpen, isRecordHelperOpen, isDesktopSettingsOpen, isInboxOpen, isQuickAddOpen, isQuickMemoOpen, isWorkFoldersOpen, toolbox.isToolboxOpen]);
 
   useEffect(() => settingsService.account.saveWorkspace(dashboardLayout), [dashboardLayout]);
   useEffect(() => settingsService.account.saveDock(dockLayout), [dockLayout]);
@@ -229,6 +232,7 @@ export function DashboardCanvas() {
     setIsCalculatorOpen(false);
     setIsPurchaseHelperOpen(false);
     setIsOfficialDocumentOpen(false);
+    setIsRecordHelperOpen(false);
     setIsInboxOpen(false);
     setIsQuickMemoOpen(false);
     setIsWorkFoldersOpen(false);
@@ -244,6 +248,7 @@ export function DashboardCanvas() {
     setIsCalculatorOpen(false);
     setIsPurchaseHelperOpen(false);
     setIsOfficialDocumentOpen(false);
+    setIsRecordHelperOpen(false);
     setIsInboxOpen(false);
     setIsQuickAddOpen(false);
     setIsQuickMemoOpen(false);
@@ -558,6 +563,14 @@ export function DashboardCanvas() {
             initialTaskPriority: draft.priority,
             initialTaskDueDate: draft.dueDate ?? "",
           })}
+        />
+      )}
+      {isRecordHelperOpen && (
+        <RecordHelperPanel
+          onClose={() => {
+            setIsRecordHelperOpen(false);
+            void runDesktopAction("home");
+          }}
         />
       )}
       {isQuickMemoOpen && (

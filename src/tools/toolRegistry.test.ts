@@ -3,7 +3,7 @@ import { defaultDockItemIds } from "../dock/types";
 import { dockRegistry } from "../dock/dockRegistry";
 import { desktopActionRegistry } from "../desktop/actionRegistry";
 import { urlSettingRegistry } from "../settings/settingsNavigation";
-import { healthToolCategories, healthToolDefinitions } from "./toolRegistry";
+import { healthToolCategories, healthToolDefinitions, toolboxToolRegistry } from "./toolRegistry";
 
 describe("desktop launcher registries", () => {
   it("keeps the Dock limited to the seven top-level launchers", () => {
@@ -36,6 +36,38 @@ describe("desktop launcher registries", () => {
       kind: "internalTool",
       label: "공문 작업실",
       launchActionId: "official-document",
+    });
+  });
+
+  it("registers record helper as an internal tool without a BOGUNON settings dependency", () => {
+    const recordHelper = toolboxToolRegistry["record-helper"];
+
+    expect(recordHelper).toEqual(expect.objectContaining({
+      kind: "internalTool",
+      label: "생기부 도우미",
+      launchActionId: "record-helper",
+    }));
+    expect("settingsActionId" in recordHelper).toBe(false);
+    expect("settingsKey" in recordHelper).toBe(false);
+    expect(desktopActionRegistry["record-helper"]).toEqual({
+      id: "record-helper",
+      kind: "internal",
+      target: "record-helper",
+    });
+  });
+
+  it("keeps AED and checkup tools on their existing external paths", () => {
+    expect(toolboxToolRegistry["aed-check"]).toMatchObject({
+      kind: "externalAction",
+      launchActionId: "aed-check",
+      settingsActionId: "bogunon",
+      settingsKey: "bogunonUrl",
+    });
+    expect(toolboxToolRegistry["checkup-tools"]).toMatchObject({
+      kind: "externalAction",
+      launchActionId: "checkup-tools",
+      settingsActionId: "checkup-tools",
+      settingsKey: "checkupToolUrl",
     });
   });
 
