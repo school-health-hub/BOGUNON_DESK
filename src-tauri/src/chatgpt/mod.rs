@@ -1,4 +1,5 @@
 pub(crate) mod commands;
+pub(crate) mod credential;
 pub(crate) mod http;
 mod lifecycle;
 pub(crate) mod loopback;

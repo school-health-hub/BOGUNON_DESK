@@ -4,9 +4,12 @@ use std::{
 };
 
 use serde_json::json;
+use tokio::sync::Notify;
 
 use super::*;
 use crate::chatgpt::{
+    http::{HttpMethod, HttpResponse, HttpTransport, TransportError},
+    lifecycle,
     model::{HostRecord, IssuedClientId, RegistrationRecord},
     storage::StorageError,
 };
@@ -62,6 +65,7 @@ impl ChatGptCredentialStorage for MemoryStorage {
 struct FakeTransport {
     responses: Mutex<VecDeque<Result<ApiResponse, InternalError>>>,
     requests: Mutex<Vec<ApiRequest>>,
+    token_pause: Option<(Arc<Notify>, Arc<Notify>)>,
 }
 
 impl FakeTransport {
@@ -69,8 +73,22 @@ impl FakeTransport {
         Self {
             responses: Mutex::new(responses.into()),
             requests: Mutex::new(Vec::new()),
+            token_pause: None,
         }
     }
+
+    fn pausing_token(
+        responses: Vec<Result<ApiResponse, InternalError>>,
+        started: Arc<Notify>,
+        release: Arc<Notify>,
+    ) -> Self {
+        Self {
+            responses: Mutex::new(responses.into()),
+            requests: Mutex::new(Vec::new()),
+            token_pause: Some((started, release)),
+        }
+    }
+
     fn requests(&self) -> Vec<ApiRequest> {
         self.requests.lock().expect("request lock").clone()
     }
@@ -78,12 +96,76 @@ impl FakeTransport {
 
 impl PlanTransport for FakeTransport {
     async fn send(&self, request: ApiRequest) -> Result<ApiResponse, InternalError> {
+        let pauses_for_token = request.url.ends_with("/oauth/token");
         self.requests.lock().expect("request lock").push(request);
+        if pauses_for_token {
+            if let Some((started, release)) = &self.token_pause {
+                started.notify_one();
+                release.notified().await;
+            }
+        }
         self.responses
             .lock()
             .expect("response lock")
             .pop_front()
             .expect("fixture response")
+    }
+}
+
+struct DisconnectTransport {
+    requests: Mutex<Vec<(String, Vec<(String, String)>)>>,
+    revoke_pause: Option<(Arc<Notify>, Arc<Notify>)>,
+}
+
+impl DisconnectTransport {
+    const fn immediate() -> Self {
+        Self {
+            requests: Mutex::new(Vec::new()),
+            revoke_pause: None,
+        }
+    }
+
+    fn pausing_revoke(started: Arc<Notify>, release: Arc<Notify>) -> Self {
+        Self {
+            requests: Mutex::new(Vec::new()),
+            revoke_pause: Some((started, release)),
+        }
+    }
+
+    fn requests(&self) -> Vec<(String, Vec<(String, String)>)> {
+        self.requests.lock().expect("request lock").clone()
+    }
+}
+
+impl HttpTransport for DisconnectTransport {
+    async fn send(
+        &self,
+        _method: HttpMethod,
+        url: &str,
+        form: &[(String, String)],
+    ) -> Result<HttpResponse, TransportError> {
+        self.requests
+            .lock()
+            .expect("request lock")
+            .push((url.to_owned(), form.to_vec()));
+        if url.ends_with("/oauth/revoke") {
+            if let Some((started, release)) = &self.revoke_pause {
+                started.notify_one();
+                release.notified().await;
+            }
+            return Ok(HttpResponse::new(200, b"{}".to_vec()));
+        }
+        Ok(HttpResponse::new(
+            200,
+            serde_json::to_vec(&json!({
+                "issuer": "https://auth.openai.com",
+                "authorization_endpoint": "https://auth.openai.com/api/accounts/authorize",
+                "token_endpoint": "https://auth.openai.com/api/accounts/oauth/token",
+                "jwks_uri": "https://auth.openai.com/.well-known/jwks.json",
+                "revocation_endpoint": "https://auth.openai.com/api/accounts/oauth/revoke"
+            }))
+            .expect("discovery fixture"),
+        ))
     }
 }
 
@@ -254,7 +336,13 @@ async fn refresh_replaces_tokens_scopes_and_expiry_atomically() {
         response(200, json!({"models":[]})),
     ]);
     // When
-    let result = list_models(&storage, &transport, &ChatGptPlanState::default(), 1100).await;
+    let result = list_models(
+        &storage,
+        &transport,
+        &ChatGptCredentialMutationState::default(),
+        1100,
+    )
+    .await;
     // Then
     assert!(result.is_ok());
     let saved = storage.credential().expect("saved credential");
@@ -279,9 +367,14 @@ async fn refresh_form_uses_latest_token_and_omits_scope() {
         refresh_response(),
         response(200, json!({"models":[]})),
     ]);
-    list_models(&storage, &transport, &ChatGptPlanState::default(), 1100)
-        .await
-        .expect("models");
+    list_models(
+        &storage,
+        &transport,
+        &ChatGptCredentialMutationState::default(),
+        1100,
+    )
+    .await
+    .expect("models");
     let requests = transport.requests();
     let form = match &requests[1].body {
         RequestBody::Form(form) => form,
@@ -305,7 +398,13 @@ async fn earliest_refresh_time_prevents_refresh() {
     value.earliest_refresh_at = Some(1200);
     let storage = MemoryStorage::new(value);
     let transport = FakeTransport::new(Vec::new());
-    let result = list_models(&storage, &transport, &ChatGptPlanState::default(), 1100).await;
+    let result = list_models(
+        &storage,
+        &transport,
+        &ChatGptCredentialMutationState::default(),
+        1100,
+    )
+    .await;
     assert_eq!(
         result.expect_err("too early").code,
         ChatGptPlanErrorCode::TemporaryFailure
@@ -319,7 +418,13 @@ async fn earliest_refresh_time_uses_still_valid_access_token() {
     value.earliest_refresh_at = Some(1200);
     let storage = MemoryStorage::new(value);
     let transport = FakeTransport::new(vec![response(200, json!({"models":[]}))]);
-    let result = list_models(&storage, &transport, &ChatGptPlanState::default(), 1150).await;
+    let result = list_models(
+        &storage,
+        &transport,
+        &ChatGptCredentialMutationState::default(),
+        1150,
+    )
+    .await;
     assert!(result.is_ok());
     assert_eq!(transport.requests().len(), 1);
 }
@@ -333,10 +438,14 @@ async fn concurrent_refresh_is_serialized_and_uses_one_replacement() {
         response(200, json!({"models":[]})),
         response(200, json!({"models":[]})),
     ]));
-    let state = Arc::new(ChatGptPlanState::default());
+    let state = Arc::new(ChatGptCredentialMutationState::default());
     let first = list_models(&*storage, &*transport, &state, 1100);
     let second = list_models(&*storage, &*transport, &state, 1100);
-    let (one, two) = tokio::join!(first, second);
+    let (one, two) = tokio::time::timeout(std::time::Duration::from_secs(1), async {
+        tokio::join!(first, second)
+    })
+    .await
+    .expect("concurrent refresh must not deadlock");
     assert!(one.is_ok() && two.is_ok());
     assert_eq!(
         transport
@@ -349,10 +458,125 @@ async fn concurrent_refresh_is_serialized_and_uses_one_replacement() {
 }
 
 #[tokio::test]
+async fn refresh_inflight_then_disconnect_revokes_replacement_and_clears_credential() {
+    // Given
+    let storage = Arc::new(MemoryStorage::new(credential(1000, 10)));
+    let refresh_started = Arc::new(Notify::new());
+    let release_refresh = Arc::new(Notify::new());
+    let plan_transport = Arc::new(FakeTransport::pausing_token(
+        vec![
+            discovery_response(),
+            refresh_response(),
+            response(200, json!({"models":[]})),
+        ],
+        Arc::clone(&refresh_started),
+        Arc::clone(&release_refresh),
+    ));
+    let disconnect_transport = Arc::new(DisconnectTransport::immediate());
+    let state = Arc::new(ChatGptCredentialMutationState::default());
+
+    // When
+    let refresh = tokio::spawn({
+        let storage = Arc::clone(&storage);
+        let transport = Arc::clone(&plan_transport);
+        let state = Arc::clone(&state);
+        async move { list_models(&*storage, &*transport, &state, 1100).await }
+    });
+    refresh_started.notified().await;
+    let disconnect = tokio::spawn({
+        let storage = Arc::clone(&storage);
+        let transport = Arc::clone(&disconnect_transport);
+        let state = Arc::clone(&state);
+        async move { lifecycle::disconnect(&*storage, &*transport, &state).await }
+    });
+    tokio::task::yield_now().await;
+    release_refresh.notify_one();
+    tokio::time::timeout(std::time::Duration::from_secs(1), async {
+        refresh.await.expect("refresh task").expect("refresh");
+        disconnect
+            .await
+            .expect("disconnect task")
+            .expect("disconnect");
+    })
+    .await
+    .expect("refresh then disconnect must not deadlock");
+
+    // Then
+    assert!(storage.credential().is_none());
+    let revoke = disconnect_transport
+        .requests()
+        .into_iter()
+        .find(|(url, _)| url.ends_with("/oauth/revoke"))
+        .expect("revoke request");
+    assert!(revoke
+        .1
+        .iter()
+        .any(|(key, value)| key == "token" && value == "refresh-new"));
+}
+
+#[tokio::test]
+async fn disconnect_inflight_then_refresh_skips_token_exchange_and_cannot_resurrect() {
+    // Given
+    let storage = Arc::new(MemoryStorage::new(credential(1000, 10)));
+    let revoke_started = Arc::new(Notify::new());
+    let release_revoke = Arc::new(Notify::new());
+    let disconnect_transport = Arc::new(DisconnectTransport::pausing_revoke(
+        Arc::clone(&revoke_started),
+        Arc::clone(&release_revoke),
+    ));
+    let plan_transport = Arc::new(FakeTransport::new(vec![
+        discovery_response(),
+        refresh_response(),
+        response(200, json!({"models":[]})),
+    ]));
+    let state = Arc::new(ChatGptCredentialMutationState::default());
+
+    // When
+    let disconnect = tokio::spawn({
+        let storage = Arc::clone(&storage);
+        let transport = Arc::clone(&disconnect_transport);
+        let state = Arc::clone(&state);
+        async move { lifecycle::disconnect(&*storage, &*transport, &state).await }
+    });
+    revoke_started.notified().await;
+    let refresh = tokio::spawn({
+        let storage = Arc::clone(&storage);
+        let transport = Arc::clone(&plan_transport);
+        let state = Arc::clone(&state);
+        async move { list_models(&*storage, &*transport, &state, 1100).await }
+    });
+    tokio::task::yield_now().await;
+    release_revoke.notify_one();
+    let error = tokio::time::timeout(std::time::Duration::from_secs(1), async {
+        disconnect
+            .await
+            .expect("disconnect task")
+            .expect("disconnect");
+        refresh
+            .await
+            .expect("refresh task")
+            .expect_err("credential removed")
+    })
+    .await
+    .expect("disconnect then refresh must not deadlock");
+
+    // Then
+    assert_eq!(error.code, ChatGptPlanErrorCode::NotConnected);
+    assert!(plan_transport.requests().is_empty());
+    assert!(storage.credential().is_none());
+}
+
+#[tokio::test]
 async fn temporary_refresh_failure_preserves_credential() {
     let storage = MemoryStorage::new(credential(1000, 10));
     let transport = FakeTransport::new(vec![discovery_response(), Err(InternalError::TRANSPORT)]);
-    let result = list_models(&storage, &transport, &ChatGptPlanState::default(), 1100).await;
+    let result = list_models(
+        &storage,
+        &transport,
+        &ChatGptCredentialMutationState::default(),
+        1100,
+    )
+    .await;
     assert_eq!(
         result.expect_err("network failure").code,
         ChatGptPlanErrorCode::TemporaryFailure
@@ -375,12 +599,19 @@ async fn invalid_grant_marks_credential_unusable() {
         discovery_response(),
         response(400, json!({"error":"invalid_grant"})),
     ]);
-    let result = list_models(&storage, &transport, &ChatGptPlanState::default(), 1100).await;
+    let result = list_models(
+        &storage,
+        &transport,
+        &ChatGptCredentialMutationState::default(),
+        1100,
+    )
+    .await;
     assert_eq!(
         result.expect_err("invalid grant").code,
         ChatGptPlanErrorCode::ReauthenticationRequired
     );
     assert!(storage.credential().is_none());
+    assert!(storage.load_registration().expect("registration").is_some());
 }
 
 #[tokio::test]
@@ -397,7 +628,13 @@ async fn every_terminal_refresh_error_marks_credential_unusable() {
             discovery_response(),
             response(400, json!({"error": code})),
         ]);
-        let result = list_models(&storage, &transport, &ChatGptPlanState::default(), 1100).await;
+        let result = list_models(
+            &storage,
+            &transport,
+            &ChatGptCredentialMutationState::default(),
+            1100,
+        )
+        .await;
         assert_eq!(
             result.expect_err("terminal refresh error").code,
             ChatGptPlanErrorCode::ReauthenticationRequired
@@ -418,7 +655,13 @@ async fn missing_replacement_refresh_token_is_rejected_without_overwrite() {
             }),
         ),
     ]);
-    let result = list_models(&storage, &transport, &ChatGptPlanState::default(), 1100).await;
+    let result = list_models(
+        &storage,
+        &transport,
+        &ChatGptCredentialMutationState::default(),
+        1100,
+    )
+    .await;
     assert_eq!(
         result.expect_err("missing replacement").code,
         ChatGptPlanErrorCode::InvalidResponse
@@ -444,7 +687,13 @@ async fn malformed_refresh_response_is_rejected_without_overwrite() {
             json!({"access_token":"","token_type":"Bearer","expires_in":0}),
         ),
     ]);
-    let result = list_models(&storage, &transport, &ChatGptPlanState::default(), 1100).await;
+    let result = list_models(
+        &storage,
+        &transport,
+        &ChatGptCredentialMutationState::default(),
+        1100,
+    )
+    .await;
     assert_eq!(
         result.expect_err("malformed").code,
         ChatGptPlanErrorCode::InvalidResponse
@@ -471,7 +720,7 @@ async fn generation_contract_contains_only_supported_fields_and_bearer_is_intern
     let result = generate_text(
         &storage,
         &transport,
-        &ChatGptPlanState::default(),
+        &ChatGptCredentialMutationState::default(),
         1100,
         &request,
     )

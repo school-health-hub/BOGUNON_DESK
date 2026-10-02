@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use super::{
+    credential::ChatGptCredentialMutationState,
     http::HttpTransport,
     model::{
         AuthorizationClient, ChatGptConnectionStateDto, ChatGptNoticeCode, ChatGptNoticeDto,
@@ -24,6 +25,7 @@ pub(crate) struct SignInEnvironment<'a, Storage, Transport, Opener> {
     opener: &'a Opener,
     callback_timeout: Duration,
     saved_at: u64,
+    credential_state: &'a ChatGptCredentialMutationState,
 }
 
 impl<'a, Storage, Transport, Opener> SignInEnvironment<'a, Storage, Transport, Opener> {
@@ -33,6 +35,7 @@ impl<'a, Storage, Transport, Opener> SignInEnvironment<'a, Storage, Transport, O
         opener: &'a Opener,
         callback_timeout: Duration,
         saved_at: u64,
+        credential_state: &'a ChatGptCredentialMutationState,
     ) -> Self {
         Self {
             storage,
@@ -40,6 +43,7 @@ impl<'a, Storage, Transport, Opener> SignInEnvironment<'a, Storage, Transport, O
             opener,
             callback_timeout,
             saved_at,
+            credential_state,
         }
     }
 }
@@ -105,6 +109,7 @@ where
         issued_client_id,
         &exchange.identity,
     )?;
+    let _credential_guard = environment.credential_state.lock().await;
     environment.storage.save_registration(&registration)?;
     environment.storage.save_credential(&exchange.credential)?;
     Ok(ChatGptConnectionStateDto::connected(
@@ -116,11 +121,13 @@ where
 pub(crate) async fn disconnect<Storage, Transport>(
     storage: &Storage,
     transport: &Transport,
+    credential_state: &ChatGptCredentialMutationState,
 ) -> Result<ChatGptConnectionStateDto, ChatGptLifecycleError>
 where
     Storage: ChatGptCredentialStorage,
     Transport: HttpTransport,
 {
+    let _credential_guard = credential_state.lock().await;
     let registration = storage.load_registration()?;
     let revocation = match storage.load_credential() {
         Ok(credential) => {

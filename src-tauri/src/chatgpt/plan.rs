@@ -1,26 +1,20 @@
 use std::time::Duration;
 
-use reqwest::Client;
-use serde::{Deserialize, Serialize};
-use serde_json::json;
-use tokio::sync::Mutex;
-
 use super::{
+    credential::ChatGptCredentialMutationState,
     http::{parse_discovery, HttpResponse, DISCOVERY_URL},
     model::{CredentialRecord, SecretToken},
     oidc::OPENAI_RESOURCE,
     storage::ChatGptCredentialStorage,
 };
+use reqwest::Client;
+use serde::{Deserialize, Serialize};
+use serde_json::json;
 
 const MODELS_URL: &str = "https://api.openai.com/v1/models";
 const RESPONSES_URL: &str = "https://api.openai.com/v1/responses";
 const REFRESH_MARGIN_SECONDS: u64 = 60;
 const MAX_API_RESPONSE_BYTES: usize = 16 * 1024 * 1024;
-
-#[derive(Default)]
-pub(crate) struct ChatGptPlanState {
-    refresh: Mutex<()>,
-}
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -269,7 +263,7 @@ impl InternalError {
 pub(crate) async fn list_models<S: ChatGptCredentialStorage, T: PlanTransport>(
     storage: &S,
     transport: &T,
-    state: &ChatGptPlanState,
+    state: &ChatGptCredentialMutationState,
     now: u64,
 ) -> Result<Vec<ChatGptModelDto>, ChatGptPlanErrorDto> {
     let token = valid_access_token(storage, transport, state, now)
@@ -291,7 +285,7 @@ pub(crate) async fn list_models<S: ChatGptCredentialStorage, T: PlanTransport>(
 pub(crate) async fn generate_text<S: ChatGptCredentialStorage, T: PlanTransport>(
     storage: &S,
     transport: &T,
-    state: &ChatGptPlanState,
+    state: &ChatGptCredentialMutationState,
     now: u64,
     request: &GenerateTextRequest,
 ) -> Result<String, ChatGptPlanErrorDto> {
@@ -315,7 +309,7 @@ pub(crate) async fn generate_text<S: ChatGptCredentialStorage, T: PlanTransport>
 async fn valid_access_token<S: ChatGptCredentialStorage, T: PlanTransport>(
     storage: &S,
     transport: &T,
-    state: &ChatGptPlanState,
+    state: &ChatGptCredentialMutationState,
     now: u64,
 ) -> Result<SecretToken, InternalError> {
     let credential = storage
@@ -328,7 +322,7 @@ async fn valid_access_token<S: ChatGptCredentialStorage, T: PlanTransport>(
     if !refresh_needed(&credential, now) {
         return Ok(credential.access_token);
     }
-    let _guard = state.refresh.lock().await;
+    let _guard = state.lock().await;
     let latest = storage
         .load_credential()
         .map_err(|_| InternalError::TRANSPORT)?

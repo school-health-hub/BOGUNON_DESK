@@ -45,6 +45,22 @@ type ChatGptConnectionProviderProps = {
   readonly saveSelectedModel?: (model: string | null) => void;
 };
 
+export const runChatGptPlanOperation = async <Result,>(
+  operation: () => Promise<Result>,
+  connectionService: ChatGptConnectionService,
+  onReauthentication: () => void,
+): Promise<Result> => {
+  try {
+    return await operation();
+  } catch (error: unknown) {
+    if (normalizeChatGptPlanError(error).code === "reauthenticationRequired") {
+      await connectionService.refresh();
+      onReauthentication();
+    }
+    throw error;
+  }
+};
+
 export function ChatGptConnectionProvider({
   children,
   createService = createChatGptConnectionService,
@@ -76,7 +92,11 @@ export function ChatGptConnectionProvider({
     setModelsLoading(true);
     setModelsError(null);
     try {
-      const nextModels = await planService.listModels();
+      const nextModels = await runChatGptPlanOperation(
+        planService.listModels,
+        service,
+        () => setModels([]),
+      );
       setModels(nextModels);
       setSelectedModelState((current) => {
         const next = current !== null && nextModels.some((model) => model.slug === current)
@@ -91,7 +111,7 @@ export function ChatGptConnectionProvider({
     } finally {
       setModelsLoading(false);
     }
-  }, [planService, saveSelectedModel, state.planUsageEnabled, state.status]);
+  }, [planService, saveSelectedModel, service, state.planUsageEnabled, state.status]);
 
   useEffect(() => {
     if (state.status === "connected" && state.planUsageEnabled) {
@@ -107,8 +127,12 @@ export function ChatGptConnectionProvider({
     if (state.status !== "connected" || !state.planUsageEnabled || selectedModel === null) {
       throw new Error("ChatGPT 모델을 선택해 주세요.");
     }
-    return planService.generateText(selectedModel, prompt);
-  }, [planService, selectedModel, state.planUsageEnabled, state.status]);
+    return runChatGptPlanOperation(
+      () => planService.generateText(selectedModel, prompt),
+      service,
+      () => setModels([]),
+    );
+  }, [planService, selectedModel, service, state.planUsageEnabled, state.status]);
 
   const value = useMemo<ChatGptConnectionContextValue>(() => ({
     state,

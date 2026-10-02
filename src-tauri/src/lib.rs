@@ -240,7 +240,7 @@ pub fn run() {
     builder
         .manage(DesktopState::default())
         .manage(chatgpt::commands::ChatGptAuthState::default())
-        .manage(chatgpt::plan::ChatGptPlanState::default())
+        .manage(chatgpt::credential::ChatGptCredentialMutationState::default())
         .manage(launcher::WorkPortalAutoOpenState::default())
         .manage(auth::SecureSessionState::default())
         .manage(purchase_helper::PurchaseHelperState::default())
