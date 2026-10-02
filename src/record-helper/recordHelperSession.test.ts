@@ -7,6 +7,10 @@ describe("record helper local session", () => {
       activityMemo: "",
       writingRequest: "",
       check: { status: "idle" },
+      aiStatus: "idle",
+      aiResponse: "",
+      aiError: null,
+      activeAiRequestId: null,
     });
   });
 
@@ -27,7 +31,7 @@ describe("record helper local session", () => {
 
     expect(reduceRecordHelperSession(withMemo, { type: "checkInput" }).check).toEqual({
       status: "ready",
-      message: "비식별 입력 확인 완료. AI 작성 기능은 다음 단계에서 연결됩니다.",
+      message: "비식별 입력 확인 완료. AI 작성 전 전송 내용을 확인할 수 있습니다.",
     });
   });
 
@@ -64,5 +68,40 @@ describe("record helper local session", () => {
     expect(edited.activityMemo).toBe(populated.activityMemo);
     expect(edited.writingRequest).toBe("책임감을 강조");
     expect(edited.check).toEqual({ status: "idle" });
+  });
+
+  it("ignores stale AI results and errors", () => {
+    const started = reduceRecordHelperSession(createRecordHelperSession(), { type: "beginAiRequest", requestId: 7 });
+    const staleResult = reduceRecordHelperSession(started, {
+      type: "resolveAiRequest",
+      requestId: 6,
+      response: "오래된 결과",
+    });
+    const staleError = reduceRecordHelperSession(started, {
+      type: "failAiRequest",
+      requestId: 6,
+      error: "오래된 오류",
+    });
+
+    expect(staleResult).toBe(started);
+    expect(staleError).toBe(started);
+  });
+
+  it("invalidates an active AI request and its output when input changes", () => {
+    const started = reduceRecordHelperSession(createRecordHelperSession(), { type: "beginAiRequest", requestId: 9 });
+    const resolved = reduceRecordHelperSession(started, {
+      type: "resolveAiRequest",
+      requestId: 9,
+      response: "이전 초안",
+    });
+    const restarted = reduceRecordHelperSession(resolved, { type: "beginAiRequest", requestId: 10 });
+    const edited = reduceRecordHelperSession(restarted, {
+      type: "updateActivityMemo",
+      value: "수정된 비식별 메모",
+    });
+
+    expect(edited.activeAiRequestId).toBeNull();
+    expect(edited.aiStatus).toBe("idle");
+    expect(edited.aiResponse).toBe("");
   });
 });

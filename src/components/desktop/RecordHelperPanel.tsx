@@ -1,31 +1,143 @@
-import { BookOpenCheck, ShieldAlert, X } from "lucide-react";
-import { useEffect, useReducer, useRef } from "react";
+import { BookOpenCheck, CircleCheck, ShieldAlert, Sparkles, X } from "lucide-react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useChatGptConnection } from "../../chatgpt/ChatGptConnectionContext";
+import { buildRecordHelperPrompt } from "../../record-helper/promptBuilder";
 import { recordHelperPrivacyNotice } from "../../record-helper/privacyGuard";
+import {
+  nextRecordHelperAiRequestId,
+  prepareRecordHelperAiSend,
+  resolveRecordHelperChatGptPlanAvailability,
+  type RecordHelperAiSendGate,
+} from "../../record-helper/recordHelperAiService";
 import { createRecordHelperSession, reduceRecordHelperSession } from "../../record-helper/recordHelperSession";
+import { RecordHelperAiConfirmation } from "./RecordHelperAiConfirmation";
 
 type RecordHelperPanelProps = {
   readonly onClose: () => void;
+  readonly onOpenAiSettings: () => void;
 };
 
-export function RecordHelperPanel({ onClose }: RecordHelperPanelProps) {
+type PendingAiConfirmation = {
+  readonly gate: RecordHelperAiSendGate;
+  readonly prompt: string;
+  readonly providerLabel: string;
+};
+
+export function RecordHelperAiOutput({ response }: { readonly response: string }) {
+  return (
+    <section className="record-helper-panel__output" aria-labelledby="record-helper-output-title">
+      <div>
+        <strong id="record-helper-output-title">AI 생성 결과</strong>
+        <span>AI가 작성한 초안입니다. 실제 학생부 입력 전 교사가 사실관계와 표현을 확인해 주세요.</span>
+      </div>
+      <pre tabIndex={0}>{response}</pre>
+    </section>
+  );
+}
+
+export function RecordHelperPanel({ onClose, onOpenAiSettings }: RecordHelperPanelProps) {
+  const chatGpt = useChatGptConnection();
   const [session, dispatch] = useReducer(reduceRecordHelperSession, undefined, createRecordHelperSession);
+  const [pendingAiConfirmation, setPendingAiConfirmation] = useState<PendingAiConfirmation | null>(null);
   const activityMemoRef = useRef<HTMLTextAreaElement>(null);
   const statusRef = useRef<HTMLDivElement>(null);
+  const aiErrorRef = useRef<HTMLDivElement>(null);
+  const outputRef = useRef<HTMLDivElement>(null);
+  const confirmingGateRef = useRef<RecordHelperAiSendGate | null>(null);
+  const planAvailability = useMemo(() => resolveRecordHelperChatGptPlanAvailability({
+    status: chatGpt.state.status,
+    planUsageEnabled: chatGpt.state.planUsageEnabled,
+    models: chatGpt.models,
+    selectedModel: chatGpt.selectedModel,
+    modelsLoading: chatGpt.modelsLoading,
+    modelsError: chatGpt.modelsError,
+  }), [
+    chatGpt.models,
+    chatGpt.modelsError,
+    chatGpt.modelsLoading,
+    chatGpt.selectedModel,
+    chatGpt.state.planUsageEnabled,
+    chatGpt.state.status,
+  ]);
 
   useEffect(() => {
     activityMemoRef.current?.focus();
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape" && pendingAiConfirmation === null) onClose();
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [onClose]);
+  }, [onClose, pendingAiConfirmation]);
 
   useEffect(() => {
     if (session.check.status !== "idle") {
       statusRef.current?.scrollIntoView({ block: "nearest" });
     }
   }, [session.check.status]);
+
+  useEffect(() => {
+    if (session.aiStatus === "error") {
+      aiErrorRef.current?.scrollIntoView({ block: "nearest" });
+    }
+  }, [session.aiStatus]);
+
+  useEffect(() => {
+    if (session.aiStatus === "success") {
+      outputRef.current?.scrollIntoView({ block: "nearest" });
+    }
+  }, [session.aiStatus]);
+
+  const cancelPendingConfirmation = (): void => {
+    pendingAiConfirmation?.gate.cancel();
+    setPendingAiConfirmation(null);
+  };
+
+  const updateActivityMemo = (value: string): void => {
+    cancelPendingConfirmation();
+    dispatch({ type: "updateActivityMemo", value });
+  };
+
+  const updateWritingRequest = (value: string): void => {
+    cancelPendingConfirmation();
+    dispatch({ type: "updateWritingRequest", value });
+  };
+
+  const prepareChatGptPlan = (): void => {
+    if (!planAvailability.isAvailable || planAvailability.selectedModel === null) return;
+    const prepared = prepareRecordHelperAiSend({
+      activityMemo: session.activityMemo,
+      writingRequest: session.writingRequest,
+      buildPrompt: buildRecordHelperPrompt,
+      generate: chatGpt.generateText,
+    });
+    if (prepared.status !== "ready") {
+      dispatch({ type: "checkInput" });
+      return;
+    }
+    setPendingAiConfirmation({
+      gate: prepared.gate,
+      prompt: prepared.prompt,
+      providerLabel: `ChatGPT 요금제 · ${planAvailability.selectedModel.displayName}`,
+    });
+  };
+
+  const confirmChatGptPlan = async (): Promise<void> => {
+    const confirmation = pendingAiConfirmation;
+    if (confirmation === null || confirmingGateRef.current === confirmation.gate) return;
+    confirmingGateRef.current = confirmation.gate;
+    setPendingAiConfirmation(null);
+    const requestId = nextRecordHelperAiRequestId();
+    dispatch({ type: "beginAiRequest", requestId });
+    try {
+      const response = await confirmation.gate.confirm();
+      if (response !== null) dispatch({ type: "resolveAiRequest", requestId, response });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "ChatGPT 요금제 작성에 실패했습니다.";
+      dispatch({ type: "failAiRequest", requestId, error: message });
+    } finally {
+      if (confirmingGateRef.current === confirmation.gate) confirmingGateRef.current = null;
+    }
+  };
 
   return (
     <div className="record-helper-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
@@ -48,6 +160,16 @@ export function RecordHelperPanel({ onClose }: RecordHelperPanelProps) {
             </div>
           </div>
 
+          <div className={`record-helper-panel__ai-state${planAvailability.isAvailable ? " is-available" : ""}`} aria-live="polite">
+            <span>
+              {planAvailability.isAvailable && <CircleCheck size={15} aria-hidden="true" />}
+              {planAvailability.message}
+            </span>
+            {!planAvailability.isAvailable && !chatGpt.modelsLoading && (
+              <button type="button" onClick={onOpenAiSettings}>AI 연결 설정</button>
+            )}
+          </div>
+
           <label className="record-helper-panel__field" htmlFor="record-helper-activity-memo">
             <span><strong>비식별 활동·관찰 메모</strong><small>필수</small></span>
             <textarea
@@ -55,7 +177,7 @@ export function RecordHelperPanel({ onClose }: RecordHelperPanelProps) {
               id="record-helper-activity-memo"
               value={session.activityMemo}
               placeholder="예: 모둠 활동에서 자료를 정리하고 발표 준비에 꾸준히 참여함"
-              onChange={(event) => dispatch({ type: "updateActivityMemo", value: event.currentTarget.value })}
+              onChange={(event) => updateActivityMemo(event.currentTarget.value)}
             />
           </label>
 
@@ -65,7 +187,7 @@ export function RecordHelperPanel({ onClose }: RecordHelperPanelProps) {
               id="record-helper-writing-request"
               value={session.writingRequest}
               placeholder="예: 협업 과정과 책임감을 중심으로 정리"
-              onChange={(event) => dispatch({ type: "updateWritingRequest", value: event.currentTarget.value })}
+              onChange={(event) => updateWritingRequest(event.currentTarget.value)}
             />
           </label>
 
@@ -80,14 +202,37 @@ export function RecordHelperPanel({ onClose }: RecordHelperPanelProps) {
             )}
             {session.check.status === "ready" && session.check.message}
           </div>
+
+          {session.aiStatus === "error" && session.aiError !== null && (
+            <div ref={aiErrorRef} className="record-helper-panel__ai-error" role="alert">{session.aiError}</div>
+          )}
+
+          {session.aiStatus === "success" && session.aiResponse !== "" && (
+            <div ref={outputRef}><RecordHelperAiOutput response={session.aiResponse} /></div>
+          )}
         </div>
 
         <footer>
-          <span>외부 전송이나 자동 저장 없이 현재 입력만 점검합니다.</span>
-          <button type="button" onClick={() => dispatch({ type: "checkInput" })}>
-            <BookOpenCheck size={15} /> 입력 내용 점검
-          </button>
+          <span>입력과 결과는 현재 앱 메모리에만 유지되며 자동 저장되지 않습니다.</span>
+          <div className="record-helper-panel__actions">
+            <button type="button" onClick={() => dispatch({ type: "checkInput" })}>
+              <BookOpenCheck size={15} /> 입력 내용 점검
+            </button>
+            {planAvailability.isAvailable && (
+              <button className="is-primary" type="button" disabled={session.aiStatus === "generating" || pendingAiConfirmation !== null} onClick={prepareChatGptPlan}>
+                <Sparkles size={15} /> {session.aiStatus === "generating" ? "작성 중…" : "ChatGPT 요금제로 작성"}
+              </button>
+            )}
+          </div>
         </footer>
+
+        {pendingAiConfirmation !== null && (
+          <RecordHelperAiConfirmation
+            confirmation={pendingAiConfirmation}
+            onCancel={cancelPendingConfirmation}
+            onConfirm={() => void confirmChatGptPlan()}
+          />
+        )}
       </section>
     </div>
   );
