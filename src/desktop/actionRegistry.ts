@@ -11,7 +11,7 @@ export const desktopActionRegistry = {
   bogunon: { id: "bogunon", kind: "externalUrl", configured: false },
   toolbox: { id: "toolbox", kind: "internal", target: "toolbox" },
   "aed-check": { id: "aed-check", kind: "command", configured: false },
-  "record-helper": { id: "record-helper", kind: "command", configured: false },
+  "record-helper": { id: "record-helper", kind: "internal", target: "record-helper" },
   "bogunon-school-settings": { id: "bogunon-school-settings", kind: "command", configured: false },
   "checkup-tools": { id: "checkup-tools", kind: "externalUrl", configured: false },
   "work-folder": { id: "work-folder", kind: "internal", target: "work-folder" },
