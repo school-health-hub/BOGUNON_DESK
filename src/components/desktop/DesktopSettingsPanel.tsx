@@ -4,6 +4,7 @@ import { type FormEvent, useCallback, useEffect, useRef, useState } from "react"
 import { useAiConnection } from "../../ai/AiConnectionContext";
 import { useAuth } from "../../auth/AuthContext";
 import { PRODUCT_NAME } from "../../branding";
+import { useChatGptConnection } from "../../chatgpt/ChatGptConnectionContext";
 import { executeNativeDesktopAction, getDesktopErrorMessage } from "../../desktop/actions";
 import type { ConfigurableUrlActionId } from "../../desktop/types";
 import type { WorkPortalAutoOpenDelay } from "../../desktop/types";
@@ -60,6 +61,7 @@ export function DesktopSettingsPanel({
 }: DesktopSettingsPanelProps) {
   const auth = useAuth();
   const ai = useAiConnection();
+  const chatgpt = useChatGptConnection();
   const sync = useAccountSync();
   const updater = useDesktopUpdater();
   const [autostart, setAutostart] = useState(false);
@@ -416,10 +418,13 @@ export function DesktopSettingsPanel({
           {activeSection === "ai" && (
             <AiSettingsSection
               apiKey={ai.apiKey}
+              chatGptState={chatgpt.state}
               model={ai.model}
               provider={ai.provider}
               state={ai.state}
               onApiKeyChange={ai.setApiKey}
+              onChatGptDisconnect={() => void chatgpt.disconnect()}
+              onChatGptSignIn={() => void chatgpt.startSignIn()}
               onConnect={() => void ai.connect()}
               onDisconnect={ai.disconnect}
               onModelChange={ai.setModel}

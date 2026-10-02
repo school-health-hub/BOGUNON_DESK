@@ -3,6 +3,7 @@ import type { FormEventHandler } from "react";
 import { aiProviderDefinitions, aiProviderRegistry } from "../../ai/config";
 import type { AiConnectionState, AiProvider } from "../../ai/types";
 import type { AuthStatus, AuthUser } from "../../auth/types";
+import type { ChatGptConnectionState } from "../../chatgpt/types";
 import { parseWorkPortalAutoOpenDelay, type ConfigurableUrlActionId, type WorkPortalAutoOpenDelay } from "../../desktop/types";
 import {
   screenSettingDefinitions,
@@ -14,6 +15,7 @@ import type { WorkspaceArea, WorkspaceFilters } from "../../settings/workspaceFi
 import type { SchoolInfoState } from "../../school-info/types";
 import type { WorkFolderFavorite } from "../../work-folders/types";
 import type { DesktopUpdaterState } from "../../updater/updaterTypes";
+import { ChatGptAccountSettings } from "./ChatGptAccountSettings";
 
 type AccountSectionProps = {
   readonly authStatus: AuthStatus;
@@ -204,10 +206,13 @@ export function ConnectionsSettingsSection(props: ConnectionsSectionProps) {
 
 type AiSettingsSectionProps = {
   readonly apiKey: string;
+  readonly chatGptState: ChatGptConnectionState;
   readonly model: string;
   readonly provider: AiProvider;
   readonly state: AiConnectionState;
   readonly onApiKeyChange: (apiKey: string) => void;
+  readonly onChatGptDisconnect: () => void;
+  readonly onChatGptSignIn: () => void;
   readonly onConnect: () => void;
   readonly onDisconnect: () => void;
   readonly onModelChange: (model: string) => void;
@@ -234,6 +239,18 @@ export function AiSettingsSection(props: AiSettingsSectionProps) {
           <span>BOGUNON DESK의 AI 기능에서 사용할 서비스를 선택적으로 연결합니다.</span>
         </div>
       </div>
+
+      <ChatGptAccountSettings
+        state={props.chatGptState}
+        onDisconnect={props.onChatGptDisconnect}
+        onSignIn={props.onChatGptSignIn}
+      />
+
+      <div className="desktop-ai-subsection">
+        <div className="desktop-ai-subsection__heading">
+          <strong>API Key 방식(OpenAI/Gemini)</strong>
+          <span>기존 OpenAI 또는 Gemini API Key로 AI 기능을 연결합니다.</span>
+        </div>
 
       {hasConnection && (
         <div className={`desktop-ai-status is-${props.state.status}`} role="status">
@@ -299,6 +316,7 @@ export function AiSettingsSection(props: AiSettingsSectionProps) {
             {isChecking ? "연결 확인 중..." : "연결 확인"}
           </button>
         )}
+      </div>
       </div>
 
       <div className="desktop-ai-guidance">

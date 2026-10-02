@@ -3,6 +3,7 @@ import "./styles/dashboard.css";
 import "./styles/components.css";
 import { AiConnectionProvider } from "./ai/AiConnectionContext";
 import { AuthProvider } from "./auth/AuthContext";
+import { ChatGptConnectionProvider } from "./chatgpt/ChatGptConnectionContext";
 import { DashboardCanvas } from "./components/dashboard/DashboardCanvas";
 import { WidgetSessionProvider } from "./dashboard/WidgetSessionContext";
 import { MealDataProvider } from "./meal/MealDataContext";
@@ -15,26 +16,28 @@ import { DesktopUpdaterProvider } from "./updater/DesktopUpdaterContext";
 
 export function App() {
   return (
-    <AiConnectionProvider>
-      <AuthProvider>
-        <OnboardingProvider>
-          <AccountSyncProvider>
-            <WidgetSessionProvider>
-              <WorkspaceDataProvider>
-                <MealDataProvider>
-                  <WeatherDataProvider>
-                    <OfficialDocumentSessionProvider>
-                      <DesktopUpdaterProvider>
-                        <DashboardCanvas />
-                      </DesktopUpdaterProvider>
-                    </OfficialDocumentSessionProvider>
-                  </WeatherDataProvider>
-                </MealDataProvider>
-              </WorkspaceDataProvider>
-            </WidgetSessionProvider>
-          </AccountSyncProvider>
-        </OnboardingProvider>
-      </AuthProvider>
-    </AiConnectionProvider>
+    <ChatGptConnectionProvider>
+      <AiConnectionProvider>
+        <AuthProvider>
+          <OnboardingProvider>
+            <AccountSyncProvider>
+              <WidgetSessionProvider>
+                <WorkspaceDataProvider>
+                  <MealDataProvider>
+                    <WeatherDataProvider>
+                      <OfficialDocumentSessionProvider>
+                        <DesktopUpdaterProvider>
+                          <DashboardCanvas />
+                        </DesktopUpdaterProvider>
+                      </OfficialDocumentSessionProvider>
+                    </WeatherDataProvider>
+                  </MealDataProvider>
+                </WorkspaceDataProvider>
+              </WidgetSessionProvider>
+            </AccountSyncProvider>
+          </OnboardingProvider>
+        </AuthProvider>
+      </AiConnectionProvider>
+    </ChatGptConnectionProvider>
   );
 }
