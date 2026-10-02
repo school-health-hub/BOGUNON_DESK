@@ -4222,6 +4222,7 @@ dependencies = [
  "cfb",
  "csv",
  "encoding_rs",
+ "flate2",
  "jsonwebtoken",
  "pdf-extract",
  "quick-xml 0.42.0",

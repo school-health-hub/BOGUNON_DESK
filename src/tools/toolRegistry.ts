@@ -78,7 +78,7 @@ export const internalToolRegistry = {
   "record-helper": {
     id: "record-helper",
     label: "생기부 도우미",
-    description: "비식별 메모를 바탕으로 학생 기록 문구를 준비",
+    description: "학생 활동보고서를 불러와 학생별 기록 자료를 정리합니다.",
     category: "records",
     icon: BookOpenCheck,
     kind: "internalTool",

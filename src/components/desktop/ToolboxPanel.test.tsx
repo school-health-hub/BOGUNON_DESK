@@ -12,7 +12,8 @@ describe("ToolboxPanel", () => {
     expect(markup.match(/ disabled=""/g)).toHaveLength(2);
     expect(markup).toContain("일반 도구");
     expect(markup).toContain("계산기");
-    expect(markup).toContain("비식별 메모를 바탕으로 학생 기록 문구를 준비");
+    expect(markup).toContain("생기부 도우미");
+    expect(markup).toContain("학생 활동보고서를 불러와 학생별 기록 자료를 정리합니다.");
   });
 
   it("enables registered tools after launcher settings load", () => {

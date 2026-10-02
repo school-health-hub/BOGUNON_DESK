@@ -45,6 +45,7 @@ describe("desktop launcher registries", () => {
     expect(recordHelper).toEqual(expect.objectContaining({
       kind: "internalTool",
       label: "생기부 도우미",
+      description: "학생 활동보고서를 불러와 학생별 기록 자료를 정리합니다.",
       launchActionId: "record-helper",
     }));
     expect("settingsActionId" in recordHelper).toBe(false);
