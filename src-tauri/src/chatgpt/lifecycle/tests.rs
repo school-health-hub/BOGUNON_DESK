@@ -13,6 +13,7 @@ use uuid::Uuid;
 
 use super::*;
 use crate::chatgpt::{
+    credential::ChatGptCredentialMutationState,
     http::DISCOVERY_URL,
     model::{ChatGptConnectionStatus, DIRECT_PLAN_SCOPE},
     storage::{ByteProtector, ChatGptStorage, StorageError},
@@ -63,6 +64,7 @@ impl ByteProtector for FakeProtector {
 fn dynamic_sign_in_stores_registration_before_token_free_state() {
     tauri::async_runtime::block_on(async {
         let storage = MemoryStorage::empty();
+        let credential_state = ChatGptCredentialMutationState::default();
         let opener = CallbackOpener::new(Some("oaiapp_lifecycle"));
         let transport = FakeTransport::new(&opener, "subject-123", DIRECT_PLAN_SCOPE);
 
@@ -72,6 +74,7 @@ fn dynamic_sign_in_stores_registration_before_token_free_state() {
             &opener,
             Duration::from_secs(2),
             123,
+            &credential_state,
         ))
         .await
         .expect("sign-in");
@@ -98,6 +101,7 @@ fn dynamic_sign_in_stores_registration_before_token_free_state() {
 fn returning_sign_in_rejects_subject_mismatch_without_overwrite() {
     tauri::async_runtime::block_on(async {
         let storage = MemoryStorage::with_registration(registration("subject-123"), credential());
+        let credential_state = ChatGptCredentialMutationState::default();
         let opener = CallbackOpener::new(None);
         let transport = FakeTransport::new(&opener, "other-subject", DIRECT_PLAN_SCOPE);
 
@@ -107,6 +111,7 @@ fn returning_sign_in_rejects_subject_mismatch_without_overwrite() {
             &opener,
             Duration::from_secs(2),
             123,
+            &credential_state,
         ))
         .await
         .expect_err("subject mismatch");
@@ -137,8 +142,11 @@ fn disconnect_revokes_first_then_clears_only_credential() {
         let storage = MemoryStorage::with_registration(registration("subject-123"), credential());
         let opener = CallbackOpener::new(None);
         let transport = FakeTransport::with_revoke_failures(&opener);
+        let credential_state = ChatGptCredentialMutationState::default();
 
-        let state = disconnect(&storage, &transport).await.expect("disconnect");
+        let state = disconnect(&storage, &transport, &credential_state)
+            .await
+            .expect("disconnect");
 
         assert_eq!(state.status, ChatGptConnectionStatus::Disconnected);
         assert!(state.client_registration_exists);
@@ -184,9 +192,10 @@ fn disconnect_clears_corrupt_credential_and_returns_sanitized_notice() {
             .expect("corrupt credential should save");
         let opener = CallbackOpener::new(None);
         let transport = FakeTransport::new(&opener, "subject-123", DIRECT_PLAN_SCOPE);
+        let credential_state = ChatGptCredentialMutationState::default();
 
         // When
-        let state = disconnect(&storage, &transport)
+        let state = disconnect(&storage, &transport, &credential_state)
             .await
             .expect("disconnect should clear unreadable credential");
 

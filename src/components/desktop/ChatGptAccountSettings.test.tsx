@@ -42,7 +42,13 @@ const renderAccount = (overrides: Partial<ChatGptConnectionState> = {}): string 
   renderToStaticMarkup(
     <ChatGptAccountSettings
       state={{ ...disconnectedState, ...overrides }}
+      models={[]}
+      selectedModel={null}
+      modelsLoading={false}
+      modelsError={null}
       onDisconnect={vi.fn()}
+      onModelChange={vi.fn()}
+      onRefreshModels={vi.fn()}
       onSignIn={vi.fn()}
     />,
   );
@@ -98,7 +104,13 @@ describe("ChatGPT account settings", () => {
     const onDisconnect = vi.fn();
     const tree = ChatGptAccountSettings({
       state: { ...disconnectedState, status: "connected", clientRegistrationExists: true },
+      models: [],
+      selectedModel: null,
+      modelsLoading: false,
+      modelsError: null,
       onDisconnect,
+      onModelChange: vi.fn(),
+      onRefreshModels: vi.fn(),
       onSignIn: vi.fn(),
     });
     const button = collectElements(tree).find(
@@ -108,6 +120,29 @@ describe("ChatGPT account settings", () => {
     button?.props.onClick?.();
 
     expect(onDisconnect).toHaveBeenCalledOnce();
+  });
+
+  it("shows the account model catalog only for an enabled ChatGPT plan", () => {
+    const hidden = renderAccount({ status: "connected", planUsageEnabled: false });
+    const visible = renderToStaticMarkup(
+      <ChatGptAccountSettings
+        state={{ ...disconnectedState, status: "connected", planUsageEnabled: true }}
+        models={[{ slug: "gpt-account-model", displayName: "Account Model" }]}
+        selectedModel="gpt-account-model"
+        modelsLoading={false}
+        modelsError={null}
+        onDisconnect={vi.fn()}
+        onModelChange={vi.fn()}
+        onRefreshModels={vi.fn()}
+        onSignIn={vi.fn()}
+      />,
+    );
+
+    expect(hidden).not.toContain("ChatGPT 모델");
+    expect(visible).toContain("ChatGPT 모델");
+    expect(visible).toContain("Account Model");
+    expect(visible).toContain('aria-label="ChatGPT 모델 목록 새로고침"');
+    expect(visible).not.toMatch(/accessToken|refreshToken|authorization/i);
   });
 
   it("uses accessible busy labels and preserves connected details while disconnecting", () => {

@@ -7,15 +7,52 @@ use tauri::{AppHandle, Manager, State};
 use tauri_plugin_opener::OpenerExt;
 
 use super::{
+    credential::ChatGptCredentialMutationState,
     http::ReqwestTransport,
     lifecycle::{self, BrowserOpener, ChatGptLifecycleError, SignInEnvironment},
     model::ChatGptConnectionStateDto,
+    plan::{self, ChatGptModelDto, ChatGptPlanErrorDto, GenerateTextRequest},
     storage::{DefaultChatGptStorage, DpapiProtector},
 };
 
 #[derive(Default)]
 pub(crate) struct ChatGptAuthState {
     active: AtomicBool,
+}
+
+#[tauri::command]
+pub(crate) async fn chatgpt_list_models(
+    app: AppHandle,
+    state: State<'_, ChatGptCredentialMutationState>,
+) -> Result<Vec<ChatGptModelDto>, ChatGptPlanErrorDto> {
+    let storage = storage_for_app(&app).map_err(|_| ChatGptPlanErrorDto::storage())?;
+    let client = plan::ReqwestPlanTransport::new()?;
+    plan::list_models(
+        &storage,
+        &client,
+        &state,
+        unix_timestamp().map_err(|_| ChatGptPlanErrorDto::clock())?,
+    )
+    .await
+}
+
+#[tauri::command]
+pub(crate) async fn chatgpt_generate_text(
+    app: AppHandle,
+    state: State<'_, ChatGptCredentialMutationState>,
+    model: String,
+    prompt: String,
+) -> Result<String, ChatGptPlanErrorDto> {
+    let storage = storage_for_app(&app).map_err(|_| ChatGptPlanErrorDto::storage())?;
+    let client = plan::ReqwestPlanTransport::new()?;
+    plan::generate_text(
+        &storage,
+        &client,
+        &state,
+        unix_timestamp().map_err(|_| ChatGptPlanErrorDto::clock())?,
+        &GenerateTextRequest::new(model, prompt),
+    )
+    .await
 }
 
 impl ChatGptAuthState {
@@ -68,6 +105,7 @@ pub(crate) fn chatgpt_get_connection_state(
 pub(crate) async fn chatgpt_start_sign_in(
     app: AppHandle,
     state: State<'_, ChatGptAuthState>,
+    credential_state: State<'_, ChatGptCredentialMutationState>,
 ) -> Result<ChatGptConnectionStateDto, String> {
     let _attempt = state.begin_attempt().map_err(|error| error.to_string())?;
     let storage = storage_for_app(&app)?;
@@ -80,6 +118,7 @@ pub(crate) async fn chatgpt_start_sign_in(
         &opener,
         super::loopback::DEFAULT_CALLBACK_TIMEOUT,
         unix_timestamp()?,
+        &credential_state,
     );
     lifecycle::sign_in(environment)
         .await
@@ -90,12 +129,13 @@ pub(crate) async fn chatgpt_start_sign_in(
 pub(crate) async fn chatgpt_disconnect(
     app: AppHandle,
     state: State<'_, ChatGptAuthState>,
+    credential_state: State<'_, ChatGptCredentialMutationState>,
 ) -> Result<ChatGptConnectionStateDto, String> {
     let _attempt = state.begin_attempt().map_err(|error| error.to_string())?;
     let storage = storage_for_app(&app)?;
     let transport =
         ReqwestTransport::new().map_err(|error| ChatGptLifecycleError::from(error).to_string())?;
-    lifecycle::disconnect(&storage, &transport)
+    lifecycle::disconnect(&storage, &transport, &credential_state)
         .await
         .map_err(|error| error.to_string())
 }
