@@ -7,6 +7,19 @@ export const createRecordHelperSession = (): RecordHelperSession => ({
   activityMemo: "",
   writingRequest: "",
   check: idleCheck,
+  aiStatus: "idle",
+  aiResponse: "",
+  aiError: null,
+  activeAiRequestId: null,
+});
+
+const invalidateAi = (state: RecordHelperSession): RecordHelperSession => ({
+  ...state,
+  check: idleCheck,
+  aiStatus: "idle",
+  aiResponse: "",
+  aiError: null,
+  activeAiRequestId: null,
 });
 
 const assertNever = (value: never): never => {
@@ -19,9 +32,9 @@ export const reduceRecordHelperSession = (
 ): RecordHelperSession => {
   switch (action.type) {
     case "updateActivityMemo":
-      return { ...state, activityMemo: action.value, check: idleCheck };
+      return invalidateAi({ ...state, activityMemo: action.value });
     case "updateWritingRequest":
-      return { ...state, writingRequest: action.value, check: idleCheck };
+      return invalidateAi({ ...state, writingRequest: action.value });
     case "checkInput": {
       if (state.activityMemo.trim() === "") {
         return {
@@ -37,10 +50,35 @@ export const reduceRecordHelperSession = (
         ...state,
         check: {
           status: "ready",
-          message: "비식별 입력 확인 완료. AI 작성 기능은 다음 단계에서 연결됩니다.",
+          message: "비식별 입력 확인 완료. AI 작성 전 전송 내용을 확인할 수 있습니다.",
         },
       };
     }
+    case "beginAiRequest":
+      return {
+        ...state,
+        activeAiRequestId: action.requestId,
+        aiStatus: "generating",
+        aiResponse: "",
+        aiError: null,
+      };
+    case "resolveAiRequest":
+      if (state.activeAiRequestId !== action.requestId) return state;
+      return {
+        ...state,
+        activeAiRequestId: null,
+        aiStatus: "success",
+        aiResponse: action.response,
+        aiError: null,
+      };
+    case "failAiRequest":
+      if (state.activeAiRequestId !== action.requestId) return state;
+      return {
+        ...state,
+        activeAiRequestId: null,
+        aiStatus: "error",
+        aiError: action.error,
+      };
     default:
       return assertNever(action);
   }

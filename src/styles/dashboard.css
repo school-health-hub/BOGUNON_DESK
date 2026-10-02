@@ -507,7 +507,7 @@
 .calculator-panel > footer button:disabled { cursor: not-allowed; opacity: 0.45; }
 
 .record-helper-backdrop { position: fixed; inset: 0; z-index: 72; display: grid; place-items: start center; padding: 48px 16px 104px; overflow-y: auto; background: rgba(36, 50, 71, 0.14); backdrop-filter: blur(2px); }
-.record-helper-panel { display: grid; width: min(var(--record-helper-panel-width), calc(100vw - 32px)); max-height: calc(100dvh - 152px); grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-floating); color: var(--text-secondary); background: var(--widget-bg); box-shadow: var(--shadow-floating); }
+.record-helper-panel { position: relative; display: grid; width: min(var(--record-helper-panel-width), calc(100vw - 32px)); max-height: calc(100dvh - 152px); grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-floating); color: var(--text-secondary); background: var(--widget-bg); box-shadow: var(--shadow-floating); }
 .record-helper-panel > header { display: grid; grid-template-columns: 36px minmax(0, 1fr) 28px; gap: 10px; align-items: center; padding: 14px 16px 12px; border-bottom: 1px solid var(--divider); }
 .record-helper-panel > header > div:nth-child(2) { display: grid; min-width: 0; gap: 2px; }
 .record-helper-panel > header strong { color: var(--text-primary); font-size: var(--text-base); font-weight: var(--weight-semibold); }
@@ -532,10 +532,24 @@
 .record-helper-panel__status.is-empty, .record-helper-panel__status.is-blocked { border-color: rgba(174, 82, 82, 0.28); color: var(--danger-700); background: var(--danger-100); }
 .record-helper-panel__status.is-ready { border-color: var(--accent-border); color: var(--accent-hover); background: var(--accent-soft); }
 .record-helper-panel__status strong { color: inherit; font-size: inherit; }
+.record-helper-panel__ai-state { display: flex; min-height: 38px; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 1px solid var(--divider); border-radius: var(--radius-control); color: var(--text-secondary); background: var(--widget-bg); font-size: var(--text-xs); }
+.record-helper-panel__ai-state > span { display: inline-flex; min-width: 0; align-items: center; gap: 6px; word-break: keep-all; }
+.record-helper-panel__ai-state.is-available { border-color: var(--accent-border); color: var(--accent-hover); background: var(--accent-soft); font-weight: var(--weight-semibold); }
+.record-helper-panel__ai-state button { min-height: 30px; flex: 0 0 auto; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius-control); color: var(--text-secondary); background: var(--widget-bg); font-size: var(--text-xs); font-weight: var(--weight-semibold); cursor: pointer; }
+.record-helper-panel__ai-error { padding: 9px 11px; border: 1px solid var(--danger-700); border-radius: var(--radius-control); color: var(--danger-700); background: var(--danger-100); font-size: var(--text-xs); line-height: var(--leading-body); }
+.record-helper-panel__output { display: grid; min-width: 0; gap: 8px; }
+.record-helper-panel__output > div { display: grid; gap: 2px; }
+.record-helper-panel__output strong { color: var(--text-primary); font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+.record-helper-panel__output span { color: var(--text-subtle-readable); font-size: var(--text-xs); line-height: var(--leading-body); word-break: keep-all; }
+.record-helper-panel__output pre { min-height: 96px; max-height: 240px; margin: 0; padding: 11px 12px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-control); color: var(--text-primary); background: var(--workspace-bg); font: inherit; font-size: var(--text-sm); line-height: 1.6; overflow-wrap: break-word; white-space: pre-wrap; word-break: keep-all; }
 .record-helper-panel > footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 16px 13px; border-top: 1px solid var(--divider); }
 .record-helper-panel > footer > span { color: var(--text-muted); font-size: var(--text-xs); line-height: var(--leading-heading); word-break: keep-all; }
+.record-helper-panel__actions { display: flex; flex: 0 0 auto; gap: 7px; }
 .record-helper-panel > footer button { display: inline-flex; min-height: 34px; flex: 0 0 auto; align-items: center; gap: 6px; padding: 0 12px; border: 1px solid var(--accent-border); border-radius: var(--radius-control); color: var(--accent-hover); background: var(--accent-soft); font-size: var(--text-xs); font-weight: var(--weight-semibold); cursor: pointer; }
-.record-helper-panel > footer button:hover { border-color: var(--accent); background: var(--widget-bg); }
+.record-helper-panel > footer button:hover:not(:disabled) { border-color: var(--accent); background: var(--widget-bg); }
+.record-helper-panel > footer button.is-primary { color: var(--widget-bg); border-color: var(--accent-hover); background: var(--accent-hover); }
+.record-helper-panel > footer button.is-primary:hover:not(:disabled) { color: var(--widget-bg); border-color: var(--accent); background: var(--accent); }
+.record-helper-panel > footer button:disabled { cursor: not-allowed; opacity: 0.55; }
 .calculator-display { display: grid; min-height: 78px; align-content: end; gap: 3px; padding: 10px 12px; margin-bottom: 8px; border: 1px solid var(--divider); border-radius: 10px; background: var(--workspace-bg); text-align: right; }
 .calculator-display small { min-height: 16px; overflow: hidden; color: var(--text-muted); font-size: var(--text-xs); text-overflow: ellipsis; white-space: nowrap; }
 .calculator-display strong { overflow: hidden; color: var(--text-primary); font-size: var(--text-page); font-weight: var(--weight-semibold); line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -738,6 +752,7 @@
   .record-helper-panel { width: 100%; max-height: calc(100dvh - 166px); }
   .record-helper-panel__body { padding: 12px; }
   .record-helper-panel > footer { align-items: stretch; flex-direction: column; }
+  .record-helper-panel__actions { display: grid; grid-template-columns: 1fr; }
   .record-helper-panel > footer button { justify-content: center; }
   .quick-memo-backdrop { padding: 18px 10px 148px; }
   .quick-memo-panel { width: 100%; max-height: calc(100dvh - 166px); }
