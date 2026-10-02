@@ -66,6 +66,7 @@ struct FakeTransport {
     responses: Mutex<VecDeque<Result<ApiResponse, InternalError>>>,
     requests: Mutex<Vec<ApiRequest>>,
     token_pause: Option<(Arc<Notify>, Arc<Notify>)>,
+    api_pause: Option<(Arc<Notify>, Arc<Notify>)>,
 }
 
 impl FakeTransport {
@@ -74,6 +75,7 @@ impl FakeTransport {
             responses: Mutex::new(responses.into()),
             requests: Mutex::new(Vec::new()),
             token_pause: None,
+            api_pause: None,
         }
     }
 
@@ -86,6 +88,20 @@ impl FakeTransport {
             responses: Mutex::new(responses.into()),
             requests: Mutex::new(Vec::new()),
             token_pause: Some((started, release)),
+            api_pause: None,
+        }
+    }
+
+    fn pausing_api(
+        responses: Vec<Result<ApiResponse, InternalError>>,
+        started: Arc<Notify>,
+        release: Arc<Notify>,
+    ) -> Self {
+        Self {
+            responses: Mutex::new(responses.into()),
+            requests: Mutex::new(Vec::new()),
+            token_pause: None,
+            api_pause: Some((started, release)),
         }
     }
 
@@ -97,9 +113,16 @@ impl FakeTransport {
 impl PlanTransport for FakeTransport {
     async fn send(&self, request: ApiRequest) -> Result<ApiResponse, InternalError> {
         let pauses_for_token = request.url.ends_with("/oauth/token");
+        let pauses_for_api = request.url == MODELS_URL || request.url == RESPONSES_URL;
         self.requests.lock().expect("request lock").push(request);
         if pauses_for_token {
             if let Some((started, release)) = &self.token_pause {
+                started.notify_one();
+                release.notified().await;
+            }
+        }
+        if pauses_for_api {
+            if let Some((started, release)) = &self.api_pause {
                 started.notify_one();
                 release.notified().await;
             }
@@ -430,6 +453,171 @@ async fn earliest_refresh_time_uses_still_valid_access_token() {
 }
 
 #[tokio::test]
+async fn models_401_clears_current_credential_and_preserves_registration() {
+    // Given
+    let storage = MemoryStorage::new(credential(1000, 3600));
+    let transport = FakeTransport::new(vec![response(401, json!({}))]);
+
+    // When
+    let result = list_models(
+        &storage,
+        &transport,
+        &ChatGptCredentialMutationState::default(),
+        1100,
+    )
+    .await;
+
+    // Then
+    assert_eq!(
+        result.expect_err("models 401").code,
+        ChatGptPlanErrorCode::ReauthenticationRequired
+    );
+    assert!(storage.credential().is_none());
+    assert!(storage.load_registration().expect("registration").is_some());
+    let state = lifecycle::connection_state(&storage, false, None).expect("connection state");
+    assert_eq!(
+        state.status,
+        crate::chatgpt::model::ChatGptConnectionStatus::Disconnected
+    );
+    assert!(state.client_registration_exists);
+}
+
+#[tokio::test]
+async fn responses_401_clears_current_credential() {
+    // Given
+    let storage = MemoryStorage::new(credential(1000, 3600));
+    let transport = FakeTransport::new(vec![response(401, json!({}))]);
+
+    // When
+    let result = generate_text(
+        &storage,
+        &transport,
+        &ChatGptCredentialMutationState::default(),
+        1100,
+        &GenerateTextRequest {
+            model: "gpt-test".to_owned(),
+            prompt: "hello".to_owned(),
+        },
+    )
+    .await;
+
+    // Then
+    assert_eq!(
+        result.expect_err("responses 401").code,
+        ChatGptPlanErrorCode::ReauthenticationRequired
+    );
+    assert!(storage.credential().is_none());
+}
+
+#[tokio::test]
+async fn stale_models_401_preserves_newer_credential() {
+    // Given
+    let storage = Arc::new(MemoryStorage::new(credential(1000, 3600)));
+    let started = Arc::new(Notify::new());
+    let release = Arc::new(Notify::new());
+    let transport = Arc::new(FakeTransport::pausing_api(
+        vec![response(401, json!({}))],
+        Arc::clone(&started),
+        Arc::clone(&release),
+    ));
+    let state = Arc::new(ChatGptCredentialMutationState::default());
+
+    // When
+    let request = tokio::spawn({
+        let storage = Arc::clone(&storage);
+        let transport = Arc::clone(&transport);
+        let state = Arc::clone(&state);
+        async move { list_models(&*storage, &*transport, &state, 1100).await }
+    });
+    started.notified().await;
+    let mut newer = credential(1100, 3600);
+    newer.access_token = SecretToken::new("access-newer");
+    {
+        let _guard = state.lock().await;
+        storage
+            .save_credential(&newer)
+            .expect("save newer credential");
+    }
+    release.notify_one();
+    let error = tokio::time::timeout(std::time::Duration::from_secs(1), request)
+        .await
+        .expect("stale models 401 must not deadlock")
+        .expect("request task")
+        .expect_err("models 401");
+
+    // Then
+    assert_eq!(error.code, ChatGptPlanErrorCode::ReauthenticationRequired);
+    assert_eq!(
+        storage
+            .credential()
+            .expect("newer credential")
+            .access_token
+            .expose(),
+        "access-newer"
+    );
+}
+
+#[tokio::test]
+async fn stale_responses_401_preserves_newer_credential() {
+    // Given
+    let storage = Arc::new(MemoryStorage::new(credential(1000, 3600)));
+    let started = Arc::new(Notify::new());
+    let release = Arc::new(Notify::new());
+    let transport = Arc::new(FakeTransport::pausing_api(
+        vec![response(401, json!({}))],
+        Arc::clone(&started),
+        Arc::clone(&release),
+    ));
+    let state = Arc::new(ChatGptCredentialMutationState::default());
+
+    // When
+    let request = tokio::spawn({
+        let storage = Arc::clone(&storage);
+        let transport = Arc::clone(&transport);
+        let state = Arc::clone(&state);
+        async move {
+            generate_text(
+                &*storage,
+                &*transport,
+                &state,
+                1100,
+                &GenerateTextRequest {
+                    model: "gpt-test".to_owned(),
+                    prompt: "hello".to_owned(),
+                },
+            )
+            .await
+        }
+    });
+    started.notified().await;
+    let mut newer = credential(1100, 3600);
+    newer.access_token = SecretToken::new("access-newer");
+    {
+        let _guard = state.lock().await;
+        storage
+            .save_credential(&newer)
+            .expect("save newer credential");
+    }
+    release.notify_one();
+    let error = tokio::time::timeout(std::time::Duration::from_secs(1), request)
+        .await
+        .expect("stale responses 401 must not deadlock")
+        .expect("request task")
+        .expect_err("responses 401");
+
+    // Then
+    assert_eq!(error.code, ChatGptPlanErrorCode::ReauthenticationRequired);
+    assert_eq!(
+        storage
+            .credential()
+            .expect("newer credential")
+            .access_token
+            .expose(),
+        "access-newer"
+    );
+}
+
+#[tokio::test]
 async fn concurrent_refresh_is_serialized_and_uses_one_replacement() {
     let storage = Arc::new(MemoryStorage::new(credential(1000, 10)));
     let transport = Arc::new(FakeTransport::new(vec![
@@ -590,6 +778,58 @@ async fn temporary_refresh_failure_preserves_credential() {
             .expose(),
         "refresh-old"
     );
+}
+
+#[tokio::test]
+async fn generic_refresh_401_clears_credential_and_preserves_registration() {
+    // Given
+    let storage = MemoryStorage::new(credential(1000, 10));
+    let transport = FakeTransport::new(vec![
+        discovery_response(),
+        response(401, json!({"error":"unknown"})),
+    ]);
+
+    // When
+    let result = list_models(
+        &storage,
+        &transport,
+        &ChatGptCredentialMutationState::default(),
+        1100,
+    )
+    .await;
+
+    // Then
+    assert_eq!(
+        result.expect_err("generic refresh 401").code,
+        ChatGptPlanErrorCode::ReauthenticationRequired
+    );
+    assert!(storage.credential().is_none());
+    assert!(storage.load_registration().expect("registration").is_some());
+}
+
+#[tokio::test]
+async fn non_reauthentication_refresh_failures_preserve_credential() {
+    for status in [403, 429, 500] {
+        // Given
+        let storage = MemoryStorage::new(credential(1000, 10));
+        let transport = FakeTransport::new(vec![
+            discovery_response(),
+            response(status, json!({"error":"other"})),
+        ]);
+
+        // When
+        let result = list_models(
+            &storage,
+            &transport,
+            &ChatGptCredentialMutationState::default(),
+            1100,
+        )
+        .await;
+
+        // Then
+        assert!(result.is_err());
+        assert!(storage.credential().is_some(), "status {status}");
+    }
 }
 
 #[tokio::test]

@@ -278,7 +278,14 @@ pub(crate) async fn list_models<S: ChatGptCredentialStorage, T: PlanTransport>(
         })
         .await
         .map_err(|error| error.dto())?;
-    ensure_success(&response).map_err(|error| error.dto())?;
+    if let Err(error) = ensure_success(&response) {
+        if error.kind == InternalErrorKind::Reauth {
+            invalidate_if_current(storage, state, &token)
+                .await
+                .map_err(|error| error.dto())?;
+        }
+        return Err(error.dto());
+    }
     parse_models(&response.body).map_err(|error| error.dto())
 }
 
@@ -302,8 +309,35 @@ pub(crate) async fn generate_text<S: ChatGptCredentialStorage, T: PlanTransport>
         })
         .await
         .map_err(|error| error.dto())?;
-    ensure_success(&response).map_err(|error| error.dto())?;
+    if let Err(error) = ensure_success(&response) {
+        if error.kind == InternalErrorKind::Reauth {
+            invalidate_if_current(storage, state, &token)
+                .await
+                .map_err(|error| error.dto())?;
+        }
+        return Err(error.dto());
+    }
     parse_response_stream(&response.body).map_err(|error| error.dto())
+}
+
+async fn invalidate_if_current<S: ChatGptCredentialStorage>(
+    storage: &S,
+    state: &ChatGptCredentialMutationState,
+    request_token: &SecretToken,
+) -> Result<(), InternalError> {
+    let _guard = state.lock().await;
+    let current = storage
+        .load_credential()
+        .map_err(|_| InternalError::TRANSPORT)?;
+    if current
+        .as_ref()
+        .is_some_and(|credential| credential.access_token.expose() == request_token.expose())
+    {
+        storage
+            .clear_credential()
+            .map_err(|_| InternalError::TRANSPORT)?;
+    }
+    Ok(())
 }
 
 async fn valid_access_token<S: ChatGptCredentialStorage, T: PlanTransport>(
@@ -400,7 +434,9 @@ async fn refresh<S: ChatGptCredentialStorage, T: PlanTransport>(
         .await?;
     if !(200..300).contains(&response.status) {
         let error = InternalError::from_response(&response);
-        if terminal_refresh_error(error.machine_code.as_deref()) {
+        if error.kind == InternalErrorKind::Reauth
+            || terminal_refresh_error(error.machine_code.as_deref())
+        {
             storage
                 .clear_credential()
                 .map_err(|_| InternalError::TRANSPORT)?;
