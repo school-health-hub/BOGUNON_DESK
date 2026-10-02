@@ -4,14 +4,17 @@ import {
   createOfficialDocumentAiService,
   createOfficialDocumentAiSendGate,
   getOfficialDocumentAiActionLabel,
+  getOfficialDocumentChatGptPlanActionLabel,
   nextOfficialDocumentAiRequestId,
+  prepareOfficialDocumentAiSend,
+  selectOfficialDocumentAiGenerator,
 } from "./officialDocumentAiService";
 
 describe("official document AI service", () => {
   it("reports disconnected without calling the gateway", async () => {
     const generateText = vi.fn();
     const service = createOfficialDocumentAiService({
-      getConnection: () => ({ status: "disconnected", provider: null }),
+      isAvailable: () => false,
       generateText,
     });
     await expect(service.generate("공문 프롬프트")).rejects.toThrow("AI 서비스가 연결되지 않았습니다.");
@@ -27,10 +30,18 @@ describe("official document AI service", () => {
     expect(getOfficialDocumentAiActionLabel(provider, mode)).toBe(expected);
   });
 
+  it.each([
+    ["create" as const, "ChatGPT 요금제로 작성"],
+    ["revision" as const, "ChatGPT 요금제로 작성"],
+    ["summary" as const, "ChatGPT 요금제로 정리"],
+  ])("uses ChatGPT plan action labels", (mode, expected) => {
+    expect(getOfficialDocumentChatGptPlanActionLabel(mode)).toBe(expected);
+  });
+
   it.each(["openai", "gemini"] as const)("generates through a connected %s provider", async (provider) => {
     const generateText = vi.fn(async () => "작성 결과");
     const service = createOfficialDocumentAiService({
-      getConnection: () => ({ status: "connected", provider }),
+      isAvailable: () => provider !== null,
       generateText,
     });
     await expect(service.generate("공문 프롬프트")).resolves.toBe("작성 결과");
@@ -39,10 +50,77 @@ describe("official document AI service", () => {
 
   it("preserves normalized gateway errors", async () => {
     const service = createOfficialDocumentAiService({
-      getConnection: () => ({ status: "connected", provider: "openai" }),
+      isAvailable: () => true,
       generateText: vi.fn(async () => { throw new Error(AI_CONNECTION_ERROR); }),
     });
     await expect(service.generate("공문 프롬프트")).rejects.toThrow(AI_CONNECTION_ERROR);
+  });
+
+  it("keeps explicitly selected plan and API routes isolated without fallback", async () => {
+    const planGenerate = vi.fn(async () => { throw new Error("ChatGPT 요금제 사용 한도에 도달했습니다."); });
+    const apiGenerate = vi.fn(async () => "API 결과");
+    const planService = createOfficialDocumentAiService({ isAvailable: () => true, generateText: planGenerate });
+    const apiService = createOfficialDocumentAiService({ isAvailable: () => true, generateText: apiGenerate });
+
+    await expect(planService.generate("공문 프롬프트")).rejects.toThrow("ChatGPT 요금제 사용 한도");
+    expect(planGenerate).toHaveBeenCalledOnce();
+    expect(apiGenerate).not.toHaveBeenCalled();
+
+    await expect(apiService.generate("공문 프롬프트")).resolves.toBe("API 결과");
+    expect(apiGenerate).toHaveBeenCalledOnce();
+    expect(planGenerate).toHaveBeenCalledOnce();
+  });
+
+  it("does not call the plan generator when the selected API route fails", async () => {
+    const planGenerate = vi.fn(async () => "plan result");
+    const apiGenerate = vi.fn(async () => { throw new Error(AI_CONNECTION_ERROR); });
+    const selectedGenerator = selectOfficialDocumentAiGenerator("apiConnection", {
+      apiConnection: apiGenerate,
+      chatGptPlan: planGenerate,
+    });
+    const apiService = createOfficialDocumentAiService({ isAvailable: () => true, generateText: selectedGenerator });
+
+    await expect(apiService.generate("공문 프롬프트")).rejects.toThrow(AI_CONNECTION_ERROR);
+    expect(apiGenerate).toHaveBeenCalledOnce();
+    expect(planGenerate).not.toHaveBeenCalled();
+  });
+
+  it("blocks every generator before prompt construction when privacy findings exist", () => {
+    const buildPrompt = vi.fn(() => "전송 프롬프트");
+    const planGenerate = vi.fn(async () => "plan");
+    const apiGenerate = vi.fn(async () => "api");
+
+    const plan = prepareOfficialDocumentAiSend({
+      privateSource: "연락처 010-1234-5678",
+      buildPrompt,
+      generate: planGenerate,
+    });
+    const api = prepareOfficialDocumentAiSend({
+      privateSource: "연락처 010-1234-5678",
+      buildPrompt,
+      generate: apiGenerate,
+    });
+
+    expect(plan.status).toBe("blocked");
+    expect(api.status).toBe("blocked");
+    expect(buildPrompt).not.toHaveBeenCalled();
+    expect(planGenerate).not.toHaveBeenCalled();
+    expect(apiGenerate).not.toHaveBeenCalled();
+  });
+
+  it("prepares a safe prompt without sending until explicit confirmation", async () => {
+    const generate = vi.fn(async () => "작성 결과");
+    const prepared = prepareOfficialDocumentAiSend({
+      privateSource: "개인정보가 없는 공문 내용",
+      buildPrompt: () => "공문 프롬프트",
+      generate,
+    });
+
+    expect(prepared.status).toBe("ready");
+    expect(generate).not.toHaveBeenCalled();
+    if (prepared.status !== "ready") throw new Error("ready preparation expected");
+    await expect(prepared.gate.confirm()).resolves.toBe("작성 결과");
+    expect(generate).toHaveBeenCalledOnce();
   });
 
   it("does not send until the user confirms and sends exactly once after confirmation", async () => {
