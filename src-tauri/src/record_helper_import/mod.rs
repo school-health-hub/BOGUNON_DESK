@@ -8,6 +8,7 @@ use tauri::AppHandle;
 use tauri_plugin_dialog::DialogExt;
 
 mod hwp;
+mod hwp_text;
 mod pdf;
 mod util;
 mod zip_text;
@@ -169,7 +170,10 @@ fn preflight_reports(
     Ok((batch, reports))
 }
 
-fn extract_reports(paths: Vec<PathBuf>) -> RecordHelperImportBatch {
+fn extract_reports_with_text_limit(
+    paths: Vec<PathBuf>,
+    text_limit: usize,
+) -> RecordHelperImportBatch {
     let (mut batch, preflight) = match preflight_reports(&paths) {
         Ok(value) => value,
         Err(batch) => return batch,
@@ -182,19 +186,24 @@ fn extract_reports(paths: Vec<PathBuf>) -> RecordHelperImportBatch {
         };
         match extract_known_report(path, format, file_bytes) {
             Ok((_, report)) => {
-                text_bytes = text_bytes.saturating_add(report.text.len());
-                if text_bytes > MAX_BATCH_TEXT_BYTES {
+                let candidate = text_bytes.saturating_add(report.text.len());
+                if candidate > text_limit {
                     batch
                         .failures
-                        .push(limited_failure(&path, ImportError::BatchLimit));
+                        .push(limited_failure(path, ImportError::BatchTextLimit));
                     continue;
                 }
+                text_bytes = candidate;
                 batch.reports.push(report);
             }
-            Err(error) => batch.failures.push(limited_failure(&path, error)),
+            Err(error) => batch.failures.push(limited_failure(path, error)),
         }
     }
     batch
+}
+
+fn extract_reports(paths: Vec<PathBuf>) -> RecordHelperImportBatch {
+    extract_reports_with_text_limit(paths, MAX_BATCH_TEXT_BYTES)
 }
 
 async fn run_extraction_worker<T, F>(worker: F) -> Result<T, String>

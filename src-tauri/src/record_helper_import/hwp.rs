@@ -3,7 +3,10 @@ use std::{fs::File, io::Read, path::Path};
 use cfb::CompoundFile;
 use flate2::read::DeflateDecoder;
 
-use super::util::{ensure_has_text, normalize_extracted_text, push_limited, ImportError};
+use super::{
+    hwp_text::parse_para_text_payload,
+    util::{ensure_has_text, normalize_extracted_text, push_limited, ImportError},
+};
 
 const FILE_HEADER_SIGNATURE: &[u8] = b"HWP Document File";
 const FILE_HEADER_BYTES: usize = 256;
@@ -22,16 +25,12 @@ const HWP_RECORD_LIMIT: usize = 100_000;
 const HWP_DECOMPRESSED_BYTES: usize = 8 * 1024 * 1024;
 const HWP_TAG_PARA_TEXT: u16 = 67;
 const HWP_RECORD_EXTENDED_SIZE: usize = 0x0fff;
-const HWP_CONTROL_TAB: u16 = 0x0009;
-const HWP_CONTROL_LINE_BREAK: u16 = 0x000a;
-const HWP_CONTROL_PARAGRAPH_BREAK: u16 = 0x000d;
-const HWP_CONTROL_MAX: u16 = 0x001f;
-const HWP_CONTROL_SPAN_UNITS: usize = 8;
 
 fn read_stream(
     compound: &mut CompoundFile<File>,
     name: &str,
     limit: usize,
+    limit_error: ImportError,
 ) -> Result<Vec<u8>, ImportError> {
     let stream = compound
         .open_stream(name)
@@ -45,7 +44,7 @@ fn read_stream(
         .read_to_end(&mut bytes)
         .map_err(|_| ImportError::Unreadable)?;
     if bytes.len() > limit {
-        return Err(ImportError::XmlLimit);
+        return Err(limit_error);
     }
     Ok(bytes)
 }
@@ -59,7 +58,12 @@ fn read_u32(bytes: &[u8], offset: usize) -> Result<u32, ImportError> {
 }
 
 fn read_header(compound: &mut CompoundFile<File>) -> Result<u32, ImportError> {
-    let bytes = read_stream(compound, "FileHeader", FILE_HEADER_BYTES)?;
+    let bytes = read_stream(
+        compound,
+        "FileHeader",
+        FILE_HEADER_BYTES,
+        ImportError::Unreadable,
+    )?;
     if bytes.len() < FILE_HEADER_BYTES || !bytes.starts_with(FILE_HEADER_SIGNATURE) {
         return Err(ImportError::Unreadable);
     }
@@ -107,10 +111,10 @@ fn section_paths(compound: &CompoundFile<File>) -> Result<Vec<String>, ImportErr
     Ok(sections.into_iter().map(|(_, path)| path).collect())
 }
 
-fn inflate_raw_deflate(bytes: &[u8]) -> Result<Vec<u8>, ImportError> {
+fn inflate_raw_deflate(bytes: &[u8], limit: usize) -> Result<Vec<u8>, ImportError> {
     let mut decoder = DeflateDecoder::new(bytes);
     let mut output = Vec::new();
-    let read_limit = u64::try_from(HWP_DECOMPRESSED_BYTES)
+    let read_limit = u64::try_from(limit)
         .map_err(|_| ImportError::Unreadable)?
         .saturating_add(1);
     decoder
@@ -118,59 +122,10 @@ fn inflate_raw_deflate(bytes: &[u8]) -> Result<Vec<u8>, ImportError> {
         .take(read_limit)
         .read_to_end(&mut output)
         .map_err(|_| ImportError::Unreadable)?;
-    if output.len() > HWP_DECOMPRESSED_BYTES {
-        return Err(ImportError::XmlLimit);
+    if output.len() > limit {
+        return Err(ImportError::HwpDataLimit);
     }
     Ok(output)
-}
-
-fn push_utf16_text(output: &mut String, text_units: &mut Vec<u16>) -> Result<(), ImportError> {
-    if text_units.is_empty() {
-        return Ok(());
-    }
-    let text = String::from_utf16(text_units).map_err(|_| ImportError::Unreadable)?;
-    push_limited(output, &text)?;
-    text_units.clear();
-    Ok(())
-}
-
-fn parse_para_text_payload(payload: &[u8], output: &mut String) -> Result<(), ImportError> {
-    if payload.len() % 2 != 0 {
-        return Err(ImportError::Unreadable);
-    }
-    let units = payload
-        .chunks_exact(2)
-        .map(|chunk| u16::from_le_bytes([chunk[0], chunk[1]]))
-        .collect::<Vec<_>>();
-    let mut text_units = Vec::new();
-    let mut index = 0_usize;
-    while index < units.len() {
-        match units[index] {
-            HWP_CONTROL_TAB => {
-                push_utf16_text(output, &mut text_units)?;
-                push_limited(output, "\t")?;
-                index += 1;
-            }
-            HWP_CONTROL_LINE_BREAK | HWP_CONTROL_PARAGRAPH_BREAK => {
-                push_utf16_text(output, &mut text_units)?;
-                push_limited(output, "\n")?;
-                index += 1;
-            }
-            control if control <= HWP_CONTROL_MAX => {
-                push_utf16_text(output, &mut text_units)?;
-                let next = index
-                    .checked_add(HWP_CONTROL_SPAN_UNITS)
-                    .filter(|next| *next <= units.len())
-                    .ok_or(ImportError::Unreadable)?;
-                index = next;
-            }
-            unit => {
-                text_units.push(unit);
-                index += 1;
-            }
-        }
-    }
-    push_utf16_text(output, &mut text_units)
 }
 
 fn parse_records(
@@ -226,7 +181,10 @@ fn parse_records(
     Ok(())
 }
 
-pub fn extract_hwp_text(path: &Path) -> Result<String, ImportError> {
+pub(super) fn extract_hwp_text_with_body_limit(
+    path: &Path,
+    body_limit: usize,
+) -> Result<String, ImportError> {
     let file = File::open(path).map_err(|_| ImportError::Unreadable)?;
     let mut compound = CompoundFile::open(file).map_err(|_| ImportError::Unreadable)?;
     let properties = read_header(&mut compound)?;
@@ -234,14 +192,32 @@ pub fn extract_hwp_text(path: &Path) -> Result<String, ImportError> {
     let compressed = properties & HWP_PROPERTY_COMPRESSED != 0;
     let mut output = String::new();
     let mut records_seen = 0_usize;
+    let mut remaining_body_bytes = body_limit;
     for section in sections {
-        let bytes = read_stream(&mut compound, &section, HWP_DECOMPRESSED_BYTES)?;
         let section_bytes = if compressed {
-            inflate_raw_deflate(&bytes)?
+            let bytes = read_stream(
+                &mut compound,
+                &section,
+                HWP_DECOMPRESSED_BYTES,
+                ImportError::HwpDataLimit,
+            )?;
+            inflate_raw_deflate(&bytes, remaining_body_bytes)?
         } else {
-            bytes
+            read_stream(
+                &mut compound,
+                &section,
+                remaining_body_bytes,
+                ImportError::HwpDataLimit,
+            )?
         };
+        remaining_body_bytes = remaining_body_bytes
+            .checked_sub(section_bytes.len())
+            .ok_or(ImportError::HwpDataLimit)?;
         parse_records(&section_bytes, &mut output, &mut records_seen)?;
     }
     ensure_has_text(normalize_extracted_text(&output))
+}
+
+pub fn extract_hwp_text(path: &Path) -> Result<String, ImportError> {
+    extract_hwp_text_with_body_limit(path, HWP_DECOMPRESSED_BYTES)
 }

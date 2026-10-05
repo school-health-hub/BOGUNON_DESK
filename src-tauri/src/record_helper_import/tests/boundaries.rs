@@ -133,9 +133,81 @@ fn rejects_hwp_section_record_and_decompressed_limits() {
     );
     assert_eq!(
         hwp::extract_hwp_text(&decompressed_limit),
-        Err(ImportError::XmlLimit)
+        Err(ImportError::HwpDataLimit)
     );
     fs::remove_file(decompressed_limit).unwrap();
+}
+
+#[test]
+fn applies_hwp_body_limit_across_uncompressed_sections() {
+    let sections = [hwp_text_record("alpha"), hwp_text_record("beta")];
+    let exact_limit = sections.iter().map(Vec::len).sum::<usize>();
+    let hwp = write_hwp_sections("aggregate-uncompressed", &sections, 0, 0x0500_0000);
+
+    assert_eq!(
+        hwp::extract_hwp_text_with_body_limit(&hwp, exact_limit - 1),
+        Err(ImportError::HwpDataLimit)
+    );
+    assert_eq!(
+        hwp::extract_hwp_text_with_body_limit(&hwp, exact_limit).unwrap(),
+        "alpha\nbeta"
+    );
+    fs::remove_file(hwp).unwrap();
+}
+
+#[test]
+fn applies_hwp_body_limit_to_aggregate_decompressed_bytes() {
+    let sections = [hwp_text_record("alpha"), hwp_text_record("beta")];
+    let exact_limit = sections.iter().map(Vec::len).sum::<usize>();
+    let hwp = write_hwp_sections(
+        "aggregate-compressed",
+        &sections,
+        TEST_HWP_PROPERTY_COMPRESSED,
+        0x0500_0000,
+    );
+
+    assert_eq!(
+        hwp::extract_hwp_text_with_body_limit(&hwp, exact_limit - 1),
+        Err(ImportError::HwpDataLimit)
+    );
+    assert_eq!(
+        hwp::extract_hwp_text_with_body_limit(&hwp, exact_limit).unwrap(),
+        "alpha\nbeta"
+    );
+    fs::remove_file(hwp).unwrap();
+}
+
+#[test]
+fn rejected_batch_text_does_not_consume_budget_for_later_reports() {
+    let first = write_hwpx("batch-text-first", "12345678");
+    let rejected = write_hwpx("batch-text-rejected", "12345");
+    let last = write_hwpx("batch-text-last", "xy");
+
+    let batch =
+        extract_reports_with_text_limit(vec![first.clone(), rejected.clone(), last.clone()], 10);
+
+    assert_eq!(batch.reports.len(), 2);
+    assert_eq!(
+        batch
+            .reports
+            .iter()
+            .map(|report| report.text.len())
+            .sum::<usize>(),
+        10
+    );
+    assert_eq!(batch.failures.len(), 1);
+    assert_eq!(
+        batch.failures[0].message,
+        ImportError::BatchTextLimit.message()
+    );
+    assert_ne!(
+        ImportError::BatchLimit.message(),
+        ImportError::BatchTextLimit.message()
+    );
+
+    for path in [first, rejected, last] {
+        fs::remove_file(path).unwrap();
+    }
 }
 
 #[test]

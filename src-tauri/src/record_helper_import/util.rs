@@ -17,8 +17,10 @@ pub enum ImportError {
     HwpUnsupportedVersion,
     HwpSectionLimit,
     HwpRecordLimit,
+    HwpDataLimit,
     InvalidFileName,
     BatchLimit,
+    BatchTextLimit,
 }
 
 impl ImportError {
@@ -41,8 +43,10 @@ impl ImportError {
             Self::HwpUnsupportedVersion => "HWP 5.x 문서만 지원합니다.",
             Self::HwpSectionLimit => "HWP 문서의 본문 구역이 너무 많습니다.",
             Self::HwpRecordLimit => "HWP 문서의 본문 레코드가 너무 많습니다.",
+            Self::HwpDataLimit => "HWP 문서의 본문 데이터가 너무 큽니다.",
             Self::InvalidFileName => "파일 이름을 읽지 못했습니다.",
             Self::BatchLimit => "선택한 파일의 전체 크기가 너무 큽니다.",
+            Self::BatchTextLimit => "추출된 활동보고서 본문의 전체 크기가 너무 큽니다.",
         }
     }
 }
