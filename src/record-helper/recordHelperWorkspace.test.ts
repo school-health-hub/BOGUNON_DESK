@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   createRecordHelperReportId,
   createRecordHelperWorkspace,
+  getRecordHelperReportNavigation,
+  hasRecordHelperUserWork,
   recordHelperReportFormats,
   reduceRecordHelperWorkspace,
   type RecordHelperImportedReport,
@@ -125,6 +127,66 @@ describe("record helper report workspace", () => {
         activeAiRequestId: null,
       },
     ]);
+  });
+
+  it("derives bounded previous and next report navigation from selection", () => {
+    const imported = reduceRecordHelperWorkspace(
+      reduceRecordHelperWorkspace(createRecordHelperWorkspace(), { type: "beginImport", requestId: 30 }),
+      {
+        type: "resolveImport",
+        requestId: 30,
+        reports: [
+          importedReport("memory-a", "a.pdf", "A"),
+          importedReport("memory-b", "b.pdf", "B"),
+          importedReport("memory-c", "c.pdf", "C"),
+        ],
+        failures: [],
+      },
+    );
+    const firstId = createRecordHelperReportId("memory-a");
+    const secondId = createRecordHelperReportId("memory-b");
+    const thirdId = createRecordHelperReportId("memory-c");
+
+    expect(getRecordHelperReportNavigation(imported.reports, firstId)).toEqual({
+      currentIndex: 0,
+      totalCount: 3,
+      previousReportId: null,
+      nextReportId: secondId,
+    });
+    expect(getRecordHelperReportNavigation(imported.reports, secondId)).toEqual({
+      currentIndex: 1,
+      totalCount: 3,
+      previousReportId: firstId,
+      nextReportId: thirdId,
+    });
+    expect(getRecordHelperReportNavigation(imported.reports, thirdId)).toEqual({
+      currentIndex: 2,
+      totalCount: 3,
+      previousReportId: secondId,
+      nextReportId: null,
+    });
+  });
+
+  it("requires removal confirmation only after user or AI work exists", () => {
+    const imported = reduceRecordHelperWorkspace(
+      reduceRecordHelperWorkspace(createRecordHelperWorkspace(), { type: "beginImport", requestId: 31 }),
+      {
+        type: "resolveImport",
+        requestId: 31,
+        reports: [importedReport("memory-a", "a.pdf", "A")],
+        failures: [],
+      },
+    );
+    const untouched = imported.reports[0];
+    if (untouched === undefined) throw new Error("expected imported report");
+    const withMetadata = { ...untouched, studentLabel: "가상 학생" };
+    const withMemo = { ...untouched, teacherMemo: "합성 관찰 메모" };
+    const withDraft = { ...untouched, aiStatus: "success" as const, aiDraft: "비식별 AI 초안" };
+
+    expect(hasRecordHelperUserWork(untouched)).toBe(false);
+    expect(hasRecordHelperUserWork(withMetadata)).toBe(true);
+    expect(hasRecordHelperUserWork(withMemo)).toBe(true);
+    expect(hasRecordHelperUserWork(withDraft)).toBe(true);
   });
 
   it("removes the selected report by choosing the next report before the previous report", () => {

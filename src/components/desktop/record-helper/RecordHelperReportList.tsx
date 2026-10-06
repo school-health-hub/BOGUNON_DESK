@@ -9,6 +9,13 @@ type RecordHelperReportListProps = {
   readonly onSelect: (reportId: RecordHelperReportId) => void;
 };
 
+const aiStatusLabels: Record<RecordHelperReport["aiStatus"], string> = {
+  idle: "작성 전",
+  generating: "작성 중",
+  success: "초안 생성됨",
+  error: "오류",
+};
+
 export function RecordHelperReportList({
   reports,
   selectedReportId,
@@ -33,6 +40,7 @@ export function RecordHelperReportList({
               <span>
                 <strong title={report.sourceName}>{report.sourceName}</strong>
                 <small>{report.studentLabel || "학생 구분 없음"} · {report.activityLabel || "활동 미정"}</small>
+                <em className={`record-helper-report-status is-${report.aiStatus}`}>{aiStatusLabels[report.aiStatus]}</em>
               </span>
               <RecordHelperFormatBadge format={report.format} />
             </button>

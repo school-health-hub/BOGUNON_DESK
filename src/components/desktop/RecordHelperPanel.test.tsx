@@ -111,6 +111,7 @@ describe("RecordHelperPanel report workspace", () => {
     expect(markup).toContain("HWP 5.x 일반/압축 문서");
     expect(markup).toContain("아직 가져온 활동보고서가 없습니다.");
     expect(markup).toContain("가져온 원본은 현재 앱 메모리에만 남습니다.");
+    expect(markup).toContain("생기부 도우미를 닫으면 원문, 입력한 메모와 AI 초안이 모두 사라집니다.");
     expect(markup).toContain("AI 전송 전 개인정보를 비식별 처리하고, 실제 전송 내용을 직접 확인합니다.");
     expect(markup).not.toContain("선택한 파일이 없습니다.");
   });
@@ -166,5 +167,17 @@ describe("RecordHelperPanel report workspace", () => {
     expect(markup).not.toContain("AI 전송 내용 확인");
     expect(markup).not.toContain("Gemini");
     expect(markup).not.toContain("OpenAI");
+  });
+
+  it("routes X, Escape, backdrop, clear, and edited removal through one discard gate", () => {
+    expect(recordHelperPanelSource).toContain('onClick={requestClose}');
+    expect(recordHelperPanelSource).toMatch(/event\.target === event\.currentTarget\) requestClose\(\)/);
+    expect(recordHelperPanelSource).toMatch(
+      /if \(pendingDiscard !== null\) \{\s+setPendingDiscard\(null\);\s+return;\s+\}\s+requestClose\(\)/,
+    );
+    expect(recordHelperPanelSource).toContain("onClearAll={requestClearAll}");
+    expect(recordHelperPanelSource).toContain("onRemoveReport={requestRemoveReport}");
+    expect(recordHelperPanelSource).toContain("onCancel={() => setPendingDiscard(null)}");
+    expect(recordHelperPanelSource).toContain("onConfirm={confirmDiscard}");
   });
 });

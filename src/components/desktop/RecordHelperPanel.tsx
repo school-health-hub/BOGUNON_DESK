@@ -1,5 +1,5 @@
 import { BookOpenText, FilePlus2, ShieldCheck, X } from "lucide-react";
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useChatGptConnection } from "../../chatgpt/ChatGptConnectionContext";
 import { deidentifyRecordHelperContent } from "../../record-helper/deidentification";
 import { createRecordHelperAiSendGate, nextRecordHelperAiRequestId, resolveRecordHelperChatGptPlanAvailability } from "../../record-helper/recordHelperAiService";
@@ -7,6 +7,7 @@ import { importRecordHelperReports, type RecordHelperImportBatch } from "../../r
 import {
   createRecordHelperReportId,
   createRecordHelperWorkspace,
+  hasRecordHelperUserWork,
   reduceRecordHelperWorkspace,
   type RecordHelperImportedReport,
   type RecordHelperImportFailure,
@@ -14,6 +15,7 @@ import {
 } from "../../record-helper/recordHelperWorkspace";
 import { RecordHelperWorkspaceView } from "./record-helper/RecordHelperWorkspaceView";
 import { RecordHelperAiConfirmation, type RecordHelperAiConfirmationData } from "./RecordHelperAiConfirmation";
+import { RecordHelperDiscardConfirmation, type RecordHelperDiscardRequest } from "./RecordHelperDiscardConfirmation";
 
 type ImportReports = () => Promise<RecordHelperImportBatch | null>;
 
@@ -27,6 +29,10 @@ type RecordHelperPanelProps = {
 type PendingConfirmation = RecordHelperAiConfirmationData & { readonly reportId: string };
 
 const importFailureMessage = "활동보고서 파일을 가져오지 못했습니다.";
+
+const assertNever = (value: never): never => {
+  throw new TypeError(`지원하지 않는 생기부 도우미 폐기 요청: ${String(value)}`);
+};
 
 const createWorkspaceReport = (
   report: RecordHelperImportBatch["reports"][number],
@@ -58,6 +64,7 @@ export function RecordHelperPanel({
   const importButtonRef = useRef<HTMLButtonElement>(null);
   const requestIdRef = useRef(0);
   const [confirmation, setConfirmation] = useState<PendingConfirmation | null>(null);
+  const [pendingDiscard, setPendingDiscard] = useState<RecordHelperDiscardRequest | null>(null);
   const availability = resolveRecordHelperChatGptPlanAvailability({
     status: chatGpt.state.status,
     planUsageEnabled: chatGpt.state.planUsageEnabled,
@@ -97,6 +104,48 @@ export function RecordHelperPanel({
     );
   };
 
+  const requestClose = useCallback((): void => {
+    if (workspace.reports.length === 0) {
+      onClose();
+      return;
+    }
+    setPendingDiscard({ kind: "close" });
+  }, [onClose, workspace.reports.length]);
+
+  const requestClearAll = (): void => {
+    if (workspace.reports.length === 0) return;
+    setPendingDiscard({ kind: "clear" });
+  };
+
+  const requestRemoveReport = (reportId: string): void => {
+    const report = workspace.reports.find((candidate) => candidate.id === reportId);
+    if (report === undefined) return;
+    if (!hasRecordHelperUserWork(report)) {
+      dispatch({ type: "removeReport", reportId });
+      return;
+    }
+    setPendingDiscard({ kind: "remove", reportId, sourceName: report.sourceName });
+  };
+
+  const confirmDiscard = (): void => {
+    if (pendingDiscard === null) return;
+    switch (pendingDiscard.kind) {
+      case "close":
+        setPendingDiscard(null);
+        onClose();
+        return;
+      case "clear":
+        dispatch({ type: "clearAll" });
+        break;
+      case "remove":
+        dispatch({ type: "removeReport", reportId: pendingDiscard.reportId });
+        break;
+      default:
+        return assertNever(pendingDiscard);
+    }
+    setPendingDiscard(null);
+  };
+
   useEffect(() => {
     importButtonRef.current?.focus();
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -105,11 +154,15 @@ export function RecordHelperPanel({
         setConfirmation(null);
         return;
       }
-      onClose();
+      if (pendingDiscard !== null) {
+        setPendingDiscard(null);
+        return;
+      }
+      requestClose();
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [confirmation, onClose]);
+  }, [confirmation, pendingDiscard, requestClose]);
 
   const addReports = async (): Promise<void> => {
     const requestId = requestIdRef.current + 1;
@@ -138,7 +191,7 @@ export function RecordHelperPanel({
   };
 
   return (
-    <div className="record-helper-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <div className="record-helper-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) requestClose(); }}>
       <section className="record-helper-panel" role="dialog" aria-modal="true" aria-labelledby="record-helper-title" aria-describedby="record-helper-description">
         <header>
           <div className="record-helper-panel__title-icon"><BookOpenText size={18} aria-hidden="true" /></div>
@@ -146,7 +199,7 @@ export function RecordHelperPanel({
             <strong id="record-helper-title">생기부 도우미</strong>
             <span id="record-helper-description">학생 활동보고서를 불러와 학생별 기록 자료를 정리합니다.</span>
           </div>
-          <button type="button" aria-label="생기부 도우미 닫기" onClick={onClose}><X size={16} aria-hidden="true" /></button>
+          <button type="button" aria-label="생기부 도우미 닫기" onClick={requestClose}><X size={16} aria-hidden="true" /></button>
         </header>
 
         <div className="record-helper-panel__body">
@@ -169,6 +222,7 @@ export function RecordHelperPanel({
             <div>
               <strong>가져온 원본은 현재 앱 메모리에만 남습니다.</strong>
               <span>원문, 학생정보, 교사 메모는 저장·동기화·업로드하지 않습니다.</span>
+              <span>생기부 도우미를 닫으면 원문, 입력한 메모와 AI 초안이 모두 사라집니다.</span>
               <span>AI 전송 전 개인정보를 비식별 처리하고, 실제 전송 내용을 직접 확인합니다.</span>
             </div>
           </div>
@@ -179,6 +233,8 @@ export function RecordHelperPanel({
             aiAvailability={availability}
             onOpenAiSettings={onOpenAiSettings}
             onPrepareAiDraft={prepareAiDraft}
+            onRemoveReport={requestRemoveReport}
+            onClearAll={requestClearAll}
           />
         </div>
       </section>
@@ -187,6 +243,13 @@ export function RecordHelperPanel({
           confirmation={confirmation}
           onCancel={() => setConfirmation(null)}
           onConfirm={(prompt) => generateAiDraft(confirmation.reportId, prompt)}
+        />
+      )}
+      {pendingDiscard !== null && (
+        <RecordHelperDiscardConfirmation
+          request={pendingDiscard}
+          onCancel={() => setPendingDiscard(null)}
+          onConfirm={confirmDiscard}
         />
       )}
     </div>

@@ -42,6 +42,13 @@ export type RecordHelperWorkspace = {
   readonly latestBatchFailures: readonly RecordHelperImportFailure[];
 };
 
+export type RecordHelperReportNavigation = {
+  readonly currentIndex: number;
+  readonly totalCount: number;
+  readonly previousReportId: RecordHelperReportId | null;
+  readonly nextReportId: RecordHelperReportId | null;
+};
+
 export type RecordHelperWorkspaceAction =
   | { readonly type: "beginImport"; readonly requestId: number }
   | {
@@ -102,6 +109,28 @@ const toReport = (report: RecordHelperImportedReport): RecordHelperReport => ({
 
 const reportExists = (reports: readonly RecordHelperReport[], reportId: RecordHelperReportId): boolean =>
   reports.some((report) => report.id === reportId);
+
+export const getRecordHelperReportNavigation = (
+  reports: readonly RecordHelperReport[],
+  reportId: RecordHelperReportId,
+): RecordHelperReportNavigation | null => {
+  const currentIndex = reports.findIndex((report) => report.id === reportId);
+  if (currentIndex === -1) return null;
+  return {
+    currentIndex,
+    totalCount: reports.length,
+    previousReportId: reports[currentIndex - 1]?.id ?? null,
+    nextReportId: reports[currentIndex + 1]?.id ?? null,
+  };
+};
+
+export const hasRecordHelperUserWork = (report: RecordHelperReport): boolean =>
+  report.studentLabel.trim() !== ""
+  || report.classLabel.trim() !== ""
+  || report.activityLabel.trim() !== ""
+  || report.teacherMemo.trim() !== ""
+  || report.aiDraft.trim() !== ""
+  || report.aiStatus === "generating";
 
 export const reduceRecordHelperWorkspace = (
   state: RecordHelperWorkspace,

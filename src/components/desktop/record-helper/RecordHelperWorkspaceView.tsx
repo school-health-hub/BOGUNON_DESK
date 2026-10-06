@@ -5,6 +5,7 @@ import type {
   RecordHelperWorkspace,
   RecordHelperWorkspaceAction,
 } from "../../../record-helper/recordHelperWorkspace";
+import { getRecordHelperReportNavigation } from "../../../record-helper/recordHelperWorkspace";
 import { RecordHelperReportDetail } from "./RecordHelperReportDetail";
 import { RecordHelperReportList } from "./RecordHelperReportList";
 import type { RecordHelperChatGptPlanAvailability } from "../../../record-helper/recordHelperAiService";
@@ -15,6 +16,8 @@ type RecordHelperWorkspaceViewProps = {
   readonly aiAvailability: RecordHelperChatGptPlanAvailability;
   readonly onOpenAiSettings: () => void;
   readonly onPrepareAiDraft: (reportId: RecordHelperReport["id"]) => void;
+  readonly onRemoveReport: (reportId: RecordHelperReport["id"]) => void;
+  readonly onClearAll: () => void;
 };
 
 const selectedReport = (workspace: RecordHelperWorkspace): RecordHelperReport | null => (
@@ -44,8 +47,9 @@ function RecordHelperImportFeedback({ workspace }: { readonly workspace: RecordH
   );
 }
 
-export function RecordHelperWorkspaceView({ dispatch, workspace, aiAvailability, onOpenAiSettings, onPrepareAiDraft }: RecordHelperWorkspaceViewProps) {
+export function RecordHelperWorkspaceView({ dispatch, workspace, aiAvailability, onOpenAiSettings, onPrepareAiDraft, onRemoveReport, onClearAll }: RecordHelperWorkspaceViewProps) {
   const report = selectedReport(workspace);
+  const navigation = report === null ? null : getRecordHelperReportNavigation(workspace.reports, report.id);
 
   if (workspace.reports.length === 0) {
     return (
@@ -63,23 +67,28 @@ export function RecordHelperWorkspaceView({ dispatch, workspace, aiAvailability,
       <RecordHelperReportList
         reports={workspace.reports}
         selectedReportId={workspace.selectedReportId}
-        onRemove={(reportId) => dispatch({ type: "removeReport", reportId })}
+        onRemove={onRemoveReport}
         onSelect={(reportId) => dispatch({ type: "selectReport", reportId })}
       />
       <div className="record-helper-workspace__main">
         <RecordHelperImportFeedback workspace={workspace} />
-        {report !== null && (
+        {report !== null && navigation !== null && (
           <RecordHelperReportDetail
             report={report}
+            currentIndex={navigation.currentIndex}
+            totalCount={navigation.totalCount}
+            previousReportId={navigation.previousReportId}
+            nextReportId={navigation.nextReportId}
             onMemoChange={(reportId, teacherMemo) => dispatch({ type: "updateTeacherMemo", reportId, teacherMemo })}
             onMetadataChange={(reportId, metadata) => dispatch({ type: "updateReportMetadata", reportId, metadata })}
-            onRemove={(reportId) => dispatch({ type: "removeReport", reportId })}
+            onRemove={onRemoveReport}
+            onSelect={(reportId) => dispatch({ type: "selectReport", reportId })}
             aiAvailability={aiAvailability}
             onOpenAiSettings={onOpenAiSettings}
             onPrepareAiDraft={onPrepareAiDraft}
           />
         )}
-        <button className="record-helper-clear" type="button" onClick={() => dispatch({ type: "clearAll" })}>
+        <button className="record-helper-clear" type="button" onClick={onClearAll}>
           <Trash2 size={14} aria-hidden="true" />
           전체 비우기
         </button>
