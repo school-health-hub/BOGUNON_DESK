@@ -20,6 +20,7 @@ mod notifications;
 mod official_document_import;
 mod purchase_helper;
 mod purchase_settlement;
+mod record_helper_import;
 mod weather;
 mod work_folders;
 
@@ -270,6 +271,7 @@ pub fn run() {
             purchase_settlement::save_purchase_settlement_export,
             purchase_helper::set_purchase_helper_active,
             official_document_import::pick_and_extract_official_document,
+            record_helper_import::pick_and_extract_record_helper_reports,
             get_autostart_enabled,
             set_autostart_enabled,
             set_close_to_tray,

@@ -1,127 +1,158 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ChatGptConnectionState, ChatGptModel, ChatGptPlanError } from "../../chatgpt/types";
-import { RecordHelperAiOutput, RecordHelperPanel } from "./RecordHelperPanel";
+import { describe, expect, it, vi } from "vitest";
+import { createRecordHelperReportId, type RecordHelperWorkspace } from "../../record-helper/recordHelperWorkspace";
+import { RecordHelperPanel } from "./RecordHelperPanel";
+import recordHelperPanelSource from "./RecordHelperPanel.tsx?raw";
 
-const useChatGptConnectionMock = vi.hoisted(() => vi.fn());
+const retainedPhase5Sources = import.meta.glob([
+  "./RecordHelperAiConfirmation.tsx",
+  "./RecordHelperAiConfirmation.test.tsx",
+  "../../record-helper/privacyGuard.ts",
+  "../../record-helper/privacyGuard.test.ts",
+  "../../record-helper/promptBuilder.ts",
+  "../../record-helper/promptBuilder.test.ts",
+  "../../record-helper/recordHelperAiService.ts",
+  "../../record-helper/recordHelperAiService.test.ts",
+  "../../record-helper/recordHelperSession.ts",
+  "../../record-helper/recordHelperSession.test.ts",
+  "../../record-helper/types.ts",
+], { eager: true, import: "default", query: "?raw" });
 
-vi.mock("../../chatgpt/ChatGptConnectionContext", () => ({
-  useChatGptConnection: useChatGptConnectionMock,
-}));
-
-const disconnectedState: ChatGptConnectionState = {
-  status: "disconnected",
-  email: null,
-  displayName: null,
-  planUsageEnabled: false,
-  clientRegistrationExists: false,
-  showPlanUsageNotice: false,
-  notice: null,
-  isLoading: false,
-  isSigningIn: false,
-  isDisconnecting: false,
-  error: null,
+const populatedWorkspace: RecordHelperWorkspace = {
+  reports: [
+    {
+      id: createRecordHelperReportId("report-a"),
+      sourceName: "아주긴파일이름-관찰기록-학급자치활동-1학기-상담메모.pdf",
+      format: "pdf",
+      extractedText: "자료 조사 과정에서 맡은 역할을 꾸준히 수행하고 친구의 의견을 경청함.",
+      studentLabel: "학생 A",
+      classLabel: "1학년 2반",
+      activityLabel: "학급자치",
+      teacherMemo: "협업 태도를 중심으로 확인",
+    },
+    {
+      id: createRecordHelperReportId("report-b"),
+      sourceName: "진로활동.hwpx",
+      format: "hwpx",
+      extractedText: "진로 탐색 활동 본문",
+      studentLabel: "",
+      classLabel: "",
+      activityLabel: "",
+      teacherMemo: "",
+    },
+  ],
+  selectedReportId: createRecordHelperReportId("report-a"),
+  importStatus: "success",
+  importError: null,
+  activeImportRequestId: null,
+  latestBatchFailures: [
+    { sourceName: "잠긴문서.docx", error: "암호화된 문서는 읽을 수 없습니다." },
+  ],
 };
 
-const setChatGptConnection = ({
-  state = disconnectedState,
-  models = [],
-  selectedModel = null,
-  modelsLoading = false,
-  modelsError = null,
-}: {
-  readonly state?: ChatGptConnectionState;
-  readonly models?: readonly ChatGptModel[];
-  readonly selectedModel?: string | null;
-  readonly modelsLoading?: boolean;
-  readonly modelsError?: ChatGptPlanError | null;
-} = {}): void => {
-  useChatGptConnectionMock.mockReturnValue({
-    state,
-    models,
-    selectedModel,
-    modelsLoading,
-    modelsError,
-    generateText: vi.fn(async () => "ChatGPT 요금제 결과"),
-  });
+const allFailureWorkspace: RecordHelperWorkspace = {
+  reports: [],
+  selectedReportId: null,
+  importStatus: "success",
+  importError: null,
+  activeImportRequestId: null,
+  latestBatchFailures: [
+    { sourceName: "암호설정-활동보고서.hwp", error: "암호화된 HWP 문서는 읽을 수 없습니다." },
+    { sourceName: "손상된보고서.pdf", error: "문서에서 읽을 수 있는 본문을 찾지 못했습니다." },
+  ],
 };
 
-const renderPanel = (): string => renderToStaticMarkup(
-  <RecordHelperPanel onClose={vi.fn()} onOpenAiSettings={vi.fn()} />,
+const importErrorWorkspace: RecordHelperWorkspace = {
+  ...populatedWorkspace,
+  importStatus: "error",
+  importError: "활동보고서 파일을 가져오지 못했습니다.",
+};
+
+const renderPanel = (initialWorkspace?: RecordHelperWorkspace): string => renderToStaticMarkup(
+  <RecordHelperPanel
+    importReports={vi.fn(async () => null)}
+    initialWorkspace={initialWorkspace}
+    onClose={vi.fn()}
+  />,
 );
 
-describe("RecordHelperPanel", () => {
-  beforeEach(() => setChatGptConnection());
+describe("RecordHelperPanel report workspace", () => {
+  it("retains Phase 5 modules without importing or calling them from the report workspace panel", () => {
+    expect(Object.keys(retainedPhase5Sources)).toHaveLength(11);
+    expect(recordHelperPanelSource).not.toMatch(
+      /RecordHelperAiConfirmation|privacyGuard|promptBuilder|recordHelperAiService|recordHelperSession|chatGpt\.generateText|useChatGptConnection|useAiConnection|fetch\(|localStorage|sessionStorage|Store|supabase|console\./,
+    );
+  });
 
-  it("renders the local workspace and privacy guidance", () => {
+  it("renders the dialog title, internal close action, empty state, and local import support guidance", () => {
     const markup = renderPanel();
 
+    expect(markup).toContain("role=\"dialog\"");
     expect(markup).toContain("생기부 도우미");
-    expect(markup).toContain("비식별 활동·관찰 메모를 정리해 기록 문구를 준비합니다.");
-    expect(markup).toContain("비식별 활동·관찰 메모");
-    expect(markup).toContain("작성 요청 / 강조할 점");
-    expect(markup).toContain("학생 이름·학번·연락처·건강정보 등 개인을 식별할 수 있는 정보는 입력하지 마세요.");
-    expect(markup).toContain("자동 개인정보 검사는 보조 기능이며 모든 정보를 탐지하지 못할 수 있습니다.");
-    expect(markup).toContain("입력 내용 점검");
+    expect(markup).toContain("학생 활동보고서를 불러와 학생별 기록 자료를 정리합니다.");
+    expect(markup).toContain("aria-label=\"생기부 도우미 닫기\"");
+    expect(markup).toContain("활동보고서 파일 추가");
+    expect(markup).toContain("PDF · HWP/HWPX · DOCX");
+    expect(markup).toContain("HWP 5.x 일반/압축 문서");
+    expect(markup).toContain("아직 가져온 활동보고서가 없습니다.");
+    expect(markup).toContain("가져온 원본은 현재 앱 메모리에만 남습니다.");
+    expect(markup).toContain("원문 개인정보는 AI로 전송하지 않습니다.");
+    expect(markup).toContain("다음 단계에서 비식별 처리와 전송 전 확인을 추가합니다.");
+    expect(markup).toContain("AI 작성 기능 준비 중");
+    expect(markup).not.toContain("선택한 파일이 없습니다.");
   });
 
-  it("shows settings without an AI action while ChatGPT plan is unavailable", () => {
-    const markup = renderPanel();
+  it("renders imported reports, selected detail, editable labels, memo, failure warnings, and privacy notices", () => {
+    const markup = renderPanel(populatedWorkspace);
 
-    expect(markup).toContain("ChatGPT 요금제가 연결되지 않았습니다.");
-    expect(markup).toContain("AI 연결 설정");
-    expect(markup).not.toContain("ChatGPT 요금제로 작성");
+    expect(markup).toContain("2개 보고서");
+    expect(markup).toContain("아주긴파일이름-관찰기록-학급자치활동-1학기-상담메모.pdf");
+    expect(markup).toContain("PDF");
+    expect(markup).toContain("HWPX");
+    expect(markup).toContain("학생 구분");
+    expect(markup).toContain("2학년 3반 15번");
+    expect(markup).toContain("학생 A");
+    expect(markup).toContain("학급/그룹");
+    expect(markup).toContain("1학년 2반");
+    expect(markup).toContain("활동명");
+    expect(markup).toContain("학급자치");
+    expect(markup).toContain("추출된 원문");
+    expect(markup).toContain("자료 조사 과정에서 맡은 역할을 꾸준히 수행하고 친구의 의견을 경청함.");
+    expect(markup).toContain("교사 메모/관찰 내용");
+    expect(markup).toContain("협업 태도를 중심으로 확인");
+    expect(markup).toContain("잠긴문서.docx");
+    expect(markup).toContain("암호화된 문서는 읽을 수 없습니다.");
+    expect(markup).toContain("전체 비우기");
+    expect(markup).toContain("선택 보고서 제거");
   });
 
-  it("shows the ChatGPT plan action only for a selected catalog model", () => {
-    setChatGptConnection({
-      state: { ...disconnectedState, status: "connected", planUsageEnabled: true },
-      models: [{ slug: "gpt-account-model", displayName: "GPT Account Model" }],
-      selectedModel: "gpt-account-model",
-    });
-    const markup = renderPanel();
+  it("renders safe per-file failures when an import batch contains no reports", () => {
+    const markup = renderPanel(allFailureWorkspace);
 
-    expect(markup).toContain("ChatGPT 요금제 연결됨 · GPT Account Model");
-    expect(markup).toContain("ChatGPT 요금제로 작성");
+    expect(markup).toContain("가져온 활동보고서가 없습니다.");
+    expect(markup).toContain("가져오지 못한 파일");
+    expect(markup).toContain("암호설정-활동보고서.hwp");
+    expect(markup).toContain("암호화된 HWP 문서는 읽을 수 없습니다.");
+    expect(markup).toContain("손상된보고서.pdf");
+    expect(markup).toContain("문서에서 읽을 수 있는 본문을 찾지 못했습니다.");
+  });
+
+  it("renders a populated import error alongside the existing report workspace", () => {
+    const markup = renderPanel(importErrorWorkspace);
+
+    expect(markup).toContain("활동보고서 파일을 가져오지 못했습니다.");
+    expect(markup).toContain("아주긴파일이름-관찰기록-학급자치활동-1학기-상담메모.pdf");
+  });
+
+  it("does not render ChatGPT hooks, AI settings, generation actions, or confirmation surface", () => {
+    const markup = renderPanel(populatedWorkspace);
+
+    expect(markup).not.toContain("ChatGPT");
     expect(markup).not.toContain("AI 연결 설정");
-  });
-
-  it("keeps the action hidden when plan usage is disabled on a connected account", () => {
-    setChatGptConnection({
-      state: { ...disconnectedState, status: "connected", planUsageEnabled: false },
-      models: [{ slug: "gpt-account-model", displayName: "GPT Account Model" }],
-      selectedModel: "gpt-account-model",
-    });
-    const markup = renderPanel();
-
-    expect(markup).toContain("ChatGPT 요금제가 연결되지 않았습니다.");
-    expect(markup).not.toContain("ChatGPT 요금제로 작성");
-  });
-
-  it.each([
-    [{ modelsLoading: true, modelsError: null, selectedModel: "gpt-account-model" }, "ChatGPT 모델을 준비 중입니다."],
-    [{ modelsLoading: false, modelsError: { code: "temporaryFailure", message: "모델 목록 오류" }, selectedModel: "gpt-account-model" }, "모델 목록 오류"],
-    [{ modelsLoading: false, modelsError: null, selectedModel: null }, "ChatGPT 모델을 선택해 주세요."],
-    [{ modelsLoading: false, modelsError: null, selectedModel: "stale-model" }, "ChatGPT 모델을 선택해 주세요."],
-  ] as const)("keeps the action hidden for unavailable model state", (modelState, message) => {
-    setChatGptConnection({
-      state: { ...disconnectedState, status: "connected", planUsageEnabled: true },
-      models: [{ slug: "gpt-account-model", displayName: "GPT Account Model" }],
-      selectedModel: modelState.selectedModel,
-      modelsLoading: modelState.modelsLoading,
-      modelsError: modelState.modelsError,
-    });
-    const markup = renderPanel();
-
-    expect(markup).toContain(message);
-    expect(markup).not.toContain("ChatGPT 요금제로 작성");
-  });
-
-  it("renders AI output and teacher review guidance without credential fields", () => {
-    const markup = renderToStaticMarkup(<RecordHelperAiOutput response="가상 AI 초안" />);
-
-    expect(markup).toContain("가상 AI 초안");
-    expect(markup).toContain("실제 학생부 입력 전 교사가 사실관계와 표현을 확인해 주세요.");
-    expect(markup).not.toMatch(/accessToken|refreshToken|idToken|Authorization/);
+    expect(markup).not.toContain("요금제로 작성");
+    expect(markup).not.toContain("생성");
+    expect(markup).not.toContain("AI 전송 내용 확인");
+    expect(markup).toContain("AI 작성 기능 준비 중");
+    expect(markup).not.toMatch(/<button[^>]*>[^<]*AI 작성 기능 준비 중/);
   });
 });
