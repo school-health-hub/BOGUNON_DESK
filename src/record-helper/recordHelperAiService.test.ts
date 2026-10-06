@@ -5,6 +5,8 @@ import {
   prepareRecordHelperAiSend,
   RECORD_HELPER_EMPTY_AI_RESPONSE_ERROR,
   resolveRecordHelperChatGptPlanAvailability,
+  evaluateRecordHelperOutbound,
+  RECORD_HELPER_AI_OUTBOUND_BYTE_LIMIT,
 } from "./recordHelperAiService";
 
 const models: readonly ChatGptModel[] = [
@@ -103,6 +105,65 @@ describe("record helper AI send gate", () => {
 
     await expect(gate.confirm()).rejects.toThrow(RECORD_HELPER_EMPTY_AI_RESPONSE_ERROR);
     expect(generate).toHaveBeenCalledOnce();
+  });
+});
+
+describe("record helper report outbound evaluation", () => {
+  it.each([
+    ["phone", "010-1234-5678"],
+    ["email", "test@example.com"],
+    ["RRN", "900101-1234567"],
+    ["labeled name", "학생명: 홍길동"],
+    ["student number", "학번: 20261234"],
+    ["grade class number", "2학년 3반 15번"],
+  ])("blocks %s reintroduced into the final outbound copy", (_label, identityText) => {
+    const evaluation = evaluateRecordHelperOutbound(`자료 조사 결과\n${identityText}`, "");
+    expect(evaluation.identityFindings.length).toBeGreaterThan(0);
+    expect(evaluation.canConfirm).toBe(false);
+  });
+
+  it("allows confirmation again after reintroduced identity content is removed", () => {
+    expect(evaluateRecordHelperOutbound("자료 조사 결과\n010-1234-5678", "").canConfirm).toBe(false);
+    expect(evaluateRecordHelperOutbound("자료 조사 결과", "")).toMatchObject({
+      identityFindings: [],
+      canConfirm: true,
+    });
+  });
+
+  it("checks both the report and teacher memo for reintroduced identity content", () => {
+    const evaluation = evaluateRecordHelperOutbound("자료 조사 결과", "연락처: 010-1234-5678");
+    expect(evaluation.identityFindings).toContain("연락처");
+    expect(evaluation.canConfirm).toBe(false);
+  });
+
+  it("blocks exact student and class hints reintroduced into either editable field", () => {
+    expect(evaluateRecordHelperOutbound("홍길동은 발표함", "", ["홍길동", "2학년 3반"]).canConfirm).toBe(false);
+    expect(evaluateRecordHelperOutbound("학생은 발표함", "홍길동을 관찰함", ["홍길동"]).canConfirm).toBe(false);
+    expect(evaluateRecordHelperOutbound("2학년 3반 활동", "", ["2학년 3반"]).identityFindings).toContain("입력된 학생 정보");
+    expect(evaluateRecordHelperOutbound("학생은 발표함", "", ["홍길동"]).canConfirm).toBe(true);
+  });
+
+  it("treats regex characters in identity hints as literal text", () => {
+    expect(evaluateRecordHelperOutbound("A.*(학생)은 발표함", "", ["A.*(학생)"]).identityFindings).toContain("입력된 학생 정보");
+    expect(evaluateRecordHelperOutbound("학생은 발표함", "", ["A.*(학생)"]).canConfirm).toBe(true);
+  });
+
+  it("never adds local identity hints to the generated prompt", () => {
+    const evaluation = evaluateRecordHelperOutbound("학생은 발표함", "교사가 관찰함", ["홍길동", "2학년 3반"]);
+    expect(evaluation.canConfirm).toBe(true);
+    expect(evaluation.prompt).not.toMatch(/홍길동|2학년 3반/);
+  });
+
+  it("blocks sensitive content and rechecks an edited safe copy", () => {
+    expect(evaluateRecordHelperOutbound("병원 검사 결과", "").canConfirm).toBe(false);
+    expect(evaluateRecordHelperOutbound("자료 조사 결과", "").canConfirm).toBe(true);
+  });
+
+  it("blocks content above the 64 KiB UTF-8 limit without truncation", () => {
+    const reportText = "가".repeat(RECORD_HELPER_AI_OUTBOUND_BYTE_LIMIT);
+    const evaluation = evaluateRecordHelperOutbound(reportText, "");
+    expect(evaluation.isWithinSizeLimit).toBe(false);
+    expect(evaluation.prompt).toContain(reportText);
   });
 });
 

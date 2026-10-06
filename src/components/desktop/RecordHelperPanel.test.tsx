@@ -4,6 +4,19 @@ import { createRecordHelperReportId, type RecordHelperWorkspace } from "../../re
 import { RecordHelperPanel } from "./RecordHelperPanel";
 import recordHelperPanelSource from "./RecordHelperPanel.tsx?raw";
 
+vi.mock("../../chatgpt/ChatGptConnectionContext", () => ({
+  useChatGptConnection: () => ({
+    state: { status: "connected", planUsageEnabled: true },
+    models: [{ slug: "gpt-test", displayName: "GPT Test" }],
+    selectedModel: "gpt-test",
+    modelsLoading: false,
+    modelsError: null,
+    generateText: vi.fn(async () => "AI 초안"),
+  }),
+}));
+
+const idleAi = { aiStatus: "idle" as const, aiDraft: "", aiError: null, activeAiRequestId: null };
+
 const retainedPhase5Sources = import.meta.glob([
   "./RecordHelperAiConfirmation.tsx",
   "./RecordHelperAiConfirmation.test.tsx",
@@ -29,6 +42,7 @@ const populatedWorkspace: RecordHelperWorkspace = {
       classLabel: "1학년 2반",
       activityLabel: "학급자치",
       teacherMemo: "협업 태도를 중심으로 확인",
+      ...idleAi,
     },
     {
       id: createRecordHelperReportId("report-b"),
@@ -39,6 +53,7 @@ const populatedWorkspace: RecordHelperWorkspace = {
       classLabel: "",
       activityLabel: "",
       teacherMemo: "",
+      ...idleAi,
     },
   ],
   selectedReportId: createRecordHelperReportId("report-a"),
@@ -73,15 +88,15 @@ const renderPanel = (initialWorkspace?: RecordHelperWorkspace): string => render
     importReports={vi.fn(async () => null)}
     initialWorkspace={initialWorkspace}
     onClose={vi.fn()}
+    onOpenAiSettings={vi.fn()}
   />,
 );
 
 describe("RecordHelperPanel report workspace", () => {
-  it("retains Phase 5 modules without importing or calling them from the report workspace panel", () => {
+  it("reuses the Phase 5 ChatGPT plan modules without fallback paths", () => {
     expect(Object.keys(retainedPhase5Sources)).toHaveLength(11);
-    expect(recordHelperPanelSource).not.toMatch(
-      /RecordHelperAiConfirmation|privacyGuard|promptBuilder|recordHelperAiService|recordHelperSession|chatGpt\.generateText|useChatGptConnection|useAiConnection|fetch\(|localStorage|sessionStorage|Store|supabase|console\./,
-    );
+    expect(recordHelperPanelSource).toMatch(/RecordHelperAiConfirmation|chatGpt\.generateText|useChatGptConnection/);
+    expect(recordHelperPanelSource).not.toMatch(/useAiConnection|fetch\(|localStorage|sessionStorage|Store|supabase|console\./);
   });
 
   it("renders the dialog title, internal close action, empty state, and local import support guidance", () => {
@@ -96,9 +111,7 @@ describe("RecordHelperPanel report workspace", () => {
     expect(markup).toContain("HWP 5.x 일반/압축 문서");
     expect(markup).toContain("아직 가져온 활동보고서가 없습니다.");
     expect(markup).toContain("가져온 원본은 현재 앱 메모리에만 남습니다.");
-    expect(markup).toContain("원문 개인정보는 AI로 전송하지 않습니다.");
-    expect(markup).toContain("다음 단계에서 비식별 처리와 전송 전 확인을 추가합니다.");
-    expect(markup).toContain("AI 작성 기능 준비 중");
+    expect(markup).toContain("AI 전송 전 개인정보를 비식별 처리하고, 실제 전송 내용을 직접 확인합니다.");
     expect(markup).not.toContain("선택한 파일이 없습니다.");
   });
 
@@ -144,15 +157,14 @@ describe("RecordHelperPanel report workspace", () => {
     expect(markup).toContain("아주긴파일이름-관찰기록-학급자치활동-1학기-상담메모.pdf");
   });
 
-  it("does not render ChatGPT hooks, AI settings, generation actions, or confirmation surface", () => {
+  it("renders the explicit ChatGPT plan action without API-key fallback", () => {
     const markup = renderPanel(populatedWorkspace);
 
-    expect(markup).not.toContain("ChatGPT");
+    expect(markup).toContain("ChatGPT 요금제 연결됨 · GPT Test");
     expect(markup).not.toContain("AI 연결 설정");
-    expect(markup).not.toContain("요금제로 작성");
-    expect(markup).not.toContain("생성");
+    expect(markup).toContain("ChatGPT 요금제로 초안 작성");
     expect(markup).not.toContain("AI 전송 내용 확인");
-    expect(markup).toContain("AI 작성 기능 준비 중");
-    expect(markup).not.toMatch(/<button[^>]*>[^<]*AI 작성 기능 준비 중/);
+    expect(markup).not.toContain("Gemini");
+    expect(markup).not.toContain("OpenAI");
   });
 });

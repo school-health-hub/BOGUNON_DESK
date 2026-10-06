@@ -1,5 +1,8 @@
 import { BookOpenText, FilePlus2, ShieldCheck, X } from "lucide-react";
-import { useEffect, useReducer, useRef } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
+import { useChatGptConnection } from "../../chatgpt/ChatGptConnectionContext";
+import { deidentifyRecordHelperContent } from "../../record-helper/deidentification";
+import { createRecordHelperAiSendGate, nextRecordHelperAiRequestId, resolveRecordHelperChatGptPlanAvailability } from "../../record-helper/recordHelperAiService";
 import { importRecordHelperReports, type RecordHelperImportBatch } from "../../record-helper/reportImportService";
 import {
   createRecordHelperReportId,
@@ -10,6 +13,7 @@ import {
   type RecordHelperWorkspace,
 } from "../../record-helper/recordHelperWorkspace";
 import { RecordHelperWorkspaceView } from "./record-helper/RecordHelperWorkspaceView";
+import { RecordHelperAiConfirmation, type RecordHelperAiConfirmationData } from "./RecordHelperAiConfirmation";
 
 type ImportReports = () => Promise<RecordHelperImportBatch | null>;
 
@@ -17,7 +21,10 @@ type RecordHelperPanelProps = {
   readonly importReports?: ImportReports;
   readonly initialWorkspace?: RecordHelperWorkspace;
   readonly onClose: () => void;
+  readonly onOpenAiSettings: () => void;
 };
+
+type PendingConfirmation = RecordHelperAiConfirmationData & { readonly reportId: string };
 
 const importFailureMessage = "활동보고서 파일을 가져오지 못했습니다.";
 
@@ -41,22 +48,68 @@ export function RecordHelperPanel({
   importReports = importRecordHelperReports,
   initialWorkspace,
   onClose,
+  onOpenAiSettings,
 }: RecordHelperPanelProps) {
+  const chatGpt = useChatGptConnection();
   const [workspace, dispatch] = useReducer(
     reduceRecordHelperWorkspace,
     initialWorkspace ?? createRecordHelperWorkspace(),
   );
   const importButtonRef = useRef<HTMLButtonElement>(null);
   const requestIdRef = useRef(0);
+  const [confirmation, setConfirmation] = useState<PendingConfirmation | null>(null);
+  const availability = resolveRecordHelperChatGptPlanAvailability({
+    status: chatGpt.state.status,
+    planUsageEnabled: chatGpt.state.planUsageEnabled,
+    models: chatGpt.models,
+    selectedModel: chatGpt.selectedModel,
+    modelsLoading: chatGpt.modelsLoading,
+    modelsError: chatGpt.modelsError,
+  });
+
+  const prepareAiDraft = (reportId: string): void => {
+    const report = workspace.reports.find((candidate) => candidate.id === reportId);
+    if (report === undefined || !availability.isAvailable || availability.selectedModel === null) return;
+    const sanitized = deidentifyRecordHelperContent({
+      reportText: report.extractedText,
+      teacherMemo: report.teacherMemo,
+      studentLabel: report.studentLabel,
+      classLabel: report.classLabel,
+    });
+    setConfirmation({
+      reportId,
+      providerLabel: `ChatGPT 요금제 · ${availability.selectedModel.displayName}`,
+      reportText: sanitized.reportText,
+      teacherMemo: sanitized.teacherMemo,
+      redactionCount: sanitized.redactions.length,
+      identityHints: [report.studentLabel, report.classLabel],
+    });
+  };
+
+  const generateAiDraft = (reportId: string, prompt: string): void => {
+    const requestId = nextRecordHelperAiRequestId();
+    const gate = createRecordHelperAiSendGate(prompt, chatGpt.generateText);
+    setConfirmation(null);
+    dispatch({ type: "beginAiRequest", reportId, requestId });
+    void gate.confirm().then(
+      (response) => { if (response !== null) dispatch({ type: "resolveAiRequest", reportId, requestId, response }); },
+      (error: unknown) => dispatch({ type: "failAiRequest", reportId, requestId, error: error instanceof Error ? error.message : "AI 초안을 작성하지 못했습니다." }),
+    );
+  };
 
   useEffect(() => {
     importButtonRef.current?.focus();
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key !== "Escape") return;
+      if (confirmation !== null) {
+        setConfirmation(null);
+        return;
+      }
+      onClose();
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [onClose]);
+  }, [confirmation, onClose]);
 
   const addReports = async (): Promise<void> => {
     const requestId = requestIdRef.current + 1;
@@ -116,18 +169,26 @@ export function RecordHelperPanel({
             <div>
               <strong>가져온 원본은 현재 앱 메모리에만 남습니다.</strong>
               <span>원문, 학생정보, 교사 메모는 저장·동기화·업로드하지 않습니다.</span>
-              <span>원문 개인정보는 AI로 전송하지 않습니다. 다음 단계에서 비식별 처리와 전송 전 확인을 추가합니다.</span>
+              <span>AI 전송 전 개인정보를 비식별 처리하고, 실제 전송 내용을 직접 확인합니다.</span>
             </div>
           </div>
 
-          <div className="record-helper-panel__next-step" role="status">
-            <strong>AI 작성 기능 준비 중</strong>
-            <span>다음 단계에서 개인정보 비식별 처리와 교사 확인 절차를 거친 뒤 작성 기능을 제공합니다.</span>
-          </div>
-
-          <RecordHelperWorkspaceView workspace={workspace} dispatch={dispatch} />
+          <RecordHelperWorkspaceView
+            workspace={workspace}
+            dispatch={dispatch}
+            aiAvailability={availability}
+            onOpenAiSettings={onOpenAiSettings}
+            onPrepareAiDraft={prepareAiDraft}
+          />
         </div>
       </section>
+      {confirmation !== null && (
+        <RecordHelperAiConfirmation
+          confirmation={confirmation}
+          onCancel={() => setConfirmation(null)}
+          onConfirm={(prompt) => generateAiDraft(confirmation.reportId, prompt)}
+        />
+      )}
     </div>
   );
 }

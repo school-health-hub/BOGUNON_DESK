@@ -105,6 +105,10 @@ describe("record helper report workspace", () => {
         classLabel: "1-1",
         activityLabel: "토론",
         teacherMemo: "",
+        aiStatus: "idle",
+        aiDraft: "",
+        aiError: null,
+        activeAiRequestId: null,
       },
       {
         id: secondId,
@@ -115,6 +119,10 @@ describe("record helper report workspace", () => {
         classLabel: "",
         activityLabel: "",
         teacherMemo: "근거를 보강",
+        aiStatus: "idle",
+        aiDraft: "",
+        aiError: null,
+        activeAiRequestId: null,
       },
     ]);
   });
@@ -192,5 +200,23 @@ describe("record helper report workspace", () => {
       activeImportRequestId: null,
       latestBatchFailures: [{ sourceName: "locked.pdf", error: "암호화된 파일" }],
     });
+  });
+
+  it("attaches AI results by report and ignores stale or removed responses", () => {
+    const reportId = createRecordHelperReportId("memory-ai");
+    const imported = reduceRecordHelperWorkspace(
+      reduceRecordHelperWorkspace(createRecordHelperWorkspace(), { type: "beginImport", requestId: 20 }),
+      { type: "resolveImport", requestId: 20, reports: [importedReport("memory-ai", "a.pdf", "본문")], failures: [] },
+    );
+    const generating = reduceRecordHelperWorkspace(imported, { type: "beginAiRequest", reportId, requestId: 31 });
+    expect(reduceRecordHelperWorkspace(generating, { type: "resolveAiRequest", reportId, requestId: 30, response: "stale" })).toBe(generating);
+    const success = reduceRecordHelperWorkspace(generating, { type: "resolveAiRequest", reportId, requestId: 31, response: "초안" });
+    expect(success.reports[0]).toMatchObject({ aiStatus: "success", aiDraft: "초안", activeAiRequestId: null });
+    const metadata = reduceRecordHelperWorkspace(success, { type: "updateReportMetadata", reportId, metadata: { studentLabel: "가상 학생", classLabel: "1반", activityLabel: "활동" } });
+    expect(metadata.reports[0]?.aiDraft).toBe("초안");
+    const memo = reduceRecordHelperWorkspace(metadata, { type: "updateTeacherMemo", reportId, teacherMemo: "수정" });
+    expect(memo.reports[0]).toMatchObject({ aiStatus: "idle", aiDraft: "", activeAiRequestId: null });
+    const removed = reduceRecordHelperWorkspace(generating, { type: "removeReport", reportId });
+    expect(reduceRecordHelperWorkspace(removed, { type: "resolveAiRequest", reportId, requestId: 31, response: "late" })).toBe(removed);
   });
 });

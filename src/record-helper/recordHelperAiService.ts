@@ -4,7 +4,11 @@ import type {
   ChatGptPlanError,
 } from "../chatgpt/types";
 import { inspectRecordHelperPrivacy } from "./privacyGuard";
-import type { RecordHelperPromptInput } from "./promptBuilder";
+import {
+  inspectRecordHelperIdentityContent,
+  inspectRecordHelperSensitiveContent,
+} from "./deidentification";
+import { buildRecordHelperReportPrompt, type RecordHelperPromptInput } from "./promptBuilder";
 
 export type RecordHelperAiSendGate = {
   readonly confirm: () => Promise<string | null>;
@@ -35,6 +39,41 @@ let recordHelperAiRequestSequence = 0;
 
 export const RECORD_HELPER_EMPTY_AI_RESPONSE_ERROR =
   "ChatGPT 응답에 표시할 내용이 없습니다. 다시 시도해 주세요.";
+export const RECORD_HELPER_AI_OUTBOUND_BYTE_LIMIT = 64 * 1024;
+export const RECORD_HELPER_SENSITIVE_BLOCKER = "AI로 보내지 않아야 할 민감정보가 남아 있습니다.";
+export const RECORD_HELPER_IDENTITY_BLOCKER = "학생 식별정보가 남아 있습니다. 전송용 편집본에서 삭제해 주세요.";
+
+export type RecordHelperOutboundEvaluation = {
+  readonly prompt: string;
+  readonly bytes: number;
+  readonly blockers: readonly string[];
+  readonly identityFindings: readonly string[];
+  readonly isWithinSizeLimit: boolean;
+  readonly canConfirm: boolean;
+};
+
+export const evaluateRecordHelperOutbound = (
+  reportText: string,
+  teacherMemo: string,
+  identityHints: readonly string[] = [],
+): RecordHelperOutboundEvaluation => {
+  const bytes = new TextEncoder().encode(reportText).byteLength + new TextEncoder().encode(teacherMemo).byteLength;
+  const outboundText = `${reportText}\n${teacherMemo}`;
+  const blockers = inspectRecordHelperSensitiveContent(outboundText);
+  const identityFindings = inspectRecordHelperIdentityContent(outboundText, identityHints);
+  const isWithinSizeLimit = bytes <= RECORD_HELPER_AI_OUTBOUND_BYTE_LIMIT;
+  return {
+    prompt: buildRecordHelperReportPrompt({ reportText, teacherMemo }),
+    bytes,
+    blockers,
+    identityFindings,
+    isWithinSizeLimit,
+    canConfirm: reportText.trim() !== ""
+      && identityFindings.length === 0
+      && blockers.length === 0
+      && isWithinSizeLimit,
+  };
+};
 
 export const nextRecordHelperAiRequestId = (): number => {
   recordHelperAiRequestSequence += 1;

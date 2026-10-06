@@ -567,6 +567,7 @@ export function DashboardCanvas() {
       )}
       {isRecordHelperOpen && (
         <RecordHelperPanel
+          onOpenAiSettings={() => openSettingsSection("ai")}
           onClose={() => {
             setIsRecordHelperOpen(false);
             void runDesktopAction("home");
