@@ -62,14 +62,22 @@ export const inspectRecordHelperSensitiveContent = (text: string): readonly stri
   sensitivePatterns.filter(({ pattern }) => pattern.test(text)).map(({ label }) => label)
 );
 
-export const inspectRecordHelperIdentityContent = (text: string): readonly string[] => (
-  rules.flatMap(({ label, pattern }) => {
+export const inspectRecordHelperIdentityContent = (
+  text: string,
+  identityHints: readonly string[] = [],
+): readonly string[] => {
+  const findings = rules.flatMap(({ label, pattern }) => {
     pattern.lastIndex = 0;
     const found = pattern.test(text);
     pattern.lastIndex = 0;
     return found ? [label] : [];
-  })
-);
+  });
+  const containsIdentityHint = identityHints.some((hint) => {
+    const trimmed = hint.trim();
+    return trimmed !== "" && text.includes(trimmed);
+  });
+  return containsIdentityHint ? [...findings, "입력된 학생 정보"] : findings;
+};
 
 export const deidentifyRecordHelperContent = ({
   reportText,

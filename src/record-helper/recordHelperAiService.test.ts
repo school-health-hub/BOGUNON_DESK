@@ -136,6 +136,24 @@ describe("record helper report outbound evaluation", () => {
     expect(evaluation.canConfirm).toBe(false);
   });
 
+  it("blocks exact student and class hints reintroduced into either editable field", () => {
+    expect(evaluateRecordHelperOutbound("홍길동은 발표함", "", ["홍길동", "2학년 3반"]).canConfirm).toBe(false);
+    expect(evaluateRecordHelperOutbound("학생은 발표함", "홍길동을 관찰함", ["홍길동"]).canConfirm).toBe(false);
+    expect(evaluateRecordHelperOutbound("2학년 3반 활동", "", ["2학년 3반"]).identityFindings).toContain("입력된 학생 정보");
+    expect(evaluateRecordHelperOutbound("학생은 발표함", "", ["홍길동"]).canConfirm).toBe(true);
+  });
+
+  it("treats regex characters in identity hints as literal text", () => {
+    expect(evaluateRecordHelperOutbound("A.*(학생)은 발표함", "", ["A.*(학생)"]).identityFindings).toContain("입력된 학생 정보");
+    expect(evaluateRecordHelperOutbound("학생은 발표함", "", ["A.*(학생)"]).canConfirm).toBe(true);
+  });
+
+  it("never adds local identity hints to the generated prompt", () => {
+    const evaluation = evaluateRecordHelperOutbound("학생은 발표함", "교사가 관찰함", ["홍길동", "2학년 3반"]);
+    expect(evaluation.canConfirm).toBe(true);
+    expect(evaluation.prompt).not.toMatch(/홍길동|2학년 3반/);
+  });
+
   it("blocks sensitive content and rechecks an edited safe copy", () => {
     expect(evaluateRecordHelperOutbound("병원 검사 결과", "").canConfirm).toBe(false);
     expect(evaluateRecordHelperOutbound("자료 조사 결과", "").canConfirm).toBe(true);

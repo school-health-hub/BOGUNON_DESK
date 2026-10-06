@@ -12,6 +12,7 @@ export type RecordHelperAiConfirmationData = {
   readonly reportText: string;
   readonly teacherMemo: string;
   readonly redactionCount: number;
+  readonly identityHints: readonly string[];
 };
 
 export function RecordHelperAiConfirmation({ confirmation, onCancel, onConfirm }: {
@@ -25,8 +26,8 @@ export function RecordHelperAiConfirmation({ confirmation, onCancel, onConfirm }
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const evaluation = useMemo(
-    () => evaluateRecordHelperOutbound(reportText, teacherMemo),
-    [reportText, teacherMemo],
+    () => evaluateRecordHelperOutbound(reportText, teacherMemo, confirmation.identityHints),
+    [confirmation.identityHints, reportText, teacherMemo],
   );
   const confirm = (): void => {
     if (sentRef.current || !evaluation.canConfirm) return;

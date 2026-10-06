@@ -82,6 +82,7 @@ export function RecordHelperPanel({
       reportText: sanitized.reportText,
       teacherMemo: sanitized.teacherMemo,
       redactionCount: sanitized.redactions.length,
+      identityHints: [report.studentLabel, report.classLabel],
     });
   };
 

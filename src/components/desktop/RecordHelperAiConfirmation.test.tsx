@@ -6,7 +6,7 @@ describe("RecordHelperAiConfirmation", () => {
   it("shows the selected model, full prompt, warnings, and explicit actions without sending", () => {
     const markup = renderToStaticMarkup(
       <RecordHelperAiConfirmation
-        confirmation={{ reportText: "첫째 줄\n둘째 줄", teacherMemo: "교사 관찰", redactionCount: 2, providerLabel: "ChatGPT 요금제 · GPT Account Model" }}
+        confirmation={{ reportText: "첫째 줄\n둘째 줄", teacherMemo: "교사 관찰", redactionCount: 2, identityHints: [], providerLabel: "ChatGPT 요금제 · GPT Account Model" }}
         onCancel={vi.fn()}
         onConfirm={vi.fn()}
       />,
@@ -24,14 +24,14 @@ describe("RecordHelperAiConfirmation", () => {
   it("shows a distinct identity warning and disables confirmation until identity content is removed", () => {
     const withIdentity = renderToStaticMarkup(
       <RecordHelperAiConfirmation
-        confirmation={{ reportText: "자료 조사 결과 010-1234-5678", teacherMemo: "", redactionCount: 1, providerLabel: "ChatGPT 요금제 · GPT Account Model" }}
+        confirmation={{ reportText: "자료 조사 결과 010-1234-5678", teacherMemo: "", redactionCount: 1, identityHints: [], providerLabel: "ChatGPT 요금제 · GPT Account Model" }}
         onCancel={vi.fn()}
         onConfirm={vi.fn()}
       />,
     );
     const afterRemoval = renderToStaticMarkup(
       <RecordHelperAiConfirmation
-        confirmation={{ reportText: "자료 조사 결과", teacherMemo: "", redactionCount: 1, providerLabel: "ChatGPT 요금제 · GPT Account Model" }}
+        confirmation={{ reportText: "자료 조사 결과", teacherMemo: "", redactionCount: 1, identityHints: [], providerLabel: "ChatGPT 요금제 · GPT Account Model" }}
         onCancel={vi.fn()}
         onConfirm={vi.fn()}
       />,
@@ -41,5 +41,18 @@ describe("RecordHelperAiConfirmation", () => {
     expect(withIdentity).toMatch(/<button[^>]*disabled=""[^>]*>확인 후 전송<\/button>/);
     expect(afterRemoval).not.toContain("학생 식별정보가 남아 있습니다.");
     expect(afterRemoval).not.toMatch(/<button[^>]*disabled=""[^>]*>확인 후 전송<\/button>/);
+  });
+
+  it("blocks a locally held exact identity hint without rendering the hint as metadata", () => {
+    const markup = renderToStaticMarkup(
+      <RecordHelperAiConfirmation
+        confirmation={{ reportText: "홍길동은 발표함", teacherMemo: "", redactionCount: 1, identityHints: ["홍길동"], providerLabel: "ChatGPT 요금제 · GPT Account Model" }}
+        onCancel={vi.fn()}
+        onConfirm={vi.fn()}
+      />,
+    );
+
+    expect(markup).toContain("학생 식별정보가 남아 있습니다.");
+    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>확인 후 전송<\/button>/);
   });
 });
