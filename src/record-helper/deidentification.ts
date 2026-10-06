@@ -20,11 +20,11 @@ type RedactionRule = {
 
 const rules: readonly RedactionRule[] = [
   { label: "주민등록번호", pattern: /\b\d{6}[-\s]?[1-4]\d{6}\b/g, replacement: "[학생 식별정보 제거]" },
-  { label: "연락처", pattern: /연락처\s*[:：]?\s*(?:01[016789][-\s]?\d{3,4}[-\s]?\d{4}|\S+)/g, replacement: "[연락처 제거]" },
+  { label: "연락처", pattern: /연락처(?:\s*[:：]\s*(?:01[016789][-\s]?\d{3,4}[-\s]?\d{4}|\S+)|\s+01[016789][-\s]?\d{3,4}[-\s]?\d{4})/g, replacement: "[연락처 제거]" },
   { label: "휴대전화번호", pattern: /\b01[016789][-\s]?\d{3,4}[-\s]?\d{4}\b/g, replacement: "[연락처 제거]" },
   { label: "이메일", pattern: /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, replacement: "[이메일 제거]" },
-  { label: "학번", pattern: /(?:학번|학생번호)\s*[:：]?\s*\d{1,12}/g, replacement: "[학번 제거]" },
-  { label: "학생 이름", pattern: /(?:학생명|성명|이름)\s*[:：]?\s*[가-힣]{2,4}/g, replacement: "[학생]" },
+  { label: "학번", pattern: /(?:학번|학생번호)(?:\s*[:：]\s*|\s+)\d{1,12}\b/g, replacement: "[학번 제거]" },
+  { label: "학생 이름", pattern: /(?:학생명|성명|이름)(?:\s*[:：]\s*|\s+)[가-힣]{2,4}(?![가-힣])/g, replacement: "[학생]" },
   { label: "학생 식별 조합", pattern: /\d{1,2}\s*학년\s*\d{1,2}\s*반\s*\d{1,3}\s*번/g, replacement: "[학생 식별정보 제거]" },
 ] as const;
 
@@ -60,6 +60,15 @@ const redactText = (text: string, hints: readonly string[]): { readonly text: st
 
 export const inspectRecordHelperSensitiveContent = (text: string): readonly string[] => (
   sensitivePatterns.filter(({ pattern }) => pattern.test(text)).map(({ label }) => label)
+);
+
+export const inspectRecordHelperIdentityContent = (text: string): readonly string[] => (
+  rules.flatMap(({ label, pattern }) => {
+    pattern.lastIndex = 0;
+    const found = pattern.test(text);
+    pattern.lastIndex = 0;
+    return found ? [label] : [];
+  })
 );
 
 export const deidentifyRecordHelperContent = ({

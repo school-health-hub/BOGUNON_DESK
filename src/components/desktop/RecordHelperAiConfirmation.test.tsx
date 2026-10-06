@@ -20,4 +20,26 @@ describe("RecordHelperAiConfirmation", () => {
     expect(markup).toContain("취소");
     expect(markup).toContain("확인 후 전송");
   });
+
+  it("shows a distinct identity warning and disables confirmation until identity content is removed", () => {
+    const withIdentity = renderToStaticMarkup(
+      <RecordHelperAiConfirmation
+        confirmation={{ reportText: "자료 조사 결과 010-1234-5678", teacherMemo: "", redactionCount: 1, providerLabel: "ChatGPT 요금제 · GPT Account Model" }}
+        onCancel={vi.fn()}
+        onConfirm={vi.fn()}
+      />,
+    );
+    const afterRemoval = renderToStaticMarkup(
+      <RecordHelperAiConfirmation
+        confirmation={{ reportText: "자료 조사 결과", teacherMemo: "", redactionCount: 1, providerLabel: "ChatGPT 요금제 · GPT Account Model" }}
+        onCancel={vi.fn()}
+        onConfirm={vi.fn()}
+      />,
+    );
+
+    expect(withIdentity).toContain("학생 식별정보가 남아 있습니다. 전송용 편집본에서 삭제해 주세요.");
+    expect(withIdentity).toMatch(/<button[^>]*disabled=""[^>]*>확인 후 전송<\/button>/);
+    expect(afterRemoval).not.toContain("학생 식별정보가 남아 있습니다.");
+    expect(afterRemoval).not.toMatch(/<button[^>]*disabled=""[^>]*>확인 후 전송<\/button>/);
+  });
 });

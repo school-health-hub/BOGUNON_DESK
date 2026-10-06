@@ -168,7 +168,7 @@ export function RecordHelperPanel({
             <div>
               <strong>가져온 원본은 현재 앱 메모리에만 남습니다.</strong>
               <span>원문, 학생정보, 교사 메모는 저장·동기화·업로드하지 않습니다.</span>
-              <span>원문 개인정보는 AI로 전송하지 않습니다. AI 전송 전 비식별 처리와 직접 확인을 거칩니다.</span>
+              <span>AI 전송 전 개인정보를 비식별 처리하고, 실제 전송 내용을 직접 확인합니다.</span>
             </div>
           </div>
 

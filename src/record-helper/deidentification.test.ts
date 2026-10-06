@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { deidentifyRecordHelperContent, inspectRecordHelperSensitiveContent } from "./deidentification";
+import {
+  deidentifyRecordHelperContent,
+  inspectRecordHelperIdentityContent,
+  inspectRecordHelperSensitiveContent,
+} from "./deidentification";
 
 describe("record helper deidentification", () => {
   it("redacts labeled names, student numbers, phones, RRN, email, and exact hints", () => {
@@ -13,8 +17,21 @@ describe("record helper deidentification", () => {
   });
 
   it("does not guess normal Korean words as names", () => {
-    const result = deidentifyRecordHelperContent({ reportText: "환경보건 주제로 협력함. 토론함.", teacherMemo: "", studentLabel: "", classLabel: "" });
-    expect(result.reportText).toBe("환경보건 주제로 협력함. 토론함.");
+    const reportText = "이름으로 주제를 정함. 이름표를 제작함. 연락처를 정리하는 방법을 조사함. 연락처가 필요한 경우를 토론함. 환경보건 주제로 협력함.";
+    const result = deidentifyRecordHelperContent({ reportText, teacherMemo: "", studentLabel: "", classLabel: "" });
+    expect(result.reportText).toBe(reportText);
+    expect(inspectRecordHelperIdentityContent(reportText)).toEqual([]);
+  });
+
+  it("redacts labeled identity values only when a value separator is present", () => {
+    const reportText = "이름: 홍길동 이름 김가상 학번: 20261234 연락처: 010-1234-5678";
+    const result = deidentifyRecordHelperContent({ reportText, teacherMemo: "", studentLabel: "", classLabel: "" });
+    expect(result.reportText).toBe("[학생] [학생] [학번 제거] [연락처 제거]");
+    expect(inspectRecordHelperIdentityContent(reportText)).toEqual(expect.arrayContaining([
+      "학생 이름",
+      "학번",
+      "연락처",
+    ]));
   });
 
   it("blocks sensitive content until it is removed", () => {

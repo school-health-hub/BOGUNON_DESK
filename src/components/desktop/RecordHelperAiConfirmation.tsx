@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   evaluateRecordHelperOutbound,
   RECORD_HELPER_AI_OUTBOUND_BYTE_LIMIT,
+  RECORD_HELPER_IDENTITY_BLOCKER,
   RECORD_HELPER_SENSITIVE_BLOCKER,
 } from "../../record-helper/recordHelperAiService";
 
@@ -55,6 +56,7 @@ export function RecordHelperAiConfirmation({ confirmation, onCancel, onConfirm }
         <p>자동 제거된 정보 {confirmation.redactionCount}건 · 자동 탐지는 보조 기능입니다. 실제 전송본을 직접 확인해 주세요.</p>
         <label><span>비식별 활동보고서</span><textarea value={reportText} onChange={(event) => setReportText(event.currentTarget.value)} /></label>
         <label><span>비식별 교사 메모</span><textarea value={teacherMemo} onChange={(event) => setTeacherMemo(event.currentTarget.value)} /></label>
+        {evaluation.identityFindings.length > 0 && <p className="record-helper-ai-confirm__blocker" role="alert">{RECORD_HELPER_IDENTITY_BLOCKER} ({evaluation.identityFindings.join(", ")})</p>}
         {evaluation.blockers.length > 0 && <p className="record-helper-ai-confirm__blocker" role="alert">{RECORD_HELPER_SENSITIVE_BLOCKER} ({evaluation.blockers.join(", ")})</p>}
         {!evaluation.isWithinSizeLimit && <p className="record-helper-ai-confirm__blocker" role="alert">전송용 편집본을 줄여 주세요. {evaluation.bytes.toLocaleString()} / {RECORD_HELPER_AI_OUTBOUND_BYTE_LIMIT.toLocaleString()} bytes</p>}
         <label><span>실제 전송될 전체 내용</span><textarea readOnly value={evaluation.prompt} /></label>

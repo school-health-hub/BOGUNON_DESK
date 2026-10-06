@@ -109,6 +109,33 @@ describe("record helper AI send gate", () => {
 });
 
 describe("record helper report outbound evaluation", () => {
+  it.each([
+    ["phone", "010-1234-5678"],
+    ["email", "test@example.com"],
+    ["RRN", "900101-1234567"],
+    ["labeled name", "학생명: 홍길동"],
+    ["student number", "학번: 20261234"],
+    ["grade class number", "2학년 3반 15번"],
+  ])("blocks %s reintroduced into the final outbound copy", (_label, identityText) => {
+    const evaluation = evaluateRecordHelperOutbound(`자료 조사 결과\n${identityText}`, "");
+    expect(evaluation.identityFindings.length).toBeGreaterThan(0);
+    expect(evaluation.canConfirm).toBe(false);
+  });
+
+  it("allows confirmation again after reintroduced identity content is removed", () => {
+    expect(evaluateRecordHelperOutbound("자료 조사 결과\n010-1234-5678", "").canConfirm).toBe(false);
+    expect(evaluateRecordHelperOutbound("자료 조사 결과", "")).toMatchObject({
+      identityFindings: [],
+      canConfirm: true,
+    });
+  });
+
+  it("checks both the report and teacher memo for reintroduced identity content", () => {
+    const evaluation = evaluateRecordHelperOutbound("자료 조사 결과", "연락처: 010-1234-5678");
+    expect(evaluation.identityFindings).toContain("연락처");
+    expect(evaluation.canConfirm).toBe(false);
+  });
+
   it("blocks sensitive content and rechecks an edited safe copy", () => {
     expect(evaluateRecordHelperOutbound("병원 검사 결과", "").canConfirm).toBe(false);
     expect(evaluateRecordHelperOutbound("자료 조사 결과", "").canConfirm).toBe(true);

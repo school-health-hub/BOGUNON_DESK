@@ -111,8 +111,7 @@ describe("RecordHelperPanel report workspace", () => {
     expect(markup).toContain("HWP 5.x 일반/압축 문서");
     expect(markup).toContain("아직 가져온 활동보고서가 없습니다.");
     expect(markup).toContain("가져온 원본은 현재 앱 메모리에만 남습니다.");
-    expect(markup).toContain("원문 개인정보는 AI로 전송하지 않습니다.");
-    expect(markup).toContain("AI 전송 전 비식별 처리와 직접 확인을 거칩니다.");
+    expect(markup).toContain("AI 전송 전 개인정보를 비식별 처리하고, 실제 전송 내용을 직접 확인합니다.");
     expect(markup).not.toContain("선택한 파일이 없습니다.");
   });
 
