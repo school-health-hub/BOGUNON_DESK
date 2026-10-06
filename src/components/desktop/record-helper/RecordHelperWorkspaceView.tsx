@@ -7,10 +7,14 @@ import type {
 } from "../../../record-helper/recordHelperWorkspace";
 import { RecordHelperReportDetail } from "./RecordHelperReportDetail";
 import { RecordHelperReportList } from "./RecordHelperReportList";
+import type { RecordHelperChatGptPlanAvailability } from "../../../record-helper/recordHelperAiService";
 
 type RecordHelperWorkspaceViewProps = {
   readonly dispatch: Dispatch<RecordHelperWorkspaceAction>;
   readonly workspace: RecordHelperWorkspace;
+  readonly aiAvailability: RecordHelperChatGptPlanAvailability;
+  readonly onOpenAiSettings: () => void;
+  readonly onPrepareAiDraft: (reportId: RecordHelperReport["id"]) => void;
 };
 
 const selectedReport = (workspace: RecordHelperWorkspace): RecordHelperReport | null => (
@@ -40,7 +44,7 @@ function RecordHelperImportFeedback({ workspace }: { readonly workspace: RecordH
   );
 }
 
-export function RecordHelperWorkspaceView({ dispatch, workspace }: RecordHelperWorkspaceViewProps) {
+export function RecordHelperWorkspaceView({ dispatch, workspace, aiAvailability, onOpenAiSettings, onPrepareAiDraft }: RecordHelperWorkspaceViewProps) {
   const report = selectedReport(workspace);
 
   if (workspace.reports.length === 0) {
@@ -70,6 +74,9 @@ export function RecordHelperWorkspaceView({ dispatch, workspace }: RecordHelperW
             onMemoChange={(reportId, teacherMemo) => dispatch({ type: "updateTeacherMemo", reportId, teacherMemo })}
             onMetadataChange={(reportId, metadata) => dispatch({ type: "updateReportMetadata", reportId, metadata })}
             onRemove={(reportId) => dispatch({ type: "removeReport", reportId })}
+            aiAvailability={aiAvailability}
+            onOpenAiSettings={onOpenAiSettings}
+            onPrepareAiDraft={onPrepareAiDraft}
           />
         )}
         <button className="record-helper-clear" type="button" onClick={() => dispatch({ type: "clearAll" })}>

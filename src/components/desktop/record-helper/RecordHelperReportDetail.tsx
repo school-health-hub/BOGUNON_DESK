@@ -5,12 +5,16 @@ import type {
   RecordHelperReportMetadata,
 } from "../../../record-helper/recordHelperWorkspace";
 import { RecordHelperFormatBadge } from "./RecordHelperFormatBadge";
+import type { RecordHelperChatGptPlanAvailability } from "../../../record-helper/recordHelperAiService";
 
 type RecordHelperReportDetailProps = {
   readonly report: RecordHelperReport;
   readonly onMemoChange: (reportId: RecordHelperReportId, teacherMemo: string) => void;
   readonly onMetadataChange: (reportId: RecordHelperReportId, metadata: RecordHelperReportMetadata) => void;
   readonly onRemove: (reportId: RecordHelperReportId) => void;
+  readonly aiAvailability: RecordHelperChatGptPlanAvailability;
+  readonly onOpenAiSettings: () => void;
+  readonly onPrepareAiDraft: (reportId: RecordHelperReportId) => void;
 };
 
 export function RecordHelperReportDetail({
@@ -18,6 +22,9 @@ export function RecordHelperReportDetail({
   onMemoChange,
   onMetadataChange,
   onRemove,
+  aiAvailability,
+  onOpenAiSettings,
+  onPrepareAiDraft,
 }: RecordHelperReportDetailProps) {
   const updateMetadata = (field: keyof RecordHelperReportMetadata, value: string): void => {
     onMetadataChange(report.id, { studentLabel: report.studentLabel, classLabel: report.classLabel, activityLabel: report.activityLabel, [field]: value });
@@ -54,6 +61,22 @@ export function RecordHelperReportDetail({
         <span>교사 메모/관찰 내용</span>
         <textarea value={report.teacherMemo} placeholder="학생부 문구 작성 전 확인할 관찰 포인트를 적어 둡니다." onChange={(event) => onMemoChange(report.id, event.currentTarget.value)} />
       </label>
+      <section className="record-helper-ai-result" aria-label="AI 초안">
+        <header><strong>AI 초안</strong><span>{aiAvailability.message}</span></header>
+        {aiAvailability.isAvailable ? (
+          <button type="button" disabled={report.aiStatus === "generating"} onClick={() => onPrepareAiDraft(report.id)}>
+            {report.aiStatus === "generating" ? "작성 중…" : "ChatGPT 요금제로 초안 작성"}
+          </button>
+        ) : aiAvailability.message === "ChatGPT 요금제가 연결되지 않았습니다." ? (
+          <button type="button" onClick={onOpenAiSettings}>AI 설정 열기</button>
+        ) : (
+          <button type="button" disabled>ChatGPT 모델 준비 필요</button>
+        )}
+        {report.aiStatus === "idle" && <p>작성 전</p>}
+        {report.aiStatus === "generating" && <p role="status">작성 중…</p>}
+        {report.aiStatus === "success" && <div><strong>작성 완료</strong><p>AI가 작성한 초안입니다. 실제 학생부 입력 전 교사가 사실관계와 표현을 확인해야 합니다.</p><pre>{report.aiDraft}</pre></div>}
+        {report.aiStatus === "error" && <div><strong>오류</strong><p role="alert">{report.aiError}</p></div>}
+      </section>
       <button className="record-helper-detail__remove" type="button" onClick={() => onRemove(report.id)}>
         <Trash2 size={14} aria-hidden="true" />
         선택 보고서 제거

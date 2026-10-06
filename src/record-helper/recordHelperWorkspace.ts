@@ -20,6 +20,10 @@ export type RecordHelperImportedReport = {
 export type RecordHelperReport = RecordHelperImportedReport &
   RecordHelperReportMetadata & {
     readonly teacherMemo: string;
+    readonly aiStatus: "idle" | "generating" | "success" | "error";
+    readonly aiDraft: string;
+    readonly aiError: string | null;
+    readonly activeAiRequestId: number | null;
   };
 
 export type RecordHelperImportFailure = {
@@ -60,7 +64,10 @@ export type RecordHelperWorkspaceAction =
       readonly reportId: RecordHelperReportId;
       readonly metadata: RecordHelperReportMetadata;
     }
-  | { readonly type: "updateTeacherMemo"; readonly reportId: RecordHelperReportId; readonly teacherMemo: string };
+  | { readonly type: "updateTeacherMemo"; readonly reportId: RecordHelperReportId; readonly teacherMemo: string }
+  | { readonly type: "beginAiRequest"; readonly reportId: RecordHelperReportId; readonly requestId: number }
+  | { readonly type: "resolveAiRequest"; readonly reportId: RecordHelperReportId; readonly requestId: number; readonly response: string }
+  | { readonly type: "failAiRequest"; readonly reportId: RecordHelperReportId; readonly requestId: number; readonly error: string };
 
 const emptyMetadata: RecordHelperReportMetadata = {
   studentLabel: "",
@@ -87,6 +94,10 @@ const toReport = (report: RecordHelperImportedReport): RecordHelperReport => ({
   ...report,
   ...emptyMetadata,
   teacherMemo: "",
+  aiStatus: "idle",
+  aiDraft: "",
+  aiError: null,
+  activeAiRequestId: null,
 });
 
 const reportExists = (reports: readonly RecordHelperReport[], reportId: RecordHelperReportId): boolean =>
@@ -158,9 +169,17 @@ export const reduceRecordHelperWorkspace = (
       return {
         ...state,
         reports: state.reports.map((report) =>
-          report.id === action.reportId ? { ...report, teacherMemo: action.teacherMemo } : report,
+          report.id === action.reportId ? { ...report, teacherMemo: action.teacherMemo, aiStatus: "idle", aiDraft: "", aiError: null, activeAiRequestId: null } : report,
         ),
       };
+    case "beginAiRequest":
+      return { ...state, reports: state.reports.map((report) => report.id === action.reportId ? { ...report, aiStatus: "generating", aiError: null, activeAiRequestId: action.requestId } : report) };
+    case "resolveAiRequest":
+      if (!state.reports.some((report) => report.id === action.reportId && report.activeAiRequestId === action.requestId)) return state;
+      return { ...state, reports: state.reports.map((report) => report.id === action.reportId ? { ...report, aiStatus: "success", aiDraft: action.response, aiError: null, activeAiRequestId: null } : report) };
+    case "failAiRequest":
+      if (!state.reports.some((report) => report.id === action.reportId && report.activeAiRequestId === action.requestId)) return state;
+      return { ...state, reports: state.reports.map((report) => report.id === action.reportId ? { ...report, aiStatus: "error", aiDraft: "", aiError: action.error, activeAiRequestId: null } : report) };
     default:
       return assertNever(action);
   }

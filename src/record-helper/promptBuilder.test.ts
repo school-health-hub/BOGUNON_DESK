@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildRecordHelperPrompt } from "./promptBuilder";
+import { buildRecordHelperReportPrompt } from "./promptBuilder";
 
 describe("record helper prompt builder", () => {
   it("builds the same prompt for the same safe input", () => {
@@ -40,5 +41,20 @@ describe("record helper prompt builder", () => {
     expect(prompt).toContain("새로운 사실, 성과, 태도, 역할을 추정하거나 만들어내지 마세요");
     expect(prompt).toContain("학생 이름, 학번, 연락처 등 식별정보를 새로 생성하지 마세요");
     expect(prompt).toContain("건강정보, 상담정보 등 민감정보를 새로 추가하지 마세요");
+  });
+});
+
+describe("file report prompt", () => {
+  it("separates student report and teacher observation without metadata", () => {
+    const prompt = buildRecordHelperReportPrompt({ reportText: "학생 자기서술", teacherMemo: "교사 관찰" });
+    expect(prompt).toContain("[학생 활동보고서]\n학생 자기서술");
+    expect(prompt).toContain("[교사 메모/관찰]\n교사 관찰");
+    expect(prompt).toContain("직접 관찰한 사실처럼 바꾸지 마세요");
+    expect(prompt).not.toMatch(/sourceName|studentLabel|classLabel|activityLabel/);
+    expect(prompt).toBe(buildRecordHelperReportPrompt({ reportText: "학생 자기서술", teacherMemo: "교사 관찰" }));
+  });
+
+  it("omits a blank teacher memo section", () => {
+    expect(buildRecordHelperReportPrompt({ reportText: "보고서", teacherMemo: "  " })).not.toContain("[교사 메모/관찰]");
   });
 });

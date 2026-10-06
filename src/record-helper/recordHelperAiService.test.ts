@@ -5,6 +5,8 @@ import {
   prepareRecordHelperAiSend,
   RECORD_HELPER_EMPTY_AI_RESPONSE_ERROR,
   resolveRecordHelperChatGptPlanAvailability,
+  evaluateRecordHelperOutbound,
+  RECORD_HELPER_AI_OUTBOUND_BYTE_LIMIT,
 } from "./recordHelperAiService";
 
 const models: readonly ChatGptModel[] = [
@@ -103,6 +105,20 @@ describe("record helper AI send gate", () => {
 
     await expect(gate.confirm()).rejects.toThrow(RECORD_HELPER_EMPTY_AI_RESPONSE_ERROR);
     expect(generate).toHaveBeenCalledOnce();
+  });
+});
+
+describe("record helper report outbound evaluation", () => {
+  it("blocks sensitive content and rechecks an edited safe copy", () => {
+    expect(evaluateRecordHelperOutbound("병원 검사 결과", "").canConfirm).toBe(false);
+    expect(evaluateRecordHelperOutbound("자료 조사 결과", "").canConfirm).toBe(true);
+  });
+
+  it("blocks content above the 64 KiB UTF-8 limit without truncation", () => {
+    const reportText = "가".repeat(RECORD_HELPER_AI_OUTBOUND_BYTE_LIMIT);
+    const evaluation = evaluateRecordHelperOutbound(reportText, "");
+    expect(evaluation.isWithinSizeLimit).toBe(false);
+    expect(evaluation.prompt).toContain(reportText);
   });
 });
 
