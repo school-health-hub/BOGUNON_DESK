@@ -165,6 +165,18 @@ describe("record helper report outbound evaluation", () => {
     expect(evaluation.isWithinSizeLimit).toBe(false);
     expect(evaluation.prompt).toContain(reportText);
   });
+
+  it("counts the complete generated prompt against the outbound byte limit", () => {
+    const reportText = "가".repeat(Math.floor((RECORD_HELPER_AI_OUTBOUND_BYTE_LIMIT - 1) / 3));
+    const evaluation = evaluateRecordHelperOutbound(reportText, "");
+
+    expect(new TextEncoder().encode(reportText).byteLength).toBeLessThanOrEqual(
+      RECORD_HELPER_AI_OUTBOUND_BYTE_LIMIT,
+    );
+    expect(evaluation.bytes).toBe(new TextEncoder().encode(evaluation.prompt).byteLength);
+    expect(evaluation.isWithinSizeLimit).toBe(false);
+    expect(evaluation.canConfirm).toBe(false);
+  });
 });
 
 describe("record helper ChatGPT plan availability", () => {

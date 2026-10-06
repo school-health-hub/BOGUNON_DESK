@@ -57,13 +57,14 @@ export const evaluateRecordHelperOutbound = (
   teacherMemo: string,
   identityHints: readonly string[] = [],
 ): RecordHelperOutboundEvaluation => {
-  const bytes = new TextEncoder().encode(reportText).byteLength + new TextEncoder().encode(teacherMemo).byteLength;
+  const prompt = buildRecordHelperReportPrompt({ reportText, teacherMemo });
+  const bytes = new TextEncoder().encode(prompt).byteLength;
   const outboundText = `${reportText}\n${teacherMemo}`;
   const blockers = inspectRecordHelperSensitiveContent(outboundText);
   const identityFindings = inspectRecordHelperIdentityContent(outboundText, identityHints);
   const isWithinSizeLimit = bytes <= RECORD_HELPER_AI_OUTBOUND_BYTE_LIMIT;
   return {
-    prompt: buildRecordHelperReportPrompt({ reportText, teacherMemo }),
+    prompt,
     bytes,
     blockers,
     identityFindings,
