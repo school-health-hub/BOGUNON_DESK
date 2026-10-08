@@ -16,6 +16,7 @@ type RecordHelperWorkspaceViewProps = {
   readonly aiAvailability: RecordHelperChatGptPlanAvailability;
   readonly onOpenAiSettings: () => void;
   readonly onPrepareAiDraft: (reportId: RecordHelperReport["id"]) => void;
+  readonly onCancelAiDraft: (reportId: RecordHelperReport["id"], requestId: number) => void;
   readonly onRemoveReport: (reportId: RecordHelperReport["id"]) => void;
   readonly onClearAll: () => void;
 };
@@ -47,7 +48,7 @@ function RecordHelperImportFeedback({ workspace }: { readonly workspace: RecordH
   );
 }
 
-export function RecordHelperWorkspaceView({ dispatch, workspace, aiAvailability, onOpenAiSettings, onPrepareAiDraft, onRemoveReport, onClearAll }: RecordHelperWorkspaceViewProps) {
+export function RecordHelperWorkspaceView({ dispatch, workspace, aiAvailability, onOpenAiSettings, onPrepareAiDraft, onCancelAiDraft, onRemoveReport, onClearAll }: RecordHelperWorkspaceViewProps) {
   const report = selectedReport(workspace);
   const navigation = report === null ? null : getRecordHelperReportNavigation(workspace.reports, report.id);
 
@@ -86,6 +87,7 @@ export function RecordHelperWorkspaceView({ dispatch, workspace, aiAvailability,
             aiAvailability={aiAvailability}
             onOpenAiSettings={onOpenAiSettings}
             onPrepareAiDraft={onPrepareAiDraft}
+            onCancelAiDraft={onCancelAiDraft}
           />
         )}
         <button className="record-helper-clear" type="button" onClick={onClearAll}>

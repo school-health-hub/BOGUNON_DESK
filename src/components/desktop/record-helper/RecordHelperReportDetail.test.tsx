@@ -10,7 +10,7 @@ const available: RecordHelperChatGptPlanAvailability = {
   message: "ChatGPT 요금제 연결됨 · GPT Test",
 };
 
-const report = (aiDraft: string): RecordHelperReport => ({
+const report = (overrides: Partial<RecordHelperReport> = {}): RecordHelperReport => ({
   id: createRecordHelperReportId("report-a"),
   sourceName: "합성-활동보고서.pdf",
   format: "pdf",
@@ -19,15 +19,16 @@ const report = (aiDraft: string): RecordHelperReport => ({
   classLabel: "",
   activityLabel: "",
   teacherMemo: "",
-  aiStatus: aiDraft === "" ? "idle" : "success",
-  aiDraft,
+  aiStatus: "idle",
+  aiDraft: "",
   aiError: null,
   activeAiRequestId: null,
+  ...overrides,
 });
 
-const renderDetail = (aiDraft: string, currentIndex = 0, totalCount = 2): string => renderToStaticMarkup(
+const renderDetail = (reportValue: RecordHelperReport, currentIndex = 0, totalCount = 2): string => renderToStaticMarkup(
   <RecordHelperReportDetail
-    report={report(aiDraft)}
+    report={reportValue}
     currentIndex={currentIndex}
     totalCount={totalCount}
     previousReportId={currentIndex === 0 ? null : createRecordHelperReportId("previous")}
@@ -39,13 +40,14 @@ const renderDetail = (aiDraft: string, currentIndex = 0, totalCount = 2): string
     aiAvailability={available}
     onOpenAiSettings={vi.fn()}
     onPrepareAiDraft={vi.fn()}
+    onCancelAiDraft={vi.fn()}
   />,
 );
 
 describe("RecordHelperReportDetail", () => {
   it("shows report position and disables navigation at boundaries", () => {
-    const first = renderDetail("", 0, 2);
-    const last = renderDetail("", 1, 2);
+    const first = renderDetail(report(), 0, 2);
+    const last = renderDetail(report(), 1, 2);
 
     expect(first).toContain("1 / 2");
     expect(first).toMatch(/aria-label="이전 보고서"[^>]*disabled/);
@@ -56,8 +58,8 @@ describe("RecordHelperReportDetail", () => {
   });
 
   it("shows the copy action only for a non-empty successful AI draft", () => {
-    const success = renderDetail("비식별 AI 초안");
-    const idle = renderDetail("");
+    const success = renderDetail(report({ aiStatus: "success", aiDraft: "비식별 AI 초안" }));
+    const idle = renderDetail(report());
 
     expect(success).toContain("초안 생성됨");
     expect(success).toContain("결과 복사");
@@ -67,6 +69,44 @@ describe("RecordHelperReportDetail", () => {
   });
 
   it("marks the AI draft with the local Korean wrapping style contract", () => {
-    expect(renderDetail("긴 한국어 AI 초안")).toContain('class="record-helper-ai-result__content"');
+    expect(renderDetail(report({ aiStatus: "success", aiDraft: "긴 한국어 AI 초안" }))).toContain('class="record-helper-ai-result__content"');
+  });
+
+  it("renders first-error retry and successful-draft regeneration actions", () => {
+    const firstError = renderDetail(report({ aiStatus: "error", aiError: "첫 생성 실패" }));
+    const success = renderDetail(report({ aiStatus: "success", aiDraft: "정상 초안" }));
+
+    expect(firstError).toContain("다시 시도");
+    expect(firstError).not.toContain("결과 복사");
+    expect(success).toContain("초안 다시 생성");
+    expect(success).toContain("결과 복사");
+  });
+
+  it("keeps the previous draft visible and copyable during regeneration", () => {
+    const markup = renderDetail(report({
+      aiStatus: "generating",
+      aiDraft: "이전 정상 초안",
+      activeAiRequestId: 17,
+    }));
+
+    expect(markup).toContain("작성 중단");
+    expect(markup).toContain("이전 초안");
+    expect(markup).toContain("이전 정상 초안");
+    expect(markup).toContain("결과 복사");
+    expect(markup).toContain("화면 반영만 중단되며 이미 전송된 요청은 회수되지 않습니다.");
+  });
+
+  it("shows a regeneration error without hiding the preserved draft", () => {
+    const markup = renderDetail(report({
+      aiStatus: "error",
+      aiDraft: "보존된 정상 초안",
+      aiError: "재생성 실패",
+    }));
+
+    expect(markup).toContain("이전 초안 유지됨");
+    expect(markup).toContain("보존된 정상 초안");
+    expect(markup).toContain("재생성 실패");
+    expect(markup).toContain("결과 복사");
+    expect(markup).toContain("초안 다시 생성");
   });
 });

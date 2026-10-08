@@ -73,6 +73,7 @@ export type RecordHelperWorkspaceAction =
     }
   | { readonly type: "updateTeacherMemo"; readonly reportId: RecordHelperReportId; readonly teacherMemo: string }
   | { readonly type: "beginAiRequest"; readonly reportId: RecordHelperReportId; readonly requestId: number }
+  | { readonly type: "cancelAiRequest"; readonly reportId: RecordHelperReportId; readonly requestId: number }
   | { readonly type: "resolveAiRequest"; readonly reportId: RecordHelperReportId; readonly requestId: number; readonly response: string }
   | { readonly type: "failAiRequest"; readonly reportId: RecordHelperReportId; readonly requestId: number; readonly error: string };
 
@@ -109,6 +110,14 @@ const toReport = (report: RecordHelperImportedReport): RecordHelperReport => ({
 
 const reportExists = (reports: readonly RecordHelperReport[], reportId: RecordHelperReportId): boolean =>
   reports.some((report) => report.id === reportId);
+
+const invalidateReportAi = (report: RecordHelperReport): RecordHelperReport => ({
+  ...report,
+  aiStatus: "idle",
+  aiDraft: "",
+  aiError: null,
+  activeAiRequestId: null,
+});
 
 export const getRecordHelperReportNavigation = (
   reports: readonly RecordHelperReport[],
@@ -187,28 +196,55 @@ export const reduceRecordHelperWorkspace = (
     }
     case "clearAll":
       return createRecordHelperWorkspace();
-    case "updateReportMetadata":
+    case "updateReportMetadata": {
+      const current = state.reports.find((report) => report.id === action.reportId);
+      if (current === undefined) return state;
+      const metadataChanged = current.studentLabel !== action.metadata.studentLabel
+        || current.classLabel !== action.metadata.classLabel
+        || current.activityLabel !== action.metadata.activityLabel;
+      if (!metadataChanged) return state;
+      const identityChanged = current.studentLabel !== action.metadata.studentLabel
+        || current.classLabel !== action.metadata.classLabel;
       return {
         ...state,
         reports: state.reports.map((report) =>
-          report.id === action.reportId ? { ...report, ...action.metadata } : report,
+          report.id === action.reportId
+            ? { ...(identityChanged ? invalidateReportAi(report) : report), ...action.metadata }
+            : report,
         ),
       };
-    case "updateTeacherMemo":
+    }
+    case "updateTeacherMemo": {
+      const current = state.reports.find((report) => report.id === action.reportId);
+      if (current === undefined || current.teacherMemo === action.teacherMemo) return state;
       return {
         ...state,
         reports: state.reports.map((report) =>
-          report.id === action.reportId ? { ...report, teacherMemo: action.teacherMemo, aiStatus: "idle", aiDraft: "", aiError: null, activeAiRequestId: null } : report,
+          report.id === action.reportId
+            ? { ...invalidateReportAi(report), teacherMemo: action.teacherMemo }
+            : report,
         ),
       };
+    }
     case "beginAiRequest":
       return { ...state, reports: state.reports.map((report) => report.id === action.reportId ? { ...report, aiStatus: "generating", aiError: null, activeAiRequestId: action.requestId } : report) };
+    case "cancelAiRequest":
+      if (!state.reports.some((report) => report.id === action.reportId && report.activeAiRequestId === action.requestId)) return state;
+      return {
+        ...state,
+        reports: state.reports.map((report) => report.id === action.reportId ? {
+          ...report,
+          aiStatus: report.aiDraft.trim() === "" ? "idle" : "success",
+          aiError: null,
+          activeAiRequestId: null,
+        } : report),
+      };
     case "resolveAiRequest":
       if (!state.reports.some((report) => report.id === action.reportId && report.activeAiRequestId === action.requestId)) return state;
       return { ...state, reports: state.reports.map((report) => report.id === action.reportId ? { ...report, aiStatus: "success", aiDraft: action.response, aiError: null, activeAiRequestId: null } : report) };
     case "failAiRequest":
       if (!state.reports.some((report) => report.id === action.reportId && report.activeAiRequestId === action.requestId)) return state;
-      return { ...state, reports: state.reports.map((report) => report.id === action.reportId ? { ...report, aiStatus: "error", aiDraft: "", aiError: action.error, activeAiRequestId: null } : report) };
+      return { ...state, reports: state.reports.map((report) => report.id === action.reportId ? { ...report, aiStatus: "error", aiError: action.error, activeAiRequestId: null } : report) };
     default:
       return assertNever(action);
   }

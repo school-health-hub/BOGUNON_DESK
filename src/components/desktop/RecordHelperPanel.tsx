@@ -233,6 +233,7 @@ export function RecordHelperPanel({
             aiAvailability={availability}
             onOpenAiSettings={onOpenAiSettings}
             onPrepareAiDraft={prepareAiDraft}
+            onCancelAiDraft={(reportId, requestId) => dispatch({ type: "cancelAiRequest", reportId, requestId })}
             onRemoveReport={requestRemoveReport}
             onClearAll={requestClearAll}
           />

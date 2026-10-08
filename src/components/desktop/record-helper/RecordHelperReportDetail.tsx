@@ -22,12 +22,46 @@ type RecordHelperReportDetailProps = {
   readonly aiAvailability: RecordHelperChatGptPlanAvailability;
   readonly onOpenAiSettings: () => void;
   readonly onPrepareAiDraft: (reportId: RecordHelperReportId) => void;
+  readonly onCancelAiDraft: (reportId: RecordHelperReportId, requestId: number) => void;
 };
 
 type CopyFeedback = {
   readonly reportId: RecordHelperReportId;
   readonly draft: string;
   readonly result: RecordHelperClipboardResult;
+};
+
+const assertNever = (value: never): never => {
+  throw new TypeError(`지원하지 않는 생기부 도우미 AI 상태: ${String(value)}`);
+};
+
+const aiActionLabel = (report: RecordHelperReport): string => {
+  switch (report.aiStatus) {
+    case "idle":
+      return "ChatGPT 요금제로 초안 작성";
+    case "generating":
+      return "작성 중단";
+    case "success":
+      return "초안 다시 생성";
+    case "error":
+      return report.aiDraft.trim() === "" ? "다시 시도" : "초안 다시 생성";
+    default:
+      return assertNever(report.aiStatus);
+  }
+};
+
+const aiDraftHeading = (report: RecordHelperReport): string => {
+  switch (report.aiStatus) {
+    case "idle":
+    case "success":
+      return "초안 생성됨";
+    case "generating":
+      return "이전 초안";
+    case "error":
+      return "이전 초안 유지됨";
+    default:
+      return assertNever(report.aiStatus);
+  }
 };
 
 export function RecordHelperReportDetail({
@@ -43,8 +77,10 @@ export function RecordHelperReportDetail({
   aiAvailability,
   onOpenAiSettings,
   onPrepareAiDraft,
+  onCancelAiDraft,
 }: RecordHelperReportDetailProps) {
   const [copyFeedback, setCopyFeedback] = useState<CopyFeedback | null>(null);
+  const hasDraft = report.aiDraft.trim() !== "";
 
   const updateMetadata = (field: keyof RecordHelperReportMetadata, value: string): void => {
     onMetadataChange(report.id, { studentLabel: report.studentLabel, classLabel: report.classLabel, activityLabel: report.activityLabel, [field]: value });
@@ -100,25 +136,33 @@ export function RecordHelperReportDetail({
       </label>
       <section className="record-helper-ai-result" aria-label="AI 초안">
         <header><strong>AI 초안</strong><span>{aiAvailability.message}</span></header>
-        {aiAvailability.isAvailable ? (
-          <button type="button" disabled={report.aiStatus === "generating"} onClick={() => onPrepareAiDraft(report.id)}>
-            {report.aiStatus === "generating" ? "작성 중…" : "ChatGPT 요금제로 초안 작성"}
+        {report.aiStatus === "generating" ? (
+          <button type="button" disabled={report.activeAiRequestId === null} onClick={() => {
+            if (report.activeAiRequestId !== null) onCancelAiDraft(report.id, report.activeAiRequestId);
+          }}>
+            {aiActionLabel(report)}
+          </button>
+        ) : aiAvailability.isAvailable ? (
+          <button type="button" onClick={() => onPrepareAiDraft(report.id)}>
+            {aiActionLabel(report)}
           </button>
         ) : aiAvailability.message === "ChatGPT 요금제가 연결되지 않았습니다." ? (
           <button type="button" onClick={onOpenAiSettings}>AI 설정 열기</button>
         ) : (
           <button type="button" disabled>ChatGPT 모델 준비 필요</button>
         )}
-        {report.aiStatus === "idle" && <p>작성 전</p>}
-        {report.aiStatus === "generating" && <p role="status">작성 중…</p>}
-        {report.aiStatus === "success" && <div className="record-helper-ai-result__draft">
+        {report.aiStatus === "idle" && !hasDraft && <p>작성 전</p>}
+        {report.aiStatus === "generating" && <div className="record-helper-ai-result__generating">
+          <p role="status">작성 중…</p>
+          <p>화면 반영만 중단되며 이미 전송된 요청은 회수되지 않습니다.</p>
+        </div>}
+        {report.aiStatus === "error" && <div className="record-helper-ai-result__error"><strong>오류</strong><p role="alert">{report.aiError}</p></div>}
+        {hasDraft && <div className="record-helper-ai-result__draft">
           <div className="record-helper-ai-result__draft-heading">
-            <strong>초안 생성됨</strong>
-            {report.aiDraft.trim() !== "" && (
-              <button type="button" onClick={() => void copyDraft()}>
-                <ClipboardCopy size={14} aria-hidden="true" /> 결과 복사
-              </button>
-            )}
+            <strong>{aiDraftHeading(report)}</strong>
+            <button type="button" onClick={() => void copyDraft()}>
+              <ClipboardCopy size={14} aria-hidden="true" /> 결과 복사
+            </button>
           </div>
           <p>AI가 작성한 초안입니다. 실제 학생부 입력 전 교사가 사실관계와 표현을 확인해야 합니다.</p>
           <pre className="record-helper-ai-result__content">{report.aiDraft}</pre>
@@ -128,7 +172,6 @@ export function RecordHelperReportDetail({
             </p>
           )}
         </div>}
-        {report.aiStatus === "error" && <div><strong>오류</strong><p role="alert">{report.aiError}</p></div>}
       </section>
       <button className="record-helper-detail__remove" type="button" onClick={() => onRemove(report.id)}>
         <Trash2 size={14} aria-hidden="true" />

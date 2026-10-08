@@ -275,10 +275,149 @@ describe("record helper report workspace", () => {
     const success = reduceRecordHelperWorkspace(generating, { type: "resolveAiRequest", reportId, requestId: 31, response: "초안" });
     expect(success.reports[0]).toMatchObject({ aiStatus: "success", aiDraft: "초안", activeAiRequestId: null });
     const metadata = reduceRecordHelperWorkspace(success, { type: "updateReportMetadata", reportId, metadata: { studentLabel: "가상 학생", classLabel: "1반", activityLabel: "활동" } });
-    expect(metadata.reports[0]?.aiDraft).toBe("초안");
+    expect(metadata.reports[0]?.aiDraft).toBe("");
     const memo = reduceRecordHelperWorkspace(metadata, { type: "updateTeacherMemo", reportId, teacherMemo: "수정" });
     expect(memo.reports[0]).toMatchObject({ aiStatus: "idle", aiDraft: "", activeAiRequestId: null });
     const removed = reduceRecordHelperWorkspace(generating, { type: "removeReport", reportId });
     expect(reduceRecordHelperWorkspace(removed, { type: "resolveAiRequest", reportId, requestId: 31, response: "late" })).toBe(removed);
+    expect(reduceRecordHelperWorkspace(removed, { type: "failAiRequest", reportId, requestId: 31, error: "late" })).toBe(removed);
+  });
+
+  it("invalidates AI work only when an AI-relevant input actually changes", () => {
+    const reportId = createRecordHelperReportId("memory-invalidation");
+    const imported = reduceRecordHelperWorkspace(
+      reduceRecordHelperWorkspace(createRecordHelperWorkspace(), { type: "beginImport", requestId: 40 }),
+      { type: "resolveImport", requestId: 40, reports: [importedReport("memory-invalidation", "input.pdf", "본문")], failures: [] },
+    );
+    const withMetadata = reduceRecordHelperWorkspace(imported, {
+      type: "updateReportMetadata",
+      reportId,
+      metadata: { studentLabel: "가상 학생", classLabel: "가상 학급", activityLabel: "토론" },
+    });
+    const generated = reduceRecordHelperWorkspace(
+      reduceRecordHelperWorkspace(withMetadata, { type: "beginAiRequest", reportId, requestId: 41 }),
+      { type: "resolveAiRequest", reportId, requestId: 41, response: "기존 초안" },
+    );
+
+    expect(reduceRecordHelperWorkspace(generated, {
+      type: "updateReportMetadata",
+      reportId,
+      metadata: { studentLabel: "가상 학생", classLabel: "가상 학급", activityLabel: "토론" },
+    })).toBe(generated);
+    expect(reduceRecordHelperWorkspace(generated, {
+      type: "updateTeacherMemo",
+      reportId,
+      teacherMemo: "",
+    })).toBe(generated);
+
+    const activityOnly = reduceRecordHelperWorkspace(generated, {
+      type: "updateReportMetadata",
+      reportId,
+      metadata: { studentLabel: "가상 학생", classLabel: "가상 학급", activityLabel: "발표" },
+    });
+    expect(activityOnly.reports[0]).toMatchObject({ aiStatus: "success", aiDraft: "기존 초안" });
+
+    const identityChanged = reduceRecordHelperWorkspace(generated, {
+      type: "updateReportMetadata",
+      reportId,
+      metadata: { studentLabel: "다른 가상 학생", classLabel: "가상 학급", activityLabel: "토론" },
+    });
+    expect(identityChanged.reports[0]).toMatchObject({ aiStatus: "idle", aiDraft: "", aiError: null, activeAiRequestId: null });
+  });
+
+  it("ignores late AI success and failure after relevant input invalidation", () => {
+    const reportId = createRecordHelperReportId("memory-late-input");
+    const imported = reduceRecordHelperWorkspace(
+      reduceRecordHelperWorkspace(createRecordHelperWorkspace(), { type: "beginImport", requestId: 50 }),
+      { type: "resolveImport", requestId: 50, reports: [importedReport("memory-late-input", "late.pdf", "본문")], failures: [] },
+    );
+    const generating = reduceRecordHelperWorkspace(imported, { type: "beginAiRequest", reportId, requestId: 51 });
+    const edited = reduceRecordHelperWorkspace(generating, {
+      type: "updateReportMetadata",
+      reportId,
+      metadata: { studentLabel: "가상 학생", classLabel: "", activityLabel: "" },
+    });
+
+    expect(reduceRecordHelperWorkspace(edited, { type: "resolveAiRequest", reportId, requestId: 51, response: "늦은 초안" })).toBe(edited);
+    expect(reduceRecordHelperWorkspace(edited, { type: "failAiRequest", reportId, requestId: 51, error: "늦은 오류" })).toBe(edited);
+  });
+
+  it("preserves a previous successful draft through regeneration failure and retry", () => {
+    const reportId = createRecordHelperReportId("memory-regenerate");
+    const imported = reduceRecordHelperWorkspace(
+      reduceRecordHelperWorkspace(createRecordHelperWorkspace(), { type: "beginImport", requestId: 60 }),
+      { type: "resolveImport", requestId: 60, reports: [importedReport("memory-regenerate", "regenerate.pdf", "본문")], failures: [] },
+    );
+    const firstSuccess = reduceRecordHelperWorkspace(
+      reduceRecordHelperWorkspace(imported, { type: "beginAiRequest", reportId, requestId: 61 }),
+      { type: "resolveAiRequest", reportId, requestId: 61, response: "기존 정상 초안" },
+    );
+    const regenerating = reduceRecordHelperWorkspace(firstSuccess, { type: "beginAiRequest", reportId, requestId: 62 });
+    expect(regenerating.reports[0]).toMatchObject({ aiStatus: "generating", aiDraft: "기존 정상 초안", activeAiRequestId: 62 });
+
+    const failed = reduceRecordHelperWorkspace(regenerating, { type: "failAiRequest", reportId, requestId: 62, error: "일시적인 오류" });
+    expect(failed.reports[0]).toMatchObject({ aiStatus: "error", aiDraft: "기존 정상 초안", aiError: "일시적인 오류", activeAiRequestId: null });
+
+    const retrying = reduceRecordHelperWorkspace(failed, { type: "beginAiRequest", reportId, requestId: 63 });
+    expect(reduceRecordHelperWorkspace(retrying, { type: "failAiRequest", reportId, requestId: 62, error: "오래된 오류" })).toBe(retrying);
+    const retried = reduceRecordHelperWorkspace(retrying, { type: "resolveAiRequest", reportId, requestId: 63, response: "새 정상 초안" });
+    expect(retried.reports[0]).toMatchObject({ aiStatus: "success", aiDraft: "새 정상 초안", aiError: null, activeAiRequestId: null });
+  });
+
+  it("keeps an initial failure draft empty", () => {
+    const reportId = createRecordHelperReportId("memory-first-failure");
+    const imported = reduceRecordHelperWorkspace(
+      reduceRecordHelperWorkspace(createRecordHelperWorkspace(), { type: "beginImport", requestId: 70 }),
+      { type: "resolveImport", requestId: 70, reports: [importedReport("memory-first-failure", "failure.pdf", "본문")], failures: [] },
+    );
+    const failed = reduceRecordHelperWorkspace(
+      reduceRecordHelperWorkspace(imported, { type: "beginAiRequest", reportId, requestId: 71 }),
+      { type: "failAiRequest", reportId, requestId: 71, error: "첫 생성 실패" },
+    );
+
+    expect(failed.reports[0]).toMatchObject({ aiStatus: "error", aiDraft: "", aiError: "첫 생성 실패", activeAiRequestId: null });
+  });
+
+  it("cancels only the active frontend request and ignores its late result", () => {
+    const reportId = createRecordHelperReportId("memory-cancel");
+    const imported = reduceRecordHelperWorkspace(
+      reduceRecordHelperWorkspace(createRecordHelperWorkspace(), { type: "beginImport", requestId: 80 }),
+      { type: "resolveImport", requestId: 80, reports: [importedReport("memory-cancel", "cancel.pdf", "본문")], failures: [] },
+    );
+    const generating = reduceRecordHelperWorkspace(imported, { type: "beginAiRequest", reportId, requestId: 81 });
+    const cancelled = reduceRecordHelperWorkspace(generating, { type: "cancelAiRequest", reportId, requestId: 81 });
+
+    expect(cancelled.reports[0]).toMatchObject({ aiStatus: "idle", aiDraft: "", aiError: null, activeAiRequestId: null });
+    expect(reduceRecordHelperWorkspace(cancelled, { type: "resolveAiRequest", reportId, requestId: 81, response: "늦은 초안" })).toBe(cancelled);
+    expect(reduceRecordHelperWorkspace(cancelled, { type: "failAiRequest", reportId, requestId: 81, error: "늦은 오류" })).toBe(cancelled);
+  });
+
+  it("returns to the preserved draft after cancelling regeneration", () => {
+    const reportId = createRecordHelperReportId("memory-cancel-regenerate");
+    const imported = reduceRecordHelperWorkspace(
+      reduceRecordHelperWorkspace(createRecordHelperWorkspace(), { type: "beginImport", requestId: 90 }),
+      { type: "resolveImport", requestId: 90, reports: [importedReport("memory-cancel-regenerate", "cancel-regenerate.pdf", "본문")], failures: [] },
+    );
+    const success = reduceRecordHelperWorkspace(
+      reduceRecordHelperWorkspace(imported, { type: "beginAiRequest", reportId, requestId: 91 }),
+      { type: "resolveAiRequest", reportId, requestId: 91, response: "보존할 초안" },
+    );
+    const regenerating = reduceRecordHelperWorkspace(success, { type: "beginAiRequest", reportId, requestId: 92 });
+    const cancelled = reduceRecordHelperWorkspace(regenerating, { type: "cancelAiRequest", reportId, requestId: 92 });
+
+    expect(cancelled.reports[0]).toMatchObject({ aiStatus: "success", aiDraft: "보존할 초안", aiError: null, activeAiRequestId: null });
+  });
+
+  it("ignores late AI success and failure after clearing the workspace", () => {
+    const reportId = createRecordHelperReportId("memory-clear-active");
+    const imported = reduceRecordHelperWorkspace(
+      reduceRecordHelperWorkspace(createRecordHelperWorkspace(), { type: "beginImport", requestId: 100 }),
+      { type: "resolveImport", requestId: 100, reports: [importedReport("memory-clear-active", "clear.pdf", "본문")], failures: [] },
+    );
+    const generating = reduceRecordHelperWorkspace(imported, { type: "beginAiRequest", reportId, requestId: 101 });
+    const cleared = reduceRecordHelperWorkspace(generating, { type: "clearAll" });
+
+    expect(reduceRecordHelperWorkspace(cleared, { type: "resolveAiRequest", reportId, requestId: 101, response: "늦은 초안" })).toBe(cleared);
+    expect(reduceRecordHelperWorkspace(cleared, { type: "failAiRequest", reportId, requestId: 101, error: "늦은 오류" })).toBe(cleared);
   });
 });
