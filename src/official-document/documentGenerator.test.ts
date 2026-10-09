@@ -53,5 +53,16 @@ describe("official document deterministic generator", () => {
     expect(result.body).toContain("1. 관련: [입력 필요]");
     expect(result.body).toContain("가. 세부 내용: [입력 필요]");
     expect(result.body).not.toContain("기관명:");
+    expect(result.attachments).toContain("[확인 필요]");
+    expect(result.attachments).not.toContain("관련 계획 또는 결과 자료");
+  });
+
+  it("uses only attachments explicitly entered by the user", () => {
+    const result = generateOfficialDocumentDraft({
+      ...completeInput,
+      attachments: "사용자 입력 붙임",
+    });
+    expect(result.attachments).toContain("사용자 입력 붙임");
+    expect(result.attachments).not.toContain("검진 일정표");
   });
 });

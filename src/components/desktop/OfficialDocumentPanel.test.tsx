@@ -227,7 +227,7 @@ describe("OfficialDocumentPanel", () => {
 
     const markup = renderToStaticMarkup(
       <OfficialDocumentAiConfirmation
-        confirmation={{ prompt, providerLabel: "OpenAI" }}
+        confirmation={{ outboundText: prompt, providerLabel: "OpenAI" }}
         onCancel={vi.fn()}
         onConfirm={vi.fn()}
       />,
@@ -242,7 +242,7 @@ describe("OfficialDocumentPanel", () => {
   it("identifies the selected ChatGPT model in the confirmation label", () => {
     const markup = renderToStaticMarkup(
       <OfficialDocumentAiConfirmation
-        confirmation={{ prompt: "공문 프롬프트", providerLabel: "ChatGPT 요금제 · GPT Account Model" }}
+        confirmation={{ outboundText: "공문 프롬프트", providerLabel: "ChatGPT 요금제 · GPT Account Model" }}
         onCancel={vi.fn()}
         onConfirm={vi.fn()}
       />,

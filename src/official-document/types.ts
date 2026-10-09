@@ -41,6 +41,7 @@ export type OfficialDocumentRevisionInput = {
 export type OfficialDocumentModeOutput = {
   readonly prompt: string;
   readonly aiResponse: string;
+  readonly reviewedOutbound: string | null;
 };
 
 export type OfficialDocumentAiStatus = "idle" | "generating" | "error";
@@ -73,8 +74,10 @@ export type OfficialDocumentSessionAction =
   | { readonly type: "setDraft"; readonly draft: OfficialDocumentDraft }
   | { readonly type: "setPrompt"; readonly mode: OfficialDocumentMode; readonly prompt: string }
   | { readonly type: "setAiResponse"; readonly mode: OfficialDocumentMode; readonly response: string }
+  | { readonly type: "storeReviewedOutbound"; readonly mode: OfficialDocumentMode; readonly outboundText: string }
   | { readonly type: "setAiStatus"; readonly status: OfficialDocumentAiStatus; readonly error: string | null }
   | { readonly type: "beginAiRequest"; readonly requestId: number }
+  | { readonly type: "cancelAiRequest"; readonly requestId: number }
   | { readonly type: "resolveAiRequest"; readonly requestId: number; readonly mode: OfficialDocumentMode; readonly response: string }
   | { readonly type: "failAiRequest"; readonly requestId: number; readonly error: string }
   | { readonly type: "reset" };

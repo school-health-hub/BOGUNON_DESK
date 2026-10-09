@@ -1,11 +1,12 @@
 import { ClipboardCopy, FileText } from "lucide-react";
 import { composeOfficialDocumentDraft } from "../../official-document/documentGenerator";
 import type { OfficialDocumentLocalSummary } from "../../official-document/summaryExtractor";
-import type { OfficialDocumentDraft, OfficialDocumentMode } from "../../official-document/types";
+import type { OfficialDocumentAiStatus, OfficialDocumentDraft, OfficialDocumentMode } from "../../official-document/types";
 import { OfficialDocumentLocalSummaryView } from "./OfficialDocumentLocalSummary";
 
 type OfficialDocumentOutputProps = {
   readonly aiResponse: string;
+  readonly aiStatus: OfficialDocumentAiStatus;
   readonly draft: OfficialDocumentDraft | null;
   readonly mode: OfficialDocumentMode;
   readonly localSummary: OfficialDocumentLocalSummary | null;
@@ -44,7 +45,7 @@ function CopyButton({ label, value, onCopy }: {
   );
 }
 
-export function OfficialDocumentOutput({ aiResponse, draft, mode, localSummary, prompt, onCopy, onSendSummaryToQuickAdd }: OfficialDocumentOutputProps) {
+export function OfficialDocumentOutput({ aiResponse, aiStatus, draft, mode, localSummary, prompt, onCopy, onSendSummaryToQuickAdd }: OfficialDocumentOutputProps) {
   if (draft === null && localSummary === null && prompt === "" && aiResponse === "") {
     const copy = emptyStateCopy[mode];
     return (
@@ -78,7 +79,8 @@ export function OfficialDocumentOutput({ aiResponse, draft, mode, localSummary, 
       )}
       {aiResponse !== "" && (
         <section className="official-document-result is-ai">
-          <header><strong>연결한 AI 작성 결과</strong><CopyButton label="AI 결과" value={aiResponse} onCopy={onCopy} /></header>
+          <header><strong>{aiStatus === "generating" ? "이전 AI 결과" : aiStatus === "error" ? "이전 AI 결과 유지됨" : "연결한 AI 작성 결과"}</strong><CopyButton label="AI 결과" value={aiResponse} onCopy={onCopy} /></header>
+          {aiStatus === "generating" && <p className="official-document-result__notice">새 결과를 작성하는 동안 이전 정상 결과를 표시합니다.</p>}
           <pre>{aiResponse}</pre>
         </section>
       )}

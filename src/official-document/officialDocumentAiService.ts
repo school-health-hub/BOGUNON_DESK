@@ -24,6 +24,27 @@ type OfficialDocumentAiPreparation =
 
 let officialDocumentAiRequestSequence = 0;
 
+export const OFFICIAL_DOCUMENT_AI_OUTBOUND_BYTE_LIMIT = 64 * 1024;
+
+export type OfficialDocumentOutboundEvaluation = {
+  readonly bytes: number;
+  readonly canConfirm: boolean;
+  readonly findings: readonly string[];
+  readonly isWithinSizeLimit: boolean;
+};
+
+export const evaluateOfficialDocumentOutbound = (outboundText: string): OfficialDocumentOutboundEvaluation => {
+  const privacy = inspectOfficialDocumentPrivacy(outboundText);
+  const bytes = new TextEncoder().encode(outboundText).byteLength;
+  const isWithinSizeLimit = bytes <= OFFICIAL_DOCUMENT_AI_OUTBOUND_BYTE_LIMIT;
+  return {
+    bytes,
+    canConfirm: outboundText.trim() !== "" && privacy.isSafe && isWithinSizeLimit,
+    findings: privacy.findings,
+    isWithinSizeLimit,
+  };
+};
+
 export const nextOfficialDocumentAiRequestId = (): number => {
   officialDocumentAiRequestSequence += 1;
   return officialDocumentAiRequestSequence;
@@ -47,26 +68,28 @@ export const createOfficialDocumentAiSendGate = (
 };
 
 export const prepareOfficialDocumentAiSend = ({
-  privateSource,
-  buildPrompt,
+  outboundText,
   generate,
 }: {
-  readonly privateSource: string;
-  readonly buildPrompt: () => string;
+  readonly outboundText: string;
   readonly generate: (prompt: string) => Promise<string>;
 }): OfficialDocumentAiPreparation => {
-  const privacy = inspectOfficialDocumentPrivacy(privateSource);
-  if (!privacy.isSafe) {
+  const evaluation = evaluateOfficialDocumentOutbound(outboundText);
+  if (!evaluation.canConfirm) {
+    const error = evaluation.findings.length > 0
+      ? `민감한 개인정보 가능성이 있습니다: ${evaluation.findings.join(", ")}. 내용을 제거한 뒤 다시 시도해 주세요.`
+      : evaluation.isWithinSizeLimit
+        ? "AI로 보낼 내용을 입력해 주세요."
+        : `AI 전송 내용이 너무 큽니다. ${evaluation.bytes.toLocaleString()} / ${OFFICIAL_DOCUMENT_AI_OUTBOUND_BYTE_LIMIT.toLocaleString()} bytes`;
     return {
       status: "blocked",
-      error: `민감한 개인정보 가능성이 있습니다: ${privacy.findings.join(", ")}. 내용을 제거한 뒤 다시 시도해 주세요.`,
+      error,
     };
   }
-  const prompt = buildPrompt();
   return {
     status: "ready",
-    prompt,
-    gate: createOfficialDocumentAiSendGate(prompt, generate),
+    prompt: outboundText,
+    gate: createOfficialDocumentAiSendGate(outboundText, generate),
   };
 };
 

@@ -16,7 +16,6 @@ import {
   nextOfficialDocumentAiRequestId,
   prepareOfficialDocumentAiSend,
   selectOfficialDocumentAiGenerator,
-  type OfficialDocumentAiSendGate,
 } from "../../official-document/officialDocumentAiService";
 import {
   buildCreatePrompt,
@@ -31,7 +30,11 @@ import {
 } from "../../official-document/summaryToQuickAddDraft";
 import type { OfficialDocumentMode } from "../../official-document/types";
 import { getDesktopErrorMessage } from "../../desktop/actions";
-import { OfficialDocumentAiConfirmation } from "./OfficialDocumentAiConfirmation";
+import {
+  OfficialDocumentAiConfirmation,
+  type OfficialDocumentAiConfirmationData,
+  type OfficialDocumentAiConfirmationResult,
+} from "./OfficialDocumentAiConfirmation";
 import { OfficialDocumentCreateForm } from "./OfficialDocumentCreateForm";
 import { OfficialDocumentOutput } from "./OfficialDocumentOutput";
 import { OfficialDocumentSourceField } from "./OfficialDocumentSourceField";
@@ -49,11 +52,9 @@ type OfficialDocumentPanelProps = {
   readonly onSendSummaryToQuickAdd: (draft: OfficialDocumentQuickAddDraft) => void;
 };
 
-type PendingAiConfirmation = {
-  readonly gate: OfficialDocumentAiSendGate;
+type PendingAiConfirmation = OfficialDocumentAiConfirmationData & {
+  readonly generate: (prompt: string) => Promise<string>;
   readonly mode: OfficialDocumentMode;
-  readonly prompt: string;
-  readonly providerLabel: string;
 };
 
 export { OfficialDocumentAiConfirmation } from "./OfficialDocumentAiConfirmation";
@@ -88,55 +89,49 @@ export function OfficialDocumentPanel({ onClose, onNotice, onOpenAiSettings, onS
     generateText: chatGpt.generateText,
   }), [chatGpt.generateText, chatGpt.modelsError, chatGpt.modelsLoading, selectedChatGptModel, chatGpt.state.planUsageEnabled, chatGpt.state.status]);
 
-  const buildPrompt = (): string => {
-    const prompt = state.mode === "create"
+  const buildCurrentPrompt = (): string => (
+    state.mode === "create"
       ? buildCreatePrompt(state.createInput)
       : state.mode === "revision"
         ? buildRevisionPrompt(state.revisionInput)
-        : buildSummaryPrompt(state.summaryOriginal);
+        : buildSummaryPrompt(state.summaryOriginal)
+  );
+
+  const buildPrompt = (): string => {
+    const prompt = buildCurrentPrompt();
     dispatch({ type: "setPrompt", mode: state.mode, prompt });
     return prompt;
   };
-
-  const privateSource = state.mode === "create"
-    ? Object.values(state.createInput).join("\n")
-    : state.mode === "revision"
-      ? `${state.revisionInput.original}\n${state.revisionInput.request}`
-      : state.summaryOriginal;
 
   const prepareConnectedAi = (
     providerLabel: string,
     generate: (prompt: string) => Promise<string>,
   ): void => {
-    const prepared = prepareOfficialDocumentAiSend({
-      privateSource,
-      buildPrompt,
-      generate,
-    });
-    if (prepared.status === "blocked") {
-      dispatch({
-        type: "setAiStatus",
-        status: "error",
-        error: prepared.error,
-      });
-      return;
-    }
     setPendingAiConfirmation({
-      gate: prepared.gate,
+      generate,
       mode: state.mode,
-      prompt: prepared.prompt,
+      outboundText: output.reviewedOutbound ?? buildCurrentPrompt(),
       providerLabel,
     });
   };
 
-  const confirmConnectedAi = async (): Promise<void> => {
+  const confirmConnectedAi = async (result: OfficialDocumentAiConfirmationResult): Promise<void> => {
     const confirmation = pendingAiConfirmation;
     if (confirmation === null) return;
+    const prepared = prepareOfficialDocumentAiSend({
+      outboundText: result.outboundText,
+      generate: confirmation.generate,
+    });
+    if (prepared.status === "blocked") {
+      dispatch({ type: "setAiStatus", status: "error", error: prepared.error });
+      return;
+    }
     setPendingAiConfirmation(null);
     const requestId = nextOfficialDocumentAiRequestId();
+    dispatch({ type: "storeReviewedOutbound", mode: confirmation.mode, outboundText: prepared.prompt });
     dispatch({ type: "beginAiRequest", requestId });
     try {
-      const response = await confirmation.gate.confirm();
+      const response = await prepared.gate.confirm();
       if (response === null) return;
       dispatch({ type: "resolveAiRequest", requestId, mode: confirmation.mode, response });
     } catch (error: unknown) {
@@ -146,8 +141,18 @@ export function OfficialDocumentPanel({ onClose, onNotice, onOpenAiSettings, onS
   };
 
   const cancelConnectedAi = (): void => {
-    pendingAiConfirmation?.gate.cancel();
     setPendingAiConfirmation(null);
+  };
+
+  const cancelActiveAiRequest = (): void => {
+    if (state.activeAiRequestId === null) return;
+    dispatch({ type: "cancelAiRequest", requestId: state.activeAiRequestId });
+  };
+
+  const routeActionLabel = (routePrefix: string, defaultLabel: string): string => {
+    if (output.aiResponse.trim() !== "") return `${routePrefix} 다시 생성`;
+    if (state.aiStatus === "error") return `${routePrefix} 다시 시도`;
+    return defaultLabel;
   };
 
   const copy = async (label: string, value: string): Promise<void> => {
@@ -213,10 +218,17 @@ export function OfficialDocumentPanel({ onClose, onNotice, onOpenAiSettings, onS
               <div className="official-document-actions">
                 {state.mode === "create" && <button className="is-primary" type="button" onClick={() => dispatch({ type: "setDraft", draft: generateOfficialDocumentDraft(state.createInput) })}>기본 초안 만들기</button>}
                 {state.mode === "summary" && <button className="is-primary" type="button" onClick={buildLocalSummary}>기본 핵심정리</button>}
-                <button type="button" onClick={buildPrompt}><Sparkles size={15} /> AI 프롬프트 만들기</button>
-                {chatGptPlanAvailable && selectedChatGptModelLabel !== null && <button type="button" disabled={state.aiStatus === "generating" || pendingAiConfirmation !== null} onClick={() => prepareConnectedAi(`ChatGPT 요금제 · ${selectedChatGptModelLabel}`, selectOfficialDocumentAiGenerator("chatGptPlan", { apiConnection: apiAiService.generate, chatGptPlan: chatGptPlanAiService.generate }))}>{state.aiStatus === "generating" ? "작성 중…" : getOfficialDocumentChatGptPlanActionLabel(state.mode)}</button>}
-                {apiConnectionAvailable && ai.state.provider !== null && <button type="button" disabled={state.aiStatus === "generating" || pendingAiConfirmation !== null} onClick={() => prepareConnectedAi(ai.state.provider === "openai" ? "OpenAI" : "Gemini", selectOfficialDocumentAiGenerator("apiConnection", { apiConnection: apiAiService.generate, chatGptPlan: chatGptPlanAiService.generate }))}>{state.aiStatus === "generating" ? "작성 중…" : getOfficialDocumentAiActionLabel(ai.state.provider, state.mode)}</button>}
+                <button type="button" disabled={state.aiStatus === "generating" || pendingAiConfirmation !== null} onClick={buildPrompt}><Sparkles size={15} /> AI 프롬프트 만들기</button>
+                {state.aiStatus === "generating" ? (
+                  <button type="button" onClick={cancelActiveAiRequest}>작성 중단</button>
+                ) : (
+                  <>
+                    {chatGptPlanAvailable && selectedChatGptModelLabel !== null && <button type="button" disabled={pendingAiConfirmation !== null} onClick={() => prepareConnectedAi(`ChatGPT 요금제 · ${selectedChatGptModelLabel}`, selectOfficialDocumentAiGenerator("chatGptPlan", { apiConnection: apiAiService.generate, chatGptPlan: chatGptPlanAiService.generate }))}>{routeActionLabel("ChatGPT 요금제로", getOfficialDocumentChatGptPlanActionLabel(state.mode))}</button>}
+                    {apiConnectionAvailable && ai.state.provider !== null && <button type="button" disabled={pendingAiConfirmation !== null} onClick={() => prepareConnectedAi(ai.state.provider === "openai" ? "OpenAI" : "Gemini", selectOfficialDocumentAiGenerator("apiConnection", { apiConnection: apiAiService.generate, chatGptPlan: chatGptPlanAiService.generate }))}>{routeActionLabel(ai.state.provider === "openai" ? "OpenAI로" : "Gemini로", getOfficialDocumentAiActionLabel(ai.state.provider, state.mode))}</button>}
+                  </>
+                )}
               </div>
+              {state.aiStatus === "generating" && <p className="official-document-prompt-help">화면 반영만 중단할 수 있으며 이미 전송된 요청은 회수되지 않습니다.</p>}
               <p className="official-document-prompt-help">공문 내용과 요청사항을 정리해 ChatGPT, Gemini 등에서 사용할 수 있는 프롬프트를 만듭니다.</p>
               <aside className="official-document-privacy"><ShieldAlert size={16} /><span>{officialDocumentPrivacyNotice}</span></aside>
               {apiConnectionAvailable || chatGptPlanAvailable ? (
@@ -233,7 +245,7 @@ export function OfficialDocumentPanel({ onClose, onNotice, onOpenAiSettings, onS
               {state.aiError !== null && <p className="official-document-error" role="alert">{state.aiError}</p>}
             </section>
           </div>
-          <OfficialDocumentOutput aiResponse={output.aiResponse} draft={state.mode === "create" ? state.draft : null} localSummary={state.mode === "summary" ? state.summaryLocalResult : null} mode={state.mode} prompt={output.prompt} onCopy={(label, value) => void copy(label, value)} onSendSummaryToQuickAdd={() => {
+          <OfficialDocumentOutput aiResponse={output.aiResponse} aiStatus={state.aiStatus} draft={state.mode === "create" ? state.draft : null} localSummary={state.mode === "summary" ? state.summaryLocalResult : null} mode={state.mode} prompt={output.prompt} onCopy={(label, value) => void copy(label, value)} onSendSummaryToQuickAdd={() => {
             if (state.summaryLocalResult !== null) {
               onSendSummaryToQuickAdd(createOfficialDocumentQuickAddDraft(state.summaryLocalResult));
             }
@@ -243,7 +255,7 @@ export function OfficialDocumentPanel({ onClose, onNotice, onOpenAiSettings, onS
           <OfficialDocumentAiConfirmation
             confirmation={pendingAiConfirmation}
             onCancel={cancelConnectedAi}
-            onConfirm={() => void confirmConnectedAi()}
+            onConfirm={(result) => void confirmConnectedAi(result)}
           />
         )}
         <footer>입력과 결과는 현재 앱을 실행하는 동안에만 메모리에 유지되며 자동 저장되지 않습니다.</footer>

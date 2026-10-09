@@ -30,7 +30,9 @@ const splitAttachments = (value: string): readonly string[] =>
   value.split(/[,;\n]/).map((item) => item.trim()).filter((item) => item !== "");
 
 const formatAttachmentList = (attachments: readonly string[]): string =>
-  `붙임\n${attachments.map((item, index) => `${index + 1}. ${item} 1부.`).join("\n")}\n끝.`;
+  attachments.length === 0
+    ? "붙임\n1. [확인 필요] 1부.\n끝."
+    : `붙임\n${attachments.map((item, index) => `${index + 1}. ${item} 1부.`).join("\n")}\n끝.`;
 
 export const createEmptyOfficialDocumentInput = (): OfficialDocumentInput => ({
   purpose: officialDocumentPurposes[0],
@@ -92,7 +94,6 @@ export const generateOfficialDocumentDraft = (input: OfficialDocumentInput): Off
   const template = findOfficialDocumentTemplate(input.workArea);
   const title = buildTitle(input);
   const attachments = splitAttachments(input.attachments);
-  const resolvedAttachments = attachments.length === 0 ? template.attachments : attachments;
   const messenger = applyOfficialDocumentTemplate(template.messengerBody, {
     ...input,
     workName: clean(input.workName) || template.label,
@@ -100,7 +101,7 @@ export const generateOfficialDocumentDraft = (input: OfficialDocumentInput): Off
   return {
     title,
     body: buildBody(input),
-    attachments: formatAttachmentList(resolvedAttachments),
+    attachments: formatAttachmentList(attachments),
     messenger: `제목: ${title} 안내\n\n${messenger}`,
     checklist: [...defaultOfficialDocumentChecklist, ...template.checklist].map((item) => `□ ${item}`).join("\n"),
   };

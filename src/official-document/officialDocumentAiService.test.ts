@@ -3,11 +3,13 @@ import { AI_CONNECTION_ERROR } from "../ai/aiConnectionService";
 import {
   createOfficialDocumentAiService,
   createOfficialDocumentAiSendGate,
+  evaluateOfficialDocumentOutbound,
   getOfficialDocumentAiActionLabel,
   getOfficialDocumentChatGptPlanActionLabel,
   nextOfficialDocumentAiRequestId,
   prepareOfficialDocumentAiSend,
   selectOfficialDocumentAiGenerator,
+  OFFICIAL_DOCUMENT_AI_OUTBOUND_BYTE_LIMIT,
 } from "./officialDocumentAiService";
 
 describe("official document AI service", () => {
@@ -85,25 +87,21 @@ describe("official document AI service", () => {
     expect(planGenerate).not.toHaveBeenCalled();
   });
 
-  it("blocks every generator before prompt construction when privacy findings exist", () => {
-    const buildPrompt = vi.fn(() => "전송 프롬프트");
+  it("blocks every generator when the final reviewed outbound text contains privacy findings", () => {
     const planGenerate = vi.fn(async () => "plan");
     const apiGenerate = vi.fn(async () => "api");
 
     const plan = prepareOfficialDocumentAiSend({
-      privateSource: "연락처 010-1234-5678",
-      buildPrompt,
+      outboundText: "연락처 010-1234-5678",
       generate: planGenerate,
     });
     const api = prepareOfficialDocumentAiSend({
-      privateSource: "연락처 010-1234-5678",
-      buildPrompt,
+      outboundText: "연락처 010-1234-5678",
       generate: apiGenerate,
     });
 
     expect(plan.status).toBe("blocked");
     expect(api.status).toBe("blocked");
-    expect(buildPrompt).not.toHaveBeenCalled();
     expect(planGenerate).not.toHaveBeenCalled();
     expect(apiGenerate).not.toHaveBeenCalled();
   });
@@ -111,8 +109,7 @@ describe("official document AI service", () => {
   it("prepares a safe prompt without sending until explicit confirmation", async () => {
     const generate = vi.fn(async () => "작성 결과");
     const prepared = prepareOfficialDocumentAiSend({
-      privateSource: "개인정보가 없는 공문 내용",
-      buildPrompt: () => "공문 프롬프트",
+      outboundText: "공문 프롬프트",
       generate,
     });
 
@@ -121,6 +118,14 @@ describe("official document AI service", () => {
     if (prepared.status !== "ready") throw new Error("ready preparation expected");
     await expect(prepared.gate.confirm()).resolves.toBe("작성 결과");
     expect(generate).toHaveBeenCalledOnce();
+  });
+
+  it("counts the complete reviewed outbound prompt against the 64 KiB limit", () => {
+    const outboundText = "가".repeat(OFFICIAL_DOCUMENT_AI_OUTBOUND_BYTE_LIMIT);
+    const evaluation = evaluateOfficialDocumentOutbound(outboundText);
+    expect(evaluation.bytes).toBe(new TextEncoder().encode(outboundText).byteLength);
+    expect(evaluation.isWithinSizeLimit).toBe(false);
+    expect(evaluation.canConfirm).toBe(false);
   });
 
   it("does not send until the user confirms and sends exactly once after confirmation", async () => {

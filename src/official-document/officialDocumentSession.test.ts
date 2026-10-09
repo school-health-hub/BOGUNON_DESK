@@ -42,7 +42,7 @@ describe("official document session reducer", () => {
       type: "updateRevision",
       value: { original: "새 원문", request: "새 요청" },
     });
-    expect(changed.outputs.revision).toEqual({ prompt: "", aiResponse: "" });
+    expect(changed.outputs.revision).toEqual({ prompt: "", aiResponse: "", reviewedOutbound: null });
   });
 
   it("imports revision and summary sources into session-only state and prompt builders", () => {
@@ -105,7 +105,7 @@ describe("official document session reducer", () => {
     });
 
     expect(summarized.summaryLocalResult).toEqual(result);
-    expect(summarized.outputs.summary).toEqual({ prompt: "기존 프롬프트", aiResponse: "기존 AI 결과" });
+    expect(summarized.outputs.summary).toEqual({ prompt: "기존 프롬프트", aiResponse: "기존 AI 결과", reviewedOutbound: null });
   });
 
   it("clears local summary when summary source is edited or imported", () => {
@@ -253,4 +253,5 @@ describe("official document session reducer", () => {
     expect(stale).toEqual(second);
     expect(current.outputs.create.aiResponse).toBe("두 번째 응답");
   });
+
 });

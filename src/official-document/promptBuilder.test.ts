@@ -36,4 +36,31 @@ describe("provider-neutral official document prompts", () => {
     expect(prompt).toContain("[원문]\n정리할 공문 본문");
     expect(prompt).not.toMatch(/OpenAI|Gemini|ChatGPT/);
   });
+
+  it.each([
+    ["관련 공문번호", "관련 공문번호"],
+    ["법령명", "법령명"],
+    ["기관명", "기관명"],
+    ["날짜", "날짜"],
+    ["금액", "금액"],
+    ["수량", "수량"],
+    ["붙임", "붙임"],
+  ])("forbids inventing an unprovided administrative fact: %s", (_label, expected) => {
+    const prompt = buildCreatePrompt(createEmptyOfficialDocumentInput());
+    expect(prompt).toContain(expected);
+    expect(prompt).toContain("[확인 필요]");
+    expect(prompt).toContain("임의로 생성하지 말 것");
+  });
+
+  it("keeps revision facts unless the source or request explicitly changes them", () => {
+    const prompt = buildRevisionPrompt({ original: "기존 공문 본문", request: "문체를 간결하게 수정" });
+    expect(prompt).toContain("원문에 없는 공문번호, 법령명, 지침명, 기관명, 일정, 금액, 붙임을 새로 만들지 말 것");
+    expect(prompt).toContain("수정 요청이 명시하지 않은 행정 사실은 원문 값을 유지할 것");
+  });
+
+  it("forbids inferring any missing administrative fact while summarizing", () => {
+    const prompt = buildSummaryPrompt("정리할 공문 본문");
+    expect(prompt).toContain("원문에 명시되지 않은 행정 사실을 추론하거나 만들어내지 말 것");
+    expect(prompt).toContain("[확인 필요]");
+  });
 });
