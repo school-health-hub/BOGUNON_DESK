@@ -110,18 +110,24 @@ Protected environment에는 다음 secret 이름이 필요합니다. 실제 값,
 
 `SUPABASE_RELEASE_STORAGE_KEY`는 privileged **server-side Storage publishing credential**이며 GitHub Environment의 secret store에만 둡니다. 이는 `VITE_SUPABASE_PUBLISHABLE_KEY`나 anon key가 아니며 desktop app credential로 사용하면 안 됩니다. Protected publisher step의 request header 외에는 전달하지 않고 Desktop bundle, Vite variable, artifact, log, manifest에 포함하면 안 됩니다. 이 workflow를 위해 public/anon/authenticated Storage write policy를 추가하지 않습니다. Local PC의 signing key 경로도 CI 설정에 사용하지 않습니다. Publish timestamp는 trusted job의 실제 UTC 실행 시각으로 생성합니다.
 
-Workflow는 `npm run release:updater`가 여섯 local artifact를 모두 검증한 뒤 `npm run release:publish`를 실행합니다. Publisher 대상은 project `xxownwxxajzrviuvvfiu`의 public bucket `desktop-releases`로 고정되어 있으며 workflow input으로 바꿀 수 없습니다.
+Workflow는 `npm run release:updater`로 signed production candidate를 한 번만 만든 뒤, 그 exact bytes를 GitHub Actions artifact로 보존합니다. 이후 clean-install QA, synthetic updater compatibility QA, versioned publish, public pointer promotion은 모두 이 candidate artifact를 다운로드해 사용하며 installer를 다시 빌드하지 않습니다. Publisher 대상은 project `xxownwxxajzrviuvvfiu`의 public bucket `desktop-releases`로 고정되어 있으며 workflow input으로 바꿀 수 없습니다.
 
-게시 순서와 복구 계약은 다음과 같습니다.
+Production updater workflow의 gate 순서는 다음과 같습니다.
 
-1. `<version>/`의 installer, signature, checksum, README를 overwrite 없이 게시
-2. 모든 versioned public object를 다시 내려받아 local bytes와 비교
-3. `release-metadata.json`을 갱신하고 검증
-4. updater를 활성화하는 `latest.json`을 **마지막으로** 갱신하고 검증
+1. `build-candidate` — signed candidate를 한 번 생성하고 `release-output/` 및 sanitized candidate evidence를 artifact로 보존
+2. `publish-candidate-endpoint` — updater QA 전용 `candidate/<version>/<run-id>/` namespace에 candidate manifest와 installer를 게시
+3. `clean-install-candidate` — production candidate artifact의 SHA-256을 확인한 뒤 exact-byte clean install QA 수행
+4. `updater-compatibility-qa` — public `latest.json`을 건드리지 않고 synthetic 0.2.0 endpoint overlay로 updater protocol/signature/install compatibility 확인
+5. `publish-versioned` → `verify-versioned` — `<version>/`의 immutable objects를 게시하고 remote bytes를 검증
+6. `publish-release-metadata` — rollback/newer latest guard를 먼저 통과한 뒤 release metadata pointer 갱신
+7. `promote-latest` → `verify-public-latest` — updater를 활성화하는 `latest.json`을 **마지막으로** 갱신하고 검증
+8. `cleanup-candidate-endpoint` — public latest 검증까지 성공한 경우에만 candidate namespace를 제거하고 remote absence evidence를 남김. Gate 실패/중단 시에는 candidate namespace를 보존하고 retention evidence를 남기며, abandoned run은 수동 cleanup 대상으로 기록
 
 Versioned path는 1년 `max-age`를 사용하고 경로 자체를 immutable로 취급합니다. Supabase Storage upload metadata가 별도 `immutable` directive를 제공하지 않으므로 overwrite 금지와 content 검증으로 불변성을 보장합니다. Mutable pointer는 5분 `max-age`를 사용합니다.
 
-Workflow rerun 시 이미 존재하는 versioned object가 local bytes와 정확히 같으면 성공한 이전 단계로 인정합니다. 내용이 다르면 overwrite하지 않고 hard fail합니다. 따라서 일부 artifact만 올라간 뒤 실패해도 같은 commit/version으로 안전하게 재실행할 수 있습니다. Artifact 검증이나 metadata 게시가 실패하면 `latest.json`은 변경하지 않습니다. `latest.json` 게시 자체가 실패하면 versioned files는 남지만 기존 updater pointer는 유지됩니다.
+Workflow rerun 시 candidate identity는 `github.run_id`만 사용하며 `run_attempt`를 포함하지 않습니다. Attempt 1은 candidate artifact가 없으면 signed candidate를 생성할 수 있지만, attempt 2 이상은 이전 attempt에서 보존된 canonical candidate artifact restore가 성공해야 하며 restore 실패 시 재빌드/재서명하지 않고 hard fail합니다. Downstream job rerun은 이 canonical candidate artifact를 재사용합니다. 이미 존재하는 versioned object가 local bytes와 정확히 같으면 성공한 이전 단계로 인정합니다. 내용이 다르면 overwrite하지 않고 hard fail합니다. 따라서 일부 artifact만 올라간 뒤 실패해도 같은 commit/version으로 안전하게 재실행할 수 있습니다. Artifact 검증이나 metadata 게시가 실패하면 `latest.json`은 변경하지 않습니다. `latest.json` 게시 자체가 실패하면 versioned files는 남지만 기존 updater pointer는 유지됩니다.
+
+Synthetic updater compatibility QA는 `UPGRADE_QA_MODE = SYNTHETIC_0_2_0_ENDPOINT_OVERLAY`로 evidence에 기록합니다. 이는 public 0.2.0 installer exact-byte upgrade QA가 아닙니다. Workflow에 release별 synthetic source ref를 명시하고, public 0.2.0과 같은 source/version/updater public key를 사용하는 synthetic 0.2.0 QA build에 candidate endpoint만 overlay하여 updater protocol, signature verification, install/update/relaunch compatibility를 검증합니다. Candidate URL은 production latest가 아닌 `https://xxownwxxajzrviuvvfiu.supabase.co/storage/v1/object/public/desktop-releases/candidate/<version>/<run-id>/latest.json` 형태여야 하며, QA script는 remote manifest, installer URL, signature, remote installer SHA-256을 검증합니다. Production 0.2.1 candidate installer는 exact bytes clean-install QA 대상입니다.
 
 이미 활성화된 잘못된 release를 동일 version으로 덮어쓰는 rollback은 지원하지 않습니다. 새 수정 version을 만들어 정상 release 절차로 게시해야 합니다. Pointer의 수동 rollback은 별도의 incident 절차와 remote artifact 검증 없이 수행하지 않습니다.
 

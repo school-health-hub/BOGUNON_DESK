@@ -2,12 +2,31 @@ name: Windows clean-install QA
 
 on:
   workflow_dispatch:
+    inputs:
+      candidate_artifact_name:
+        description: Optional production candidate artifact to test without rebuilding
+        required: false
+        type: string
+      candidate_run_id:
+        description: Source workflow run ID that produced the candidate artifact
+        required: false
+        type: string
+      expected_sha256:
+        description: Required when candidate_artifact_name is set
+        required: false
+        type: string
+      expected_product_version:
+        description: Expected installed ProductVersion for candidate mode
+        required: false
+        default: "0.2.1"
+        type: string
   pull_request:
     branches:
       - main
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: windows-clean-install-qa-${{ github.ref }}
@@ -25,21 +44,21 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: "22"
           cache: npm
 
       - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249
         with:
           targets: x86_64-pc-windows-msvc
 
       - name: Cache Rust build
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c
         with:
           workspaces: src-tauri
 
@@ -55,16 +74,35 @@ jobs:
           ) | Set-Content -Encoding utf8 "artifacts/windows-clean-install-qa/workflow-context.txt"
 
       - name: Install JavaScript dependencies
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.candidate_artifact_name == '' }}
         run: npm ci
 
       - name: Build production NSIS installer
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.candidate_artifact_name == '' }}
         run: npm run release:windows
+
+      - name: Download production candidate artifact
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.candidate_artifact_name != '' }}
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ inputs.candidate_artifact_name }}
+          run-id: ${{ inputs.candidate_run_id || github.run_id }}
+          github-token: ${{ github.token }}
+          path: candidate-artifact
 
       - name: Locate generated installer
         id: installer
         shell: pwsh
+        env:
+          CANDIDATE_ARTIFACT_NAME: ${{ inputs.candidate_artifact_name }}
+          EXPECTED_SHA256: ${{ inputs.expected_sha256 }}
         run: |
-          $installers = @(Get-ChildItem -Path "release-output" -Filter "*.exe" -File -Recurse)
+          $isCandidateMode = -not [string]::IsNullOrWhiteSpace($env:CANDIDATE_ARTIFACT_NAME)
+          if ($isCandidateMode -and $env:EXPECTED_SHA256 -notmatch '^[a-fA-F0-9]{64}$') {
+            throw "expected_sha256 is required for candidate artifact mode."
+          }
+          $searchRoot = if ($isCandidateMode) { "candidate-artifact" } else { "release-output" }
+          $installers = @(Get-ChildItem -Path $searchRoot -Filter "*.exe" -File -Recurse)
           if ($installers.Count -ne 1) {
             throw "Expected exactly one generated installer, found $($installers.Count)."
           }
@@ -75,18 +113,28 @@ jobs:
           "Installer bytes: $($installer.Length)"
           "INSTALLER_PATH=$($installer.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "path=$($installer.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          $actualSha = (Get-FileHash -LiteralPath $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          "INSTALLER_SHA256=$actualSha" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          if ($isCandidateMode -and $actualSha -ne $env:EXPECTED_SHA256.ToLowerInvariant()) {
+            throw "Candidate installer SHA mismatch before clean-install QA."
+          }
 
       - name: Run clean-install smoke test
         shell: pwsh
+        env:
+          EXPECTED_SHA256: ${{ inputs.expected_sha256 }}
+          EXPECTED_PRODUCT_VERSION: ${{ inputs.expected_product_version }}
         run: |
           & "./scripts/qa/windows-clean-install.ps1" `
             -InstallerPath $env:INSTALLER_PATH `
+            -ExpectedSha256 $env:EXPECTED_SHA256 `
+            -ExpectedProductVersion $env:EXPECTED_PRODUCT_VERSION `
             -OutputDirectory "artifacts/windows-clean-install-qa" `
             -AllowCleanup
 
       - name: Upload installer and QA evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: windows-clean-install-qa-${{ github.run_id }}-${{ github.run_attempt }}
           if-no-files-found: warn

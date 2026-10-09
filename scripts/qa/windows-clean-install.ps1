@@ -3,6 +3,10 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$InstallerPath,
 
+  [string]$ExpectedSha256 = "",
+
+  [string]$ExpectedProductVersion = "",
+
   [string]$OutputDirectory = "artifacts/windows-clean-install-qa",
 
   [switch]$AllowCleanup,
@@ -70,6 +74,24 @@ function Add-Check {
 
   Write-QaLog -Level FAIL -Message "$Name - $Details"
   throw "$Name failed: $Details"
+}
+
+function Get-FileSha256 {
+  param([Parameter(Mandatory = $true)][string]$Path)
+  (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+}
+
+function Assert-ExpectedSha256 {
+  param(
+    [Parameter(Mandatory = $true)][string]$Expected,
+    [Parameter(Mandatory = $true)][string]$Actual
+  )
+
+  if ([string]::IsNullOrWhiteSpace($Expected)) { return }
+  if ($Expected -notmatch '^[a-fA-F0-9]{64}$') {
+    throw "ExpectedSha256 must be a 64-character hexadecimal SHA-256 value."
+  }
+  Add-Check -Name "Installer SHA-256" -Passed ($Actual -eq $Expected.ToLowerInvariant()) -Details "expected=$($Expected.ToLowerInvariant()) actual=$Actual"
 }
 
 function Get-ProjectMetadata {
@@ -425,13 +447,22 @@ try {
   if ($installer.Extension -ine ".exe" -or $installer.Length -le 0) {
     throw "Installer is missing, empty, or not an executable."
   }
-  $script:Summary.installer = [ordered]@{ path = $installer.FullName; name = $installer.Name; bytes = $installer.Length }
+  $installerSha256 = Get-FileSha256 -Path $installer.FullName
+  $script:Summary.installer = [ordered]@{
+    path = $installer.FullName
+    name = $installer.Name
+    bytes = $installer.Length
+    expectedSha256 = if ([string]::IsNullOrWhiteSpace($ExpectedSha256)) { $null } else { $ExpectedSha256.ToLowerInvariant() }
+    actualSha256 = $installerSha256
+  }
   $script:Summary.product = [ordered]@{
     name = $metadata.ProductName
     identifier = $metadata.Identifier
     version = $metadata.Version
+    expectedProductVersion = if ([string]::IsNullOrWhiteSpace($ExpectedProductVersion)) { $null } else { $ExpectedProductVersion }
     binaryStem = $metadata.BinaryStem
   }
+  Assert-ExpectedSha256 -Expected $ExpectedSha256 -Actual $installerSha256
 
   Write-QaLog -Level INFO -Message "Current user: $([Security.Principal.WindowsIdentity]::GetCurrent().Name)"
   $os = Get-CimInstance Win32_OperatingSystem
@@ -483,6 +514,11 @@ try {
 
   $mainExecutable = Resolve-MainExecutable -InstallDirectory $installDirectory -Metadata $metadata
   Add-Check -Name "Main executable" -Passed ($mainExecutable.Length -gt 0) -Details "$($mainExecutable.FullName) ($($mainExecutable.Length) bytes)"
+  $observedProductVersion = [string]$mainExecutable.VersionInfo.ProductVersion
+  $script:Summary.product.observedProductVersion = $observedProductVersion
+  if (-not [string]::IsNullOrWhiteSpace($ExpectedProductVersion)) {
+    Add-Check -Name "ProductVersion" -Passed ($observedProductVersion -eq $ExpectedProductVersion) -Details "expected=$ExpectedProductVersion observed=$observedProductVersion"
+  }
   $uninstaller = Get-UninstallerCommand -Entry $script:InstalledEntry
   Add-Check -Name "Uninstaller executable" -Passed (Test-Path -LiteralPath $uninstaller.Executable -PathType Leaf) -Details ([IO.Path]::GetFileName($uninstaller.Executable))
 

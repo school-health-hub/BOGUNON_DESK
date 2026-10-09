@@ -73,6 +73,38 @@ describe("release artifact collection", () => {
     const metadata = JSON.parse(await readFile(join(root, "release-output", "release-metadata.json"), "utf8"));
     expect(metadata).toMatchObject({ version, installerUrl: latest.platforms["windows-x86_64"].url, sha256: result.sha256, bytes: contents.length });
     expect(JSON.stringify({ latest, metadata })).not.toContain("fixture-private-key-value");
+    const context = JSON.parse(await readFile(join(root, "artifacts", "release-candidate", "candidate-build-context.json"), "utf8"));
+    const candidateLatest = JSON.parse(await readFile(join(root, "artifacts", "release-candidate", "candidate-latest.json"), "utf8"));
+    const candidateMetadata = JSON.parse(await readFile(join(root, "artifacts", "release-candidate", "candidate-release-metadata.json"), "utf8"));
+    expect(context).toMatchObject({
+      version,
+      sourceSha: "local",
+      installer: { fileName: expectedName, sha256: result.sha256, bytes: contents.length },
+      signature: { fileName: expectedSignatureName },
+      upgradeQaMode: "SYNTHETIC_0_2_0_ENDPOINT_OVERLAY",
+      production020ExactInstallerBytes: "NOT TESTED",
+      updaterProtocolSignatureInstallCompatibility: "PENDING",
+      production021CandidateBytes: "PENDING",
+      exactByteCleanInstall: "PENDING",
+    });
+    expect(candidateLatest.platforms["windows-x86_64"].url).toBe(
+      `https://xxownwxxajzrviuvvfiu.supabase.co/storage/v1/object/public/desktop-releases/candidate/${version}/local/${expectedName}`,
+    );
+    expect(candidateLatest.platforms["windows-x86_64"].signature).toBe(signature);
+    expect(candidateMetadata).toMatchObject({
+      version,
+      installerUrl: candidateLatest.platforms["windows-x86_64"].url,
+      candidate: {
+        runId: "local",
+        upgradeQaMode: "SYNTHETIC_0_2_0_ENDPOINT_OVERLAY",
+        production020ExactInstallerBytes: "NOT TESTED",
+        updaterProtocolSignatureInstallCompatibility: "PENDING",
+        production021CandidateBytes: "PENDING",
+        exactByteCleanInstall: "PENDING",
+      },
+    });
+    expect(JSON.stringify(context)).not.toMatch(/TAURI_SIGNING_PRIVATE_KEY|SUPABASE_RELEASE_STORAGE_KEY|bearer|authorization|OAuth|DPAPI|private key/iu);
+    expect(JSON.stringify({ candidateLatest, candidateMetadata })).not.toMatch(/TAURI_SIGNING_PRIVATE_KEY|SUPABASE_RELEASE_STORAGE_KEY|bearer|authorization|OAuth|DPAPI|private key/iu);
   });
 
   it.each([
@@ -100,5 +132,33 @@ describe("release artifact collection", () => {
     });
     await expect(collectReleaseArtifacts({ projectRoot: root, version, updater, publishedAt: updater ? publishedAt : undefined }))
       .rejects.toThrow("release contract 외의 파일");
+  });
+
+  it("uses the workflow run id, not the run attempt, as the stable candidate identity", async () => {
+    const previousRunId = process.env.GITHUB_RUN_ID;
+    const previousRunAttempt = process.env.GITHUB_RUN_ATTEMPT;
+    process.env.GITHUB_RUN_ID = "123456789";
+    process.env.GITHUB_RUN_ATTEMPT = "7";
+    try {
+      const { root } = await createFixture({
+        installers: [[installerName, "synthetic-installer"]],
+        signatures: [[`${installerName}.sig`, `${signature}\n`]],
+      });
+      await collectReleaseArtifacts({ projectRoot: root, version, updater: true, publishedAt });
+      const candidateLatest = JSON.parse(await readFile(join(root, "artifacts", "release-candidate", "candidate-latest.json"), "utf8"));
+      expect(candidateLatest.platforms["windows-x86_64"].url).toContain(`/candidate/${version}/123456789/`);
+      expect(candidateLatest.platforms["windows-x86_64"].url).not.toContain("123456789-7");
+    } finally {
+      if (previousRunId === undefined) {
+        delete process.env.GITHUB_RUN_ID;
+      } else {
+        process.env.GITHUB_RUN_ID = previousRunId;
+      }
+      if (previousRunAttempt === undefined) {
+        delete process.env.GITHUB_RUN_ATTEMPT;
+      } else {
+        process.env.GITHUB_RUN_ATTEMPT = previousRunAttempt;
+      }
+    }
   });
 });

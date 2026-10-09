@@ -8,6 +8,17 @@ import { generateUpdaterDocuments } from "./generate-updater-manifest.mjs";
 const defaultProjectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const windowsTarget = "x86_64-pc-windows-msvc";
 const publicReleaseBaseUrl = "https://xxownwxxajzrviuvvfiu.supabase.co/storage/v1/object/public/desktop-releases";
+const upgradeQaMode = "SYNTHETIC_0_2_0_ENDPOINT_OVERLAY";
+const pendingQaStatus = "PENDING";
+
+const candidateRunId = () => {
+  if (typeof process.env.RELEASE_CANDIDATE_RUN_ID === "string" && process.env.RELEASE_CANDIDATE_RUN_ID.trim() !== "") {
+    return process.env.RELEASE_CANDIDATE_RUN_ID.trim();
+  }
+  const runId = process.env.GITHUB_RUN_ID?.trim();
+  if (runId !== undefined && runId !== "") return runId;
+  return "local";
+};
 
 const readmeFirst = (version, updater) => `BOGUNON DESK ${version} 공유 베타
 
@@ -57,6 +68,61 @@ const assertCleanOutput = async (outputDirectory, expectedNames) => {
   if (unexpected.length > 0) throw new Error("release-output에 현재 release contract 외의 파일이 있습니다. 별도로 보관한 뒤 다시 실행해 주세요.");
 };
 
+const writeCandidateBuildContext = async ({ projectRoot, version, fileName, signatureFileName, signature, installerSha256, signatureSha256, installerBytes, latest, metadata }) => {
+  const evidenceDirectory = join(projectRoot, "artifacts", "release-candidate");
+  await mkdir(evidenceDirectory, { recursive: true });
+  const runId = candidateRunId();
+  const candidateInstallerUrl = `${publicReleaseBaseUrl}/candidate/${version}/${runId}/${fileName}`;
+  const context = {
+    version,
+    sourceSha: process.env.GITHUB_SHA ?? "local",
+    workflowRunId: process.env.GITHUB_RUN_ID ?? "local",
+    workflowRunAttempt: process.env.GITHUB_RUN_ATTEMPT ?? "local",
+    installer: {
+      fileName,
+      sha256: installerSha256,
+      bytes: installerBytes,
+    },
+    signature: {
+      fileName: signatureFileName,
+      sha256: signatureSha256,
+    },
+    upgradeQaMode,
+    production020ExactInstallerBytes: "NOT TESTED",
+    updaterProtocolSignatureInstallCompatibility: pendingQaStatus,
+    production021CandidateBytes: pendingQaStatus,
+    exactByteCleanInstall: pendingQaStatus,
+  };
+  const candidateLatest = {
+    ...latest,
+    platforms: {
+      ...latest.platforms,
+      "windows-x86_64": {
+        ...latest.platforms["windows-x86_64"],
+        url: candidateInstallerUrl,
+        signature,
+      },
+    },
+  };
+  const candidateMetadata = {
+    ...metadata,
+    installerUrl: candidateInstallerUrl,
+    candidate: {
+      runId,
+      upgradeQaMode,
+      production020ExactInstallerBytes: "NOT TESTED",
+      updaterProtocolSignatureInstallCompatibility: pendingQaStatus,
+      production021CandidateBytes: pendingQaStatus,
+      exactByteCleanInstall: pendingQaStatus,
+    },
+  };
+  await Promise.all([
+    writeFile(join(evidenceDirectory, "candidate-build-context.json"), `${JSON.stringify(context, null, 2)}\n`, "utf8"),
+    writeFile(join(evidenceDirectory, "candidate-latest.json"), `${JSON.stringify(candidateLatest, null, 2)}\n`, "utf8"),
+    writeFile(join(evidenceDirectory, "candidate-release-metadata.json"), `${JSON.stringify(candidateMetadata, null, 2)}\n`, "utf8"),
+  ]);
+};
+
 export const collectReleaseArtifacts = async ({ projectRoot = defaultProjectRoot, version, updater = false, publishedAt }) => {
   const nsisDirectory = join(projectRoot, "src-tauri", "target", windowsTarget, "release", "bundle", "nsis");
   const source = await selectSourceArtifacts(nsisDirectory, updater);
@@ -101,6 +167,18 @@ export const collectReleaseArtifacts = async ({ projectRoot = defaultProjectRoot
     writeFile(join(outputDirectory, "latest.json"), `${JSON.stringify(documents.latest, null, 2)}\n`, "utf8"),
     writeFile(join(outputDirectory, "release-metadata.json"), `${JSON.stringify(documents.metadata, null, 2)}\n`, "utf8"),
   ]);
+  await writeCandidateBuildContext({
+    projectRoot,
+    version,
+    fileName,
+    signatureFileName,
+    signature,
+    installerSha256,
+    signatureSha256,
+    installerBytes: installerStat.size,
+    latest: documents.latest,
+    metadata: documents.metadata,
+  });
   return { fileName, signatureFileName, bytes: installerStat.size, sha256: installerSha256 };
 };
 

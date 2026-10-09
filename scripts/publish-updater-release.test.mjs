@@ -3,7 +3,15 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { publishUpdaterRelease } from "./publish-updater-release.mjs";
+import {
+  cleanupCandidateRelease,
+  promoteLatestRelease,
+  publishCandidateRelease,
+  publishReleaseMetadata,
+  publishUpdaterRelease,
+  publishVersionedRelease,
+  verifyVersionedRelease,
+} from "./publish-updater-release.mjs";
 import {
   POINTER_CACHE_CONTROL,
   RELEASE_BUCKET,
@@ -69,6 +77,10 @@ const createStorageMock = (initial = new Map(), failVerificationFor = null) => {
         ? new Response(JSON.stringify({ statusCode: "404", error: "not_found" }), { status: 400 })
         : new Response(value, { status: 200 });
     }
+    if ((options.method ?? "GET") === "DELETE") {
+      objects.delete(path);
+      return new Response("ok", { status: 200 });
+    }
     if (options.headers["x-upsert"] !== "true" && objects.has(path)) {
       return new Response("duplicate", { status: 409 });
     }
@@ -96,6 +108,68 @@ describe("protected updater release publisher", () => {
     expect(posts.slice(0, 4).every((call) => call.headers["x-upsert"] === "false")).toBe(true);
     expect(posts.slice(0, 4).every((call) => call.headers["cache-control"] === VERSIONED_CACHE_CONTROL)).toBe(true);
     expect(posts.slice(4).every((call) => call.headers["cache-control"] === POINTER_CACHE_CONTROL)).toBe(true);
+  });
+
+  it("publishes and cleans up a candidate namespace without touching production latest", async () => {
+    const { root } = await createReleaseFixture();
+    const storage = createStorageMock();
+    const result = await publishCandidateRelease({
+      projectRoot: root,
+      version,
+      runId: "12345",
+      credential,
+      fetchImpl: storage.fetchImpl,
+    });
+
+    expect(result.latestUrl).toBe(`${RELEASE_PUBLIC_BASE_URL}/candidate/${version}/12345/latest.json`);
+    expect(storage.calls.filter((call) => call.method === "POST").map((call) => call.path)).toEqual([
+      `candidate/${version}/12345/${installerName}`,
+      `candidate/${version}/12345/${installerName}.sig`,
+      `candidate/${version}/12345/SHA256SUMS.txt`,
+      `candidate/${version}/12345/README-FIRST.txt`,
+      `candidate/${version}/12345/release-metadata.json`,
+      `candidate/${version}/12345/latest.json`,
+    ]);
+    const cleanup = await cleanupCandidateRelease({ projectRoot: root, version, runId: "12345", credential, fetchImpl: storage.fetchImpl });
+    expect(cleanup.candidateCleanupVerified).toBe(true);
+    expect([...storage.objects.keys()].filter((key) => key.startsWith(`candidate/${version}/12345/`))).toEqual([]);
+    expect(storage.calls.some((call) => call.path === "latest.json")).toBe(false);
+  });
+
+  it("publishes versioned objects without publishing mutable pointers", async () => {
+    const { root } = await createReleaseFixture();
+    const storage = createStorageMock();
+    const result = await publishVersionedRelease({ projectRoot: root, version, credential, fetchImpl: storage.fetchImpl });
+
+    expect(result.versionedResults).toEqual(["uploaded", "uploaded", "uploaded", "uploaded"]);
+    expect(storage.calls.filter((call) => call.method === "POST").map((call) => call.path)).toEqual([
+      `${version}/${installerName}`,
+      `${version}/${installerName}.sig`,
+      `${version}/SHA256SUMS.txt`,
+      `${version}/README-FIRST.txt`,
+    ]);
+  });
+
+  it("verifies versioned objects without uploading new objects", async () => {
+    const { root, files } = await createReleaseFixture();
+    const existing = new Map(Object.entries(files).slice(0, 4).map(([name, contents]) => [`${version}/${name}`, Buffer.from(contents)]));
+    const storage = createStorageMock(existing);
+    await verifyVersionedRelease({ projectRoot: root, version, credential, fetchImpl: storage.fetchImpl });
+    expect(storage.calls.every((call) => call.method === "GET")).toBe(true);
+  });
+
+  it("promotes latest only after rejecting newer or conflicting public pointers", async () => {
+    const { root, files } = await createReleaseFixture();
+    const newer = Buffer.from(JSON.stringify({ version: "9.9.9" }));
+    const newerStorage = createStorageMock(new Map([["latest.json", newer]]));
+    await expect(promoteLatestRelease({ projectRoot: root, version, credential, fetchImpl: newerStorage.fetchImpl }))
+      .rejects.toThrow("최신");
+    expect(newerStorage.calls.some((call) => call.method === "POST")).toBe(false);
+
+    const sameStorage = createStorageMock(new Map([["latest.json", Buffer.from(files["latest.json"])]]));
+    const result = await promoteLatestRelease({ projectRoot: root, version, credential, fetchImpl: sameStorage.fetchImpl });
+    expect(result.status).toBe("existing");
+    expect(sameStorage.calls.some((call) => call.method === "POST")).toBe(false);
   });
 
   it("sends the opaque privileged key only through the apikey header", async () => {
@@ -144,6 +218,24 @@ describe("protected updater release publisher", () => {
     await expect(publishUpdaterRelease({ projectRoot: root, version, credential, fetchImpl: storage.fetchImpl, sleepImpl: async () => {} }))
       .rejects.toThrow("검증에 실패");
     expect(storage.calls.some((call) => call.path === "latest.json" && call.method === "POST")).toBe(false);
+  });
+
+  it("checks public latest rollback safety before mutating release metadata", async () => {
+    const { root } = await createReleaseFixture();
+    const storage = createStorageMock(new Map([["latest.json", Buffer.from(JSON.stringify({ version: "9.9.9" }))]]));
+    await expect(publishReleaseMetadata({ projectRoot: root, version, credential, fetchImpl: storage.fetchImpl }))
+      .rejects.toThrow("최신");
+    expect(storage.calls.some((call) => call.path === "release-metadata.json" && call.method === "POST")).toBe(false);
+  });
+
+  it("fails closed before mutating release metadata when public latest version is missing or invalid", async () => {
+    const { root } = await createReleaseFixture();
+    for (const payload of [JSON.stringify({ notes: "missing version" }), JSON.stringify({ version: "not-a-version" }), "{"]) {
+      const storage = createStorageMock(new Map([["latest.json", Buffer.from(payload)]]));
+      await expect(publishReleaseMetadata({ projectRoot: root, version, credential, fetchImpl: storage.fetchImpl }))
+        .rejects.toThrow("안전하게 판별");
+      expect(storage.calls.some((call) => call.path === "release-metadata.json" && call.method === "POST")).toBe(false);
+    }
   });
 
   it("fails before network when the credential is missing", async () => {

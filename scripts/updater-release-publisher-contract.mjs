@@ -8,9 +8,12 @@ export const RELEASE_PUBLIC_BASE_URL = `https://${RELEASE_PROJECT_REF}.supabase.
 export const RELEASE_STORAGE_OBJECT_URL = `https://${RELEASE_PROJECT_REF}.supabase.co/storage/v1/object/${RELEASE_BUCKET}`;
 export const VERSIONED_CACHE_CONTROL = "max-age=31536000";
 export const POINTER_CACHE_CONTROL = "max-age=300";
+export const CANDIDATE_CACHE_CONTROL = "max-age=86400";
+export const CANDIDATE_QA_PENDING_STATUS = "PENDING";
 
 const semverPattern = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u;
 const sha256 = (contents) => createHash("sha256").update(contents).digest("hex");
+const candidateRunIdPattern = /^[0-9A-Za-z_.-]+$/u;
 
 export class ReleasePublishError extends Error {
   constructor(code, message) {
@@ -36,6 +39,17 @@ export const validateReleaseTarget = ({ projectRef, bucket, publicBaseUrl }) => 
   ) {
     throw new ReleasePublishError("unsafe-release-target", "승인된 BOGUNON DESK release Storage 대상이 아닙니다.");
   }
+};
+
+export const compareReleaseVersions = (left, right) => {
+  const parse = (value) => value.split(/[+-]/u)[0].split(".").map((part) => Number.parseInt(part, 10));
+  const leftParts = parse(left);
+  const rightParts = parse(right);
+  for (let index = 0; index < 3; index += 1) {
+    const diff = leftParts[index] - rightParts[index];
+    if (diff !== 0) return diff;
+  }
+  return 0;
 };
 
 export const loadReleaseBundle = async ({ projectRoot, version }) => {
@@ -111,10 +125,64 @@ export const loadReleaseBundle = async ({ projectRoot, version }) => {
     version,
     installer,
     installerUrl,
+    signature,
+    latestEntry,
+    metadataEntry,
     versioned,
     pointers: [
       { ...metadataEntry, objectPath: "release-metadata.json" },
       { ...latestEntry, objectPath: "latest.json" },
     ],
+  };
+};
+
+export const createCandidateBundle = ({ bundle, runId }) => {
+  if (typeof runId !== "string" || !candidateRunIdPattern.test(runId)) {
+    throw new ReleasePublishError("invalid-candidate-run-id", "candidate run id가 유효하지 않습니다.");
+  }
+  const prefix = `candidate/${bundle.version}/${runId}`;
+  const candidateInstallerPath = `${prefix}/${bundle.installer.name}`;
+  const candidateInstallerUrl = `${RELEASE_PUBLIC_BASE_URL}/${candidateInstallerPath}`;
+  const latest = parseJson(bundle.latestEntry.contents, "latest.json");
+  const metadata = parseJson(bundle.metadataEntry.contents, "release-metadata.json");
+  latest.platforms["windows-x86_64"].url = candidateInstallerUrl;
+  metadata.installerUrl = candidateInstallerUrl;
+  metadata.candidate = {
+    runId,
+    upgradeQaMode: "SYNTHETIC_0_2_0_ENDPOINT_OVERLAY",
+    production020ExactInstallerBytes: "NOT TESTED",
+    updaterProtocolSignatureInstallCompatibility: CANDIDATE_QA_PENDING_STATUS,
+    production021CandidateBytes: CANDIDATE_QA_PENDING_STATUS,
+    exactByteCleanInstall: CANDIDATE_QA_PENDING_STATUS,
+  };
+  const candidateLatest = {
+    ...bundle.latestEntry,
+    name: "latest.json",
+    contents: Buffer.from(`${JSON.stringify(latest, null, 2)}\n`),
+    objectPath: `${prefix}/latest.json`,
+  };
+  candidateLatest.bytes = candidateLatest.contents.length;
+  candidateLatest.sha256 = sha256(candidateLatest.contents);
+  const candidateMetadata = {
+    ...bundle.metadataEntry,
+    name: "release-metadata.json",
+    contents: Buffer.from(`${JSON.stringify(metadata, null, 2)}\n`),
+    objectPath: `${prefix}/release-metadata.json`,
+  };
+  candidateMetadata.bytes = candidateMetadata.contents.length;
+  candidateMetadata.sha256 = sha256(candidateMetadata.contents);
+  const artifacts = [
+    ...bundle.versioned.map((artifact) => ({
+      ...artifact,
+      objectPath: `${prefix}/${artifact.name}`,
+    })),
+    candidateMetadata,
+    candidateLatest,
+  ];
+  return {
+    prefix,
+    latestUrl: `${RELEASE_PUBLIC_BASE_URL}/${prefix}/latest.json`,
+    installerUrl: candidateInstallerUrl,
+    artifacts,
   };
 };

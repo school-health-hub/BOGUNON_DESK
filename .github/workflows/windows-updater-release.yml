@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Reviewed release version already committed on main (for example, 0.2.0)
+        description: Reviewed release version already committed on main (for example, 0.2.1)
         required: true
         type: string
 
@@ -15,17 +15,25 @@ concurrency:
   group: desktop-production-release
   cancel-in-progress: false
 
+env:
+  CI: "true"
+  RELEASE_VERSION: ${{ inputs.version }}
+  RELEASE_CANDIDATE_RUN_ID: ${{ github.run_id }}
+  RELEASE_CANDIDATE_ARTIFACT: updater-release-candidate-${{ inputs.version }}-${{ github.run_id }}
+  SYNTHETIC_0_2_0_SOURCE_REF: 2de999ac3bfc6ffec738634866780ab72ddb6d41
+  VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
 jobs:
-  publish-updater:
-    name: Build, verify, and publish signed updater release
+  build-candidate:
+    name: Build signed production candidate once
     runs-on: windows-latest
     timeout-minutes: 90
     environment: desktop-production-release
-    env:
-      CI: "true"
-      RELEASE_VERSION: ${{ inputs.version }}
-      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
-      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+    outputs:
+      artifact-name: ${{ steps.metadata.outputs.artifact-name }}
+      installer-sha256: ${{ steps.metadata.outputs.installer-sha256 }}
+      candidate-latest-url: ${{ steps.metadata.outputs.candidate-latest-url }}
 
     steps:
       - name: Guard trusted main ref
@@ -37,72 +45,551 @@ jobs:
           "Trusted release commit: $env:GITHUB_SHA"
 
       - name: Check out trusted main commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
 
+      - name: Restore existing candidate artifact on rerun
+        id: restore-candidate
+        continue-on-error: true
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ env.RELEASE_CANDIDATE_ARTIFACT }}
+          path: .
+
+      - name: Require restored candidate on rerun
+        if: always()
+        shell: pwsh
+        env:
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          RESTORE_OUTCOME: ${{ steps.restore-candidate.outcome }}
+        run: |
+          if ([int]$env:RUN_ATTEMPT -gt 1 -and $env:RESTORE_OUTCOME -ne "success") {
+            throw "Rerun attempt $env:RUN_ATTEMPT must reuse the original signed candidate artifact; rebuilding/signing is blocked."
+          }
+
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        if: ${{ steps.restore-candidate.outcome != 'success' }}
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: "22"
           cache: npm
 
       - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
+        if: ${{ steps.restore-candidate.outcome != 'success' }}
+        uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249
         with:
           targets: x86_64-pc-windows-msvc
 
       - name: Cache Rust build
-        uses: Swatinem/rust-cache@v2
+        if: ${{ steps.restore-candidate.outcome != 'success' }}
+        uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c
         with:
           workspaces: src-tauri
 
       - name: Install JavaScript dependencies
+        if: ${{ steps.restore-candidate.outcome != 'success' }}
         run: npm ci
 
       - name: Verify reviewed release version
+        if: ${{ steps.restore-candidate.outcome != 'success' }}
         run: npm run release:version:check
 
       - name: Set trusted publish timestamp
+        if: ${{ steps.restore-candidate.outcome != 'success' }}
         shell: pwsh
         run: |
           $publishedAt = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
           "RELEASE_PUBLISHED_AT=$publishedAt" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Build and validate signed updater artifacts
+        if: ${{ steps.restore-candidate.outcome != 'success' }}
         run: npm run release:updater
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
-      - name: Publish and remotely verify updater release
-        run: npm run release:publish
-        env:
-          SUPABASE_RELEASE_STORAGE_KEY: ${{ secrets.SUPABASE_RELEASE_STORAGE_KEY }}
-
-      - name: Write sanitized release summary
+      - name: Capture candidate metadata
+        id: metadata
         shell: pwsh
         run: |
           $metadata = Get-Content "release-output/release-metadata.json" -Raw | ConvertFrom-Json
+          "artifact-name=$env:RELEASE_CANDIDATE_ARTIFACT" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "installer-sha256=$($metadata.sha256)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          $candidateLatest = "https://xxownwxxajzrviuvvfiu.supabase.co/storage/v1/object/public/desktop-releases/candidate/$env:RELEASE_VERSION/$env:RELEASE_CANDIDATE_RUN_ID/latest.json"
+          "candidate-latest-url=$candidateLatest" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           @"
-          ## BOGUNON DESK updater release
+          ## BOGUNON DESK signed candidate
 
           - Version: $($metadata.version)
           - Commit: $env:GITHUB_SHA
           - Installer: $($metadata.installerUrl)
           - SHA256: $($metadata.sha256)
           - Bytes: $($metadata.bytes)
-          - Publish status: verified
+          - UPGRADE_QA_MODE = SYNTHETIC_0_2_0_ENDPOINT_OVERLAY
+          - production 0.2.0 exact installer bytes: NOT TESTED
+          - updater protocol/signature/install compatibility: PENDING
+          - production 0.2.1 candidate bytes: PENDING
+          - exact-byte clean install: PENDING
           "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
 
-      - name: Upload sanitized release evidence
-        uses: actions/upload-artifact@v4
+      - name: Upload canonical candidate artifact
+        if: ${{ steps.restore-candidate.outcome != 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: updater-release-evidence-${{ inputs.version }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: ${{ env.RELEASE_CANDIDATE_ARTIFACT }}
           if-no-files-found: error
+          retention-days: 30
+          path: |
+            release-output/**
+            artifacts/release-candidate/**
+
+      - name: Upload sanitized build evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: updater-release-build-evidence-${{ inputs.version }}-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
           retention-days: 30
           path: |
             release-output/SHA256SUMS.txt
             release-output/release-metadata.json
             release-output/latest.json
+            artifacts/release-candidate/**
+
+  publish-candidate-endpoint:
+    name: Publish candidate endpoint for updater QA
+    runs-on: windows-latest
+    timeout-minutes: 30
+    needs: build-candidate
+    environment: desktop-production-release
+    steps:
+      - name: Check out trusted main commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Download canonical candidate artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ needs.build-candidate.outputs.artifact-name }}
+          path: .
+
+      - name: Publish candidate namespace only
+        run: node scripts/publish-updater-release.mjs
+        env:
+          RELEASE_PUBLISH_MODE: candidate
+          SUPABASE_RELEASE_STORAGE_KEY: ${{ secrets.SUPABASE_RELEASE_STORAGE_KEY }}
+
+      - name: Upload candidate publish evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: updater-release-candidate-publish-evidence-${{ inputs.version }}-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            artifacts/release-candidate/**
+
+  clean-install-candidate:
+    name: Exact-byte clean install candidate QA
+    runs-on: windows-latest
+    timeout-minutes: 60
+    needs: build-candidate
+    steps:
+      - name: Check out trusted main commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Download canonical candidate artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ needs.build-candidate.outputs.artifact-name }}
+          path: .
+
+      - name: Locate candidate installer
+        shell: pwsh
+        run: |
+          $installers = @(Get-ChildItem -Path "release-output" -Filter "*.exe" -File -Recurse)
+          if ($installers.Count -ne 1) {
+            throw "Expected exactly one candidate installer, found $($installers.Count)."
+          }
+          "INSTALLER_PATH=$($installers[0].FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Run exact-byte clean install QA
+        shell: pwsh
+        env:
+          EXPECTED_INSTALLER_SHA256: ${{ needs.build-candidate.outputs.installer-sha256 }}
+          EXPECTED_PRODUCT_VERSION: ${{ inputs.version }}
+        run: |
+          & "./scripts/qa/windows-clean-install.ps1" `
+            -InstallerPath $env:INSTALLER_PATH `
+            -ExpectedSha256 $env:EXPECTED_INSTALLER_SHA256 `
+            -ExpectedProductVersion $env:EXPECTED_PRODUCT_VERSION `
+            -OutputDirectory "artifacts/windows-clean-install-qa" `
+            -AllowCleanup
+
+      - name: Upload clean install evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: updater-release-clean-install-evidence-${{ inputs.version }}-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            artifacts/windows-clean-install-qa/**
+
+  updater-compatibility-qa:
+    name: Synthetic 0.2.0 updater compatibility QA
+    runs-on: windows-latest
+    timeout-minutes: 90
+    needs:
+      - build-candidate
+      - publish-candidate-endpoint
+      - clean-install-candidate
+    steps:
+      - name: Check out trusted main commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Download canonical candidate artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ needs.build-candidate.outputs.artifact-name }}
+          path: .
+
+      - name: Locate candidate installer
+        shell: pwsh
+        run: |
+          $installers = @(Get-ChildItem -Path "release-output" -Filter "*.exe" -File -Recurse)
+          if ($installers.Count -ne 1) {
+            throw "Expected exactly one candidate installer, found $($installers.Count)."
+          }
+          "INSTALLER_PATH=$($installers[0].FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Run synthetic updater compatibility QA
+        shell: pwsh
+        env:
+          CANDIDATE_LATEST_URL: ${{ needs.build-candidate.outputs.candidate-latest-url }}
+          EXPECTED_INSTALLER_SHA256: ${{ needs.build-candidate.outputs.installer-sha256 }}
+          EXPECTED_PRODUCT_VERSION: ${{ inputs.version }}
+          SYNTHETIC_SOURCE_REF: ${{ env.SYNTHETIC_0_2_0_SOURCE_REF }}
+        run: |
+          & "./scripts/qa/windows-updater-compatibility.ps1" `
+            -CandidateInstallerPath $env:INSTALLER_PATH `
+            -CandidateLatestUrl $env:CANDIDATE_LATEST_URL `
+            -ExpectedCandidateSha256 $env:EXPECTED_INSTALLER_SHA256 `
+            -ExpectedProductVersion $env:EXPECTED_PRODUCT_VERSION `
+            -SyntheticSourceRef $env:SYNTHETIC_SOURCE_REF `
+            -OutputDirectory "artifacts/windows-updater-compatibility-qa" `
+            -AllowCleanup
+
+      - name: Upload updater compatibility evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: updater-release-compatibility-evidence-${{ inputs.version }}-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            artifacts/windows-updater-compatibility-qa/**
+
+  publish-versioned:
+    name: Publish immutable versioned objects
+    runs-on: windows-latest
+    timeout-minutes: 30
+    needs:
+      - build-candidate
+      - clean-install-candidate
+      - updater-compatibility-qa
+    environment: desktop-production-release
+    steps:
+      - name: Check out trusted main commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Download canonical candidate artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ needs.build-candidate.outputs.artifact-name }}
+          path: .
+
+      - name: Publish versioned immutable objects
+        run: node scripts/publish-updater-release.mjs
+        env:
+          RELEASE_PUBLISH_MODE: versioned
+          SUPABASE_RELEASE_STORAGE_KEY: ${{ secrets.SUPABASE_RELEASE_STORAGE_KEY }}
+
+      - name: Upload versioned publish evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: updater-release-versioned-publish-evidence-${{ inputs.version }}-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            artifacts/release-candidate/**
+
+  verify-versioned:
+    name: Verify immutable versioned objects
+    runs-on: windows-latest
+    timeout-minutes: 30
+    needs:
+      - build-candidate
+      - publish-versioned
+    environment: desktop-production-release
+    steps:
+      - name: Check out trusted main commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Download canonical candidate artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ needs.build-candidate.outputs.artifact-name }}
+          path: .
+
+      - name: Verify versioned immutable objects
+        run: node scripts/publish-updater-release.mjs
+        env:
+          RELEASE_PUBLISH_MODE: verify-versioned
+
+      - name: Upload versioned verify evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: updater-release-versioned-verify-evidence-${{ inputs.version }}-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            artifacts/release-candidate/**
+
+  publish-release-metadata:
+    name: Publish release metadata pointer
+    runs-on: windows-latest
+    timeout-minutes: 30
+    needs:
+      - build-candidate
+      - verify-versioned
+    environment: desktop-production-release
+    steps:
+      - name: Check out trusted main commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Download canonical candidate artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ needs.build-candidate.outputs.artifact-name }}
+          path: .
+
+      - name: Publish release metadata
+        run: node scripts/publish-updater-release.mjs
+        env:
+          RELEASE_PUBLISH_MODE: metadata
+          SUPABASE_RELEASE_STORAGE_KEY: ${{ secrets.SUPABASE_RELEASE_STORAGE_KEY }}
+
+      - name: Upload metadata publish evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: updater-release-metadata-publish-evidence-${{ inputs.version }}-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            artifacts/release-candidate/**
+
+  promote-latest:
+    name: Promote latest pointer last
+    runs-on: windows-latest
+    timeout-minutes: 30
+    needs:
+      - build-candidate
+      - clean-install-candidate
+      - updater-compatibility-qa
+      - publish-release-metadata
+    environment: desktop-production-release
+    steps:
+      - name: Check out trusted main commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Download canonical candidate artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ needs.build-candidate.outputs.artifact-name }}
+          path: .
+
+      - name: Promote public latest pointer
+        run: node scripts/publish-updater-release.mjs
+        env:
+          RELEASE_PUBLISH_MODE: latest
+          SUPABASE_RELEASE_STORAGE_KEY: ${{ secrets.SUPABASE_RELEASE_STORAGE_KEY }}
+
+      - name: Upload latest promotion evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: updater-release-latest-promotion-evidence-${{ inputs.version }}-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            artifacts/release-candidate/**
+
+  verify-public-latest:
+    name: Verify public latest pointer
+    runs-on: windows-latest
+    timeout-minutes: 30
+    needs:
+      - build-candidate
+      - promote-latest
+    environment: desktop-production-release
+    steps:
+      - name: Check out trusted main commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Download canonical candidate artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ needs.build-candidate.outputs.artifact-name }}
+          path: .
+
+      - name: Verify public latest pointer
+        run: node scripts/publish-updater-release.mjs
+        env:
+          RELEASE_PUBLISH_MODE: verify-latest
+
+      - name: Upload public latest verify evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: updater-release-latest-verify-evidence-${{ inputs.version }}-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            artifacts/release-candidate/**
+
+  cleanup-candidate-endpoint:
+    name: Cleanup candidate endpoint
+    runs-on: windows-latest
+    timeout-minutes: 30
+    if: ${{ always() && needs.build-candidate.result == 'success' && needs.verify-public-latest.result == 'success' }}
+    needs:
+      - build-candidate
+      - publish-candidate-endpoint
+      - clean-install-candidate
+      - updater-compatibility-qa
+      - publish-versioned
+      - verify-versioned
+      - publish-release-metadata
+      - promote-latest
+      - verify-public-latest
+    environment: desktop-production-release
+    steps:
+      - name: Check out trusted main commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Download canonical candidate artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ needs.build-candidate.outputs.artifact-name }}
+          path: .
+
+      - name: Remove candidate namespace
+        run: node scripts/publish-updater-release.mjs
+        env:
+          RELEASE_PUBLISH_MODE: cleanup-candidate
+          SUPABASE_RELEASE_STORAGE_KEY: ${{ secrets.SUPABASE_RELEASE_STORAGE_KEY }}
+
+      - name: Upload candidate cleanup evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: updater-release-candidate-cleanup-evidence-${{ inputs.version }}-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            artifacts/release-candidate/**
+
+  retain-candidate-endpoint:
+    name: Retain candidate endpoint after failed gate
+    runs-on: windows-latest
+    timeout-minutes: 10
+    if: ${{ always() && needs.build-candidate.result == 'success' && needs.verify-public-latest.result != 'success' }}
+    needs:
+      - build-candidate
+      - publish-candidate-endpoint
+      - clean-install-candidate
+      - updater-compatibility-qa
+      - publish-versioned
+      - verify-versioned
+      - publish-release-metadata
+      - promote-latest
+      - verify-public-latest
+    steps:
+      - name: Record retained candidate namespace
+        shell: pwsh
+        env:
+          RETAIN_VERSION: ${{ inputs.version }}
+          RETAIN_RUN_ID: ${{ github.run_id }}
+          RETAIN_RUN_ATTEMPT: ${{ github.run_attempt }}
+          RETAIN_CANDIDATE_LATEST_URL: ${{ needs.build-candidate.outputs.candidate-latest-url }}
+        run: |
+          New-Item -ItemType Directory -Force -Path "artifacts/release-candidate" | Out-Null
+          if ($env:RETAIN_VERSION -notmatch '^\d+\.\d+\.\d+([\-+][0-9A-Za-z.-]+)?$') {
+            throw "Invalid retained release version."
+          }
+          if ($env:RETAIN_RUN_ID -notmatch '^[0-9]+$' -or $env:RETAIN_RUN_ATTEMPT -notmatch '^[0-9]+$') {
+            throw "Invalid retained workflow run metadata."
+          }
+          $evidence = [ordered]@{
+            status = "retained"
+            reason = "release gate did not reach verified public latest; candidate namespace is retained for job rerun/debugging"
+            version = $env:RETAIN_VERSION
+            workflowRunId = $env:RETAIN_RUN_ID
+            workflowRunAttempt = $env:RETAIN_RUN_ATTEMPT
+            candidateLatestUrl = $env:RETAIN_CANDIDATE_LATEST_URL
+            cleanup = "manual cleanup required after abandoned failed release run"
+          }
+          $evidence | ConvertTo-Json -Depth 5 | Set-Content -Encoding utf8 "artifacts/release-candidate/candidate-retention-evidence.json"
+
+      - name: Upload candidate retention evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: updater-release-candidate-retention-evidence-${{ inputs.version }}-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            artifacts/release-candidate/**
