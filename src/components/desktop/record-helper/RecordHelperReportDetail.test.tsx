@@ -23,6 +23,7 @@ const report = (overrides: Partial<RecordHelperReport> = {}): RecordHelperReport
   aiDraft: "",
   aiError: null,
   activeAiRequestId: null,
+  reviewedSanitizedPacket: null,
   ...overrides,
 });
 

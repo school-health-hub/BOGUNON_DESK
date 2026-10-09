@@ -17,6 +17,11 @@ export type RecordHelperImportedReport = {
   readonly extractedText: string;
 };
 
+export type ReviewedSanitizedPacket = {
+  readonly reportText: string;
+  readonly teacherMemo: string;
+};
+
 export type RecordHelperReport = RecordHelperImportedReport &
   RecordHelperReportMetadata & {
     readonly teacherMemo: string;
@@ -24,6 +29,7 @@ export type RecordHelperReport = RecordHelperImportedReport &
     readonly aiDraft: string;
     readonly aiError: string | null;
     readonly activeAiRequestId: number | null;
+    readonly reviewedSanitizedPacket: ReviewedSanitizedPacket | null;
   };
 
 export type RecordHelperImportFailure = {
@@ -72,6 +78,7 @@ export type RecordHelperWorkspaceAction =
       readonly metadata: RecordHelperReportMetadata;
     }
   | { readonly type: "updateTeacherMemo"; readonly reportId: RecordHelperReportId; readonly teacherMemo: string }
+  | { readonly type: "storeReviewedSanitizedPacket"; readonly reportId: RecordHelperReportId; readonly packet: ReviewedSanitizedPacket }
   | { readonly type: "beginAiRequest"; readonly reportId: RecordHelperReportId; readonly requestId: number }
   | { readonly type: "cancelAiRequest"; readonly reportId: RecordHelperReportId; readonly requestId: number }
   | { readonly type: "resolveAiRequest"; readonly reportId: RecordHelperReportId; readonly requestId: number; readonly response: string }
@@ -106,6 +113,7 @@ const toReport = (report: RecordHelperImportedReport): RecordHelperReport => ({
   aiDraft: "",
   aiError: null,
   activeAiRequestId: null,
+  reviewedSanitizedPacket: null,
 });
 
 const reportExists = (reports: readonly RecordHelperReport[], reportId: RecordHelperReportId): boolean =>
@@ -117,6 +125,7 @@ const invalidateReportAi = (report: RecordHelperReport): RecordHelperReport => (
   aiDraft: "",
   aiError: null,
   activeAiRequestId: null,
+  reviewedSanitizedPacket: null,
 });
 
 export const getRecordHelperReportNavigation = (
@@ -139,6 +148,7 @@ export const hasRecordHelperUserWork = (report: RecordHelperReport): boolean =>
   || report.activityLabel.trim() !== ""
   || report.teacherMemo.trim() !== ""
   || report.aiDraft.trim() !== ""
+  || report.reviewedSanitizedPacket !== null
   || report.aiStatus === "generating";
 
 export const reduceRecordHelperWorkspace = (
@@ -226,6 +236,14 @@ export const reduceRecordHelperWorkspace = (
         ),
       };
     }
+    case "storeReviewedSanitizedPacket":
+      if (!reportExists(state.reports, action.reportId)) return state;
+      return {
+        ...state,
+        reports: state.reports.map((report) => report.id === action.reportId
+          ? { ...report, reviewedSanitizedPacket: action.packet }
+          : report),
+      };
     case "beginAiRequest":
       return { ...state, reports: state.reports.map((report) => report.id === action.reportId ? { ...report, aiStatus: "generating", aiError: null, activeAiRequestId: action.requestId } : report) };
     case "cancelAiRequest":

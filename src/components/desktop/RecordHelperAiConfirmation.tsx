@@ -6,6 +6,7 @@ import {
   RECORD_HELPER_IDENTITY_BLOCKER,
   RECORD_HELPER_SENSITIVE_BLOCKER,
 } from "../../record-helper/recordHelperAiService";
+import type { ReviewedSanitizedPacket } from "../../record-helper/recordHelperWorkspace";
 
 export type RecordHelperAiConfirmationData = {
   readonly providerLabel: string;
@@ -15,10 +16,15 @@ export type RecordHelperAiConfirmationData = {
   readonly identityHints: readonly string[];
 };
 
+export type RecordHelperAiConfirmationResult = {
+  readonly prompt: string;
+  readonly reviewedPacket: ReviewedSanitizedPacket;
+};
+
 export function RecordHelperAiConfirmation({ confirmation, onCancel, onConfirm }: {
   readonly confirmation: RecordHelperAiConfirmationData;
   readonly onCancel: () => void;
-  readonly onConfirm: (prompt: string) => void;
+  readonly onConfirm: (result: RecordHelperAiConfirmationResult) => void;
 }) {
   const [reportText, setReportText] = useState(confirmation.reportText);
   const [teacherMemo, setTeacherMemo] = useState(confirmation.teacherMemo);
@@ -32,7 +38,10 @@ export function RecordHelperAiConfirmation({ confirmation, onCancel, onConfirm }
   const confirm = (): void => {
     if (sentRef.current || !evaluation.canConfirm) return;
     sentRef.current = true;
-    onConfirm(evaluation.prompt);
+    onConfirm({
+      prompt: evaluation.prompt,
+      reviewedPacket: { reportText, teacherMemo },
+    });
   };
   useEffect(() => {
     previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;

@@ -14,7 +14,11 @@ import {
   type RecordHelperWorkspace,
 } from "../../record-helper/recordHelperWorkspace";
 import { RecordHelperWorkspaceView } from "./record-helper/RecordHelperWorkspaceView";
-import { RecordHelperAiConfirmation, type RecordHelperAiConfirmationData } from "./RecordHelperAiConfirmation";
+import {
+  RecordHelperAiConfirmation,
+  type RecordHelperAiConfirmationData,
+  type RecordHelperAiConfirmationResult,
+} from "./RecordHelperAiConfirmation";
 import { RecordHelperDiscardConfirmation, type RecordHelperDiscardRequest } from "./RecordHelperDiscardConfirmation";
 
 type ImportReports = () => Promise<RecordHelperImportBatch | null>;
@@ -83,20 +87,22 @@ export function RecordHelperPanel({
       studentLabel: report.studentLabel,
       classLabel: report.classLabel,
     });
+    const initialPacket = report.reviewedSanitizedPacket ?? sanitized;
     setConfirmation({
       reportId,
       providerLabel: `ChatGPT 요금제 · ${availability.selectedModel.displayName}`,
-      reportText: sanitized.reportText,
-      teacherMemo: sanitized.teacherMemo,
+      reportText: initialPacket.reportText,
+      teacherMemo: initialPacket.teacherMemo,
       redactionCount: sanitized.redactions.length,
       identityHints: [report.studentLabel, report.classLabel],
     });
   };
 
-  const generateAiDraft = (reportId: string, prompt: string): void => {
+  const generateAiDraft = (reportId: string, result: RecordHelperAiConfirmationResult): void => {
     const requestId = nextRecordHelperAiRequestId();
-    const gate = createRecordHelperAiSendGate(prompt, chatGpt.generateText);
+    const gate = createRecordHelperAiSendGate(result.prompt, chatGpt.generateText);
     setConfirmation(null);
+    dispatch({ type: "storeReviewedSanitizedPacket", reportId, packet: result.reviewedPacket });
     dispatch({ type: "beginAiRequest", reportId, requestId });
     void gate.confirm().then(
       (response) => { if (response !== null) dispatch({ type: "resolveAiRequest", reportId, requestId, response }); },
@@ -220,9 +226,9 @@ export function RecordHelperPanel({
           <div className="record-helper-panel__privacy" role="note">
             <ShieldCheck size={18} aria-hidden="true" />
             <div>
-              <strong>가져온 원본은 현재 앱 메모리에만 남습니다.</strong>
-              <span>원문, 학생정보, 교사 메모는 저장·동기화·업로드하지 않습니다.</span>
-              <span>생기부 도우미를 닫으면 원문, 입력한 메모와 AI 초안이 모두 사라집니다.</span>
+              <strong>가져온 원본과 현재 작업은 앱 메모리에서만 처리합니다.</strong>
+              <span>원문, 학생정보, 교사 메모, 검토한 전송본과 AI 초안은 장기 저장하지 않습니다.</span>
+              <span>생기부 도우미를 닫거나 앱을 완전히 종료하면 현재 작업이 모두 사라집니다.</span>
               <span>AI 전송 전 개인정보를 비식별 처리하고, 실제 전송 내용을 직접 확인합니다.</span>
             </div>
           </div>
@@ -243,7 +249,7 @@ export function RecordHelperPanel({
         <RecordHelperAiConfirmation
           confirmation={confirmation}
           onCancel={() => setConfirmation(null)}
-          onConfirm={(prompt) => generateAiDraft(confirmation.reportId, prompt)}
+          onConfirm={(result) => generateAiDraft(confirmation.reportId, result)}
         />
       )}
       {pendingDiscard !== null && (

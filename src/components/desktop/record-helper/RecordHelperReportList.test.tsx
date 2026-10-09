@@ -16,6 +16,7 @@ const report = (id: string, aiStatus: RecordHelperReport["aiStatus"]): RecordHel
   aiDraft: aiStatus === "success" ? "비식별 AI 초안" : "",
   aiError: aiStatus === "error" ? "생성 오류" : null,
   activeAiRequestId: aiStatus === "generating" ? 1 : null,
+  reviewedSanitizedPacket: null,
 });
 
 describe("RecordHelperReportList", () => {

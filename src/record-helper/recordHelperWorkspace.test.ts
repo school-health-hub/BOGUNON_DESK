@@ -111,6 +111,7 @@ describe("record helper report workspace", () => {
         aiDraft: "",
         aiError: null,
         activeAiRequestId: null,
+        reviewedSanitizedPacket: null,
       },
       {
         id: secondId,
@@ -125,6 +126,7 @@ describe("record helper report workspace", () => {
         aiDraft: "",
         aiError: null,
         activeAiRequestId: null,
+        reviewedSanitizedPacket: null,
       },
     ]);
   });
@@ -182,11 +184,16 @@ describe("record helper report workspace", () => {
     const withMetadata = { ...untouched, studentLabel: "가상 학생" };
     const withMemo = { ...untouched, teacherMemo: "합성 관찰 메모" };
     const withDraft = { ...untouched, aiStatus: "success" as const, aiDraft: "비식별 AI 초안" };
+    const withReviewedPacket = {
+      ...untouched,
+      reviewedSanitizedPacket: { reportText: "검토된 비식별 본문", teacherMemo: "" },
+    };
 
     expect(hasRecordHelperUserWork(untouched)).toBe(false);
     expect(hasRecordHelperUserWork(withMetadata)).toBe(true);
     expect(hasRecordHelperUserWork(withMemo)).toBe(true);
     expect(hasRecordHelperUserWork(withDraft)).toBe(true);
+    expect(hasRecordHelperUserWork(withReviewedPacket)).toBe(true);
   });
 
   it("removes the selected report by choosing the next report before the previous report", () => {
@@ -419,5 +426,118 @@ describe("record helper report workspace", () => {
 
     expect(reduceRecordHelperWorkspace(cleared, { type: "resolveAiRequest", reportId, requestId: 101, response: "늦은 초안" })).toBe(cleared);
     expect(reduceRecordHelperWorkspace(cleared, { type: "failAiRequest", reportId, requestId: 101, error: "늦은 오류" })).toBe(cleared);
+  });
+
+  it("stores reviewed sanitized packets by report id and restores them after selection changes", () => {
+    const firstId = createRecordHelperReportId("packet-a");
+    const secondId = createRecordHelperReportId("packet-b");
+    const imported = reduceRecordHelperWorkspace(
+      reduceRecordHelperWorkspace(createRecordHelperWorkspace(), { type: "beginImport", requestId: 110 }),
+      {
+        type: "resolveImport",
+        requestId: 110,
+        reports: [
+          importedReport("packet-a", "same-name.pdf", "A 원문"),
+          importedReport("packet-b", "same-name.pdf", "B 원문"),
+        ],
+        failures: [],
+      },
+    );
+    const firstPacket = { reportText: "A 검토 본문", teacherMemo: "A 검토 메모" };
+    const secondPacket = { reportText: "B 검토 본문", teacherMemo: "" };
+    const withFirst = reduceRecordHelperWorkspace(imported, {
+      type: "storeReviewedSanitizedPacket",
+      reportId: firstId,
+      packet: firstPacket,
+    });
+    const withBoth = reduceRecordHelperWorkspace(withFirst, {
+      type: "storeReviewedSanitizedPacket",
+      reportId: secondId,
+      packet: secondPacket,
+    });
+    const switched = reduceRecordHelperWorkspace(
+      reduceRecordHelperWorkspace(withBoth, { type: "selectReport", reportId: secondId }),
+      { type: "selectReport", reportId: firstId },
+    );
+
+    expect(switched.reports[0]?.reviewedSanitizedPacket).toEqual(firstPacket);
+    expect(switched.reports[1]?.reviewedSanitizedPacket).toEqual(secondPacket);
+  });
+
+  it("invalidates reviewed packets only for actual AI-relevant input changes", () => {
+    const reportId = createRecordHelperReportId("packet-invalidation");
+    const imported = reduceRecordHelperWorkspace(
+      reduceRecordHelperWorkspace(createRecordHelperWorkspace(), { type: "beginImport", requestId: 120 }),
+      { type: "resolveImport", requestId: 120, reports: [importedReport("packet-invalidation", "input.pdf", "본문")], failures: [] },
+    );
+    const metadata = { studentLabel: "가상 학생", classLabel: "가상 학급", activityLabel: "토론" };
+    const withMetadata = reduceRecordHelperWorkspace(imported, { type: "updateReportMetadata", reportId, metadata });
+    const withPacket = reduceRecordHelperWorkspace(withMetadata, {
+      type: "storeReviewedSanitizedPacket",
+      reportId,
+      packet: { reportText: "검토 본문", teacherMemo: "검토 메모" },
+    });
+
+    expect(reduceRecordHelperWorkspace(withPacket, { type: "updateReportMetadata", reportId, metadata })).toBe(withPacket);
+    expect(reduceRecordHelperWorkspace(withPacket, { type: "updateTeacherMemo", reportId, teacherMemo: "" })).toBe(withPacket);
+
+    const activityOnly = reduceRecordHelperWorkspace(withPacket, {
+      type: "updateReportMetadata",
+      reportId,
+      metadata: { ...metadata, activityLabel: "발표" },
+    });
+    expect(activityOnly.reports[0]?.reviewedSanitizedPacket).toEqual({ reportText: "검토 본문", teacherMemo: "검토 메모" });
+
+    for (const changedMetadata of [
+      { ...metadata, studentLabel: "다른 가상 학생" },
+      { ...metadata, classLabel: "다른 가상 학급" },
+    ]) {
+      const changed = reduceRecordHelperWorkspace(withPacket, {
+        type: "updateReportMetadata",
+        reportId,
+        metadata: changedMetadata,
+      });
+      expect(changed.reports[0]?.reviewedSanitizedPacket).toBeNull();
+    }
+
+    const memoChanged = reduceRecordHelperWorkspace(withPacket, {
+      type: "updateTeacherMemo",
+      reportId,
+      teacherMemo: "새 교사 관찰",
+    });
+    expect(memoChanged.reports[0]?.reviewedSanitizedPacket).toBeNull();
+  });
+
+  it("discards reviewed packets with their report or the whole workspace", () => {
+    const firstId = createRecordHelperReportId("packet-remove-a");
+    const secondId = createRecordHelperReportId("packet-remove-b");
+    const imported = reduceRecordHelperWorkspace(
+      reduceRecordHelperWorkspace(createRecordHelperWorkspace(), { type: "beginImport", requestId: 130 }),
+      {
+        type: "resolveImport",
+        requestId: 130,
+        reports: [
+          importedReport("packet-remove-a", "a.pdf", "A"),
+          importedReport("packet-remove-b", "b.pdf", "B"),
+        ],
+        failures: [],
+      },
+    );
+    const withFirst = reduceRecordHelperWorkspace(imported, {
+      type: "storeReviewedSanitizedPacket",
+      reportId: firstId,
+      packet: { reportText: "A 검토 본문", teacherMemo: "" },
+    });
+    const withBoth = reduceRecordHelperWorkspace(withFirst, {
+      type: "storeReviewedSanitizedPacket",
+      reportId: secondId,
+      packet: { reportText: "B 검토 본문", teacherMemo: "" },
+    });
+    const removed = reduceRecordHelperWorkspace(withBoth, { type: "removeReport", reportId: firstId });
+
+    expect(removed.reports).toHaveLength(1);
+    expect(removed.reports[0]?.id).toBe(secondId);
+    expect(removed.reports[0]?.reviewedSanitizedPacket?.reportText).toBe("B 검토 본문");
+    expect(reduceRecordHelperWorkspace(removed, { type: "clearAll" })).toEqual(createRecordHelperWorkspace());
   });
 });
