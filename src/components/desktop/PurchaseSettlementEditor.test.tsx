@@ -14,6 +14,7 @@ describe("PurchaseSettlementEditor", () => {
     })];
     const markup = renderToStaticMarkup(<PurchaseSettlementEditor
       items={items}
+      outputReady
       settlement={createPurchaseSettlement(items)}
       onChange={() => undefined}
       onNotice={() => undefined}
@@ -26,5 +27,25 @@ describe("PurchaseSettlementEditor", () => {
     expect(markup).toContain("1행 실제 수량");
     expect(markup).toContain("구매결과 표 복사");
     expect(markup).toContain("구매결과 XLSX");
+  });
+
+  it("disables settlement copy and export actions when output is not ready", () => {
+    const items = [withPurchaseIssues({
+      ...createEmptyPurchaseItem("item-1"),
+      name: "합성 품목",
+      quantity: 1,
+      unitPrice: 1_000,
+    })];
+    const markup = renderToStaticMarkup(<PurchaseSettlementEditor
+      items={items}
+      outputReady={false}
+      settlement={createPurchaseSettlement(items)}
+      onChange={() => undefined}
+      onNotice={() => undefined}
+    />);
+
+    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>.*?구매결과 표 복사<\/button>/);
+    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>.*?정산 요약 복사<\/button>/);
+    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>.*?구매결과 XLSX<\/button>/);
   });
 });

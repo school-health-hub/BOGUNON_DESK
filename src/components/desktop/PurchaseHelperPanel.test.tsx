@@ -15,6 +15,7 @@ describe("PurchaseHelperPanel import mapping", () => {
       draftTemplates={[]}
       settlement={null}
       onAnalysis={() => undefined}
+      onAddItem={() => undefined}
       onCandidatesChange={() => undefined}
       onChange={() => undefined}
       onClose={() => undefined}
@@ -42,6 +43,7 @@ describe("PurchaseHelperPanel import mapping", () => {
       draftTemplates={[]}
       settlement={null}
       onAnalysis={() => undefined}
+      onAddItem={() => undefined}
       onCandidatesChange={() => undefined}
       onChange={() => undefined}
       onClose={() => undefined}

@@ -14,7 +14,7 @@ use encoding_rs::EUC_KR;
 use pdf_extract::{Document, MediaBox, OutputDev, OutputError, Transform};
 use rust_xlsxwriter::{Format, Workbook};
 use serde::{Deserialize, Serialize};
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 use tauri_plugin_dialog::DialogExt;
 use zip::ZipArchive;
 
@@ -61,6 +61,29 @@ pub struct PurchaseItem {
     source_name: Option<String>,
     #[serde(default)]
     issues: Vec<String>,
+    #[serde(default)]
+    amount_mismatch_reviewed: bool,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AnalysisRequestResult {
+    generation: u64,
+    started: bool,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AnalysisEvent {
+    pub(crate) generation: u64,
+    pub(crate) result: AnalysisResult,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct AnalysisErrorEvent {
+    pub(crate) generation: u64,
+    pub(crate) message: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -336,6 +359,7 @@ fn parse_rows_with_columns(
             budget_item: get(row, "budgetItem"),
             source_name: Some(source.to_owned()),
             issues,
+            amount_mismatch_reviewed: false,
         });
     }
     if items.len() > MAX_ROWS {
@@ -1309,8 +1333,11 @@ impl PurchaseHelperState {
     pub(crate) fn is_current_analysis(&self, generation: u64) -> bool {
         self.is_active() && self.analysis_generation.load(Ordering::SeqCst) == generation
     }
-    fn invalidate_analysis(&self) {
-        self.analysis_generation.fetch_add(1, Ordering::SeqCst);
+    pub(crate) fn complete_analysis<T>(&self, generation: u64, value: T) -> Option<T> {
+        self.is_current_analysis(generation).then_some(value)
+    }
+    fn invalidate_analysis(&self) -> u64 {
+        self.analysis_generation.fetch_add(1, Ordering::SeqCst) + 1
     }
 }
 
@@ -1328,10 +1355,18 @@ pub fn set_purchase_helper_active(
 }
 
 #[tauri::command]
+pub fn invalidate_purchase_helper_analysis(state: tauri::State<'_, PurchaseHelperState>) -> u64 {
+    state.invalidate_analysis()
+}
+
+#[tauri::command]
 pub async fn pick_and_analyze_purchase_files(
     app: AppHandle,
+    state: tauri::State<'_, PurchaseHelperState>,
     templates: Vec<ImportTemplate>,
-) -> Result<Option<AnalysisResult>, String> {
+) -> Result<AnalysisRequestResult, String> {
+    let generation = state.begin_analysis();
+    let _ = app.emit("purchase:analysis-start", generation);
     let Some(files) = app
         .dialog()
         .file()
@@ -1341,15 +1376,36 @@ pub async fn pick_and_analyze_purchase_files(
         )
         .blocking_pick_files()
     else {
-        return Ok(None);
+        return Ok(AnalysisRequestResult {
+            generation,
+            started: false,
+        });
     };
     let paths = files
         .into_iter()
         .map(|file| file.into_path().map_err(|error| error.to_string()))
         .collect::<Result<Vec<_>, _>>()?;
-    analyze_paths_in_background(paths, templates)
-        .await
-        .map(Some)
+    let analysis = analyze_paths_in_background(paths, templates).await;
+    if let Some(analysis) = state.complete_analysis(generation, analysis) {
+        match analysis {
+            Ok(result) => {
+                let _ = app.emit("purchase:analysis", AnalysisEvent { generation, result });
+            }
+            Err(message) => {
+                let _ = app.emit(
+                    "purchase:analysis-error",
+                    AnalysisErrorEvent {
+                        generation,
+                        message,
+                    },
+                );
+            }
+        }
+    }
+    Ok(AnalysisRequestResult {
+        generation,
+        started: true,
+    })
 }
 
 #[tauri::command]
@@ -1564,6 +1620,76 @@ pub fn save_purchase_export(
     Ok(true)
 }
 
+fn build_edufine_workbook(items: &[PurchaseItem]) -> Result<Workbook, String> {
+    let selected = items
+        .iter()
+        .filter(|item| item.selected)
+        .collect::<Vec<_>>();
+    if selected.is_empty() {
+        return Err("내보낼 품목을 선택해 주세요.".to_owned());
+    }
+
+    let mut workbook = Workbook::new();
+    let worksheet = workbook.add_worksheet();
+    worksheet
+        .set_name("품목내역")
+        .map_err(|error| error.to_string())?;
+    for (column, label) in ["내용", "규격", "수량", "예상단가"].iter().enumerate() {
+        worksheet
+            .write_string(0, column as u16, *label)
+            .map_err(|error| error.to_string())?;
+    }
+    for (index, item) in selected.iter().enumerate() {
+        let row = index as u32 + 1;
+        let Some(quantity) = item
+            .quantity
+            .filter(|value| value.is_finite() && *value > 0.0)
+        else {
+            return Err("에듀파인용 Excel에 포함할 수량을 확인해 주세요.".to_owned());
+        };
+        let Some(unit_price) = item
+            .unit_price
+            .filter(|value| value.is_finite() && *value >= 0.0)
+        else {
+            return Err("에듀파인용 Excel에 포함할 예상단가를 확인해 주세요.".to_owned());
+        };
+        worksheet
+            .write_string(row, 0, &item.name)
+            .map_err(|error| error.to_string())?;
+        worksheet
+            .write_string(row, 1, &item.specification)
+            .map_err(|error| error.to_string())?;
+        worksheet
+            .write_number(row, 2, quantity)
+            .map_err(|error| error.to_string())?;
+        worksheet
+            .write_number(row, 3, unit_price)
+            .map_err(|error| error.to_string())?;
+    }
+    Ok(workbook)
+}
+
+#[tauri::command]
+pub fn save_purchase_edufine_export(
+    app: AppHandle,
+    items: Vec<PurchaseItem>,
+) -> Result<bool, String> {
+    let mut workbook = build_edufine_workbook(&items)?;
+    let filename = format!("에듀파인_품목내역_{}.xlsx", chrono_free_date());
+    let Some(file) = app
+        .dialog()
+        .file()
+        .set_file_name(&filename)
+        .add_filter("Excel", &["xlsx"])
+        .blocking_save_file()
+    else {
+        return Ok(false);
+    };
+    let path = file.into_path().map_err(|error| error.to_string())?;
+    workbook.save(path).map_err(|error| error.to_string())?;
+    Ok(true)
+}
+
 pub(crate) fn chrono_free_date() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
     let days = SystemTime::now()
@@ -1609,6 +1735,118 @@ mod tests {
         worksheet.write_number(1, 2, 1000).unwrap();
         workbook.save(&path).unwrap();
         path
+    }
+
+    #[test]
+    fn edufine_workbook_matches_the_four_column_contract() {
+        let selected_first = PurchaseItem {
+            id: "internal-a".into(),
+            selected: true,
+            name: "합성 품목 A".into(),
+            specification: "규격 A".into(),
+            quantity: Some(2.5),
+            unit_price: Some(1_200.0),
+            imported_amount: Some(9_999.0),
+            vendor: "포함되면 안 되는 구매처".into(),
+            note: "포함되면 안 되는 비고".into(),
+            budget_item: "포함되면 안 되는 예산항목".into(),
+            source_name: Some("private-source.xlsx".into()),
+            issues: Vec::new(),
+            amount_mismatch_reviewed: false,
+        };
+        let unselected = PurchaseItem {
+            id: "internal-b".into(),
+            selected: false,
+            name: "선택하지 않은 품목".into(),
+            ..selected_first.clone()
+        };
+        let selected_second = PurchaseItem {
+            id: "internal-c".into(),
+            name: "합성 품목 B".into(),
+            specification: String::new(),
+            quantity: Some(1.0),
+            unit_price: Some(3_400.0),
+            ..selected_first.clone()
+        };
+        let path = std::env::temp_dir().join(format!(
+            "purchase-helper-{}-edufine.xlsx",
+            std::process::id()
+        ));
+        let mut workbook =
+            build_edufine_workbook(&[selected_first, unselected, selected_second]).unwrap();
+        workbook.save(&path).unwrap();
+
+        let mut actual: Xlsx<_> = open_workbook(&path).unwrap();
+        assert_eq!(actual.sheet_names(), &["품목내역"]);
+        let range = actual.worksheet_range("품목내역").unwrap();
+        let rows = range.rows().collect::<Vec<_>>();
+        let _ = fs::remove_file(path);
+
+        assert_eq!(range.width(), 4);
+        assert_eq!(range.height(), 3);
+        assert_eq!(rows[0], ["내용", "규격", "수량", "예상단가"]);
+        assert_eq!(rows[1][0].get_string(), Some("합성 품목 A"));
+        assert_eq!(rows[1][1].get_string(), Some("규격 A"));
+        assert_eq!(rows[1][2].get_float(), Some(2.5));
+        assert_eq!(rows[1][3].get_float(), Some(1_200.0));
+        assert_eq!(rows[2][0].get_string(), Some("합성 품목 B"));
+        assert_eq!(rows[2][2].get_float(), Some(1.0));
+        assert_eq!(rows[2][3].get_float(), Some(3_400.0));
+        let all_text = rows
+            .iter()
+            .flat_map(|row| row.iter())
+            .filter_map(DataType::get_string)
+            .collect::<Vec<_>>()
+            .join(" ");
+        for excluded in [
+            "선택하지 않은 품목",
+            "포함되면 안 되는 구매처",
+            "포함되면 안 되는 비고",
+            "포함되면 안 되는 예산항목",
+            "private-source.xlsx",
+            "internal-a",
+            "9999",
+            "합계",
+        ] {
+            assert!(!all_text.contains(excluded));
+        }
+    }
+
+    #[test]
+    fn edufine_workbook_rejects_missing_numeric_cells() {
+        let valid = PurchaseItem {
+            id: "internal-a".into(),
+            selected: true,
+            name: "합성 품목".into(),
+            specification: String::new(),
+            quantity: Some(1.0),
+            unit_price: Some(1_000.0),
+            imported_amount: None,
+            vendor: String::new(),
+            note: String::new(),
+            budget_item: String::new(),
+            source_name: None,
+            issues: Vec::new(),
+            amount_mismatch_reviewed: false,
+        };
+
+        match build_edufine_workbook(&[PurchaseItem {
+            quantity: None,
+            ..valid.clone()
+        }]) {
+            Ok(_) => panic!("missing quantity should reject Edufine export"),
+            Err(message) => assert_eq!(message, "에듀파인용 Excel에 포함할 수량을 확인해 주세요."),
+        }
+        match build_edufine_workbook(&[PurchaseItem {
+            unit_price: None,
+            ..valid
+        }]) {
+            Ok(_) => panic!("missing unit price should reject Edufine export"),
+            Err(message) => assert_eq!(
+                message,
+                "에듀파인용 Excel에 포함할 예상단가를 확인해 주세요."
+            ),
+        }
     }
 
     fn write_sparse_xlsx(name: &str, sheets: &[((u32, u16), (u32, u16))]) -> PathBuf {
@@ -2628,6 +2866,44 @@ mod tests {
 
         state.invalidate_analysis();
         assert!(!state.is_current_analysis(second));
+    }
+
+    #[test]
+    fn picker_and_drop_share_latest_wins_analysis_generation() {
+        let state = PurchaseHelperState::default();
+        state.active.store(true, Ordering::SeqCst);
+        let picker = state.begin_analysis();
+        let drop = state.begin_analysis();
+
+        assert_eq!(state.complete_analysis(picker, "picker"), None);
+        assert_eq!(state.complete_analysis(drop, "drop"), Some("drop"));
+
+        let next_drop = state.begin_analysis();
+        let next_picker = state.begin_analysis();
+        assert_eq!(state.complete_analysis(next_drop, "drop"), None);
+        assert_eq!(
+            state.complete_analysis(next_picker, "picker"),
+            Some("picker")
+        );
+    }
+
+    #[test]
+    fn reset_and_close_discard_late_success_and_error() {
+        let state = PurchaseHelperState::default();
+        state.active.store(true, Ordering::SeqCst);
+        let before_reset = state.begin_analysis();
+        state.invalidate_analysis();
+        assert_eq!(
+            state.complete_analysis(before_reset, Ok::<_, &str>("late")),
+            None
+        );
+
+        let before_close = state.begin_analysis();
+        state.active.store(false, Ordering::SeqCst);
+        assert_eq!(
+            state.complete_analysis(before_close, Err::<&str, _>("late error")),
+            None
+        );
     }
     #[test]
     fn manual_mapping_keeps_amount_issue_and_total_exclusion() {

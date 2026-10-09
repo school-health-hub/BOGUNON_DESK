@@ -1,7 +1,7 @@
 import { GridLayout, type Layout } from "react-grid-layout";
 import { Sparkles } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
 import { useWidgetSession } from "../../dashboard/WidgetSessionContext";
 import { DesktopSettingsPanel } from "../desktop/DesktopSettingsPanel";
@@ -53,6 +53,7 @@ import { toolboxToolRegistry, type ToolboxToolId } from "../../tools/toolRegistr
 import type { WorkFolderFavorite } from "../../work-folders/types";
 import { workFolderService } from "../../work-folders/workFolderService";
 import type { PurchaseAnalysisResult, PurchaseDraft, PurchaseDraftTemplate, PurchaseImportTemplate, PurchaseItem, PurchaseMappingCandidate, PurchaseSettlement, PurchaseSourceSummary } from "../../purchase/types";
+import { appendPurchaseItemsWithSessionIds, createEmptyPurchaseItem } from "../../purchase/purchaseDomain";
 import { useOnboarding } from "../../onboarding/OnboardingContext";
 import { useDesktopUpdater } from "../../updater/DesktopUpdaterContext";
 import { DesktopUpdateBanner } from "../desktop/DesktopUpdateBanner";
@@ -88,11 +89,13 @@ export function DashboardCanvas() {
   const [purchaseCandidates, setPurchaseCandidates] = useState<readonly PurchaseMappingCandidate[]>([]);
   const [purchaseDraft, setPurchaseDraft] = useState<PurchaseDraft | null>(null);
   const [purchaseSettlement, setPurchaseSettlement] = useState<PurchaseSettlement | null>(null);
+  const purchaseItemSequenceRef = useRef(0);
+  const nextPurchaseItemId = useCallback(() => `purchase-session-${purchaseItemSequenceRef.current++}`, []);
   const appendPurchaseAnalysis = useCallback((result: PurchaseAnalysisResult) => {
-    setPurchaseItems((current) => [...current, ...result.items]);
+    setPurchaseItems((current) => appendPurchaseItemsWithSessionIds(current, result.items, nextPurchaseItemId));
     setPurchaseSources((current) => [...current, ...result.sources]);
     setPurchaseCandidates((current) => [...current, ...result.candidates]);
-  }, []);
+  }, [nextPurchaseItemId]);
   const [purchaseColumns, setPurchaseColumns] = useState(() => settingsService.account.loadPurchaseOutputColumns());
   const [purchaseImportTemplates, setPurchaseImportTemplates] = useState<readonly PurchaseImportTemplate[]>(() => settingsService.account.loadPurchaseImportTemplates());
   const [purchaseDraftTemplates, setPurchaseDraftTemplates] = useState<readonly PurchaseDraftTemplate[]>(() => settingsService.account.loadPurchaseDraftTemplates());
@@ -523,6 +526,7 @@ export function DashboardCanvas() {
           settlement={purchaseSettlement}
           sources={purchaseSources}
           onAnalysis={appendPurchaseAnalysis}
+          onAddItem={() => setPurchaseItems((current) => [...current, createEmptyPurchaseItem(nextPurchaseItemId())])}
           onChange={setPurchaseItems}
           onCandidatesChange={setPurchaseCandidates}
           onClose={() => {

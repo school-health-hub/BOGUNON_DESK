@@ -268,8 +268,10 @@ pub fn run() {
             purchase_helper::pick_and_analyze_purchase_files,
             purchase_helper::apply_purchase_column_mapping,
             purchase_helper::save_purchase_export,
+            purchase_helper::save_purchase_edufine_export,
             purchase_settlement::save_purchase_settlement_export,
             purchase_helper::set_purchase_helper_active,
+            purchase_helper::invalidate_purchase_helper_analysis,
             official_document_import::pick_and_extract_official_document,
             record_helper_import::pick_and_extract_record_helper_reports,
             get_autostart_enabled,
@@ -311,6 +313,7 @@ pub fn run() {
                 let state = window.state::<purchase_helper::PurchaseHelperState>();
                 if state.is_active() {
                     let generation = state.begin_analysis();
+                    let _ = window.emit("purchase:analysis-start", generation);
                     let paths = paths.clone();
                     let templates = state.templates();
                     let window = window.clone();
@@ -318,13 +321,22 @@ pub fn run() {
                         let analysis =
                             purchase_helper::analyze_paths_in_background(paths, templates).await;
                         let state = window.state::<purchase_helper::PurchaseHelperState>();
-                        if state.is_current_analysis(generation) {
+                        if let Some(analysis) = state.complete_analysis(generation, analysis) {
                             match analysis {
                                 Ok(result) => {
-                                    let _ = window.emit("purchase:analysis", result);
+                                    let _ = window.emit(
+                                        "purchase:analysis",
+                                        purchase_helper::AnalysisEvent { generation, result },
+                                    );
                                 }
                                 Err(message) => {
-                                    let _ = window.emit("purchase:analysis-error", message);
+                                    let _ = window.emit(
+                                        "purchase:analysis-error",
+                                        purchase_helper::AnalysisErrorEvent {
+                                            generation,
+                                            message,
+                                        },
+                                    );
                                 }
                             }
                         }

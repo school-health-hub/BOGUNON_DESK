@@ -18,6 +18,7 @@ import { purchaseSettlementStatuses, type PurchaseItem, type PurchaseSettlement,
 
 type Props = {
   readonly items: readonly PurchaseItem[];
+  readonly outputReady: boolean;
   readonly settlement: PurchaseSettlement;
   readonly onChange: (settlement: PurchaseSettlement) => void;
   readonly onNotice: (message: string) => void;
@@ -50,7 +51,7 @@ const writeClipboard = async (content: { readonly text: string; readonly html: s
   await navigator.clipboard.writeText(content.text);
 };
 
-export function PurchaseSettlementEditor({ items, settlement, onChange, onNotice }: Props) {
+export function PurchaseSettlementEditor({ items, outputReady, settlement, onChange, onNotice }: Props) {
   const [busy, setBusy] = useState(false);
   const selected = items.filter((item) => item.selected);
   const actualById = useMemo(() => new Map(settlement.items.map((item) => [item.purchaseItemId, item])), [settlement.items]);
@@ -60,6 +61,7 @@ export function PurchaseSettlementEditor({ items, settlement, onChange, onNotice
     onChange(updatePurchaseSettlementItem(settlement, purchaseItemId, patch));
   };
   const copyTable = async (): Promise<void> => {
+    if (!outputReady) { onNotice("입력 오류와 금액 불일치를 먼저 확인해 주세요."); return; }
     try {
       await writeClipboard(createPurchaseSettlementClipboard(items, settlement));
       onNotice("구매결과 표를 복사했습니다.");
@@ -69,6 +71,7 @@ export function PurchaseSettlementEditor({ items, settlement, onChange, onNotice
     }
   };
   const copySummary = async (): Promise<void> => {
+    if (!outputReady) { onNotice("입력 오류와 금액 불일치를 먼저 확인해 주세요."); return; }
     try {
       await navigator.clipboard.writeText(createPurchaseSettlementSummaryText(summary));
       onNotice("정산 요약을 복사했습니다.");
@@ -78,6 +81,7 @@ export function PurchaseSettlementEditor({ items, settlement, onChange, onNotice
     }
   };
   const exportXlsx = async (): Promise<void> => {
+    if (!outputReady) { onNotice("입력 오류와 금액 불일치를 먼저 확인해 주세요."); return; }
     setBusy(true);
     try {
       if (await purchaseRepository.exportSettlement(createPurchaseSettlementExportRows(items, settlement), summary)) onNotice("구매결과 XLSX 파일을 저장했습니다.");
@@ -126,7 +130,7 @@ export function PurchaseSettlementEditor({ items, settlement, onChange, onNotice
           })}
         </tbody></table>
       </div>
-      <footer className="purchase-settlement-actions"><p>실제 구매 수량·금액은 현재 실행 중에만 유지됩니다.</p><div><button type="button" disabled={selected.length === 0} onClick={() => void copyTable()}><ClipboardCopy size={14} /> 구매결과 표 복사</button><button type="button" disabled={selected.length === 0} onClick={() => void copySummary()}><ClipboardCopy size={14} /> 정산 요약 복사</button><button type="button" disabled={selected.length === 0 || busy} onClick={() => void exportXlsx()}><FileSpreadsheet size={14} /> 구매결과 XLSX</button></div></footer>
+      <footer className="purchase-settlement-actions"><p>실제 구매 수량·금액은 현재 실행 중에만 유지됩니다.</p><div><button type="button" disabled={selected.length === 0 || !outputReady} onClick={() => void copyTable()}><ClipboardCopy size={14} /> 구매결과 표 복사</button><button type="button" disabled={selected.length === 0 || !outputReady} onClick={() => void copySummary()}><ClipboardCopy size={14} /> 정산 요약 복사</button><button type="button" disabled={selected.length === 0 || busy || !outputReady} onClick={() => void exportXlsx()}><FileSpreadsheet size={14} /> 구매결과 XLSX</button></div></footer>
     </div>
   );
 }

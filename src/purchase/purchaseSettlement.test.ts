@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createEmptyPurchaseItem, withPurchaseIssues } from "./purchaseDomain";
+import { appendPurchaseItemsWithSessionIds, createEmptyPurchaseItem, withPurchaseIssues } from "./purchaseDomain";
 import {
   calculatePurchaseSettlementSummary,
   createPurchaseSettlement,
@@ -19,6 +19,21 @@ describe("purchase settlement", () => {
     const settlement = createPurchaseSettlement(planned);
     expect(settlement.items).toEqual([{ purchaseItemId: "A", status: "purchased", actualQuantity: 2, actualUnitPrice: 12_000, note: "" }]);
     expect(planned[0]?.quantity).toBe(2);
+  });
+
+  it("keeps settlement rows isolated after repeated native ids are remapped", () => {
+    let sequence = 0;
+    const imported = item("purchase-0-0", 1, 10_000);
+    const planned = appendPurchaseItemsWithSessionIds(
+      appendPurchaseItemsWithSessionIds([], [imported], () => `session-${sequence++}`),
+      [imported],
+      () => `session-${sequence++}`,
+    );
+    const settlement = createPurchaseSettlement(planned);
+    const edited = updatePurchaseSettlementItem(settlement, "session-0", { actualQuantity: 2 });
+
+    expect(settlement.items.map((entry) => entry.purchaseItemId)).toEqual(["session-0", "session-1"]);
+    expect(edited.items.map((entry) => entry.actualQuantity)).toEqual([2, 1]);
   });
 
   it("includes purchased and partial amounts but excludes pending and cancelled", () => {

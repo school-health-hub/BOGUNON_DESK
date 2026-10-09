@@ -93,7 +93,17 @@ export type PurchaseItem = {
   readonly budgetItem: string;
   readonly sourceName: string | null;
   readonly issues: readonly PurchaseIssue[];
+  readonly amountMismatchReviewed: boolean;
+};
+
+export type PurchaseOutputReadiness = {
+  readonly ready: boolean;
+  readonly blockingCount: number;
+  readonly unreviewedMismatchCount: number;
 };
 
 export type PurchaseSourceSummary = { readonly sourceName: string; readonly status: "success" | "needsMapping" | "unsupported" | "error"; readonly rowCount: number; readonly message: string | null; readonly candidateId?: string };
 export type PurchaseAnalysisResult = { readonly items: readonly PurchaseItem[]; readonly sources: readonly PurchaseSourceSummary[]; readonly candidates: readonly PurchaseMappingCandidate[] };
+export type PurchaseAnalysisRequestResult = { readonly generation: number; readonly started: boolean };
+export type PurchaseAnalysisEvent = { readonly generation: number; readonly result: PurchaseAnalysisResult };
+export type PurchaseAnalysisErrorEvent = { readonly generation: number; readonly message: string };

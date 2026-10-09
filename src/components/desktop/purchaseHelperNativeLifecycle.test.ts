@@ -1,11 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 import type {
+  PurchaseAnalysisErrorEvent,
+  PurchaseAnalysisEvent,
   PurchaseAnalysisResult,
   PurchaseImportTemplate,
 } from "../../purchase/types";
 import {
   createPurchaseHelperStateQueue,
   mountPurchaseHelperNativeBridge,
+  shouldApplyPurchaseAnalysisEvent,
+  shouldClearPurchaseImportBusy,
   type PurchaseHelperStateQueue,
 } from "./purchaseHelperNativeLifecycle";
 
@@ -14,6 +18,8 @@ const analysisResult: PurchaseAnalysisResult = {
   sources: [],
   candidates: [],
 };
+const analysisEvent: PurchaseAnalysisEvent = { generation: 7, result: analysisResult };
+const errorEvent: PurchaseAnalysisErrorEvent = { generation: 7, message: "분석 오류" };
 
 const template = (id: string): PurchaseImportTemplate => ({
   id,
@@ -49,13 +55,15 @@ function deferred<T>(): {
 const resolvedStateQueue = (): PurchaseHelperStateQueue => ({
   update: vi.fn(async () => undefined),
 });
+const resolvedInvalidation = (): Promise<number> => Promise.resolve(8);
+const noopDisposer = (): void => undefined;
 
 describe("purchase helper native lifecycle", () => {
   it("registers each listener once and dispatches to the latest callbacks", async () => {
     const analysisDisposer = vi.fn();
     const errorDisposer = vi.fn();
-    let analysisHandler = (_result: PurchaseAnalysisResult): void => undefined;
-    let errorHandler = (_message: string): void => undefined;
+    let analysisHandler = (_event: PurchaseAnalysisEvent): void => undefined;
+    let errorHandler = (_event: PurchaseAnalysisErrorEvent): void => undefined;
     const analysisRegistrar = vi.fn(async (handler: typeof analysisHandler) => {
       analysisHandler = handler;
       return analysisDisposer;
@@ -73,25 +81,26 @@ describe("purchase helper native lifecycle", () => {
     const stateQueue = resolvedStateQueue();
     const initialTemplates = [template("initial")];
     const bridge = mountPurchaseHelperNativeBridge({
-      registrars: { analysis: analysisRegistrar, error: errorRegistrar },
-      callbacks: { analysis: () => currentAnalysis, notice: () => currentNotice },
+      registrars: { start: async () => noopDisposer, analysis: analysisRegistrar, error: errorRegistrar },
+      callbacks: { start: () => vi.fn(), analysis: () => currentAnalysis, notice: () => currentNotice },
       stateQueue,
+      invalidateAnalysis: resolvedInvalidation,
       initialTemplates,
     });
     await Promise.resolve();
 
     currentAnalysis = latestAnalysis;
     currentNotice = latestNotice;
-    analysisHandler(analysisResult);
-    errorHandler("분석 오류");
+    analysisHandler(analysisEvent);
+    errorHandler(errorEvent);
     bridge.syncTemplates([template("latest")]);
 
     expect(analysisRegistrar).toHaveBeenCalledTimes(1);
     expect(errorRegistrar).toHaveBeenCalledTimes(1);
     expect(firstAnalysis).not.toHaveBeenCalled();
     expect(firstNotice).not.toHaveBeenCalled();
-    expect(latestAnalysis).toHaveBeenCalledWith(analysisResult);
-    expect(latestNotice).toHaveBeenCalledWith("분석 오류");
+    expect(latestAnalysis).toHaveBeenCalledWith(analysisEvent);
+    expect(latestNotice).toHaveBeenCalledWith(errorEvent);
     expect(stateQueue.update).toHaveBeenCalledTimes(2);
 
     bridge.dispose();
@@ -109,10 +118,11 @@ describe("purchase helper native lifecycle", () => {
     const errorDisposer = vi.fn();
     const onAnalysis = vi.fn();
     const onNotice = vi.fn();
-    let analysisHandler = (_result: PurchaseAnalysisResult): void => undefined;
-    let errorHandler = (_message: string): void => undefined;
+    let analysisHandler = (_event: PurchaseAnalysisEvent): void => undefined;
+    let errorHandler = (_event: PurchaseAnalysisErrorEvent): void => undefined;
     const bridge = mountPurchaseHelperNativeBridge({
       registrars: {
+        start: async () => noopDisposer,
         analysis: (handler) => {
           analysisHandler = handler;
           return analysisRegistration.promise;
@@ -122,14 +132,15 @@ describe("purchase helper native lifecycle", () => {
           return errorRegistration.promise;
         },
       },
-      callbacks: { analysis: () => onAnalysis, notice: () => onNotice },
+      callbacks: { start: () => vi.fn(), analysis: () => onAnalysis, notice: () => onNotice },
       stateQueue: resolvedStateQueue(),
+      invalidateAnalysis: resolvedInvalidation,
       initialTemplates: [],
     });
 
     bridge.dispose();
-    analysisHandler(analysisResult);
-    errorHandler("late error");
+    analysisHandler(analysisEvent);
+    errorHandler({ generation: 7, message: "late error" });
     analysisRegistration.resolve(analysisDisposer);
     errorRegistration.resolve(errorDisposer);
     await Promise.resolve();
@@ -143,15 +154,16 @@ describe("purchase helper native lifecycle", () => {
   it("handles listener registration rejection without an unhandled rejection", async () => {
     const bridge = mountPurchaseHelperNativeBridge({
       registrars: {
+        start: async () => noopDisposer,
         analysis: async () => Promise.reject(new Error("analysis listener failed")),
         error: async () => Promise.reject(new Error("error listener failed")),
       },
-      callbacks: { analysis: () => vi.fn(), notice: () => vi.fn() },
+      callbacks: { start: () => vi.fn(), analysis: () => vi.fn(), notice: () => vi.fn() },
       stateQueue: resolvedStateQueue(),
+      invalidateAnalysis: resolvedInvalidation,
       initialTemplates: [],
     });
-    await Promise.resolve();
-    await Promise.resolve();
+    await expect(bridge.whenReady()).rejects.toThrow("analysis listener failed");
     bridge.dispose();
   });
 
@@ -181,7 +193,8 @@ describe("purchase helper native lifecycle", () => {
     expect(calls).toEqual([{ active: true, templates: initialTemplates }]);
 
     first.reject(new Error("initial invoke failed"));
-    await Promise.all(requests);
+    await expect(requests[0]).rejects.toThrow("initial invoke failed");
+    await Promise.all(requests.slice(1));
     expect(calls).toEqual([
       { active: true, templates: initialTemplates },
       { active: true, templates: latestTemplates },
@@ -200,8 +213,8 @@ describe("purchase helper native lifecycle", () => {
     const currentErrorDisposer = vi.fn();
     const staleCallback = vi.fn();
     const currentCallback = vi.fn();
-    let staleHandler = (_result: PurchaseAnalysisResult): void => undefined;
-    let currentHandler = (_result: PurchaseAnalysisResult): void => undefined;
+    let staleHandler = (_event: PurchaseAnalysisEvent): void => undefined;
+    let currentHandler = (_event: PurchaseAnalysisEvent): void => undefined;
     const activeStates: boolean[] = [];
     const queue: PurchaseHelperStateQueue = {
       update: vi.fn(async (active) => {
@@ -211,44 +224,120 @@ describe("purchase helper native lifecycle", () => {
 
     const staleBridge = mountPurchaseHelperNativeBridge({
       registrars: {
+        start: async () => noopDisposer,
         analysis: (handler) => {
           staleHandler = handler;
           return staleAnalysisRegistration.promise;
         },
         error: () => staleErrorRegistration.promise,
       },
-      callbacks: { analysis: () => staleCallback, notice: () => vi.fn() },
+      callbacks: { start: () => vi.fn(), analysis: () => staleCallback, notice: () => vi.fn() },
       stateQueue: queue,
+      invalidateAnalysis: resolvedInvalidation,
       initialTemplates: [],
     });
     staleBridge.dispose();
     const currentBridge = mountPurchaseHelperNativeBridge({
       registrars: {
+        start: async () => noopDisposer,
         analysis: async (handler) => {
           currentHandler = handler;
           return currentAnalysisDisposer;
         },
         error: async () => currentErrorDisposer,
       },
-      callbacks: { analysis: () => currentCallback, notice: () => vi.fn() },
+      callbacks: { start: () => vi.fn(), analysis: () => currentCallback, notice: () => vi.fn() },
       stateQueue: queue,
+      invalidateAnalysis: resolvedInvalidation,
       initialTemplates: [],
     });
 
     staleAnalysisRegistration.resolve(staleAnalysisDisposer);
     staleErrorRegistration.resolve(staleErrorDisposer);
     await Promise.resolve();
-    staleHandler(analysisResult);
-    currentHandler(analysisResult);
+    staleHandler(analysisEvent);
+    currentHandler(analysisEvent);
 
     expect(staleAnalysisDisposer).toHaveBeenCalledTimes(1);
     expect(staleErrorDisposer).toHaveBeenCalledTimes(1);
     expect(staleCallback).not.toHaveBeenCalled();
-    expect(currentCallback).toHaveBeenCalledWith(analysisResult);
+    expect(currentCallback).toHaveBeenCalledWith(analysisEvent);
     expect(activeStates).toEqual([true, false, true]);
     expect(currentAnalysisDisposer).not.toHaveBeenCalled();
     currentBridge.dispose();
     expect(currentAnalysisDisposer).toHaveBeenCalledTimes(1);
     expect(currentErrorDisposer).toHaveBeenCalledTimes(1);
+  });
+
+  it("forwards native import starts and exposes workspace invalidation", async () => {
+    const onStart = vi.fn();
+    const invalidateAnalysis = vi.fn(async () => 8);
+    let startHandler = (_generation: number): void => undefined;
+    const bridge = mountPurchaseHelperNativeBridge({
+      registrars: {
+        start: async (handler) => {
+          startHandler = handler;
+          return noopDisposer;
+        },
+        analysis: async () => noopDisposer,
+        error: async () => noopDisposer,
+      },
+      callbacks: {
+        start: () => onStart,
+        analysis: () => vi.fn(),
+        notice: () => vi.fn(),
+      },
+      stateQueue: resolvedStateQueue(),
+      invalidateAnalysis,
+      initialTemplates: [],
+    });
+    await Promise.resolve();
+
+    startHandler(7);
+    expect(await bridge.invalidateAnalysis()).toBe(8);
+
+    expect(onStart).toHaveBeenCalledWith(7);
+    expect(invalidateAnalysis).toHaveBeenCalledOnce();
+    bridge.dispose();
+  });
+
+  it("waits for native activation before reporting the bridge ready", async () => {
+    const activation = deferred<void>();
+    const bridge = mountPurchaseHelperNativeBridge({
+      registrars: {
+        start: async () => noopDisposer,
+        analysis: async () => noopDisposer,
+        error: async () => noopDisposer,
+      },
+      callbacks: {
+        start: () => vi.fn(),
+        analysis: () => vi.fn(),
+        notice: () => vi.fn(),
+      },
+      stateQueue: { update: vi.fn(() => activation.promise) },
+      invalidateAnalysis: resolvedInvalidation,
+      initialTemplates: [],
+    });
+    let ready = false;
+    void bridge.whenReady().then(() => { ready = true; });
+    await Promise.resolve();
+    expect(ready).toBe(false);
+
+    activation.resolve(undefined);
+    await bridge.whenReady();
+    expect(ready).toBe(true);
+    bridge.dispose();
+  });
+
+  it("does not clear a newer drop busy state when an older picker is cancelled", () => {
+    expect(shouldClearPurchaseImportBusy({ generation: 4, started: false }, 4)).toBe(true);
+    expect(shouldClearPurchaseImportBusy({ generation: 4, started: false }, 5)).toBe(false);
+    expect(shouldClearPurchaseImportBusy({ generation: 4, started: true }, 4)).toBe(false);
+  });
+
+  it("rejects queued success and error events from before workspace invalidation", () => {
+    expect(shouldApplyPurchaseAnalysisEvent(7, 8, true)).toBe(false);
+    expect(shouldApplyPurchaseAnalysisEvent(8, 8, false)).toBe(false);
+    expect(shouldApplyPurchaseAnalysisEvent(8, 8, true)).toBe(true);
   });
 });

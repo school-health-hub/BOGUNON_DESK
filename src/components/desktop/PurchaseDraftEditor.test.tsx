@@ -12,6 +12,7 @@ describe("PurchaseDraftEditor", () => {
       columns={defaultPurchaseOutputColumns}
       draft={createPurchaseDraft([item])}
       items={[item]}
+      outputReady
       templates={[]}
       onChange={() => undefined}
       onNotice={() => undefined}
@@ -31,6 +32,7 @@ describe("PurchaseDraftEditor", () => {
       columns={defaultPurchaseOutputColumns}
       draft={{ ...draft, templateId: "draft-1" }}
       items={[]}
+      outputReady
       templates={[{ id: "draft-1", name: "행정실 양식", titlePattern: "{{title}}", introPattern: "{{purpose}}", detailFieldOrder: ["summary", "amount", "vendor", "budgetItem"], attachmentPhrase: "붙임  품목내역 1부.  끝.", includeAttachment: true }]}
       onChange={() => undefined}
       onNotice={() => undefined}
@@ -39,5 +41,22 @@ describe("PurchaseDraftEditor", () => {
     expect(markup).toContain("행정실 양식");
     expect(markup).toContain("행정실 양식 템플릿 삭제");
     expect(markup).not.toContain("실제 구매 데이터");
+  });
+
+  it("disables draft copy actions when selected item output is not ready", () => {
+    const item = withPurchaseIssues({ ...createEmptyPurchaseItem("item-1"), name: "합성 품목", quantity: 1, unitPrice: 1_000 });
+    const markup = renderToStaticMarkup(<PurchaseDraftEditor
+      columns={defaultPurchaseOutputColumns}
+      draft={createPurchaseDraft([item])}
+      items={[item]}
+      outputReady={false}
+      templates={[]}
+      onChange={() => undefined}
+      onNotice={() => undefined}
+      onTemplatesChange={() => undefined}
+    />);
+
+    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>.*?품의문 복사<\/button>/);
+    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>.*?품의문 \+ 품목표 복사<\/button>/);
   });
 });

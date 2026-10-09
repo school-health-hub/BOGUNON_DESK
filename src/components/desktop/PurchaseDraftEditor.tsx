@@ -13,6 +13,7 @@ type Props = {
   readonly columns: readonly PurchaseOutputColumnId[];
   readonly draft: PurchaseDraft;
   readonly items: readonly PurchaseItem[];
+  readonly outputReady: boolean;
   readonly templates: readonly PurchaseDraftTemplate[];
   readonly onChange: (draft: PurchaseDraft) => void;
   readonly onNotice: (message: string) => void;
@@ -47,7 +48,7 @@ const writeClipboard = async (content: { readonly text: string; readonly html: s
   await navigator.clipboard.writeText(content.text);
 };
 
-export function PurchaseDraftEditor({ columns, draft, items, templates, onChange, onNotice, onTemplatesChange }: Props) {
+export function PurchaseDraftEditor({ columns, draft, items, outputReady, templates, onChange, onNotice, onTemplatesChange }: Props) {
   const [templateName, setTemplateName] = useState("");
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const hasSelectedItems = items.some((item) => item.selected);
@@ -106,6 +107,10 @@ export function PurchaseDraftEditor({ columns, draft, items, templates, onChange
     onNotice("품의문 템플릿을 저장했습니다.");
   };
   const copyDraft = async (includeTable: boolean): Promise<void> => {
+    if (!outputReady) {
+      onNotice("입력 오류와 금액 불일치를 먼저 확인해 주세요.");
+      return;
+    }
     try {
       const content = createPurchaseDraftClipboard(draft, items, columns, template, includeTable);
       await writeClipboard(content, includeTable);
@@ -147,7 +152,7 @@ export function PurchaseDraftEditor({ columns, draft, items, templates, onChange
       <section className="purchase-draft-preview" aria-label="품의문 미리보기">
         <header><FileText size={17} /><strong>품의문 미리보기</strong></header>
         <pre aria-live="polite">{preview}</pre>
-        <div><button type="button" disabled={!hasSelectedItems} onClick={() => void copyDraft(false)}><ClipboardCopy size={14} /> 품의문 복사</button><button type="button" disabled={!hasSelectedItems} onClick={() => void copyDraft(true)}><ClipboardCopy size={14} /> 품의문 + 품목표 복사</button></div>
+        <div><button type="button" disabled={!hasSelectedItems || !outputReady} onClick={() => void copyDraft(false)}><ClipboardCopy size={14} /> 품의문 복사</button><button type="button" disabled={!hasSelectedItems || !outputReady} onClick={() => void copyDraft(true)}><ClipboardCopy size={14} /> 품의문 + 품목표 복사</button></div>
       </section>
     </div>
   );

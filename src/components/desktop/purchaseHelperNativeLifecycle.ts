@@ -1,26 +1,42 @@
 import type {
-  PurchaseAnalysisResult,
+  PurchaseAnalysisRequestResult,
+  PurchaseAnalysisErrorEvent,
+  PurchaseAnalysisEvent,
   PurchaseImportTemplate,
 } from "../../purchase/types";
+
+export const shouldClearPurchaseImportBusy = (
+  result: PurchaseAnalysisRequestResult,
+  latestGeneration: number,
+): boolean => !result.started && result.generation === latestGeneration;
+
+export const shouldApplyPurchaseAnalysisEvent = (
+  eventGeneration: number,
+  latestGeneration: number,
+  acceptingResults: boolean,
+): boolean => acceptingResults && eventGeneration === latestGeneration;
 
 type ListenerDisposer = () => void;
 
 type PurchaseEventRegistrars = {
+  readonly start: (handler: (generation: number) => void) => Promise<ListenerDisposer>;
   readonly analysis: (
-    handler: (result: PurchaseAnalysisResult) => void,
+    handler: (event: PurchaseAnalysisEvent) => void,
   ) => Promise<ListenerDisposer>;
-  readonly error: (handler: (message: string) => void) => Promise<ListenerDisposer>;
+  readonly error: (handler: (event: PurchaseAnalysisErrorEvent) => void) => Promise<ListenerDisposer>;
 };
 
 type PurchaseEventCallbacks = {
-  readonly analysis: () => (result: PurchaseAnalysisResult) => void;
-  readonly notice: () => (message: string) => void;
+  readonly start: () => (generation: number) => void;
+  readonly analysis: () => (event: PurchaseAnalysisEvent) => void;
+  readonly notice: () => (event: PurchaseAnalysisErrorEvent) => void;
 };
 
 type PurchaseHelperNativeBridgeOptions = {
   readonly registrars: PurchaseEventRegistrars;
   readonly callbacks: PurchaseEventCallbacks;
   readonly stateQueue: PurchaseHelperStateQueue;
+  readonly invalidateAnalysis: () => Promise<number>;
   readonly initialTemplates: readonly PurchaseImportTemplate[];
 };
 
@@ -38,6 +54,8 @@ export type PurchaseHelperStateQueue = {
 
 export type PurchaseHelperNativeBridge = {
   readonly syncTemplates: (templates: readonly PurchaseImportTemplate[]) => void;
+  readonly whenReady: () => Promise<void>;
+  readonly invalidateAnalysis: () => Promise<number | null>;
   readonly dispose: () => void;
 };
 
@@ -50,8 +68,9 @@ export function createPurchaseHelperStateQueue(
       const run = async (): Promise<void> => {
         await invokeState(active, templates);
       };
-      tail = tail.then(run, run).catch(() => undefined);
-      return tail;
+      const result = tail.then(run, run);
+      tail = result.catch(() => undefined);
+      return result;
     },
   };
 }
@@ -59,43 +78,51 @@ export function createPurchaseHelperStateQueue(
 export function mountPurchaseHelperNativeBridge(
   options: PurchaseHelperNativeBridgeOptions,
 ): PurchaseHelperNativeBridge {
-  const { registrars, callbacks, stateQueue, initialTemplates } = options;
+  const { registrars, callbacks, stateQueue, invalidateAnalysis, initialTemplates } = options;
   let mounted = true;
   let currentTemplates = initialTemplates;
   const disposers: ListenerDisposer[] = [];
 
-  const attach = (registration: Promise<ListenerDisposer>): void => {
-    void registration
+  const attach = (registration: Promise<ListenerDisposer>): Promise<void> =>
+    registration
       .then((dispose) => {
         if (mounted) disposers.push(dispose);
         else dispose();
-      })
-      .catch(() => undefined);
-  };
+      });
 
-  attach(
-    registrars.analysis((result) => {
-      if (mounted) callbacks.analysis()(result);
+  const registrations = [attach(
+    registrars.start((generation) => {
+      if (mounted) callbacks.start()(generation);
     }),
-  );
-  attach(
-    registrars.error((message) => {
-      if (mounted) callbacks.notice()(message);
+  ), attach(
+    registrars.analysis((event) => {
+      if (mounted) callbacks.analysis()(event);
     }),
-  );
-  void stateQueue.update(true, initialTemplates);
+  ), attach(
+    registrars.error((event) => {
+      if (mounted) callbacks.notice()(event);
+    }),
+  )];
+  const ready = Promise.all([...registrations, stateQueue.update(true, initialTemplates)]).then(() => undefined);
 
   return {
     syncTemplates(templates) {
       if (!mounted || templates === currentTemplates) return;
       currentTemplates = templates;
-      void stateQueue.update(true, templates);
+      void stateQueue.update(true, templates).catch(() => undefined);
+    },
+    async whenReady() {
+      await ready;
+    },
+    async invalidateAnalysis() {
+      if (!mounted) return null;
+      return invalidateAnalysis();
     },
     dispose() {
       if (!mounted) return;
       mounted = false;
       for (const dispose of disposers.splice(0)) dispose();
-      void stateQueue.update(false, []);
+      void stateQueue.update(false, []).catch(() => undefined);
     },
   };
 }
