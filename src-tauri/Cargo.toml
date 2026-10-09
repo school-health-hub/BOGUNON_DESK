@@ -1,6 +1,6 @@
 [package]
 name = "school-health-desk"
-version = "0.2.0"
+version = "0.2.1"
 description = "Windows desktop work hub for school health teachers"
 authors = ["School Health Desk"]
 license = "Apache-2.0"

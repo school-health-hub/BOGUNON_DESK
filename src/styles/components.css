@@ -118,7 +118,7 @@
 .react-grid-item[data-widget-type="today-tasks"][data-grid-height="3"] .task-check { width: 19px; height: 19px; border-radius: 6px; }
 .react-grid-item[data-widget-type="today-tasks"][data-grid-height="3"] .task-title { font-size: var(--text-sm); line-height: 1.2; }
 .react-grid-item[data-widget-type="today-tasks"][data-grid-height="3"] .task-mutation-error { margin-top: 3px; line-height: 1.1; }
-.memo-panel { background: var(--yellow-100); border-color: #eee1a8; }
+.memo-panel { display: grid; min-height: 0; grid-template-rows: auto minmax(0, 1fr) auto; background: var(--yellow-100); border-color: #eee1a8; }
 .memo-panel .panel__icon { color: var(--yellow-700); background: #fff1a8; }
 .memo-panel textarea { width: 100%; min-height: 64px; resize: none; border: 0; outline: 0; color: #574b27; background: transparent; font-size: var(--text-md); font-weight: var(--weight-regular); line-height: var(--leading-body); }
 .memo-panel p { margin-top: 6px; color: var(--yellow-700); font-size: var(--text-xs); font-weight: var(--weight-regular); }

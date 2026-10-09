@@ -89,6 +89,14 @@ describe("dashboard grid metrics", () => {
     expect(compactHeight.requiresScroll).toBe(false);
   });
 
+  it("reserves dock-safe space at the supported 700px minimum height", () => {
+    const minimumHeight = calculateDashboardGridMetrics(700, 10);
+
+    expect(minimumHeight.availableHeight).toBe(592);
+    expect(minimumHeight.contentHeight).toBe(590);
+    expect(minimumHeight.requiresScroll).toBe(false);
+  });
+
   it("does not resize or move existing widgets when the meal widget is restored", () => {
     const before = createDashboardLayout(defaultWidgetLayouts, defaultAppearance, "default");
     const after = restoreWidget(before, "meal");
