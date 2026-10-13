@@ -44,10 +44,11 @@ describe("synthetic updater compatibility QA script", () => {
     expect(source).toContain("Invoke-WebRequest -Uri \"$($candidatePlatform.url).sig\" -OutFile $remoteSignaturePath");
   });
 
-  it("resolves the Windows npm command shim before launching synthetic build commands", async () => {
+  it("resolves a Windows npm command shim before launching synthetic build commands", async () => {
     const source = await readFile(scriptPath, "utf8");
-    expect(source).toContain('Get-Command "npm.cmd" -CommandType Application -ErrorAction Stop | Select-Object -First 1');
-    expect(source).toContain('[string]$npmCommandPath = $npmCommand.Source');
+    expect(source).toContain('function Resolve-NpmCommand');
+    expect(source).toContain('@("npm.cmd", "npm.exe")');
+    expect(source).toContain('$npmCommandPath = Resolve-NpmCommand');
     expect(source).toContain('Invoke-CheckedProcess -FilePath $npmCommandPath -ArgumentList @("ci")');
     expect(source).toContain('Invoke-CheckedProcess -FilePath $npmCommandPath -ArgumentList @("run", "release:windows")');
     expect(source).not.toContain('Invoke-CheckedProcess -FilePath "npm"');

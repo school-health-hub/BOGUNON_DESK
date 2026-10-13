@@ -99,6 +99,19 @@ function Invoke-CheckedProcess {
   }
 }
 
+function Resolve-NpmCommand {
+  foreach ($commandName in @("npm.cmd", "npm.exe")) {
+    $command = Get-Command $commandName -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($null -ne $command) {
+      $source = [string]$command.Source
+      if (-not [string]::IsNullOrWhiteSpace($source)) {
+        return $source
+      }
+    }
+  }
+  throw "Unable to resolve a Windows npm command (npm.cmd or npm.exe)."
+}
+
 function Write-SummaryFiles {
   $script:Summary.finishedAt = (Get-Date).ToUniversalTime().ToString("o")
   $script:Summary | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $SummaryJsonPath -Encoding utf8
@@ -274,8 +287,7 @@ try {
   $syntheticIdentifier = [string]$config.identifier
   Add-Check -Name "Synthetic source version" -Passed ([string]$package.version -eq "0.2.0" -and [string]$config.version -eq "0.2.0") -Details "package=$($package.version), tauri=$($config.version)"
   Set-SyntheticUpdaterEndpoint -SourceDirectory $SyntheticSourceDirectory
-  $npmCommand = Get-Command "npm.cmd" -CommandType Application -ErrorAction Stop | Select-Object -First 1
-  [string]$npmCommandPath = $npmCommand.Source
+  $npmCommandPath = Resolve-NpmCommand
   Invoke-CheckedProcess -FilePath $npmCommandPath -ArgumentList @("ci") -WorkingDirectory $SyntheticSourceDirectory
   Invoke-CheckedProcess -FilePath $npmCommandPath -ArgumentList @("run", "release:windows") -WorkingDirectory $SyntheticSourceDirectory
   New-Item -ItemType Directory -Force -Path $SyntheticInstallerDirectory | Out-Null
