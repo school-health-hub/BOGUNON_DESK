@@ -89,8 +89,10 @@ describe("synthetic updater compatibility QA script", () => {
     expect(source).toContain('function Stop-RunningProductProcesses');
     expect(source).toContain('Get-Process -Name "school-health-desk"');
     expect(source).toContain('Stop-RunningProductProcesses');
-    const stopAllIndex = source.indexOf('Stop-RunningProductProcesses\n  Start-AppAndStop -Executable $updatedExecutable -Label "Updated app launch"');
+    const stopAllIndex = source.indexOf("Stop-RunningProductProcesses");
+    const launchIndex = source.indexOf('Start-AppAndStop -Executable $updatedExecutable -Label "Updated app launch"');
     expect(stopAllIndex).toBeGreaterThan(-1);
+    expect(launchIndex).toBeGreaterThan(stopAllIndex);
   });
 
   it("does not expose candidate endpoint selection in production Tauri config", async () => {
