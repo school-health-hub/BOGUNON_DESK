@@ -10,19 +10,26 @@ const publishedAt = "2026-09-29T05:00:00.000Z";
 const installerName = "source-setup.exe";
 const signature = "fixture-signature-not-a-production-secret";
 
-const withCandidateRunId = async (runId, operation) => {
-  const previousRunId = process.env.RELEASE_CANDIDATE_RUN_ID;
-  process.env.RELEASE_CANDIDATE_RUN_ID = runId;
+const withEnvironmentVariable = async (name, value, operation) => {
+  const previousValue = process.env[name];
+  if (value === undefined) {
+    delete process.env[name];
+  } else {
+    process.env[name] = value;
+  }
   try {
     return await operation();
   } finally {
-    if (previousRunId === undefined) {
-      delete process.env.RELEASE_CANDIDATE_RUN_ID;
+    if (previousValue === undefined) {
+      delete process.env[name];
     } else {
-      process.env.RELEASE_CANDIDATE_RUN_ID = previousRunId;
+      process.env[name] = previousValue;
     }
   }
 };
+
+const withCandidateRunId = (runId, operation) =>
+  withEnvironmentVariable("RELEASE_CANDIDATE_RUN_ID", runId, operation);
 
 const createFixture = async ({ installers = [[installerName, "synthetic-installer"]], signatures = [], stale = [] } = {}) => {
   const root = await mkdtemp(join(tmpdir(), "bogunon-desk-release-"));
@@ -72,8 +79,10 @@ describe("release artifact collection", () => {
       installers: [[installerName, contents]],
       signatures: [[`${installerName}.sig`, `${signature}\n`]],
     });
-    const result = await withCandidateRunId("local", () =>
-      collectReleaseArtifacts({ projectRoot: root, version, updater: true, publishedAt }),
+    const result = await withEnvironmentVariable("GITHUB_SHA", undefined, () =>
+      withCandidateRunId("local", () =>
+        collectReleaseArtifacts({ projectRoot: root, version, updater: true, publishedAt }),
+      ),
     );
     const expectedName = "BOGUNON-DESK-0.1.0-Windows-x64-Setup.exe";
     const expectedSignatureName = `${expectedName}.sig`;
