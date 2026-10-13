@@ -152,30 +152,47 @@ function Set-SyntheticUpdaterEndpoint {
   Add-Check -Name "Synthetic candidate endpoint overlay" -Passed ($after.plugins.updater.endpoints[0] -eq $CandidateLatestUrl) -Details $CandidateLatestUrl
 }
 
+function Get-InstalledProductMatches {
+  $roots = @(
+    $env:LOCALAPPDATA,
+    $env:ProgramFiles,
+    ${env:ProgramFiles(x86)}
+  ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and (Test-Path -LiteralPath $_) } | Select-Object -Unique
+
+  @(
+    foreach ($root in $roots) {
+      Get-ChildItem -LiteralPath $root -Filter "school-health-desk.exe" -File -Recurse -ErrorAction SilentlyContinue
+    }
+  )
+}
+
 function Wait-ForInstalledProductVersion {
   param([Parameter(Mandatory = $true)][string]$ExpectedVersion)
   $deadline = (Get-Date).AddSeconds($UpdateTimeoutSeconds)
   while ((Get-Date) -lt $deadline) {
-    $matches = @(Get-ChildItem -Path "$env:LOCALAPPDATA\Programs", "$env:ProgramFiles", "${env:ProgramFiles(x86)}" -Filter "school-health-desk.exe" -File -Recurse -ErrorAction SilentlyContinue)
-    foreach ($match in $matches) {
+    foreach ($match in @(Get-InstalledProductMatches)) {
       if ([string]$match.VersionInfo.ProductVersion -eq $ExpectedVersion) {
         return $match.FullName
       }
     }
     Start-Sleep -Seconds 3
   }
-  throw "Updated executable with ProductVersion $ExpectedVersion was not found."
+  $observed = @(Get-InstalledProductMatches | ForEach-Object { "$($_.FullName) [ProductVersion=$($_.VersionInfo.ProductVersion)]" })
+  $details = if ($observed.Count -gt 0) { $observed -join "; " } else { "no school-health-desk.exe found under LocalAppData or Program Files" }
+  throw "Updated executable with ProductVersion $ExpectedVersion was not found. Observed: $details"
 }
 
 function Find-ProductExecutableByVersion {
   param([Parameter(Mandatory = $true)][string]$ExpectedVersion)
-  $matches = @(Get-ChildItem -Path "$env:LOCALAPPDATA\Programs", "$env:ProgramFiles", "${env:ProgramFiles(x86)}" -Filter "school-health-desk.exe" -File -Recurse -ErrorAction SilentlyContinue)
+  $matches = @(Get-InstalledProductMatches)
   foreach ($match in $matches) {
     if ([string]$match.VersionInfo.ProductVersion -eq $ExpectedVersion) {
       return $match.FullName
     }
   }
-  throw "Executable with ProductVersion $ExpectedVersion was not found."
+  $observed = @($matches | ForEach-Object { "$($_.FullName) [ProductVersion=$($_.VersionInfo.ProductVersion)]" })
+  $details = if ($observed.Count -gt 0) { $observed -join "; " } else { "no school-health-desk.exe found under LocalAppData or Program Files" }
+  throw "Executable with ProductVersion $ExpectedVersion was not found. Observed: $details"
 }
 
 function Test-ProductExecutableByVersion {

@@ -65,6 +65,15 @@ describe("synthetic updater compatibility QA script", () => {
     expect(source).not.toContain('ArgumentList @("run", "release:windows")');
   });
 
+  it("searches the actual per-user install root as well as Program Files", async () => {
+    const source = await readFile(scriptPath, "utf8");
+    expect(source).toContain("function Get-InstalledProductMatches");
+    expect(source).toContain("$env:LOCALAPPDATA,");
+    expect(source).toContain('$env:ProgramFiles,');
+    expect(source).toContain('${env:ProgramFiles(x86)}');
+    expect(source).not.toContain('$env:LOCALAPPDATA\\Programs", "$env:ProgramFiles');
+  });
+
   it("does not expose candidate endpoint selection in production Tauri config", async () => {
     const config = await readFile(tauriConfigPath, "utf8");
     expect(config).not.toContain("candidate/");
