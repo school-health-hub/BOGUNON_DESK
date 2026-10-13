@@ -10,6 +10,20 @@ const publishedAt = "2026-09-29T05:00:00.000Z";
 const installerName = "source-setup.exe";
 const signature = "fixture-signature-not-a-production-secret";
 
+const withCandidateRunId = async (runId, operation) => {
+  const previousRunId = process.env.RELEASE_CANDIDATE_RUN_ID;
+  process.env.RELEASE_CANDIDATE_RUN_ID = runId;
+  try {
+    return await operation();
+  } finally {
+    if (previousRunId === undefined) {
+      delete process.env.RELEASE_CANDIDATE_RUN_ID;
+    } else {
+      process.env.RELEASE_CANDIDATE_RUN_ID = previousRunId;
+    }
+  }
+};
+
 const createFixture = async ({ installers = [[installerName, "synthetic-installer"]], signatures = [], stale = [] } = {}) => {
   const root = await mkdtemp(join(tmpdir(), "bogunon-desk-release-"));
   const nsis = join(root, "src-tauri", "target", "x86_64-pc-windows-msvc", "release", "bundle", "nsis");
@@ -58,7 +72,9 @@ describe("release artifact collection", () => {
       installers: [[installerName, contents]],
       signatures: [[`${installerName}.sig`, `${signature}\n`]],
     });
-    const result = await collectReleaseArtifacts({ projectRoot: root, version, updater: true, publishedAt });
+    const result = await withCandidateRunId("local", () =>
+      collectReleaseArtifacts({ projectRoot: root, version, updater: true, publishedAt }),
+    );
     const expectedName = "BOGUNON-DESK-0.1.0-Windows-x64-Setup.exe";
     const expectedSignatureName = `${expectedName}.sig`;
     expect(result).toMatchObject({ fileName: expectedName, signatureFileName: expectedSignatureName });
@@ -144,7 +160,9 @@ describe("release artifact collection", () => {
         installers: [[installerName, "synthetic-installer"]],
         signatures: [[`${installerName}.sig`, `${signature}\n`]],
       });
-      await collectReleaseArtifacts({ projectRoot: root, version, updater: true, publishedAt });
+      await withCandidateRunId("123456789", () =>
+        collectReleaseArtifacts({ projectRoot: root, version, updater: true, publishedAt }),
+      );
       const candidateLatest = JSON.parse(await readFile(join(root, "artifacts", "release-candidate", "candidate-latest.json"), "utf8"));
       expect(candidateLatest.platforms["windows-x86_64"].url).toContain(`/candidate/${version}/123456789/`);
       expect(candidateLatest.platforms["windows-x86_64"].url).not.toContain("123456789-7");
