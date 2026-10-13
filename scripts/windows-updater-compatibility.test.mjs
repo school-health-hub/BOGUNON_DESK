@@ -84,6 +84,15 @@ describe("synthetic updater compatibility QA script", () => {
     expect(launchIndex).toBeGreaterThan(stopIndex);
   });
 
+  it("stops any updater-restarted single instance before fresh launch verification", async () => {
+    const source = await readFile(scriptPath, "utf8");
+    expect(source).toContain('function Stop-RunningProductProcesses');
+    expect(source).toContain('Get-Process -Name "school-health-desk"');
+    expect(source).toContain('Stop-RunningProductProcesses');
+    const stopAllIndex = source.indexOf('Stop-RunningProductProcesses\n  Start-AppAndStop -Executable $updatedExecutable -Label "Updated app launch"');
+    expect(stopAllIndex).toBeGreaterThan(-1);
+  });
+
   it("does not expose candidate endpoint selection in production Tauri config", async () => {
     const config = await readFile(tauriConfigPath, "utf8");
     expect(config).not.toContain("candidate/");

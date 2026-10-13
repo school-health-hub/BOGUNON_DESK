@@ -205,6 +205,17 @@ function Test-ProductExecutableByVersion {
   }
 }
 
+function Stop-RunningProductProcesses {
+  $processes = @(Get-Process -Name "school-health-desk" -ErrorAction SilentlyContinue)
+  foreach ($process in $processes) {
+    Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+  }
+  if ($processes.Count -gt 0) {
+    Start-Sleep -Seconds 2
+    Write-QaLog -Level INFO -Message "Stopped $($processes.Count) running BOGUNON DESK process(es) before fresh launch verification."
+  }
+}
+
 function Start-AppAndStop {
   param(
     [Parameter(Mandatory = $true)][string]$Executable,
@@ -345,6 +356,7 @@ try {
     Start-Sleep -Seconds 2
     Write-QaLog -Level INFO -Message "Stopped updater-owned app process $($app.Id) before fresh launch verification."
   }
+  Stop-RunningProductProcesses
   Start-AppAndStop -Executable $updatedExecutable -Label "Updated app launch"
   Start-AppAndStop -Executable $updatedExecutable -Label "Updated app relaunch"
   Add-Check -Name "Non-sensitive setting persistence" -Passed (Test-Path -LiteralPath $sentinelPath -PathType Leaf) -Details "Synthetic non-sensitive AppData sentinel remained after update."
