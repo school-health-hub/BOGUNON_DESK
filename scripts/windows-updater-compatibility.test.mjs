@@ -74,6 +74,16 @@ describe("synthetic updater compatibility QA script", () => {
     expect(source).not.toContain('$env:LOCALAPPDATA\\Programs", "$env:ProgramFiles');
   });
 
+  it("stops the updater-owned app before verifying a fresh updated launch", async () => {
+    const source = await readFile(scriptPath, "utf8");
+    expect(source).toContain('Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue');
+    expect(source).toContain('Stopped updater-owned app process $($app.Id) before fresh launch verification.');
+    const stopIndex = source.indexOf('Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue');
+    const launchIndex = source.indexOf('Start-AppAndStop -Executable $updatedExecutable -Label "Updated app launch"');
+    expect(stopIndex).toBeGreaterThan(-1);
+    expect(launchIndex).toBeGreaterThan(stopIndex);
+  });
+
   it("does not expose candidate endpoint selection in production Tauri config", async () => {
     const config = await readFile(tauriConfigPath, "utf8");
     expect(config).not.toContain("candidate/");

@@ -340,6 +340,11 @@ try {
   }
   $updatedExecutable = Wait-ForInstalledProductVersion -ExpectedVersion $ExpectedProductVersion
   Add-Check -Name "Updated ProductVersion" -Passed $true -Details $updatedExecutable
+  if (-not $app.HasExited) {
+    Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 2
+    Write-QaLog -Level INFO -Message "Stopped updater-owned app process $($app.Id) before fresh launch verification."
+  }
   Start-AppAndStop -Executable $updatedExecutable -Label "Updated app launch"
   Start-AppAndStop -Executable $updatedExecutable -Label "Updated app relaunch"
   Add-Check -Name "Non-sensitive setting persistence" -Passed (Test-Path -LiteralPath $sentinelPath -PathType Leaf) -Details "Synthetic non-sensitive AppData sentinel remained after update."
