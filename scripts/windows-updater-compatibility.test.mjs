@@ -44,6 +44,14 @@ describe("synthetic updater compatibility QA script", () => {
     expect(source).toContain("Invoke-WebRequest -Uri \"$($candidatePlatform.url).sig\" -OutFile $remoteSignaturePath");
   });
 
+  it("resolves the Windows npm command shim before launching synthetic build commands", async () => {
+    const source = await readFile(scriptPath, "utf8");
+    expect(source).toContain('(Get-Command "npm.cmd" -CommandType Application -ErrorAction Stop).Source');
+    expect(source).toContain('Invoke-CheckedProcess -FilePath $npmCommand -ArgumentList @("ci")');
+    expect(source).toContain('Invoke-CheckedProcess -FilePath $npmCommand -ArgumentList @("run", "release:windows")');
+    expect(source).not.toContain('Invoke-CheckedProcess -FilePath "npm"');
+  });
+
   it("does not expose candidate endpoint selection in production Tauri config", async () => {
     const config = await readFile(tauriConfigPath, "utf8");
     expect(config).not.toContain("candidate/");

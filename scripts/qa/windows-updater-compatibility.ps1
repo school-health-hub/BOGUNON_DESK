@@ -274,8 +274,9 @@ try {
   $syntheticIdentifier = [string]$config.identifier
   Add-Check -Name "Synthetic source version" -Passed ([string]$package.version -eq "0.2.0" -and [string]$config.version -eq "0.2.0") -Details "package=$($package.version), tauri=$($config.version)"
   Set-SyntheticUpdaterEndpoint -SourceDirectory $SyntheticSourceDirectory
-  Invoke-CheckedProcess -FilePath "npm" -ArgumentList @("ci") -WorkingDirectory $SyntheticSourceDirectory
-  Invoke-CheckedProcess -FilePath "npm" -ArgumentList @("run", "release:windows") -WorkingDirectory $SyntheticSourceDirectory
+  $npmCommand = (Get-Command "npm.cmd" -CommandType Application -ErrorAction Stop).Source
+  Invoke-CheckedProcess -FilePath $npmCommand -ArgumentList @("ci") -WorkingDirectory $SyntheticSourceDirectory
+  Invoke-CheckedProcess -FilePath $npmCommand -ArgumentList @("run", "release:windows") -WorkingDirectory $SyntheticSourceDirectory
   New-Item -ItemType Directory -Force -Path $SyntheticInstallerDirectory | Out-Null
   $syntheticInstaller = @(Get-ChildItem -Path (Join-Path $SyntheticSourceDirectory "release-output") -Filter "*.exe" -File -Recurse)
   Add-Check -Name "Synthetic installer count" -Passed ($syntheticInstaller.Count -eq 1) -Details "Found $($syntheticInstaller.Count) synthetic installer."
