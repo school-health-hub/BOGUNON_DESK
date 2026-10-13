@@ -152,6 +152,9 @@ describe("protected Windows updater release workflow", () => {
     const source = await readWorkflow();
     const updaterQa = jobBlock(source, "updater-compatibility-qa");
     expect(source).toContain("SYNTHETIC_0_2_0_SOURCE_REF: 2de999ac3bfc6ffec738634866780ab72ddb6d41");
+    expect(updaterQa).toContain("git fetch --no-tags --depth=1 origin $env:SYNTHETIC_SOURCE_REF");
+    expect(updaterQa).toContain('git cat-file -e "$($env:SYNTHETIC_SOURCE_REF)^{commit}"');
+    expect(updaterQa).toContain("if ((git rev-parse HEAD) -ne $env:GITHUB_SHA)");
     expect(updaterQa).toContain("SYNTHETIC_SOURCE_REF: ${{ env.SYNTHETIC_0_2_0_SOURCE_REF }}");
     expect(updaterQa).toContain("-SyntheticSourceRef $env:SYNTHETIC_SOURCE_REF");
   });

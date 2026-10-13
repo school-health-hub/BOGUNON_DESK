@@ -258,6 +258,23 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
 
+      - name: Fetch synthetic updater source commit
+        shell: pwsh
+        env:
+          SYNTHETIC_SOURCE_REF: ${{ env.SYNTHETIC_0_2_0_SOURCE_REF }}
+        run: |
+          git fetch --no-tags --depth=1 origin $env:SYNTHETIC_SOURCE_REF
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to fetch the configured synthetic source commit."
+          }
+          git cat-file -e "$($env:SYNTHETIC_SOURCE_REF)^{commit}"
+          if ($LASTEXITCODE -ne 0) {
+            throw "The configured synthetic source commit is unavailable after fetch."
+          }
+          if ((git rev-parse HEAD) -ne $env:GITHUB_SHA) {
+            throw "Fetching the synthetic source changed the trusted production checkout."
+          }
+
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
