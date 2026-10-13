@@ -286,10 +286,17 @@ try {
   $config = Get-Content -LiteralPath (Join-Path $SyntheticSourceDirectory "src-tauri\tauri.conf.json") -Raw | ConvertFrom-Json
   $syntheticIdentifier = [string]$config.identifier
   Add-Check -Name "Synthetic source version" -Passed ([string]$package.version -eq "0.2.0" -and [string]$config.version -eq "0.2.0") -Details "package=$($package.version), tauri=$($config.version)"
-  Set-SyntheticUpdaterEndpoint -SourceDirectory $SyntheticSourceDirectory
   $npmCommandPath = Resolve-NpmCommand
   Invoke-CheckedProcess -FilePath $npmCommandPath -ArgumentList @("ci") -WorkingDirectory $SyntheticSourceDirectory
-  Invoke-CheckedProcess -FilePath $npmCommandPath -ArgumentList @("run", "release:windows") -WorkingDirectory $SyntheticSourceDirectory
+  Invoke-CheckedProcess -FilePath $npmCommandPath -ArgumentList @("run", "release:check") -WorkingDirectory $SyntheticSourceDirectory
+  Invoke-CheckedProcess -FilePath $npmCommandPath -ArgumentList @("test") -WorkingDirectory $SyntheticSourceDirectory
+  Invoke-CheckedProcess -FilePath $npmCommandPath -ArgumentList @("run", "build") -WorkingDirectory $SyntheticSourceDirectory
+  Invoke-CheckedProcess -FilePath "cargo" -ArgumentList @("test", "--manifest-path", "src-tauri/Cargo.toml") -WorkingDirectory $SyntheticSourceDirectory
+  Invoke-CheckedProcess -FilePath "cargo" -ArgumentList @("check", "--manifest-path", "src-tauri/Cargo.toml") -WorkingDirectory $SyntheticSourceDirectory
+  Invoke-CheckedProcess -FilePath "git" -ArgumentList @("diff", "--check") -WorkingDirectory $SyntheticSourceDirectory
+  Set-SyntheticUpdaterEndpoint -SourceDirectory $SyntheticSourceDirectory
+  Invoke-CheckedProcess -FilePath $npmCommandPath -ArgumentList @("run", "tauri", "build", "--", "--target", "x86_64-pc-windows-msvc", "--bundles", "nsis") -WorkingDirectory $SyntheticSourceDirectory
+  Invoke-CheckedProcess -FilePath "node" -ArgumentList @("scripts/collect-release-artifacts.mjs") -WorkingDirectory $SyntheticSourceDirectory
   New-Item -ItemType Directory -Force -Path $SyntheticInstallerDirectory | Out-Null
   $syntheticInstaller = @(Get-ChildItem -Path (Join-Path $SyntheticSourceDirectory "release-output") -Filter "*.exe" -File -Recurse)
   Add-Check -Name "Synthetic installer count" -Passed ($syntheticInstaller.Count -eq 1) -Details "Found $($syntheticInstaller.Count) synthetic installer."

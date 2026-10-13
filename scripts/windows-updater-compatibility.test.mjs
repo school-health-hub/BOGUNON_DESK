@@ -54,6 +54,17 @@ describe("synthetic updater compatibility QA script", () => {
     expect(source).not.toContain('Invoke-CheckedProcess -FilePath "npm"');
   });
 
+  it("validates the untouched 0.2.0 source before applying the candidate endpoint overlay", async () => {
+    const source = await readFile(scriptPath, "utf8");
+    const testIndex = source.indexOf('Invoke-CheckedProcess -FilePath $npmCommandPath -ArgumentList @("test")');
+    const overlayIndex = source.indexOf('Set-SyntheticUpdaterEndpoint -SourceDirectory $SyntheticSourceDirectory');
+    const tauriBuildIndex = source.indexOf('Invoke-CheckedProcess -FilePath $npmCommandPath -ArgumentList @("run", "tauri", "build"');
+    expect(testIndex).toBeGreaterThan(-1);
+    expect(overlayIndex).toBeGreaterThan(testIndex);
+    expect(tauriBuildIndex).toBeGreaterThan(overlayIndex);
+    expect(source).not.toContain('ArgumentList @("run", "release:windows")');
+  });
+
   it("does not expose candidate endpoint selection in production Tauri config", async () => {
     const config = await readFile(tauriConfigPath, "utf8");
     expect(config).not.toContain("candidate/");
