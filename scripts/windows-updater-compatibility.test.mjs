@@ -50,7 +50,7 @@ describe("synthetic updater compatibility QA script", () => {
     expect(source).toContain('@("npm.cmd", "npm.exe")');
     expect(source).toContain('$npmCommandPath = Resolve-NpmCommand');
     expect(source).toContain('Invoke-CheckedProcess -FilePath $npmCommandPath -ArgumentList @("ci")');
-    expect(source).toContain('Invoke-CheckedProcess -FilePath $npmCommandPath -ArgumentList @("run", "release:windows")');
+    expect(source).toContain('Invoke-CheckedProcess -FilePath $npmCommandPath -ArgumentList @("run", "tauri", "build"');
     expect(source).not.toContain('Invoke-CheckedProcess -FilePath "npm"');
   });
 
