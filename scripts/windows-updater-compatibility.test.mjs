@@ -46,9 +46,10 @@ describe("synthetic updater compatibility QA script", () => {
 
   it("resolves the Windows npm command shim before launching synthetic build commands", async () => {
     const source = await readFile(scriptPath, "utf8");
-    expect(source).toContain('(Get-Command "npm.cmd" -CommandType Application -ErrorAction Stop).Source');
-    expect(source).toContain('Invoke-CheckedProcess -FilePath $npmCommand -ArgumentList @("ci")');
-    expect(source).toContain('Invoke-CheckedProcess -FilePath $npmCommand -ArgumentList @("run", "release:windows")');
+    expect(source).toContain('Get-Command "npm.cmd" -CommandType Application -ErrorAction Stop | Select-Object -First 1');
+    expect(source).toContain('[string]$npmCommandPath = $npmCommand.Source');
+    expect(source).toContain('Invoke-CheckedProcess -FilePath $npmCommandPath -ArgumentList @("ci")');
+    expect(source).toContain('Invoke-CheckedProcess -FilePath $npmCommandPath -ArgumentList @("run", "release:windows")');
     expect(source).not.toContain('Invoke-CheckedProcess -FilePath "npm"');
   });
 
