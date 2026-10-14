@@ -143,13 +143,13 @@ fn normalize_header(value: &str) -> String {
 }
 fn field_for(value: &str) -> Option<&'static str> {
     match normalize_header(value).as_str() {
-        "품명" | "품목명" | "물품명" | "상품명" | "제품명" | "상품" | "제품" | "내역" | "name"
+        "품명" | "품목명" | "물품명" | "상품명" | "제품명" | "상품" | "제품" | "내역" | "내용" | "name"
         | "itemname" => Some("name"),
         "규격" | "사양" | "옵션" | "모델" | "모델명" | "spec" | "specification" => {
             Some("specification")
         }
         "수량" | "주문수량" | "개수" | "qty" => Some("quantity"),
-        "단가" | "가격" | "판매가" | "공급단가" | "unitprice" => Some("unitPrice"),
+        "단가" | "가격" | "판매가" | "공급단가" | "예상단가" | "unitprice" => Some("unitPrice"),
         "금액" | "합계금액" | "공급가액" | "소계" | "총액" | "amount" => {
             Some("amount")
         }
@@ -2146,8 +2146,27 @@ mod tests {
     fn recognizes_required_header_aliases_and_punctuation() {
         assert_eq!(field_for("Q'TY"), Some("quantity"));
         assert_eq!(field_for("공급 단가"), Some("unitPrice"));
+        assert_eq!(field_for("예상단가"), Some("unitPrice"));
+        assert_eq!(field_for("내용"), Some("name"));
         assert_eq!(field_for("구매처"), Some("vendor"));
         assert_eq!(field_for("예산-과목"), Some("budgetItem"));
+    }
+
+    #[test]
+    fn reimports_edufine_four_column_contract() {
+        let rows = vec![
+            vec!["내용".into(), "규격".into(), "수량".into(), "예상단가".into()],
+            vec!["전기온장고".into(), "20L".into(), "1".into(), "220000".into()],
+            vec!["드레싱카트".into(), "서랍형".into(), "1".into(), "253000".into()],
+        ];
+
+        let items = parse_rows(&rows, "edufine.xlsx").unwrap();
+
+        assert_eq!(items.len(), 2);
+        assert_eq!(items[0].name, "전기온장고");
+        assert_eq!(items[0].unit_price, Some(220000.0));
+        assert_eq!(items[1].name, "드레싱카트");
+        assert_eq!(items[1].unit_price, Some(253000.0));
     }
     #[test]
     fn excludes_total_rows() {
