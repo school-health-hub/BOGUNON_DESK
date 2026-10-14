@@ -3,7 +3,9 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const workflowPath = resolve(import.meta.dirname, "..", ".github", "workflows", "windows-clean-install-qa.yml");
+const cleanInstallScriptPath = resolve(import.meta.dirname, "qa", "windows-clean-install.ps1");
 const readWorkflow = () => readFile(workflowPath, "utf8");
+const readCleanInstallScript = () => readFile(cleanInstallScriptPath, "utf8");
 
 describe("Windows clean-install QA workflow", () => {
   it("keeps the source-build path for PR smoke testing", async () => {
@@ -14,6 +16,13 @@ describe("Windows clean-install QA workflow", () => {
     expect(source).toContain("if (-not [string]::IsNullOrWhiteSpace($env:EXPECTED_SHA256))");
     expect(source).toContain("if (-not [string]::IsNullOrWhiteSpace($env:EXPECTED_PRODUCT_VERSION))");
     expect(source).toContain("& \"./scripts/qa/windows-clean-install.ps1\" @cleanInstallParameters");
+  });
+
+  it("keeps optional SHA verification callable with an omitted expectation", async () => {
+    const source = await readCleanInstallScript();
+    expect(source).toContain('[string]$Expected = ""');
+    expect(source).toContain("if ([string]::IsNullOrWhiteSpace($Expected)) { return }");
+    expect(source).not.toContain('[Parameter(Mandatory = $true)][string]$Expected,');
   });
 
   it("supports exact-byte production candidate QA without rebuilding", async () => {
