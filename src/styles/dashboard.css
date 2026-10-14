@@ -1325,20 +1325,20 @@
 }
 
 .workspace-shell.is-view-mode .react-grid-item[data-widget-type="monthly-calendar"] .calendar-panel {
-  padding: 10px 11px;
+  padding: 8px 10px;
 }
 
 .workspace-shell.is-view-mode .react-grid-item[data-widget-type="monthly-calendar"] .panel__header {
-  min-height: 18px;
-  margin-bottom: 4px;
+  min-height: 16px;
+  margin-bottom: 2px;
 }
 
 .workspace-shell.is-view-mode .react-grid-item[data-widget-type="monthly-calendar"] .calendar-header {
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .workspace-shell.is-view-mode .react-grid-item[data-widget-type="monthly-calendar"] .calendar-weekday {
-  padding-block: 4px;
+  padding-block: 2px;
 }
 
 .workspace-shell.is-view-mode .react-grid-item[data-widget-type="monthly-calendar"] .calendar-cell {
@@ -1346,8 +1346,8 @@
 }
 
 .workspace-shell.is-view-mode .react-grid-item[data-widget-type="monthly-calendar"] .calendar-event {
-  min-height: 15px;
-  line-height: 1.15;
+  min-height: 14px;
+  line-height: 1.1;
 }
 
 .workspace-shell.is-view-mode .react-grid-item[data-widget-type="today-summary"] .summary-card > .workspace-data-notice {
@@ -1397,4 +1397,58 @@
   .workspace-shell.is-view-mode .workspace-dashboard,
   .workspace-shell.is-edit-mode .workspace-dashboard { padding: 14px 14px 102px; }
   .workspace-shell.is-view-mode .workspace-view-actions { top: 12px; right: 14px; }
+}
+
+/* Compact visible objects without rewriting the user's saved grid geometry. */
+.workspace-shell.is-view-mode .react-grid-item[data-widget-type="monthly-calendar"] .widget-frame.is-viewing {
+  height: 82%;
+}
+
+.workspace-shell.is-view-mode .react-grid-item:is([data-widget-type="clock"], [data-widget-type="weather"], [data-widget-type="today-summary"]) .widget-frame.is-viewing {
+  height: auto;
+  min-height: 90px;
+}
+
+.workspace-shell.is-view-mode .react-grid-item:is([data-widget-type="clock"], [data-widget-type="weather"], [data-widget-type="today-summary"]) .widget-frame__body {
+  height: auto;
+}
+
+.workspace-shell.is-view-mode .widget-frame.is-viewing:has(.workspace-data-notice):not(:has(.calendar-panel, .summary-card)),
+.workspace-shell.is-view-mode .react-grid-item[data-widget-type="weekly-schedule"] .widget-frame.is-viewing:has(.week-grid):not(:has(.week-schedule-list:not(.is-empty))),
+.workspace-shell.is-view-mode .react-grid-item[data-widget-type="meal"] .widget-frame.is-viewing:has(.meal-state) {
+  height: auto;
+  min-height: 72px;
+}
+
+.workspace-shell.is-view-mode .widget-frame.is-viewing:has(.workspace-data-notice):not(:has(.calendar-panel, .summary-card)) .widget-frame__body,
+.workspace-shell.is-view-mode .react-grid-item[data-widget-type="weekly-schedule"] .widget-frame.is-viewing:has(.week-grid):not(:has(.week-schedule-list:not(.is-empty))) .widget-frame__body,
+.workspace-shell.is-view-mode .react-grid-item[data-widget-type="meal"] .widget-frame.is-viewing:has(.meal-state) .widget-frame__body {
+  height: auto;
+}
+
+.workspace-shell.is-view-mode .widget-frame__body > .panel,
+.workspace-shell.is-view-mode .widget-frame__body > .widget-surface {
+  padding-block: 8px;
+}
+
+.workspace-shell.is-view-mode .workspace-data-notice:not(.is-error),
+.workspace-shell.is-view-mode .react-grid-item[data-widget-type="meal"] .meal-state {
+  min-height: 0;
+  padding-block: 2px;
+  line-height: 1.35;
+}
+
+.workspace-shell.is-view-mode .react-grid-item[data-widget-type="clock"] .date-card,
+.workspace-shell.is-view-mode .react-grid-item[data-widget-type="weather"] .weather-panel {
+  padding-block: 8px;
+}
+
+.workspace-shell.is-view-mode .react-grid-item[data-widget-type="today-summary"] .summary-card {
+  gap: 4px 14px;
+  padding: 8px 12px;
+}
+
+.workspace-shell.is-view-mode .react-grid-item[data-widget-type="weekly-schedule"] .week-grid article {
+  min-height: 64px;
+  padding-block: 3px;
 }

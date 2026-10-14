@@ -68,7 +68,7 @@ View mode는 조용한 업무 화면이어야 하고, Edit mode는 현재 화면
 ### D.3 floating desktop glass polish
 
 - 안전한 opaque window는 유지하되 desktop backdrop은 `#f4f8f8` 계열의 near-white base와 3–7% 수준의 cool mint·gray-blue·lavender ambient light만 사용한다. backdrop은 glass 깊이를 드러내는 역할이며 독립적인 색 blob이나 teal wash가 되어서는 안 된다.
-- 대형 work sheet는 약 0.76–0.82, 작은 information object는 약 0.82–0.86의 white glass를 사용한다. 공통 blur는 32px, saturation은 145%, rim은 white/cool alpha 0.58–0.66을 기준으로 한다.
+- 대형 work sheet는 본문 가독성을 위한 높은 opacity, 작은 information object는 더 투명한 white glass를 사용한다. 공통 blur는 18px, saturation은 145%, rim은 white/cool alpha 0.58–0.66을 기준으로 한다.
 - desktop object separation은 1440px 기준 outer inset 18px, inter-widget gap 14px을 기본으로 한다. Dock reserve를 포함한 10-row desk는 1440×900 viewport 안에 맞아야 하며, content를 숨겨 scrollbar를 제거하지 않는다.
 - widget title은 14–15px, normal status/body는 12.5–13px, calendar weekday/date는 12.5px, calendar event는 12px을 기본으로 한다. Dock tooltip과 genuine device metadata는 기존 micro scale을 유지한다.
 - floating Quick Memo panel은 `rgba(255, 250, 225, 0.9)`에 가까운 warm paper material, warm rim, neutral floating shadow를 사용한다. session-only 상태와 action contract는 바꾸지 않는다.
@@ -78,9 +78,10 @@ View mode는 조용한 업무 화면이어야 하고, Edit mode는 현재 화면
 - View mode의 widget wrapper가 개별 surface를 소유하되 모든 위젯에 같은 흰색 카드 문법을 반복하지 않는다. 정보형은 `information glass`, 일정·업무형은 `work sheet`, 메모는 `personal object` 재질을 사용한다.
 - 기본 surface는 밝은 반투명 fill, cool border, 상단 edge highlight, 낮은 layered shadow, 12~18px backdrop blur를 조합한 하나의 glass recipe를 공유한다. backdrop-filter를 지원하지 않는 환경에서도 밝은 translucent fill과 border만으로 읽을 수 있어야 한다.
 - Information glass는 가장 가볍고 투명한 톤, Work glass/sheet는 본문 가독성을 위해 한 단계 높은 opacity, Personal object는 warm paper tint와 작은 재질 차이로 구분한다. 이 분류는 CSS presentation이며 persistence ID를 추가하지 않는다.
-- signed-out/empty widget도 크기를 축소하거나 없애지 않는다. 대신 더 조용한 glass fill과 상단 정렬 inline notice를 사용해 비어 있는 흰 상자가 아니라 잠시 쉬고 있는 desktop object로 보이게 한다.
+- signed-out/empty widget의 저장된 grid 크기와 편집 영역은 유지한다. View mode에서는 안내만 있는 surface를 내용 높이에 맞춰 줄이고 조용한 glass fill과 상단 정렬 inline notice를 사용한다.
 - Section heading은 작은 icon, 짧은 heading height, 일정한 baseline을 사용한다. icon box는 View mode에서 제거하고 제목과 콘텐츠 사이 간격을 줄인다.
 - 월간 일정은 다른 widget과 같은 surface 규칙을 사용한다. Calendar cell boundary는 읽기 쉽게 유지하되 크기나 elevation으로 desktop 전체의 정체성을 독점하지 않는다.
+- 밀도 보정 View mode에서 월간 일정 surface는 저장된 grid 높이의 82%를 사용한다. Information / utility / primary white alpha는 각각 약 0.48–0.62 / 0.59–0.70 / 0.68–0.78로 구분하고 공통 blur는 18px로 제한한다. 저장된 배치·크기와 Edit mode drag/resize 계약은 변경하지 않는다.
 - Edit mode chrome은 작은 overlay drag handle, 설정, 숨기기, resize handle로 구성한다. 위젯 내부에 이미 표시되는 제목을 편집 chrome에서 반복하지 않는다.
 - drag는 전용 handle에서만 시작한다. button, input, textarea, select, link, resize handle은 drag cancel 영역이다.
 - 설정 버튼은 실제 registry 기반 상세 정보를 제공한다. 동작하지 않는 gear icon은 노출하지 않는다.
