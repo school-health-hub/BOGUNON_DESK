@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 
-export type OfficialDocumentImportFormat = "pdf" | "hwpx";
+export type OfficialDocumentImportFormat = "pdf" | "hwpx" | "odt";
 
 export type OfficialDocumentImportResult = {
   readonly sourceName: string;
@@ -24,7 +24,7 @@ const normalizeImportResult = (value: unknown): OfficialDocumentImportResult | n
     && !sourceName.includes("\\");
   if (
     !hasSafeBasename
-    || (format !== "pdf" && format !== "hwpx")
+    || (format !== "pdf" && format !== "hwpx" && format !== "odt")
     || typeof text !== "string"
     || text.trim().length === 0
   ) {
