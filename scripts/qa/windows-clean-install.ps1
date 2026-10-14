@@ -83,7 +83,7 @@ function Get-FileSha256 {
 
 function Assert-ExpectedSha256 {
   param(
-    [Parameter(Mandatory = $true)][string]$Expected,
+    [string]$Expected = "",
     [Parameter(Mandatory = $true)][string]$Actual
   )
 
