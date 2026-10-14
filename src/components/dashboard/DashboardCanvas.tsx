@@ -54,6 +54,7 @@ import type { WorkFolderFavorite } from "../../work-folders/types";
 import { workFolderService } from "../../work-folders/workFolderService";
 import type { PurchaseAnalysisResult, PurchaseDraft, PurchaseDraftTemplate, PurchaseImportTemplate, PurchaseItem, PurchaseMappingCandidate, PurchaseSettlement, PurchaseSourceSummary } from "../../purchase/types";
 import { appendPurchaseItemsWithSessionIds, createEmptyPurchaseItem } from "../../purchase/purchaseDomain";
+import { purchaseRepository } from "../../purchase/purchaseRepository";
 import { useOnboarding } from "../../onboarding/OnboardingContext";
 import { useDesktopUpdater } from "../../updater/DesktopUpdaterContext";
 import { DesktopUpdateBanner } from "../desktop/DesktopUpdateBanner";
