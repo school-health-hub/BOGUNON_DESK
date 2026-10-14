@@ -16,6 +16,8 @@ const MAX_PDF_PAGES: usize = 50;
 const MAX_TEXT_BYTES: usize = 2 * 1024 * 1024;
 const MAX_HWPX_ZIP_ENTRIES: usize = 1024;
 const MAX_HWPX_SECTION_XML_BYTES: u64 = 8 * 1024 * 1024;
+const MAX_ODT_ZIP_ENTRIES: usize = 1024;
+const MAX_ODT_CONTENT_XML_BYTES: u64 = 8 * 1024 * 1024;
 const MIN_PDF_MEANINGFUL_CHARACTERS: usize = 8;
 const ZIP_EOCD_MIN_BYTES: usize = 22;
 const ZIP_MAX_COMMENT_BYTES: usize = u16::MAX as usize;
@@ -26,6 +28,7 @@ const EXTRACTION_WORKER_ERROR: &str = "공문 파일을 처리하는 중 오류�
 pub enum OfficialDocumentFormat {
     Pdf,
     Hwpx,
+    Odt,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -49,13 +52,18 @@ enum ImportError {
     HwpxXmlLimit,
     HwpxTextLimit,
     HwpxWithoutText,
+    OdtUnreadable,
+    OdtEntryLimit,
+    OdtXmlLimit,
+    OdtTextLimit,
+    OdtWithoutText,
     InvalidFileName,
 }
 
 impl ImportError {
     const fn message(self) -> &'static str {
         match self {
-            Self::UnsupportedExtension => "PDF 또는 HWPX 파일만 가져올 수 있습니다.",
+            Self::UnsupportedExtension => "PDF, ODT 또는 HWPX 파일만 가져올 수 있습니다.",
             Self::FileTooLarge => "파일은 최대 15MB까지 가져올 수 있습니다.",
             Self::PdfUnreadable => "PDF 파일을 읽지 못했습니다.",
             Self::PdfPageLimit => "PDF는 최대 50페이지까지 가져올 수 있습니다.",
@@ -68,6 +76,11 @@ impl ImportError {
             Self::HwpxXmlLimit => "HWPX 문서의 본문 데이터가 너무 큽니다.",
             Self::HwpxTextLimit => "HWPX 문서에서 추출한 텍스트가 너무 큽니다.",
             Self::HwpxWithoutText => "HWPX 문서에서 읽을 수 있는 본문을 찾지 못했습니다.",
+            Self::OdtUnreadable => "올바른 ODT 문서를 읽지 못했습니다.",
+            Self::OdtEntryLimit => "ODT 문서에 포함된 파일이 너무 많습니다.",
+            Self::OdtXmlLimit => "ODT 문서의 본문 데이터가 너무 큽니다.",
+            Self::OdtTextLimit => "ODT 문서에서 추출한 텍스트가 너무 큽니다.",
+            Self::OdtWithoutText => "ODT 문서에서 읽을 수 있는 본문을 찾지 못했습니다.",
             Self::InvalidFileName => "파일 이름을 읽지 못했습니다.",
         }
     }
@@ -82,6 +95,7 @@ fn document_format(path: &Path) -> Result<OfficialDocumentFormat, ImportError> {
     {
         Some("pdf") => Ok(OfficialDocumentFormat::Pdf),
         Some("hwpx") => Ok(OfficialDocumentFormat::Hwpx),
+        Some("odt") => Ok(OfficialDocumentFormat::Odt),
         _ => Err(ImportError::UnsupportedExtension),
     }
 }
@@ -415,6 +429,107 @@ fn extract_hwpx_text(path: &Path) -> Result<String, ImportError> {
     Ok(text)
 }
 
+
+fn extract_odt_content(xml: &str) -> Result<String, ImportError> {
+    let mut reader = Reader::from_str(xml);
+    reader.config_mut().trim_text(false);
+    let mut buffer = Vec::new();
+    let mut output = String::new();
+    let mut paragraph_depth = 0_u32;
+
+    let push = |output: &mut String, value: &str| -> Result<(), ImportError> {
+        if output.len().saturating_add(value.len()) > MAX_TEXT_BYTES {
+            return Err(ImportError::OdtTextLimit);
+        }
+        output.push_str(value);
+        Ok(())
+    };
+
+    loop {
+        match reader.read_event_into(&mut buffer) {
+            Ok(Event::Start(element)) => match element.local_name().as_ref() {
+                b"p" | b"h" => paragraph_depth = paragraph_depth.saturating_add(1),
+                b"tab" if paragraph_depth > 0 => push(&mut output, "\t")?,
+                b"line-break" if paragraph_depth > 0 => push(&mut output, "\n")?,
+                b"s" if paragraph_depth > 0 => push(&mut output, " ")?,
+                _ => {}
+            },
+            Ok(Event::Empty(element)) => match element.local_name().as_ref() {
+                b"tab" if paragraph_depth > 0 => push(&mut output, "\t")?,
+                b"line-break" if paragraph_depth > 0 => push(&mut output, "\n")?,
+                b"s" if paragraph_depth > 0 => push(&mut output, " ")?,
+                _ => {}
+            },
+            Ok(Event::Text(text)) if paragraph_depth > 0 => {
+                push(&mut output, text.as_ref())?;
+            }
+            Ok(Event::CData(text)) if paragraph_depth > 0 => {
+                push(&mut output, text.as_ref())?;
+            }
+            Ok(Event::GeneralRef(reference)) if paragraph_depth > 0 => {
+                if let Some(character) = reference
+                    .resolve_char_ref()
+                    .map_err(|_| ImportError::OdtUnreadable)?
+                {
+                    let mut encoded = [0_u8; 4];
+                    push(&mut output, character.encode_utf8(&mut encoded))?;
+                } else if let Some(entity) = quick_xml::escape::resolve_xml_entity(reference.as_ref()) {
+                    push(&mut output, entity)?;
+                } else {
+                    return Err(ImportError::OdtUnreadable);
+                }
+            }
+            Ok(Event::End(element)) => match element.local_name().as_ref() {
+                b"p" | b"h" => {
+                    if !output.ends_with('\n') {
+                        push(&mut output, "\n")?;
+                    }
+                    paragraph_depth = paragraph_depth.saturating_sub(1);
+                }
+                _ => {}
+            },
+            Ok(Event::Eof) => break,
+            Err(_) => return Err(ImportError::OdtUnreadable),
+            _ => {}
+        }
+        buffer.clear();
+    }
+
+    let text = normalize_extracted_text(&output);
+    enforce_text_size(&text, ImportError::OdtTextLimit)?;
+    if text.chars().all(char::is_whitespace) {
+        return Err(ImportError::OdtWithoutText);
+    }
+    Ok(text)
+}
+
+fn extract_odt_text(path: &Path) -> Result<String, ImportError> {
+    let file = File::open(path).map_err(|_| ImportError::OdtUnreadable)?;
+    let mut archive = ZipArchive::new(BufReader::new(file)).map_err(|_| ImportError::OdtUnreadable)?;
+    if archive.len() > MAX_ODT_ZIP_ENTRIES {
+        return Err(ImportError::OdtEntryLimit);
+    }
+
+    let mut content = archive
+        .by_name("content.xml")
+        .map_err(|_| ImportError::OdtUnreadable)?;
+    if content.size() > MAX_ODT_CONTENT_XML_BYTES {
+        return Err(ImportError::OdtXmlLimit);
+    }
+
+    let mut bytes = Vec::new();
+    content
+        .by_ref()
+        .take(MAX_ODT_CONTENT_XML_BYTES.saturating_add(1))
+        .read_to_end(&mut bytes)
+        .map_err(|_| ImportError::OdtUnreadable)?;
+    if bytes.len() as u64 > MAX_ODT_CONTENT_XML_BYTES {
+        return Err(ImportError::OdtXmlLimit);
+    }
+    let xml = std::str::from_utf8(&bytes).map_err(|_| ImportError::OdtUnreadable)?;
+    extract_odt_content(xml)
+}
+
 fn extract_document(path: &Path) -> Result<OfficialDocumentImportResult, ImportError> {
     let format = document_format(path)?;
     enforce_file_size(
@@ -422,11 +537,13 @@ fn extract_document(path: &Path) -> Result<OfficialDocumentImportResult, ImportE
         match format {
             OfficialDocumentFormat::Pdf => ImportError::PdfUnreadable,
             OfficialDocumentFormat::Hwpx => ImportError::HwpxUnreadable,
+            OfficialDocumentFormat::Odt => ImportError::OdtUnreadable,
         },
     )?;
     let text = match format {
         OfficialDocumentFormat::Pdf => extract_pdf_text(path)?,
         OfficialDocumentFormat::Hwpx => extract_hwpx_text(path)?,
+        OfficialDocumentFormat::Odt => extract_odt_text(path)?,
     };
     Ok(OfficialDocumentImportResult {
         source_name: source_name(path)?,
@@ -470,8 +587,7 @@ pub async fn pick_and_extract_official_document(
     let path = app
         .dialog()
         .file()
-        .add_filter("PDF", &["pdf"])
-        .add_filter("HWPX", &["hwpx"])
+        .add_filter("공문 문서", &["odt", "pdf", "hwpx"])
         .blocking_pick_file()
         .map(|file| {
             file.into_path()
@@ -539,6 +655,20 @@ mod tests {
         );
         document.trailer.set("Root", catalog_id);
         document.save(&path).unwrap();
+        path
+    }
+
+
+    fn write_odt(name: &str, content_xml: &str) -> PathBuf {
+        let path = fixture_path(name, "odt");
+        let file = File::create(&path).unwrap();
+        let mut archive = ZipWriter::new(file);
+        let options = SimpleFileOptions::default().compression_method(CompressionMethod::Stored);
+        archive.start_file("mimetype", options).unwrap();
+        archive.write_all(b"application/vnd.oasis.opendocument.text").unwrap();
+        archive.start_file("content.xml", options).unwrap();
+        archive.write_all(content_xml.as_bytes()).unwrap();
+        archive.finish().unwrap();
         path
     }
 
@@ -623,6 +753,57 @@ mod tests {
             Err(ImportError::PdfTextLimit)
         );
         fs::remove_file(text_limit).unwrap();
+    }
+
+
+    #[test]
+    fn extracts_odt_paragraphs_headings_and_controls() {
+        let path = write_odt(
+            "ordered",
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+            <office:document-content
+              xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+              xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0">
+              <office:body><office:text>
+                <text:h>학교 공문 제목</text:h>
+                <text:p>첫 문단<text:tab/>탭<text:line-break/>줄바꿈</text:p>
+                <text:p>둘째 &amp; 문단</text:p>
+              </office:text></office:body>
+            </office:document-content>"#,
+        );
+        let result = extract_document(&path).unwrap();
+        assert_eq!(result.format, OfficialDocumentFormat::Odt);
+        assert!(result.text.contains("학교 공문 제목"));
+        assert!(result.text.contains("첫 문단\t탭\n줄바꿈"));
+        assert!(result.text.contains("둘째 & 문단"));
+        fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn rejects_invalid_empty_and_oversized_odt_content() {
+        let missing = fixture_path("missing-content", "odt");
+        {
+            let file = File::create(&missing).unwrap();
+            let mut archive = ZipWriter::new(file);
+            let options = SimpleFileOptions::default().compression_method(CompressionMethod::Stored);
+            archive.start_file("mimetype", options).unwrap();
+            archive.write_all(b"application/vnd.oasis.opendocument.text").unwrap();
+            archive.finish().unwrap();
+        }
+        assert_eq!(extract_odt_text(&missing), Err(ImportError::OdtUnreadable));
+        fs::remove_file(missing).unwrap();
+
+        let empty = write_odt(
+            "empty",
+            r#"<office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"><office:body><office:text><text:p/></office:text></office:body></office:document-content>"#,
+        );
+        assert_eq!(extract_odt_text(&empty), Err(ImportError::OdtWithoutText));
+        fs::remove_file(empty).unwrap();
+
+        let huge = "x".repeat(MAX_ODT_CONTENT_XML_BYTES as usize + 1);
+        let huge_path = write_odt("huge", &huge);
+        assert_eq!(extract_odt_text(&huge_path), Err(ImportError::OdtXmlLimit));
+        fs::remove_file(huge_path).unwrap();
     }
 
     #[test]
@@ -723,6 +904,7 @@ mod tests {
         for error in [
             ImportError::PdfUnreadable,
             ImportError::HwpxUnreadable,
+            ImportError::OdtUnreadable,
             ImportError::UnsupportedExtension,
         ] {
             assert!(!error.message().contains("\\"));
