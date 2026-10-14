@@ -2,7 +2,7 @@ export type FileDropTarget = "purchase-helper" | "official-document" | "record-h
 export type FileDropCandidate = { readonly target: FileDropTarget; readonly label: string; readonly description: string; readonly enabled: boolean; readonly recommended: boolean; readonly reason: string | null; };
 export type FileDropRouteModel = { readonly names: readonly string[]; readonly candidates: readonly FileDropCandidate[]; };
 const purchaseExtensions = new Set(["xlsx","xls","csv","pdf","png","jpg","jpeg"]);
-const officialExtensions = new Set(["pdf","hwpx"]);
+const officialExtensions = new Set(["odt","pdf","hwpx"]);
 const recordExtensions = new Set(["pdf","hwpx","docx","hwp"]);
 const baseName = (path: string) => { const parts = path.split(/[\\/]/); return parts[parts.length - 1]?.trim() || "이름 없는 파일"; };
 const extensionOf = (path: string) => { const name = baseName(path); const i = name.lastIndexOf("."); return i > 0 && i < name.length - 1 ? name.slice(i + 1).toLowerCase() : ""; };
@@ -18,7 +18,7 @@ export const buildFileDropRouteModel = (paths: readonly string[]): FileDropRoute
   const recommended: FileDropTarget | null = purchaseSpecific && purchaseEnabled ? "purchase-helper" : recordSpecific && recordEnabled ? "record-helper" : paths.length > 1 && recordEnabled ? "record-helper" : paths.length === 1 && officialEnabled ? "official-document" : null;
   return { names, candidates: [
     { target:"purchase-helper", label:"품의 도우미", description:"견적·구매 파일의 품목을 분석합니다.", enabled:purchaseEnabled, recommended:recommended==="purchase-helper", reason:purchaseEnabled?null:"XLSX · XLS · CSV · PDF · 이미지 파일을 지원합니다." },
-    { target:"official-document", label:"공문 작업실", description:"공문 원문을 불러와 핵심정리부터 시작합니다.", enabled:officialEnabled, recommended:recommended==="official-document", reason:officialEnabled?null:"PDF 또는 HWPX 파일 1개만 사용할 수 있습니다." },
+    { target:"official-document", label:"공문 작업실", description:"공문 원문을 불러와 핵심정리부터 시작합니다.", enabled:officialEnabled, recommended:recommended==="official-document", reason:officialEnabled?null:"ODT · PDF · HWPX 파일 1개만 사용할 수 있습니다." },
     { target:"record-helper", label:"생기부 도우미", description:"활동보고서를 학생별 기록 작업으로 가져옵니다.", enabled:recordEnabled, recommended:recommended==="record-helper", reason:recordEnabled?null:"PDF · HWP/HWPX · DOCX 파일을 최대 50개까지 지원합니다." },
   ]};
 };
