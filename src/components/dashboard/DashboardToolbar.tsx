@@ -21,11 +21,11 @@ export function DashboardToolbar({
   if (!isEditing) {
     return (
       <div className="workspace-view-actions" aria-label="업무판 빠른 작업">
-        <button className="toolbar-button workspace-quick-add-button" type="button" onClick={onOpenQuickAdd}>
-          <Plus size={15} /> 빠른 추가
+        <button className="toolbar-button workspace-quick-add-button" type="button" aria-label="빠른 추가" title="빠른 추가" onClick={onOpenQuickAdd}>
+          <Plus size={16} /> <span>빠른 추가</span>
         </button>
-        <button className="toolbar-button workspace-customize-button" type="button" onClick={onToggleEdit}>
-          <LayoutDashboard size={15} /> 화면 꾸미기
+        <button className="toolbar-button workspace-customize-button" type="button" aria-label="화면 꾸미기" title="화면 꾸미기" onClick={onToggleEdit}>
+          <LayoutDashboard size={16} /> <span>화면 꾸미기</span>
         </button>
       </div>
     );

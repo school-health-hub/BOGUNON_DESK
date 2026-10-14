@@ -1,7 +1,23 @@
 import { GripVertical, Settings, X } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { widgetRegistry } from "../../dashboard/widgetRegistry";
-import type { WidgetLayout } from "../../dashboard/types";
+import type { WidgetLayout, WidgetType } from "../../dashboard/types";
+
+const widgetFamilyByType = {
+  clock: "info",
+  "today-summary": "info",
+  "priority-task": "utility",
+  "monthly-calendar": "primary",
+  "today-tasks": "primary",
+  "quick-memo": "utility",
+  "quick-launcher": "utility",
+  "upcoming-schedule": "utility",
+  dday: "info",
+  "weekly-schedule": "primary",
+  notifications: "utility",
+  meal: "info",
+  weather: "info",
+} as const satisfies Record<WidgetType, "primary" | "utility" | "info">;
 
 type WidgetFrameProps = {
   readonly isEditing: boolean;
@@ -27,6 +43,7 @@ export function WidgetFrame({ isEditing, isSelected, widget, onHide, onSelect }:
     <section
       className={`widget-frame ${isEditing ? "is-editing" : "is-viewing"}${isSelected ? " is-selected" : ""}${isSettingsOpen ? " has-settings-open" : ""}`}
       aria-label={definition.title}
+      data-widget-family={widgetFamilyByType[widget.type]}
       onPointerDown={() => {
         if (isEditing) onSelect();
       }}
