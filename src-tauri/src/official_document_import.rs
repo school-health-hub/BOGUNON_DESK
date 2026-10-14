@@ -448,16 +448,16 @@ fn extract_odt_content(xml: &str) -> Result<String, ImportError> {
     loop {
         match reader.read_event_into(&mut buffer) {
             Ok(Event::Start(element)) => match element.local_name().as_ref() {
-                b"p" | b"h" => paragraph_depth = paragraph_depth.saturating_add(1),
-                b"tab" if paragraph_depth > 0 => push(&mut output, "\t")?,
-                b"line-break" if paragraph_depth > 0 => push(&mut output, "\n")?,
-                b"s" if paragraph_depth > 0 => push(&mut output, " ")?,
+                "p" | "h" => paragraph_depth = paragraph_depth.saturating_add(1),
+                "tab" if paragraph_depth > 0 => push(&mut output, "\t")?,
+                "line-break" if paragraph_depth > 0 => push(&mut output, "\n")?,
+                "s" if paragraph_depth > 0 => push(&mut output, " ")?,
                 _ => {}
             },
             Ok(Event::Empty(element)) => match element.local_name().as_ref() {
-                b"tab" if paragraph_depth > 0 => push(&mut output, "\t")?,
-                b"line-break" if paragraph_depth > 0 => push(&mut output, "\n")?,
-                b"s" if paragraph_depth > 0 => push(&mut output, " ")?,
+                "tab" if paragraph_depth > 0 => push(&mut output, "\t")?,
+                "line-break" if paragraph_depth > 0 => push(&mut output, "\n")?,
+                "s" if paragraph_depth > 0 => push(&mut output, " ")?,
                 _ => {}
             },
             Ok(Event::Text(text)) if paragraph_depth > 0 => {
@@ -480,7 +480,7 @@ fn extract_odt_content(xml: &str) -> Result<String, ImportError> {
                 }
             }
             Ok(Event::End(element)) => match element.local_name().as_ref() {
-                b"p" | b"h" => {
+                "p" | "h" => {
                     if !output.ends_with('\n') {
                         push(&mut output, "\n")?;
                     }
