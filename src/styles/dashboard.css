@@ -1399,7 +1399,26 @@
   .workspace-shell.is-view-mode .workspace-view-actions { top: 12px; right: 14px; }
 }
 
-/* Compact visible objects without rewriting the user's saved grid geometry. */
+.workspace-shell .workspace-dashboard.is-dense-desk .react-grid-item .widget-frame,
+.workspace-shell .workspace-dashboard.is-dense-desk .react-grid-item .widget-frame__body {
+  height: 100% !important;
+  min-height: 0 !important;
+}
+.workspace-shell .workspace-dashboard.is-dense-desk .widget-frame__body > .panel,
+.workspace-shell .workspace-dashboard.is-dense-desk .widget-frame__body > .widget-surface {
+  min-height: 0;
+  overflow: auto;
+}
+.workspace-shell .is-dense-desk .quick-launcher__folders { overflow: auto; }
+.workspace-shell .is-dense-desk .meal-ready { overflow: auto; flex-shrink: 0; }
+.workspace-shell .is-dense-desk .meal-ready { min-height: max-content; }
+.workspace-shell .is-dense-desk .meal-ready ul { min-height: max-content; grid-auto-rows: auto; overflow: visible; }
+.workspace-shell .is-dense-desk .weather-ready { flex: 0 0 auto; min-height: max-content; grid-template-rows: auto auto auto; overflow: visible; }
+.workspace-shell .is-dense-desk .weather-meta { flex-wrap: wrap; }
+.workspace-shell.is-view-mode .is-dense-desk .react-grid-item[data-widget-type="weekly-schedule"] .week-grid article:has(.week-schedule-list.is-empty) { min-height: 0; }
+.workspace-shell .is-dense-desk .week-grid article:has(.week-schedule-list.is-empty) header { margin-bottom: 2px; }
+.workspace-shell .is-dense-desk .week-grid article:has(.week-schedule-list.is-empty) header strong { width: 18px; height: 18px; }
+.workspace-shell .is-dense-desk .week-grid .week-schedule-list.is-empty { min-height: 16px; flex: 0 0 auto; }
 .workspace-shell.is-view-mode .react-grid-item[data-widget-type="monthly-calendar"] .widget-frame.is-viewing {
   height: 82%;
 }

@@ -123,15 +123,16 @@ const normalizeWidgets = (widgets: readonly WidgetLayout[]): readonly WidgetLayo
 
 export const parseDashboardLayoutValue = (parsed: unknown): DashboardLayout | null => {
   if (!isRecord(parsed) || parsed.version !== WIDGET_LAYOUT_VERSION) return null;
+  if (parsed.gridProfile !== undefined && parsed.gridProfile !== "dense-desk-v2") return null;
   const appearance = parseAppearance(parsed.appearance);
   if (appearance === null || !Array.isArray(parsed.widgets)) return null;
   const widgets = parsed.widgets.map(parseWidget);
   if (widgets.some((widget) => widget === null)) return null;
-  return createDashboardLayout(
+  return { ...createDashboardLayout(
     normalizeWidgets(widgets.filter((widget): widget is WidgetLayout => widget !== null)),
     appearance,
     isPresetId(parsed.presetId) ? parsed.presetId : undefined,
-  );
+  ), presetId: isPresetId(parsed.presetId) ? parsed.presetId : undefined, ...(parsed.gridProfile === "dense-desk-v2" ? { gridProfile: "dense-desk-v2" } as const : {}) };
 };
 
 export const parseDashboardLayout = (raw: string | null): DashboardLayout => {

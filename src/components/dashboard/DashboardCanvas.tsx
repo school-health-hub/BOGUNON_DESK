@@ -23,14 +23,15 @@ import type { DockLayout } from "../../dock/types";
 import { getDesktopErrorMessage, isDesktopRuntime, openBogunonSearchResult, openQuickMemoUrl } from "../../desktop/actions";
 import { parseDesktopActionId, type BogunonSearchResultTarget } from "../../desktop/types";
 import { createDefaultDashboardLayout } from "../../dashboard/layouts";
-import { hideWidget, mergeGridLayout, restoreWidget, toGridLayout } from "../../dashboard/layoutTransforms";
+import { mergeRenderedGridLayout, resolveDeskGeometry } from "../../dashboard/deskGeometry";
+import { hideWidget, restoreWidget, toGridLayout } from "../../dashboard/layoutTransforms";
 import type { DashboardAppearance, DashboardLayout, WidgetType } from "../../dashboard/types";
 import { settingsService } from "../../settings/settingsService";
 import { accountSyncService } from "../../settings/accountSyncService";
 import { DashboardToolbar } from "./DashboardToolbar";
 import { AppearancePanel } from "./AppearancePanel";
 import { PresetSelector } from "./PresetSelector";
-import { applyPreset, calculateDashboardGridMetrics, getWorkspaceModeClassName, RESET_DASHBOARD_CONFIRMATION, resetDashboardLayout, resolveDashboardGridWidth, useElementWidth, useViewportHeight } from "./dashboardCanvasSupport";
+import { applyPreset, calculateDashboardGridMetrics, getWorkspaceModeClassName, RESET_DASHBOARD_CONFIRMATION, resetDashboardLayout, resolveDashboardGridWidth, useElementWidth, useViewportHeight, useViewportWidth } from "./dashboardCanvasSupport";
 import { WidgetFrame } from "./WidgetFrame";
 import { WidgetLibraryDrawer } from "./WidgetLibraryDrawer";
 import { useDesktopNavigation, type DashboardEditorPanel } from "./useDesktopNavigation";
@@ -75,6 +76,7 @@ export function DashboardCanvas() {
   useWorkspaceNotifications(auth.state.status, workspaceData.state, now);
   const { ref, width } = useElementWidth();
   const viewportHeight = useViewportHeight();
+  const viewportWidth = useViewportWidth();
   const [dashboardLayout, setDashboardLayout] = useState<DashboardLayout>(() => settingsService.account.loadWorkspace());
   const [dockLayout, setDockLayout] = useState<DockLayout>(() => settingsService.account.loadDock());
   const [isEditing, setIsEditing] = useState(false);
@@ -237,10 +239,12 @@ export function DashboardCanvas() {
     };
   }, []);
 
-  const gridLayout = useMemo(() => toGridLayout(dashboardLayout.widgets, isEditing && !isCompact), [dashboardLayout.widgets, isEditing, isCompact]);
-  const visibleWidgets = dashboardLayout.widgets.filter((widget) => widget.visible);
+  const deskGeometry = useMemo(() => resolveDeskGeometry(dashboardLayout, viewportWidth), [dashboardLayout, viewportWidth]);
+  const renderedWidgets = deskGeometry.widgets;
+  const gridLayout = useMemo(() => toGridLayout(renderedWidgets, isEditing && !isCompact), [renderedWidgets, isEditing, isCompact]);
+  const visibleWidgets = renderedWidgets.filter((widget) => widget.visible);
   const visibleRowCount = Math.max(1, ...visibleWidgets.map((widget) => widget.y + widget.h));
-  const gridMetrics = calculateDashboardGridMetrics(viewportHeight, visibleRowCount);
+  const gridMetrics = calculateDashboardGridMetrics(viewportHeight, visibleRowCount, deskGeometry.dense ? deskGeometry : undefined);
 
   const updateAppearance = (appearance: DashboardAppearance) => {
     setDashboardLayout((current) => ({ ...current, appearance }));
@@ -422,7 +426,7 @@ export function DashboardCanvas() {
       />
 
       <main
-        className={`dashboard workspace-dashboard${gridMetrics.requiresScroll ? " is-scrollable" : ""}`}
+        className={`dashboard workspace-dashboard${gridMetrics.requiresScroll ? " is-scrollable" : ""}${deskGeometry.dense ? " is-dense-desk" : ""}`}
         aria-label="보건실 업무 위젯 작업 공간"
         ref={ref}
       >
@@ -453,7 +457,7 @@ export function DashboardCanvas() {
             style={{ height: gridMetrics.contentHeight }}
             width={gridWidth}
             onLayoutChange={(nextLayout: Layout) => {
-              if (isEditing && !isCompact) setDashboardLayout((current) => mergeGridLayout(current, nextLayout));
+              if (isEditing && !isCompact) setDashboardLayout((current) => mergeRenderedGridLayout(current, resolveDeskGeometry(current, viewportWidth).widgets, nextLayout));
             }}
           >
             {visibleWidgets.map((widget) => {
@@ -465,7 +469,7 @@ export function DashboardCanvas() {
                     widget={widget}
                     onHide={() => {
                       setSelectedWidgetId(null);
-                      setDashboardLayout((current) => hideWidget(current, widget.id));
+                      setDashboardLayout((current) => hideWidget({ ...current, widgets: resolveDeskGeometry(current, viewportWidth).widgets }, widget.id));
                     }}
                     onSelect={() => setSelectedWidgetId(widget.id)}
                   />
@@ -480,7 +484,7 @@ export function DashboardCanvas() {
         <WidgetLibraryDrawer
           widgets={dashboardLayout.widgets}
           onClose={() => setActivePanel(null)}
-          onRestore={(type: WidgetType) => setDashboardLayout((current) => restoreWidget(current, type))}
+          onRestore={(type: WidgetType) => setDashboardLayout((current) => restoreWidget({ ...current, widgets: resolveDeskGeometry(current, viewportWidth).widgets }, type))}
         />
       )}
       {isEditing && activePanel === "presets" && (

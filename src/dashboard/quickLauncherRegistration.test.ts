@@ -19,9 +19,9 @@ describe("quick launcher registration", () => {
     expect(() => assertWidgetRegistryIntegrity()).not.toThrow();
   });
 
-  it("keeps the launcher hidden in every preset", () => {
+  it("shows the launcher only in the new desk preset", () => {
     for (const preset of dashboardPresets) {
-      expect(preset.layout.widgets.find(({ type }) => type === "quick-launcher")?.visible).toBe(false);
+      expect(preset.layout.widgets.find(({ type }) => type === "quick-launcher")?.visible).toBe(preset.id === "desk");
     }
   });
 

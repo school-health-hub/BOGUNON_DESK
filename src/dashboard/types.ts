@@ -51,6 +51,7 @@ export type DashboardAppearance = {
 };
 
 export type DashboardLayout = {
+  readonly gridProfile?: "dense-desk-v2";
   readonly version: typeof WIDGET_LAYOUT_VERSION;
   readonly presetId?: DashboardPresetId;
   readonly widgets: readonly WidgetLayout[];

@@ -25,7 +25,7 @@ describe("dashboard presets", () => {
     expect(new Set(widgets.map(({ id }) => id)).size).toBe(widgetTypes.length);
   });
 
-  it("uses a valid, non-overlapping ten-row desk layout", () => {
+  it("uses a valid, non-overlapping twelve-row desk layout", () => {
     const visibleWidgets = getDashboardPreset("desk").layout.widgets.filter(({ visible }) => visible);
 
     for (const widget of visibleWidgets) {
@@ -42,27 +42,27 @@ describe("dashboard presets", () => {
       }
     }
 
-    expect(Math.max(...visibleWidgets.map(({ y, h }) => y + h))).toBe(10);
+    expect(Math.max(...visibleWidgets.map(({ y, h }) => y + h))).toBe(12);
   });
 
   it("matches the requested desk hierarchy and visibility", () => {
     const widgets = getDashboardPreset("desk").layout.widgets;
     const byType = new Map(widgets.map((widget) => [widget.type, widget]));
 
-    expect(byType.get("clock")).toMatchObject({ x: 0, y: 0, w: 2, h: 2, visible: true });
-    expect(byType.get("weather")).toMatchObject({ x: 2, y: 0, w: 3, h: 2, visible: true });
-    expect(byType.get("today-summary")).toMatchObject({ x: 5, y: 0, w: 4, h: 2, visible: true });
-    expect(byType.get("priority-task")).toMatchObject({ x: 9, y: 0, w: 3, h: 2, visible: true });
-    expect(byType.get("monthly-calendar")).toMatchObject({ x: 0, y: 2, w: 4, h: 5, visible: true });
-    expect(byType.get("today-tasks")).toMatchObject({ x: 4, y: 2, w: 5, h: 5, visible: true });
-    expect(byType.get("upcoming-schedule")).toMatchObject({ x: 9, y: 2, w: 3, h: 3, visible: true });
-    expect(byType.get("dday")).toMatchObject({ x: 9, y: 5, w: 3, h: 2, visible: true });
-    expect(byType.get("weekly-schedule")).toMatchObject({ x: 0, y: 7, w: 6, h: 3, visible: true });
-    expect(byType.get("quick-memo")).toMatchObject({ x: 6, y: 7, w: 3, h: 3, visible: true });
-    expect(byType.get("meal")).toMatchObject({ x: 9, y: 7, w: 3, h: 3, visible: true });
+    expect(byType.get("clock")).toMatchObject({ x: 8, y: 0, w: 2, h: 2, visible: true });
+    expect(byType.get("weather")).toMatchObject({ x: 10, y: 0, w: 2, h: 2, visible: true });
+    expect(byType.get("today-summary")).toMatchObject({ x: 8, y: 10, w: 4, h: 2, visible: true });
+    expect(byType.get("priority-task")).toMatchObject({ x: 8, y: 2, w: 4, h: 2, visible: true });
+    expect(byType.get("monthly-calendar")).toMatchObject({ x: 0, y: 0, w: 8, h: 5, visible: true });
+    expect(byType.get("today-tasks")).toMatchObject({ x: 0, y: 7, w: 4, h: 2, visible: true });
+    expect(byType.get("upcoming-schedule")).toMatchObject({ x: 5, y: 9, w: 3, h: 3, visible: true });
+    expect(byType.get("dday")).toMatchObject({ x: 8, y: 4, w: 4, h: 2, visible: true });
+    expect(byType.get("weekly-schedule")).toMatchObject({ x: 0, y: 5, w: 8, h: 2, visible: true });
+    expect(byType.get("quick-memo")).toMatchObject({ x: 0, y: 9, w: 5, h: 3, visible: true });
+    expect(byType.get("meal")).toMatchObject({ x: 4, y: 7, w: 4, h: 2, visible: true });
     expect(
       widgets.filter(({ visible }) => !visible).map(({ type }) => type).sort(),
-    ).toEqual(["notifications", "quick-launcher"]);
+    ).toEqual(["notifications"]);
   });
 
   it("keeps the balanced layout as the separate default preset", () => {

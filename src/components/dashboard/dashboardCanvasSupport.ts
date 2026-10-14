@@ -30,18 +30,19 @@ type DashboardGridMetrics = {
 export const calculateDashboardGridMetrics = (
   viewportHeight: number,
   visibleRowCount: number,
+  denseGeometry?: { readonly rowHeight: number; readonly margin: number },
 ): DashboardGridMetrics => {
   const safeVisibleRowCount = Math.max(1, visibleRowCount);
   const sizingRowCount = Math.min(
     BASE_VIEWPORT_ROWS,
     Math.max(MIN_VIEWPORT_FILL_ROWS, safeVisibleRowCount),
   );
-  const margin = viewportHeight < 840 ? 10 : 14;
+  const margin = denseGeometry?.margin ?? (viewportHeight < 840 ? 10 : 14);
   const verticalReservation = viewportHeight <= LOW_HEIGHT_VIEWPORT_MAX
     ? LOW_HEIGHT_WORKSPACE_VERTICAL_RESERVATION
     : DESKTOP_WORKSPACE_VERTICAL_RESERVATION;
   const availableHeight = Math.max(520, viewportHeight - verticalReservation);
-  const rowHeight = Math.max(
+  const rowHeight = denseGeometry?.rowHeight ?? Math.max(
     44,
     Math.floor((availableHeight - margin * (sizingRowCount - 1)) / sizingRowCount),
   );
@@ -51,7 +52,7 @@ export const calculateDashboardGridMetrics = (
     availableHeight,
     contentHeight,
     margin,
-    requiresScroll: safeVisibleRowCount > BASE_VIEWPORT_ROWS,
+    requiresScroll: denseGeometry === undefined ? safeVisibleRowCount > BASE_VIEWPORT_ROWS : contentHeight > availableHeight,
     rowHeight,
   };
 };
@@ -89,6 +90,16 @@ export const useViewportHeight = () => {
   return height;
 };
 
+export const useViewportWidth = () => {
+  const [width, setWidth] = useState(() => window.innerWidth);
+  useEffect(() => {
+    const updateWidth = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", updateWidth);
+    return () => window.removeEventListener("resize", updateWidth);
+  }, []);
+  return width;
+};
+
 export const applyPreset = (
   current: DashboardLayout,
   presetId: DashboardPresetId,
@@ -97,5 +108,5 @@ export const applyPreset = (
   const preset = dashboardPresets.find((item) => item.id === presetId);
   if (preset === undefined) return current;
   if (!confirmChange("현재 화면 배치를 이 프리셋으로 변경할까요?")) return current;
-  return createDashboardLayout(preset.layout.widgets, current.appearance, preset.id);
+  return { ...createDashboardLayout(preset.layout.widgets, current.appearance, preset.id), ...(preset.layout.gridProfile === undefined ? {} : { gridProfile: preset.layout.gridProfile }) };
 };

@@ -3,6 +3,7 @@ import { widgetRegistry } from "./widgetRegistry";
 import type { DashboardLayout, WidgetLayout, WidgetType } from "./types";
 
 const markLayoutCustom = (layout: DashboardLayout, widgets: readonly WidgetLayout[]): DashboardLayout => ({
+  ...(layout.gridProfile === undefined ? {} : { gridProfile: layout.gridProfile }),
   version: layout.version,
   appearance: layout.appearance,
   widgets,

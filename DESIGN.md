@@ -149,6 +149,10 @@ View mode는 조용한 업무 화면이어야 하고, Edit mode는 현재 화면
 
 ## 10. Workspace layout and responsive rules
 
+- 9A.2 새 desk/reset/desk preset은 12열 fine grid의 실제 좌표로 배치한다. 1500px 미만은 row 40px/gutter 10px/calendar 5행, 1500–1799px는 42px/12px/6행, 1800px 이상은 44px/14px/7행이다. 달력 바로 아래 주간 일정, 그 아래 업무·급식, 마지막 메모·주요 일정 순서이며 우측에는 시계·날씨, 우선 업무, D-Day, 빠른 실행, 오늘 요약을 둔다.
+- canonical desk와 일치할 때만 viewport render variant를 사용한다. appearance와 배열 순서는 판별에 영향이 없고 저장된 이전 desk/custom 배치는 그대로 복원한다. 자동 resize render는 저장하지 않으며 실제 수동 편집은 화면의 좌표를 custom으로 저장한다.
+- 새 dense desk는 View/Edit 모두 실제 grid slot의 100% surface를 사용한다. calendar 82% 및 empty 자동 높이 규칙은 기존 saved/custom 화면에만 적용한다. 많은 콘텐츠는 위젯 내부에서 스크롤해 행동에 접근한다. 빠른 실행은 새 desk에서 기본 표시한다.
+
 - 기준 화면은 1440×900 Windows 앱이며 12-column desktop grid를 사용한다.
 - Edit toolbar는 document flow가 아니라 canvas 위 overlay로 띄워 위젯 배치를 밀지 않는다.
 - View mode와 Edit mode는 8~10px grid gutter를 유지해 canvas가 카드 사이로 보이게 한다. 모든 위젯에 동일한 내부 구조나 visual weight를 강요하지 않는다.
