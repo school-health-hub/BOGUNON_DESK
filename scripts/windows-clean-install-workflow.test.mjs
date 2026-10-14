@@ -3,7 +3,9 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const workflowPath = resolve(import.meta.dirname, "..", ".github", "workflows", "windows-clean-install-qa.yml");
+const cleanInstallScriptPath = resolve(import.meta.dirname, "qa", "windows-clean-install.ps1");
 const readWorkflow = () => readFile(workflowPath, "utf8");
+const readCleanInstallScript = () => readFile(cleanInstallScriptPath, "utf8");
 
 describe("Windows clean-install QA workflow", () => {
   it("keeps the source-build path for PR smoke testing", async () => {
@@ -11,6 +13,16 @@ describe("Windows clean-install QA workflow", () => {
     expect(source).toContain("pull_request:");
     expect(source).toContain("npm run release:windows");
     expect(source).toContain("inputs.candidate_artifact_name == ''");
+    expect(source).toContain("if (-not [string]::IsNullOrWhiteSpace($env:EXPECTED_SHA256))");
+    expect(source).toContain("if (-not [string]::IsNullOrWhiteSpace($env:EXPECTED_PRODUCT_VERSION))");
+    expect(source).toContain("& \"./scripts/qa/windows-clean-install.ps1\" @cleanInstallParameters");
+  });
+
+  it("keeps optional SHA verification callable with an omitted expectation", async () => {
+    const source = await readCleanInstallScript();
+    expect(source).toContain('[string]$Expected = ""');
+    expect(source).toContain("if ([string]::IsNullOrWhiteSpace($Expected)) { return }");
+    expect(source).not.toContain('[Parameter(Mandatory = $true)][string]$Expected,');
   });
 
   it("supports exact-byte production candidate QA without rebuilding", async () => {
@@ -27,8 +39,10 @@ describe("Windows clean-install QA workflow", () => {
     expect(source).toMatch(/actions\/download-artifact@/u);
     expect(downloadIndex).toBeLessThan(locateIndex);
     expect(locateIndex).toBeLessThan(runIndex);
-    expect(source).toContain("-ExpectedSha256 $env:EXPECTED_SHA256");
-    expect(source).toContain("-ExpectedProductVersion $env:EXPECTED_PRODUCT_VERSION");
+    expect(source).toContain("expected_sha256 is required for candidate artifact mode.");
+    expect(source).toContain("expected_product_version is required for candidate artifact mode.");
+    expect(source).toContain("$cleanInstallParameters.ExpectedSha256 = $env:EXPECTED_SHA256");
+    expect(source).toContain("$cleanInstallParameters.ExpectedProductVersion = $env:EXPECTED_PRODUCT_VERSION");
     expect(source).not.toContain('-ExpectedSha256 "${{ inputs.expected_sha256 }}"');
   });
 });
