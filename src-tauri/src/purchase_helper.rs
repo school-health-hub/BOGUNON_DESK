@@ -318,6 +318,11 @@ fn parse_rows_with_columns(
         let quantity = parse_number(&quantity_raw);
         let unit_price = parse_number(&unit_price_raw);
         let imported_amount = parse_number(&get(row, "amount"));
+        let specification = get(row, "specification");
+        let vendor = get(row, "vendor");
+        let note = get(row, "note");
+        let budget_item = get(row, "budgetItem");
+
         if name.is_empty()
             && quantity.is_none()
             && unit_price.is_none()
@@ -325,6 +330,22 @@ fn parse_rows_with_columns(
         {
             continue;
         }
+
+        // A trailing subtotal/total cell is frequently emitted as an amount-only row.
+        // It is document metadata, not a purchasable item, so do not materialize it
+        // as a blank blocking row in Purchase Helper.
+        if name.is_empty()
+            && specification.is_empty()
+            && quantity.is_none()
+            && unit_price.is_none()
+            && imported_amount.is_some()
+            && vendor.is_empty()
+            && note.is_empty()
+            && budget_item.is_empty()
+        {
+            continue;
+        }
+
         let mut issues = Vec::new();
         if name.is_empty() {
             issues.push("missingName".to_owned());
@@ -350,13 +371,13 @@ fn parse_rows_with_columns(
             id: format!("import-{}-{}", items.len(), offset),
             selected: true,
             name,
-            specification: get(row, "specification"),
+            specification,
             quantity,
             unit_price,
             imported_amount,
-            vendor: get(row, "vendor"),
-            note: get(row, "note"),
-            budget_item: get(row, "budgetItem"),
+            vendor,
+            note,
+            budget_item,
             source_name: Some(source.to_owned()),
             issues,
             amount_mismatch_reviewed: false,
@@ -2144,6 +2165,41 @@ mod tests {
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].name, "마스크");
         assert_eq!(items[0].unit_price, Some(1500.0));
+    }
+
+    #[test]
+    fn ignores_amount_only_footer_rows() {
+        let rows = vec![
+            vec![
+                "품명".into(),
+                "규격".into(),
+                "수량".into(),
+                "단가".into(),
+                "금액".into(),
+            ],
+            vec![
+                "전기온장고".into(),
+                "20L".into(),
+                "1".into(),
+                "220000".into(),
+                "220000".into(),
+            ],
+            vec![
+                "드레싱카트".into(),
+                "서랍형".into(),
+                "1".into(),
+                "253000".into(),
+                "253000".into(),
+            ],
+            vec!["".into(), "".into(), "".into(), "".into(), "473000".into()],
+        ];
+
+        let items = parse_rows(&rows, "footer-total.xlsx").unwrap();
+
+        assert_eq!(items.len(), 2);
+        assert_eq!(items[0].name, "전기온장고");
+        assert_eq!(items[1].name, "드레싱카트");
+        assert!(items.iter().all(|item| item.name.trim().len() > 0));
     }
 
     #[test]
