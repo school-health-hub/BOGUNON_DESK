@@ -44,6 +44,7 @@ const parseLauncherLinks = (value: unknown): AccountLauncherLinks | null => {
 export const serializeAccountSettings = (settings: AccountSettings): AccountSettings => ({
   workspace: {
     version: settings.workspace.version,
+    ...(settings.workspace.gridProfile === undefined ? {} : { gridProfile: settings.workspace.gridProfile }),
     ...(settings.workspace.presetId === undefined ? {} : { presetId: settings.workspace.presetId }),
     widgets: settings.workspace.widgets.map(({ id, type, x, y, w, h, visible }) => ({
       id,

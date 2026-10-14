@@ -7,7 +7,7 @@ import { WEATHER_SCHOOL_SETTINGS_ACTION_ID } from "../widgets/WeatherWidget";
 
 describe("weather widget registration", () => {
   it("registers a hidden 3x2 singleton default", () => {
-    expect(widgetRegistry.weather).toMatchObject({ defaultSize: { w: 3, h: 2 }, minW: 3, minH: 2, maxW: 5, maxH: 3, singleton: true });
+    expect(widgetRegistry.weather).toMatchObject({ defaultSize: { w: 3, h: 2 }, minW: 2, minH: 2, maxW: 5, maxH: 3, singleton: true });
     expect(defaultWidgetLayouts.find(({ type }) => type === "weather")).toMatchObject({ visible: false, w: 3, h: 2 });
   });
 

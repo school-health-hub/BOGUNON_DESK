@@ -22,6 +22,14 @@ const createSettings = (): AccountSettings => ({
 });
 
 describe("remote AccountSettings boundary", () => {
+  it("round-trips dense custom configuration without inferring a profile for legacy settings", () => {
+    const settings = createSettings();
+    const custom: AccountSettings = { ...settings, workspace: { ...settings.workspace, presetId: undefined } };
+    expect(parseRemoteAccountSettings(1, serializeAccountSettings(custom))?.workspace).toEqual(custom.workspace);
+    const legacy: AccountSettings = { ...settings, workspace: createDashboardLayout(defaultWidgetLayouts, defaultAppearance, "desk") };
+    expect(parseRemoteAccountSettings(1, serializeAccountSettings(legacy))?.workspace).toEqual(legacy.workspace);
+    expect(serializeAccountSettings(legacy).workspace.gridProfile).toBeUndefined();
+  });
   it("serializes only account-scoped fields and excludes widget content", () => {
     const settings = createSettings();
     const withLocalOnlyWidgetData: AccountSettings = {
