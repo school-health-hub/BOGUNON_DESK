@@ -11,6 +11,9 @@ describe("Windows clean-install QA workflow", () => {
     expect(source).toContain("pull_request:");
     expect(source).toContain("npm run release:windows");
     expect(source).toContain("inputs.candidate_artifact_name == ''");
+    expect(source).toContain("if (-not [string]::IsNullOrWhiteSpace($env:EXPECTED_SHA256))");
+    expect(source).toContain("if (-not [string]::IsNullOrWhiteSpace($env:EXPECTED_PRODUCT_VERSION))");
+    expect(source).toContain("& \"./scripts/qa/windows-clean-install.ps1\" @cleanInstallParameters");
   });
 
   it("supports exact-byte production candidate QA without rebuilding", async () => {
@@ -27,8 +30,10 @@ describe("Windows clean-install QA workflow", () => {
     expect(source).toMatch(/actions\/download-artifact@/u);
     expect(downloadIndex).toBeLessThan(locateIndex);
     expect(locateIndex).toBeLessThan(runIndex);
-    expect(source).toContain("-ExpectedSha256 $env:EXPECTED_SHA256");
-    expect(source).toContain("-ExpectedProductVersion $env:EXPECTED_PRODUCT_VERSION");
+    expect(source).toContain("expected_sha256 is required for candidate artifact mode.");
+    expect(source).toContain("expected_product_version is required for candidate artifact mode.");
+    expect(source).toContain("$cleanInstallParameters.ExpectedSha256 = $env:EXPECTED_SHA256");
+    expect(source).toContain("$cleanInstallParameters.ExpectedProductVersion = $env:EXPECTED_PRODUCT_VERSION");
     expect(source).not.toContain('-ExpectedSha256 "${{ inputs.expected_sha256 }}"');
   });
 });

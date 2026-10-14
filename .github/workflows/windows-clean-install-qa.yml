@@ -122,15 +122,31 @@ jobs:
       - name: Run clean-install smoke test
         shell: pwsh
         env:
+          CANDIDATE_ARTIFACT_NAME: ${{ inputs.candidate_artifact_name }}
           EXPECTED_SHA256: ${{ inputs.expected_sha256 }}
           EXPECTED_PRODUCT_VERSION: ${{ inputs.expected_product_version }}
         run: |
-          & "./scripts/qa/windows-clean-install.ps1" `
-            -InstallerPath $env:INSTALLER_PATH `
-            -ExpectedSha256 $env:EXPECTED_SHA256 `
-            -ExpectedProductVersion $env:EXPECTED_PRODUCT_VERSION `
-            -OutputDirectory "artifacts/windows-clean-install-qa" `
-            -AllowCleanup
+          $isCandidateMode = -not [string]::IsNullOrWhiteSpace($env:CANDIDATE_ARTIFACT_NAME)
+          if ($isCandidateMode -and $env:EXPECTED_SHA256 -notmatch '^[a-fA-F0-9]{64}$') {
+            throw "expected_sha256 is required for candidate artifact mode."
+          }
+          if ($isCandidateMode -and [string]::IsNullOrWhiteSpace($env:EXPECTED_PRODUCT_VERSION)) {
+            throw "expected_product_version is required for candidate artifact mode."
+          }
+
+          $cleanInstallParameters = @{
+            InstallerPath = $env:INSTALLER_PATH
+            OutputDirectory = "artifacts/windows-clean-install-qa"
+            AllowCleanup = $true
+          }
+          if (-not [string]::IsNullOrWhiteSpace($env:EXPECTED_SHA256)) {
+            $cleanInstallParameters.ExpectedSha256 = $env:EXPECTED_SHA256
+          }
+          if (-not [string]::IsNullOrWhiteSpace($env:EXPECTED_PRODUCT_VERSION)) {
+            $cleanInstallParameters.ExpectedProductVersion = $env:EXPECTED_PRODUCT_VERSION
+          }
+
+          & "./scripts/qa/windows-clean-install.ps1" @cleanInstallParameters
 
       - name: Upload installer and QA evidence
         if: always()
