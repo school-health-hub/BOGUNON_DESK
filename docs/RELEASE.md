@@ -131,6 +131,24 @@ Synthetic updater compatibility QA는 `UPGRADE_QA_MODE = SYNTHETIC_0_2_0_ENDPOIN
 
 이미 활성화된 잘못된 release를 동일 version으로 덮어쓰는 rollback은 지원하지 않습니다. 새 수정 version을 만들어 정상 release 절차로 게시해야 합니다. Pointer의 수동 rollback은 별도의 incident 절차와 remote artifact 검증 없이 수행하지 않습니다.
 
+## Production release resume
+
+`.github/workflows/windows-updater-release-resume.yml`의 **Windows updater production release resume** workflow는 production release가 중간 gate에서 실패했을 때 이미 생성된 signed candidate를 다시 build/sign하지 않고, 성공한 checkpoint 다음 단계부터 재개하기 위한 경로입니다.
+
+입력은 다음 값을 사용합니다.
+
+- `version` — candidate가 가진 release version
+- `candidate_run_id` — signed candidate를 처음 만든 production release workflow run ID
+- `checkpoint_run_id` — 재개 직전 prerequisite가 성공한 가장 최근 run ID. 비워 두면 `candidate_run_id`를 사용
+- `resume_from` — 다시 시작할 단계
+
+지원하는 `resume_from` 값은 `clean-install`, `updater-qa`, `publish-versioned`, `verify-versioned`, `metadata`, `promote-latest`, `verify-latest`, `cleanup-candidate`입니다.
+
+Resume workflow는 원래 candidate run의 artifact를 직접 다운로드해 재사용하고 candidate version, original run ID, source SHA, installer SHA metadata를 다시 확인합니다. 또한 `checkpoint_run_id`의 job/step 결과를 조회해 선택한 단계 직전 prerequisite가 실제로 성공했는지 확인한 뒤에만 진행합니다.
+
+Candidate 생성 이후 product-affecting source가 바뀌었으면 기존 candidate 재사용을 차단합니다. 허용되는 변경 범위는 release workflow와 QA harness처럼 candidate bytes 자체를 바꾸지 않는 파일로 제한합니다. 따라서 제품 코드가 변경된 경우에는 새 production candidate를 만들어 full release workflow를 실행해야 합니다.
+
+이 resume workflow의 목적은 QA script, release orchestration, verification harness 같은 문제를 수정했을 때 매번 signed candidate build와 이미 성공한 앞 단계를 반복하지 않는 것입니다. Public latest promotion의 안전 규칙은 기존 production workflow와 동일하며, `latest.json`은 검증된 versioned objects와 metadata 이후에만 갱신합니다.
 ## SHA256 확인
 
 PowerShell에서 다음 명령의 hash를 `SHA256SUMS.txt`와 비교합니다.

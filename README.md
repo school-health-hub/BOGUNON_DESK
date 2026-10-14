@@ -13,9 +13,11 @@
 - 사용자가 선택적으로 연결하는 OpenAI/Gemini AI 기능
 - Windows Tray, autostart, close-to-tray
 
-## 0.1.0 공유 베타
+## 0.2.1 공유 베타
 
-공유 artifact는 Windows 10/11 x64용 unsigned NSIS installer입니다. 아직 코드서명되지 않아 Windows에서 게시자 확인 또는 SmartScreen 경고가 표시될 수 있습니다. 보안 기능을 끄지 말고 파일 제공자와 `SHA256SUMS.txt`의 체크섬을 확인하세요.
+0.2.1은 생기부 도우미, 품의 도우미, 공문 작업실의 검토·전송 lifecycle과 개인정보 보호 경계를 강화하고, exact-byte clean-install QA와 synthetic 0.2.0 updater compatibility QA를 통과한 production release입니다.
+
+공유 artifact는 Windows 10/11 x64용 unsigned NSIS installer입니다. Tauri updater artifact는 별도 signing key로 서명되지만 Windows Authenticode 코드서명은 아직 적용하지 않아 게시자 확인 또는 SmartScreen 경고가 표시될 수 있습니다. 보안 기능을 끄지 말고 파일 제공자와 `SHA256SUMS.txt`의 체크섬을 확인하세요.
 
 - 사용자 안내: [`docs/BETA-USER-GUIDE.md`](docs/BETA-USER-GUIDE.md)
 - 개발자 release 안내: [`docs/RELEASE.md`](docs/RELEASE.md)
@@ -68,7 +70,7 @@ npm run release:check
 npm run release:windows
 ```
 
-성공하면 `release-output/`에 installer, `SHA256SUMS.txt`, `README-FIRST.txt`가 생성됩니다. 자세한 prerequisites와 설치 smoke checklist는 [`docs/RELEASE.md`](docs/RELEASE.md)를 따릅니다.
+성공하면 `release-output/`에 installer, `SHA256SUMS.txt`, `README-FIRST.txt`가 생성됩니다. Production updater release와 실패 지점부터 재개하는 checkpoint/resume 절차는 [`docs/RELEASE.md`](docs/RELEASE.md)를 따릅니다.
 
 ## 라이선스
 
