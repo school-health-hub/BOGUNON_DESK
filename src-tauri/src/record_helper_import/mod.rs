@@ -226,6 +226,12 @@ async fn extract_selected_reports(
 }
 
 #[tauri::command]
+pub async fn extract_record_helper_paths(paths: Vec<String>) -> Result<RecordHelperImportBatch, String> {
+    if paths.is_empty() { return Ok(RecordHelperImportBatch::default()); }
+    run_extraction_worker(move || extract_reports(paths.into_iter().map(PathBuf::from).collect())).await
+}
+
+#[tauri::command]
 pub async fn pick_and_extract_record_helper_reports(
     app: AppHandle,
 ) -> Result<RecordHelperImportBatch, String> {

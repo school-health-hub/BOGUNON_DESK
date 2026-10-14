@@ -58,11 +58,17 @@ import { useOnboarding } from "../../onboarding/OnboardingContext";
 import { useDesktopUpdater } from "../../updater/DesktopUpdaterContext";
 import { DesktopUpdateBanner } from "../desktop/DesktopUpdateBanner";
 import { DesktopUpdateConfirmationDialog } from "../desktop/DesktopUpdateConfirmationDialog";
+import { FileDropRouter } from "../desktop/FileDropRouter";
+import type { FileDropTarget } from "../../file-drop/fileDropRouter";
+import { extractOfficialDocumentPath } from "../../official-document/officialDocumentImportService";
+import { useOfficialDocumentSession } from "../../official-document/OfficialDocumentSessionContext";
+import { extractRecordHelperPaths, type RecordHelperImportBatch } from "../../record-helper/reportImportService";
 
 export function DashboardCanvas() {
   const auth = useAuth();
   const onboarding = useOnboarding();
   const updater = useDesktopUpdater();
+  const officialDocumentSession = useOfficialDocumentSession();
   const { now } = useWidgetSession();
   const workspaceData = useWorkspaceData();
   useWorkspaceNotifications(auth.state.status, workspaceData.state, now);
@@ -84,6 +90,8 @@ export function DashboardCanvas() {
   const [isPurchaseHelperOpen, setIsPurchaseHelperOpen] = useState(false);
   const [isOfficialDocumentOpen, setIsOfficialDocumentOpen] = useState(false);
   const [isRecordHelperOpen, setIsRecordHelperOpen] = useState(false);
+  const [pendingFileDropPaths, setPendingFileDropPaths] = useState<readonly string[] | null>(null);
+  const [pendingRecordHelperImport, setPendingRecordHelperImport] = useState<RecordHelperImportBatch | null>(null);
   const [purchaseItems, setPurchaseItems] = useState<readonly PurchaseItem[]>([]);
   const [purchaseSources, setPurchaseSources] = useState<readonly PurchaseSourceSummary[]>([]);
   const [purchaseCandidates, setPurchaseCandidates] = useState<readonly PurchaseMappingCandidate[]>([]);
@@ -198,6 +206,19 @@ export function DashboardCanvas() {
       unlisten?.();
     };
   }, [runDesktopAction]);
+
+  useEffect(() => {
+    if (!isDesktopRuntime()) return undefined;
+    let unlisten: (() => void) | null = null;
+    let active = true;
+    void listen<string[]>("desktop:file-drop", (event) => {
+      const paths = Array.isArray(event.payload) ? event.payload.filter((path): path is string => typeof path === "string" && path.trim().length > 0) : [];
+      if (paths.length > 0) setPendingFileDropPaths(paths);
+    }).then((dispose) => {
+      if (active) unlisten = dispose; else dispose();
+    }).catch((error: unknown) => setNotice(getDesktopErrorMessage(error)));
+    return () => { active = false; unlisten?.(); };
+  }, []);
 
   useEffect(() => {
     if (!isDesktopRuntime()) return undefined;
@@ -342,6 +363,33 @@ export function DashboardCanvas() {
       return;
     }
     toolbox.runToolAction(definition.id);
+  };
+
+  const routeDroppedFiles = async (target: FileDropTarget): Promise<void> => {
+    const paths = pendingFileDropPaths;
+    if (paths === null || paths.length === 0) return;
+    setPendingFileDropPaths(null);
+    try {
+      if (target === "purchase-helper") {
+        appendPurchaseAnalysis(await purchaseRepository.analyzePaths(paths, purchaseImportTemplates));
+        await runDesktopAction("purchase-helper");
+        return;
+      }
+      if (target === "official-document") {
+        if (paths.length !== 1) throw new Error("공문 작업실에는 파일 1개만 전달할 수 있습니다.");
+        const result = await extractOfficialDocumentPath(paths[0]);
+        officialDocumentSession.dispatch({ type: "selectMode", mode: "summary" });
+        officialDocumentSession.dispatch({ type: "importSummarySource", original: result.text, sourceName: result.sourceName });
+        await runDesktopAction("official-document");
+        return;
+      }
+      const batch = await extractRecordHelperPaths(paths);
+      if (batch === null) throw new Error("가져올 활동보고서가 없습니다.");
+      setPendingRecordHelperImport(batch);
+      await runDesktopAction("record-helper");
+    } catch (error: unknown) {
+      setNotice(getDesktopErrorMessage(error));
+    }
   };
 
   return (
@@ -571,6 +619,8 @@ export function DashboardCanvas() {
       )}
       {isRecordHelperOpen && (
         <RecordHelperPanel
+          initialImportBatch={pendingRecordHelperImport}
+          onInitialImportConsumed={() => setPendingRecordHelperImport(null)}
           onOpenAiSettings={() => openSettingsSection("ai")}
           onClose={() => {
             setIsRecordHelperOpen(false);
@@ -600,6 +650,9 @@ export function DashboardCanvas() {
             if (favorite !== undefined) void openWorkFolderFavorite(favorite);
           }}
         />
+      )}
+      {pendingFileDropPaths !== null && (
+        <FileDropRouter paths={pendingFileDropPaths} onCancel={() => setPendingFileDropPaths(null)} onChoose={(target) => void routeDroppedFiles(target)} />
       )}
       <CommandPalette
         authStatus={auth.state.status}

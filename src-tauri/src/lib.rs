@@ -27,6 +27,7 @@ mod work_folders;
 const MAIN_WINDOW_LABEL: &str = "main";
 const DESKTOP_NAVIGATE_EVENT: &str = "desktop:navigate";
 const DESKTOP_NOTICE_EVENT: &str = "desktop:notice";
+const DESKTOP_FILE_DROP_EVENT: &str = "desktop:file-drop";
 
 struct DesktopState {
     close_to_tray: AtomicBool,
@@ -266,6 +267,7 @@ pub fn run() {
             open_bogunon_search_result,
             launcher::open_quick_memo_url,
             purchase_helper::pick_and_analyze_purchase_files,
+            purchase_helper::analyze_purchase_paths,
             purchase_helper::apply_purchase_column_mapping,
             purchase_helper::save_purchase_export,
             purchase_helper::save_purchase_edufine_export,
@@ -273,7 +275,9 @@ pub fn run() {
             purchase_helper::set_purchase_helper_active,
             purchase_helper::invalidate_purchase_helper_analysis,
             official_document_import::pick_and_extract_official_document,
+            official_document_import::extract_official_document_path,
             record_helper_import::pick_and_extract_record_helper_reports,
+            record_helper_import::extract_record_helper_paths,
             get_autostart_enabled,
             set_autostart_enabled,
             set_close_to_tray,
@@ -341,6 +345,11 @@ pub fn run() {
                             }
                         }
                     });
+                } else {
+                    let dropped_paths = paths.iter().filter_map(|path| path.to_str().map(str::to_owned)).collect::<Vec<_>>();
+                    if !dropped_paths.is_empty() {
+                        let _ = window.emit(DESKTOP_FILE_DROP_EVENT, dropped_paths);
+                    }
                 }
             }
             if let WindowEvent::CloseRequested { api, .. } = event {

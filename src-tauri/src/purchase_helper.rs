@@ -1312,6 +1312,12 @@ pub(crate) async fn analyze_paths_in_background(
     run_analysis_worker(move || analyze_paths(paths, templates)).await
 }
 
+#[tauri::command]
+pub async fn analyze_purchase_paths(paths: Vec<String>, templates: Vec<ImportTemplate>) -> Result<AnalysisResult, String> {
+    if paths.is_empty() { return Err("가져올 파일이 없습니다.".to_owned()); }
+    analyze_paths_in_background(paths.into_iter().map(PathBuf::from).collect(), templates).await
+}
+
 #[derive(Default)]
 pub struct PurchaseHelperState {
     active: AtomicBool,

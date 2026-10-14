@@ -25,6 +25,8 @@ type ImportReports = () => Promise<RecordHelperImportBatch | null>;
 
 type RecordHelperPanelProps = {
   readonly importReports?: ImportReports;
+  readonly initialImportBatch?: RecordHelperImportBatch | null;
+  readonly onInitialImportConsumed?: () => void;
   readonly initialWorkspace?: RecordHelperWorkspace;
   readonly onClose: () => void;
   readonly onOpenAiSettings: () => void;
@@ -56,6 +58,8 @@ const createWorkspaceFailure = (failure: RecordHelperImportBatch["failures"][num
 
 export function RecordHelperPanel({
   importReports = importRecordHelperReports,
+  initialImportBatch = null,
+  onInitialImportConsumed,
   initialWorkspace,
   onClose,
   onOpenAiSettings,
@@ -151,6 +155,20 @@ export function RecordHelperPanel({
     }
     setPendingDiscard(null);
   };
+
+  useEffect(() => {
+    if (initialImportBatch === null) return;
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+    dispatch({ type: "beginImport", requestId });
+    dispatch({
+      type: "resolveImport",
+      requestId,
+      reports: initialImportBatch.reports.map((report, index) => createWorkspaceReport(report, requestId, index)),
+      failures: initialImportBatch.failures.map(createWorkspaceFailure),
+    });
+    onInitialImportConsumed?.();
+  }, [initialImportBatch, onInitialImportConsumed]);
 
   useEffect(() => {
     importButtonRef.current?.focus();
