@@ -4,7 +4,7 @@ export type FileDropRouteModel = { readonly names: readonly string[]; readonly c
 const purchaseExtensions = new Set(["xlsx","xls","csv","pdf","png","jpg","jpeg"]);
 const officialExtensions = new Set(["pdf","hwpx"]);
 const recordExtensions = new Set(["pdf","hwpx","docx","hwp"]);
-const baseName = (path: string) => path.split(/[\\/]/).at(-1)?.trim() || "이름 없는 파일";
+const baseName = (path: string) => { const parts = path.split(/[\\/]/); return parts[parts.length - 1]?.trim() || "이름 없는 파일"; };
 const extensionOf = (path: string) => { const name = baseName(path); const i = name.lastIndexOf("."); return i > 0 && i < name.length - 1 ? name.slice(i + 1).toLowerCase() : ""; };
 const allSupported = (paths: readonly string[], set: ReadonlySet<string>) => paths.length > 0 && paths.every((path) => set.has(extensionOf(path)));
 export const buildFileDropRouteModel = (paths: readonly string[]): FileDropRouteModel => {
