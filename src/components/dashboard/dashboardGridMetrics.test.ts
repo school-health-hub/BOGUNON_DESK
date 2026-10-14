@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createDashboardLayout, defaultAppearance, defaultWidgetLayouts } from "../../dashboard/layouts";
 import { hideWidget, mergeGridLayout, restoreWidget, toGridLayout } from "../../dashboard/layoutTransforms";
-import { calculateDashboardGridMetrics, getWorkspaceModeClassName, RESET_DASHBOARD_CONFIRMATION, resetDashboardLayout, resolveDashboardGridWidth } from "./dashboardCanvasSupport";
+import { calculateDashboardGridMetrics, DESKTOP_WORKSPACE_VERTICAL_RESERVATION, getWorkspaceModeClassName, RESET_DASHBOARD_CONFIRMATION, resetDashboardLayout, resolveDashboardGridWidth } from "./dashboardCanvasSupport";
 
 describe("workspace visual mode", () => {
   it("derives the shell mode class from the existing editing state", () => {
@@ -42,15 +42,15 @@ describe("dashboard grid metrics", () => {
     expect(filled.rowHeight).toBeGreaterThan(tenRows.rowHeight);
     expect(filled.availableHeight - filled.contentHeight).toBeGreaterThanOrEqual(0);
     expect(filled.availableHeight - filled.contentHeight).toBeLessThan(9);
-    expect(filled.contentHeight).toBeGreaterThanOrEqual(820);
+    expect(filled.contentHeight + DESKTOP_WORKSPACE_VERTICAL_RESERVATION).toBeLessThanOrEqual(900);
   });
 
   it("keeps the existing sizing and scroll boundary for 10 and 11 rows", () => {
     const tenRows = calculateDashboardGridMetrics(900, 10);
     const elevenRows = calculateDashboardGridMetrics(900, 11);
 
-    expect(tenRows.rowHeight).toBe(69);
-    expect(tenRows.contentHeight).toBe(816);
+    expect(tenRows.rowHeight).toBe(63);
+    expect(tenRows.contentHeight).toBe(756);
     expect(tenRows.requiresScroll).toBe(false);
     expect(elevenRows.rowHeight).toBe(tenRows.rowHeight);
     expect(elevenRows.requiresScroll).toBe(true);
