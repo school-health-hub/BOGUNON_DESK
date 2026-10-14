@@ -1,0 +1,339 @@
+name: Windows updater production release resume
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version carried by the signed candidate (for example, 0.2.1)
+        required: true
+        type: string
+      candidate_run_id:
+        description: Workflow run ID that originally built the signed candidate
+        required: true
+        type: string
+      checkpoint_run_id:
+        description: Most recent run that completed the prerequisite stage; leave blank to use candidate_run_id
+        required: false
+        default: ""
+        type: string
+      resume_from:
+        description: First stage to run again
+        required: true
+        default: updater-qa
+        type: choice
+        options:
+          - clean-install
+          - updater-qa
+          - publish-versioned
+          - verify-versioned
+          - metadata
+          - promote-latest
+          - verify-latest
+          - cleanup-candidate
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: desktop-production-release
+  cancel-in-progress: false
+
+env:
+  CI: "true"
+  RELEASE_VERSION: ${{ inputs.version }}
+  RELEASE_CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
+  RELEASE_CANDIDATE_ARTIFACT: updater-release-candidate-${{ inputs.version }}-${{ inputs.candidate_run_id }}
+  SYNTHETIC_0_2_0_SOURCE_REF: 2de999ac3bfc6ffec738634866780ab72ddb6d41
+  VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+jobs:
+  resume-release:
+    name: Resume release from checkpoint
+    runs-on: windows-latest
+    timeout-minutes: 180
+    environment: desktop-production-release
+    steps:
+      - name: Guard trusted main ref
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF -ne "refs/heads/main") {
+            throw "Production updater release resume can only run from refs/heads/main."
+          }
+
+      - name: Check out current trusted QA harness
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Validate resume checkpoint and candidate safety
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
+          CHECKPOINT_RUN_ID_INPUT: ${{ inputs.checkpoint_run_id }}
+          RESUME_FROM: ${{ inputs.resume_from }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          if ($env:CANDIDATE_RUN_ID -notmatch '^[0-9]+$') {
+            throw "candidate_run_id must be numeric."
+          }
+          $checkpointRunId = if ([string]::IsNullOrWhiteSpace($env:CHECKPOINT_RUN_ID_INPUT)) {
+            $env:CANDIDATE_RUN_ID
+          } else {
+            $env:CHECKPOINT_RUN_ID_INPUT
+          }
+          if ($checkpointRunId -notmatch '^[0-9]+$') {
+            throw "checkpoint_run_id must be numeric when provided."
+          }
+          "CHECKPOINT_RUN_ID=$checkpointRunId" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          $headers = @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            Accept = "application/vnd.github+json"
+            "X-GitHub-Api-Version" = "2022-11-28"
+          }
+          $repoApi = "https://api.github.com/repos/$env:GITHUB_REPOSITORY"
+          $candidateRun = Invoke-RestMethod -Headers $headers -Uri "$repoApi/actions/runs/$env:CANDIDATE_RUN_ID"
+          if ($candidateRun.head_branch -ne "main") {
+            throw "Candidate run was not built from main."
+          }
+          $candidateSha = [string]$candidateRun.head_sha
+          "CANDIDATE_SOURCE_SHA=$candidateSha" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          if ($candidateSha -ne $env:GITHUB_SHA) {
+            $compare = Invoke-RestMethod -Headers $headers -Uri "$repoApi/compare/$candidateSha...$env:GITHUB_SHA"
+            $allowedPatterns = @(
+              '^\.github/workflows/windows-updater-release[^/]*\.yml$',
+              '^scripts/qa/',
+              '^scripts/windows-updater-compatibility\.test\.mjs$',
+              '^scripts/windows-updater-release-resume\.test\.mjs$'
+            )
+            $unsafe = @()
+            foreach ($file in @($compare.files)) {
+              $allowed = $false
+              foreach ($pattern in $allowedPatterns) {
+                if ([string]$file.filename -match $pattern) {
+                  $allowed = $true
+                  break
+                }
+              }
+              if (-not $allowed) {
+                $unsafe += [string]$file.filename
+              }
+            }
+            if ($unsafe.Count -gt 0) {
+              throw "Candidate reuse blocked because product-affecting files changed after the candidate build: $($unsafe -join ', ')"
+            }
+          }
+
+          $checkpointJobs = Invoke-RestMethod -Headers $headers -Uri "$repoApi/actions/runs/$checkpointRunId/jobs?per_page=100"
+          function Assert-Checkpoint {
+            param([Parameter(Mandatory = $true)][string[]]$Names)
+            foreach ($job in @($checkpointJobs.jobs)) {
+              if ($job.conclusion -eq "success" -and $Names -contains [string]$job.name) {
+                return
+              }
+              foreach ($step in @($job.steps)) {
+                if ($step.conclusion -eq "success" -and $Names -contains [string]$step.name) {
+                  return
+                }
+              }
+            }
+            throw "Required successful checkpoint not found in run $checkpointRunId. Expected one of: $($Names -join '; ')"
+          }
+
+          switch ($env:RESUME_FROM) {
+            "clean-install" {
+              Assert-Checkpoint @("Build signed production candidate once", "Build and validate signed updater artifacts")
+            }
+            "updater-qa" {
+              Assert-Checkpoint @("Exact-byte clean install candidate QA", "Run exact-byte clean install QA")
+            }
+            "publish-versioned" {
+              Assert-Checkpoint @("Synthetic 0.2.0 updater compatibility QA", "Run synthetic updater compatibility QA")
+            }
+            "verify-versioned" {
+              Assert-Checkpoint @("Publish immutable versioned objects", "Publish versioned immutable objects")
+            }
+            "metadata" {
+              Assert-Checkpoint @("Verify immutable versioned objects", "Verify versioned immutable objects")
+            }
+            "promote-latest" {
+              Assert-Checkpoint @("Publish release metadata pointer", "Publish release metadata")
+            }
+            "verify-latest" {
+              Assert-Checkpoint @("Promote latest pointer last", "Promote public latest pointer")
+            }
+            "cleanup-candidate" {
+              Assert-Checkpoint @("Verify public latest pointer", "Verify public latest pointer")
+            }
+            default {
+              throw "Unsupported resume_from value: $env:RESUME_FROM"
+            }
+          }
+
+      - name: Download original signed candidate artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ env.RELEASE_CANDIDATE_ARTIFACT }}
+          path: .
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.candidate_run_id }}
+
+      - name: Validate downloaded candidate identity
+        shell: pwsh
+        env:
+          EXPECTED_VERSION: ${{ inputs.version }}
+          EXPECTED_RUN_ID: ${{ inputs.candidate_run_id }}
+        run: |
+          $contextPath = "artifacts/release-candidate/candidate-build-context.json"
+          $metadataPath = "release-output/release-metadata.json"
+          if (-not (Test-Path $contextPath) -or -not (Test-Path $metadataPath)) {
+            throw "Downloaded artifact is missing canonical candidate metadata."
+          }
+          $context = Get-Content $contextPath -Raw | ConvertFrom-Json
+          $metadata = Get-Content $metadataPath -Raw | ConvertFrom-Json
+          if ([string]$context.version -ne $env:EXPECTED_VERSION) {
+            throw "Candidate version does not match requested release version."
+          }
+          if ([string]$context.workflowRunId -ne $env:EXPECTED_RUN_ID) {
+            throw "Candidate workflow run identity does not match candidate_run_id."
+          }
+          if ([string]$context.sourceSha -ne $env:CANDIDATE_SOURCE_SHA) {
+            throw "Candidate source SHA does not match the original candidate run."
+          }
+          if ([string]$context.installer.sha256 -ne [string]$metadata.sha256) {
+            throw "Candidate installer SHA metadata is inconsistent."
+          }
+          "EXPECTED_INSTALLER_SHA256=$($metadata.sha256)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $candidateLatest = "https://xxownwxxajzrviuvvfiu.supabase.co/storage/v1/object/public/desktop-releases/candidate/$env:EXPECTED_VERSION/$env:EXPECTED_RUN_ID/latest.json"
+          "CANDIDATE_LATEST_URL=$candidateLatest" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Locate candidate installer
+        shell: pwsh
+        run: |
+          $installers = @(Get-ChildItem -Path "release-output" -Filter "*.exe" -File -Recurse)
+          if ($installers.Count -ne 1) {
+            throw "Expected exactly one candidate installer, found $($installers.Count)."
+          }
+          "INSTALLER_PATH=$($installers[0].FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Run exact-byte clean install QA
+        if: ${{ inputs.resume_from == 'clean-install' }}
+        shell: pwsh
+        env:
+          EXPECTED_PRODUCT_VERSION: ${{ inputs.version }}
+        run: |
+          & "./scripts/qa/windows-clean-install.ps1" `
+            -InstallerPath $env:INSTALLER_PATH `
+            -ExpectedSha256 $env:EXPECTED_INSTALLER_SHA256 `
+            -ExpectedProductVersion $env:EXPECTED_PRODUCT_VERSION `
+            -OutputDirectory "artifacts/windows-clean-install-qa" `
+            -AllowCleanup
+
+      - name: Republish candidate endpoint for updater QA
+        if: ${{ inputs.resume_from == 'clean-install' || inputs.resume_from == 'updater-qa' }}
+        run: node scripts/publish-updater-release.mjs
+        env:
+          RELEASE_PUBLISH_MODE: candidate
+          SUPABASE_RELEASE_STORAGE_KEY: ${{ secrets.SUPABASE_RELEASE_STORAGE_KEY }}
+
+      - name: Fetch synthetic updater source commit
+        if: ${{ inputs.resume_from == 'clean-install' || inputs.resume_from == 'updater-qa' }}
+        shell: pwsh
+        run: |
+          git fetch --no-tags --depth=1 origin $env:SYNTHETIC_0_2_0_SOURCE_REF
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to fetch the configured synthetic source commit."
+          }
+          git cat-file -e "$($env:SYNTHETIC_0_2_0_SOURCE_REF)^{commit}"
+          if ($LASTEXITCODE -ne 0) {
+            throw "The configured synthetic source commit is unavailable after fetch."
+          }
+          if ((git rev-parse HEAD) -ne $env:GITHUB_SHA) {
+            throw "Fetching the synthetic source changed the trusted QA harness checkout."
+          }
+
+      - name: Set up Node.js for updater QA
+        if: ${{ inputs.resume_from == 'clean-install' || inputs.resume_from == 'updater-qa' }}
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Set up Rust for updater QA
+        if: ${{ inputs.resume_from == 'clean-install' || inputs.resume_from == 'updater-qa' }}
+        uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Run synthetic updater compatibility QA
+        if: ${{ inputs.resume_from == 'clean-install' || inputs.resume_from == 'updater-qa' }}
+        shell: pwsh
+        env:
+          EXPECTED_PRODUCT_VERSION: ${{ inputs.version }}
+        run: |
+          & "./scripts/qa/windows-updater-compatibility.ps1" `
+            -CandidateInstallerPath $env:INSTALLER_PATH `
+            -CandidateLatestUrl $env:CANDIDATE_LATEST_URL `
+            -ExpectedCandidateSha256 $env:EXPECTED_INSTALLER_SHA256 `
+            -ExpectedProductVersion $env:EXPECTED_PRODUCT_VERSION `
+            -SyntheticSourceRef $env:SYNTHETIC_0_2_0_SOURCE_REF `
+            -OutputDirectory "artifacts/windows-updater-compatibility-qa" `
+            -AllowCleanup
+
+      - name: Publish versioned immutable objects
+        if: ${{ inputs.resume_from == 'clean-install' || inputs.resume_from == 'updater-qa' || inputs.resume_from == 'publish-versioned' }}
+        run: node scripts/publish-updater-release.mjs
+        env:
+          RELEASE_PUBLISH_MODE: versioned
+          SUPABASE_RELEASE_STORAGE_KEY: ${{ secrets.SUPABASE_RELEASE_STORAGE_KEY }}
+
+      - name: Verify versioned immutable objects
+        if: ${{ inputs.resume_from == 'clean-install' || inputs.resume_from == 'updater-qa' || inputs.resume_from == 'publish-versioned' || inputs.resume_from == 'verify-versioned' }}
+        run: node scripts/publish-updater-release.mjs
+        env:
+          RELEASE_PUBLISH_MODE: verify-versioned
+
+      - name: Publish release metadata
+        if: ${{ inputs.resume_from != 'promote-latest' && inputs.resume_from != 'verify-latest' && inputs.resume_from != 'cleanup-candidate' }}
+        run: node scripts/publish-updater-release.mjs
+        env:
+          RELEASE_PUBLISH_MODE: metadata
+          SUPABASE_RELEASE_STORAGE_KEY: ${{ secrets.SUPABASE_RELEASE_STORAGE_KEY }}
+
+      - name: Promote public latest pointer
+        if: ${{ inputs.resume_from != 'verify-latest' && inputs.resume_from != 'cleanup-candidate' }}
+        run: node scripts/publish-updater-release.mjs
+        env:
+          RELEASE_PUBLISH_MODE: latest
+          SUPABASE_RELEASE_STORAGE_KEY: ${{ secrets.SUPABASE_RELEASE_STORAGE_KEY }}
+
+      - name: Verify public latest pointer
+        if: ${{ inputs.resume_from != 'cleanup-candidate' }}
+        run: node scripts/publish-updater-release.mjs
+        env:
+          RELEASE_PUBLISH_MODE: verify-latest
+
+      - name: Cleanup candidate namespace
+        run: node scripts/publish-updater-release.mjs
+        env:
+          RELEASE_PUBLISH_MODE: cleanup-candidate
+          SUPABASE_RELEASE_STORAGE_KEY: ${{ secrets.SUPABASE_RELEASE_STORAGE_KEY }}
+
+      - name: Upload resume evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: updater-release-resume-evidence-${{ inputs.version }}-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            artifacts/**
+            release-output/SHA256SUMS.txt
+            release-output/release-metadata.json
+            release-output/latest.json
