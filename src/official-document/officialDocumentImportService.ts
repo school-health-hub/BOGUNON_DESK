@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 
-export type OfficialDocumentImportFormat = "pdf" | "hwpx";
+export type OfficialDocumentImportFormat = "pdf" | "hwpx" | "odt";
 
 export type OfficialDocumentImportResult = {
   readonly sourceName: string;
@@ -8,7 +8,7 @@ export type OfficialDocumentImportResult = {
   readonly text: string;
 };
 
-type InvokeCommand = (command: string) => Promise<unknown>;
+type InvokeCommand = (command: string, args?: Readonly<Record<string, unknown>>) => Promise<unknown>;
 
 const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> => (
   typeof value === "object" && value !== null
@@ -24,7 +24,7 @@ const normalizeImportResult = (value: unknown): OfficialDocumentImportResult | n
     && !sourceName.includes("\\");
   if (
     !hasSafeBasename
-    || (format !== "pdf" && format !== "hwpx")
+    || (format !== "pdf" && format !== "hwpx" && format !== "odt")
     || typeof text !== "string"
     || text.trim().length === 0
   ) {
@@ -38,6 +38,12 @@ export const pickAndExtractOfficialDocument = async (
 ): Promise<OfficialDocumentImportResult | null> => normalizeImportResult(
   await invokeCommand("pick_and_extract_official_document"),
 );
+
+export const extractOfficialDocumentPath = async (path: string, invokeCommand: InvokeCommand = invoke): Promise<OfficialDocumentImportResult> => {
+  const result = normalizeImportResult(await invokeCommand("extract_official_document_path", { path }));
+  if (result === null) throw new Error("공문 파일 결과를 읽지 못했습니다.");
+  return result;
+};
 
 export type OfficialDocumentImportWorkflowOptions = {
   readonly currentText: string;

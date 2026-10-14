@@ -12,9 +12,12 @@ type OfficialDocumentSourceFieldProps = {
   readonly value: string;
 };
 
-const formatLabel = (sourceName: string): string => (
-  sourceName.toLocaleLowerCase().endsWith(".hwpx") ? "HWPX" : "PDF"
-);
+const formatLabel = (sourceName: string): string => {
+  const lower = sourceName.toLocaleLowerCase();
+  if (lower.endsWith(".odt")) return "ODT";
+  if (lower.endsWith(".hwpx")) return "HWPX";
+  return "PDF";
+};
 
 export function OfficialDocumentSourceField({
   id,
@@ -31,7 +34,7 @@ export function OfficialDocumentSourceField({
       <div className="official-document-source-field__header">
         <label htmlFor={id}>공문 원문</label>
         <button type="button" disabled={isImporting} onClick={onImport}>
-          <FileUp size={14} /> {isImporting ? "가져오는 중…" : "PDF/HWPX 가져오기"}
+          <FileUp size={14} /> {isImporting ? "가져오는 중…" : "ODT/PDF/HWPX 가져오기"}
         </button>
       </div>
       {sourceName !== null && (

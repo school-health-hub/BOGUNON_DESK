@@ -18,7 +18,7 @@ export type RecordHelperImportBatch = {
   readonly failures: readonly RecordHelperImportFailure[];
 };
 
-type InvokeCommand = (command: string) => Promise<unknown>;
+type InvokeCommand = (command: string, args?: Readonly<Record<string, unknown>>) => Promise<unknown>;
 
 const MAX_ITEMS = 50;
 const MAX_REPORT_TEXT_BYTES = 2 * 1024 * 1024;
@@ -157,6 +157,13 @@ export const pickAndExtractRecordHelperReports = async (
   invokeCommand: InvokeCommand = invoke,
 ): Promise<RecordHelperImportBatch | null> => normalizeImportBatch(
   await invokeCommand("pick_and_extract_record_helper_reports"),
+);
+
+export const extractRecordHelperPaths = async (
+  paths: readonly string[],
+  invokeCommand: InvokeCommand = invoke,
+): Promise<RecordHelperImportBatch | null> => normalizeImportBatch(
+  await invokeCommand("extract_record_helper_paths", { paths }),
 );
 
 export const importRecordHelperReports = pickAndExtractRecordHelperReports;
