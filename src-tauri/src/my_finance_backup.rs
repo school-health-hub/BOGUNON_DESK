@@ -39,7 +39,7 @@ pub(crate) fn seal(plaintext: &[u8], password: &str) -> Result<Vec<u8>, &'static
     let salt: [u8; SALT_LEN] = rand::random();
     let nonce: [u8; NONCE_LEN] = rand::random();
     let key = Zeroizing::new(derive_key(password, &salt)?);
-    let cipher = Aes256Gcm::new_from_slice(&key).map_err(|_| "암호화를 초기화하지 못했습니다.")?;
+    let cipher = Aes256Gcm::new_from_slice(key.as_ref()).map_err(|_| "암호화를 초기화하지 못했습니다.")?;
     let mut header = Vec::with_capacity(HEADER_LEN);
     header.extend_from_slice(MAGIC);
     header.extend_from_slice(&salt);
@@ -66,7 +66,7 @@ pub(crate) fn open(envelope: &[u8], password: &str) -> Result<Vec<u8>, &'static 
     let nonce: [u8; NONCE_LEN] = envelope[8 + SALT_LEN..HEADER_LEN]
         .try_into().map_err(|_| "백업 형식 오류")?;
     let key = Zeroizing::new(derive_key(password, &salt)?);
-    let cipher = Aes256Gcm::new_from_slice(&key).map_err(|_| "복호화를 초기화하지 못했습니다.")?;
+    let cipher = Aes256Gcm::new_from_slice(key.as_ref()).map_err(|_| "복호화를 초기화하지 못했습니다.")?;
     let decrypted = cipher.decrypt(
         Nonce::from_slice(&nonce),
         Payload { msg: &envelope[HEADER_LEN..], aad: &envelope[..HEADER_LEN] },
