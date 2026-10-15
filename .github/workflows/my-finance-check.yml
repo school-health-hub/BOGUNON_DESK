@@ -1,0 +1,44 @@
+name: MY FINANCE verification
+
+on:
+  pull_request:
+    paths:
+      - "src/my-finance/**"
+      - "src-tauri/src/my_finance_*.rs"
+      - "src-tauri/src/lib.rs"
+      - "src-tauri/Cargo.toml"
+      - "src-tauri/Cargo.lock"
+      - ".github/workflows/my-finance-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm test -- --run src/my-finance/domain.test.ts
+      - run: npx tsc --noEmit
+      - run: npm run build
+
+  rust-windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: cargo test --manifest-path src-tauri/Cargo.toml my_finance
+      - run: cargo check --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc
