@@ -33,12 +33,31 @@ jobs:
           '@ | Set-Content -Path sqlcipher-probe/Cargo.toml
           @'
           fn main() {
-              let db = rusqlite::Connection::open_in_memory().expect("open");
-              db.pragma_update(None, "key", "probe-secret").expect("key");
-              let version: String = db.query_row("PRAGMA cipher_version", [], |row| row.get(0)).expect("SQLCipher must be enabled");
-              assert!(!version.is_empty(), "plain SQLite is forbidden");
-              db.execute_batch("CREATE TABLE probe(value TEXT); INSERT INTO probe VALUES ('encrypted');").expect("SQL works");
-              println!("SQLCipher version present");
+              let path = std::env::temp_dir().join(format!("bogunon-sqlcipher-probe-{}.db", std::process::id()));
+              let key = "probe-secret";
+              {
+                  let db = rusqlite::Connection::open(&path).expect("open");
+                  db.pragma_update(None, "key", key).expect("key");
+                  let version: String = db.query_row("PRAGMA cipher_version", [], |row| row.get(0)).expect("SQLCipher must be enabled");
+                  assert!(!version.is_empty(), "plain SQLite is forbidden");
+                  db.execute_batch("CREATE TABLE probe(value TEXT); INSERT INTO probe VALUES ('encrypted');").expect("SQL works");
+              }
+              let bytes = std::fs::read(&path).expect("read encrypted file");
+              assert!(!bytes.starts_with(b"SQLite format 3"), "database file is plaintext SQLite");
+              assert!(!bytes.windows(b"encrypted".len()).any(|window| window == b"encrypted"), "plaintext leaked to file");
+              {
+                  let wrong = rusqlite::Connection::open(&path).expect("open with wrong key");
+                  wrong.pragma_update(None, "key", "wrong-key").expect("set wrong key");
+                  assert!(wrong.query_row("SELECT value FROM probe", [], |row| row.get::<_, String>(0)).is_err(), "wrong key must fail");
+              }
+              {
+                  let db = rusqlite::Connection::open(&path).expect("reopen");
+                  db.pragma_update(None, "key", key).expect("key");
+                  let value: String = db.query_row("SELECT value FROM probe", [], |row| row.get(0)).expect("read");
+                  assert_eq!(value, "encrypted");
+              }
+              std::fs::remove_file(&path).expect("cleanup");
+              println!("SQLCipher file encryption, wrong-key rejection and reopen verified");
           }
           '@ | Set-Content -Path sqlcipher-probe/src/main.rs
       - name: Locate OpenSSL for bundled SQLCipher
