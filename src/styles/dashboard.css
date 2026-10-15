@@ -1457,6 +1457,10 @@
   line-height: 1.35;
 }
 
+.workspace-shell.is-view-mode .react-grid-item[data-widget-type="upcoming-schedule"] .workspace-data-notice {
+  max-width: 20rem;
+}
+
 .workspace-shell.is-view-mode .react-grid-item[data-widget-type="clock"] .date-card,
 .workspace-shell.is-view-mode .react-grid-item[data-widget-type="weather"] .weather-panel {
   padding-block: 8px;
