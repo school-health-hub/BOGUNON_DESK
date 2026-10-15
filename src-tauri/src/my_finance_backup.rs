@@ -6,6 +6,7 @@ use aes_gcm::{
     Aes256Gcm, KeyInit, Nonce,
 };
 use argon2::{Algorithm, Argon2, Params, Version};
+use zeroize::Zeroizing;
 
 const MAGIC: &[u8; 8] = b"BGFNBK01";
 const SALT_LEN: usize = 16;
@@ -37,7 +38,7 @@ pub(crate) fn seal(plaintext: &[u8], password: &str) -> Result<Vec<u8>, &'static
     }
     let salt: [u8; SALT_LEN] = rand::random();
     let nonce: [u8; NONCE_LEN] = rand::random();
-    let mut key = derive_key(password, &salt)?;
+    let key = Zeroizing::new(derive_key(password, &salt)?);
     let cipher = Aes256Gcm::new_from_slice(&key).map_err(|_| "암호화를 초기화하지 못했습니다.")?;
     let mut header = Vec::with_capacity(HEADER_LEN);
     header.extend_from_slice(MAGIC);
@@ -47,7 +48,6 @@ pub(crate) fn seal(plaintext: &[u8], password: &str) -> Result<Vec<u8>, &'static
         Nonce::from_slice(&nonce),
         Payload { msg: plaintext, aad: &header },
     );
-    key.fill(0);
     let encrypted = encrypted.map_err(|_| "백업 암호화에 실패했습니다.")?;
     header.extend_from_slice(&encrypted);
     Ok(header)
@@ -71,7 +71,6 @@ pub(crate) fn open(envelope: &[u8], password: &str) -> Result<Vec<u8>, &'static 
         Nonce::from_slice(&nonce),
         Payload { msg: &envelope[HEADER_LEN..], aad: &envelope[..HEADER_LEN] },
     );
-    key.fill(0);
     decrypted.map_err(|_| "비밀번호가 틀렸거나 백업 파일이 손상되었습니다.")
 }
 
