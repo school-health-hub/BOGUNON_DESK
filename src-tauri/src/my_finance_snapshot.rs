@@ -72,7 +72,7 @@ pub(crate) fn validate_snapshot(snapshot: &FinanceSnapshot) -> bool {
     if id.schema_version != SNAPSHOT_SCHEMA_VERSION
         || id.dataset_id.is_nil()
         || id.revision == 0
-        || id.revision > MAX_RECORDS as u64 * 100
+        || id.revision > MAX_RECORDS as u64
         || id.history.len() != id.revision as usize
         || id.history.iter().any(Uuid::is_nil)
         || snapshot.income.len() > MAX_RECORDS
