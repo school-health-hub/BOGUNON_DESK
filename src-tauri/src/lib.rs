@@ -28,6 +28,16 @@ const MAIN_WINDOW_LABEL: &str = "main";
 const DESKTOP_NAVIGATE_EVENT: &str = "desktop:navigate";
 const DESKTOP_NOTICE_EVENT: &str = "desktop:notice";
 const DESKTOP_FILE_DROP_EVENT: &str = "desktop:file-drop";
+pub(crate) const PRODUCTION_IDENTIFIER: &str = "kr.sungandi.schoolhealthdesk";
+pub(crate) const PRODUCTION_PRODUCT_NAME: &str = "BOGUNON DESK";
+pub(crate) const PRODUCTION_DEEP_LINK_SCHEME: &str = "school-health-desk";
+pub(crate) const DEVELOPMENT_IDENTIFIER: &str = "kr.sungandi.schoolhealthdesk.dev";
+pub(crate) const DEVELOPMENT_PRODUCT_NAME: &str = "BOGUNON DESK DEV";
+pub(crate) const DEVELOPMENT_DEEP_LINK_SCHEME: &str = "school-health-desk-dev";
+
+fn is_development_config(identifier: &str, product_name: Option<&str>) -> bool {
+    identifier == DEVELOPMENT_IDENTIFIER && matches!(product_name, Some(DEVELOPMENT_PRODUCT_NAME))
+}
 
 struct DesktopState {
     close_to_tray: AtomicBool,
@@ -306,7 +316,12 @@ pub fn run() {
         ])
         .setup(|app| {
             #[cfg(all(debug_assertions, windows))]
-            app.deep_link().register_all()?;
+            if is_development_config(
+                &app.config().identifier,
+                app.config().product_name.as_deref(),
+            ) {
+                app.deep_link().register(DEVELOPMENT_DEEP_LINK_SCHEME)?;
+            }
             create_tray(app.handle())?;
             let state = app.state::<launcher::WorkPortalAutoOpenState>();
             let _ = launcher::schedule_work_portal_auto_open(app.handle(), &state);
@@ -346,7 +361,10 @@ pub fn run() {
                         }
                     });
                 } else {
-                    let dropped_paths = paths.iter().filter_map(|path| path.to_str().map(str::to_owned)).collect::<Vec<_>>();
+                    let dropped_paths = paths
+                        .iter()
+                        .filter_map(|path| path.to_str().map(str::to_owned))
+                        .collect::<Vec<_>>();
                     if !dropped_paths.is_empty() {
                         let _ = window.emit(DESKTOP_FILE_DROP_EVENT, dropped_paths);
                     }
@@ -364,4 +382,25 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod development_config_tests {
+    use super::{is_development_config, DEVELOPMENT_IDENTIFIER, DEVELOPMENT_PRODUCT_NAME};
+
+    #[test]
+    fn permits_only_the_isolated_development_identity() {
+        assert!(is_development_config(
+            DEVELOPMENT_IDENTIFIER,
+            Some(DEVELOPMENT_PRODUCT_NAME),
+        ));
+        assert!(!is_development_config(
+            "kr.sungandi.schoolhealthdesk",
+            Some("BOGUNON DESK"),
+        ));
+        assert!(!is_development_config(
+            DEVELOPMENT_IDENTIFIER,
+            Some("BOGUNON DESK"),
+        ));
+    }
 }

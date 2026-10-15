@@ -58,8 +58,13 @@ VITE_SUPABASE_PUBLISHABLE_KEY=
 
 ```bash
 npm install
-npm run tauri dev
+npm run dev:desktop
 ```
+
+`dev:desktop`은 `BOGUNON DESK DEV`, `kr.sungandi.schoolhealthdesk.dev`,
+`school-health-desk-dev://auth/callback`을 사용하는 격리된 개발 앱을 실행합니다. Supabase Auth의
+Redirect URL allow-list에도 이 개발 callback을 별도로 등록해야 Google 로그인을 시험할 수 있습니다.
+기본 `npm run tauri dev`는 정식 프로토콜을 덮어쓰지 않으며 OAuth도 fail-closed 됩니다.
 
 브라우저 UI만 확인할 때는 `npm run dev`, 프로덕션 frontend 검증은 `npm run build`를 사용합니다.
 

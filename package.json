@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:desktop": "tauri dev --config src-tauri/tauri.dev.conf.json",
+    "dev:frontend": "vite --mode desktop-dev",
     "build": "tsc && vite build",
     "test": "vitest run",
     "preview": "vite preview",

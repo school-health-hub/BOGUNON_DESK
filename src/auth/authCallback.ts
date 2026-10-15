@@ -1,4 +1,13 @@
-export const AUTH_CALLBACK_URL = "school-health-desk://auth/callback";
+export const PRODUCTION_AUTH_CALLBACK_URL = "school-health-desk://auth/callback";
+export const DEVELOPMENT_AUTH_CALLBACK_URL = "school-health-desk-dev://auth/callback";
+
+export const resolveAuthCallbackUrl = (mode: string): string | null => {
+  if (mode === "production") return PRODUCTION_AUTH_CALLBACK_URL;
+  if (mode === "desktop-dev") return DEVELOPMENT_AUTH_CALLBACK_URL;
+  return null;
+};
+
+export const getAuthCallbackUrl = (): string | null => resolveAuthCallbackUrl(import.meta.env.MODE);
 
 const OAUTH_FLOW_ID_PATTERN = /^[a-zA-Z0-9_-]{8,64}$/;
 
@@ -10,20 +19,28 @@ export type AuthCallbackResult =
   | { readonly kind: "cancelled"; readonly message: string; readonly flowId: string | null }
   | { readonly kind: "invalid"; readonly message: string; readonly flowId: string | null };
 
-export const parseAuthCallback = (value: string): AuthCallbackResult | null => {
+export const parseAuthCallback = (
+  value: string,
+  expectedCallbackUrl: string | null = getAuthCallbackUrl(),
+): AuthCallbackResult | null => {
+  if (expectedCallbackUrl === null) return null;
   let url: URL;
+  let expected: URL;
   try {
     url = new URL(value);
+    expected = new URL(expectedCallbackUrl);
   } catch {
     return null;
   }
 
   if (
-    url.protocol !== "school-health-desk:"
-    || url.hostname !== "auth"
-    || url.pathname !== "/callback"
+    url.protocol !== expected.protocol
+    || url.hostname !== expected.hostname
+    || url.port !== expected.port
+    || url.pathname !== expected.pathname
     || url.username !== ""
     || url.password !== ""
+    || url.hash !== ""
   ) {
     return null;
   }

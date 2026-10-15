@@ -1,14 +1,16 @@
 use std::collections::BTreeMap;
 
 use super::{
-    parse_oauth_url, protect, read_entries, read_entries_for_update, unprotect, valid_storage_key,
-    write_entries,
+    expected_redirect_scheme, parse_oauth_url, protect, read_entries, read_entries_for_update,
+    unprotect, valid_storage_key, write_entries,
 };
+use crate::{DEVELOPMENT_DEEP_LINK_SCHEME, PRODUCTION_DEEP_LINK_SCHEME};
 
 #[test]
 fn accepts_supabase_oauth_authorize_url() {
     let result = parse_oauth_url(
         "https://xxownwxxajzrviuvvfiu.supabase.co/auth/v1/authorize?provider=google&redirect_to=school-health-desk%3A%2F%2Fauth%2Fcallback%3Fsb_flow_id%3D11111111111111111111111111111111",
+        PRODUCTION_DEEP_LINK_SCHEME,
     );
 
     assert!(result.is_ok());
@@ -16,24 +18,39 @@ fn accepts_supabase_oauth_authorize_url() {
 
 #[test]
 fn rejects_non_https_or_unexpected_oauth_paths() {
-    assert!(parse_oauth_url("http://xxownwxxajzrviuvvfiu.supabase.co/auth/v1/authorize").is_err());
-    assert!(parse_oauth_url("https://xxownwxxajzrviuvvfiu.supabase.co/rest/v1/data").is_err());
-    assert!(parse_oauth_url("https://example.com/auth/v1/authorize").is_err());
     assert!(parse_oauth_url(
-        "https://xxownwxxajzrviuvvfiu.supabase.co/auth/v1/authorize?provider=github&redirect_to=school-health-desk%3A%2F%2Fauth%2Fcallback%3Fsb_flow_id%3D11111111111111111111111111111111"
+        "http://xxownwxxajzrviuvvfiu.supabase.co/auth/v1/authorize",
+        PRODUCTION_DEEP_LINK_SCHEME
     )
     .is_err());
     assert!(parse_oauth_url(
-        "https://xxownwxxajzrviuvvfiu.supabase.co/auth/v1/authorize?provider=google&redirect_to=https%3A%2F%2Fexample.com%3Fsb_flow_id%3D11111111111111111111111111111111"
+        "https://xxownwxxajzrviuvvfiu.supabase.co/rest/v1/data",
+        PRODUCTION_DEEP_LINK_SCHEME
     )
     .is_err());
-    assert!(parse_oauth_url("javascript:alert(1)").is_err());
+    assert!(parse_oauth_url(
+        "https://example.com/auth/v1/authorize",
+        PRODUCTION_DEEP_LINK_SCHEME
+    )
+    .is_err());
+    assert!(parse_oauth_url(
+        "https://xxownwxxajzrviuvvfiu.supabase.co/auth/v1/authorize?provider=github&redirect_to=school-health-desk%3A%2F%2Fauth%2Fcallback%3Fsb_flow_id%3D11111111111111111111111111111111",
+        PRODUCTION_DEEP_LINK_SCHEME,
+    )
+    .is_err());
+    assert!(parse_oauth_url(
+        "https://xxownwxxajzrviuvvfiu.supabase.co/auth/v1/authorize?provider=google&redirect_to=https%3A%2F%2Fexample.com%3Fsb_flow_id%3D11111111111111111111111111111111",
+        PRODUCTION_DEEP_LINK_SCHEME,
+    )
+    .is_err());
+    assert!(parse_oauth_url("javascript:alert(1)", PRODUCTION_DEEP_LINK_SCHEME).is_err());
 }
 
 #[test]
 fn rejects_a_different_supabase_project_origin() {
     assert!(parse_oauth_url(
-        "https://another-project.supabase.co/auth/v1/authorize?provider=google&redirect_to=school-health-desk%3A%2F%2Fauth%2Fcallback%3Fsb_flow_id%3D11111111111111111111111111111111"
+        "https://another-project.supabase.co/auth/v1/authorize?provider=google&redirect_to=school-health-desk%3A%2F%2Fauth%2Fcallback%3Fsb_flow_id%3D11111111111111111111111111111111",
+        PRODUCTION_DEEP_LINK_SCHEME,
     )
     .is_err());
 }
@@ -41,13 +58,48 @@ fn rejects_a_different_supabase_project_origin() {
 #[test]
 fn rejects_oauth_urls_without_a_valid_flow_identifier() {
     assert!(parse_oauth_url(
-        "https://xxownwxxajzrviuvvfiu.supabase.co/auth/v1/authorize?provider=google&redirect_to=school-health-desk%3A%2F%2Fauth%2Fcallback"
+        "https://xxownwxxajzrviuvvfiu.supabase.co/auth/v1/authorize?provider=google&redirect_to=school-health-desk%3A%2F%2Fauth%2Fcallback",
+        PRODUCTION_DEEP_LINK_SCHEME,
     )
     .is_err());
     assert!(parse_oauth_url(
-        "https://xxownwxxajzrviuvvfiu.supabase.co/auth/v1/authorize?provider=google&redirect_to=school-health-desk%3A%2F%2Fauth%2Fcallback%3Fsb_flow_id%3Dshort"
+        "https://xxownwxxajzrviuvvfiu.supabase.co/auth/v1/authorize?provider=google&redirect_to=school-health-desk%3A%2F%2Fauth%2Fcallback%3Fsb_flow_id%3Dshort",
+        PRODUCTION_DEEP_LINK_SCHEME,
     )
     .is_err());
+}
+
+#[test]
+fn rejects_redirects_with_an_unexpected_port() {
+    assert!(parse_oauth_url(
+        "https://xxownwxxajzrviuvvfiu.supabase.co/auth/v1/authorize?provider=google&redirect_to=school-health-desk%3A%2F%2Fauth%3A123%2Fcallback%3Fsb_flow_id%3D11111111111111111111111111111111",
+        PRODUCTION_DEEP_LINK_SCHEME,
+    )
+    .is_err());
+}
+
+#[test]
+fn isolates_production_and_development_redirect_schemes() {
+    let production = "https://xxownwxxajzrviuvvfiu.supabase.co/auth/v1/authorize?provider=google&redirect_to=school-health-desk%3A%2F%2Fauth%2Fcallback%3Fsb_flow_id%3D11111111111111111111111111111111";
+    let development = "https://xxownwxxajzrviuvvfiu.supabase.co/auth/v1/authorize?provider=google&redirect_to=school-health-desk-dev%3A%2F%2Fauth%2Fcallback%3Fsb_flow_id%3D11111111111111111111111111111111";
+
+    assert!(parse_oauth_url(production, PRODUCTION_DEEP_LINK_SCHEME).is_ok());
+    assert!(parse_oauth_url(development, DEVELOPMENT_DEEP_LINK_SCHEME).is_ok());
+    assert!(parse_oauth_url(production, DEVELOPMENT_DEEP_LINK_SCHEME).is_err());
+    assert!(parse_oauth_url(development, PRODUCTION_DEEP_LINK_SCHEME).is_err());
+
+    assert_eq!(
+        expected_redirect_scheme("kr.sungandi.schoolhealthdesk", Some("BOGUNON DESK")),
+        Some(PRODUCTION_DEEP_LINK_SCHEME),
+    );
+    assert_eq!(
+        expected_redirect_scheme("kr.sungandi.schoolhealthdesk.dev", Some("BOGUNON DESK DEV"),),
+        Some(DEVELOPMENT_DEEP_LINK_SCHEME),
+    );
+    assert_eq!(
+        expected_redirect_scheme("kr.sungandi.schoolhealthdesk", Some("BOGUNON DESK DEV")),
+        None,
+    );
 }
 
 #[test]

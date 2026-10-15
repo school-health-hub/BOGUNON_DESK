@@ -62,6 +62,7 @@ const loadService = async () => (await import("./authService")).authService;
 describe("authService", () => {
   beforeEach(() => {
     vi.resetModules();
+    vi.stubEnv("MODE", "desktop-dev");
     vi.stubEnv("VITE_SUPABASE_URL", productionOrigin);
     vi.stubEnv("VITE_SUPABASE_PUBLISHABLE_KEY", "sb_publishable_test");
     mocks.exchangeCodeForSession.mockReset();
@@ -108,7 +109,7 @@ describe("authService", () => {
       provider: "google",
       options: {
         queryParams: { prompt: "select_account" },
-        redirectTo: "school-health-desk://auth/callback",
+        redirectTo: "school-health-desk-dev://auth/callback",
         skipBrowserRedirect: true,
       },
     });
@@ -126,7 +127,7 @@ describe("authService", () => {
     await service.signInWithGoogle();
 
     mocks.openHandler?.([
-      `school-health-desk://auth/callback?error=access_denied&sb_flow_id=${firstFlowId}`,
+      `school-health-desk-dev://auth/callback?error=access_denied&sb_flow_id=${firstFlowId}`,
     ]);
     expect(service.getState()).toMatchObject({
       status: "signedOut",
@@ -144,7 +145,7 @@ describe("authService", () => {
     await service.signInWithGoogle();
 
     mocks.openHandler?.([
-      `school-health-desk://auth/callback?code=one-time-code&sb_flow_id=${firstFlowId}`,
+      `school-health-desk-dev://auth/callback?code=one-time-code&sb_flow_id=${firstFlowId}`,
     ]);
     await vi.waitFor(() => expect(service.getState().status).toBe("signedIn"));
     expect(mocks.exchangeCodeForSession).toHaveBeenCalledWith("one-time-code", { flowId: firstFlowId });
@@ -157,8 +158,8 @@ describe("authService", () => {
     await service.initialize();
 
     mocks.openHandler?.([
-      `school-health-desk://auth/callback?error=access_denied&sb_flow_id=${firstFlowId}`,
-      `school-health-desk://auth/callback?code=stale-code&sb_flow_id=${firstFlowId}`,
+      `school-health-desk-dev://auth/callback?error=access_denied&sb_flow_id=${firstFlowId}`,
+      `school-health-desk-dev://auth/callback?code=stale-code&sb_flow_id=${firstFlowId}`,
     ]);
 
     expect(service.getState()).toMatchObject({ status: "signedIn", user: { id: "user-1" }, notice: null });
@@ -174,7 +175,7 @@ describe("authService", () => {
     await service.signInWithGoogle();
 
     mocks.openHandler?.([
-      `school-health-desk://auth/callback?code=wrong-code&sb_flow_id=${secondFlowId}`,
+      `school-health-desk-dev://auth/callback?code=wrong-code&sb_flow_id=${secondFlowId}`,
     ]);
 
     expect(service.getState().status).toBe("signingIn");
@@ -189,7 +190,7 @@ describe("authService", () => {
     mocks.exchangeCodeForSession.mockResolvedValueOnce({ data: { user }, error: null });
     const service = await loadService();
     await service.signInWithGoogle();
-    const callback = `school-health-desk://auth/callback?code=one-time-code&sb_flow_id=${firstFlowId}`;
+    const callback = `school-health-desk-dev://auth/callback?code=one-time-code&sb_flow_id=${firstFlowId}`;
 
     mocks.openHandler?.([callback, callback]);
     await vi.waitFor(() => expect(service.getState().status).toBe("signedIn"));
@@ -243,7 +244,7 @@ describe("authService", () => {
 
     await service.signInWithGoogle();
     mocks.openHandler?.([
-      `school-health-desk://auth/callback?code=first-code&sb_flow_id=${firstFlowId}`,
+      `school-health-desk-dev://auth/callback?code=first-code&sb_flow_id=${firstFlowId}`,
     ]);
     await vi.waitFor(() => expect(service.getState().status).toBe("signedIn"));
 
@@ -252,7 +253,7 @@ describe("authService", () => {
 
     await service.signInWithGoogle();
     mocks.openHandler?.([
-      `school-health-desk://auth/callback?code=second-code&sb_flow_id=${secondFlowId}`,
+      `school-health-desk-dev://auth/callback?code=second-code&sb_flow_id=${secondFlowId}`,
     ]);
     await vi.waitFor(() => expect(service.getState().status).toBe("signedIn"));
 
@@ -261,7 +262,7 @@ describe("authService", () => {
       provider: "google",
       options: {
         queryParams: { prompt: "select_account" },
-        redirectTo: "school-health-desk://auth/callback",
+        redirectTo: "school-health-desk-dev://auth/callback",
         skipBrowserRedirect: true,
       },
     });

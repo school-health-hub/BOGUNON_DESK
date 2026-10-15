@@ -1,0 +1,27 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "BOGUNON DESK DEV",
+  "identifier": "kr.sungandi.schoolhealthdesk.dev",
+  "build": {
+    "beforeDevCommand": "npm run dev:frontend"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "BOGUNON DESK DEV",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 980,
+        "minHeight": 700,
+        "center": true
+      }
+    ]
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["school-health-desk-dev"]
+      }
+    }
+  }
+}

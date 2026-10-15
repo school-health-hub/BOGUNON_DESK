@@ -9,6 +9,11 @@ use serde::Deserialize;
 use tauri::{AppHandle, Manager, State, Url};
 use tauri_plugin_opener::OpenerExt;
 
+use crate::{
+    DEVELOPMENT_DEEP_LINK_SCHEME, DEVELOPMENT_IDENTIFIER, DEVELOPMENT_PRODUCT_NAME,
+    PRODUCTION_DEEP_LINK_SCHEME, PRODUCTION_IDENTIFIER, PRODUCTION_PRODUCT_NAME,
+};
+
 const SESSION_FILE: &str = "auth-session.bin";
 const PRODUCTION_SUPABASE_CONFIG: &str = include_str!("../../config/production-supabase.json");
 
@@ -74,7 +79,17 @@ fn valid_oauth_flow_id(value: &str) -> bool {
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'))
 }
 
-fn valid_redirect_target(value: &str) -> bool {
+fn expected_redirect_scheme(identifier: &str, product_name: Option<&str>) -> Option<&'static str> {
+    match (identifier, product_name) {
+        (PRODUCTION_IDENTIFIER, Some(PRODUCTION_PRODUCT_NAME)) => Some(PRODUCTION_DEEP_LINK_SCHEME),
+        (DEVELOPMENT_IDENTIFIER, Some(DEVELOPMENT_PRODUCT_NAME)) => {
+            Some(DEVELOPMENT_DEEP_LINK_SCHEME)
+        }
+        _ => None,
+    }
+}
+
+fn valid_redirect_target(value: &str, expected_scheme: &str) -> bool {
     let Ok(url) = Url::parse(value) else {
         return false;
     };
@@ -82,8 +97,9 @@ fn valid_redirect_target(value: &str) -> bool {
     let has_valid_flow_id = query
         .next()
         .is_some_and(|(key, value)| key == "sb_flow_id" && valid_oauth_flow_id(&value));
-    url.scheme() == "school-health-desk"
+    url.scheme() == expected_scheme
         && url.host_str() == Some("auth")
+        && url.port().is_none()
         && url.path() == "/callback"
         && url.username().is_empty()
         && url.password().is_none()
@@ -92,7 +108,7 @@ fn valid_redirect_target(value: &str) -> bool {
         && query.next().is_none()
 }
 
-fn parse_oauth_url(value: &str) -> Result<Url, AuthStorageError> {
+fn parse_oauth_url(value: &str, expected_scheme: &str) -> Result<Url, AuthStorageError> {
     let url = Url::parse(value).map_err(|_| AuthStorageError::InvalidOAuthUrl)?;
     let production_config: ProductionSupabaseConfig =
         serde_json::from_str(PRODUCTION_SUPABASE_CONFIG)
@@ -105,7 +121,7 @@ fn parse_oauth_url(value: &str) -> Result<Url, AuthStorageError> {
         .any(|(key, value)| key == "provider" && value == "google");
     let has_expected_redirect = url
         .query_pairs()
-        .any(|(key, value)| key == "redirect_to" && valid_redirect_target(&value));
+        .any(|(key, value)| key == "redirect_to" && valid_redirect_target(&value, expected_scheme));
     if url.scheme() != "https"
         || !has_expected_origin
         || url.path() != "/auth/v1/authorize"
@@ -175,7 +191,12 @@ fn write_entries(path: &Path, entries: &BTreeMap<String, String>) -> Result<(), 
 
 #[tauri::command]
 pub fn open_auth_url(app: AppHandle, url: String) -> Result<(), String> {
-    let target = parse_oauth_url(&url).map_err(|error| error.to_string())?;
+    let expected_scheme = expected_redirect_scheme(
+        &app.config().identifier,
+        app.config().product_name.as_deref(),
+    )
+    .ok_or_else(|| AuthStorageError::InvalidOAuthUrl.to_string())?;
+    let target = parse_oauth_url(&url, expected_scheme).map_err(|error| error.to_string())?;
     app.opener()
         .open_url(target.as_str(), None::<&str>)
         .map_err(|_| "Windows 기본 브라우저를 열지 못했습니다.".to_owned())

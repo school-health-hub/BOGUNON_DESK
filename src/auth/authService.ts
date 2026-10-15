@@ -3,8 +3,8 @@ import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link";
 import type { Session, User } from "@supabase/supabase-js";
 import { isDesktopRuntime } from "../desktop/actions";
 import {
-  AUTH_CALLBACK_URL,
   fingerprintAuthCallback,
+  getAuthCallbackUrl,
   parseAuthCallback,
   parseOAuthFlowId,
 } from "./authCallback";
@@ -72,6 +72,12 @@ class AuthService {
       return;
     }
 
+    const authCallbackUrl = getAuthCallbackUrl();
+    if (authCallbackUrl === null) {
+      this.fail(null, "개발 앱은 npm run dev:desktop 명령으로 실행해 주세요.");
+      return;
+    }
+
     this.activeOAuthFlowId = null;
     this.update({ status: "signingIn", user: null, notice: null });
     try {
@@ -79,7 +85,7 @@ class AuthService {
         provider: "google",
         options: {
           queryParams: { prompt: "select_account" },
-          redirectTo: AUTH_CALLBACK_URL,
+          redirectTo: authCallbackUrl,
           skipBrowserRedirect: true,
         },
       });
