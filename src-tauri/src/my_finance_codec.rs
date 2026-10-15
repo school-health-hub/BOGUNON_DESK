@@ -1,6 +1,7 @@
 //! Serialized snapshot codec. The only valid payload for the encrypted backup
 //! envelope is a validated FinanceSnapshot. No filesystem access here.
 use super::{my_finance_backup, my_finance_snapshot::{self, FinanceSnapshot, RestoreDecision, SnapshotIdentity}};
+use zeroize::Zeroizing;
 
 pub(crate) fn export_snapshot(
     snapshot: &FinanceSnapshot,
@@ -9,8 +10,8 @@ pub(crate) fn export_snapshot(
     if !my_finance_snapshot::validate_snapshot(snapshot) {
         return Err("백업할 금융 데이터가 올바르지 않습니다.");
     }
-    let payload = serde_json::to_vec(snapshot)
-        .map_err(|_| "백업 데이터를 직렬화하지 못했습니다.")?;
+    let payload = Zeroizing::new(serde_json::to_vec(snapshot)
+        .map_err(|_| "백업 데이터를 직렬화하지 못했습니다.")?);
     my_finance_backup::seal(&payload, password)
 }
 
@@ -21,7 +22,7 @@ pub(crate) fn inspect_restore(
     password: &str,
     current: Option<&SnapshotIdentity>,
 ) -> Result<(FinanceSnapshot, RestoreDecision), &'static str> {
-    let plaintext = my_finance_backup::open(encrypted, password)?;
+    let plaintext = Zeroizing::new(my_finance_backup::open(encrypted, password)?);
     let snapshot: FinanceSnapshot = serde_json::from_slice(&plaintext)
         .map_err(|_| "백업 데이터 구조가 올바르지 않습니다.")?;
     let decision = my_finance_snapshot::decide_restore(current, &snapshot);
