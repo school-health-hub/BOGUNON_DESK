@@ -369,6 +369,7 @@ type DeviceSectionProps = {
   readonly onWorkspaceNotificationReasonChange: (reason: keyof DeviceSettings["workspaceNotificationReasons"], enabled: boolean) => void;
   readonly onTestNotification: () => void;
   readonly onOpenOnboarding: () => void;
+  readonly updaterEnabled: boolean;
   readonly updaterState: DesktopUpdaterState;
   readonly onManualUpdateCheck: () => void;
 };
@@ -505,10 +506,10 @@ export function DeviceSettingsSection(props: DeviceSectionProps) {
         <div>
           <strong>BOGUNON DESK</strong>
           <span>현재 버전 {props.appVersion ?? "확인 중"} · 공유 베타</span>
-          <small>{updaterStatusLabel(props.updaterState)}</small>
+          <small>{props.updaterEnabled ? updaterStatusLabel(props.updaterState) : "개발 환경에서는 업데이트가 비활성화됩니다."}</small>
         </div>
         <div className="desktop-beta-info__actions">
-          <button className="desktop-setting-row__action" type="button" disabled={props.updaterState.status === "checking"} onClick={props.onManualUpdateCheck}>업데이트 확인</button>
+          <button className="desktop-setting-row__action" type="button" disabled={!props.updaterEnabled || props.updaterState.status === "checking"} onClick={props.onManualUpdateCheck}>업데이트 확인</button>
           <button className="desktop-setting-row__action" type="button" onClick={props.onOpenOnboarding}>처음 사용 안내 다시 보기</button>
         </div>
       </div>

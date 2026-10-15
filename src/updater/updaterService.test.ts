@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   createUpdaterService,
+  createUpdaterServiceForMode,
+  resolveUpdaterEnabled,
   UPDATER_CHECK_ERROR,
   UPDATER_INTEGRITY_ERROR,
 } from "./updaterService";
@@ -17,11 +19,66 @@ const nativeUpdate = (overrides: Partial<NativeUpdate> = {}): NativeUpdate => ({
 });
 
 const adapter = (update: NativeUpdate | null): NativeUpdaterAdapter => ({
-  isAvailable: () => true,
+  isAvailable: vi.fn(() => true),
   check: vi.fn().mockResolvedValue(update),
 });
 
 describe("updater service", () => {
+  it.each(["desktop-dev", "test", "unexpected"])(
+    "does not call the native updater outside production mode (%s)",
+    async (mode) => {
+      const update = nativeUpdate();
+      const native = adapter(update);
+
+      const resolveCapability = vi.fn().mockResolvedValue(true);
+
+      const result = await createUpdaterServiceForMode(mode, native, resolveCapability).check();
+
+      expect(result).toEqual({ status: "unavailable" });
+      expect(native.isAvailable).not.toHaveBeenCalled();
+      expect(native.check).not.toHaveBeenCalled();
+      expect(update.downloadAndInstall).not.toHaveBeenCalled();
+      expect(resolveCapability).not.toHaveBeenCalled();
+    },
+  );
+
+  it("keeps native update checks enabled in production mode", async () => {
+    const native = adapter(null);
+
+    const result = await createUpdaterServiceForMode(
+      "production",
+      native,
+      vi.fn().mockResolvedValue(true),
+    ).check();
+
+    expect(result).toEqual({ status: "upToDate" });
+    expect(native.check).toHaveBeenCalledOnce();
+  });
+
+  it("fails closed when a production-mode frontend runs under a non-production identity", async () => {
+    const update = nativeUpdate();
+    const native = adapter(update);
+    const resolveCapability = vi.fn().mockResolvedValue(false);
+
+    const result = await createUpdaterServiceForMode(
+      "production",
+      native,
+      resolveCapability,
+    ).check();
+
+    expect(result).toEqual({ status: "unavailable" });
+    expect(resolveCapability).toHaveBeenCalledOnce();
+    expect(native.check).not.toHaveBeenCalled();
+    expect(update.downloadAndInstall).not.toHaveBeenCalled();
+  });
+
+  it("does not query native capability for a development frontend", async () => {
+    const resolveCapability = vi.fn().mockResolvedValue(true);
+
+    expect(await resolveUpdaterEnabled("desktop-dev", resolveCapability)).toBe(false);
+    expect(resolveCapability).not.toHaveBeenCalled();
+  });
+
   it("returns up to date when the native check finds no update", async () => {
     const native = adapter(null);
 

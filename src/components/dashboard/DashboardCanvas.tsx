@@ -152,9 +152,10 @@ export function DashboardCanvas() {
 
   useEffect(() => { void refreshWorkFolders(); }, []);
   useEffect(() => {
+    if (!updater.enabled) return undefined;
     const timeoutId = window.setTimeout(() => void updater.startupCheck(), 0);
     return () => window.clearTimeout(timeoutId);
-  }, [updater.startupCheck]);
+  }, [updater.enabled, updater.startupCheck]);
   useEffect(() => {
     if (isWorkFoldersOpen) void refreshWorkFolders();
   }, [isWorkFoldersOpen]);
@@ -430,12 +431,14 @@ export function DashboardCanvas() {
         aria-label="보건실 업무 위젯 작업 공간"
         ref={ref}
       >
-        <DesktopUpdateBanner
-          state={updater.state}
-          onDismiss={() => void updater.dismissAvailable()}
-          onRetry={() => void updater.retry()}
-          onUpdate={updater.requestInstall}
-        />
+        {updater.enabled && (
+          <DesktopUpdateBanner
+            state={updater.state}
+            onDismiss={() => void updater.dismissAvailable()}
+            onRetry={() => void updater.retry()}
+            onUpdate={updater.requestInstall}
+          />
+        )}
         {visibleWidgets.length === 0 ? (
           <section className="workspace-empty">
             <Sparkles size={22} />
@@ -519,7 +522,7 @@ export function DashboardCanvas() {
           onOpenWorkspaceEditor={openWorkspaceEditor}
         />
       )}
-      {updater.state.status === "confirming" && (
+      {updater.enabled && updater.state.status === "confirming" && (
         <DesktopUpdateConfirmationDialog
           version={updater.state.metadata.version}
           onCancel={updater.cancelInstall}

@@ -1,4 +1,4 @@
-import { isTauri } from "@tauri-apps/api/core";
+import { invoke, isTauri } from "@tauri-apps/api/core";
 import { check } from "@tauri-apps/plugin-updater";
 import type {
   NativeUpdate,
@@ -82,4 +82,30 @@ export const createUpdaterService = (
   },
 });
 
-export const updaterService = createUpdaterService();
+export const isProductionUpdaterMode = (mode: string): boolean => mode === "production";
+
+type UpdaterCapabilityResolver = () => Promise<boolean>;
+
+const resolveNativeUpdaterCapability: UpdaterCapabilityResolver = async () => {
+  if (!isTauri()) return false;
+  try {
+    return await invoke<boolean>("get_updater_enabled");
+  } catch {
+    return false;
+  }
+};
+
+export const resolveUpdaterEnabled = async (
+  mode: string,
+  resolveCapability: UpdaterCapabilityResolver = resolveNativeUpdaterCapability,
+): Promise<boolean> => isProductionUpdaterMode(mode) && resolveCapability();
+
+export const createUpdaterServiceForMode = (
+  mode: string,
+  adapter: NativeUpdaterAdapter = nativeUpdaterAdapter,
+  resolveCapability: UpdaterCapabilityResolver = resolveNativeUpdaterCapability,
+): UpdaterService => ({
+  check: async () => await resolveUpdaterEnabled(mode, resolveCapability)
+    ? createUpdaterService(adapter).check()
+    : { status: "unavailable" },
+});

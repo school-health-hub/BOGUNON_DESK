@@ -471,6 +471,7 @@ export function DesktopSettingsPanel({
               onWorkspaceNotificationReasonChange={(reason, enabled) => void updateWorkspaceNotificationReason(reason, enabled)}
               onTestNotification={() => void sendTestNotification()}
               appVersion={appVersion}
+              updaterEnabled={updater.enabled}
               updaterState={updater.state}
               onManualUpdateCheck={() => void updater.manualCheck()}
               onOpenOnboarding={onOpenOnboarding}

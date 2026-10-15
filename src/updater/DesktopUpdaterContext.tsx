@@ -1,10 +1,11 @@
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from "react";
 import { createUpdaterController, type UpdaterController } from "./updaterController";
 import { updaterCheckStorage } from "./updaterCheckStorage";
-import { updaterService } from "./updaterService";
+import { createUpdaterServiceForMode, resolveUpdaterEnabled } from "./updaterService";
 import type { DesktopUpdaterState } from "./updaterTypes";
 
 type DesktopUpdaterContextValue = {
+  readonly enabled: boolean;
   readonly state: DesktopUpdaterState;
   readonly startupCheck: () => Promise<void>;
   readonly manualCheck: () => Promise<void>;
@@ -17,20 +18,52 @@ type DesktopUpdaterContextValue = {
 
 const DesktopUpdaterContext = createContext<DesktopUpdaterContextValue | null>(null);
 
-const createDefaultController = (): UpdaterController => createUpdaterController({
-  service: updaterService,
-  storage: updaterCheckStorage,
-  now: Date.now,
-});
+const createDefaultRuntime = (
+  mode: string,
+  resolveCapability?: () => Promise<boolean>,
+): {
+  readonly controller: UpdaterController;
+  readonly enabled: Promise<boolean>;
+} => {
+  const enabled = resolveUpdaterEnabled(mode, resolveCapability);
+  return {
+    controller: createUpdaterController({
+      service: createUpdaterServiceForMode(mode, undefined, () => enabled),
+      storage: updaterCheckStorage,
+      now: Date.now,
+    }),
+    enabled,
+  };
+};
 
-export function DesktopUpdaterProvider({ children }: { readonly children: ReactNode }) {
-  const [controller] = useState(createDefaultController);
+type DesktopUpdaterProviderProps = {
+  readonly children: ReactNode;
+  readonly mode?: string;
+  readonly resolveCapability?: () => Promise<boolean>;
+};
+
+export function DesktopUpdaterProvider({
+  children,
+  mode = import.meta.env.MODE,
+  resolveCapability,
+}: DesktopUpdaterProviderProps) {
+  const [runtime] = useState(() => createDefaultRuntime(mode, resolveCapability));
+  const { controller } = runtime;
+  const [enabled, setEnabled] = useState(false);
   const [state, setState] = useState(controller.getState);
 
   useEffect(() => controller.subscribe(() => setState(controller.getState())), [controller]);
   useEffect(() => () => controller.cancelPending(), [controller]);
+  useEffect(() => {
+    let mounted = true;
+    void runtime.enabled.then((value) => {
+      if (mounted) setEnabled(value);
+    });
+    return () => { mounted = false; };
+  }, [runtime]);
 
   const value = useMemo<DesktopUpdaterContextValue>(() => ({
+    enabled,
     state,
     startupCheck: controller.startupCheck,
     manualCheck: controller.manualCheck,
@@ -39,7 +72,7 @@ export function DesktopUpdaterProvider({ children }: { readonly children: ReactN
     confirmInstall: controller.confirmInstall,
     dismissAvailable: controller.dismissAvailable,
     retry: controller.retry,
-  }), [controller, state]);
+  }), [controller, enabled, state]);
 
   return <DesktopUpdaterContext.Provider value={value}>{children}</DesktopUpdaterContext.Provider>;
 }

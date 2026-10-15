@@ -34,6 +34,7 @@ const renderDeviceSettings = (state: DesktopUpdaterState) => renderToStaticMarku
     isEditingWorkPortal={false}
     isLoadingAutostart={false}
     isSaving={false}
+    updaterEnabled
     updaterState={state}
     workFolderFavorites={[]}
     workPortalDraft=""

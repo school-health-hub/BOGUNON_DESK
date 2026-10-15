@@ -39,6 +39,25 @@ fn is_development_config(identifier: &str, product_name: Option<&str>) -> bool {
     identifier == DEVELOPMENT_IDENTIFIER && matches!(product_name, Some(DEVELOPMENT_PRODUCT_NAME))
 }
 
+fn should_register_production_updater(
+    identifier: &str,
+    product_name: Option<&str>,
+    debug_assertions: bool,
+) -> bool {
+    !debug_assertions
+        && identifier == PRODUCTION_IDENTIFIER
+        && matches!(product_name, Some(PRODUCTION_PRODUCT_NAME))
+}
+
+#[tauri::command]
+fn get_updater_enabled(app: AppHandle) -> bool {
+    should_register_production_updater(
+        &app.config().identifier,
+        app.config().product_name.as_deref(),
+        cfg!(debug_assertions),
+    )
+}
+
 struct DesktopState {
     close_to_tray: AtomicBool,
     quitting: AtomicBool,
@@ -241,13 +260,24 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let context = tauri::generate_context!();
+    #[cfg(desktop)]
+    let register_production_updater = should_register_production_updater(
+        &context.config().identifier,
+        context.config().product_name.as_deref(),
+        cfg!(debug_assertions),
+    );
     let builder = tauri::Builder::default();
     #[cfg(desktop)]
     let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
         let _ = show_main_window(app);
     }));
     #[cfg(desktop)]
-    let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    let builder = if register_production_updater {
+        builder.plugin(tauri_plugin_updater::Builder::new().build())
+    } else {
+        builder
+    };
 
     builder
         .manage(DesktopState::default())
@@ -291,6 +321,7 @@ pub fn run() {
             get_autostart_enabled,
             set_autostart_enabled,
             set_close_to_tray,
+            get_updater_enabled,
             notifications::get_notification_settings,
             notifications::set_workspace_notifications_enabled,
             notifications::set_workspace_notification_reasons,
@@ -380,13 +411,16 @@ pub fn run() {
                 }
             }
         })
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("error while running tauri application");
 }
 
 #[cfg(test)]
 mod development_config_tests {
-    use super::{is_development_config, DEVELOPMENT_IDENTIFIER, DEVELOPMENT_PRODUCT_NAME};
+    use super::{
+        is_development_config, should_register_production_updater, DEVELOPMENT_IDENTIFIER,
+        DEVELOPMENT_PRODUCT_NAME, PRODUCTION_IDENTIFIER, PRODUCTION_PRODUCT_NAME,
+    };
 
     #[test]
     fn permits_only_the_isolated_development_identity() {
@@ -401,6 +435,35 @@ mod development_config_tests {
         assert!(!is_development_config(
             DEVELOPMENT_IDENTIFIER,
             Some("BOGUNON DESK"),
+        ));
+    }
+
+    #[test]
+    fn registers_updater_only_for_the_production_release_identity() {
+        assert!(should_register_production_updater(
+            PRODUCTION_IDENTIFIER,
+            Some(PRODUCTION_PRODUCT_NAME),
+            false,
+        ));
+        assert!(!should_register_production_updater(
+            PRODUCTION_IDENTIFIER,
+            Some(PRODUCTION_PRODUCT_NAME),
+            true,
+        ));
+        assert!(!should_register_production_updater(
+            DEVELOPMENT_IDENTIFIER,
+            Some(DEVELOPMENT_PRODUCT_NAME),
+            false,
+        ));
+        assert!(!should_register_production_updater(
+            "kr.sungandi.schoolhealthdesk.unexpected",
+            Some("BOGUNON DESK"),
+            false,
+        ));
+        assert!(!should_register_production_updater(
+            PRODUCTION_IDENTIFIER,
+            Some("BOGUNON DESK DEV"),
+            false,
         ));
     }
 }

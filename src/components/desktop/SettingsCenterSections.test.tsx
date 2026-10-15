@@ -1,4 +1,7 @@
+// @vitest-environment jsdom
+
 import { renderToStaticMarkup } from "react-dom/server";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { AiSettingsSection, DeviceSettingsSection } from "./SettingsCenterSections";
 import type { ChatGptConnectionState } from "../../chatgpt/types";
@@ -6,8 +9,8 @@ import type { DesktopUpdaterState } from "../../updater/updaterTypes";
 
 const idleUpdaterState: DesktopUpdaterState = { status: "idle", lastCheckedAt: null };
 
-const renderDeviceSettings = (overrides: Partial<Parameters<typeof DeviceSettingsSection>[0]> = {}) =>
-  renderToStaticMarkup(<DeviceSettingsSection
+const deviceSettingsElement = (overrides: Partial<Parameters<typeof DeviceSettingsSection>[0]> = {}) =>
+  <DeviceSettingsSection
     autostart={false}
     deviceSettings={{ closeToTray: true, workPortalUrl: null, workPortalAutoOpenDelay: "off", workspaceNotificationsEnabled: false, workspaceNotificationReasons: { overdue: true, dueToday: true, followUp: true, needsCheck: true } }}
     workFolderFavorites={[]}
@@ -33,10 +36,14 @@ const renderDeviceSettings = (overrides: Partial<Parameters<typeof DeviceSetting
     onTestNotification={vi.fn()}
     appVersion="0.1.0"
     updaterState={idleUpdaterState}
+    updaterEnabled
     onManualUpdateCheck={vi.fn()}
     onOpenOnboarding={vi.fn()}
     {...overrides}
-  />);
+  />;
+
+const renderDeviceSettings = (overrides: Partial<Parameters<typeof DeviceSettingsSection>[0]> = {}) =>
+  renderToStaticMarkup(deviceSettingsElement(overrides));
 
 describe("device settings work portal UI", () => {
   it("shows an unset device-only launcher with settings and open actions", () => {
@@ -85,6 +92,24 @@ describe("device settings work portal UI", () => {
     expect(markup).toContain("현재 버전 0.1.0 · 공유 베타");
     expect(markup).toContain("업데이트 확인");
     expect(markup).toContain("처음 사용 안내 다시 보기");
+  });
+
+  it("disables update actions and explains the development restriction", () => {
+    const markup = renderDeviceSettings({ updaterEnabled: false });
+
+    expect(markup).toContain("개발 환경에서는 업데이트가 비활성화됩니다.");
+    expect(markup).toContain('disabled="">업데이트 확인</button>');
+  });
+
+  it("does not dispatch a manual check from the disabled development action", () => {
+    const onManualUpdateCheck = vi.fn();
+    render(deviceSettingsElement({ updaterEnabled: false, onManualUpdateCheck }));
+    const button = screen.getByRole<HTMLButtonElement>("button", { name: "업데이트 확인" });
+
+    fireEvent.click(button);
+
+    expect(button.disabled).toBe(true);
+    expect(onManualUpdateCheck).not.toHaveBeenCalled();
   });
 });
 

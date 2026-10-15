@@ -18,6 +18,7 @@
     ]
   },
   "plugins": {
+    "updater": null,
     "deep-link": {
       "desktop": {
         "schemes": ["school-health-desk-dev"]
