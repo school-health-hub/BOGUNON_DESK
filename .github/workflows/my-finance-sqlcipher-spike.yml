@@ -1,0 +1,45 @@
+name: MY FINANCE SQLCipher Windows compatibility
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/my-finance-sqlcipher-spike.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  sqlcipher-msvc:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+      - name: Create isolated SQLCipher probe
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path sqlcipher-probe/src | Out-Null
+          @'
+          [package]
+          name = "sqlcipher-probe"
+          version = "0.1.0"
+          edition = "2021"
+
+          [dependencies]
+          rusqlite = { version = "0.37", features = ["bundled-sqlcipher"] }
+          '@ | Set-Content -Path sqlcipher-probe/Cargo.toml
+          @'
+          fn main() {
+              let db = rusqlite::Connection::open_in_memory().expect("open");
+              db.pragma_update(None, "key", "probe-secret").expect("key");
+              let version: String = db.query_row("PRAGMA cipher_version", [], |row| row.get(0)).expect("SQLCipher must be enabled");
+              assert!(!version.is_empty(), "plain SQLite is forbidden");
+              db.execute_batch("CREATE TABLE probe(value TEXT); INSERT INTO probe VALUES ('encrypted');").expect("SQL works");
+              println!("SQLCipher version present");
+          }
+          '@ | Set-Content -Path sqlcipher-probe/src/main.rs
+      - name: Verify bundled SQLCipher compiles, links and runs on MSVC
+        run: cargo run --manifest-path sqlcipher-probe/Cargo.toml --release --target x86_64-pc-windows-msvc
