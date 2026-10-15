@@ -17,6 +17,7 @@ mod chatgpt;
 mod desktop_surface;
 mod launcher;
 mod meal;
+mod my_finance_backup;
 mod notifications;
 mod official_document_import;
 mod purchase_helper;
