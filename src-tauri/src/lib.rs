@@ -18,6 +18,7 @@ mod desktop_surface;
 mod launcher;
 mod meal;
 mod my_finance_backup;
+mod my_finance_codec;
 mod my_finance_snapshot;
 mod notifications;
 mod official_document_import;
