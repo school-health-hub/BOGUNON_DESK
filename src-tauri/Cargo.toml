@@ -49,6 +49,7 @@ zip = { version = "8.6.0", default-features = false, features = ["deflate"] }
 tauri-plugin-updater = "2"
 aes-gcm = "0.10"
 argon2 = "0.5"
+zeroize = "1"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.61", features = [
