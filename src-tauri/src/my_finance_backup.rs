@@ -65,7 +65,7 @@ pub(crate) fn open(envelope: &[u8], password: &str) -> Result<Vec<u8>, &'static 
         .try_into().map_err(|_| "백업 형식 오류")?;
     let nonce: [u8; NONCE_LEN] = envelope[8 + SALT_LEN..HEADER_LEN]
         .try_into().map_err(|_| "백업 형식 오류")?;
-    let mut key = derive_key(password, &salt)?;
+    let key = Zeroizing::new(derive_key(password, &salt)?);
     let cipher = Aes256Gcm::new_from_slice(&key).map_err(|_| "복호화를 초기화하지 못했습니다.")?;
     let decrypted = cipher.decrypt(
         Nonce::from_slice(&nonce),
