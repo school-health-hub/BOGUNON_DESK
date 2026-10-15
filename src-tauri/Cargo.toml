@@ -49,6 +49,11 @@ zip = { version = "8.6.0", default-features = false, features = ["deflate"] }
 tauri-plugin-updater = "2"
 
 [target.'cfg(windows)'.dependencies]
+windows = { version = "0.61", features = [
+  "Win32_Foundation",
+  "Win32_Graphics_Gdi",
+  "Win32_UI_WindowsAndMessaging",
+] }
 windows-dpapi = "0.2.0"
 
 [dev-dependencies]

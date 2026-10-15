@@ -14,6 +14,7 @@ mod ai_generation;
 mod auth;
 mod browser_launcher;
 mod chatgpt;
+mod desktop_surface;
 mod launcher;
 mod meal;
 mod notifications;
@@ -241,6 +242,7 @@ pub fn run() {
 
     builder
         .manage(DesktopState::default())
+        .manage(desktop_surface::DesktopSurfaceCoordinator::default())
         .manage(chatgpt::commands::ChatGptAuthState::default())
         .manage(chatgpt::credential::ChatGptCredentialMutationState::default())
         .manage(launcher::WorkPortalAutoOpenState::default())
@@ -281,6 +283,7 @@ pub fn run() {
             get_autostart_enabled,
             set_autostart_enabled,
             set_close_to_tray,
+            desktop_surface::get_desktop_surface_probe,
             notifications::get_notification_settings,
             notifications::set_workspace_notifications_enabled,
             notifications::set_workspace_notification_reasons,

@@ -1,5 +1,12 @@
 # BOGUNON DESK Integrated Work Desk 디자인 시스템
 
+## Desktop Surface Mode
+
+- 9B-1은 Windows `Progman` / `WorkerW` topology를 읽기만 하는 capability probe다. 앱 창의 parent, style, z-order, taskbar, decorations를 변경하지 않으며 desktop mode의 기본 상태는 일반 창이다.
+- 9B-2는 별도 opt-in 단계에서 attach, detach, normal-window fallback을 구현한다.
+- 9B-3는 Explorer 재시작, display/DPI 변경, monitor 복구를 담당한다.
+- 9B-4는 device-only 사용자 설정과 autostart 연동을 담당한다.
+
 ## 1. Product identity
 
 - BOGUNON DESK는 보건교사가 출근 후 하루 종일 켜 두고 자신의 업무 방식에 맞게 구성하는 Windows 데스크톱 작업 공간이다.

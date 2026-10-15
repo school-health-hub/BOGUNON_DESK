@@ -4245,6 +4245,7 @@ dependencies = [
  "tauri-plugin-updater",
  "tokio",
  "uuid",
+ "windows",
  "windows-dpapi",
  "zip 8.6.0",
 ]
