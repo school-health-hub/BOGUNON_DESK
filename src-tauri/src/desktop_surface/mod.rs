@@ -7,6 +7,10 @@ mod windows;
 #[cfg(test)]
 mod tests;
 
+// 9B-2A is a simulation contract, deliberately absent from application builds.
+#[cfg(test)]
+mod lifecycle;
+
 use tauri::State;
 
 pub(crate) use state::DesktopSurfaceCoordinator;
