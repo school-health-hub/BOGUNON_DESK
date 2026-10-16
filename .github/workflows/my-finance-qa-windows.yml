@@ -38,7 +38,10 @@ jobs:
           $start.ArgumentList.Add('if ($env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS -eq "--remote-debugging-port=9223") { "CHILD_ENV_CONFIRMED" } else { exit 1 }')
           $child = [System.Diagnostics.Process]::Start($start)
           $output = $child.StandardOutput.ReadToEnd().Trim(); $child.WaitForExit()
-          $evidence = [ordered]@{childEnvironmentConfirmed=($child.ExitCode -eq 0 -and $output -eq 'CHILD_ENV_CONFIRMED');policy=$policy}
+          $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+          $elevated = ([Security.Principal.WindowsPrincipal]::new($identity)).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+          $versions = @(Get-ChildItem "${env:ProgramFiles(x86)}\Microsoft\EdgeWebView\Application" -Filter msedgewebview2.exe -Recurse | ForEach-Object { $_.VersionInfo.ProductVersion })
+          $evidence = [ordered]@{runnerElevated=$elevated;webviewRuntimeVersions=$versions;childEnvironmentConfirmed=($child.ExitCode -eq 0 -and $output -eq 'CHILD_ENV_CONFIRMED');policy=$policy}
           $json = ($evidence | ConvertTo-Json -Depth 8 -Compress).Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
           Write-Output "::notice title=WEBVIEW_DEBUGGER_ENVIRONMENT::$json"
           if (-not $evidence.childEnvironmentConfirmed) { throw 'Explicit child environment propagation failed' }
@@ -71,8 +74,10 @@ jobs:
         shell: pwsh
         run: |
           $tokens = $null; $errors = $null
-          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path scripts/qa/windows-my-finance-isolation.ps1), [ref]$tokens, [ref]$errors) | Out-Null
-          if ($errors.Count) { $errors | ForEach-Object { Write-Output "::error title=QA_SCRIPT_PARSE::$($_.Message)" }; throw 'Invalid isolation script' }
+          foreach ($script in Get-ChildItem scripts/qa/*finance*.ps1) {
+            [System.Management.Automation.Language.Parser]::ParseFile($script.FullName, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count) { $errors | ForEach-Object { Write-Output "::error title=QA_SCRIPT_PARSE::$($_.Message)" }; throw 'Invalid isolation script' }
+          }
       - run: npm ci
       - run: npm test -- --maxWorkers=4
       - run: npm run build
