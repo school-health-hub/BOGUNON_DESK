@@ -1,6 +1,6 @@
 # MY FINANCE — Implementation Plan (Phase 1)
 
-Status: feature branch started; domain model only. **Do not enter real financial data until encrypted persistence and portable backup have been implemented and tested.**
+Status: SQLCipher store initialization/read IPC added; Windows integrated validation pending. Income CRUD, UI and transactional restore remain gated. **Do not enter real financial data until encrypted persistence and portable backup have been implemented and tested.**
 
 ## Hard requirements
 - Local-only. No Supabase, BOGUNON web, telemetry, account-settings sync, or cloud transport for financial data.
@@ -45,3 +45,26 @@ Windows NSIS build and a real two-PC restore rehearsal.
 
 ## Privacy caution
 A managed school PC may have administrative access, backup agents, or organizational restrictions. Check school policy before storing personal finance records there; encryption alone does not eliminate these risks.
+
+## SQLCipher app integration (cloud trial, 2026-10-16)
+
+- App dependency: `rusqlite 0.37` with `bundled-sqlcipher`, matching the successful MSVC spike. Startup verifies `cipher_version` and reads the schema before writing; plain SQLite and wrong keys fail closed.
+- Explicit `my_finance_load_snapshot` Tauri command and local-only TypeScript repository. No automatic invocation from dashboard/account sync; no browser persistence fallback. No CRUD/restore command is exposed in this step.
+- Windows app-local `my-finance/finance.db` contains the existing schema-v2 snapshot inside an encrypted singleton row. Internal database schema version is separate (`user_version=1`); unknown versions are rejected without migration.
+- A random 256-bit per-install key is protected with DPAPI User scope in `key.dpapi`, atomically installed without overwriting an existing key. Missing/corrupt/unprotectable keys do not reset existing data. Non-Windows calls fail closed.
+- SQLCipher uses memory temporary storage, disabled mmap, secure deletion and encrypted rollback journals. Serialized buffers and key material use zeroizing wrappers. No finance payloads, passwords or keys are logged by the application.
+- Backup envelope/codec/lineage rules remain unchanged. Existing portable backups still require staged, conflict-checked, atomic restore before they can be used through the app; no direct overwrite path was added.
+- Windows Actions now tests the real app modules (including DPAPI restart/key-loss checks), runs locked Cargo check and builds the integrated Tauri executable without installer creation or publishing. The independent SQLCipher spike remains intact.
+- Synthetic tests cover encrypted file contents, persistence/reopen, wrong/no key, plain database rejection, malformed snapshot, unsupported DB version, and compatibility with the existing portable backup codec.
+
+Do not mark the Windows integration gate complete until the new commit's Actions run succeeds. Full offline CRUD, backup-file export/restore UI, two-PC rehearsal and crash/upgrade QA remain outstanding; do not use real financial records yet.
+
+### Cloud trial validation record (PR #14 / issue #15)
+
+- Starting checkout: `work` at `5cec64358436c148710499b5aa9d2e78c34e0136`. Fetched and switched to `feature/my-finance-phase1` at remote/PR head `4e1ff6b58993a93d6f5e69ea1f84fbc364ddbe7a`; preserved all existing PR commits. No main commit, merge or deployment.
+- `npm test -- --maxWorkers=4`: 161 files / 974 tests passed.
+- `npm run build`: TypeScript and Vite passed; existing bundle-size warning remains.
+- Linux isolated Rust harness importing the repository's snapshot, backup, codec and SQLCipher store modules: 18 tests passed, including synthetic income persistence/portable-backup roundtrip. This is not a full Tauri or Windows test result.
+- Cargo metadata with `--locked --offline --no-deps` and `git diff --check`: passed. Updated lockfile adds previously unresolved crypto dependencies as well as SQLCipher; no existing dependency versions removed.
+- Required Windows DPAPI and integrated app build results must be obtained from the new commit's `MY FINANCE verification` Actions run. No claim of Windows success is made by this local record.
+- At validation time GitHub API access returned HTTP 403, blocking PR comments/check-status API calls. `api.github.com` was added to the cloud environment network draft only; applying settings and confirming API authorization remain necessary to record results directly in the PR conversation.
