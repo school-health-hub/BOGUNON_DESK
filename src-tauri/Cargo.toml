@@ -50,7 +50,7 @@ tauri-plugin-updater = "2"
 aes-gcm = "0.10"
 argon2 = "0.5"
 zeroize = "1"
-rusqlite = { version = "0.37", features = ["bundled-sqlcipher"] }
+rusqlite = { version = "0.37", features = ["bundled-sqlcipher-vendored-openssl"] }
 tempfile = "3"
 
 [target.'cfg(windows)'.dependencies]

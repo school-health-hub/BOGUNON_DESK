@@ -48,7 +48,7 @@ A managed school PC may have administrative access, backup agents, or organizati
 
 ## SQLCipher app integration (cloud trial, 2026-10-16)
 
-- App dependency: `rusqlite 0.37` with `bundled-sqlcipher`, matching the successful MSVC spike. Startup verifies `cipher_version` and reads the schema before writing; plain SQLite and wrong keys fail closed.
+- App dependency: `rusqlite 0.37` with `bundled-sqlcipher-vendored-openssl`. The same SQLCipher/Rust binding as the successful MSVC spike now statically includes OpenSSL so the app does not require the runner's external crypto DLL. Startup verifies `cipher_version` and reads the schema before writing; plain SQLite and wrong keys fail closed.
 - Explicit `my_finance_load_snapshot` Tauri command and local-only TypeScript repository. No automatic invocation from dashboard/account sync; no browser persistence fallback. No CRUD/restore command is exposed in this step.
 - Windows app-local `my-finance/finance.db` contains the existing schema-v2 snapshot inside an encrypted singleton row. Internal database schema version is separate (`user_version=1`); unknown versions are rejected without migration.
 - A random 256-bit per-install key is protected with DPAPI User scope in `key.dpapi`, atomically installed without overwriting an existing key. Missing/corrupt/unprotectable keys do not reset existing data. Non-Windows calls fail closed.
@@ -64,7 +64,7 @@ Do not mark the Windows integration gate complete until the new commit's Actions
 - Starting checkout: `work` at `5cec64358436c148710499b5aa9d2e78c34e0136`. Fetched and switched to `feature/my-finance-phase1` at remote/PR head `4e1ff6b58993a93d6f5e69ea1f84fbc364ddbe7a`; preserved all existing PR commits. No main commit, merge or deployment.
 - `npm test -- --maxWorkers=4`: 161 files / 974 tests passed.
 - `npm run build`: TypeScript and Vite passed; existing bundle-size warning remains.
-- Linux isolated Rust harness importing the repository's snapshot, backup, codec and SQLCipher store modules: 18 tests passed, including synthetic income persistence/portable-backup roundtrip. This is not a full Tauri or Windows test result.
+- Linux isolated Rust harness importing the repository's snapshot, backup, codec and SQLCipher store modules: 18 tests passed, including synthetic income persistence/portable-backup roundtrip; repeated successfully with vendored/static OpenSSL. This is not a full Tauri or Windows test result.
 - Cargo metadata with `--locked --offline --no-deps` and `git diff --check`: passed. Updated lockfile adds previously unresolved crypto dependencies as well as SQLCipher; no existing dependency versions removed.
 - Required Windows DPAPI and integrated app build results must be obtained from the new commit's `MY FINANCE verification` Actions run. No claim of Windows success is made by this local record.
 - At validation time GitHub API access returned HTTP 403, blocking PR comments/check-status API calls. `api.github.com` was added to the cloud environment network draft only; applying settings and confirming API authorization remain necessary to record results directly in the PR conversation.
