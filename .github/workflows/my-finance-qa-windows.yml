@@ -1,0 +1,154 @@
+name: MY FINANCE isolated Windows QA
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'src/my-finance*/**'
+      - 'src-tauri/**'
+      - 'qa/**'
+      - 'vite.my-finance-qa.config.ts'
+      - 'scripts/*my-finance-qa*'
+      - 'scripts/qa/*finance*'
+      - 'docs/MY_FINANCE_WINDOWS_QA.md'
+      - '.github/workflows/my-finance-qa-windows.yml'
+permissions:
+  contents: read
+concurrency:
+  group: my-finance-isolated-qa-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  debugger-environment-diagnostics:
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read debugger policy and verify child environment without changing settings
+        shell: pwsh
+        run: |
+          $policy = [ordered]@{}
+          foreach ($root in @('HKCU:\Software\Policies\Microsoft\Edge', 'HKLM:\Software\Policies\Microsoft\Edge', 'HKCU:\Software\Policies\Microsoft\Edge\WebView2', 'HKLM:\Software\Policies\Microsoft\Edge\WebView2')) {
+            $key = Get-Item -LiteralPath $root -ErrorAction SilentlyContinue
+            if ($key) {
+              foreach ($name in @('RemoteDebuggingAllowed','DeveloperToolsAvailability')) { $policy["${root}::$name"] = $key.GetValue($name) }
+            }
+          }
+          $start = [System.Diagnostics.ProcessStartInfo]::new((Get-Process -Id $PID).Path)
+          $start.UseShellExecute = $false; $start.RedirectStandardOutput = $true
+          $start.Environment['WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS'] = '--remote-debugging-port=9223'
+          $start.ArgumentList.Add('-NoProfile'); $start.ArgumentList.Add('-Command')
+          $start.ArgumentList.Add('if ($env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS -eq "--remote-debugging-port=9223") { "CHILD_ENV_CONFIRMED" } else { exit 1 }')
+          $child = [System.Diagnostics.Process]::Start($start)
+          $output = $child.StandardOutput.ReadToEnd().Trim(); $child.WaitForExit()
+          $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+          $elevated = ([Security.Principal.WindowsPrincipal]::new($identity)).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+          $versions = @(Get-ChildItem "${env:ProgramFiles(x86)}\Microsoft\EdgeWebView\Application" -Filter msedgewebview2.exe -Recurse | ForEach-Object { $_.VersionInfo.ProductVersion })
+          $evidence = [ordered]@{runnerElevated=$elevated;webviewRuntimeVersions=$versions;childEnvironmentConfirmed=($child.ExitCode -eq 0 -and $output -eq 'CHILD_ENV_CONFIRMED');policy=$policy}
+          $json = ($evidence | ConvertTo-Json -Depth 8 -Compress).Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+          Write-Output "::notice title=WEBVIEW_DEBUGGER_ENVIRONMENT::$json"
+          if (-not $evidence.childEnvironmentConfirmed) { throw 'Explicit child environment propagation failed' }
+  isolated-windows:
+    needs: debugger-environment-diagnostics
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Check out immutable operating reference (no publish or uninstall)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 5cec64358436c148710499b5aa9d2e78c34e0136
+          path: operating-source
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249
+        with:
+          targets: x86_64-pc-windows-msvc
+      - uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c
+        with:
+          cache-on-failure: true
+          workspaces: |
+            src-tauri
+            operating-source/src-tauri
+      - name: Parse destructive-test guards before any build or install
+        shell: pwsh
+        run: |
+          $tokens = $null; $errors = $null
+          foreach ($script in Get-ChildItem scripts/qa/*finance*.ps1) {
+            [System.Management.Automation.Language.Parser]::ParseFile($script.FullName, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count) { $errors | ForEach-Object { Write-Output "::error title=QA_SCRIPT_PARSE::$($_.Message)" }; throw 'Invalid isolation script' }
+          }
+      - run: npm ci
+      - run: npm test -- --maxWorkers=4
+      - run: npm run build
+      - name: Native finance/crypto/portable round-trip regressions
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml my_finance
+      - name: Reject mismatched feature/config combinations
+        shell: pwsh
+        run: |
+          cargo check --locked --manifest-path src-tauri/Cargo.toml --features my-finance-qa *> qa-wrong-feature.log
+          if ($LASTEXITCODE -eq 0 -or -not (Select-String -Path qa-wrong-feature.log -Pattern 'QA feature requires QA config' -Quiet)) { throw 'Expected QA config guard failure' }
+          $env:TAURI_CONFIG = Get-Content src-tauri/tauri.my-finance-qa.conf.json -Raw
+          try {
+            cargo check --locked --manifest-path src-tauri/Cargo.toml *> qa-wrong-config.log
+            if ($LASTEXITCODE -eq 0 -or -not (Select-String -Path qa-wrong-config.log -Pattern 'QA config requires QA feature' -Quiet)) { throw 'Expected QA feature guard failure' }
+          } finally { Remove-Item Env:TAURI_CONFIG }
+          Remove-Item qa-wrong-feature.log,qa-wrong-config.log
+          exit 0
+      - name: Build operating reference only in disposable runner
+        working-directory: operating-source
+        run: |
+          npm ci
+          if ($LASTEXITCODE -ne 0) { throw 'Operating reference npm ci failed' }
+          npm run tauri build -- --target x86_64-pc-windows-msvc --bundles nsis
+      - name: Build separate finance-only QA installer
+        shell: pwsh
+        run: |
+          $log = Join-Path $env:RUNNER_TEMP 'my-finance-qa-build.log'
+          npm run qa:finance:windows 2>&1 | Tee-Object -FilePath $log
+          if ($LASTEXITCODE -ne 0) {
+            $tail = ((Get-Content $log -Tail 30) -join "`n").Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+            Write-Output "::error title=MY_FINANCE_QA_BUILD_FAILURE::$tail"
+            throw 'QA installer build failed'
+          }
+      - name: Verify static OpenSSL linking for QA binary
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
+          $dumpbin = & $vswhere -latest -products * -find 'VC/Tools/MSVC/*/bin/Hostx64/x64/dumpbin.exe' | Select-Object -First 1
+          if (-not $dumpbin) { throw 'No dumpbin' }
+          $binary = 'src-tauri/target/x86_64-pc-windows-msvc/release/bogunon-desk-my-finance-qa.exe'
+          # Tauri renames the binary before bundling with mainBinaryName.
+          $deps = & $dumpbin /dependents $binary
+          if ($LASTEXITCODE -ne 0 -or $deps -match '(?i)libcrypto|libssl') { throw 'QA native dependency check failed' }
+      - name: Co-install, real native UI, preserve operating data, uninstall QA only
+        shell: pwsh
+        run: |
+          $env:QA_EXPECTED_SOURCE_SHA = (git rev-parse HEAD).Trim()
+          $operating = @(Get-ChildItem operating-source/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe)
+          $qa = @(Get-ChildItem src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe)
+          if ($operating.Count -ne 1 -or $qa.Count -ne 1) { throw 'Ambiguous installer inputs' }
+          try { & ./scripts/qa/windows-my-finance-isolation.ps1 -OperatingInstaller $operating[0].FullName -QaInstaller $qa[0].FullName }
+          catch {
+            $message = $_.Exception.Message.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+            Write-Output "::error title=MY_FINANCE_QA_ISOLATION_FAILURE::$message"
+            throw
+          }
+      - name: Mark exact tested QA bytes testable only after isolation succeeds
+        run: node scripts/package-my-finance-qa.mjs
+      - name: Upload testable QA installer, hash, signature status and instructions
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: MY-FINANCE-QA-TESTABLE-${{ github.event.pull_request.head.sha || github.sha }}
+          path: artifacts/my-finance-qa-ready/*
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload isolation evidence (not an installer)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: MY-FINANCE-QA-ISOLATION-EVIDENCE-${{ github.run_id }}
+          path: artifacts/my-finance-qa-evidence/**
+          if-no-files-found: ignore
+          retention-days: 14

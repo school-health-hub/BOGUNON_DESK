@@ -1,0 +1,97 @@
+{
+  "schoolIncome": [
+    {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "sourceName": "SYNTHETIC PC TRANSFER 1",
+      "incomeKind": "salary",
+      "contractLabel": "synthetic only",
+      "taxCategory": "unverified",
+      "taxCategoryVerified": false,
+      "earnedOn": "2026-03-10",
+      "paidOn": "2026-03-25",
+      "grossKrw": 1000000,
+      "deductions": [
+        {
+          "kind": "income_tax",
+          "amountKrw": 33000
+        }
+      ],
+      "netKrw": 967000,
+      "notes": "synthetic cross-PC fixture"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000002",
+      "sourceName": "SYNTHETIC PC TRANSFER 2",
+      "incomeKind": "lecture",
+      "contractLabel": "synthetic only",
+      "taxCategory": "unverified",
+      "taxCategoryVerified": false,
+      "earnedOn": "2026-03-10",
+      "paidOn": null,
+      "grossKrw": 200000,
+      "deductions": [
+        {
+          "kind": "income_tax",
+          "amountKrw": 6000
+        }
+      ],
+      "netKrw": 194000,
+      "notes": "synthetic cross-PC fixture"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000003",
+      "sourceName": "SYNTHETIC PC TRANSFER 3",
+      "incomeKind": "ebook",
+      "contractLabel": "synthetic only",
+      "taxCategory": "unverified",
+      "taxCategoryVerified": false,
+      "earnedOn": "2025-03-10",
+      "paidOn": null,
+      "grossKrw": 40000,
+      "deductions": [],
+      "netKrw": 40000,
+      "notes": "synthetic cross-PC fixture"
+    }
+  ],
+  "homeUpdate": {
+    "id": "00000000-0000-4000-8000-000000000002",
+    "sourceName": "SYNTHETIC PC TRANSFER 2",
+    "incomeKind": "lecture",
+    "contractLabel": "synthetic only",
+    "taxCategory": "unverified",
+    "taxCategoryVerified": false,
+    "earnedOn": "2026-03-10",
+    "paidOn": "2026-04-01",
+    "grossKrw": 250000,
+    "deductions": [
+      {
+        "kind": "income_tax",
+        "amountKrw": 7500
+      }
+    ],
+    "netKrw": 242500,
+    "notes": "synthetic cross-PC fixture"
+  },
+  "homeCreate": {
+    "id": "00000000-0000-4000-8000-000000000004",
+    "sourceName": "SYNTHETIC PC TRANSFER 4",
+    "incomeKind": "consulting",
+    "contractLabel": "synthetic only",
+    "taxCategory": "unverified",
+    "taxCategoryVerified": false,
+    "earnedOn": "2026-03-10",
+    "paidOn": null,
+    "grossKrw": 100000,
+    "deductions": [],
+    "netKrw": 100000,
+    "notes": "synthetic cross-PC fixture"
+  },
+  "expectedAnnual": {
+    "year": 2026,
+    "recordCount": 3,
+    "grossKrw": 1350000,
+    "deductionsKrw": 40500,
+    "netKrw": 1309500,
+    "unpaidCount": 1
+  }
+}

@@ -1,3 +1,4 @@
+import { lazy, Suspense, useState } from "react";
 import "./styles/base.css";
 import "./styles/dashboard.css";
 import "./styles/components.css";
@@ -14,8 +15,17 @@ import { WorkspaceDataProvider } from "./workspace-data/WorkspaceDataContext";
 import { WeatherDataProvider } from "./weather/WeatherDataContext";
 import { DesktopUpdaterProvider } from "./updater/DesktopUpdaterContext";
 
+const FinanceScreen = lazy(() => import("./my-finance/FinanceScreen").then((module) => ({ default: module.FinanceScreen })));
+
 export function App() {
+  const [financeOpen, setFinanceOpen] = useState(false);
+  const closeFinance = () => {
+    setFinanceOpen(false);
+    requestAnimationFrame(() => document.querySelector<HTMLButtonElement>("[data-finance-launcher]")?.focus());
+  };
   return (
+    <>
+    <div hidden={financeOpen} inert={financeOpen} style={{ display: financeOpen ? "none" : undefined }}>
     <ChatGptConnectionProvider>
       <AiConnectionProvider>
         <AuthProvider>
@@ -27,7 +37,7 @@ export function App() {
                     <WeatherDataProvider>
                       <OfficialDocumentSessionProvider>
                         <DesktopUpdaterProvider>
-                          <DashboardCanvas />
+                          <DashboardCanvas onOpenFinance={() => setFinanceOpen(true)} suspended={financeOpen} />
                         </DesktopUpdaterProvider>
                       </OfficialDocumentSessionProvider>
                     </WeatherDataProvider>
@@ -39,5 +49,8 @@ export function App() {
         </AuthProvider>
       </AiConnectionProvider>
     </ChatGptConnectionProvider>
+    </div>
+    {financeOpen && <Suspense fallback={<main aria-busy="true"><p role="status">MY FINANCE 화면을 불러오는 중입니다…</p><button type="button" onClick={closeFinance}>보건 업무로</button></main>}><FinanceScreen onClose={closeFinance} /></Suspense>}
+    </>
   );
 }

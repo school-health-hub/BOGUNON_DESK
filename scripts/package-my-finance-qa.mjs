@@ -1,0 +1,18 @@
+import fs from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
+const sourceSha=execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim();
+const evidence=JSON.parse(await fs.readFile("artifacts/my-finance-qa-evidence/ISOLATION.json","utf8"));
+if(evidence.status!=="passed"||evidence.sourceSha!==sourceSha||!evidence.fullOperatingTreePreservedWhenClosed||!evidence.simultaneousExecution||!evidence.operatingNeverUninstalled||!evidence.qaUninstallPreservedBothFinancialStores)throw Error("Isolation evidence missing/mismatched; installer NOT ready");
+if(!["NotSigned","Valid"].includes(evidence.authenticodeStatus))throw Error("Unexpected signature status; installer NOT ready");
+const dir="src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis";
+const installers=(await fs.readdir(dir)).filter(n=>n.endsWith(".exe"));if(installers.length!==1)throw Error("Ambiguous QA installer");
+const bytes=await fs.readFile(`${dir}/${installers[0]}`);const hash=createHash("sha256").update(bytes).digest("hex");
+if(hash!==evidence.sha256)throw Error("Installer differs from tested bytes");
+const out="artifacts/my-finance-qa-ready";await fs.mkdir(out,{recursive:true});
+const fileName=`BOGUNON-DESK-MY-FINANCE-QA-${sourceSha.slice(0,7)}-Windows-x64-Setup.exe`;
+await fs.writeFile(`${out}/${fileName}`,bytes);
+await fs.writeFile(`${out}/SHA256SUMS.txt`,`${hash}  ${fileName}\n`);
+await fs.writeFile(`${out}/QA-TEST-STATUS.json`,JSON.stringify({...evidence,fileName,testable:true,scope:"synthetic QA only; real school/home manual verification pending",productionDeployment:false},null,2));
+await fs.copyFile("docs/MY_FINANCE_WINDOWS_QA.md",`${out}/START-HERE.ko.md`);
+console.log(`QA TESTABLE: ${fileName}; SHA256 ${hash}; Authenticode ${evidence.authenticodeStatus}`);

@@ -1475,3 +1475,5 @@
   min-height: 64px;
   padding-block: 3px;
 }
+
+.workspace-shell.has-finance-launcher { --workspace-view-actions-reserve: 320px; }
