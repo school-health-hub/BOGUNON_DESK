@@ -66,7 +66,7 @@ import { extractOfficialDocumentPath } from "../../official-document/officialDoc
 import { useOfficialDocumentSession } from "../../official-document/OfficialDocumentSessionContext";
 import { extractRecordHelperPaths, type RecordHelperImportBatch } from "../../record-helper/reportImportService";
 
-export function DashboardCanvas() {
+export function DashboardCanvas({ onOpenFinance, suspended = false }: { readonly onOpenFinance?: () => void; readonly suspended?: boolean } = {}) {
   const auth = useAuth();
   const onboarding = useOnboarding();
   const updater = useDesktopUpdater();
@@ -192,7 +192,7 @@ export function DashboardCanvas() {
   }, [notice]);
 
   useEffect(() => {
-    if (!isDesktopRuntime()) return undefined;
+    if (suspended || !isDesktopRuntime()) return undefined;
     let unlisten: (() => void) | null = null;
     let active = true;
     void listen<string>("desktop:navigate", (event) => {
@@ -208,10 +208,10 @@ export function DashboardCanvas() {
       active = false;
       unlisten?.();
     };
-  }, [runDesktopAction]);
+  }, [runDesktopAction, suspended]);
 
   useEffect(() => {
-    if (!isDesktopRuntime()) return undefined;
+    if (suspended || !isDesktopRuntime()) return undefined;
     let unlisten: (() => void) | null = null;
     let active = true;
     void listen<string[]>("desktop:file-drop", (event) => {
@@ -221,7 +221,7 @@ export function DashboardCanvas() {
       if (active) unlisten = dispose; else dispose();
     }).catch((error: unknown) => setNotice(getDesktopErrorMessage(error)));
     return () => { active = false; unlisten?.(); };
-  }, []);
+  }, [suspended]);
 
   useEffect(() => {
     if (!isDesktopRuntime()) return undefined;
@@ -411,8 +411,9 @@ export function DashboardCanvas() {
       workFolderFavorites={workFolderFavorites}
       openWorkFolderFavorite={openWorkFolderFavorite}
     >
-    <div className={`app-shell workspace-shell ${getWorkspaceModeClassName(isEditing)} bg-${dashboardLayout.appearance.background} card-${dashboardLayout.appearance.cardStyle} corner-${dashboardLayout.appearance.cornerStyle}`}>
+    <div className={`app-shell workspace-shell${onOpenFinance && !isEditing ? " has-finance-launcher" : ""} ${getWorkspaceModeClassName(isEditing)} bg-${dashboardLayout.appearance.background} card-${dashboardLayout.appearance.cardStyle} corner-${dashboardLayout.appearance.cornerStyle}`}>
       <DashboardToolbar
+        onOpenFinance={onOpenFinance}
         activePanel={activePanel}
         isEditing={isEditing}
         onOpenPanel={(panel) => setActivePanel((current) => (current === panel ? null : panel))}
