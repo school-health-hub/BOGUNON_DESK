@@ -24,8 +24,7 @@ function Block-App([string]$Path) {
 }
 function Install([string]$Path) { $p=Start-Process -FilePath $Path -ArgumentList '/S' -Wait -PassThru; if($p.ExitCode -ne 0){throw "Installer failed: $($p.ExitCode)"} }
 function Launch([string]$Path,[int]$Port) {
- # Start-Process's Windows shell launch did not deliver the temporary parent
- # setting to WebView2. Supply an explicit child environment without a shell;
+ # Supply an explicit child environment without depending on shell inheritance;
  # never persist debugger settings in either installed app or in the registry.
  $start=[System.Diagnostics.ProcessStartInfo]::new($Path)
  $start.UseShellExecute=$false
