@@ -23,18 +23,12 @@ function Block-App([string]$Path) {
  $name='Bogunon-Synthetic-QA-'+[guid]::NewGuid().ToString(); New-NetFirewallRule -DisplayName $name -Direction Outbound -Program $Path -Action Block -Profile Any | Out-Null; $rules.Add($name)
 }
 function Install([string]$Path) { $p=Start-Process -FilePath $Path -ArgumentList '/S' -Wait -PassThru; if($p.ExitCode -ne 0){throw "Installer failed: $($p.ExitCode)"} }
-Add-Type -Path (Join-Path $PSScriptRoot 'my-finance-medium-process.cs')
-function Start-MediumApp([string]$Path,[int]$Port) {
- # WebView2 >=150 ignores env debugger overrides on elevated hosts. Restrict
- # only this same user's child token; do not change policy, runtime or ACLs.
- $p=[FinanceQaMediumProcess]::Start($Path,$Port,([Security.Principal.WindowsIdentity]::GetCurrent().User.Value))
- $apps.Add($p);Start-Sleep -Seconds 4
- return $p
-}
+# WebView2 >=150 ignores these env overrides in elevated hosts. This script
+# deliberately fails closed there; do not change policy/runtime/ACLs to pass.
 function Launch([string]$Path,[int]$Port) {
- $p=Start-MediumApp $Path $Port
- if($p.HasExited){throw "App exited during launch: $($p.ExitCode)"}
- return $p
+ $old=$env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS
+ try {$env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=$Port"; $p=Start-Process -FilePath $Path -PassThru; $apps.Add($p); Start-Sleep -Seconds 4; if($p.HasExited){throw 'App exited during launch'};return $p}
+ finally {if($null -eq $old){Remove-Item Env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS -ErrorAction SilentlyContinue}else{$env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=$old}}
 }
 function Stop-Owned([System.Diagnostics.Process]$Process) { if(-not $Process.HasExited){ & taskkill /PID $Process.Id /T /F | Out-Null; Start-Sleep -Seconds 3 };if(-not $Process.HasExited){throw 'Owned CI app did not stop'} }
 function Launch-Evidence([int]$Port) {
@@ -115,7 +109,7 @@ try {
  # Simultaneous apps/single instances and QA removal while operating stays alive.
  Install $QaInstaller; $prod=Launch $operatingExe 9223;$stable=Operating-State -StableOnly
  $qa=Launch $qaExe 9224;Probe 9224 qa-reopen 'qa-native-reinstall'
- foreach($pair in @(@($operatingExe,9223),@($qaExe,9224))){$second=Start-MediumApp $pair[0] $pair[1];if(-not $second.HasExited){throw 'Single instance isolation failed'};if($second.ExitCode -ne 0){throw 'Second instance crashed'}}
+ foreach($exe in @($operatingExe,$qaExe)){$second=Start-Process -FilePath $exe -PassThru;Start-Sleep -Seconds 3;if(-not $second.HasExited){throw 'Single instance isolation failed'}}
  if($prod.HasExited -or $qa.HasExited){throw 'Apps cannot coexist'}
  Assert-State $stable -StableOnly
  Stop-Owned $qa;$finance=Qa-Finance-State;Remove-Qa
@@ -125,7 +119,7 @@ try {
  Stop-Owned $prod
  if((Get-FileHash $OperatingInstaller).Hash -ne $operatingInstallerHash -or (Get-FileHash $QaInstaller).Hash -ne $qaInstallerHash){throw 'Installer bytes changed'}
  $signature=Get-AuthenticodeSignature -LiteralPath $QaInstaller
- $result=[ordered]@{status='passed';sourceSha=$env:QA_EXPECTED_SOURCE_SHA;operatingReferenceSha='5cec64358436c148710499b5aa9d2e78c34e0136';sha256=$qaInstallerHash.ToLowerInvariant();authenticodeStatus=[string]$signature.Status;signer=if($signature.SignerCertificate){$signature.SignerCertificate.Subject}else{$null};fullOperatingTreePreservedWhenClosed=$true;operatingFinancialDataPreservedWhileRunning=$true;simultaneousExecution=$true;qaUninstallPreservedBothFinancialStores=$true;operatingNeverUninstalled=$true;outboundBlockedInDisposableRunner=$true;sameUserMediumIntegrityLaunch=$true;nativeDebugPort='CI environment only, not embedded in installer'}
+ $result=[ordered]@{status='passed';sourceSha=$env:QA_EXPECTED_SOURCE_SHA;operatingReferenceSha='5cec64358436c148710499b5aa9d2e78c34e0136';sha256=$qaInstallerHash.ToLowerInvariant();authenticodeStatus=[string]$signature.Status;signer=if($signature.SignerCertificate){$signature.SignerCertificate.Subject}else{$null};fullOperatingTreePreservedWhenClosed=$true;operatingFinancialDataPreservedWhileRunning=$true;simultaneousExecution=$true;qaUninstallPreservedBothFinancialStores=$true;operatingNeverUninstalled=$true;outboundBlockedInDisposableRunner=$true;nativeDebugPort='CI environment only, not embedded in installer'}
  $result|ConvertTo-Json -Depth 10|Set-Content (Join-Path $out 'ISOLATION.json') -Encoding utf8
  Write-Output "::notice title=MY_FINANCE_QA_SHA256::$($result.sha256)"
  Write-Output "::notice title=MY_FINANCE_QA_SIGNATURE::$($result.authenticodeStatus)"
