@@ -1,9 +1,10 @@
 //! SQLCipher-only persistence. No network, plaintext export, or automatic restore.
 //! Snapshot/portable backup schema stays independent from the database schema.
+use crate::my_finance_snapshot::{validate_income_entry, IncomeEntry};
 use crate::my_finance_snapshot::{
     validate_snapshot, FinanceSnapshot, SnapshotIdentity, SNAPSHOT_SCHEMA_VERSION,
 };
-use rusqlite::{Connection, OpenFlags, OptionalExtension};
+use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior};
 use std::path::Path;
 use uuid::Uuid;
 use zeroize::Zeroizing;
@@ -14,6 +15,16 @@ const DB_VERSION: i64 = 1;
 
 pub(crate) struct FinanceStore(Connection);
 
+pub(crate) enum IncomeMutation {
+    Create(IncomeEntry),
+    Update(IncomeEntry),
+    Delete(Uuid),
+}
+
+const CONFLICT: &str = "금융 데이터가 변경되었습니다. 최신 목록을 다시 불러와 주세요.";
+const INVALID: &str = "수입 데이터가 올바르지 않습니다.";
+const MAX_SAFE_KRW: i64 = 9_007_199_254_740_991;
+
 impl FinanceStore {
     pub(crate) fn open(path: &Path, key: &[u8; 32]) -> Result<Self, &'static str> {
         let db = Connection::open_with_flags(
@@ -21,6 +32,8 @@ impl FinanceStore {
             OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE,
         )
         .map_err(|_| STORAGE_ERROR)?;
+        db.busy_timeout(std::time::Duration::from_secs(2))
+            .map_err(|_| STORAGE_ERROR)?;
         // Key before any schema access. Never include it in diagnostics.
         let mut hex = Zeroizing::new(String::with_capacity(67));
         hex.push_str("x'");
@@ -88,8 +101,84 @@ impl FinanceStore {
     }
 
     pub(crate) fn load(&self) -> Result<FinanceSnapshot, &'static str> {
-        let payload: Option<Vec<u8>> = self
+        Self::read_snapshot(&self.0)
+    }
+
+    /// Lock before reading: revision comparison and payload/history update are
+    /// one transaction, including across separate connections/processes.
+    pub(crate) fn apply(
+        &mut self,
+        expected: &SnapshotIdentity,
+        change: IncomeMutation,
+    ) -> Result<FinanceSnapshot, &'static str> {
+        let tx = self
             .0
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(|_| CONFLICT)?;
+        let mut snapshot = Self::read_snapshot(&tx)?;
+        if &snapshot.identity != expected {
+            return Err(CONFLICT);
+        }
+        match change {
+            IncomeMutation::Create(entry) => {
+                Self::validate_input(&entry)?;
+                if snapshot.income.iter().any(|item| item.id == entry.id) {
+                    return Err("이미 등록된 수입 ID입니다.");
+                }
+                snapshot.income.push(entry);
+            }
+            IncomeMutation::Update(entry) => {
+                Self::validate_input(&entry)?;
+                let item = snapshot
+                    .income
+                    .iter_mut()
+                    .find(|item| item.id == entry.id)
+                    .ok_or("수정할 수입을 찾지 못했습니다.")?;
+                *item = entry;
+            }
+            IncomeMutation::Delete(id) => {
+                let position = snapshot
+                    .income
+                    .iter()
+                    .position(|item| item.id == id)
+                    .ok_or("삭제할 수입을 찾지 못했습니다.")?;
+                snapshot.income.remove(position);
+            }
+        }
+        snapshot.identity.revision = snapshot.identity.revision.checked_add(1).ok_or(INVALID)?;
+        snapshot.identity.history.push(Uuid::new_v4());
+        if !validate_snapshot(&snapshot) {
+            return Err(INVALID);
+        }
+        let payload = Zeroizing::new(serde_json::to_vec(&snapshot).map_err(|_| STORAGE_ERROR)?);
+        if tx
+            .execute(
+                "UPDATE finance_snapshot SET payload=?1 WHERE singleton=1",
+                [payload.as_slice()],
+            )
+            .map_err(|_| STORAGE_ERROR)?
+            != 1
+        {
+            return Err(STORAGE_ERROR);
+        }
+        tx.commit().map_err(|_| STORAGE_ERROR)?;
+        Ok(snapshot)
+    }
+
+    fn validate_input(entry: &IncomeEntry) -> Result<(), &'static str> {
+        // JSON/JavaScript must represent every KRW amount exactly. Serde i64
+        // rejects fractional/out-of-range numbers before they reach this layer.
+        if !validate_income_entry(entry)
+            || entry.gross_krw > MAX_SAFE_KRW
+            || entry.deductions.iter().any(|d| d.amount_krw > MAX_SAFE_KRW)
+        {
+            return Err(INVALID);
+        }
+        Ok(())
+    }
+
+    fn read_snapshot(db: &Connection) -> Result<FinanceSnapshot, &'static str> {
+        let payload: Option<Vec<u8>> = db
             .query_row(
                 "SELECT payload FROM finance_snapshot WHERE singleton=1",
                 [],
@@ -224,3 +313,7 @@ mod tests {
         assert_eq!(std::fs::read(&file.0).unwrap(), before);
     }
 }
+
+#[cfg(test)]
+#[path = "my_finance_store_tests.rs"]
+mod crud_tests;

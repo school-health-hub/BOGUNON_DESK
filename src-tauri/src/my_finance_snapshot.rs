@@ -105,22 +105,23 @@ pub(crate) fn validate_snapshot(snapshot: &FinanceSnapshot) -> bool {
     let mut changes = std::collections::HashSet::new();
     if !id.history.iter().all(|change| changes.insert(*change)) { return false; }
     let mut records = std::collections::HashSet::new();
-    snapshot.income.iter().all(|entry| {
-        !entry.id.is_nil()
-            && records.insert(entry.id)
-            && !entry.source_name.trim().is_empty()
-            && entry.source_name.len() <= 200
-            && valid_iso_date(&entry.earned_on)
-            && entry.paid_on.as_ref().is_none_or(|date| valid_iso_date(date))
-            && entry.gross_krw >= 0
-            && entry.contract_label.len() <= 200
-            && entry.notes.len() <= 5000
-            && entry.deductions.len() <= 100
-            && entry.deductions.iter().all(|d| d.amount_krw >= 0)
-            && entry.deductions.iter().try_fold(0_i64, |sum, d| sum.checked_add(d.amount_krw))
-                .is_some_and(|sum| sum <= entry.gross_krw && entry.net_krw == entry.gross_krw - sum)
-            && (!entry.tax_category_verified || !matches!(entry.tax_category, TaxCategory::Unverified | TaxCategory::Unknown))
-    })
+    snapshot.income.iter().all(|entry| records.insert(entry.id) && validate_income_entry(entry))
+}
+
+pub(crate) fn validate_income_entry(entry: &IncomeEntry) -> bool {
+    !entry.id.is_nil()
+        && !entry.source_name.trim().is_empty()
+        && entry.source_name.len() <= 200
+        && valid_iso_date(&entry.earned_on)
+        && entry.paid_on.as_ref().is_none_or(|date| valid_iso_date(date))
+        && entry.gross_krw >= 0
+        && entry.contract_label.len() <= 200
+        && entry.notes.len() <= 5000
+        && entry.deductions.len() <= 100
+        && entry.deductions.iter().all(|d| d.amount_krw >= 0)
+        && entry.deductions.iter().try_fold(0_i64, |sum, d| sum.checked_add(d.amount_krw))
+            .is_some_and(|sum| sum <= entry.gross_krw && entry.net_krw == entry.gross_krw - sum)
+        && (!entry.tax_category_verified || !matches!(entry.tax_category, TaxCategory::Unverified | TaxCategory::Unknown))
 }
 
 pub(crate) fn decide_restore(

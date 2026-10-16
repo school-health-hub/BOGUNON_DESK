@@ -1,6 +1,6 @@
 # MY FINANCE — Implementation Plan (Phase 1)
 
-Status: SQLCipher store initialization/read IPC added; Windows integrated validation pending. Income CRUD, UI and transactional restore remain gated. **Do not enter real financial data until encrypted persistence and portable backup have been implemented and tested.**
+Status: SQLCipher/DPAPI integration passed Windows validation at 7d18c5e. Transactional income CRUD added; this commit's Windows validation pending. UI and transactional backup restore remain gated. **Do not enter real financial data until encrypted persistence and portable backup have been implemented and tested.**
 
 ## Hard requirements
 - Local-only. No Supabase, BOGUNON web, telemetry, account-settings sync, or cloud transport for financial data.
@@ -68,3 +68,19 @@ Do not mark the Windows integration gate complete until the new commit's Actions
 - Cargo metadata with `--locked --offline --no-deps` and `git diff --check`: passed. Updated lockfile adds previously unresolved crypto dependencies as well as SQLCipher; no existing dependency versions removed.
 - Required Windows DPAPI and integrated app build results must be obtained from the new commit's `MY FINANCE verification` Actions run. No claim of Windows success is made by this local record.
 - At validation time GitHub API access returned HTTP 403, blocking PR comments/check-status API calls. `api.github.com` was added to the cloud environment network draft only; applying settings and confirming API authorization remain necessary to record results directly in the PR conversation.
+
+## Transactional income CRUD
+
+This step exposes `my_finance_list_income`, `my_finance_create_income`, `my_finance_update_income`, and `my_finance_delete_income` through Tauri and the local TypeScript repository. The existing `my_finance_load_snapshot` command stays compatible. List and mutation results contain the complete snapshot, including the next identity token.
+
+Every mutation requires `expected: SnapshotIdentity` from a previous read and a full income entry (create/update) or UUID (delete). Updates replace an existing record by its immutable ID; duplicate creates and missing update/delete targets are errors. No upsert, automatic retry, merge, management screen, or backup restore is added.
+
+SQLite `BEGIN IMMEDIATE` acquires the write lock before reading. The transaction compares the complete schema/dataset/revision/history identity, validates the proposed mutation, appends one random history UUID, increments revision by exactly one, and writes the snapshot payload in a single commit. Separate connections/processes with the same old identity cannot both commit. A busy connection waits at most two seconds before failing. Caller must reload on conflict and explicitly resolve the edit; it must not silently retry with a new identity.
+
+Rust reuses the existing snapshot income validation for real Gregorian dates, nonnegative integer KRW, checked deduction summation, exact net amount, unique nonnil UUIDs, field limits, and verified tax classification. Serde rejects fractional/out-of-i64 amounts and unknown enum values/fields. New CRUD input also caps KRW at JavaScript's exact safe-integer boundary. The existing snapshot schema v2, database schema version 1, backup envelope, and restore lineage policy are unchanged. The existing 100,000 revision/history limit remains fail-closed.
+
+All validation, conflict and database failures roll back without advancing identity or changing stored records. Mutation commands refuse a missing DB instead of silently initializing replacement data. DB path and per-install DPAPI key handling remain local and separate from school/account settings. No financial payload logging or network transport is introduced.
+
+Synthetic regression tests cover CRUD and each reopen, edited amounts and payment date, invalid date/money/tax/JSON, duplicates/missing IDs, stale/different-dataset/diverged tokens, simultaneous independent connections, SQL statement failure, deferred commit failure, and revision limit. Windows adds DPAPI-key-preserving CRUD/reopen and a separate-process test that reloads and updates the same synthetic encrypted store; existing installer QA independently launches/relaunches the actual app. There is no finance-screen end-to-end test because that screen is deliberately out of scope.
+
+Local validation: JavaScript 161 files / 977 tests passed; TypeScript/Vite build passed; isolated Rust core harness 27 tests passed using verified offline Cargo cache. Required Windows Rust/SQLCipher tests, integrated app build/DLL checks, and clean-install QA must pass for the pushed commit before this step is marked complete. The GitHub API remains blocked (HTTP 403), so PR checklist/comment updates require applying the previously saved `api.github.com` network allowance; do not mark them posted until confirmed.

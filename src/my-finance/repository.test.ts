@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { loadFinanceSnapshot } from "./repository";
+import { loadFinanceSnapshot, listFinanceIncome, createFinanceIncome, updateFinanceIncome, deleteFinanceIncome } from "./repository";
 const mocks = vi.hoisted(() => ({ invoke: vi.fn(), isTauri: vi.fn() }));
 vi.mock("@tauri-apps/api/core", () => mocks);
 
@@ -22,5 +22,33 @@ describe("local finance IPC boundary", () => {
     mocks.invoke.mockRejectedValue(new Error("synthetic key failure"));
     await expect(loadFinanceSnapshot()).rejects.toThrow("synthetic key failure");
     expect(mocks.invoke).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("finance CRUD conflict boundary", () => {
+  const identity = { schemaVersion: 2 as const, datasetId: "synthetic", revision: 2, history: ["synthetic-a", "synthetic-b"] };
+  const entry = { id: "synthetic", sourceName: "synthetic", incomeKind: "lecture" as const, contractLabel: "", taxCategory: "unverified" as const, taxCategoryVerified: false, earnedOn: "2026-10-16", paidOn: null, grossKrw: 100, deductions: [], netKrw: 100, notes: "" };
+  beforeEach(() => { vi.resetAllMocks(); mocks.isTauri.mockReturnValue(true); });
+  it("passes the complete expected identity to each native mutation", async () => {
+    await listFinanceIncome();
+    expect(mocks.invoke).toHaveBeenLastCalledWith("my_finance_list_income");
+    await createFinanceIncome(identity, entry);
+    expect(mocks.invoke).toHaveBeenLastCalledWith("my_finance_create_income", { expected: identity, entry });
+    await updateFinanceIncome(identity, entry);
+    expect(mocks.invoke).toHaveBeenLastCalledWith("my_finance_update_income", { expected: identity, entry });
+    await deleteFinanceIncome(identity, entry.id);
+    expect(mocks.invoke).toHaveBeenLastCalledWith("my_finance_delete_income", { expected: identity, id: entry.id });
+  });
+  it("propagates conflict without retrying or refreshing the identity automatically", async () => {
+    mocks.invoke.mockRejectedValue(new Error("synthetic conflict"));
+    await expect(updateFinanceIncome(identity, entry)).rejects.toThrow("synthetic conflict");
+    expect(mocks.invoke).toHaveBeenCalledTimes(1);
+  });
+  it("rejects every browser CRUD call before invoking native code", async () => {
+    mocks.isTauri.mockReturnValue(false);
+    for (const action of [() => listFinanceIncome(), () => createFinanceIncome(identity, entry), () => updateFinanceIncome(identity, entry), () => deleteFinanceIncome(identity, entry.id)]) {
+      await expect(action()).rejects.toThrow("Windows 앱");
+    }
+    expect(mocks.invoke).not.toHaveBeenCalled();
   });
 });

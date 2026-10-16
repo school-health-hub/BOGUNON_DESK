@@ -265,6 +265,10 @@ pub fn run() {
         ))
         .invoke_handler(tauri::generate_handler![
             my_finance_commands::my_finance_load_snapshot,
+            my_finance_commands::my_finance_list_income,
+            my_finance_commands::my_finance_create_income,
+            my_finance_commands::my_finance_update_income,
+            my_finance_commands::my_finance_delete_income,
             ai::validate_ai_connection,
             ai_generation::generate_ai_text,
             chatgpt::commands::chatgpt_get_connection_state,
