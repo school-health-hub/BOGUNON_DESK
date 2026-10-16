@@ -24,9 +24,16 @@ function Block-App([string]$Path) {
 }
 function Install([string]$Path) { $p=Start-Process -FilePath $Path -ArgumentList '/S' -Wait -PassThru; if($p.ExitCode -ne 0){throw "Installer failed: $($p.ExitCode)"} }
 function Launch([string]$Path,[int]$Port) {
- $old=$env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS
- try {$env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=$Port"; $p=Start-Process -FilePath $Path -PassThru; $apps.Add($p); Start-Sleep -Seconds 4; if($p.HasExited){throw 'App exited during launch'};return $p}
- finally {if($null -eq $old){Remove-Item Env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS -ErrorAction SilentlyContinue}else{$env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=$old}}
+ # Start-Process's Windows shell launch did not deliver the temporary parent
+ # setting to WebView2. Supply an explicit child environment without a shell;
+ # never persist debugger settings in either installed app or in the registry.
+ $start=[System.Diagnostics.ProcessStartInfo]::new($Path)
+ $start.UseShellExecute=$false
+ $start.Environment['WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS']="--remote-debugging-port=$Port"
+ $p=[System.Diagnostics.Process]::Start($start);$apps.Add($p)
+ Start-Sleep -Seconds 4
+ if($p.HasExited){throw "App exited during launch: $($p.ExitCode)"}
+ return $p
 }
 function Stop-Owned([System.Diagnostics.Process]$Process) { if(-not $Process.HasExited){ & taskkill /PID $Process.Id /T /F | Out-Null; Start-Sleep -Seconds 3 };if(-not $Process.HasExited){throw 'Owned CI app did not stop'} }
 function Launch-Evidence([int]$Port) {
