@@ -33,12 +33,12 @@ pub(crate) fn inspect_restore(
 mod tests {
     use super::*;
     use uuid::Uuid;
-    use crate::my_finance_snapshot::{IncomeEntry, SnapshotIdentity};
+    use crate::my_finance_snapshot::{IncomeEntry, IncomeKind, TaxCategory, IncomeDeduction, DeductionKind, SnapshotIdentity, SNAPSHOT_SCHEMA_VERSION};
 
     fn snapshot() -> FinanceSnapshot {
         FinanceSnapshot {
             identity: SnapshotIdentity {
-                schema_version: 1,
+                schema_version: SNAPSHOT_SCHEMA_VERSION,
                 dataset_id: Uuid::new_v4(),
                 revision: 1,
                 history: vec![Uuid::new_v4()],
@@ -46,11 +46,15 @@ mod tests {
             income: vec![IncomeEntry {
                 id: Uuid::new_v4(),
                 source_name: "Example".into(),
+                income_kind: IncomeKind::Consulting,
+                contract_label: "advisory".into(),
                 earned_on: "2026-10-15".into(),
                 paid_on: Some("2026-10-15".into()),
                 gross_krw: 400_000,
-                deductions_krw: 3_600,
-                tax_category: "unverified".into(),
+                deductions: vec![IncomeDeduction { kind: DeductionKind::Other, amount_krw: 3_600 }],
+                net_krw: 396_400,
+                notes: String::new(),
+                tax_category: TaxCategory::Unverified,
                 tax_category_verified: false,
             }],
         }
@@ -67,6 +71,13 @@ mod tests {
     }
 
     #[test]
+    fn legacy_schema_is_rejected_without_implicit_migration() {
+        let mut legacy = snapshot();
+        legacy.identity.schema_version = 1;
+        assert!(export_snapshot(&legacy, "long-test-password-123").is_err());
+    }
+
+    #[test]
     fn wrong_password_does_not_produce_a_snapshot() {
         let backup = export_snapshot(&snapshot(), "long-test-password-123").unwrap();
         assert!(inspect_restore(&backup, "wrong-password-123", None).is_err());
@@ -75,7 +86,7 @@ mod tests {
     #[test]
     fn rejects_invalid_snapshot_before_encryption() {
         let mut source = snapshot();
-        source.income[0].deductions_krw = 999_999;
+        source.income[0].deductions[0].amount_krw = 999_999;
         assert!(export_snapshot(&source, "long-test-password-123").is_err());
     }
 
