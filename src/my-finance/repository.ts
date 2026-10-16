@@ -44,3 +44,28 @@ export async function deleteFinanceIncome(expected: FinanceIdentity, id: string)
   requireNative();
   return invoke<FinanceSnapshot>("my_finance_delete_income", { expected, id });
 }
+
+export type RestorePreview = Readonly<{
+  token: string; eligible: boolean; reason: string;
+  currentRevision: number; backupRevision: number; recordCount: number;
+}>;
+export async function exportFinanceBackup(expected: FinanceIdentity, password: string): Promise<boolean> {
+  requireNative();
+  return invoke<boolean>("my_finance_export_backup", { expected, password });
+}
+export async function selectFinanceBackup(): Promise<string | null> {
+  requireNative();
+  return invoke<string | null>("my_finance_select_backup");
+}
+export async function inspectFinanceBackup(token: string, password: string): Promise<RestorePreview> {
+  requireNative();
+  return invoke<RestorePreview>("my_finance_inspect_backup", { token, password });
+}
+export async function restoreFinanceBackup(token: string): Promise<FinanceSnapshot> {
+  requireNative();
+  return invoke<FinanceSnapshot>("my_finance_restore_backup", { token });
+}
+export async function cancelFinanceBackup(token: string): Promise<void> {
+  requireNative();
+  return invoke<void>("my_finance_cancel_backup", { token });
+}

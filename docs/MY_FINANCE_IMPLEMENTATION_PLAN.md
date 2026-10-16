@@ -102,3 +102,8 @@ Local evidence:
 - Chromium synthetic IPC verifies the renderer contract only; actual SQLCipher/DPAPI and the Windows app build/install/relaunch must pass in Actions for this commit. No production fixture data or browser fallback is shipped.
 
 No backup/restore screen/command, cross-PC transfer, investment/asset management, main merge or deployment is part of this step. Keep Draft PR #14 and real-use readiness gates open. If GitHub API access is still HTTP 403, report code/CI results and the blocked checklist/comment update without broadening network access or replacing an unreadable PR body.
+
+
+## Encrypted backup and safe restore integration
+
+The native backup/restore flow and its fail-closed policy are documented in [MY_FINANCE_BACKUP_RESTORE.md](MY_FINANCE_BACKUP_RESTORE.md). The existing portable envelope/schema and SQLCipher/DPAPI keys remain compatible. The restore pre-image is committed to the encrypted local safety table before an atomic live-payload replacement; full pre-image comparisons and immediate transactions reject intervening writes. Native file dialogs, expiring single-use tickets, explicit final confirmation and static UI errors are used throughout. Fresh-PC dataset adoption remains blocked under the different-dataset policy. Real two-PC validation and disaster recovery readiness remain open.

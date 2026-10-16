@@ -3,18 +3,21 @@ use crate::my_finance_snapshot::FinanceSnapshot;
 use std::sync::{Arc, Mutex};
 
 #[derive(Default)]
-pub(crate) struct FinanceState(Arc<Mutex<()>>);
+pub(crate) struct FinanceState(
+    Arc<Mutex<()>>,
+    Arc<Mutex<crate::my_finance_transfer::TransferSession>>,
+);
 
 use crate::my_finance_snapshot::{IncomeEntry, SnapshotIdentity};
 use crate::my_finance_store::{FinanceStore, IncomeMutation};
 use uuid::Uuid;
 
-async fn run(
+async fn run<T: Send + 'static>(
     app: tauri::AppHandle,
     lock: Arc<Mutex<()>>,
     initialize: bool,
-    operation: impl FnOnce(&mut FinanceStore) -> Result<FinanceSnapshot, &'static str> + Send + 'static,
-) -> Result<FinanceSnapshot, &'static str> {
+    operation: impl FnOnce(&mut FinanceStore) -> Result<T, &'static str> + Send + 'static,
+) -> Result<T, &'static str> {
     tauri::async_runtime::spawn_blocking(move || {
         let _guard = lock.lock().map_err(|_| "금융 저장소가 사용 중입니다.")?;
         with_local_store(&app, initialize, operation)
@@ -78,21 +81,137 @@ pub(crate) async fn my_finance_delete_income(
     .await
 }
 
+/// The dialog supplies the only filesystem path; renderer never provides one.
+#[tauri::command]
+pub(crate) async fn my_finance_export_backup(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, FinanceState>,
+    expected: SnapshotIdentity,
+    password: String,
+) -> Result<bool, &'static str> {
+    use tauri_plugin_dialog::DialogExt;
+    let password = zeroize::Zeroizing::new(password);
+    let dialog_app = app.clone();
+    run(app, state.inner().0.clone(), false, move |store| {
+        let current = store.load()?;
+        if current.identity != expected {
+            return Err("금융 데이터가 변경되었습니다. 최신 목록을 다시 불러와 주세요.");
+        }
+        let encrypted = crate::my_finance_codec::export_snapshot(&current, &password)?;
+        drop(password);
+        let Some(file) = dialog_app
+            .dialog()
+            .file()
+            .set_file_name("my-finance.bgfnbk")
+            .add_filter("MY FINANCE 암호화 백업", &["bgfnbk"])
+            .blocking_save_file()
+        else {
+            return Ok(false);
+        };
+        let path = file
+            .into_path()
+            .map_err(|_| "백업 저장 위치를 확인하지 못했습니다.")?;
+        crate::my_finance_transfer::write_backup(&path, &encrypted)?;
+        Ok(true)
+    })
+    .await
+}
+
+#[tauri::command]
+pub(crate) async fn my_finance_select_backup(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, FinanceState>,
+) -> Result<Option<Uuid>, &'static str> {
+    use tauri_plugin_dialog::DialogExt;
+    let session = state.inner().1.clone();
+    let dialog_app = app.clone();
+    run(app, state.inner().0.clone(), false, move |_store| {
+        let mut session = session.lock().map_err(|_| "백업 세션을 열지 못했습니다.")?;
+        session.cancel();
+        let Some(file) = dialog_app
+            .dialog()
+            .file()
+            .add_filter("MY FINANCE 암호화 백업", &["bgfnbk"])
+            .blocking_pick_file()
+        else {
+            return Ok(None);
+        };
+        let path = file
+            .into_path()
+            .map_err(|_| "백업 파일을 확인하지 못했습니다.")?;
+        session
+            .select(crate::my_finance_transfer::read_backup(&path)?)
+            .map(Some)
+    })
+    .await
+}
+
+#[tauri::command]
+pub(crate) async fn my_finance_inspect_backup(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, FinanceState>,
+    token: Uuid,
+    password: String,
+) -> Result<crate::my_finance_transfer::RestorePreview, &'static str> {
+    let password = zeroize::Zeroizing::new(password);
+    let session = state.inner().1.clone();
+    run(app, state.inner().0.clone(), false, move |store| {
+        session
+            .lock()
+            .map_err(|_| "백업 세션을 열지 못했습니다.")?
+            .inspect(token, &password, &store.load()?)
+    })
+    .await
+}
+
+#[tauri::command]
+pub(crate) async fn my_finance_restore_backup(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, FinanceState>,
+    token: Uuid,
+) -> Result<FinanceSnapshot, &'static str> {
+    let session = state.inner().1.clone();
+    run(app, state.inner().0.clone(), false, move |store| {
+        session
+            .lock()
+            .map_err(|_| "백업 세션을 열지 못했습니다.")?
+            .commit(token, store)
+    })
+    .await
+}
+
+#[tauri::command]
+pub(crate) async fn my_finance_cancel_backup(
+    state: tauri::State<'_, FinanceState>,
+    token: Uuid,
+) -> Result<(), &'static str> {
+    let session = state.inner().1.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        session
+            .lock()
+            .map_err(|_| "백업 세션을 닫지 못했습니다.")?
+            .cancel_ticket(token);
+        Ok(())
+    })
+    .await
+    .map_err(|_| "백업 세션을 닫지 못했습니다.")?
+}
+
 #[cfg(not(windows))]
-fn with_local_store(
+fn with_local_store<T>(
     _app: &tauri::AppHandle,
     _initialize: bool,
-    _operation: impl FnOnce(&mut FinanceStore) -> Result<FinanceSnapshot, &'static str>,
-) -> Result<FinanceSnapshot, &'static str> {
+    _operation: impl FnOnce(&mut FinanceStore) -> Result<T, &'static str>,
+) -> Result<T, &'static str> {
     Err("암호화 금융 저장소는 Windows에서만 사용할 수 있습니다.")
 }
 
 #[cfg(windows)]
-fn with_local_store(
+fn with_local_store<T>(
     app: &tauri::AppHandle,
     initialize: bool,
-    operation: impl FnOnce(&mut FinanceStore) -> Result<FinanceSnapshot, &'static str>,
-) -> Result<FinanceSnapshot, &'static str> {
+    operation: impl FnOnce(&mut FinanceStore) -> Result<T, &'static str>,
+) -> Result<T, &'static str> {
     use tauri::Manager;
     let root = app
         .path()
@@ -265,6 +384,32 @@ mod tests {
             .unwrap()
             .apply(&first.identity, IncomeMutation::Create(entry))
             .unwrap();
+        // Exercise the real DPAPI-owned store through the portable envelope,
+        // staged inspection and atomic restore before launching another process.
+        let mut incoming = created.clone();
+        incoming.identity.revision += 1;
+        incoming.identity.history.push(Uuid::new_v4());
+        incoming.income[0].notes = "synthetic portable restore".into();
+        let encrypted =
+            crate::my_finance_codec::export_snapshot(&incoming, "synthetic-password-123").unwrap();
+        let mut session = crate::my_finance_transfer::TransferSession::default();
+        let token = session.select(encrypted).unwrap();
+        assert!(
+            session
+                .inspect(token, "synthetic-password-123", &created)
+                .unwrap()
+                .eligible
+        );
+        let protected_key = std::fs::read(dir.path().join("key.dpapi")).unwrap();
+        let created = session
+            .commit(token, &mut open_at(dir.path()).unwrap())
+            .unwrap();
+        assert_eq!(created, incoming);
+        assert_eq!(load_at(dir.path()).unwrap(), incoming);
+        assert_eq!(
+            std::fs::read(dir.path().join("key.dpapi")).unwrap(),
+            protected_key
+        );
         let full_name = concat!(module_path!(), "::my_finance_dpapi_process_restart");
         let test_name = full_name.split_once("::").unwrap().1;
         let status = std::process::Command::new(std::env::current_exe().unwrap())

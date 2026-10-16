@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { loadFinanceSnapshot, listFinanceIncome, createFinanceIncome, updateFinanceIncome, deleteFinanceIncome } from "./repository";
+import { loadFinanceSnapshot, listFinanceIncome, createFinanceIncome, updateFinanceIncome, deleteFinanceIncome, exportFinanceBackup, selectFinanceBackup, inspectFinanceBackup, restoreFinanceBackup, cancelFinanceBackup } from "./repository";
 const mocks = vi.hoisted(() => ({ invoke: vi.fn(), isTauri: vi.fn() }));
 vi.mock("@tauri-apps/api/core", () => mocks);
 
@@ -48,6 +48,28 @@ describe("finance CRUD conflict boundary", () => {
     mocks.isTauri.mockReturnValue(false);
     for (const action of [() => listFinanceIncome(), () => createFinanceIncome(identity, entry), () => updateFinanceIncome(identity, entry), () => deleteFinanceIncome(identity, entry.id)]) {
       await expect(action()).rejects.toThrow("Windows 앱");
+    }
+    expect(mocks.invoke).not.toHaveBeenCalled();
+  });
+});
+
+
+describe("finance backup IPC boundary", () => {
+  const expected = { schemaVersion: 2 as const, datasetId: "synthetic", revision: 1, history: ["synthetic"] };
+  beforeEach(() => { vi.resetAllMocks(); mocks.isTauri.mockReturnValue(true); });
+  it("uses only native dialog commands and an opaque single-use restore ticket", async () => {
+    await exportFinanceBackup(expected, "synthetic-password-123");
+    expect(mocks.invoke).toHaveBeenLastCalledWith("my_finance_export_backup", { expected, password: "synthetic-password-123" });
+    await selectFinanceBackup(); expect(mocks.invoke).toHaveBeenLastCalledWith("my_finance_select_backup");
+    await inspectFinanceBackup("synthetic-ticket", "synthetic-password-123");
+    expect(mocks.invoke).toHaveBeenLastCalledWith("my_finance_inspect_backup", { token: "synthetic-ticket", password: "synthetic-password-123" });
+    await restoreFinanceBackup("synthetic-ticket"); expect(mocks.invoke).toHaveBeenLastCalledWith("my_finance_restore_backup", { token: "synthetic-ticket" });
+    await cancelFinanceBackup("synthetic-ticket"); expect(mocks.invoke).toHaveBeenLastCalledWith("my_finance_cancel_backup", { token: "synthetic-ticket" });
+  });
+  it("refuses all backup operations in a browser without invoking any native command", async () => {
+    mocks.isTauri.mockReturnValue(false);
+    for (const task of [() => exportFinanceBackup(expected, "synthetic-password-123"), selectFinanceBackup, () => inspectFinanceBackup("synthetic-ticket", "synthetic-password-123"), () => restoreFinanceBackup("synthetic-ticket"), () => cancelFinanceBackup("synthetic-ticket")]) {
+      await expect(task()).rejects.toThrow("Windows 앱");
     }
     expect(mocks.invoke).not.toHaveBeenCalled();
   });

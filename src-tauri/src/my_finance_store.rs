@@ -165,6 +165,72 @@ impl FinanceStore {
         Ok(snapshot)
     }
 
+    /// A durable, encrypted pre-image is committed BEFORE replacing the live
+    /// snapshot. A second BEGIN IMMEDIATE/CAS prevents a race between commits.
+    /// Safety images remain local to this SQLCipher DB and are never exported.
+    pub(crate) fn restore(
+        &mut self,
+        expected: &FinanceSnapshot,
+        incoming: FinanceSnapshot,
+    ) -> Result<FinanceSnapshot, &'static str> {
+        self.restore_with_hook(expected, incoming, || Ok(()))
+    }
+
+    fn restore_with_hook(
+        &mut self,
+        expected: &FinanceSnapshot,
+        incoming: FinanceSnapshot,
+        after_update: impl FnOnce() -> Result<(), &'static str>,
+    ) -> Result<FinanceSnapshot, &'static str> {
+        let tx = self
+            .0
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(|_| CONFLICT)?;
+        let current = Self::read_snapshot(&tx)?;
+        if &current != expected {
+            return Err(CONFLICT);
+        }
+        if restore_decision(&current, &incoming)
+            != crate::my_finance_snapshot::RestoreDecision::AllowForward
+        {
+            return Err("이 백업은 현재 데이터에 복원할 수 없습니다.");
+        }
+        let safety = Zeroizing::new(serde_json::to_vec(&current).map_err(|_| STORAGE_ERROR)?);
+        tx.execute_batch("CREATE TABLE IF NOT EXISTS finance_restore_safety (id TEXT PRIMARY KEY, payload BLOB NOT NULL);").map_err(|_| STORAGE_ERROR)?;
+        tx.execute(
+            "INSERT INTO finance_restore_safety(id,payload) VALUES(?1,?2)",
+            rusqlite::params![Uuid::new_v4().to_string(), safety.as_slice()],
+        )
+        .map_err(|_| STORAGE_ERROR)?;
+        tx.commit().map_err(|_| STORAGE_ERROR)?;
+
+        let tx = self
+            .0
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(|_| CONFLICT)?;
+        // Compare the full pre-image too: an identity alone must not authorize
+        // replacing a payload changed out of band under the same identity.
+        if Self::read_snapshot(&tx)? != current {
+            return Err(CONFLICT);
+        }
+        let payload = Zeroizing::new(serde_json::to_vec(&incoming).map_err(|_| STORAGE_ERROR)?);
+        if tx
+            .execute(
+                "UPDATE finance_snapshot SET payload=?1 WHERE singleton=1",
+                [payload.as_slice()],
+            )
+            .map_err(|_| STORAGE_ERROR)?
+            != 1
+        {
+            return Err(STORAGE_ERROR);
+        }
+        after_update()?;
+        tx.commit().map_err(|_| STORAGE_ERROR)?;
+        // Adopt the exact incoming lineage; creating a new local revision here
+        // would fork the portable dataset on every transfer.
+        Ok(incoming)
+    }
+
     fn validate_input(entry: &IncomeEntry) -> Result<(), &'static str> {
         // JSON/JavaScript must represent every KRW amount exactly. Serde i64
         // rejects fractional/out-of-range numbers before they reach this layer.
@@ -317,3 +383,28 @@ mod tests {
 #[cfg(test)]
 #[path = "my_finance_store_tests.rs"]
 mod crud_tests;
+
+/// Validate both content and lineage; never infer eligibility from UI metadata.
+pub(crate) fn restore_decision(
+    current: &FinanceSnapshot,
+    incoming: &FinanceSnapshot,
+) -> crate::my_finance_snapshot::RestoreDecision {
+    use crate::my_finance_snapshot::{decide_restore, RestoreDecision};
+    if incoming
+        .income
+        .iter()
+        .any(|entry| FinanceStore::validate_input(entry).is_err())
+    {
+        return RestoreDecision::RejectInvalid;
+    }
+    let decision = decide_restore(Some(&current.identity), incoming);
+    if decision == RestoreDecision::AlreadyCurrent && incoming != current {
+        RestoreDecision::RejectDiverged
+    } else {
+        decision
+    }
+}
+
+#[cfg(test)]
+#[path = "my_finance_restore_tests.rs"]
+mod restore_tests;
