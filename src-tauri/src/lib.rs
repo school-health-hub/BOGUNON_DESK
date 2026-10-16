@@ -236,6 +236,12 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "my-finance-qa")]
+mod my_finance_qa;
+#[cfg(feature = "my-finance-qa")]
+pub use my_finance_qa::run;
+
+#[cfg(not(feature = "my-finance-qa"))]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default();

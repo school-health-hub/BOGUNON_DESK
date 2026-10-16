@@ -30,3 +30,7 @@ release-output/
 *.njsproj
 *.sln
 *.sw?
+
+/dist-my-finance-qa/
+/operating-source/
+/artifacts/my-finance-qa*/

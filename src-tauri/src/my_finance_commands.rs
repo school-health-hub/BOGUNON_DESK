@@ -214,6 +214,10 @@ fn with_local_store<T>(
     operation: impl FnOnce(&mut FinanceStore) -> Result<T, &'static str>,
 ) -> Result<T, &'static str> {
     use tauri::Manager;
+    #[cfg(feature = "my-finance-qa")]
+    if app.config().identifier != "kr.sungandi.schoolhealthdesk.myfinanceqa" {
+        return Err("QA 저장소 식별자가 올바르지 않습니다.");
+    }
     let root = app
         .path()
         .app_local_data_dir()
@@ -508,5 +512,32 @@ mod tests {
             .status()
             .unwrap();
         assert!(status.success());
+    }
+    #[test]
+    #[ignore = "Explicit fresh GitHub-hosted Windows isolation fixture only"]
+    fn my_finance_qa_seed_operating_fixture() {
+        assert_eq!(std::env::var("GITHUB_ACTIONS").as_deref(), Ok("true"));
+        assert_eq!(
+            std::env::var("RUNNER_ENVIRONMENT").as_deref(),
+            Ok("github-hosted")
+        );
+        assert_eq!(
+            std::env::var("BOGUNON_SEED_ISOLATION_FIXTURE").as_deref(),
+            Ok("SYNTHETIC_ONLY")
+        );
+        let root = std::path::PathBuf::from(std::env::var_os("LOCALAPPDATA").unwrap())
+            .join("kr.sungandi.schoolhealthdesk/my-finance");
+        assert!(
+            !root.join("finance.db").exists() && !root.join("key.dpapi").exists(),
+            "Never overwrite an existing fixture/store"
+        );
+        let first = load_at(&root).unwrap();
+        let mut entry = crate::my_finance_store::cross_pc_tests::expected_income().remove(0);
+        entry.source_name = "SYNTHETIC OPERATING DATA DO NOT MODIFY".into();
+        let expected = open_at(&root)
+            .unwrap()
+            .apply(&first.identity, IncomeMutation::Create(entry))
+            .unwrap();
+        assert_eq!(load_at(&root).unwrap(), expected);
     }
 }
