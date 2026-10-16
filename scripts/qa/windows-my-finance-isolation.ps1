@@ -39,7 +39,7 @@ function Operating-State([switch]$StableOnly) {
  $state=[ordered]@{}; $roots=@($operatingDir)
  if($StableOnly){$roots+=@(Join-Path $operatingLocal 'my-finance');$roots+=@(Join-Path $operatingRoaming 'synthetic-preserved-work.json')}else{$roots+=@($operatingLocal,$operatingRoaming)}
  foreach($root in $roots){if(Test-Path -LiteralPath $root){foreach($file in Get-ChildItem -LiteralPath $root -Recurse -File -Force|Sort-Object FullName){$state[$file.FullName]=(Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash}}}
- foreach($root in @($operatingRegistry,"HKCU:\Software\Classes\school-health-desk","HKLM:\Software\Classes\school-health-desk","HKCU:\Software\BOGUNON DESK","HKCU:\Software\Classes\AppUserModelId\$operatingId","HKCU:\Software\Microsoft\Windows\CurrentVersion\Run")){ $state[$root]=Registry-State $root }
+ foreach($root in @($operatingRegistry,"HKCU:\Software\Classes\school-health-desk","HKLM:\Software\Classes\school-health-desk","HKCU:\Software\School Health Desk\BOGUNON DESK","HKLM:\Software\School Health Desk\BOGUNON DESK","HKCU:\Software\Classes\AppUserModelId\$operatingId","HKCU:\Software\Microsoft\Windows\CurrentVersion\Run")){ $state[$root]=Registry-State $root }
  $runKey='HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
  $state['operatingAutostart']=if(Test-Path $runKey){(Get-Item $runKey).GetValue('BOGUNON DESK')}else{$null}
  foreach($root in @((Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'),[Environment]::GetFolderPath('Desktop'))){if(Test-Path $root){foreach($file in Get-ChildItem $root -Filter '*.lnk' -Recurse|Where-Object {$_.BaseName -eq $operatingName}){$state[$file.FullName]=(Get-FileHash $file.FullName).Hash}}}

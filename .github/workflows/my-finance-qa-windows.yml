@@ -41,6 +41,12 @@ jobs:
           workspaces: |
             src-tauri
             operating-source/src-tauri
+      - name: Parse destructive-test guards before any build or install
+        shell: pwsh
+        run: |
+          $tokens = $null; $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path scripts/qa/windows-my-finance-isolation.ps1), [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count) { $errors | ForEach-Object { Write-Output "::error title=QA_SCRIPT_PARSE::$($_.Message)" }; throw 'Invalid isolation script' }
       - run: npm ci
       - run: npm test -- --maxWorkers=4
       - run: npm run build
