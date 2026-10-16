@@ -7,16 +7,36 @@ publish = false
 [lib]
 path = "verification.rs"
 
+[[bin]]
+name = "desktop-surface-live"
+path = "live_main.rs"
+required-features = ["live-windows-skip-miri"]
+test = false
+bench = false
+
+[[bin]]
+name = "desktop-surface-synthetic"
+path = "synthetic_main.rs"
+required-features = ["synthetic-subprocess"]
+test = false
+bench = false
+
+[[test]]
+name = "protocol_subprocess"
+path = "protocol_subprocess.rs"
+required-features = ["synthetic-subprocess"]
+
 [features]
 default = []
 live-windows-skip-miri = []
+synthetic-subprocess = []
 
-[dev-dependencies]
+[dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
 
-[target.'cfg(windows)'.dev-dependencies]
+[target.'cfg(windows)'.dependencies]
 windows = { version = "=0.61.3", features = [
   "Win32_Foundation", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging",
   "Win32_UI_HiDpi", "Win32_System_Threading", "Win32_System_RemoteDesktop",

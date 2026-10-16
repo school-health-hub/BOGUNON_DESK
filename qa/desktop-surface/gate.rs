@@ -43,9 +43,9 @@ pub fn verify(approval: &Approval, actual: (&Path, &str, &str)) -> Result<(), Ga
     Ok(())
 }
 
-#[cfg(feature = "live-windows-skip-miri")]
+#[cfg(all(feature = "live-windows-skip-miri", not(test)))]
 pub struct LivePermit(());
-#[cfg(feature = "live-windows-skip-miri")]
+#[cfg(all(feature = "live-windows-skip-miri", not(test)))]
 pub fn authorize() -> Result<LivePermit, GateError> {
     use sha2::{Digest, Sha256};
     use std::{fs, io::Read, os::windows::fs::MetadataExt};

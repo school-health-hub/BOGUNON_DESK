@@ -23,10 +23,3 @@ mod outcome;
 mod reader_mock_tests;
 mod window_lifecycle;
 mod window_observation;
-
-#[cfg(feature = "live-windows-skip-miri")]
-mod live;
-#[cfg(feature = "live-windows-skip-miri")]
-mod live_permissions;
-#[cfg(feature = "live-windows-skip-miri")]
-mod test_window;

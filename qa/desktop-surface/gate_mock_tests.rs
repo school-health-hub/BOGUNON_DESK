@@ -85,12 +85,15 @@ fn gate_errors_carry_no_paths_handles_or_environment_values() {
 fn default_source_does_not_include_live_modules_without_feature() {
     let root = include_str!("verification.rs");
     for module in ["live", "live_permissions", "test_window"] {
-        assert!(root.contains(&format!(
-            "#[cfg(feature = \"live-windows-skip-miri\")]\nmod {module};"
-        )));
+        assert!(!root.contains(&format!("mod {module};")));
     }
     let live = include_str!("live.rs");
-    assert!(live.contains("#[ignore = "));
+    assert!(!live.contains("#[test]"));
+    let manifest = include_str!("Cargo.toml");
+    assert!(manifest
+        .contains("required-features = [\"live-windows-skip-miri\"]\ntest = false\nbench = false"));
+    assert!(!include_str!("synthetic_main.rs").contains("mod live;"));
+    assert!(!include_str!("synthetic_main.rs").contains("mod test_window;"));
     assert!(
         live.find("gate::authorize()").unwrap() < live.find("NativeWindows::new(permit)").unwrap()
     );
