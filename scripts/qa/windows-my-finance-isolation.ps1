@@ -29,7 +29,13 @@ function Launch([string]$Path,[int]$Port) {
  finally {if($null -eq $old){Remove-Item Env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS -ErrorAction SilentlyContinue}else{$env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=$old}}
 }
 function Stop-Owned([System.Diagnostics.Process]$Process) { if(-not $Process.HasExited){ & taskkill /PID $Process.Id /T /F | Out-Null; Start-Sleep -Seconds 3 };if(-not $Process.HasExited){throw 'Owned CI app did not stop'} }
-function Probe([int]$Port,[string]$Mode,[string]$Name) { & node scripts/qa/my-finance-qa-cdp.mjs $Port $Mode (Join-Path $out "$Name.json"); if($LASTEXITCODE -ne 0){throw "Installed app probe failed: $Name"} }
+function Probe([int]$Port,[string]$Mode,[string]$Name) {
+ # Only synthetic CI probes run here. Preserve the actual failing stage in the
+ # annotation; artifact/log downloads are not always available to API clients.
+ $probeLog=Join-Path $out "$Name-probe.txt"
+ & node scripts/qa/my-finance-qa-cdp.mjs $Port $Mode (Join-Path $out "$Name.json") 2>&1 | Tee-Object -FilePath $probeLog
+ if($LASTEXITCODE -ne 0){$detail=(Get-Content $probeLog -Tail 16)-join "`n";throw "Installed app probe failed: $Name`n$detail"}
+}
 function Registry-State([string]$Root) {
  $values=[ordered]@{}
  if(Test-Path -LiteralPath $Root){foreach($key in @((Get-Item -LiteralPath $Root)) + @(Get-ChildItem -LiteralPath $Root -Recurse)){foreach($name in $key.GetValueNames()|Sort-Object){$values["$($key.Name)::$name"]=$key.GetValue($name)}}}
