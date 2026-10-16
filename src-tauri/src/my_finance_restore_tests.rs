@@ -22,6 +22,15 @@ fn forward(current: &FinanceSnapshot) -> FinanceSnapshot {
     });
     next
 }
+fn seed(store: &mut FinanceStore) -> FinanceSnapshot {
+    let initial = store.load().unwrap();
+    let mut entry = forward(&initial).income.remove(0);
+    entry.source_name = "SYNTHETIC EXISTING DATA".into();
+    entry.notes = "synthetic original must survive".into();
+    store
+        .apply(&initial.identity, IncomeMutation::Create(entry))
+        .unwrap()
+}
 fn safety(store: &FinanceStore) -> FinanceSnapshot {
     let bytes: Vec<u8> = store
         .0
@@ -38,7 +47,7 @@ fn my_finance_restore_durable_safety_and_exact_reopen() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("finance.db");
     let mut store = FinanceStore::open(&path, &[42; 32]).unwrap();
-    let original = store.load().unwrap();
+    let original = seed(&mut store);
     let next = forward(&original);
     assert_eq!(store.restore(&original, next.clone()).unwrap(), next);
     assert_eq!(safety(&store), original);
@@ -57,7 +66,7 @@ fn my_finance_restore_blocks_all_ineligible_cases_without_writes() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("finance.db");
     let mut store = FinanceStore::open(&path, &[42; 32]).unwrap();
-    let first = store.load().unwrap();
+    let first = seed(&mut store);
     let current = forward(&first);
     store.restore(&first, current.clone()).unwrap();
     let mut other = forward(&current);
@@ -91,7 +100,7 @@ fn my_finance_restore_blocks_all_ineligible_cases_without_writes() {
 fn my_finance_restore_stale_confirmation_and_safety_failure_preserve_live_data() {
     let dir = tempfile::tempdir().unwrap();
     let mut store = FinanceStore::open(&dir.path().join("finance.db"), &[42; 32]).unwrap();
-    let first = store.load().unwrap();
+    let first = seed(&mut store);
     let next = forward(&first);
     let mut changed = first.clone();
     changed.identity.history[0] = Uuid::new_v4();
@@ -106,7 +115,7 @@ fn my_finance_restore_update_and_commit_failures_roll_back_but_keep_safety() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("finance.db");
         let mut store = FinanceStore::open(&path, &[42; 32]).unwrap();
-        let first = store.load().unwrap();
+        let first = seed(&mut store);
         let next = forward(&first);
         if mode == 0 {
             store.0.execute_batch("CREATE TRIGGER fail_restore BEFORE UPDATE ON finance_snapshot BEGIN SELECT RAISE(ABORT,'synthetic update failure'); END;").unwrap();
@@ -152,10 +161,14 @@ fn my_finance_restore_process_interruption_and_restart() {
             let _ = store.restore_with_hook(&current, next, || std::process::exit(73));
             panic!("synthetic interruption did not run");
         }
-        assert_eq!(current.income.len(), 1);
-        assert_eq!(current.income[0].notes, "synthetic restored");
-        assert_eq!(current.identity.revision, 2);
-        assert_eq!(safety(&store).identity.revision, 1);
+        assert_eq!(current.income.len(), 2);
+        assert_eq!(current.income[0].notes, "synthetic original must survive");
+        assert_eq!(current.income[1].notes, "synthetic restored");
+        assert_eq!(current.identity.revision, 3);
+        let previous = safety(&store);
+        assert_eq!(previous.identity.revision, 2);
+        assert_eq!(previous.income.len(), 1);
+        assert_eq!(previous.income[0], current.income[0]);
         return;
     }
     let dir = tempfile::Builder::new()
@@ -163,10 +176,7 @@ fn my_finance_restore_process_interruption_and_restart() {
         .tempdir()
         .unwrap();
     let path = dir.path().join("finance.db");
-    let first = FinanceStore::open(&path, &[42; 32])
-        .unwrap()
-        .load()
-        .unwrap();
+    let first = seed(&mut FinanceStore::open(&path, &[42; 32]).unwrap());
     let full = concat!(
         module_path!(),
         "::my_finance_restore_process_interruption_and_restart"
