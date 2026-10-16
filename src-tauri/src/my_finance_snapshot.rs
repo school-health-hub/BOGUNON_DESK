@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-pub(crate) const SNAPSHOT_SCHEMA_VERSION: u32 = 1;
+pub(crate) const SNAPSHOT_SCHEMA_VERSION: u32 = 2;
 const MAX_RECORDS: usize = 100_000;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -16,16 +16,39 @@ pub(crate) struct SnapshotIdentity {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum IncomeKind { Salary, Consulting, Ebook, Lecture, Other }
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum TaxCategory { Unverified, Employment, Business, OtherIncome, Royalty, NonTaxable, Unknown }
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum DeductionKind { IncomeTax, LocalIncomeTax, EmploymentInsurance, PlatformFee, Other }
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct IncomeDeduction {
+    pub kind: DeductionKind,
+    pub amount_krw: i64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct IncomeEntry {
     pub id: Uuid,
     pub source_name: String,
+    pub income_kind: IncomeKind,
+    pub contract_label: String,
+    pub tax_category: TaxCategory,
+    pub tax_category_verified: bool,
     pub earned_on: String,
     pub paid_on: Option<String>,
     pub gross_krw: i64,
-    pub deductions_krw: i64,
-    pub tax_category: String,
-    pub tax_category_verified: bool,
+    pub deductions: Vec<IncomeDeduction>,
+    pub net_krw: i64,
+    pub notes: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -90,10 +113,13 @@ pub(crate) fn validate_snapshot(snapshot: &FinanceSnapshot) -> bool {
             && valid_iso_date(&entry.earned_on)
             && entry.paid_on.as_ref().is_none_or(|date| valid_iso_date(date))
             && entry.gross_krw >= 0
-            && entry.deductions_krw >= 0
-            && entry.deductions_krw <= entry.gross_krw
-            && entry.tax_category.len() <= 64
-            && (!entry.tax_category_verified || !matches!(entry.tax_category.as_str(), "unverified" | "unknown"))
+            && entry.contract_label.len() <= 200
+            && entry.notes.len() <= 5000
+            && entry.deductions.len() <= 100
+            && entry.deductions.iter().all(|d| d.amount_krw >= 0)
+            && entry.deductions.iter().try_fold(0_i64, |sum, d| sum.checked_add(d.amount_krw))
+                .is_some_and(|sum| sum <= entry.gross_krw && entry.net_krw == entry.gross_krw - sum)
+            && (!entry.tax_category_verified || !matches!(entry.tax_category, TaxCategory::Unverified | TaxCategory::Unknown))
     })
 }
 
@@ -130,7 +156,7 @@ mod tests {
     fn fixture() -> FinanceSnapshot {
         FinanceSnapshot {
             identity: SnapshotIdentity {
-                schema_version: 1,
+                schema_version: SNAPSHOT_SCHEMA_VERSION,
                 dataset_id: Uuid::new_v4(),
                 revision: 1,
                 history: vec![Uuid::new_v4()],
@@ -138,11 +164,15 @@ mod tests {
             income: vec![IncomeEntry {
                 id: Uuid::new_v4(),
                 source_name: "Example".into(),
+                income_kind: IncomeKind::Consulting,
+                contract_label: "advisory".into(),
                 earned_on: "2026-10-15".into(),
                 paid_on: None,
                 gross_krw: 400_000,
-                deductions_krw: 3_600,
-                tax_category: "unverified".into(),
+                deductions: vec![IncomeDeduction { kind: DeductionKind::Other, amount_krw: 3_600 }],
+                net_krw: 396_400,
+                notes: String::new(),
+                tax_category: TaxCategory::Unverified,
                 tax_category_verified: false,
             }],
         }
@@ -175,6 +205,19 @@ mod tests {
     }
 
     #[test]
+    fn rejects_legacy_schema_and_inconsistent_net_amount() {
+        let mut snapshot = fixture();
+        snapshot.identity.schema_version = 1;
+        assert!(!validate_snapshot(&snapshot));
+        let mut snapshot = fixture();
+        snapshot.income[0].net_krw = 396_401;
+        assert!(!validate_snapshot(&snapshot));
+        let mut snapshot = fixture();
+        snapshot.income[0].deductions.push(IncomeDeduction { kind: DeductionKind::Other, amount_krw: i64::MAX });
+        assert!(!validate_snapshot(&snapshot));
+    }
+
+    #[test]
     fn rejects_invalid_records_and_unsupported_versions() {
         let mut snapshot = fixture();
         snapshot.income[0].earned_on = "2026-02-30".into();
@@ -183,7 +226,7 @@ mod tests {
         snapshot.identity.schema_version = 99;
         assert_eq!(decide_restore(None, &snapshot), RestoreDecision::RejectInvalid);
         snapshot = fixture();
-        snapshot.income[0].deductions_krw = 400_001;
+        snapshot.income[0].deductions[0].amount_krw = 400_001;
         assert_eq!(decide_restore(None, &snapshot), RestoreDecision::RejectInvalid);
     }
 }
