@@ -105,6 +105,7 @@ pub(super) enum QueryError {
     IdentityChanged,
     ShellIdentity,
     TopologyChanged,
+    NoEligibleWorker,
     AmbiguousWorker,
     DpiMismatch,
 }

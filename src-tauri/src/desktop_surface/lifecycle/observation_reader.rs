@@ -33,7 +33,7 @@ fn eligible<'a>(
             && w.follows_host
             && w.identity.id != topology.host.id
     });
-    let candidate = candidates.next().ok_or(QueryError::AmbiguousWorker)?;
+    let candidate = candidates.next().ok_or(QueryError::NoEligibleWorker)?;
     if candidates.next().is_some() {
         return Err(QueryError::AmbiguousWorker);
     }
@@ -49,13 +49,15 @@ impl<Q: ReadQueries> SnapshotReader for Reader<Q> {
         if window.identity != before {
             return Err(QueryError::IdentityChanged);
         }
-        let worker = eligible(
+        let worker = match eligible(
             &topology,
             self.0.expected_explorer(),
             before.process.session,
-        )?
-        .identity
-        .clone();
+        ) {
+            Ok(worker) => Some(worker.identity.clone()),
+            Err(QueryError::NoEligibleWorker) => None,
+            Err(error) => return Err(error),
+        };
         if window.dpi == 0 || !self.0.dpi_equal(window.context, window.caller_context) {
             return Err(QueryError::DpiMismatch);
         }
@@ -66,6 +68,7 @@ impl<Q: ReadQueries> SnapshotReader for Reader<Q> {
         if topology != self.0.topology()? {
             return Err(QueryError::TopologyChanged);
         }
+        let worker = worker.ok_or(QueryError::NoEligibleWorker)?;
         Ok(ObservedSnapshot {
             started,
             finished: Instant::now(),
@@ -83,14 +86,14 @@ impl<Q: ReadQueries> SnapshotReader for Reader<Q> {
             return Err(QueryError::IdentityChanged);
         }
         let current = self.0.topology()?;
+        if current != snapshot.topology {
+            return Err(QueryError::TopologyChanged);
+        }
         eligible(
             &current,
             self.0.expected_explorer(),
             snapshot.main.identity.process.session,
         )?;
-        if current != snapshot.topology {
-            return Err(QueryError::TopologyChanged);
-        }
         Ok(())
     }
 }

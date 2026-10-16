@@ -1,0 +1,32 @@
+[package]
+name = "desktop-surface-read-only-qa"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[lib]
+path = "verification.rs"
+
+[features]
+default = []
+live-windows-skip-miri = []
+
+[dev-dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+
+[target.'cfg(windows)'.dev-dependencies]
+windows = { version = "=0.61.3", features = [
+  "Win32_Foundation", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging",
+  "Win32_UI_HiDpi", "Win32_System_Threading", "Win32_System_RemoteDesktop",
+  "Win32_System_SystemInformation", "Win32_Globalization",
+  "Win32_System_LibraryLoader", "Win32_Security", "Win32_System_StationsAndDesktops",
+] }
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+unused_must_use = "deny"
+
+[lints.clippy]
+undocumented_unsafe_blocks = "deny"

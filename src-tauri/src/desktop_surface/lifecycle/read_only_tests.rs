@@ -121,7 +121,11 @@ fn ambiguous_or_missing_worker_is_rejected() {
         }
         assert!(matches!(
             Reader(fake).collect(WindowId(100)),
-            Err(QueryError::AmbiguousWorker)
+            Err(error) if error == if duplicate {
+                QueryError::AmbiguousWorker
+            } else {
+                QueryError::NoEligibleWorker
+            }
         ));
     }
 }
