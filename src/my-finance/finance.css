@@ -117,3 +117,8 @@
 .finance-transfer dt { font-size: 12px; color: #617187; }.finance-transfer dd { margin: 5px 0 0; font-weight: 700; }
 .finance-transfer .finance-form-actions { display: flex; justify-content: flex-end; margin-top: 20px; }
 .finance-transfer :focus-visible { outline: 3px solid #a3b8e6; outline-offset: 2px; }
+
+.finance-dataset-change { padding: 16px; background: #fff7e8; border: 1px solid #eddbb7; border-radius: 14px; font-size: 13px; }
+.finance-dataset-change dd { overflow-wrap: anywhere; font-size: 12px; }
+.finance-dataset-change label { display: flex; align-items: flex-start; line-height: 1.6; }
+.finance-dataset-change input[type="checkbox"] { flex: none; margin-top: 4px; }

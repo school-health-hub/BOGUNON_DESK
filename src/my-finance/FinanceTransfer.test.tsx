@@ -6,7 +6,7 @@ import type { FinanceSnapshot } from "./repository";
 const api = vi.hoisted(() => ({ cancelFinanceBackup: vi.fn(), exportFinanceBackup: vi.fn(), inspectFinanceBackup: vi.fn(), restoreFinanceBackup: vi.fn(), selectFinanceBackup: vi.fn() }));
 vi.mock("./repository", () => api);
 const snapshot: FinanceSnapshot = { identity: { schemaVersion: 2, datasetId: "synthetic-dataset", revision: 2, history: ["synthetic-1", "synthetic-2"] }, income: [] };
-const preview = { token: "synthetic-ticket", eligible: true, reason: "같은 데이터셋의 후속 백업입니다.", currentRevision: 2, backupRevision: 3, recordCount: 1 };
+const preview = { token: "synthetic-ticket", eligible: true, reason: "같은 데이터셋의 후속 백업입니다.", requiresDatasetConfirmation: false, currentDatasetId: "synthetic-local", backupDatasetId: "synthetic-source", currentRevision: 2, backupRevision: 3, recordCount: 1 };
 const change = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
 const setup = () => { const callbacks = { onClose: vi.fn(), onRestored: vi.fn(), onUncertain: vi.fn() }; render(<FinanceTransfer snapshot={snapshot} {...callbacks} />); return callbacks; };
 async function selected() { fireEvent.click(screen.getByRole("button", { name: "백업 복원" })); fireEvent.click(screen.getByRole("button", { name: "백업 파일 선택" })); await screen.findByLabelText("복원 비밀번호"); }
@@ -34,7 +34,7 @@ it("requires selection, password inspection and a separate final confirmation", 
   fireEvent.click(screen.getByRole("button", { name: "복원 최종 확인" }));
   const button = within(screen.getByRole("alertdialog")).getByRole("button", { name: "안전 스냅샷 후 복원" }); fireEvent.click(button); fireEvent.click(button);
   await waitFor(() => expect(callbacks.onRestored).toHaveBeenCalledExactlyOnceWith(snapshot));
-  expect(api.restoreFinanceBackup).toHaveBeenCalledExactlyOnceWith("synthetic-ticket"); expect(callbacks.onClose).toHaveBeenCalledOnce();
+  expect(api.restoreFinanceBackup).toHaveBeenCalledExactlyOnceWith("synthetic-ticket", false); expect(callbacks.onClose).toHaveBeenCalledOnce();
 });
 it.each(["다른 데이터셋", "오래된 백업", "변경 이력 충돌", "지원하지 않는 버전"])("blocks an ineligible preview: %s", async (reason) => {
   api.inspectFinanceBackup.mockResolvedValue({ ...preview, eligible: false, reason }); setup(); await inspected();
@@ -55,4 +55,34 @@ it("requires refreshing after a failed or conflicted final restore without retry
 it("cancels the exact selected native ticket on close/unmount and retains no password", async () => {
   setup(); await selected(); change("복원 비밀번호", "synthetic-password-123"); cleanup();
   expect(api.cancelFinanceBackup).toHaveBeenCalledWith("synthetic-ticket"); expect(api.inspectFinanceBackup).not.toHaveBeenCalled();
+});
+
+it("requires explicit dataset consent and a distinct initial-adoption confirmation", async () => {
+  api.inspectFinanceBackup.mockResolvedValue({ ...preview, requiresDatasetConfirmation: true, reason: "사용 이력이 없는 빈 저장소입니다." });
+  const callbacks = setup(); await inspected();
+  const confirm = screen.getByRole("button", { name: "복원 최종 확인" });
+  expect(confirm.hasAttribute("disabled")).toBe(true);
+  expect(screen.getByText("synthetic-local")).toBeTruthy(); expect(screen.getByText("synthetic-source")).toBeTruthy();
+  fireEvent.click(screen.getByRole("checkbox", { name: "빈 저장소의 데이터셋 변경에 동의합니다" }));
+  fireEvent.click(confirm);
+  expect(screen.getByRole("alertdialog").textContent).toContain("새 PC로 최초 이식할까요?");
+  expect(screen.getByRole("alertdialog").textContent).toContain("synthetic-local");
+  expect(screen.getByRole("alertdialog").textContent).toContain("synthetic-source");
+  expect(api.restoreFinanceBackup).not.toHaveBeenCalled();
+  fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "취소" }));
+  expect(api.restoreFinanceBackup).not.toHaveBeenCalled();
+  fireEvent.click(confirm);
+  fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "데이터셋 변경 후 이식" }));
+  await waitFor(() => expect(callbacks.onRestored).toHaveBeenCalledWith(snapshot));
+  expect(api.restoreFinanceBackup).toHaveBeenCalledExactlyOnceWith("synthetic-ticket", true);
+});
+it("resets dataset consent when another backup is selected", async () => {
+  api.inspectFinanceBackup.mockResolvedValue({ ...preview, requiresDatasetConfirmation: true });
+  setup(); await inspected(); fireEvent.click(screen.getByRole("checkbox"));
+  fireEvent.click(screen.getByRole("button", { name: "다른 백업 파일 선택" }));
+  await screen.findByLabelText("복원 비밀번호"); change("복원 비밀번호", "synthetic-password-123");
+  fireEvent.click(screen.getByRole("button", { name: "복호화 및 유효성 검사" }));
+  await screen.findByRole("region", { name: "복원 검사 결과" });
+  expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(false);
+  expect(screen.getByRole("button", { name: "복원 최종 확인" }).hasAttribute("disabled")).toBe(true);
 });

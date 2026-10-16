@@ -4,7 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FinanceScreen } from "./FinanceScreen";
 import type { FinanceSnapshot } from "./repository";
 import type { IncomeRecord } from "./domain";
-const api = vi.hoisted(() => ({ listFinanceIncome: vi.fn(), createFinanceIncome: vi.fn(), updateFinanceIncome: vi.fn(), deleteFinanceIncome: vi.fn() }));
+import fixture from "./fixtures/cross-pc-synthetic.json";
+const api = vi.hoisted(() => ({ listFinanceIncome: vi.fn(), createFinanceIncome: vi.fn(), updateFinanceIncome: vi.fn(), deleteFinanceIncome: vi.fn(), cancelFinanceBackup: vi.fn(), exportFinanceBackup: vi.fn(), selectFinanceBackup: vi.fn(), inspectFinanceBackup: vi.fn(), restoreFinanceBackup: vi.fn() }));
 vi.mock("./repository", () => api);
 const year = new Date().getFullYear();
 const item: IncomeRecord = { id: "00000000-0000-4000-8000-000000000001", sourceName: "합성 지급처 A", incomeKind: "lecture", contractLabel: "합성 계약", taxCategory: "unverified", taxCategoryVerified: false, earnedOn: `${year}-01-10`, paidOn: null, grossKrw: 100_000, deductions: [{ kind: "income_tax", amountKrw: 3_000 }], netKrw: 97_000, notes: "합성 메모" };
@@ -140,4 +141,28 @@ describe("local finance management", () => {
     expect(within(screen.getByRole("region", { name: "연간 수입 집계" })).getByText("2,500,000원")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "다음" })); expect(screen.getAllByRole("article")).toHaveLength(5);
   });
+});
+
+
+it("shows the native cross-PC fixture totals after initial adoption and a screen restart", async () => {
+  const income = [...fixture.schoolIncome]; income[1] = fixture.homeUpdate; income.push(fixture.homeCreate);
+  const restored = { ...snapshot(income as IncomeRecord[], 6), identity: { ...snapshot([], 6).identity, datasetId: "synthetic-source-dataset" } };
+  api.cancelFinanceBackup.mockResolvedValue(undefined); api.selectFinanceBackup.mockResolvedValue("synthetic-ticket");
+  api.inspectFinanceBackup.mockResolvedValue({ token: "synthetic-ticket", eligible: true, reason: "사용 이력이 없는 빈 저장소입니다.", requiresDatasetConfirmation: true, currentDatasetId: snapshot().identity.datasetId, backupDatasetId: restored.identity.datasetId, currentRevision: 1, backupRevision: 6, recordCount: 4 });
+  api.restoreFinanceBackup.mockResolvedValue(restored);
+  await ready(); fireEvent.click(screen.getByRole("button", { name: "백업·복원" }));
+  fireEvent.click(screen.getByRole("button", { name: "백업 복원" })); fireEvent.click(screen.getByRole("button", { name: "백업 파일 선택" }));
+  await screen.findByLabelText("복원 비밀번호"); change("복원 비밀번호", "synthetic-password-123");
+  fireEvent.click(screen.getByRole("button", { name: "복호화 및 유효성 검사" }));
+  await screen.findByRole("checkbox"); fireEvent.click(screen.getByRole("checkbox"));
+  fireEvent.click(screen.getByRole("button", { name: "복원 최종 확인" }));
+  fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "데이터셋 변경 후 이식" }));
+  await screen.findByText("암호화 백업을 복원했습니다."); change("연도", "2026");
+  expect(screen.getByText("1,350,000원")).toBeTruthy(); expect(screen.getByText("40,500원")).toBeTruthy(); expect(screen.getByText("1,309,500원")).toBeTruthy();
+  expect(screen.getAllByRole("article", { name: "수입 항목" })).toHaveLength(3);
+  expect(api.restoreFinanceBackup).toHaveBeenCalledExactlyOnceWith("synthetic-ticket", true);
+  cleanup(); await ready(restored); change("연도", "2026");
+  expect(screen.getByText("1,350,000원")).toBeTruthy(); expect(screen.getByText("40,500원")).toBeTruthy(); expect(screen.getByText("1,309,500원")).toBeTruthy();
+  expect(screen.getAllByRole("article", { name: "수입 항목" })).toHaveLength(3);
+  cleanup();
 });

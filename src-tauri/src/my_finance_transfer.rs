@@ -21,6 +21,9 @@ pub(crate) struct RestorePreview {
     pub token: Uuid,
     pub eligible: bool,
     pub reason: &'static str,
+    pub requires_dataset_confirmation: bool,
+    pub current_dataset_id: Uuid,
+    pub backup_dataset_id: Uuid,
     pub current_revision: u64,
     pub backup_revision: u64,
     pub record_count: usize,
@@ -73,8 +76,13 @@ impl TransferSession {
             Some(&current.identity),
         )?;
         let decision = restore_decision(current, &incoming);
-        let eligible = decision == RestoreDecision::AllowForward;
+        let requires_dataset_confirmation = decision == RestoreDecision::AllowNewDataset;
+        let eligible = matches!(
+            decision,
+            RestoreDecision::AllowForward | RestoreDecision::AllowNewDataset
+        );
         let reason = match decision {
+            RestoreDecision::AllowNewDataset => "사용 이력이 없는 빈 저장소입니다. 백업의 데이터셋으로 변경하는 최초 이식이 가능합니다.",
             RestoreDecision::AllowForward => {
                 "같은 데이터셋의 후속 백업입니다. 최종 확인 후 복원할 수 있습니다."
             }
@@ -94,6 +102,9 @@ impl TransferSession {
             token,
             eligible,
             reason,
+            requires_dataset_confirmation,
+            current_dataset_id: current.identity.dataset_id,
+            backup_dataset_id: incoming.identity.dataset_id,
             current_revision: current.identity.revision,
             backup_revision: incoming.identity.revision,
             record_count: incoming.income.len(),
@@ -111,6 +122,14 @@ impl TransferSession {
         token: Uuid,
         store: &mut FinanceStore,
     ) -> Result<FinanceSnapshot, &'static str> {
+        self.commit_confirmed(token, store, false)
+    }
+    pub(crate) fn commit_confirmed(
+        &mut self,
+        token: Uuid,
+        store: &mut FinanceStore,
+        confirm_dataset_change: bool,
+    ) -> Result<FinanceSnapshot, &'static str> {
         self.check(token)?;
         // Consume even on failure: never retry an uncertain restore automatically.
         let mut ticket = self.0.take().ok_or(EXPIRED)?;
@@ -121,7 +140,7 @@ impl TransferSession {
             return Err("금융 데이터가 변경되었습니다. 최신 목록을 다시 불러와 주세요.");
         }
         let incoming = serde_json::from_slice(&payload).map_err(|_| FILE_ERROR)?;
-        store.restore(&expected, incoming)
+        store.restore_confirmed(&expected, incoming, confirm_dataset_change)
     }
     fn check(&mut self, token: Uuid) -> Result<(), &'static str> {
         if self

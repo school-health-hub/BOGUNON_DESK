@@ -47,6 +47,7 @@ export async function deleteFinanceIncome(expected: FinanceIdentity, id: string)
 
 export type RestorePreview = Readonly<{
   token: string; eligible: boolean; reason: string;
+  requiresDatasetConfirmation: boolean; currentDatasetId: string; backupDatasetId: string;
   currentRevision: number; backupRevision: number; recordCount: number;
 }>;
 export async function exportFinanceBackup(expected: FinanceIdentity, password: string): Promise<boolean> {
@@ -61,9 +62,9 @@ export async function inspectFinanceBackup(token: string, password: string): Pro
   requireNative();
   return invoke<RestorePreview>("my_finance_inspect_backup", { token, password });
 }
-export async function restoreFinanceBackup(token: string): Promise<FinanceSnapshot> {
+export async function restoreFinanceBackup(token: string, confirmDatasetChange = false): Promise<FinanceSnapshot> {
   requireNative();
-  return invoke<FinanceSnapshot>("my_finance_restore_backup", { token });
+  return invoke<FinanceSnapshot>("my_finance_restore_backup", { token, confirmDatasetChange });
 }
 export async function cancelFinanceBackup(token: string): Promise<void> {
   requireNative();

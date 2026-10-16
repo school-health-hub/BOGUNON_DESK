@@ -173,13 +173,33 @@ impl FinanceStore {
         expected: &FinanceSnapshot,
         incoming: FinanceSnapshot,
     ) -> Result<FinanceSnapshot, &'static str> {
-        self.restore_with_hook(expected, incoming, || Ok(()))
+        self.restore_confirmed(expected, incoming, false)
     }
 
+    pub(crate) fn restore_confirmed(
+        &mut self,
+        expected: &FinanceSnapshot,
+        incoming: FinanceSnapshot,
+        confirm_dataset_change: bool,
+    ) -> Result<FinanceSnapshot, &'static str> {
+        self.restore_confirmed_with_hook(expected, incoming, confirm_dataset_change, || Ok(()))
+    }
+
+    #[cfg(test)]
     fn restore_with_hook(
         &mut self,
         expected: &FinanceSnapshot,
         incoming: FinanceSnapshot,
+        after_update: impl FnOnce() -> Result<(), &'static str>,
+    ) -> Result<FinanceSnapshot, &'static str> {
+        self.restore_confirmed_with_hook(expected, incoming, false, after_update)
+    }
+
+    fn restore_confirmed_with_hook(
+        &mut self,
+        expected: &FinanceSnapshot,
+        incoming: FinanceSnapshot,
+        confirm_dataset_change: bool,
         after_update: impl FnOnce() -> Result<(), &'static str>,
     ) -> Result<FinanceSnapshot, &'static str> {
         let tx = self
@@ -190,10 +210,14 @@ impl FinanceStore {
         if &current != expected {
             return Err(CONFLICT);
         }
-        if restore_decision(&current, &incoming)
-            != crate::my_finance_snapshot::RestoreDecision::AllowForward
-        {
-            return Err("이 백업은 현재 데이터에 복원할 수 없습니다.");
+        use crate::my_finance_snapshot::RestoreDecision;
+        match restore_decision(&current, &incoming) {
+            RestoreDecision::AllowForward => {}
+            RestoreDecision::AllowNewDataset if confirm_dataset_change => {}
+            RestoreDecision::AllowNewDataset => {
+                return Err("최초 이식에는 데이터셋 변경에 대한 별도 확인이 필요합니다.")
+            }
+            _ => return Err("이 백업은 현재 데이터에 복원할 수 없습니다."),
         }
         let safety = Zeroizing::new(serde_json::to_vec(&current).map_err(|_| STORAGE_ERROR)?);
         tx.execute_batch("CREATE TABLE IF NOT EXISTS finance_restore_safety (id TEXT PRIMARY KEY, payload BLOB NOT NULL);").map_err(|_| STORAGE_ERROR)?;
@@ -390,12 +414,23 @@ pub(crate) fn restore_decision(
     incoming: &FinanceSnapshot,
 ) -> crate::my_finance_snapshot::RestoreDecision {
     use crate::my_finance_snapshot::{decide_restore, RestoreDecision};
-    if incoming
-        .income
-        .iter()
-        .any(|entry| FinanceStore::validate_input(entry).is_err())
+    if !validate_snapshot(current)
+        || !validate_snapshot(incoming)
+        || incoming
+            .income
+            .iter()
+            .any(|entry| FinanceStore::validate_input(entry).is_err())
     {
         return RestoreDecision::RejectInvalid;
+    }
+    // Every user CRUD mutation advances revision/history, even deletion of the
+    // final record. Empty-but-used stores must never regain adoption eligibility.
+    if current.identity.dataset_id != incoming.identity.dataset_id
+        && current.income.is_empty()
+        && current.identity.revision == 1
+        && current.identity.history.len() == 1
+    {
+        return RestoreDecision::AllowNewDataset;
     }
     let decision = decide_restore(Some(&current.identity), incoming);
     if decision == RestoreDecision::AlreadyCurrent && incoming != current {
@@ -408,3 +443,7 @@ pub(crate) fn restore_decision(
 #[cfg(test)]
 #[path = "my_finance_restore_tests.rs"]
 mod restore_tests;
+
+#[cfg(test)]
+#[path = "my_finance_cross_pc_tests.rs"]
+pub(crate) mod cross_pc_tests;

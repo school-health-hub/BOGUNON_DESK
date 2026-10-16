@@ -169,13 +169,14 @@ pub(crate) async fn my_finance_restore_backup(
     app: tauri::AppHandle,
     state: tauri::State<'_, FinanceState>,
     token: Uuid,
+    confirm_dataset_change: Option<bool>,
 ) -> Result<FinanceSnapshot, &'static str> {
     let session = state.inner().1.clone();
     run(app, state.inner().0.clone(), false, move |store| {
         session
             .lock()
             .map_err(|_| "백업 세션을 열지 못했습니다.")?
-            .commit(token, store)
+            .commit_confirmed(token, store, confirm_dataset_change.unwrap_or(false))
     })
     .await
 }
@@ -437,5 +438,75 @@ mod tests {
             std::fs::read(dir.path().join("key.dpapi")).unwrap(),
             b"synthetic-corrupt-key"
         );
+    }
+    #[test]
+    fn my_finance_dpapi_cross_pc_round_trip_and_process_restart() {
+        const ROOT: &str = "BOGUNON_SYNTHETIC_DPAPI_CROSS_PC_ROOT";
+        if let Some(root) = std::env::var_os(ROOT) {
+            let root = std::path::PathBuf::from(root);
+            assert!(root
+                .file_name()
+                .unwrap()
+                .to_string_lossy()
+                .starts_with("bogunon-synthetic-dpapi-transfer-"));
+            let school = load_at(&root.join("school")).unwrap();
+            let home = load_at(&root.join("home")).unwrap();
+            assert_eq!(school, home);
+            assert_eq!(
+                home.income,
+                crate::my_finance_store::cross_pc_tests::expected_income()
+            );
+            assert_eq!(home.identity.revision, 6);
+            return;
+        }
+        let dir = tempfile::Builder::new()
+            .prefix("bogunon-synthetic-dpapi-transfer-")
+            .tempdir()
+            .unwrap();
+        let school_root = dir.path().join("school");
+        let home_root = dir.path().join("home");
+        load_at(&school_root).unwrap();
+        load_at(&home_root).unwrap();
+        let school_key = std::fs::read(school_root.join("key.dpapi")).unwrap();
+        let home_key = std::fs::read(home_root.join("key.dpapi")).unwrap();
+        let final_snapshot = crate::my_finance_store::cross_pc_tests::round_trip_with(|name| {
+            open_at(&dir.path().join(name)).unwrap()
+        });
+        assert_eq!(load_at(&school_root).unwrap(), final_snapshot);
+        assert_eq!(load_at(&home_root).unwrap(), final_snapshot);
+        assert_eq!(
+            std::fs::read(school_root.join("key.dpapi")).unwrap(),
+            school_key
+        );
+        assert_eq!(
+            std::fs::read(home_root.join("key.dpapi")).unwrap(),
+            home_key
+        );
+        let home_plain = zeroize::Zeroizing::new(
+            windows_dpapi::decrypt_data(&home_key, windows_dpapi::Scope::User, None).unwrap(),
+        );
+        let school_plain = zeroize::Zeroizing::new(
+            windows_dpapi::decrypt_data(&school_key, windows_dpapi::Scope::User, None).unwrap(),
+        );
+        assert!(home_plain.as_slice() != school_plain.as_slice());
+        let mut foreign_key = zeroize::Zeroizing::new([0_u8; 32]);
+        foreign_key.copy_from_slice(&home_plain);
+        let before = std::fs::read(school_root.join("finance.db")).unwrap();
+        assert!(FinanceStore::open(&school_root.join("finance.db"), &foreign_key).is_err());
+        assert_eq!(
+            std::fs::read(school_root.join("finance.db")).unwrap(),
+            before
+        );
+        let full = concat!(
+            module_path!(),
+            "::my_finance_dpapi_cross_pc_round_trip_and_process_restart"
+        );
+        let name = full.split_once("::").unwrap().1;
+        let status = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", name, "--nocapture"])
+            .env(ROOT, dir.path())
+            .status()
+            .unwrap();
+        assert!(status.success());
     }
 }

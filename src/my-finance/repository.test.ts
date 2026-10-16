@@ -63,7 +63,9 @@ describe("finance backup IPC boundary", () => {
     await selectFinanceBackup(); expect(mocks.invoke).toHaveBeenLastCalledWith("my_finance_select_backup");
     await inspectFinanceBackup("synthetic-ticket", "synthetic-password-123");
     expect(mocks.invoke).toHaveBeenLastCalledWith("my_finance_inspect_backup", { token: "synthetic-ticket", password: "synthetic-password-123" });
-    await restoreFinanceBackup("synthetic-ticket"); expect(mocks.invoke).toHaveBeenLastCalledWith("my_finance_restore_backup", { token: "synthetic-ticket" });
+    await restoreFinanceBackup("synthetic-ticket"); expect(mocks.invoke).toHaveBeenLastCalledWith("my_finance_restore_backup", { token: "synthetic-ticket", confirmDatasetChange: false });
+    await restoreFinanceBackup("synthetic-ticket", true);
+    expect(mocks.invoke).toHaveBeenLastCalledWith("my_finance_restore_backup", { token: "synthetic-ticket", confirmDatasetChange: true });
     await cancelFinanceBackup("synthetic-ticket"); expect(mocks.invoke).toHaveBeenLastCalledWith("my_finance_cancel_backup", { token: "synthetic-ticket" });
   });
   it("refuses all backup operations in a browser without invoking any native command", async () => {
