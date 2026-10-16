@@ -23,33 +23,17 @@ function Block-App([string]$Path) {
  $name='Bogunon-Synthetic-QA-'+[guid]::NewGuid().ToString(); New-NetFirewallRule -DisplayName $name -Direction Outbound -Program $Path -Action Block -Profile Any | Out-Null; $rules.Add($name)
 }
 function Install([string]$Path) { $p=Start-Process -FilePath $Path -ArgumentList '/S' -Wait -PassThru; if($p.ExitCode -ne 0){throw "Installer failed: $($p.ExitCode)"} }
-$tasks=[Collections.Generic.List[string]]::new()
+Add-Type -Path (Join-Path $PSScriptRoot 'my-finance-medium-process.cs')
 function Start-MediumApp([string]$Path,[int]$Port) {
- # WebView2 >=150 intentionally drops debugger env overrides for elevated hosts.
- # A limited task uses the SAME user's profile and medium token, like a real PC.
- # No HKLM/HKCU policy, app config, runtime downgrade or ACL relaxation is used.
- $identity=[Security.Principal.WindowsIdentity]::GetCurrent()
- $taskName='Bogunon-Synthetic-Launch-'+[guid]::NewGuid().ToString()
- $result=Join-Path $env:RUNNER_TEMP "$taskName.json"
- $worker=Join-Path $PSScriptRoot 'my-finance-medium-launch.ps1'
- $arguments="-NoProfile -NonInteractive -File `"$worker`" -AppPath `"$Path`" -DebugPort $Port -ExpectedSid `"$($identity.User.Value)`" -ResultFile `"$result`""
- $action=New-ScheduledTaskAction -Execute (Get-Process -Id $PID).Path -Argument $arguments
- $principal=New-ScheduledTaskPrincipal -UserId $identity.Name -LogonType Interactive -RunLevel Limited
- $settings=New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Minutes 15)
- Register-ScheduledTask -TaskName $taskName -Action $action -Principal $principal -Settings $settings | Out-Null
- $tasks.Add($taskName);Start-ScheduledTask -TaskName $taskName
- $deadline=[DateTime]::UtcNow.AddSeconds(30)
- while(-not(Test-Path $result) -and [DateTime]::UtcNow -lt $deadline){Start-Sleep -Milliseconds 250}
- if(-not(Test-Path $result)){throw 'Limited launch task did not produce a process report'}
- $report=Get-Content $result -Raw|ConvertFrom-Json
- if($report.PSObject.Properties.Name -contains 'error'){throw "Limited launch task failed: $($report.error)"}
- if(-not $report.sameUser -or -not $report.mediumIntegrity){throw 'App launch must use same user and verified medium integrity'}
- return $report
+ # WebView2 >=150 ignores env debugger overrides on elevated hosts. Restrict
+ # only this same user's child token; do not change policy, runtime or ACLs.
+ $p=[FinanceQaMediumProcess]::Start($Path,$Port,([Security.Principal.WindowsIdentity]::GetCurrent().User.Value))
+ $apps.Add($p);Start-Sleep -Seconds 4
+ return $p
 }
 function Launch([string]$Path,[int]$Port) {
- $report=Start-MediumApp $Path $Port
- if($report.hasExited){throw "App exited during launch: $($report.exitCode)"}
- $p=Get-Process -Id $report.pid;$apps.Add($p)
+ $p=Start-MediumApp $Path $Port
+ if($p.HasExited){throw "App exited during launch: $($p.ExitCode)"}
  return $p
 }
 function Stop-Owned([System.Diagnostics.Process]$Process) { if(-not $Process.HasExited){ & taskkill /PID $Process.Id /T /F | Out-Null; Start-Sleep -Seconds 3 };if(-not $Process.HasExited){throw 'Owned CI app did not stop'} }
@@ -131,7 +115,7 @@ try {
  # Simultaneous apps/single instances and QA removal while operating stays alive.
  Install $QaInstaller; $prod=Launch $operatingExe 9223;$stable=Operating-State -StableOnly
  $qa=Launch $qaExe 9224;Probe 9224 qa-reopen 'qa-native-reinstall'
- foreach($pair in @(@($operatingExe,9223),@($qaExe,9224))){$second=Start-MediumApp $pair[0] $pair[1];if(-not $second.hasExited){$apps.Add((Get-Process -Id $second.pid));throw 'Single instance isolation failed'};if($second.exitCode -ne 0){throw 'Second instance crashed'}}
+ foreach($pair in @(@($operatingExe,9223),@($qaExe,9224))){$second=Start-MediumApp $pair[0] $pair[1];if(-not $second.HasExited){throw 'Single instance isolation failed'};if($second.ExitCode -ne 0){throw 'Second instance crashed'}}
  if($prod.HasExited -or $qa.HasExited){throw 'Apps cannot coexist'}
  Assert-State $stable -StableOnly
  Stop-Owned $qa;$finance=Qa-Finance-State;Remove-Qa
@@ -148,6 +132,5 @@ try {
  Write-Output '::notice title=MY_FINANCE_QA_ISOLATION::PASSED; operating reference preserved; synthetic GitHub runner only'
 } finally {
  foreach($p in $apps){if(-not $p.HasExited){Stop-Owned $p}}
- foreach($name in $tasks){Stop-ScheduledTask -TaskName $name -ErrorAction SilentlyContinue;Unregister-ScheduledTask -TaskName $name -Confirm:$false -ErrorAction SilentlyContinue}
  foreach($name in $rules){Remove-NetFirewallRule -DisplayName $name -ErrorAction SilentlyContinue}
 }

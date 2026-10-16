@@ -21,7 +21,10 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 5
     steps:
-      - name: Read debugger policy and verify child environment without changing settings
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Read debugger policy and validate same-user Medium launcher
         shell: pwsh
         run: |
           $policy = [ordered]@{}
@@ -41,11 +44,16 @@ jobs:
           $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
           $elevated = ([Security.Principal.WindowsPrincipal]::new($identity)).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
           $versions = @(Get-ChildItem "${env:ProgramFiles(x86)}\Microsoft\EdgeWebView\Application" -Filter msedgewebview2.exe -Recurse | ForEach-Object { $_.VersionInfo.ProductVersion })
-          $evidence = [ordered]@{runnerElevated=$elevated;webviewRuntimeVersions=$versions;childEnvironmentConfirmed=($child.ExitCode -eq 0 -and $output -eq 'CHILD_ENV_CONFIRMED');policy=$policy}
+          Add-Type -Path scripts/qa/my-finance-medium-process.cs
+          $probe = [FinanceQaMediumProcess]::Start("$env:SystemRoot\System32\cmd.exe",9227,$identity.User.Value)
+          try { if (-not $probe.HasExited) { $probe.Kill() }; if (-not $probe.WaitForExit(5000)) { throw 'Owned token probe did not stop' } }
+          finally { if (-not $probe.HasExited) { $probe.Kill() }; $probe.Dispose() }
+          $evidence = [ordered]@{runnerElevated=$elevated;webviewRuntimeVersions=$versions;childEnvironmentConfirmed=($child.ExitCode -eq 0 -and $output -eq 'CHILD_ENV_CONFIRMED');mediumChildTokenValidated=$true;policy=$policy}
           $json = ($evidence | ConvertTo-Json -Depth 8 -Compress).Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
           Write-Output "::notice title=WEBVIEW_DEBUGGER_ENVIRONMENT::$json"
           if (-not $evidence.childEnvironmentConfirmed) { throw 'Explicit child environment propagation failed' }
   isolated-windows:
+    needs: debugger-environment-diagnostics
     runs-on: windows-latest
     timeout-minutes: 90
     steps:
