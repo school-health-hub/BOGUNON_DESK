@@ -28,7 +28,7 @@ jobs:
           foreach ($root in @('HKCU:\Software\Policies\Microsoft\Edge', 'HKLM:\Software\Policies\Microsoft\Edge', 'HKCU:\Software\Policies\Microsoft\Edge\WebView2', 'HKLM:\Software\Policies\Microsoft\Edge\WebView2')) {
             $key = Get-Item -LiteralPath $root -ErrorAction SilentlyContinue
             if ($key) {
-              foreach ($name in @('RemoteDebuggingAllowed','DeveloperToolsAvailability')) { $policy["$root::$name"] = $key.GetValue($name) }
+              foreach ($name in @('RemoteDebuggingAllowed','DeveloperToolsAvailability')) { $policy["${root}::$name"] = $key.GetValue($name) }
             }
           }
           $start = [System.Diagnostics.ProcessStartInfo]::new((Get-Process -Id $PID).Path)
