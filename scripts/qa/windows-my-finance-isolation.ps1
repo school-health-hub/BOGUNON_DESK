@@ -29,12 +29,28 @@ function Launch([string]$Path,[int]$Port) {
  finally {if($null -eq $old){Remove-Item Env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS -ErrorAction SilentlyContinue}else{$env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=$old}}
 }
 function Stop-Owned([System.Diagnostics.Process]$Process) { if(-not $Process.HasExited){ & taskkill /PID $Process.Id /T /F | Out-Null; Start-Sleep -Seconds 3 };if(-not $Process.HasExited){throw 'Owned CI app did not stop'} }
+function Launch-Evidence([int]$Port) {
+ $app=$apps[$apps.Count-1];$app.Refresh()
+ $all=@(Get-CimInstance Win32_Process)
+ $ids=[Collections.Generic.HashSet[int]]::new();[void]$ids.Add($app.Id)
+ do {$count=$ids.Count;foreach($item in $all){if($ids.Contains([int]$item.ParentProcessId)){[void]$ids.Add([int]$item.ProcessId)}}} while($ids.Count -gt $count)
+ $children=@($all|Where-Object {$ids.Contains([int]$_.ProcessId) -and $_.Name -eq 'msedgewebview2.exe'}|ForEach-Object {
+   $match=[regex]::Match([string]$_.CommandLine,'--remote-debugging-port=(\d+)')
+   [ordered]@{pid=$_.ProcessId;parent=$_.ParentProcessId;requestedPortObserved=($match.Success -and $match.Groups[1].Value -eq [string]$Port)}
+ })
+ $listeners=@(Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue|ForEach-Object {[ordered]@{address=$_.LocalAddress;owner=$_.OwningProcess}})
+ $evidence=[ordered]@{pid=$app.Id;hasExited=$app.HasExited;hasMainWindow=($app.MainWindowHandle -ne 0);webviewProcesses=$children;port=$Port;listeners=$listeners}
+ $json=$evidence|ConvertTo-Json -Depth 8 -Compress
+ [IO.File]::WriteAllText((Join-Path $out "launch-$Port.json"),$json)
+ return $json
+}
 function Probe([int]$Port,[string]$Mode,[string]$Name) {
  # Only synthetic CI probes run here. Preserve the actual failing stage in the
  # annotation; artifact/log downloads are not always available to API clients.
  $probeLog=Join-Path $out "$Name-probe.txt"
  & node scripts/qa/my-finance-qa-cdp.mjs $Port $Mode (Join-Path $out "$Name.json") 2>&1 | Tee-Object -FilePath $probeLog
- if($LASTEXITCODE -ne 0){$detail=(Get-Content $probeLog -Tail 16)-join "`n";throw "Installed app probe failed: $Name`n$detail"}
+ $exit=$LASTEXITCODE;$launch=Launch-Evidence $Port
+ if($exit -ne 0){$detail=(Get-Content $probeLog -Tail 16)-join "`n";throw "Installed app probe failed: $Name`n$detail`nLaunch evidence: $launch"}
 }
 function Registry-State([string]$Root) {
  $values=[ordered]@{}

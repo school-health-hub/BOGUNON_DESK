@@ -1,11 +1,12 @@
 // CI-only actual installed WebView/IPC probe; never supplies real finance data.
 import fs from "node:fs";
+import { discoverPage } from "./my-finance-cdp-discovery.mjs";
 if (process.env.GITHUB_ACTIONS !== "true" || process.env.RUNNER_ENVIRONMENT !== "github-hosted") throw Error("Disposable GitHub runner only");
 const [port, mode, output] = process.argv.slice(2);
 const delay = ms => new Promise(r=>setTimeout(r,ms));
-let pages;
-for(let i=0;i<60;i++){try { pages=await(await fetch(`http://127.0.0.1:${port}/json`)).json(); if(pages.some(p=>p.type==='page'))break; }catch{} await delay(500);}
-const page=pages?.find(p=>p.type==='page');if(!page)throw Error("Installed WebView debug target unavailable");
+const { page, evidence } = await discoverPage(port);
+fs.writeFileSync(output + '.discovery.json', JSON.stringify(evidence, null, 2));
+if (!page) throw Error('Installed WebView debug target unavailable: ' + JSON.stringify(evidence));
 const ws=new WebSocket(page.webSocketDebuggerUrl);await new Promise((r,j)=>{ws.onopen=r;ws.onerror=j});
 let id=0;const pending=new Map();const outbound=[];
 ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.id){const p=pending.get(m.id);pending.delete(m.id);m.error?p?.reject(m.error):p?.resolve(m.result)}if(m.method==='Network.requestWillBeSent'&&/^https?:/.test(m.params.request.url)&&!m.params.request.url.startsWith('http://tauri.localhost')&&!m.params.request.url.startsWith('http://ipc.localhost'))outbound.push(m.params.request.url)};
