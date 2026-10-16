@@ -65,7 +65,15 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Operating reference npm ci failed' }
           npm run tauri build -- --target x86_64-pc-windows-msvc --bundles nsis
       - name: Build separate finance-only QA installer
-        run: npm run qa:finance:windows
+        shell: pwsh
+        run: |
+          $log = Join-Path $env:RUNNER_TEMP 'my-finance-qa-build.log'
+          npm run qa:finance:windows 2>&1 | Tee-Object -FilePath $log
+          if ($LASTEXITCODE -ne 0) {
+            $tail = ((Get-Content $log -Tail 30) -join "`n").Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+            Write-Output "::error title=MY_FINANCE_QA_BUILD_FAILURE::$tail"
+            throw 'QA installer build failed'
+          }
       - name: Verify static OpenSSL linking for QA binary
         shell: pwsh
         run: |
@@ -83,7 +91,12 @@ jobs:
           $operating = @(Get-ChildItem operating-source/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe)
           $qa = @(Get-ChildItem src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe)
           if ($operating.Count -ne 1 -or $qa.Count -ne 1) { throw 'Ambiguous installer inputs' }
-          & ./scripts/qa/windows-my-finance-isolation.ps1 -OperatingInstaller $operating[0].FullName -QaInstaller $qa[0].FullName
+          try { & ./scripts/qa/windows-my-finance-isolation.ps1 -OperatingInstaller $operating[0].FullName -QaInstaller $qa[0].FullName }
+          catch {
+            $message = $_.Exception.Message.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+            Write-Output "::error title=MY_FINANCE_QA_ISOLATION_FAILURE::$message"
+            throw
+          }
       - name: Mark exact tested QA bytes testable only after isolation succeeds
         run: node scripts/package-my-finance-qa.mjs
       - name: Upload testable QA installer, hash, signature status and instructions
