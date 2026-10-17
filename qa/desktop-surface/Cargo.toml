@@ -21,6 +21,25 @@ required-features = ["synthetic-subprocess"]
 test = false
 bench = false
 
+[[bin]]
+name = "desktop-surface-own-window"
+path = "own_main.rs"
+required-features = ["own-window-qa-skip-miri"]
+test = false
+bench = false
+
+[[bin]]
+name = "desktop-surface-own-synthetic"
+path = "own_synthetic_main.rs"
+required-features = ["own-synthetic"]
+test = false
+bench = false
+
+[[test]]
+name = "own_protocol_subprocess"
+path = "own_protocol_subprocess.rs"
+required-features = ["own-synthetic"]
+
 [[test]]
 name = "protocol_subprocess"
 path = "protocol_subprocess.rs"
@@ -30,6 +49,8 @@ required-features = ["synthetic-subprocess"]
 default = []
 live-windows-skip-miri = []
 synthetic-subprocess = []
+own-window-qa-skip-miri = []
+own-synthetic = []
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
