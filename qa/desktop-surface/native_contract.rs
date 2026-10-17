@@ -43,14 +43,20 @@ pub struct Response {
     pub outcome: Outcome,
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CleanupProof {
+pub struct CleanupProof<P = ownership_receipt::Synthetic> {
     request: Request,
-    owner: verifier::OwnerReceipt,
+    owner: verifier::OwnerReceipt<P>,
+    finalization: ownership_finalization::FinalizationReceipt<P>,
 }
-impl CleanupProof {
-    pub(super) fn matches(&self, request: &Request, owner: &verifier::OwnerReceipt) -> bool {
+impl<P: PartialEq> CleanupProof<P> {
+    pub(super) fn matches(&self, request: &Request, owner: &verifier::OwnerReceipt<P>) -> bool {
         self.request == *request && self.owner == *owner
     }
 }
 #[path = "native_contract_verifier.rs"]
 pub mod verifier;
+
+#[path = "ownership_finalization.rs"]
+pub mod ownership_finalization;
+#[path = "ownership_receipt.rs"]
+pub mod ownership_receipt;

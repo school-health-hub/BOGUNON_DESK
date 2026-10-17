@@ -1,4 +1,15 @@
-use super::{verify, Observations, OwnerReceipt, Ownership};
+use super::OwnerReceipt;
+use crate::native_contract::{
+    ownership_finalization::{Confirmation, FinalizationReceipt, Observations},
+    ownership_receipt::{Creation, LedgerToken, ResourceOwnership},
+};
+use crate::surface_event_types::Binding;
+#[derive(Debug, Clone)]
+struct Ownership {
+    owner: OwnerReceipt,
+    binding: Binding,
+}
+
 use crate::{
     native_contract::{Kind, Outcome, Request, Response},
     own_callbacks::Ledger,
@@ -19,6 +30,14 @@ pub enum Fault {
     RemainingNonzero,
     Release,
     Unknown,
+    LedgerLive,
+    ClassRelease,
+    CallbackContext,
+    UnknownDestroy,
+    UnknownLedger,
+    UnknownClassRelease,
+    UnknownCallbackContext,
+    UnknownOwnerRelease,
 }
 /// In-memory observations only; constants are fake handles/identities, never OS values.
 pub struct Fake {
@@ -28,6 +47,8 @@ pub struct Fake {
     handle: usize,
     last: Option<Request>,
     close_completed: bool,
+    finalized: bool,
+    cleaned: bool,
 }
 impl Fake {
     pub fn new() -> Self {
@@ -38,6 +59,8 @@ impl Fake {
             handle: 100,
             last: None,
             close_completed: false,
+            finalized: false,
+            cleaned: false,
         }
     }
     pub fn execute(&mut self, request: &Request, fault: Fault) -> Response {
@@ -74,6 +97,9 @@ impl Fake {
                 ticket == request.binding().operation()
                     && self.retained.as_ref().is_some_and(|entry| {
                         entry.binding.instance() == request.binding().instance()
+                            && entry.owner.creation().binding.operation().generation()
+                                == request.binding().operation().generation()
+                            && entry.binding.operation() != request.binding().operation()
                     })
             }
             (
@@ -89,6 +115,9 @@ impl Fake {
         }
     }
     fn create(&mut self, request: &Request, fault: Fault) -> Outcome {
+        if self.retained.is_some() && !self.cleaned {
+            return Outcome::NativeOutcomeUnknown;
+        }
         self.handle = match self.handle.checked_add(1) {
             Some(handle) => handle,
             None => return Outcome::NativeOutcomeUnknown,
@@ -99,15 +128,25 @@ impl Fake {
         if self.ledger.register(self.handle, token).is_err() {
             return Outcome::NativeOutcomeUnknown;
         }
-        self.retained = Some(Ownership {
-            owner: OwnerReceipt::fresh(),
+        let creation = Creation {
             binding: request.binding().clone(),
-            token,
+            token: LedgerToken::synthetic(token),
             creator_thread: 7,
             class: 11,
             pid: 13,
             tid: 7,
+            ownership: match fault {
+                Fault::PartialCreate => ResourceOwnership::Partial,
+                Fault::Unknown => ResourceOwnership::Unknown,
+                _ => ResourceOwnership::Owned,
+            },
+        };
+        self.retained = Some(Ownership {
+            owner: OwnerReceipt::synthetic(creation),
+            binding: request.binding().clone(),
         });
+        self.finalized = false;
+        self.cleaned = false;
         self.destroyed = false;
         self.close_completed = false;
         if matches!(fault, Fault::PartialCreate | Fault::Unknown) {
@@ -171,36 +210,6 @@ impl Fake {
             _ => Err(()),
         }
     }
-    fn cleanup(&mut self, request: &Request, fault: Fault) -> Outcome {
-        let Some(retained) = &self.retained else {
-            return Outcome::CleanupFailed;
-        };
-        let mut observed = Observations {
-            identity: retained.clone(),
-            current_thread: 7,
-            destroyed: self.destroyed,
-            remaining: Some(0),
-            owner_released: true,
-        };
-        match fault {
-            Fault::None | Fault::PartialCreate => {}
-            Fault::Thread => observed.current_thread = 8,
-            Fault::Token => observed.identity.token += 1,
-            Fault::Class => observed.identity.class += 1,
-            Fault::Pid => observed.identity.pid += 1,
-            Fault::Tid => observed.identity.tid += 1,
-            Fault::Instance => observed.identity.owner = OwnerReceipt::fresh(),
-            Fault::Destroy => observed.destroyed = false,
-            Fault::RemainingUnknown => observed.remaining = None,
-            Fault::RemainingNonzero => observed.remaining = Some(1),
-            Fault::Release => observed.owner_released = false,
-            Fault::Unknown => return Outcome::NativeOutcomeUnknown,
-        }
-        match verify(request, retained, &self.ledger, &observed) {
-            Ok(proof) => Outcome::CleanupVerified(proof),
-            Err(_) => Outcome::CleanupFailed,
-        }
-    }
     pub fn overflow_callbacks(&mut self, origin: &Request) -> Response {
         let overflow = (0..17).any(|_| {
             self.ledger
@@ -217,3 +226,6 @@ impl Fake {
         }
     }
 }
+
+#[path = "native_contract_fake_cleanup.rs"]
+mod cleanup;

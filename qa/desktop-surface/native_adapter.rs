@@ -143,6 +143,12 @@ impl Adapter {
         let binding = request.binding.clone();
         let event = match (request.kind, response.outcome, started) {
             (Kind::CreateOwnSurface, Outcome::CreateSucceeded(owner), false) => {
+                if owner.creation().binding != binding
+                    || owner.creation().ownership
+                        != crate::native_contract::ownership_receipt::ResourceOwnership::Owned
+                {
+                    return self.fault(Error::Correlation);
+                }
                 self.owner = Some(owner);
                 self.origin = Some(request.clone());
                 Event::CreateCompleted(binding)
@@ -212,6 +218,7 @@ impl Adapter {
     pub const fn faulted(&self) -> bool {
         self.faulted
     }
+    #[cfg(test)]
     pub fn inspect(&self) -> &Authoritative {
         self.surface.inspect()
     }
