@@ -15,6 +15,9 @@ mod read_only_topology;
 #[path = "../../src-tauri/src/desktop_surface/lifecycle/read_only_windows.rs"]
 mod read_only_windows;
 
+mod async_surface;
+mod async_surface_revision_tests;
+mod async_surface_tests;
 mod diagnostic_output;
 mod disposable_surface;
 mod disposable_surface_tests;

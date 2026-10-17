@@ -17,6 +17,7 @@ pub enum Error {
     Disallowed,
     CleanupUncertain,
     ProtocolFault,
+    Revision,
 }
 
 /// Main-side coordinator policy; lifecycle transitions remain owned by Router/Surface.
@@ -158,6 +159,9 @@ impl Boundary {
             return Err(Error::Sequence);
         }
         self.pending.pop_front();
+        if request.revision() != self.main.projection().revision() {
+            return Err(Error::Revision);
+        }
         if !self.main.authorized() {
             return Err(Error::Permission);
         }
@@ -179,6 +183,18 @@ impl Boundary {
             self.protocol_fault();
             return Err(Error::ProtocolFault);
         }
+        Ok(())
+    }
+    pub(super) fn main_revision(&self) -> u64 {
+        self.main.projection().revision()
+    }
+    pub(super) fn lifecycle_state(&self) -> State {
+        self.router.state()
+    }
+    /// Trusted Main host update; never part of the Surface event schema.
+    pub(super) fn update_main(&mut self, open_tasks: u32) -> Result<(), Error> {
+        let projection = self.main.update(open_tasks).ok_or(Error::Revision)?;
+        self.router.refresh_projection(projection);
         Ok(())
     }
     pub fn set_authenticated(&mut self, authenticated: bool) {

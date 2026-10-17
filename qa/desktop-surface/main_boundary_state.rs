@@ -10,6 +10,7 @@ pub struct Authoritative {
     settings: String,
     progress: u32,
     open_tasks: u32,
+    revision: u64,
 }
 impl Authoritative {
     pub fn synthetic() -> Self {
@@ -21,10 +22,16 @@ impl Authoritative {
             settings: String::from("synthetic-user-settings"),
             progress: 3,
             open_tasks: 2,
+            revision: 1,
         }
     }
     pub(super) fn projection(&self) -> Projection {
-        MainState::new(1, self.open_tasks, String::new()).projection()
+        MainState::new(self.revision, self.open_tasks, String::new()).projection()
+    }
+    pub(super) fn update(&mut self, open_tasks: u32) -> Option<Projection> {
+        self.revision = self.revision.checked_add(1)?;
+        self.open_tasks = open_tasks;
+        Some(self.projection())
     }
     pub(super) const fn authorized(&self) -> bool {
         self.authenticated && self.permission

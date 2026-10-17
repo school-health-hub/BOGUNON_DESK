@@ -66,6 +66,9 @@ impl Router {
         self.check_available(binding)?;
         Ok(&self.projection)
     }
+    pub(super) fn refresh_projection(&mut self, projection: Projection) {
+        self.projection = projection;
+    }
     pub fn accept(&mut self, event: Event) -> Result<CommandRequest, RouteError> {
         self.check_available(&event.binding)?;
         let next = self
