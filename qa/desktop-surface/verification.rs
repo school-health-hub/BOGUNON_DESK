@@ -34,3 +34,4 @@ mod reader_mock_tests;
 mod window_lifecycle;
 mod window_observation;
 mod worker_evidence_tests;
+mod worker_topology_contract_tests;
