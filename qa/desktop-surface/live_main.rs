@@ -1,6 +1,11 @@
 mod diagnostic_output;
+mod evidence_approval;
+mod evidence_paths;
+mod evidence_record;
+mod evidence_store;
 mod gate;
 mod live;
+mod live_observation;
 mod live_permissions;
 #[path = "../../src-tauri/src/desktop_surface/lifecycle/observation.rs"]
 mod observation;

@@ -15,8 +15,18 @@ mod read_only_topology;
 #[path = "../../src-tauri/src/desktop_surface/lifecycle/read_only_windows.rs"]
 mod read_only_windows;
 
+mod diagnostic_output;
+mod evidence_approval;
+mod evidence_approval_tests;
+mod evidence_paths;
+mod evidence_pipeline_tests;
+mod evidence_record;
+mod evidence_store;
+mod evidence_store_tests;
 mod gate;
 mod gate_mock_tests;
+mod live_evidence_tests;
+mod live_observation;
 mod mock_tests;
 mod observation_mock_tests;
 mod outcome;

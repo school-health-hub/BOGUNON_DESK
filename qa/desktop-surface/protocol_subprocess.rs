@@ -5,6 +5,7 @@ use std::{
 };
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
+mod evidence_protocol_tests;
 
 #[test]
 fn prepare_panic() {

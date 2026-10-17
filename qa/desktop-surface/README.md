@@ -133,10 +133,10 @@ compiler diagnostics may contain build paths; sanitize those before sharing.
 a serializable evidence value. `collect` preserves the same result and Win32
 query sequence. The evidence writer accepts only a caller-supplied writer: it
 does not choose a path, open files, log, print or access the environment.
-This phase tests the API with synthetic queries and memory writers only. The
-Live entrypoint remains unchanged and does not persist this evidence. Exporting
-it from a future Live runner requires a separately reviewed sink and new artifact
-approval; the old approved executable/manifest cannot authorize new bytes.
+9B-2E tested this API with synthetic queries and memory writers only. 9B-2F
+connects it to the separately reviewed sink below. The old approved executable
+and manifest cannot authorize new bytes; implementation verification never runs
+the Live executable or builds a replacement approved artifact.
 
 Reasons are `NO_WORKERS_ENUMERATED`, `NO_ELIGIBLE_WORKER`,
 `ELIGIBLE_WORKER_FOUND`, `AMBIGUOUS_WORKER`, `SHELL_IDENTITY_FAILED`,
@@ -158,6 +158,58 @@ no candidate observation alone means SUPPORTED. Two equal topology samples are
 not an atomic snapshot or protection against HWND reuse. Evidence contains no
 HWND/PID, title, image/path, raw Win32 error, arbitrary text or raw snapshot.
 The existing stdout/stderr/exit contract below is unchanged.
+
+### 9B-2F: explicitly approved evidence destination
+
+Before native session setup, the existing runtime Gate must pass. A separate,
+independently supplied descriptor selected by `BOGUNON_SURFACE_EVIDENCE_APPROVAL`
+is then required. Nothing creates, approves or searches for this descriptor.
+Its exact four fields (unknown fields rejected) are `runtime_manifest_sha256`,
+`evidence_path`, `staging_path`, and `scope`. The hash must match the bytes of the
+selected runtime manifest, and scope must be `9B2F_SANITIZED_EVIDENCE_V1`.
+This descriptor does not replace or extend the existing four-field runtime
+manifest or grant execution approval by itself.
+
+Both explicit destinations must be absolute drive paths in the descriptor's
+existing directory, named exactly `evidence.json` and `evidence.staging.json`.
+No directory is created. Relative, device, UNC, alternate-stream and dot-segment
+paths are rejected. Root-to-leaf directory handles and approval file handles
+remain open, deny write/delete sharing, and reject reparse attributes without
+following links. Existing destinations, including symlinks, are rejected.
+
+Evidence is collected by the existing `collect_with_evidence` query sequence.
+The JSON schema has exactly five top-level fields: `schema_version` (1),
+`collection` (the 9B-2E fixed evidence object, or null),
+`post_collection_check`, `own_window_check`, and `final_query_error`.
+Checks are `NOT_OBSERVED`, `PASSED`, or `FAILED`; errors are payload-free fixed
+categories. The collection reason describes collection, not later invariance
+checks: interpret it together with both later checks, final error, stdout and
+exit status. No identities, paths, arbitrary strings or environment values are
+serialized. Existing overlapping exclusion counts and eligibility rules remain.
+
+Explicit window cleanup is attempted before any evidence file creation, even
+after observation panic. Serialization is bounded to 16 KiB. Staging uses
+exclusive create-new, flush/sync and same-handle byte read-back verification.
+Final publication uses an atomic non-overwriting hard link on the same volume;
+unsupported filesystems fail closed. The approved staging file is intentionally
+retained on success or failure: no unlink/rename cleanup race or automatic retry.
+Only the final filename is published evidence, and only exit 0 establishes an
+overall successful diagnostic run. A partial staging file is not success.
+
+Persistence failure uses existing exit 6 only when the run would otherwise exit
+0. Existing cleanup (5), panic (4), Gate (2), and observation failure (3) retain
+their meaning and precedence; a persistence panic is still an internal panic.
+stdout's two observation lines can say PASS while exit 6 reports storage failure.
+Consumers must check exit status, not infer overall success from those lines.
+No evidence errors or paths are printed; stderr remains unused.
+
+Directory/file locks reduce pathname replacement races but are not a security
+boundary against privileged actors, hostile pre-opened handles or the same user
+replacing files before validation/after process exit. Independently review the
+descriptor and artifact hashes immediately before a future approved run, retain
+them in a controlled non-synchronized location, and do not claim this removes
+the existing executable/manifest TOCTOU limitation. No new descriptor, approval,
+runtime manifest or Live result is produced during Synthetic verification.
 
 `live_main.rs` installs a private silent panic hook before the gate. The default
 hook is never invoked, including with inherited `RUST_BACKTRACE=1` or `full`.

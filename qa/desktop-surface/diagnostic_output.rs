@@ -64,6 +64,9 @@ impl Finding {
 pub trait Session {
     fn observe(&mut self) -> Finding;
     fn cleanup(&mut self) -> Result<(), ()>;
+    fn persist_evidence(&mut self) -> Result<(), ()> {
+        Ok(())
+    }
 }
 
 pub fn install_private_hook() {
@@ -85,6 +88,7 @@ pub struct Diagnostic {
     finding: Finding,
     cleanup_failed: bool,
     panicked: bool,
+    evidence_failed: bool,
 }
 pub fn execute<S: Session>(prepare: impl FnOnce() -> Result<S, Code>) -> Diagnostic {
     let mut session = match capture(prepare) {
@@ -101,6 +105,7 @@ pub fn execute<S: Session>(prepare: impl FnOnce() -> Result<S, Code>) -> Diagnos
                 },
                 cleanup_failed: false,
                 panicked: false,
+                evidence_failed: false,
             }
         }
         Err(()) => {
@@ -108,6 +113,7 @@ pub fn execute<S: Session>(prepare: impl FnOnce() -> Result<S, Code>) -> Diagnos
                 finding: Finding::failure(Code::InternalPanic),
                 cleanup_failed: false,
                 panicked: true,
+                evidence_failed: false,
             }
         }
     };
@@ -117,17 +123,21 @@ pub fn execute<S: Session>(prepare: impl FnOnce() -> Result<S, Code>) -> Diagnos
     let cleanup = capture(|| session.cleanup());
     let mut cleanup_failed = !matches!(cleanup, Ok(Ok(())));
     panicked |= cleanup.is_err();
+    let saved = capture(|| session.persist_evidence());
+    let evidence_failed = !matches!(saved, Ok(Ok(())));
+    panicked |= saved.is_err();
     if capture(|| drop(session)).is_err() {
         cleanup_failed = true;
         panicked = true;
     }
-    if cleanup_failed {
+    if cleanup_failed || panicked {
         finding.report.window = WindowResult::Fail;
     }
     Diagnostic {
         finding,
         cleanup_failed,
         panicked,
+        evidence_failed,
     }
 }
 impl Diagnostic {
@@ -145,7 +155,11 @@ impl Diagnostic {
             )
             && self.finding.error.is_none()
         {
-            0
+            if self.evidence_failed {
+                6
+            } else {
+                0
+            }
         } else {
             3
         }

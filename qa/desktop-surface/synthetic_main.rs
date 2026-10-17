@@ -20,10 +20,10 @@ impl Session for Fake {
     fn observe(&mut self) -> Finding {
         self.trace.borrow_mut().extend(["create", "observe"]);
         match self.case.as_str() {
-            "panic" | "panic-cleanup" => {
+            "panic" | "panic-cleanup" | "panic-evidence" | "panic-cleanup-evidence" => {
                 panic!("C:\\SYNTHETIC_PRIVATE\\source.rs HWND=SECRET PAYLOAD")
             }
-            "snapshot" => Finding::failure(Code::Snapshot),
+            "snapshot" | "snapshot-evidence" => Finding::failure(Code::Snapshot),
             "shell" => Finding {
                 report: Report {
                     window: WindowResult::Pass,
@@ -50,9 +50,20 @@ impl Session for Fake {
     fn cleanup(&mut self) -> Result<(), ()> {
         self.trace.borrow_mut().push("cleanup");
         match self.case.as_str() {
-            "cleanup" | "panic-cleanup" => Err(()),
+            "cleanup" | "panic-cleanup" | "cleanup-evidence" | "panic-cleanup-evidence" => Err(()),
             "cleanup-panic" => panic!("SYNTHETIC CLEANUP PRIVATE PATH"),
             _ => Ok(()),
+        }
+    }
+    fn persist_evidence(&mut self) -> Result<(), ()> {
+        if self.case.contains("evidence") {
+            self.trace.borrow_mut().push("save");
+            if self.case == "evidence-panic" {
+                panic!("SYNTHETIC PRIVATE EVIDENCE PATH");
+            }
+            Err(())
+        } else {
+            Ok(())
         }
     }
 }

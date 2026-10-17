@@ -1,64 +1,16 @@
 use crate::{
     diagnostic_output::{Code, Finding, Session},
+    evidence_record::Record,
+    evidence_store::{self, EvidenceSink},
     gate::{self, GateError},
-    observation::*,
-    observation_reader::Reader,
-    outcome::Report,
     test_window::NativeWindows,
-    window_lifecycle::{OwnedWindows, WindowError},
-    window_observation::{relations, unchanged},
+    window_lifecycle::OwnedWindows,
 };
-
-fn observe(
-    reader: &mut Reader<crate::read_only_windows::NativeQueries>,
-    ids: &[WindowId],
-) -> Finding {
-    let before = ids
-        .iter()
-        .map(|id| reader.0.window(*id))
-        .collect::<Result<Vec<_>, _>>();
-    let Ok(before) = before else {
-        return Finding::failure(Code::Snapshot);
-    };
-    if relations(&before).is_err() {
-        return Finding::failure(Code::Snapshot);
-    }
-    let capability = reader.collect(before[0].identity.id).and_then(|snapshot| {
-        unchanged(&reader.0, &before[0], &snapshot.main)
-            .map_err(|_| QueryError::IdentityChanged)?;
-        reader.topology_consistent(&snapshot)
-    });
-    let window = before.iter().try_for_each(|old| {
-        let after = reader
-            .0
-            .window(old.identity.id)
-            .map_err(|_| WindowError::Observation)?;
-        unchanged(&reader.0, old, &after)
-    });
-    let error = match &capability {
-        Ok(()) | Err(QueryError::NoEligibleWorker) => None,
-        Err(QueryError::ShellIdentity) => Some(Code::ShellIdentity),
-        Err(QueryError::TopologyChanged | QueryError::AmbiguousWorker) => Some(Code::Topology),
-        Err(
-            QueryError::Api(..)
-            | QueryError::Hresult(..)
-            | QueryError::InvalidValue(..)
-            | QueryError::IdentityChanged
-            | QueryError::DpiMismatch,
-        ) => Some(Code::Snapshot),
-    };
-    Finding {
-        report: Report::finish(window, capability, Ok(())),
-        error: if window.is_err() {
-            Some(Code::Snapshot)
-        } else {
-            error
-        },
-    }
-}
 
 pub struct LiveSession {
     windows: OwnedWindows<NativeWindows>,
+    sink: EvidenceSink,
+    evidence: Record,
 }
 
 pub fn prepare() -> Result<LiveSession, Code> {
@@ -69,9 +21,14 @@ pub fn prepare() -> Result<LiveSession, Code> {
         GateError::Source => Code::GateSource,
         GateError::Environment => Code::GateEnvironment,
     })?;
+    let sink = EvidenceSink::from_environment(&permit).map_err(|_| Code::GateManifest)?;
     let api = NativeWindows::new(permit).map_err(|_| Code::WindowSetup)?;
     let windows = OwnedWindows::register(api).map_err(|_| Code::WindowSetup)?;
-    Ok(LiveSession { windows })
+    Ok(LiveSession {
+        windows,
+        sink,
+        evidence: Record::default(),
+    })
 }
 impl Session for LiveSession {
     fn observe(&mut self) -> Finding {
@@ -79,11 +36,18 @@ impl Session for LiveSession {
             return Finding::failure(Code::WindowCreate);
         }
         match crate::read_only_windows::reader() {
-            Ok(mut reader) => observe(&mut reader, self.windows.ids()),
+            Ok(mut reader) => crate::live_observation::observe(
+                &mut reader,
+                self.windows.ids(),
+                &mut self.evidence,
+            ),
             Err(_) => Finding::failure(Code::Snapshot),
         }
     }
     fn cleanup(&mut self) -> Result<(), ()> {
         self.windows.close().map_err(|_| ())
+    }
+    fn persist_evidence(&mut self) -> Result<(), ()> {
+        evidence_store::save(&mut self.sink, &self.evidence).map_err(|_| ())
     }
 }
