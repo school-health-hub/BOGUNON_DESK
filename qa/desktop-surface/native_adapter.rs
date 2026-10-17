@@ -14,16 +14,16 @@ pub enum Error {
     Sequence,
     Surface(crate::async_surface::Error),
 }
-pub struct Adapter {
+pub struct Adapter<P = crate::native_contract::ownership_receipt::Synthetic> {
     surface: AsyncSurface,
     pending: Option<(Request, bool)>,
     sequence: u64,
     faulted: bool,
-    owner: Option<crate::native_contract::verifier::OwnerReceipt>,
+    owner: Option<crate::native_contract::verifier::OwnerReceipt<P>>,
     close_requested: bool,
     origin: Option<Request>,
 }
-impl Adapter {
+impl<P: Clone + PartialEq> Adapter<P> {
     pub fn new(main: Authoritative) -> Self {
         Self {
             surface: AsyncSurface::new(main),
@@ -132,7 +132,7 @@ impl Adapter {
         self.event(Event::CleanupStarted(binding))?;
         self.issue(Kind::VerifyOwnSurfaceCleanup)
     }
-    pub fn respond(&mut self, response: Response) -> Result<Option<Request>, Error> {
+    pub fn respond(&mut self, response: Response<P>) -> Result<Option<Request>, Error> {
         self.guard()?;
         let Some((request, started)) = self.pending.clone() else {
             return self.fault(Error::Correlation);
@@ -211,6 +211,10 @@ impl Adapter {
             Ok(()) => Ok(()),
             Err(e) => self.fault(Error::Surface(e)),
         }
+    }
+    pub(crate) fn native_unknown(&mut self) {
+        self.faulted = true;
+        self.surface.native_fault();
     }
     pub fn state(&self) -> State {
         self.surface.state()

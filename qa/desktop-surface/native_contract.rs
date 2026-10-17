@@ -27,20 +27,20 @@ impl Request {
     }
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Outcome {
-    CreateSucceeded(verifier::OwnerReceipt),
+pub enum Outcome<P = ownership_receipt::Synthetic> {
+    CreateSucceeded(verifier::OwnerReceipt<P>),
     CreateFailed,
     CloseStarted,
     CloseCompleted,
     SurfaceLost,
-    CleanupVerified(CleanupProof),
+    CleanupVerified(CleanupProof<P>),
     CleanupFailed,
     NativeOutcomeUnknown,
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Response {
+pub struct Response<P = ownership_receipt::Synthetic> {
     pub request: Request,
-    pub outcome: Outcome,
+    pub outcome: Outcome<P>,
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CleanupProof<P = ownership_receipt::Synthetic> {
@@ -69,3 +69,9 @@ pub mod owner_policy;
 
 #[path = "native_callback_gate.rs"]
 pub mod callback_gate;
+
+#[path = "creator_thread_host.rs"]
+pub mod creator_thread_host;
+#[cfg(test)]
+#[path = "native_owner_capture.rs"]
+mod native_capture_model;

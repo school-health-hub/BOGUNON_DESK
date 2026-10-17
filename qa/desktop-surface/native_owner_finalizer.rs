@@ -53,7 +53,10 @@ impl Owner {
         unsafe { UnregisterClassW(observation::CLASS, Some(self.module)) }
             .map_err(|_| Failure::ClassRelease)?;
         self.registered = false;
-        let _notices = context::drain()?;
+        let notices = context::drain()?;
+        if !notices.is_empty() || !context::capture(|capture| Ok(capture.empty()))? {
+            return Err(Failure::CallbackContext);
+        }
         if context::CREATING.get()
             || context::EXPECTED.get() != 0
             || !context::GATE.with(|gate| gate.idle())

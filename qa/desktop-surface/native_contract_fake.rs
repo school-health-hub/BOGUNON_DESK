@@ -41,6 +41,7 @@ pub enum Fault {
 }
 /// In-memory observations only; constants are fake handles/identities, never OS values.
 pub struct Fake {
+    captured: Vec<Notice>,
     ledger: Ledger,
     retained: Option<Ownership>,
     destroyed: bool,
@@ -53,6 +54,7 @@ pub struct Fake {
 impl Fake {
     pub fn new() -> Self {
         Self {
+            captured: Vec::with_capacity(16),
             ledger: Ledger::new(),
             retained: None,
             destroyed: false,
@@ -205,10 +207,18 @@ impl Fake {
     fn drain(&mut self, kind: NoticeKind, request: &Request) -> Result<(), ()> {
         let mut notices: Vec<Notice> = Vec::with_capacity(16);
         self.ledger.drain(&mut notices).map_err(|_| ())?;
+        if self.captured.len() + notices.len() > 16 {
+            return Err(());
+        }
+        self.captured.extend(notices.iter().cloned());
         match notices.as_slice() {
             [notice] if notice.kind == kind && notice.binding == *request.binding() => Ok(()),
             _ => Err(()),
         }
+    }
+    #[cfg(test)]
+    pub(crate) fn take_captured(&mut self) -> Vec<Notice> {
+        std::mem::take(&mut self.captured)
     }
     pub fn overflow_callbacks(&mut self, origin: &Request) -> Response {
         let overflow = (0..17).any(|_| {

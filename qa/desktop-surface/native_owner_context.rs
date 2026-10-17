@@ -14,6 +14,7 @@ use windows::{
 };
 thread_local! {
     // Never reset: retired handles and the two-reservation budget last until thread exit.
+    static CAPTURE: RefCell<super::capture::Capture> = RefCell::new(super::capture::Capture::new());
     static LEDGER: RefCell<Ledger> = RefCell::new(Ledger::new());
     pub(super) static ACTIVE: Cell<bool> = const { Cell::new(false) };
     pub(super) static CREATING: Cell<bool> = const { Cell::new(false) };
@@ -33,14 +34,29 @@ pub(super) fn ledger<T>(f: impl FnOnce(&mut Ledger) -> Result<T, Failure>) -> Re
 pub(super) fn healthy() -> Result<(), Failure> {
     FAULT.get().map_or(Ok(()), Err)
 }
+pub(super) fn capture<T>(
+    f: impl FnOnce(&mut super::capture::Capture) -> Result<T, Failure>,
+) -> Result<T, Failure> {
+    CAPTURE.with(|state| {
+        let mut value = state.try_borrow_mut().map_err(|_| Failure::Reentry)?;
+        f(&mut value)
+    })
+}
 fn notice(handle: HWND, kind: NoticeKind) -> Result<(), Failure> {
     ledger(|state| {
         if !state.matches(handle.0.addr(), TOKEN.get()) {
             return Err(Failure::CallbackIdentity);
         }
+        let binding = state
+            .live
+            .as_ref()
+            .ok_or(Failure::CallbackIdentity)?
+            .binding
+            .clone();
         state
             .notice(handle.0.addr(), kind)
-            .map_err(|_| Failure::CallbackOverflow)
+            .map_err(|_| Failure::CallbackOverflow)?;
+        capture(|capture| capture.record(TOKEN.get(), Notice { binding, kind }))
     })
 }
 pub(super) fn drain() -> Result<Vec<Notice>, Failure> {

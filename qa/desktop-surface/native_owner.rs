@@ -17,8 +17,12 @@ use windows::{
         UI::WindowsAndMessaging::*,
     },
 };
+#[path = "native_owner_capture.rs"]
+pub mod capture;
 #[path = "native_owner_context.rs"]
 mod context;
+#[path = "native_owner_delivery.rs"]
+mod delivery;
 #[path = "native_owner_finalizer.rs"]
 mod finalizer;
 #[path = "native_owner_observation.rs"]
@@ -123,6 +127,7 @@ impl Owner {
                 .map_err(|_| Failure::LedgerOverflow)
         })?;
         context::TOKEN.set(self.token);
+        context::capture(|capture| capture.begin(self.token))?;
         let class = WNDCLASSW {
             lpfnWndProc: Some(context::procedure),
             hInstance: self.module,

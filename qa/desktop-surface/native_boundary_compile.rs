@@ -108,3 +108,75 @@ fn forbidden_finalized_fields(value: OwnerReceipt<Native>, request: Request) {
     };
     let _ = request;
 }
+
+#[cfg(probe_host_send)]
+fn forbidden_host_send() {
+    fn require<T: Send>() {}
+    require::<
+        native_contract::creator_thread_host::Host<
+            native_contract::creator_thread_host::NativeBackend,
+        >,
+    >();
+}
+#[cfg(probe_host_sync)]
+fn forbidden_host_sync() {
+    fn require<T: Sync>() {}
+    require::<
+        native_contract::creator_thread_host::Host<
+            native_contract::creator_thread_host::NativeBackend,
+        >,
+    >();
+}
+#[cfg(probe_response_promotion)]
+fn forbidden_response_promotion(
+    value: native_contract::Response<Synthetic>,
+) -> native_contract::Response<Native> {
+    value
+}
+#[cfg(probe_envelope_promotion)]
+fn forbidden_envelope_promotion(
+    value: native_contract::creator_thread_host::Envelope<Synthetic>,
+) -> native_contract::creator_thread_host::Envelope<Native> {
+    value
+}
+#[cfg(probe_envelope_fields)]
+fn forbidden_envelope_fields(owner: OwnerReceipt<Native>, binding: surface_event_types::Binding) {
+    let _ = native_contract::creator_thread_host::Envelope {
+        owner,
+        binding,
+        sequence: 1,
+        source: native_contract::creator_thread_host::Source::OwnWndProc,
+        kind: own_coordinator::NoticeKind::Created,
+    };
+}
+#[cfg(probe_host_inspection)]
+fn forbidden_host_inspection(
+    host: &native_contract::creator_thread_host::Host<
+        native_contract::creator_thread_host::NativeBackend,
+    >,
+) {
+    let _ = host.inspect();
+}
+#[cfg(probe_backend_sealing)]
+struct UntrustedBackend;
+#[cfg(probe_backend_sealing)]
+impl native_contract::creator_thread_host::Backend for UntrustedBackend {
+    type Provenance = Native;
+    fn dispatch(&mut self, request: &Request) -> native_contract::Response<Native> {
+        native_contract::Response {
+            request: request.clone(),
+            outcome: native_contract::Outcome::NativeOutcomeUnknown,
+        }
+    }
+    fn drain(
+        &mut self,
+    ) -> Result<
+        Vec<native_contract::creator_thread_host::Envelope<Native>>,
+        native_contract::creator_thread_host::Error,
+    > {
+        Ok(Vec::new())
+    }
+    fn stop(&mut self) -> Result<(), native_contract::creator_thread_host::Error> {
+        Ok(())
+    }
+}
