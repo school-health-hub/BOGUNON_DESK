@@ -188,6 +188,13 @@ impl native_contract::creator_thread_host::Backend for UntrustedBackend {
     > {
         Ok(Vec::new())
     }
+    fn complete_cleanup(
+        &mut self,
+        request: &Request,
+        _: usize,
+    ) -> native_contract::Response<Native> {
+        self.dispatch(request)
+    }
     fn stop(&mut self) -> Result<(), native_contract::creator_thread_host::Error> {
         Ok(())
     }
@@ -245,3 +252,6 @@ fn forbidden_cleanup_capability_fields() -> native_contract::native_owner::Failu
         receipt: None,
     }
 }
+
+#[path = "native_final_drain_compile.rs"]
+mod final_drain_probes;

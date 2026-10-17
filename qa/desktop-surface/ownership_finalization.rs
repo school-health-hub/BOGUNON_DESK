@@ -62,11 +62,11 @@ impl FinalizationReceipt<Synthetic> {
     }
 }
 impl<P: Clone + PartialEq> FinalizationReceipt<P> {
-    pub(super) fn verify(
-        self,
+    pub(super) fn validate(
+        &self,
         owner: &OwnerReceipt<P>,
         active: &crate::surface_event_types::Binding,
-    ) -> Result<CleanupProof<P>, VerifyError> {
+    ) -> Result<(), VerifyError> {
         if self.request.kind() != Kind::VerifyOwnSurfaceCleanup || self.request.binding() != active
         {
             return Err(VerifyError::Request);
@@ -108,6 +108,22 @@ impl<P: Clone + PartialEq> FinalizationReceipt<P> {
         if self.residual != Some(0) {
             return Err(VerifyError::Residual);
         }
+        Ok(())
+    }
+}
+impl<P> FinalizationReceipt<P> {
+    pub(super) fn request(&self) -> &Request {
+        &self.request
+    }
+}
+
+impl FinalizationReceipt<Synthetic> {
+    pub(super) fn verify(
+        self,
+        owner: &OwnerReceipt,
+        active: &crate::surface_event_types::Binding,
+    ) -> Result<CleanupProof, VerifyError> {
+        self.validate(owner, active)?;
         Ok(CleanupProof {
             request: self.request.clone(),
             owner: owner.clone(),
@@ -122,9 +138,9 @@ impl FinalizationReceipt<super::ownership_receipt::Native> {
         request: &Request,
         finalization: super::native_owner::Finalized,
         owner: &OwnerReceipt<super::ownership_receipt::Native>,
-    ) -> Result<CleanupProof<super::ownership_receipt::Native>, VerifyError> {
+    ) -> Result<Self, VerifyError> {
         let observed = finalization.observations();
-        Self {
+        let receipt = Self {
             request: request.clone(),
             owner: observed.owner,
             observed: observed.identity,
@@ -135,7 +151,8 @@ impl FinalizationReceipt<super::ownership_receipt::Native> {
             class_release: observed.class_release,
             callback_clear: observed.callback_clear,
             owner_release: observed.owner_release,
-        }
-        .verify(owner, request.binding())
+        };
+        receipt.validate(owner, request.binding())?;
+        Ok(receipt)
     }
 }

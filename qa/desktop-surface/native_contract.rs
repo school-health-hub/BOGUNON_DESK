@@ -34,6 +34,7 @@ pub enum Outcome<P = ownership_receipt::Synthetic> {
     CloseCompleted,
     SurfaceLost,
     CleanupVerified(CleanupProof<P>),
+    CleanupPending,
     CleanupFailed,
     NativeOutcomeUnknown,
 }
@@ -78,3 +79,6 @@ mod native_capture_model;
 
 #[path = "failure_cleanup.rs"]
 pub mod failure_cleanup;
+
+#[path = "final_drain_contract.rs"]
+pub mod final_drain_contract;

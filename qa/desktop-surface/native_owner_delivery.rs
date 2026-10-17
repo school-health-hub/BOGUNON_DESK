@@ -21,3 +21,14 @@ impl Owner {
         Ok(())
     }
 }
+
+impl Owner {
+    pub(super) fn same_thread(&self) -> Result<(), Failure> {
+        // SAFETY: FFI 8: calling thread identity only.
+        if unsafe { windows::Win32::System::Threading::GetCurrentThreadId() } == self.thread {
+            Ok(())
+        } else {
+            Err(Failure::CreatorThread)
+        }
+    }
+}

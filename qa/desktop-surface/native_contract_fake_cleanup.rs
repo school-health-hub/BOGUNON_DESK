@@ -1,23 +1,28 @@
 use super::*;
+use crate::native_contract::ownership_finalization::VerifyError;
 impl Fake {
-    pub(super) fn cleanup(&mut self, request: &Request, fault: Fault) -> Outcome {
+    fn cleanup_receipt(
+        &mut self,
+        request: &Request,
+        fault: Fault,
+    ) -> Result<FinalizationReceipt, VerifyError> {
         if self.finalized {
-            return Outcome::CleanupFailed;
+            return Err(VerifyError::Owner);
         }
         self.finalized = true;
         if matches!(fault, Fault::LedgerLive) {
             let Some(entry) = &self.retained else {
-                return Outcome::CleanupFailed;
+                return Err(VerifyError::Owner);
             };
             let Ok(token) = self.ledger.reserve(&entry.binding) else {
-                return Outcome::CleanupFailed;
+                return Err(VerifyError::Owner);
             };
             if self.ledger.register(self.handle + 1, token).is_err() {
-                return Outcome::CleanupFailed;
+                return Err(VerifyError::Owner);
             }
         }
         let Some(retained) = &self.retained else {
-            return Outcome::CleanupFailed;
+            return Err(VerifyError::Owner);
         };
         let mut observed = Observations {
             owner: retained.owner.clone(),
@@ -61,17 +66,9 @@ impl Fake {
             Fault::UnknownClassRelease => observed.class_release = Confirmation::Unknown,
             Fault::UnknownCallbackContext => observed.callback_clear = Confirmation::Unknown,
             Fault::UnknownOwnerRelease => observed.owner_release = Confirmation::Unknown,
-            Fault::Unknown => return Outcome::NativeOutcomeUnknown,
+            Fault::Unknown => return Err(VerifyError::Ownership),
         }
-        match FinalizationReceipt::synthetic(request, observed)
-            .verify(&retained.owner, &retained.binding)
-        {
-            Ok(proof) => {
-                self.cleaned = true;
-                Outcome::CleanupVerified(proof)
-            }
-            Err(_) => Outcome::CleanupFailed,
-        }
+        Ok(FinalizationReceipt::synthetic(request, observed))
     }
     #[cfg(test)]
     pub fn owner(&self) -> Option<&OwnerReceipt> {
@@ -126,5 +123,71 @@ impl Fake {
                 owner_release: Confirmation::Confirmed,
             },
         )
+    }
+}
+
+impl Fake {
+    pub(super) fn cleanup(&mut self, request: &Request, fault: Fault) -> Outcome {
+        let receipt = match self.cleanup_receipt(request, fault) {
+            Ok(receipt) => receipt,
+            Err(error) => {
+                return match (error, fault) {
+                    (VerifyError::Ownership, Fault::Unknown) => Outcome::NativeOutcomeUnknown,
+                    _ => Outcome::CleanupFailed,
+                }
+            }
+        };
+        let Some(retained) = &self.retained else {
+            return Outcome::CleanupFailed;
+        };
+        match receipt.verify(&retained.owner, &retained.binding) {
+            Ok(proof) => {
+                self.cleaned = true;
+                Outcome::CleanupVerified(proof)
+            }
+            Err(_) => Outcome::CleanupFailed,
+        }
+    }
+}
+#[cfg(test)]
+impl Fake {
+    pub(in crate::native_contract) fn observe_cleanup(
+        &mut self,
+        request: &Request,
+        fault: Fault,
+    ) -> Result<
+        crate::native_contract::final_drain_contract::FinalizationObservation,
+        crate::native_contract::ownership_finalization::VerifyError,
+    > {
+        use crate::native_contract::{
+            final_drain_contract::FinalizationObservation, ownership_finalization::VerifyError,
+        };
+        if !self.valid(request) {
+            return Err(VerifyError::Request);
+        }
+        self.last = Some(request.clone());
+        let receipt = self.cleanup_receipt(request, fault)?;
+        let owner = &self.retained.as_ref().ok_or(VerifyError::Owner)?.owner;
+        FinalizationObservation::synthetic(receipt, owner)
+    }
+    pub(in crate::native_contract) fn finish_observed_cleanup(
+        &mut self,
+        finalization: crate::native_contract::final_drain_contract::FinalizationObservation,
+        drain: crate::native_contract::final_drain_contract::FinalDrainObservation,
+    ) -> Result<
+        crate::native_contract::CleanupProof,
+        crate::native_contract::final_drain_contract::DrainError,
+    > {
+        use crate::native_contract::final_drain_contract::{verify_final_drain, DrainError};
+        let retained = self.retained.as_ref().ok_or(DrainError::Owner)?;
+        if finalization.owner() != &retained.owner
+            || self.last.as_ref() != Some(finalization.request())
+            || self.cleaned
+        {
+            return Err(DrainError::Owner);
+        }
+        let proof = verify_final_drain(finalization, drain)?;
+        self.cleaned = true;
+        Ok(proof)
     }
 }

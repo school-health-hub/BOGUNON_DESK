@@ -15,6 +15,8 @@ use super::failure_cleanup as cleanup;
 pub use bridge::{Envelope, Source};
 #[path = "creator_thread_failure.rs"]
 mod failure;
+#[path = "creator_thread_host_drain.rs"]
+mod final_drain;
 #[path = "creator_thread_operations.rs"]
 mod operations;
 pub use failure::Report;
@@ -31,6 +33,7 @@ pub trait Backend: sealed::Sealed {
     ) -> cleanup::Observation<Self::Provenance>;
     fn dispatch(&mut self, request: &Request) -> Response<Self::Provenance>;
     fn drain(&mut self) -> Result<Vec<Envelope<Self::Provenance>>, Error>;
+    fn complete_cleanup(&mut self, request: &Request, budget: usize) -> Response<Self::Provenance>;
     fn stop(&mut self) -> Result<(), Error>;
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -115,9 +118,13 @@ impl<B: Backend> Host<B> {
                 }
                 self.pending = Some(response);
             }
-            Outcome::CleanupVerified(_) => {
+            Outcome::CleanupPending => {
+                if request.kind() != Kind::VerifyOwnSurfaceCleanup || self.pending.is_some() {
+                    return self.fault(Error::Protocol);
+                }
                 self.pending = Some(response);
             }
+            Outcome::CleanupVerified(_) => return self.fault(Error::Protocol),
             Outcome::CreateFailed
             | Outcome::CleanupFailed
             | Outcome::NativeOutcomeUnknown
@@ -150,17 +157,7 @@ impl<B: Backend> Host<B> {
                 return self.fault(error);
             }
         }
-        if self
-            .pending
-            .as_ref()
-            .is_some_and(|response| matches!(response.outcome, Outcome::CleanupVerified(_)))
-        {
-            let response = self.pending.take().ok_or(Error::Protocol)?;
-            if self.adapter.respond(response).is_err() {
-                return self.fault(Error::Protocol);
-            }
-            self.bridge.retire();
-        }
+        self.complete_after_drain(budget, count)?;
         Ok(count)
     }
     fn deliver(&mut self, notice: Envelope<B::Provenance>) -> Result<(), Error> {

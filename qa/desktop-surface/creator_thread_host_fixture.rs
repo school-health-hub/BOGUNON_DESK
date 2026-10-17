@@ -20,6 +20,10 @@ pub struct Memory {
     pub cleanup_unknown: bool,
     pub cleanup_issued: bool,
     pub backend_fault: bool,
+    pub finalization:
+        Option<crate::native_contract::final_drain_contract::FinalizationObservation<Synthetic>>,
+    pub cleanup_request: Option<Request>,
+    pub final_drain_facts: crate::native_contract::final_drain_contract::DrainFacts,
 }
 impl sealed::Sealed for Memory {}
 impl Memory {
@@ -103,6 +107,9 @@ impl Backend for Memory {
                 outcome: Outcome::NativeOutcomeUnknown,
             };
         }
+        if request.kind() == Kind::VerifyOwnSurfaceCleanup {
+            return self.observe_cleanup(request);
+        }
         let response = self.fake.execute(request, self.fault);
         match &response.outcome {
             Outcome::CreateSucceeded(owner) => {
@@ -127,6 +134,9 @@ impl Backend for Memory {
             return Ok(Vec::new());
         }
         Ok(std::mem::take(&mut self.notices))
+    }
+    fn complete_cleanup(&mut self, request: &Request, budget: usize) -> Response {
+        self.finish_cleanup(request, budget)
     }
     fn stop(&mut self) -> Result<(), Error> {
         if self.stop_failure {
@@ -153,6 +163,9 @@ pub fn fixture() -> Host<Memory> {
             cleanup_unknown: false,
             cleanup_issued: false,
             backend_fault: false,
+            finalization: None,
+            cleanup_request: None,
+            final_drain_facts: final_drain_fixture::quiet_facts(),
         },
     )
 }
@@ -168,3 +181,6 @@ pub fn closed() -> Host<Memory> {
     h.pump(4).unwrap();
     h
 }
+
+#[path = "creator_thread_final_drain_fixture.rs"]
+mod final_drain_fixture;

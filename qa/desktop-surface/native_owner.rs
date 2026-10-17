@@ -23,6 +23,9 @@ pub mod capture;
 mod context;
 #[path = "native_owner_delivery.rs"]
 mod delivery;
+#[path = "native_owner_drain.rs"]
+mod final_drain;
+pub use final_drain::Drained;
 #[path = "native_owner_failure.rs"]
 mod failure;
 pub use failure::FailureCapability;
@@ -51,6 +54,8 @@ pub struct Owner {
     destroyed: Option<Creation>,
     policy: Policy,
     finalization_attempted: bool,
+    finalization_stamp: Option<Rc<()>>,
+    drain_attempted: bool,
     cleanup_issued: bool,
     creation_attempted: bool,
     lease: Rc<()>,
@@ -89,6 +94,8 @@ impl Owner {
             destroyed: None,
             policy: Policy::new(),
             finalization_attempted: false,
+            finalization_stamp: None,
+            drain_attempted: false,
             cleanup_issued: false,
             creation_attempted: false,
             lease: Rc::new(()),
@@ -96,14 +103,6 @@ impl Owner {
             released: false,
             _thread_bound: PhantomData,
         })
-    }
-    fn same_thread(&self) -> Result<(), Failure> {
-        // SAFETY: FFI 8: calling thread identity only.
-        if unsafe { GetCurrentThreadId() } == self.thread {
-            Ok(())
-        } else {
-            Err(Failure::CreatorThread)
-        }
     }
     fn identity(&self, handle: HWND) -> Result<(u32, u32, u32), Failure> {
         self.normal_admission()?;

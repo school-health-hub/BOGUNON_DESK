@@ -1,6 +1,7 @@
 use super::super::{
-    ownership_finalization::{Confirmation, FinalizationReceipt, Observations},
-    CleanupProof, Request,
+    final_drain_contract::FinalizationObservation,
+    ownership_finalization::{Confirmation, Observations},
+    Request,
 };
 use super::{context, observation, Failure, Native, Owner};
 use windows::Win32::{
@@ -17,7 +18,10 @@ impl Finalized {
     }
 }
 impl Owner {
-    pub fn finalize(&mut self, request: &Request) -> Result<CleanupProof<Native>, Failure> {
+    pub fn finalize(
+        &mut self,
+        request: &Request,
+    ) -> Result<FinalizationObservation<Native>, Failure> {
         if self.finalization_attempted {
             return Err(Failure::Protocol);
         }
@@ -82,9 +86,12 @@ impl Owner {
                 owner_release: Confirmation::Confirmed,
             },
         };
-        FinalizationReceipt::<Native>::observed(request, observed, &owner).map_err(|_| {
+        let finalization = FinalizationObservation::<Native>::observed(request, observed, &owner)
+            .map_err(|_| {
             context::FAULT.set(Some(Failure::NativeOutcomeUnknown));
             Failure::NativeOutcomeUnknown
-        })
+        })?;
+        self.finalization_stamp = Some(finalization.stamp());
+        Ok(finalization)
     }
 }

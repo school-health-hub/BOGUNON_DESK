@@ -280,3 +280,5 @@ fn delayed_cleanup_blocks_replacement() {
 
 #[path = "creator_thread_failure_tests.rs"]
 mod failure_tests;
+#[path = "creator_thread_final_drain_tests.rs"]
+mod final_drain_tests;

@@ -10,10 +10,15 @@ use std::{
     rc::Rc,
     thread::{self, ThreadId},
 };
+#[path = "creator_thread_native_completion.rs"]
+mod completion;
 #[path = "creator_thread_native_cleanup.rs"]
 mod failure;
 pub struct NativeBackend {
     owner: Option<Owner>,
+    finalization:
+        Option<crate::native_contract::final_drain_contract::FinalizationObservation<Native>>,
+    proof_issued: bool,
     receipt: Option<OwnerReceipt<Native>>,
     released: bool,
     stopped: bool,
@@ -27,6 +32,8 @@ impl NativeBackend {
     pub(super) fn new() -> Self {
         Self {
             owner: None,
+            finalization: None,
+            proof_issued: false,
             receipt: None,
             released: false,
             stopped: false,
@@ -43,12 +50,13 @@ impl NativeBackend {
         }
         match request.kind() {
             Kind::CreateOwnSurface => {
-                if self.owner.is_some() && !self.released {
+                if self.owner.is_some() && !self.proof_issued {
                     return Err(Error::Protocol);
                 }
                 // A previous owner is replaced only after its real finalization proof was issued.
                 self.owner = Some(Owner::new().map_err(|_| Error::Unknown)?);
                 self.released = false;
+                self.proof_issued = false;
                 let receipt = self
                     .owner
                     .as_mut()
@@ -68,14 +76,15 @@ impl NativeBackend {
                 Ok(Outcome::CloseStarted)
             }
             Kind::VerifyOwnSurfaceCleanup => {
-                let proof = self
+                let finalization = self
                     .owner
                     .as_mut()
                     .ok_or(Error::Unknown)?
                     .finalize(request)
                     .map_err(|_| Error::Unknown)?;
                 self.released = true;
-                Ok(Outcome::CleanupVerified(proof))
+                self.finalization = Some(finalization);
+                Ok(Outcome::CleanupPending)
             }
         }
     }
@@ -94,6 +103,9 @@ impl Backend for NativeBackend {
         capability: Self::CleanupCapability,
     ) -> crate::native_contract::failure_cleanup::Observation<Native> {
         self.run_failure_cleanup(capability)
+    }
+    fn complete_cleanup(&mut self, request: &Request, budget: usize) -> Response<Native> {
+        self.finish_cleanup(request, budget)
     }
     fn dispatch(&mut self, request: &Request) -> Response<Native> {
         let outcome = match self.perform(request) {
