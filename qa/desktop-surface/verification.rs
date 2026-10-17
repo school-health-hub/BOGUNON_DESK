@@ -16,6 +16,8 @@ mod read_only_topology;
 mod read_only_windows;
 
 mod diagnostic_output;
+mod disposable_surface;
+mod disposable_surface_tests;
 mod evidence_approval;
 mod evidence_approval_tests;
 mod evidence_paths;
