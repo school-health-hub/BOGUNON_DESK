@@ -56,7 +56,9 @@ impl<Q: ReadQueries> Reader<Q> {
     ) -> Result<ObservedSnapshot, QueryError> {
         let started = Instant::now();
         let before = self.0.identity(main)?;
-        let topology = self.0.topology()?;
+        let (topology, trace) = self.0.topology_with_evidence();
+        evidence.topology = trace;
+        let topology = topology?;
         evidence.workers_enumerated = Some(topology.workers.len());
         let window = self.0.window(main)?;
         if window.identity != before {

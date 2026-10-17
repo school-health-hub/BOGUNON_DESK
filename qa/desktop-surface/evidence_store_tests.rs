@@ -54,7 +54,7 @@ fn real_filesystem_publication_verifies_and_retains_identical_staging() {
         fs::read(dir.join("evidence.staging.json")).expect("staging")
     );
     let value: serde_json::Value = serde_json::from_slice(&bytes).expect("fixed JSON");
-    assert_eq!(value["schema_version"], 1);
+    assert_eq!(value["schema_version"], 2);
     assert_eq!(
         evidence_store::save(&mut sink, &Record::default()),
         Err(SaveError::Write)

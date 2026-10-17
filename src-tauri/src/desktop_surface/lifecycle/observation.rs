@@ -1,5 +1,8 @@
 use std::time::Instant;
 
+#[path = "topology_evidence.rs"]
+pub(super) mod topology_evidence;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) struct WindowId(pub usize);
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -119,6 +122,11 @@ pub(super) trait ReadQueries {
     fn window(&mut self, id: WindowId) -> Result<ObservedWindow, QueryError>;
     fn identity(&mut self, id: WindowId) -> Result<WindowIdentity, QueryError>;
     fn topology(&mut self) -> Result<Topology, QueryError>;
+    fn topology_with_evidence(
+        &mut self,
+    ) -> (Result<Topology, QueryError>, topology_evidence::Trace) {
+        (self.topology(), topology_evidence::Trace::default())
+    }
     fn dpi_equal(&self, a: DpiContext, b: DpiContext) -> bool;
     fn expected_explorer(&self) -> &[u16];
 }

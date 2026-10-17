@@ -15,7 +15,9 @@ pub enum SaveError {
 
 pub trait Publication {
     fn encode(&mut self, record: &Record) -> Result<Vec<u8>, SaveError> {
-        serde_json::to_vec(record).map_err(|_| SaveError::Serialize)
+        let bytes = serde_json::to_vec(record).map_err(|_| SaveError::Serialize)?;
+        crate::evidence_schema::decode(&bytes).map_err(|_| SaveError::Serialize)?;
+        Ok(bytes)
     }
     fn stage_verified(&mut self, bytes: &[u8]) -> Result<(), SaveError>;
     fn publish(&mut self) -> Result<(), SaveError>;

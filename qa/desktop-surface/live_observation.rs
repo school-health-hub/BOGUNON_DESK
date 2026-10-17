@@ -26,6 +26,7 @@ pub fn observe<Q: ReadQueries>(
         return Finding::failure(Code::Snapshot);
     }
     let (collected, collection) = reader.collect_with_evidence(before[0].identity.id);
+    evidence.topology = collection.topology.clone();
     evidence.collection = Some(collection);
     let capability = collected.and_then(|snapshot| {
         let result = unchanged(&reader.0, &before[0], &snapshot.main)

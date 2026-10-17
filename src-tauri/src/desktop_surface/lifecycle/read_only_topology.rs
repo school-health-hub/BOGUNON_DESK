@@ -42,11 +42,27 @@ fn find(
     }
 }
 pub(super) fn topology(expected: &[u16]) -> Result<Topology, QueryError> {
+    topology_with_evidence(expected).0
+}
+
+pub(super) fn topology_with_evidence(
+    expected: &[u16],
+) -> (Result<Topology, QueryError>, topology_evidence::Trace) {
+    let mut trace = topology_evidence::Trace::default();
+    let result = collect_topology(expected, &mut trace);
+    (result, trace)
+}
+
+fn collect_topology(
+    expected: &[u16],
+    trace: &mut topology_evidence::Trace,
+) -> Result<Topology, QueryError> {
     // SAFETY: FFI category 8: read-only shell HWND query.
     let shell = window_id(unsafe { GetShellWindow() })?;
     let progman = find(None, None, w!("Progman"))?.ok_or(QueryError::ShellIdentity)?;
     let mut workers = Vec::new();
     let mut after = None;
+    trace.begin_enumeration();
     while let Some(worker) = find(None, after, w!("WorkerW"))? {
         if workers.len() >= 512 || workers.contains(&worker) {
             return Err(QueryError::TopologyChanged);
@@ -63,12 +79,21 @@ pub(super) fn topology(expected: &[u16]) -> Result<Topology, QueryError> {
     let [(host, def_view)] = hosts.as_slice() else {
         return Err(QueryError::ShellIdentity);
     };
-    let following = find(None, Some(*host), w!("WorkerW"))?;
+    trace.record_host(if *host == progman {
+        "Progman"
+    } else {
+        "WorkerW"
+    });
+    let following = find(None, Some(*host), w!("WorkerW"));
+    trace.record_search(&following);
+    let following = following?;
     let order = workers
         .iter()
         .map(|h| window_id(*h))
         .collect::<Result<Vec<_>, _>>()?;
-    let following = following_workers(&order, following.map(window_id).transpose()?)?;
+    let following = following_workers(&order, following.map(window_id).transpose()?);
+    trace.record_tail(&following);
+    let following = following?;
     let mut observations = Vec::new();
     for worker in workers {
         let id = window_id(worker)?;

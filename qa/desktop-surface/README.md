@@ -178,7 +178,7 @@ remain open, deny write/delete sharing, and reject reparse attributes without
 following links. Existing destinations, including symlinks, are rejected.
 
 Evidence is collected by the existing `collect_with_evidence` query sequence.
-The JSON schema has exactly five top-level fields: `schema_version` (1),
+The original v1 JSON has exactly five top-level fields: `schema_version` (1),
 `collection` (the 9B-2E fixed evidence object, or null),
 `post_collection_check`, `own_window_check`, and `final_query_error`.
 Checks are `NOT_OBSERVED`, `PASSED`, or `FAILED`; errors are payload-free fixed
@@ -186,6 +186,46 @@ categories. The collection reason describes collection, not later invariance
 checks: interpret it together with both later checks, final error, stdout and
 exit status. No identities, paths, arbitrary strings or environment values are
 serialized. Existing overlapping exclusion counts and eligibility rules remain.
+
+### 9B-2I-B: versioned topology evidence
+
+New records explicitly use `schema_version: 2` and add a sixth top-level field,
+`topology`. The original nine-field `collection` serialization is unchanged.
+The typed decoder accepts the exact v1 shape as `Decoded::V1` without inventing
+topology, and the exact v2 shape as `Decoded::V2`. Unknown fields, missing fields
+(including nullable fields), invalid enums and version/shape mismatches fail.
+The existing publication encoder validates the serialized record before writing.
+
+`topology` has exactly four sanitized fields:
+
+- `host_kind`: `PROGMAN`, `WORKERW`, or `UNKNOWN`, from the unique DefView host
+  selected by the existing search. Selection is not authentication: interpret
+  it together with `collection.shell_identity_passed` and the final error.
+- `following_search`: `FOUND`, `NONE`, `ERROR`, or `NOT_OBSERVED`, captured from
+  the existing `FindWindowExW(NULL, host, WorkerW, NULL)` result before error
+  propagation. An earlier failure remains `NOT_OBSERVED`, not `NONE`.
+- `following_tail_count`: the actual successful `following_workers` projection
+  length, including its first worker, or null when projection did not complete.
+  A missing search match can yield zero; a found-but-unlisted worker keeps null
+  and the original `TopologyChanged` failure. Counts are not eligible counts.
+- `enumeration_scope`: `NULL_PARENT_INITIAL_NULL_AFTER_THEN_PREVIOUS_WORKER` when
+  the existing enumeration was attempted, otherwise `NOT_OBSERVED`. This records
+  query arguments, not a claim that the initial NULL/NULL search and following
+  NULL/host search have identical scope. It does not count message-only windows.
+
+Only first-sample trace data is retained, including partial failure evidence.
+Existing providers without the trace hook return explicit unobserved defaults;
+the decoder does not infer native search results from eligibility counts.
+No WorkerW raw style is collected, so `visibility_style_count` is omitted.
+`IsWindowVisible` results are not raw `WS_VISIBLE` measurements or pixel visibility.
+No new Win32 API, search, eligibility predicate or query scope is introduced.
+
+The descriptor scope `9B2F_SANITIZED_EVIDENCE_V1` remains the existing destination
+approval contract, not the JSON record schema version. Old approval artifacts,
+manifests and v1 evidence remain unchanged. A future v2 executable requires its
+own artifact/manifest approval; no old manifest authorizes new bytes. This phase
+does not build or execute a Live binary. Output, exit and cleanup priorities below
+remain unchanged.
 
 Explicit window cleanup is attempted before any evidence file creation, even
 after observation panic. Serialization is bounded to 16 KiB. Staging uses

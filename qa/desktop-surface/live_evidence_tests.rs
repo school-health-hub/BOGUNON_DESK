@@ -119,7 +119,7 @@ fn serialization_cannot_leak_query_error_payloads_or_identity_fields() {
         123456,
     ));
     let value = serde_json::to_value(record).expect("fixed schema");
-    assert_eq!(value.as_object().expect("object").len(), 5);
+    assert_eq!(value.as_object().expect("object").len(), 6);
     assert_eq!(value["final_query_error"], "API");
     let text = value.to_string();
     for marker in [

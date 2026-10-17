@@ -211,6 +211,11 @@ impl ReadQueries for NativeQueries {
     fn topology(&mut self) -> Result<Topology, QueryError> {
         super::read_only_topology::topology(&self.expected)
     }
+    fn topology_with_evidence(
+        &mut self,
+    ) -> (Result<Topology, QueryError>, topology_evidence::Trace) {
+        super::read_only_topology::topology_with_evidence(&self.expected)
+    }
     fn dpi_equal(&self, a: DpiContext, b: DpiContext) -> bool {
         let a = DPI_AWARENESS_CONTEXT(std::ptr::without_provenance_mut(a.0 as usize));
         let b = DPI_AWARENESS_CONTEXT(std::ptr::without_provenance_mut(b.0 as usize));

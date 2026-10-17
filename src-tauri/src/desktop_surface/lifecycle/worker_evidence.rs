@@ -1,7 +1,7 @@
 use super::super::observation::{Parent, QueryError, Topology, Worker};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum Reason {
     Unknown,
@@ -13,7 +13,7 @@ pub enum Reason {
     TopologyChanged,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum Failure {
     Api,
@@ -27,7 +27,8 @@ pub enum Failure {
     DpiMismatch,
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Exclusions {
     pub class: usize,
     pub process: usize,
@@ -52,22 +53,38 @@ pub(super) fn checks(worker: &Worker, topology: &Topology) -> [bool; 8] {
     ]
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Evidence {
+    #[serde(skip)]
+    pub topology: super::super::observation::topology_evidence::Trace,
     pub reason: Reason,
+    #[serde(deserialize_with = "required")]
     pub workers_enumerated: Option<usize>,
+    #[serde(deserialize_with = "required")]
     pub eligible_workers: Option<usize>,
+    #[serde(deserialize_with = "required")]
     pub exclusions: Option<Exclusions>,
     pub shell_identity_passed: bool,
     pub dpi_passed: bool,
     pub main_identity_recheck_passed: bool,
     pub topology_recheck_passed: bool,
+    #[serde(deserialize_with = "required")]
     pub error: Option<Failure>,
+}
+
+fn required<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    Option::<T>::deserialize(deserializer)
 }
 
 impl Default for Evidence {
     fn default() -> Self {
         Self {
+            topology: Default::default(),
             reason: Reason::Unknown,
             workers_enumerated: None,
             eligible_workers: None,

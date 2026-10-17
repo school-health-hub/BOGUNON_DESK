@@ -2,6 +2,7 @@ mod diagnostic_output;
 mod evidence_approval;
 mod evidence_paths;
 mod evidence_record;
+mod evidence_schema;
 mod evidence_store;
 mod gate;
 mod live;
