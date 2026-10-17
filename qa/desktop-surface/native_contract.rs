@@ -75,3 +75,6 @@ pub mod creator_thread_host;
 #[cfg(test)]
 #[path = "native_owner_capture.rs"]
 mod native_capture_model;
+
+#[path = "failure_cleanup.rs"]
+pub mod failure_cleanup;

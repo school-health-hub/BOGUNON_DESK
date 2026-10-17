@@ -74,6 +74,13 @@ impl Capture {
         self.used = 0;
         Ok(result)
     }
+    /// Only after the owning Native class was released; token and sequence remain retired.
+    pub(in crate::native_contract) fn discard_pending(&mut self) {
+        for slot in &mut self.entries[..self.used] {
+            *slot = None;
+        }
+        self.used = 0;
+    }
     pub const fn empty(&self) -> bool {
         self.used == 0
     }
@@ -155,5 +162,25 @@ mod tests {
             capture.drain(vec![altered]),
             Err(Failure::CallbackIdentity)
         ));
+    }
+    #[test]
+    fn failure_discard_clears_full_metadata_without_resetting_sequence() {
+        // Given an overflowing old-owner capture queue.
+        let mut capture = Capture::new();
+        let notice = notice();
+        capture.begin(1).unwrap();
+        for _ in 0..16 {
+            capture.record(1, notice.clone()).unwrap();
+        }
+        assert_eq!(
+            capture.record(1, notice.clone()),
+            Err(Failure::CallbackOverflow)
+        );
+        // When resource-verified failure cleanup discards metadata.
+        capture.discard_pending();
+        // Then no stale notice remains and the sequence cannot be reused.
+        assert!(capture.empty());
+        capture.record(1, notice.clone()).unwrap();
+        assert_eq!(capture.drain(vec![notice]).unwrap()[0].sequence, 17);
     }
 }

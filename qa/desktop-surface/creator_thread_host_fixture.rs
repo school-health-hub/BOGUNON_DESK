@@ -1,3 +1,10 @@
+pub struct MemoryCapability {
+    owner: Option<
+        crate::native_contract::ownership_receipt::OwnerReceipt<
+            crate::native_contract::ownership_receipt::Synthetic,
+        >,
+    >,
+}
 use super::*;
 pub struct Memory {
     fake: Fake,
@@ -9,6 +16,10 @@ pub struct Memory {
     pub overflow: bool,
     pub stop_failure: bool,
     pub fault: Fault,
+    pub cleanup_fault: Option<cleanup::Fact>,
+    pub cleanup_unknown: bool,
+    pub cleanup_issued: bool,
+    pub backend_fault: bool,
 }
 impl sealed::Sealed for Memory {}
 impl Memory {
@@ -33,7 +44,65 @@ impl Memory {
 }
 impl Backend for Memory {
     type Provenance = Synthetic;
+    type CleanupCapability = MemoryCapability;
+    fn cleanup_capability(&mut self) -> Result<MemoryCapability, cleanup::Error> {
+        if self.cleanup_issued {
+            return Err(cleanup::Error::Duplicate);
+        }
+        self.cleanup_issued = true;
+        Ok(MemoryCapability {
+            owner: self.fake.owner().cloned(),
+        })
+    }
+    fn cleanup_failure(&mut self, capability: MemoryCapability) -> cleanup::Observation<Synthetic> {
+        use crate::native_contract::ownership_finalization::Confirmation;
+        let identity_matches = capability.owner.as_ref() == self.fake.owner();
+        if !identity_matches {
+            return cleanup::Observation::new(
+                cleanup::Resources::Unknown,
+                cleanup::Facts {
+                    creator_thread: Confirmation::Confirmed,
+                    owner_identity: Confirmation::Failed,
+                    ledger_token: Confirmation::Unknown,
+                    destroy: Confirmation::Unknown,
+                    ledger: Confirmation::Unknown,
+                    residual: None,
+                    class_release: Confirmation::Unknown,
+                    callback_clear: Confirmation::Unknown,
+                    owner_release: Confirmation::Unknown,
+                },
+            );
+        }
+        let mut observation = self.fake.failure_observe();
+        if let Some(fact) = self.cleanup_fault {
+            let value = if self.cleanup_unknown {
+                Confirmation::Unknown
+            } else {
+                Confirmation::Failed
+            };
+            match fact {
+                cleanup::Fact::CreatorThread => observation.facts.creator_thread = value,
+                cleanup::Fact::OwnerIdentity => observation.facts.owner_identity = value,
+                cleanup::Fact::LedgerToken => observation.facts.ledger_token = value,
+                cleanup::Fact::Destroy => observation.facts.destroy = value,
+                cleanup::Fact::Ledger => observation.facts.ledger = value,
+                cleanup::Fact::Residual => {
+                    observation.facts.residual = if self.cleanup_unknown { None } else { Some(1) }
+                }
+                cleanup::Fact::ClassRelease => observation.facts.class_release = value,
+                cleanup::Fact::CallbackClear => observation.facts.callback_clear = value,
+                cleanup::Fact::OwnerRelease => observation.facts.owner_release = value,
+            }
+        }
+        observation
+    }
     fn dispatch(&mut self, request: &Request) -> Response {
+        if self.backend_fault {
+            return Response {
+                request: request.clone(),
+                outcome: Outcome::NativeOutcomeUnknown,
+            };
+        }
         let response = self.fake.execute(request, self.fault);
         match &response.outcome {
             Outcome::CreateSucceeded(owner) => {
@@ -80,6 +149,10 @@ pub fn fixture() -> Host<Memory> {
             overflow: false,
             stop_failure: false,
             fault: Fault::None,
+            cleanup_fault: None,
+            cleanup_unknown: false,
+            cleanup_issued: false,
+            backend_fault: false,
         },
     )
 }

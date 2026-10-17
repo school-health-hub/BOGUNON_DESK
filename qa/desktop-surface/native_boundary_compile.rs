@@ -162,6 +162,18 @@ struct UntrustedBackend;
 #[cfg(probe_backend_sealing)]
 impl native_contract::creator_thread_host::Backend for UntrustedBackend {
     type Provenance = Native;
+    type CleanupCapability = std::convert::Infallible;
+    fn cleanup_capability(
+        &mut self,
+    ) -> Result<Self::CleanupCapability, native_contract::failure_cleanup::Error> {
+        Err(native_contract::failure_cleanup::Error::Unknown)
+    }
+    fn cleanup_failure(
+        &mut self,
+        capability: Self::CleanupCapability,
+    ) -> native_contract::failure_cleanup::Observation<Native> {
+        match capability {}
+    }
     fn dispatch(&mut self, request: &Request) -> native_contract::Response<Native> {
         native_contract::Response {
             request: request.clone(),
@@ -178,5 +190,58 @@ impl native_contract::creator_thread_host::Backend for UntrustedBackend {
     }
     fn stop(&mut self) -> Result<(), native_contract::creator_thread_host::Error> {
         Ok(())
+    }
+}
+
+#[cfg(probe_cleanup_observation_promotion)]
+fn forbidden_cleanup_observation_promotion(
+    value: native_contract::failure_cleanup::Observation<Synthetic>,
+) -> native_contract::failure_cleanup::Observation<Native> {
+    value
+}
+#[cfg(probe_cleanup_observation_proof)]
+fn forbidden_cleanup_observation_proof(
+    value: native_contract::failure_cleanup::Observation<Native>,
+) -> CleanupProof<Native> {
+    value
+}
+#[cfg(probe_cleanup_capability_send)]
+fn forbidden_cleanup_capability_send() {
+    fn require<T: Send>() {}
+    require::<native_contract::native_owner::FailureCapability>();
+}
+#[cfg(probe_cleanup_capability_sync)]
+fn forbidden_cleanup_capability_sync() {
+    fn require<T: Sync>() {}
+    require::<native_contract::native_owner::FailureCapability>();
+}
+#[cfg(probe_cleanup_capability_clone)]
+fn forbidden_cleanup_capability_clone(value: native_contract::native_owner::FailureCapability) {
+    let _ = value.clone();
+}
+#[cfg(probe_cleanup_capability_reuse)]
+fn forbidden_cleanup_capability_reuse(value: native_contract::native_owner::FailureCapability) {
+    fn consume(_: native_contract::native_owner::FailureCapability) {}
+    consume(value);
+    consume(value);
+}
+#[cfg(probe_cleanup_observation_fields)]
+fn forbidden_cleanup_observation_fields(
+    facts: native_contract::failure_cleanup::Facts,
+) -> native_contract::failure_cleanup::Observation<Native> {
+    native_contract::failure_cleanup::Observation {
+        resources: native_contract::failure_cleanup::Resources::Owned,
+        facts,
+        provenance: std::marker::PhantomData,
+    }
+}
+
+#[cfg(probe_cleanup_capability_fields)]
+fn forbidden_cleanup_capability_fields() -> native_contract::native_owner::FailureCapability {
+    native_contract::native_owner::FailureCapability {
+        lease: std::rc::Rc::new(()),
+        token: 1,
+        binding: None,
+        receipt: None,
     }
 }

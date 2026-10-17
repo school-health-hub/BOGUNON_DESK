@@ -23,6 +23,9 @@ pub mod capture;
 mod context;
 #[path = "native_owner_delivery.rs"]
 mod delivery;
+#[path = "native_owner_failure.rs"]
+mod failure;
+pub use failure::FailureCapability;
 #[path = "native_owner_finalizer.rs"]
 mod finalizer;
 #[path = "native_owner_observation.rs"]
@@ -48,6 +51,10 @@ pub struct Owner {
     destroyed: Option<Creation>,
     policy: Policy,
     finalization_attempted: bool,
+    cleanup_issued: bool,
+    creation_attempted: bool,
+    lease: Rc<()>,
+    origin: Option<crate::surface_event_types::Binding>,
     released: bool,
     _thread_bound: PhantomData<Rc<()>>,
 }
@@ -82,6 +89,10 @@ impl Owner {
             destroyed: None,
             policy: Policy::new(),
             finalization_attempted: false,
+            cleanup_issued: false,
+            creation_attempted: false,
+            lease: Rc::new(()),
+            origin: None,
             released: false,
             _thread_bound: PhantomData,
         })
@@ -95,32 +106,13 @@ impl Owner {
         }
     }
     fn identity(&self, handle: HWND) -> Result<(u32, u32, u32), Failure> {
-        self.same_thread()?;
-        context::healthy()?;
-        if !context::ledger(|state| Ok(state.matches(handle.0.addr(), self.token)))?
-            || !observation::own_identity(handle)?
-        {
-            return Err(Failure::IdentityMismatch);
-        }
-        // SAFETY: FFI 8: read-only same-thread ledger-owned window class query.
-        let atom = unsafe { GetClassLongW(handle, GCW_ATOM) };
-        // SAFETY: FFI 8: read-only same-thread ledger-owned module query.
-        let module = unsafe { GetWindowLongPtrW(handle, GWLP_HINSTANCE) };
-        if atom != u32::from(self.atom) || module != self.module.0.addr().cast_signed() {
-            return Err(Failure::IdentityMismatch);
-        }
-        let mut pid = 0;
-        // SAFETY: FFI 8/10: borrowed owned handle and initialized PID output.
-        let tid = unsafe { GetWindowThreadProcessId(handle, Some(&mut pid)) };
-        if pid != self.pid || tid != self.thread {
-            return Err(Failure::IdentityMismatch);
-        }
-        Ok((atom, pid, tid))
+        self.normal_admission()?;
+        self.cleanup_identity(handle)
     }
     pub fn create(&mut self, request: &Request) -> Result<OwnerReceipt<Native>, Failure> {
-        self.same_thread()?;
-        context::healthy()?;
+        self.normal_admission()?;
         self.policy.create(request)?;
+        self.origin = Some(request.binding().clone());
         self.token = context::ledger(|state| {
             state
                 .reserve(request.binding())
@@ -143,6 +135,7 @@ impl Owner {
         context::CREATING.set(true);
         let token = self.token;
         context::EXPECTED.set(std::ptr::from_ref(&token).addr());
+        self.creation_attempted = true;
         // SAFETY: FFI 8/10/14: own class/module, fixed hidden top-level; token lives through synchronous creation callbacks.
         let created = unsafe {
             CreateWindowExW(
@@ -202,8 +195,7 @@ impl Owner {
         Ok(receipt)
     }
     pub fn begin_close(&mut self, request: &Request) -> Result<(), Failure> {
-        self.same_thread()?;
-        context::healthy()?;
+        self.normal_admission()?;
         self.policy.close(request)?;
         let handle = self.window.ok_or(Failure::NativeOutcomeUnknown)?;
         self.identity(handle)?;
@@ -212,6 +204,7 @@ impl Owner {
                 .bind_disposal(request.binding())
                 .map_err(|_| Failure::CallbackIdentity)
         })?;
+        self.origin = Some(request.binding().clone());
         self.destroy()
     }
     fn destroy(&mut self) -> Result<(), Failure> {
@@ -238,7 +231,8 @@ impl Owner {
     }
     pub fn drain(&mut self) -> Result<Vec<Notice>, Failure> {
         self.same_thread()?;
-        if self.released
+        if self.cleanup_issued
+            || self.released
             || !self.policy.operating()
             || !context::ACTIVE.get()
             || context::TOKEN.get() != self.token

@@ -277,3 +277,6 @@ fn delayed_cleanup_blocks_replacement() {
     h.verify_cleanup().unwrap();
     assert!(h.replacement().is_err());
 }
+
+#[path = "creator_thread_failure_tests.rs"]
+mod failure_tests;

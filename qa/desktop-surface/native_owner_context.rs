@@ -188,3 +188,25 @@ pub(super) unsafe extern "system" fn count_window(handle: HWND, _: LPARAM) -> BO
         }
     }
 }
+/// Failure cleanup only: caller confirms class/window retirement before metadata disposal.
+pub(super) fn discard_failure_notices() -> Result<(), Failure> {
+    if CREATING.get() || EXPECTED.get() != 0 || !GATE.with(|gate| gate.idle()) {
+        return Err(Failure::CallbackContext);
+    }
+    let mut discarded = Vec::new();
+    discarded
+        .try_reserve_exact(16)
+        .map_err(|_| Failure::CallbackOverflow)?;
+    ledger(|ledger| {
+        if ledger.live.is_some() {
+            return Err(Failure::CallbackContext);
+        }
+        ledger
+            .drain(&mut discarded)
+            .map_err(|_| Failure::CallbackContext)
+    })?;
+    capture(|capture| {
+        capture.discard_pending();
+        Ok(())
+    })
+}

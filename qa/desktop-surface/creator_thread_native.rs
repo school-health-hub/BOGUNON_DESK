@@ -5,28 +5,40 @@ use crate::native_contract::{
     ownership_receipt::{Native, OwnerReceipt},
     Kind, Outcome, Request, Response,
 };
-use std::{marker::PhantomData, rc::Rc};
+use std::{
+    marker::PhantomData,
+    rc::Rc,
+    thread::{self, ThreadId},
+};
+#[path = "creator_thread_native_cleanup.rs"]
+mod failure;
 pub struct NativeBackend {
     owner: Option<Owner>,
     receipt: Option<OwnerReceipt<Native>>,
     released: bool,
     stopped: bool,
     faulted: bool,
+    cleanup_issued: bool,
+    cleanup_lease: Rc<()>,
+    creator: ThreadId,
     _thread_bound: PhantomData<Rc<()>>,
 }
 impl NativeBackend {
-    pub(super) const fn new() -> Self {
+    pub(super) fn new() -> Self {
         Self {
             owner: None,
             receipt: None,
             released: false,
             stopped: false,
             faulted: false,
+            cleanup_issued: false,
+            cleanup_lease: Rc::new(()),
+            creator: thread::current().id(),
             _thread_bound: PhantomData,
         }
     }
     fn perform(&mut self, request: &Request) -> Result<Outcome<Native>, Error> {
-        if self.stopped || self.faulted {
+        if self.stopped || self.faulted || self.cleanup_issued {
             return Err(Error::Unknown);
         }
         match request.kind() {
@@ -71,6 +83,18 @@ impl NativeBackend {
 impl sealed::Sealed for NativeBackend {}
 impl Backend for NativeBackend {
     type Provenance = Native;
+    type CleanupCapability = failure::Capability;
+    fn cleanup_capability(
+        &mut self,
+    ) -> Result<Self::CleanupCapability, crate::native_contract::failure_cleanup::Error> {
+        self.issue_failure_cleanup()
+    }
+    fn cleanup_failure(
+        &mut self,
+        capability: Self::CleanupCapability,
+    ) -> crate::native_contract::failure_cleanup::Observation<Native> {
+        self.run_failure_cleanup(capability)
+    }
     fn dispatch(&mut self, request: &Request) -> Response<Native> {
         let outcome = match self.perform(request) {
             Ok(outcome) => outcome,
@@ -85,7 +109,7 @@ impl Backend for NativeBackend {
         }
     }
     fn drain(&mut self) -> Result<Vec<Envelope<Native>>, Error> {
-        if self.stopped || self.faulted {
+        if self.stopped || self.faulted || self.cleanup_issued {
             return Err(Error::Unknown);
         }
         if self.released {

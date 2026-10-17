@@ -11,12 +11,24 @@ use std::{
 };
 #[path = "callback_bridge.rs"]
 mod bridge;
+use super::failure_cleanup as cleanup;
 pub use bridge::{Envelope, Source};
+#[path = "creator_thread_failure.rs"]
+mod failure;
+#[path = "creator_thread_operations.rs"]
+mod operations;
+pub use failure::Report;
 mod sealed {
     pub trait Sealed {}
 }
 pub trait Backend: sealed::Sealed {
     type Provenance: Clone + PartialEq;
+    type CleanupCapability;
+    fn cleanup_capability(&mut self) -> Result<Self::CleanupCapability, cleanup::Error>;
+    fn cleanup_failure(
+        &mut self,
+        capability: Self::CleanupCapability,
+    ) -> cleanup::Observation<Self::Provenance>;
     fn dispatch(&mut self, request: &Request) -> Response<Self::Provenance>;
     fn drain(&mut self) -> Result<Vec<Envelope<Self::Provenance>>, Error>;
     fn stop(&mut self) -> Result<(), Error>;
@@ -41,6 +53,8 @@ pub struct Host<B: Backend> {
     entered: bool,
     stopped: bool,
     faulted: bool,
+    original: Option<Error>,
+    cleanup_attempted: bool,
     _thread_bound: PhantomData<Rc<()>>,
 }
 impl<B: Backend> Host<B> {
@@ -54,10 +68,13 @@ impl<B: Backend> Host<B> {
             entered: false,
             stopped: false,
             faulted: false,
+            original: None,
+            cleanup_attempted: false,
             _thread_bound: PhantomData,
         }
     }
     fn fault<T>(&mut self, error: Error) -> Result<T, Error> {
+        self.original.get_or_insert(error);
         self.faulted = true;
         self.adapter.native_unknown();
         Err(error)
@@ -93,9 +110,9 @@ impl<B: Backend> Host<B> {
                 self.pending = Some(response);
             }
             Outcome::CloseStarted => {
-                self.adapter
-                    .respond(response.clone())
-                    .map_err(|_| Error::Protocol)?;
+                if self.adapter.respond(response.clone()).is_err() {
+                    return self.fault(Error::Protocol);
+                }
                 self.pending = Some(response);
             }
             Outcome::CleanupVerified(_) => {
@@ -108,33 +125,6 @@ impl<B: Backend> Host<B> {
             | Outcome::SurfaceLost => return self.fault(Error::Unknown),
         }
         Ok(())
-    }
-    pub fn create(&mut self) -> Result<(), Error> {
-        self.guard()?;
-        let request = self.adapter.create().map_err(|_| Error::Protocol)?;
-        self.submit(request)
-    }
-    pub fn close(&mut self) -> Result<(), Error> {
-        self.guard()?;
-        let request = self.adapter.close().map_err(|_| Error::Protocol)?;
-        match request {
-            Some(request) => self.submit(request),
-            None => Ok(()),
-        }
-    }
-    pub fn verify_cleanup(&mut self) -> Result<(), Error> {
-        self.guard()?;
-        if self.pending.is_some() {
-            return self.fault(Error::Protocol);
-        }
-        self.pump(16)?;
-        let request = self.adapter.verify_cleanup().map_err(|_| Error::Protocol)?;
-        self.submit(request)
-    }
-    pub fn replacement(&mut self) -> Result<(), Error> {
-        self.guard()?;
-        let request = self.adapter.replacement().map_err(|_| Error::Protocol)?;
-        self.submit(request)
     }
     pub fn pump(&mut self, budget: usize) -> Result<usize, Error> {
         self.guard()?;
