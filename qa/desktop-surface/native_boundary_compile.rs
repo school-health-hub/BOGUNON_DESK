@@ -1,5 +1,5 @@
 //! Compile-only root for the actual non-test QA boundary modules.
-//! This file is not a Cargo target and contains no native owner or executable entry.
+//! This file is not a Cargo target and contains no executable entry; Native source is compile-only.
 
 mod async_surface;
 mod disposable_surface;
@@ -71,4 +71,40 @@ fn forbidden_owner_mutation(
     binding: surface_event_types::Binding,
 ) {
     owner.creation().binding = binding;
+}
+
+#[cfg(probe_native_owner_send)]
+fn forbidden_native_owner_send() {
+    fn require<T: Send>() {}
+    require::<native_contract::native_owner::Owner>();
+}
+#[cfg(probe_native_owner_sync)]
+fn forbidden_native_owner_sync() {
+    fn require<T: Sync>() {}
+    require::<native_contract::native_owner::Owner>();
+}
+#[cfg(probe_native_created_fields)]
+fn forbidden_created_fields(value: Creation) {
+    let _ = native_contract::native_owner::Created { facts: value };
+}
+#[cfg(probe_native_owner_observed)]
+fn forbidden_native_observed(value: native_contract::native_owner::Created) {
+    let _ = OwnerReceipt::<Native>::observed(value);
+}
+#[cfg(probe_native_finalized_fields)]
+fn forbidden_finalized_fields(value: OwnerReceipt<Native>, request: Request) {
+    let _ = native_contract::native_owner::Finalized {
+        observed: native_contract::ownership_finalization::Observations {
+            identity: value.creation().clone(),
+            owner: value,
+            current_thread: 1,
+            destroy: native_contract::ownership_finalization::Confirmation::Confirmed,
+            ledger: native_contract::ownership_finalization::Confirmation::Confirmed,
+            residual: Some(0),
+            class_release: native_contract::ownership_finalization::Confirmation::Confirmed,
+            callback_clear: native_contract::ownership_finalization::Confirmation::Confirmed,
+            owner_release: native_contract::ownership_finalization::Confirmation::Confirmed,
+        },
+    };
+    let _ = request;
 }

@@ -57,3 +57,20 @@ impl OwnerReceipt<Synthetic> {
         }
     }
 }
+
+#[cfg(all(windows, not(test)))]
+impl LedgerToken {
+    pub(super) const fn native(value: u32) -> Self {
+        Self(value)
+    }
+}
+#[cfg(all(windows, not(test)))]
+impl OwnerReceipt<Native> {
+    pub(super) fn observed(value: super::native_owner::Created) -> Self {
+        Self {
+            identity: Arc::new(()),
+            creation: value.facts(),
+            provenance: PhantomData,
+        }
+    }
+}

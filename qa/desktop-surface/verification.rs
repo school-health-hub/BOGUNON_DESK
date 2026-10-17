@@ -75,3 +75,5 @@ mod native_contract_hostile_tests;
 mod native_contract_tests;
 
 mod ownership_boundary_tests;
+
+mod native_owner_policy_tests;

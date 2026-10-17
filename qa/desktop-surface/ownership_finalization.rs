@@ -21,8 +21,8 @@ pub struct FinalizationReceipt<P = Synthetic> {
     owner_release: Confirmation,
 }
 #[derive(Debug, Clone)]
-pub(super) struct Observations {
-    pub owner: OwnerReceipt,
+pub(super) struct Observations<P = Synthetic> {
+    pub owner: OwnerReceipt<P>,
     pub identity: Creation,
     pub current_thread: u32,
     pub destroy: Confirmation,
@@ -60,11 +60,13 @@ impl FinalizationReceipt<Synthetic> {
             owner_release: observed.owner_release,
         }
     }
+}
+impl<P: Clone + PartialEq> FinalizationReceipt<P> {
     pub(super) fn verify(
         self,
-        owner: &OwnerReceipt,
+        owner: &OwnerReceipt<P>,
         active: &crate::surface_event_types::Binding,
-    ) -> Result<CleanupProof, VerifyError> {
+    ) -> Result<CleanupProof<P>, VerifyError> {
         if self.request.kind() != Kind::VerifyOwnSurfaceCleanup || self.request.binding() != active
         {
             return Err(VerifyError::Request);
@@ -111,5 +113,29 @@ impl FinalizationReceipt<Synthetic> {
             owner: owner.clone(),
             finalization: self,
         })
+    }
+}
+
+#[cfg(all(windows, not(test)))]
+impl FinalizationReceipt<super::ownership_receipt::Native> {
+    pub(super) fn observed(
+        request: &Request,
+        finalization: super::native_owner::Finalized,
+        owner: &OwnerReceipt<super::ownership_receipt::Native>,
+    ) -> Result<CleanupProof<super::ownership_receipt::Native>, VerifyError> {
+        let observed = finalization.observations();
+        Self {
+            request: request.clone(),
+            owner: observed.owner,
+            observed: observed.identity,
+            current_thread: observed.current_thread,
+            destroy: observed.destroy,
+            ledger: observed.ledger,
+            residual: observed.residual,
+            class_release: observed.class_release,
+            callback_clear: observed.callback_clear,
+            owner_release: observed.owner_release,
+        }
+        .verify(owner, request.binding())
     }
 }

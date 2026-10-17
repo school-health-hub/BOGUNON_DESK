@@ -60,3 +60,12 @@ pub mod verifier;
 pub mod ownership_finalization;
 #[path = "ownership_receipt.rs"]
 pub mod ownership_receipt;
+
+#[cfg(all(windows, not(test)))]
+#[path = "native_owner.rs"]
+pub mod native_owner;
+#[path = "native_owner_policy.rs"]
+pub mod owner_policy;
+
+#[path = "native_callback_gate.rs"]
+pub mod callback_gate;
