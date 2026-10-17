@@ -174,6 +174,17 @@ impl AsyncSurface {
             .update_main(open_tasks)
             .map_err(Error::Boundary)
     }
+    pub(crate) fn has_queued_events(&self) -> bool {
+        !self.events.is_empty()
+    }
+    pub(crate) fn close_commands(&mut self) {
+        self.closed = true;
+    }
+    pub(crate) fn native_fault(&mut self) {
+        self.closed = true;
+        self.overflow = true;
+        self.boundary.protocol_fault();
+    }
     pub fn state(&self) -> State {
         self.boundary.lifecycle_state()
     }
