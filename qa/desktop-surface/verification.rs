@@ -23,3 +23,4 @@ mod outcome;
 mod reader_mock_tests;
 mod window_lifecycle;
 mod window_observation;
+mod worker_evidence_tests;

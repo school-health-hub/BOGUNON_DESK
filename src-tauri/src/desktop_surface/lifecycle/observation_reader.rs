@@ -1,13 +1,12 @@
 use super::observation::*;
 use std::time::Instant;
 
+#[path = "worker_evidence.rs"]
+pub(super) mod evidence;
+
 pub(super) struct Reader<Q>(pub Q);
 
-fn eligible<'a>(
-    topology: &'a Topology,
-    expected: &[u16],
-    session: u32,
-) -> Result<&'a Worker, QueryError> {
+fn validate_shell(topology: &Topology, expected: &[u16], session: u32) -> Result<(), QueryError> {
     let explorer = &topology.shell.process;
     if explorer.image != expected
         || explorer.pid == 0
@@ -23,15 +22,14 @@ fn eligible<'a>(
     {
         return Err(QueryError::ShellIdentity);
     }
-    let mut candidates = topology.workers.iter().filter(|w| {
-        w.identity.class == "WorkerW"
-            && w.identity.process == *explorer
-            && matches!(w.parent, Parent::DesktopRoot(_))
-            && w.visible
-            && w.usable
-            && !w.has_def_view
-            && w.follows_host
-            && w.identity.id != topology.host.id
+    Ok(())
+}
+
+fn select_worker(topology: &Topology) -> Result<&Worker, QueryError> {
+    let mut candidates = topology.workers.iter().filter(|worker| {
+        evidence::checks(worker, topology)
+            .iter()
+            .all(|value| *value)
     });
     let candidate = candidates.next().ok_or(QueryError::NoEligibleWorker)?;
     if candidates.next().is_some() {
@@ -40,20 +38,38 @@ fn eligible<'a>(
     Ok(candidate)
 }
 
-impl<Q: ReadQueries> SnapshotReader for Reader<Q> {
-    fn collect(&mut self, main: WindowId) -> Result<ObservedSnapshot, QueryError> {
+impl<Q: ReadQueries> Reader<Q> {
+    pub fn collect_with_evidence(
+        &mut self,
+        main: WindowId,
+    ) -> (Result<ObservedSnapshot, QueryError>, evidence::Evidence) {
+        let mut evidence = evidence::Evidence::default();
+        let result = self.collect_observed(main, &mut evidence);
+        evidence.finish(result.as_ref().err());
+        (result, evidence)
+    }
+
+    fn collect_observed(
+        &mut self,
+        main: WindowId,
+        evidence: &mut evidence::Evidence,
+    ) -> Result<ObservedSnapshot, QueryError> {
         let started = Instant::now();
         let before = self.0.identity(main)?;
         let topology = self.0.topology()?;
+        evidence.workers_enumerated = Some(topology.workers.len());
         let window = self.0.window(main)?;
         if window.identity != before {
             return Err(QueryError::IdentityChanged);
         }
-        let worker = match eligible(
+        validate_shell(
             &topology,
             self.0.expected_explorer(),
             before.process.session,
-        ) {
+        )?;
+        evidence.shell_identity_passed = true;
+        evidence.count_candidates(&topology);
+        let worker = match select_worker(&topology) {
             Ok(worker) => Some(worker.identity.clone()),
             Err(QueryError::NoEligibleWorker) => None,
             Err(error) => return Err(error),
@@ -61,13 +77,16 @@ impl<Q: ReadQueries> SnapshotReader for Reader<Q> {
         if window.dpi == 0 || !self.0.dpi_equal(window.context, window.caller_context) {
             return Err(QueryError::DpiMismatch);
         }
+        evidence.dpi_passed = true;
         let after = self.0.identity(main)?;
         if before != after {
             return Err(QueryError::IdentityChanged);
         }
+        evidence.main_identity_recheck_passed = true;
         if topology != self.0.topology()? {
             return Err(QueryError::TopologyChanged);
         }
+        evidence.topology_recheck_passed = true;
         let worker = worker.ok_or(QueryError::NoEligibleWorker)?;
         Ok(ObservedSnapshot {
             started,
@@ -77,6 +96,12 @@ impl<Q: ReadQueries> SnapshotReader for Reader<Q> {
             topology,
             worker,
         })
+    }
+}
+
+impl<Q: ReadQueries> SnapshotReader for Reader<Q> {
+    fn collect(&mut self, main: WindowId) -> Result<ObservedSnapshot, QueryError> {
+        self.collect_with_evidence(main).0
     }
     fn requery_identity(&mut self, window: WindowId) -> Result<WindowIdentity, QueryError> {
         self.0.identity(window)
@@ -89,11 +114,12 @@ impl<Q: ReadQueries> SnapshotReader for Reader<Q> {
         if current != snapshot.topology {
             return Err(QueryError::TopologyChanged);
         }
-        eligible(
+        validate_shell(
             &current,
             self.0.expected_explorer(),
             snapshot.main.identity.process.session,
         )?;
+        select_worker(&current)?;
         Ok(())
     }
 }

@@ -127,6 +127,38 @@ compiler diagnostics may contain build paths; sanitize those before sharing.
 
 ## Dedicated output and exit protocol
 
+### 9B-2E: separate, sanitized collection evidence
+
+`Reader::collect_with_evidence` returns the unchanged collection result alongside
+a serializable evidence value. `collect` preserves the same result and Win32
+query sequence. The evidence writer accepts only a caller-supplied writer: it
+does not choose a path, open files, log, print or access the environment.
+This phase tests the API with synthetic queries and memory writers only. The
+Live entrypoint remains unchanged and does not persist this evidence. Exporting
+it from a future Live runner requires a separately reviewed sink and new artifact
+approval; the old approved executable/manifest cannot authorize new bytes.
+
+Reasons are `NO_WORKERS_ENUMERATED`, `NO_ELIGIBLE_WORKER`,
+`ELIGIBLE_WORKER_FOUND`, `AMBIGUOUS_WORKER`, `SHELL_IDENTITY_FAILED`,
+`TOPOLOGY_CHANGED`, or `UNKNOWN`. The original typed collection error is retained
+in the result; evidence contains only its fixed, payload-free category.
+
+Counts are from the first topology sample, not a live/global window count.
+Unknown counts are null, never invented zeroes. Candidate counts and exclusions
+are populated only after shell authentication. Exclusions are **overlapping**:
+each failed condition is counted, so their sum may exceed rejected candidates.
+The eight unchanged checks are class, Explorer process identity, desktop-root
+parent, visibility, positive bounds, no direct DefView, follows-host order, and
+not being the host itself. Worker owner is not an eligibility check.
+
+Four `*_passed` flags mean a check actually completed successfully; false means
+failed OR not reached. They must be interpreted with the error category. A
+later error overrides the reason even when candidate counts are already known;
+no candidate observation alone means SUPPORTED. Two equal topology samples are
+not an atomic snapshot or protection against HWND reuse. Evidence contains no
+HWND/PID, title, image/path, raw Win32 error, arbitrary text or raw snapshot.
+The existing stdout/stderr/exit contract below is unchanged.
+
 `live_main.rs` installs a private silent panic hook before the gate. The default
 hook is never invoked, including with inherited `RUST_BACKTRACE=1` or `full`.
 `diagnostic_output.rs` catches gate/setup, observation, cleanup and final owner
