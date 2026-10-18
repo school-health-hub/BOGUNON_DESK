@@ -136,7 +136,7 @@ impl Model {
         self.phase = Phase::Creating;
         Ok(())
     }
-    fn owns(&self, request: &CreationRequest) -> bool {
+    pub(super) fn owns(&self, request: &CreationRequest) -> bool {
         self.registry.binding().matches(&request.binding)
             && self.accepted_sequence == Some(request.sequence)
     }

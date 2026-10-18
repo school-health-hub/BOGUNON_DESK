@@ -12,13 +12,17 @@ use std::sync::{
 use tauri::{AppHandle, Manager, Runtime, WebviewUrl, WebviewWindowBuilder};
 #[path = "bridge.rs"]
 mod bridge;
+#[path = "cleanup.rs"]
+mod cleanup;
 pub(crate) use bridge::navigation;
+pub use cleanup::{CleanupObservation, ConstructionOwnership, ResourcePresence};
 #[derive(Default)]
 pub struct Adapter(Arc<Inner>);
 #[derive(Default)]
 struct Inner {
     model: Mutex<Model>,
     owned: OnceLock<Owned>,
+    construction_attempted: AtomicBool,
     close_attempted: AtomicBool,
     destroy_attempted: AtomicBool,
 }
@@ -54,6 +58,10 @@ impl Adapter {
         let main = crate::main_lifetime::snapshot(app).map_err(|_| Error::MainUnavailable)?;
         let root = app.path().local_data_dir().map_err(|_| Error::Isolation)?;
         let settings = Settings::new(&root)?;
+        let isolation =
+            super::isolation::preflight(&root.join(&app.config().identifier), &settings.directory)
+                .map_err(|_| Error::Isolation)?;
+        let (_, surface_directory) = isolation.canonical_directories();
         let request = {
             let mut model = self.0.model.lock().map_err(|_| Error::Unknown)?;
             let request = model.request(1);
@@ -61,7 +69,7 @@ impl Adapter {
                 &request,
                 Gate {
                     main: crate::main_lifetime::current(app, &main),
-                    isolation: false,
+                    isolation: isolation.effective_admitted(),
                     acl: settings::acl_valid(),
                     assets: assets::available(),
                     explorer_disabled: true,
@@ -69,7 +77,7 @@ impl Adapter {
             )?;
             request
         };
-        // Isolation is deliberately false until effective UDF/alias/override verification exists.
+        // Configuration observation cannot certify the effective runtime environment.
         // Even a future enable toggle alone cannot authorize WebView construction.
         if app.get_webview_window(LABEL).is_some() {
             self.record(&request, Observation::CreateFailed);
@@ -82,21 +90,32 @@ impl Adapter {
         let blank = tauri::Url::parse("about:blank").map_err(|_| Error::Native)?;
         let navigation = self.clone();
         let popup = self.clone();
+        let download = self.clone();
+        let navigation_request = request.clone();
+        let popup_request = request.clone();
+        let download_request = request.clone();
+        self.0.construction_attempted.store(true, Ordering::SeqCst);
         let window = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::External(blank))
             .title("BOGUNON DESK Surface")
             .visible(false)
             .focused(false)
             .inner_size(440.0, 520.0)
-            .data_directory(settings.directory)
+            .data_directory(surface_directory.to_path_buf())
             .use_https_scheme(true)
             .disable_drag_drop_handler()
-            .on_navigation(move |url| navigation.builder_navigation(url))
+            .on_navigation(move |url| navigation.builder_navigation(&navigation_request, url))
             .on_new_window(move |_, _| {
-                popup.invalidate(Observation::NavigationDenied);
+                popup.record(&popup_request, Observation::NavigationDenied);
                 tauri::webview::NewWindowResponse::Deny
+            })
+            .on_download(move |_, _| {
+                download.record(&download_request, Observation::NavigationDenied);
+                false
             })
             .build()
             .map_err(|_| {
+                // No returned handle: partial creation ownership remains unknown.
+                // Never destroy a resource obtained only by label after build failure.
                 self.record(&request, Observation::CreateFailed);
                 Error::Native
             })?;
@@ -158,16 +177,6 @@ impl Adapter {
             self.invalidate(Observation::ResourceMissing);
             Error::Unknown
         })
-    }
-    pub fn observe_missing<R: Runtime>(&self, app: &AppHandle<R>) -> Result<(), Error> {
-        if self.0.owned.get().is_none() {
-            return Err(Error::Closed);
-        }
-        if !self.owns_current(app) {
-            self.invalidate(Observation::ResourceMissing);
-            return Err(Error::Unknown);
-        }
-        Ok(())
     }
     fn owned_window<R: Runtime>(
         &self,

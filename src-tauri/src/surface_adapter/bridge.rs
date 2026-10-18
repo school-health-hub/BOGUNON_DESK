@@ -6,18 +6,25 @@ use crate::surface_adapter::{
 };
 use tauri::{AppHandle, Manager, Runtime, Url, Webview, WebviewWindow, WindowEvent};
 impl Adapter {
-    pub(super) fn builder_navigation(&self, url: &Url) -> bool {
-        let allowed = self.0.model.lock().is_ok_and(|model| match model.phase() {
-            Phase::Creating => url.as_str() == "about:blank",
-            Phase::Live => settings::local(url),
-            Phase::Dormant
-            | Phase::Closing
-            | Phase::Destroyed
-            | Phase::Missing
-            | Phase::Unknown => false,
+    pub(super) fn builder_navigation(
+        &self,
+        request: &crate::surface_adapter::model::CreationRequest,
+        url: &Url,
+    ) -> bool {
+        let allowed = self.0.model.lock().is_ok_and(|model| {
+            model.owns(request)
+                && match model.phase() {
+                    Phase::Creating => url.as_str() == "about:blank",
+                    Phase::Live => settings::local(url),
+                    Phase::Dormant
+                    | Phase::Closing
+                    | Phase::Destroyed
+                    | Phase::Missing
+                    | Phase::Unknown => false,
+                }
         });
         if !allowed {
-            self.invalidate(Observation::NavigationDenied);
+            self.record(request, Observation::NavigationDenied);
         }
         allowed
     }
@@ -68,5 +75,61 @@ impl Adapter {
             WindowEvent::Destroyed => adapter.record(&request, Observation::Destroyed),
             _ => {}
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::surface_adapter::model::{Gate, Model};
+    fn creating() -> (Adapter, crate::surface_adapter::model::CreationRequest) {
+        let adapter = Adapter::default();
+        let request;
+        {
+            let mut model = adapter.0.model.lock().expect("synthetic model");
+            *model = Model::synthetic_enabled();
+            request = model.request(1);
+            model
+                .begin(
+                    &request,
+                    Gate {
+                        main: true,
+                        isolation: true,
+                        acl: true,
+                        assets: true,
+                        explorer_disabled: true,
+                    },
+                )
+                .expect("synthetic gate");
+        }
+        (adapter, request)
+    }
+    #[test]
+    fn bootstrap_is_blank_only_and_denial_records_before_owned_pin() {
+        let (adapter, request) = creating();
+        assert!(adapter.builder_navigation(&request, &Url::parse("about:blank").expect("url")));
+        assert!(!adapter.builder_navigation(
+            &request,
+            &Url::parse("https://bogunon-surface.localhost/surface.html").expect("url")
+        ));
+        assert_eq!(adapter.status().expect("status").phase, Phase::Unknown);
+        assert!(adapter.0.owned.get().is_none());
+    }
+    #[test]
+    fn foreign_request_cannot_authorize_bootstrap_or_retire_current_request() {
+        let (adapter, _) = creating();
+        let (_, other) = creating();
+        assert!(!adapter.builder_navigation(&other, &Url::parse("about:blank").expect("url")));
+        assert_eq!(adapter.status().expect("status").phase, Phase::Creating);
+    }
+    #[test]
+    fn closed_admission_rejects_even_fixed_local_asset() {
+        let (adapter, request) = creating();
+        adapter.record(&request, Observation::CreateFailed);
+        assert!(!adapter.builder_navigation(
+            &request,
+            &Url::parse("https://bogunon-surface.localhost/surface.html").expect("url")
+        ));
+        assert!(!adapter.status().expect("status").replacement_allowed);
     }
 }
