@@ -28,6 +28,7 @@ mod official_document_import;
 mod purchase_helper;
 mod purchase_settlement;
 mod record_helper_import;
+pub mod surface_broker;
 mod weather;
 mod work_folders;
 
