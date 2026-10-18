@@ -86,43 +86,58 @@ fn load_settings(app: &AppHandle) -> Result<NotificationSettings, String> {
 
 #[tauri::command]
 pub fn set_workspace_notification_reasons(
+    caller: tauri::Webview,
     app: AppHandle,
     reasons: NotificationReasonSettings,
-) -> Result<NotificationSettings, String> {
-    if !reasons.has_enabled_reason() {
-        return Err("알림 종류를 하나 이상 선택해 주세요.".to_owned());
-    }
-    let store = app.store(STORE_FILE).map_err(|error| error.to_string())?;
-    let value = serde_json::to_value(reasons).map_err(|error| error.to_string())?;
-    store.set(REASONS_KEY, value);
-    store.save().map_err(|error| error.to_string())?;
-    load_settings(&app)
+) -> Result<NotificationSettings, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        if !reasons.has_enabled_reason() {
+            return Err("알림 종류를 하나 이상 선택해 주세요.".to_owned());
+        }
+        let store = app.store(STORE_FILE).map_err(|error| error.to_string())?;
+        let value = serde_json::to_value(reasons).map_err(|error| error.to_string())?;
+        store.set(REASONS_KEY, value);
+        store.save().map_err(|error| error.to_string())?;
+        load_settings(&app)
+    })
 }
 
 #[tauri::command]
-pub fn get_notification_settings(app: AppHandle) -> Result<NotificationSettings, String> {
-    load_settings(&app)
+pub fn get_notification_settings(
+    caller: tauri::Webview,
+    app: AppHandle,
+) -> Result<NotificationSettings, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || load_settings(&app))
 }
 
 #[tauri::command]
 pub fn set_workspace_notifications_enabled(
+    caller: tauri::Webview,
     app: AppHandle,
     enabled: bool,
-) -> Result<NotificationSettings, String> {
-    let store = app.store(STORE_FILE).map_err(|error| error.to_string())?;
-    store.set(ENABLED_KEY, serde_json::Value::Bool(enabled));
-    store.save().map_err(|error| error.to_string())?;
-    load_settings(&app)
+) -> Result<NotificationSettings, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        let store = app.store(STORE_FILE).map_err(|error| error.to_string())?;
+        store.set(ENABLED_KEY, serde_json::Value::Bool(enabled));
+        store.save().map_err(|error| error.to_string())?;
+        load_settings(&app)
+    })
 }
 
 #[tauri::command]
-pub fn mark_daily_summary_sent(app: AppHandle, date: String) -> Result<(), String> {
-    if !is_valid_date_key(&date) {
-        return Err("알림 날짜를 저장할 수 없습니다.".to_owned());
-    }
-    let store = app.store(STORE_FILE).map_err(|error| error.to_string())?;
-    store.set(LAST_DATE_KEY, serde_json::Value::String(date));
-    store.save().map_err(|error| error.to_string())
+pub fn mark_daily_summary_sent(
+    caller: tauri::Webview,
+    app: AppHandle,
+    date: String,
+) -> Result<(), crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        if !is_valid_date_key(&date) {
+            return Err("알림 날짜를 저장할 수 없습니다.".to_owned());
+        }
+        let store = app.store(STORE_FILE).map_err(|error| error.to_string())?;
+        store.set(LAST_DATE_KEY, serde_json::Value::String(date));
+        store.save().map_err(|error| error.to_string())
+    })
 }
 
 #[cfg(test)]

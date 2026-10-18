@@ -159,111 +159,134 @@ fn load_and_migrate(app: &AppHandle) -> Result<Vec<StoredWorkFolderFavorite>, St
 }
 
 #[tauri::command]
-pub fn get_work_folder_favorites(app: AppHandle) -> Result<Vec<WorkFolderFavorite>, String> {
-    load_and_migrate(&app).map(|items| items.into_iter().map(to_public).collect())
+pub fn get_work_folder_favorites(
+    caller: tauri::Webview,
+    app: AppHandle,
+) -> Result<Vec<WorkFolderFavorite>, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        load_and_migrate(&app).map(|items| items.into_iter().map(to_public).collect())
+    })
 }
 
 #[tauri::command]
 pub fn pick_work_folder_favorite(
+    caller: tauri::Webview,
     app: AppHandle,
-) -> Result<Option<Vec<WorkFolderFavorite>>, String> {
-    let Some(selection) = app.dialog().file().blocking_pick_folder() else {
-        return Ok(None);
-    };
-    let path = selection.into_path().map_err(|error| error.to_string())?;
-    let selected_key = canonical_key(&path)?;
-    let mut favorites = load_and_migrate(&app)?;
-    if favorites.len() >= MAX_FAVORITES {
-        return Err("업무 폴더는 최대 12개까지 등록할 수 있습니다.".to_owned());
-    }
-    if favorites.iter().any(|favorite| {
-        canonical_key(Path::new(&favorite.path)).is_ok_and(|key| key == selected_key)
-    }) {
-        return Err("이미 등록된 폴더입니다.".to_owned());
-    }
-    favorites.push(StoredWorkFolderFavorite {
-        id: create_id(),
-        name: default_name(&path)?,
-        path: path.to_string_lossy().into_owned(),
-    });
-    save_stored(&app, &favorites)?;
-    Ok(Some(favorites.into_iter().map(to_public).collect()))
+) -> Result<Option<Vec<WorkFolderFavorite>>, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        let Some(selection) = app.dialog().file().blocking_pick_folder() else {
+            return Ok(None);
+        };
+        let path = selection.into_path().map_err(|error| error.to_string())?;
+        let selected_key = canonical_key(&path)?;
+        let mut favorites = load_and_migrate(&app)?;
+        if favorites.len() >= MAX_FAVORITES {
+            return Err("업무 폴더는 최대 12개까지 등록할 수 있습니다.".to_owned());
+        }
+        if favorites.iter().any(|favorite| {
+            canonical_key(Path::new(&favorite.path)).is_ok_and(|key| key == selected_key)
+        }) {
+            return Err("이미 등록된 폴더입니다.".to_owned());
+        }
+        favorites.push(StoredWorkFolderFavorite {
+            id: create_id(),
+            name: default_name(&path)?,
+            path: path.to_string_lossy().into_owned(),
+        });
+        save_stored(&app, &favorites)?;
+        Ok(Some(favorites.into_iter().map(to_public).collect()))
+    })
 }
 
 #[tauri::command]
 pub fn rename_work_folder_favorite(
+    caller: tauri::Webview,
     app: AppHandle,
     id: String,
     name: String,
-) -> Result<Vec<WorkFolderFavorite>, String> {
-    validate_id(&id)?;
-    let name = validate_name(&name)?;
-    let mut favorites = load_and_migrate(&app)?;
-    let favorite = favorites
-        .iter_mut()
-        .find(|favorite| favorite.id == id)
-        .ok_or_else(|| "업무 폴더 즐겨찾기를 찾을 수 없습니다.".to_owned())?;
-    favorite.name = name;
-    save_stored(&app, &favorites)?;
-    Ok(favorites.into_iter().map(to_public).collect())
+) -> Result<Vec<WorkFolderFavorite>, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        validate_id(&id)?;
+        let name = validate_name(&name)?;
+        let mut favorites = load_and_migrate(&app)?;
+        let favorite = favorites
+            .iter_mut()
+            .find(|favorite| favorite.id == id)
+            .ok_or_else(|| "업무 폴더 즐겨찾기를 찾을 수 없습니다.".to_owned())?;
+        favorite.name = name;
+        save_stored(&app, &favorites)?;
+        Ok(favorites.into_iter().map(to_public).collect())
+    })
 }
 
 #[tauri::command]
 pub fn delete_work_folder_favorite(
+    caller: tauri::Webview,
     app: AppHandle,
     id: String,
-) -> Result<Vec<WorkFolderFavorite>, String> {
-    validate_id(&id)?;
-    let mut favorites = load_and_migrate(&app)?;
-    let original_len = favorites.len();
-    favorites.retain(|favorite| favorite.id != id);
-    if favorites.len() == original_len {
-        return Err("업무 폴더 즐겨찾기를 찾을 수 없습니다.".to_owned());
-    }
-    save_stored(&app, &favorites)?;
-    Ok(favorites.into_iter().map(to_public).collect())
+) -> Result<Vec<WorkFolderFavorite>, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        validate_id(&id)?;
+        let mut favorites = load_and_migrate(&app)?;
+        let original_len = favorites.len();
+        favorites.retain(|favorite| favorite.id != id);
+        if favorites.len() == original_len {
+            return Err("업무 폴더 즐겨찾기를 찾을 수 없습니다.".to_owned());
+        }
+        save_stored(&app, &favorites)?;
+        Ok(favorites.into_iter().map(to_public).collect())
+    })
 }
 
 #[tauri::command]
 pub fn reorder_work_folder_favorites(
+    caller: tauri::Webview,
     app: AppHandle,
     ids: Vec<String>,
-) -> Result<Vec<WorkFolderFavorite>, String> {
-    let favorites = load_and_migrate(&app)?;
-    if ids.len() != favorites.len() || ids.iter().any(|id| validate_id(id).is_err()) {
-        return Err("업무 폴더 순서를 저장할 수 없습니다.".to_owned());
-    }
-    let mut reordered = Vec::with_capacity(favorites.len());
-    for id in ids {
-        let Some(favorite) = favorites.iter().find(|favorite| favorite.id == id) else {
-            return Err("업무 폴더 순서를 저장할 수 없습니다.".to_owned());
-        };
-        if reordered
-            .iter()
-            .any(|item: &StoredWorkFolderFavorite| item.id == favorite.id)
-        {
+) -> Result<Vec<WorkFolderFavorite>, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        let favorites = load_and_migrate(&app)?;
+        if ids.len() != favorites.len() || ids.iter().any(|id| validate_id(id).is_err()) {
             return Err("업무 폴더 순서를 저장할 수 없습니다.".to_owned());
         }
-        reordered.push(favorite.clone());
-    }
-    save_stored(&app, &reordered)?;
-    Ok(reordered.into_iter().map(to_public).collect())
+        let mut reordered = Vec::with_capacity(favorites.len());
+        for id in ids {
+            let Some(favorite) = favorites.iter().find(|favorite| favorite.id == id) else {
+                return Err("업무 폴더 순서를 저장할 수 없습니다.".to_owned());
+            };
+            if reordered
+                .iter()
+                .any(|item: &StoredWorkFolderFavorite| item.id == favorite.id)
+            {
+                return Err("업무 폴더 순서를 저장할 수 없습니다.".to_owned());
+            }
+            reordered.push(favorite.clone());
+        }
+        save_stored(&app, &reordered)?;
+        Ok(reordered.into_iter().map(to_public).collect())
+    })
 }
 
 #[tauri::command]
-pub fn open_work_folder_favorite(app: AppHandle, id: String) -> Result<(), String> {
-    validate_id(&id)?;
-    let favorites = load_and_migrate(&app)?;
-    let favorite = favorites
-        .iter()
-        .find(|favorite| favorite.id == id)
-        .ok_or_else(|| "업무 폴더 즐겨찾기를 찾을 수 없습니다.".to_owned())?;
-    if !Path::new(&favorite.path).is_dir() {
-        return Err("폴더를 찾을 수 없습니다.".to_owned());
-    }
-    app.opener()
-        .open_path(&favorite.path, None::<&str>)
-        .map_err(|error| error.to_string())
+pub fn open_work_folder_favorite(
+    caller: tauri::Webview,
+    app: AppHandle,
+    id: String,
+) -> Result<(), crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        validate_id(&id)?;
+        let favorites = load_and_migrate(&app)?;
+        let favorite = favorites
+            .iter()
+            .find(|favorite| favorite.id == id)
+            .ok_or_else(|| "업무 폴더 즐겨찾기를 찾을 수 없습니다.".to_owned())?;
+        if !Path::new(&favorite.path).is_dir() {
+            return Err("폴더를 찾을 수 없습니다.".to_owned());
+        }
+        app.opener()
+            .open_path(&favorite.path, None::<&str>)
+            .map_err(|error| error.to_string())
+    })
 }
 
 #[cfg(test)]

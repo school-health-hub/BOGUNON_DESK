@@ -70,16 +70,20 @@ async fn request_weather(
 
 #[tauri::command]
 pub async fn fetch_bogunon_weather(
+    caller: tauri::Webview,
     app: AppHandle,
     access_token: String,
-) -> Result<WeatherResponse, String> {
-    let base_url = launcher::bogunon_url(&app)?;
-    let url = build_weather_api_url(base_url.as_deref())?;
-    let client = Client::builder()
-        .timeout(REQUEST_TIMEOUT)
-        .build()
-        .map_err(|_| "날씨 요청을 준비하지 못했습니다.".to_owned())?;
-    request_weather(&client, url, &access_token).await
+) -> Result<WeatherResponse, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run_async(&caller, || async {
+        let base_url = launcher::bogunon_url(&app)?;
+        let url = build_weather_api_url(base_url.as_deref())?;
+        let client = Client::builder()
+            .timeout(REQUEST_TIMEOUT)
+            .build()
+            .map_err(|_| "날씨 요청을 준비하지 못했습니다.".to_owned())?;
+        request_weather(&client, url, &access_token).await
+    })
+    .await
 }
 
 #[cfg(test)]

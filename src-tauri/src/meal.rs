@@ -63,17 +63,21 @@ async fn request_meal(
 
 #[tauri::command]
 pub async fn fetch_bogunon_meal(
+    caller: tauri::Webview,
     app: AppHandle,
     access_token: String,
     date: String,
-) -> Result<MealResponse, String> {
-    let base_url = launcher::bogunon_url(&app)?;
-    let url = build_meal_api_url(base_url.as_deref(), &date)?;
-    let client = Client::builder()
-        .timeout(REQUEST_TIMEOUT)
-        .build()
-        .map_err(|_| "급식 요청을 준비하지 못했습니다.".to_owned())?;
-    request_meal(&client, url, &access_token).await
+) -> Result<MealResponse, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run_async(&caller, || async {
+        let base_url = launcher::bogunon_url(&app)?;
+        let url = build_meal_api_url(base_url.as_deref(), &date)?;
+        let client = Client::builder()
+            .timeout(REQUEST_TIMEOUT)
+            .build()
+            .map_err(|_| "급식 요청을 준비하지 못했습니다.".to_owned())?;
+        request_meal(&client, url, &access_token).await
+    })
+    .await
 }
 
 #[cfg(test)]

@@ -114,51 +114,74 @@ fn execute_registered_action(
 
 #[tauri::command]
 fn execute_desktop_action(
+    caller: tauri::Webview,
     app: AppHandle,
     action_id: String,
-) -> Result<DesktopActionOutcome, String> {
-    execute_registered_action(&app, &action_id)
+) -> Result<DesktopActionOutcome, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || execute_registered_action(&app, &action_id))
 }
 
 #[tauri::command]
 fn open_bogunon_search_result(
+    caller: tauri::Webview,
     app: AppHandle,
     kind: launcher::BogunonSearchResultKind,
     id: String,
     date: Option<String>,
-) -> Result<DesktopActionOutcome, String> {
-    let message = launcher::open_bogunon_search_result(&app, kind, &id, date.as_deref())?;
-    Ok(DesktopActionOutcome {
-        status: if message.is_some() {
-            "unavailable"
-        } else {
-            "completed"
-        },
-        message,
+) -> Result<DesktopActionOutcome, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        let message = launcher::open_bogunon_search_result(&app, kind, &id, date.as_deref())?;
+        Ok(DesktopActionOutcome {
+            status: if message.is_some() {
+                "unavailable"
+            } else {
+                "completed"
+            },
+            message,
+        })
     })
 }
 
 #[tauri::command]
-fn get_autostart_enabled(app: AppHandle) -> Result<bool, String> {
-    app.autolaunch()
-        .is_enabled()
-        .map_err(|error| error.to_string())
+fn get_autostart_enabled(
+    caller: tauri::Webview,
+    app: AppHandle,
+) -> Result<bool, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        app.autolaunch()
+            .is_enabled()
+            .map_err(|error| error.to_string())
+    })
 }
 
 #[tauri::command]
-fn set_autostart_enabled(app: AppHandle, enabled: bool) -> Result<bool, String> {
-    let manager = app.autolaunch();
-    if enabled {
-        manager.enable().map_err(|error| error.to_string())?;
-    } else {
-        manager.disable().map_err(|error| error.to_string())?;
-    }
-    manager.is_enabled().map_err(|error| error.to_string())
+fn set_autostart_enabled(
+    caller: tauri::Webview,
+    app: AppHandle,
+    enabled: bool,
+) -> Result<bool, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        let manager = app.autolaunch();
+        if enabled {
+            manager.enable().map_err(|error| error.to_string())?;
+        } else {
+            manager.disable().map_err(|error| error.to_string())?;
+        }
+        manager.is_enabled().map_err(|error| error.to_string())
+    })
 }
 
 #[tauri::command]
-fn set_close_to_tray(state: State<'_, DesktopState>, enabled: bool) {
-    state.close_to_tray.store(enabled, Ordering::SeqCst);
+fn set_close_to_tray(
+    caller: tauri::Webview,
+    state: State<'_, DesktopState>,
+    enabled: bool,
+) -> Result<(), crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        state.close_to_tray.store(enabled, Ordering::SeqCst);
+
+        Ok::<_, String>(())
+    })
 }
 
 fn create_tray(app: &AppHandle) -> tauri::Result<()> {

@@ -108,3 +108,7 @@ pub(crate) async fn run_async<R: Runtime, T, E, F: Future<Output = Result<T, E>>
 #[cfg(test)]
 #[path = "main_caller_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "main_caller_command_tests.rs"]
+mod command_tests;

@@ -576,25 +576,37 @@ async fn extract_selected_document(
 }
 
 #[tauri::command]
-pub async fn extract_official_document_path(path: String) -> Result<OfficialDocumentImportResult, String> {
-    extract_selected_document(Some(PathBuf::from(path))).await?.ok_or_else(|| "가져올 공문 파일이 없습니다.".to_owned())
+pub async fn extract_official_document_path(
+    caller: tauri::Webview,
+    path: String,
+) -> Result<OfficialDocumentImportResult, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run_async(&caller, || async {
+        extract_selected_document(Some(PathBuf::from(path)))
+            .await?
+            .ok_or_else(|| "가져올 공문 파일이 없습니다.".to_owned())
+    })
+    .await
 }
 
 #[tauri::command]
 pub async fn pick_and_extract_official_document(
+    caller: tauri::Webview,
     app: AppHandle,
-) -> Result<Option<OfficialDocumentImportResult>, String> {
-    let path = app
-        .dialog()
-        .file()
-        .add_filter("공문 문서", &["odt", "pdf", "hwpx"])
-        .blocking_pick_file()
-        .map(|file| {
-            file.into_path()
-                .map_err(|_| "파일을 읽지 못했습니다.".to_owned())
-        })
-        .transpose()?;
-    extract_selected_document(path).await
+) -> Result<Option<OfficialDocumentImportResult>, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run_async(&caller, || async {
+        let path = app
+            .dialog()
+            .file()
+            .add_filter("공문 문서", &["odt", "pdf", "hwpx"])
+            .blocking_pick_file()
+            .map(|file| {
+                file.into_path()
+                    .map_err(|_| "파일을 읽지 못했습니다.".to_owned())
+            })
+            .transpose()?;
+        extract_selected_document(path).await
+    })
+    .await
 }
 
 #[cfg(test)]

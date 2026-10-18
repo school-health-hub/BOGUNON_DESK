@@ -17,9 +17,12 @@ pub(crate) use state::DesktopSurfaceCoordinator;
 
 #[tauri::command]
 pub(crate) fn get_desktop_surface_probe(
+    caller: tauri::Webview,
     coordinator: State<'_, DesktopSurfaceCoordinator>,
-) -> probe::DesktopSurfaceProbe {
-    let result = probe::probe_current_shell();
-    coordinator.record_probe(result.supported);
-    result
+) -> Result<probe::DesktopSurfaceProbe, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        let result = probe::probe_current_shell();
+        coordinator.record_probe(result.supported);
+        Ok::<_, String>(result)
+    })
 }

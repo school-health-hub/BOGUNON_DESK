@@ -151,8 +151,14 @@ where
 }
 
 #[tauri::command]
-pub fn open_quick_memo_url(app: AppHandle, url: String) -> Result<(), String> {
-    execute_quick_memo_url(&url, |target| browser_launcher::open_url(&app, &target))
+pub fn open_quick_memo_url(
+    caller: tauri::Webview,
+    app: AppHandle,
+    url: String,
+) -> Result<(), crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        execute_quick_memo_url(&url, |target| browser_launcher::open_url(&app, &target))
+    })
 }
 
 fn build_bogunon_url(base_url: &str, route: &str) -> Result<Url, LauncherError> {
@@ -374,70 +380,79 @@ pub fn schedule_work_portal_auto_open(
 
 #[tauri::command]
 pub fn save_work_portal_url(
+    caller: tauri::Webview,
     app: AppHandle,
     url: Option<String>,
-) -> Result<LauncherSettings, String> {
-    let normalized = normalize_optional_url(url).map_err(|error| error.to_string())?;
-    let store = app
-        .store(STORE_FILE)
-        .map_err(|error| LauncherError::Plugin(error.to_string()).to_string())?;
-    match normalized {
-        Some(url) => store.set(WORK_PORTAL_KEY, serde_json::Value::String(url)),
-        None => {
-            store.delete(WORK_PORTAL_KEY);
+) -> Result<LauncherSettings, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        let normalized = normalize_optional_url(url).map_err(|error| error.to_string())?;
+        let store = app
+            .store(STORE_FILE)
+            .map_err(|error| LauncherError::Plugin(error.to_string()).to_string())?;
+        match normalized {
+            Some(url) => store.set(WORK_PORTAL_KEY, serde_json::Value::String(url)),
+            None => {
+                store.delete(WORK_PORTAL_KEY);
+            }
         }
-    }
-    store.save().map_err(|error| error.to_string())?;
-    load_settings(&app).map_err(|error| error.to_string())
+        store.save().map_err(|error| error.to_string())?;
+        load_settings(&app).map_err(|error| error.to_string())
+    })
 }
 
 #[tauri::command]
 pub fn save_work_portal_auto_open_delay(
+    caller: tauri::Webview,
     app: AppHandle,
     delay: WorkPortalAutoOpenDelay,
-) -> Result<LauncherSettings, String> {
-    save_string(&app, WORK_PORTAL_AUTO_OPEN_DELAY_KEY, delay.as_str())
-        .map_err(|error| error.to_string())?;
-    load_settings(&app).map_err(|error| error.to_string())
+) -> Result<LauncherSettings, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        save_string(&app, WORK_PORTAL_AUTO_OPEN_DELAY_KEY, delay.as_str())
+            .map_err(|error| error.to_string())?;
+        load_settings(&app).map_err(|error| error.to_string())
+    })
 }
 
 #[tauri::command]
 pub fn replace_account_launcher_links(
+    caller: tauri::Webview,
     app: AppHandle,
     launcher_links: AccountLauncherLinks,
-) -> Result<LauncherSettings, String> {
-    let values = [
-        (
-            ONLINE_HEALTH_ROOM_KEY,
-            normalize_optional_url(launcher_links.online_health_room_url),
-        ),
-        (
-            BOGUNON_KEY,
-            normalize_optional_url(launcher_links.bogunon_url),
-        ),
-        (
-            CHECKUP_TOOL_KEY,
-            normalize_optional_url(launcher_links.checkup_tool_url),
-        ),
-    ];
-    let normalized = values
-        .into_iter()
-        .map(|(key, value)| value.map(|url| (key, url)))
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|error| error.to_string())?;
-    let store = app
-        .store(STORE_FILE)
-        .map_err(|error| LauncherError::Plugin(error.to_string()).to_string())?;
-    for (key, value) in normalized {
-        match value {
-            Some(url) => store.set(key, serde_json::Value::String(url)),
-            None => {
-                store.delete(key);
+) -> Result<LauncherSettings, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        let values = [
+            (
+                ONLINE_HEALTH_ROOM_KEY,
+                normalize_optional_url(launcher_links.online_health_room_url),
+            ),
+            (
+                BOGUNON_KEY,
+                normalize_optional_url(launcher_links.bogunon_url),
+            ),
+            (
+                CHECKUP_TOOL_KEY,
+                normalize_optional_url(launcher_links.checkup_tool_url),
+            ),
+        ];
+        let normalized = values
+            .into_iter()
+            .map(|(key, value)| value.map(|url| (key, url)))
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|error| error.to_string())?;
+        let store = app
+            .store(STORE_FILE)
+            .map_err(|error| LauncherError::Plugin(error.to_string()).to_string())?;
+        for (key, value) in normalized {
+            match value {
+                Some(url) => store.set(key, serde_json::Value::String(url)),
+                None => {
+                    store.delete(key);
+                }
             }
         }
-    }
-    store.save().map_err(|error| error.to_string())?;
-    load_settings(&app).map_err(|error| error.to_string())
+        store.save().map_err(|error| error.to_string())?;
+        load_settings(&app).map_err(|error| error.to_string())
+    })
 }
 
 pub fn open_registered_url(
@@ -489,25 +504,33 @@ pub fn open_registered_url(
 }
 
 #[tauri::command]
-pub fn get_launcher_settings(app: AppHandle) -> Result<LauncherSettings, String> {
-    load_settings(&app).map_err(|error| error.to_string())
+pub fn get_launcher_settings(
+    caller: tauri::Webview,
+    app: AppHandle,
+) -> Result<LauncherSettings, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        load_settings(&app).map_err(|error| error.to_string())
+    })
 }
 
 #[tauri::command]
 pub fn save_launcher_url(
+    caller: tauri::Webview,
     app: AppHandle,
     action_id: String,
     url: String,
-) -> Result<LauncherSettings, String> {
-    let key = match action_id.as_str() {
-        "online-health-room" => ONLINE_HEALTH_ROOM_KEY,
-        "bogunon" => BOGUNON_KEY,
-        "checkup-tools" => CHECKUP_TOOL_KEY,
-        _ => return Err(LauncherError::UnsupportedAction.to_string()),
-    };
-    let parsed = parse_web_url(&url).map_err(|error| error.to_string())?;
-    save_string(&app, key, parsed.as_str()).map_err(|error| error.to_string())?;
-    load_settings(&app).map_err(|error| error.to_string())
+) -> Result<LauncherSettings, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        let key = match action_id.as_str() {
+            "online-health-room" => ONLINE_HEALTH_ROOM_KEY,
+            "bogunon" => BOGUNON_KEY,
+            "checkup-tools" => CHECKUP_TOOL_KEY,
+            _ => return Err(LauncherError::UnsupportedAction.to_string()),
+        };
+        let parsed = parse_web_url(&url).map_err(|error| error.to_string())?;
+        save_string(&app, key, parsed.as_str()).map_err(|error| error.to_string())?;
+        load_settings(&app).map_err(|error| error.to_string())
+    })
 }
 
 #[cfg(test)]

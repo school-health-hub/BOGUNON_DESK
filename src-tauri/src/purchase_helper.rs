@@ -1334,9 +1334,18 @@ pub(crate) async fn analyze_paths_in_background(
 }
 
 #[tauri::command]
-pub async fn analyze_purchase_paths(paths: Vec<String>, templates: Vec<ImportTemplate>) -> Result<AnalysisResult, String> {
-    if paths.is_empty() { return Err("가져올 파일이 없습니다.".to_owned()); }
-    analyze_paths_in_background(paths.into_iter().map(PathBuf::from).collect(), templates).await
+pub async fn analyze_purchase_paths(
+    caller: tauri::Webview,
+    paths: Vec<String>,
+    templates: Vec<ImportTemplate>,
+) -> Result<AnalysisResult, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run_async(&caller, || async {
+        if paths.is_empty() {
+            return Err("가져올 파일이 없습니다.".to_owned());
+        }
+        analyze_paths_in_background(paths.into_iter().map(PathBuf::from).collect(), templates).await
+    })
+    .await
 }
 
 #[derive(Default)]
@@ -1370,116 +1379,130 @@ impl PurchaseHelperState {
 
 #[tauri::command]
 pub fn set_purchase_helper_active(
+    caller: tauri::Webview,
     state: tauri::State<'_, PurchaseHelperState>,
     active: bool,
     templates: Vec<ImportTemplate>,
-) {
-    state.invalidate_analysis();
-    state.active.store(active, Ordering::SeqCst);
-    if let Ok(mut saved) = state.templates.lock() {
-        *saved = templates;
-    }
-}
-
-#[tauri::command]
-pub fn invalidate_purchase_helper_analysis(state: tauri::State<'_, PurchaseHelperState>) -> u64 {
-    state.invalidate_analysis()
-}
-
-#[tauri::command]
-pub async fn pick_and_analyze_purchase_files(
-    app: AppHandle,
-    state: tauri::State<'_, PurchaseHelperState>,
-    templates: Vec<ImportTemplate>,
-) -> Result<AnalysisRequestResult, String> {
-    let generation = state.begin_analysis();
-    let _ = app.emit("purchase:analysis-start", generation);
-    let Some(files) = app
-        .dialog()
-        .file()
-        .add_filter(
-            "견적·구매 파일",
-            &["xlsx", "xls", "csv", "pdf", "png", "jpg", "jpeg"],
-        )
-        .blocking_pick_files()
-    else {
-        return Ok(AnalysisRequestResult {
-            generation,
-            started: false,
-        });
-    };
-    let paths = files
-        .into_iter()
-        .map(|file| file.into_path().map_err(|error| error.to_string()))
-        .collect::<Result<Vec<_>, _>>()?;
-    let analysis = analyze_paths_in_background(paths, templates).await;
-    if let Some(analysis) = state.complete_analysis(generation, analysis) {
-        match analysis {
-            Ok(result) => {
-                let _ = app.emit("purchase:analysis", AnalysisEvent { generation, result });
-            }
-            Err(message) => {
-                let _ = app.emit(
-                    "purchase:analysis-error",
-                    AnalysisErrorEvent {
-                        generation,
-                        message,
-                    },
-                );
-            }
+) -> Result<(), crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        state.invalidate_analysis();
+        state.active.store(active, Ordering::SeqCst);
+        if let Ok(mut saved) = state.templates.lock() {
+            *saved = templates;
         }
-    }
-    Ok(AnalysisRequestResult {
-        generation,
-        started: true,
+        Ok::<(), String>(())
     })
 }
 
 #[tauri::command]
+pub fn invalidate_purchase_helper_analysis(
+    caller: tauri::Webview,
+    state: tauri::State<'_, PurchaseHelperState>,
+) -> Result<u64, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || Ok::<u64, String>(state.invalidate_analysis()))
+}
+
+#[tauri::command]
+pub async fn pick_and_analyze_purchase_files(
+    caller: tauri::Webview,
+    app: AppHandle,
+    state: tauri::State<'_, PurchaseHelperState>,
+    templates: Vec<ImportTemplate>,
+) -> Result<AnalysisRequestResult, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run_async(&caller, || async {
+        let generation = state.begin_analysis();
+        let _ = app.emit("purchase:analysis-start", generation);
+        let Some(files) = app
+            .dialog()
+            .file()
+            .add_filter(
+                "견적·구매 파일",
+                &["xlsx", "xls", "csv", "pdf", "png", "jpg", "jpeg"],
+            )
+            .blocking_pick_files()
+        else {
+            return Ok(AnalysisRequestResult {
+                generation,
+                started: false,
+            });
+        };
+        let paths = files
+            .into_iter()
+            .map(|file| file.into_path().map_err(|error| error.to_string()))
+            .collect::<Result<Vec<_>, _>>()?;
+        let analysis = analyze_paths_in_background(paths, templates).await;
+        if let Some(analysis) = state.complete_analysis(generation, analysis) {
+            match analysis {
+                Ok(result) => {
+                    let _ = app.emit("purchase:analysis", AnalysisEvent { generation, result });
+                }
+                Err(message) => {
+                    let _ = app.emit(
+                        "purchase:analysis-error",
+                        AnalysisErrorEvent {
+                            generation,
+                            message,
+                        },
+                    );
+                }
+            }
+        }
+        Ok(AnalysisRequestResult {
+            generation,
+            started: true,
+        })
+    })
+    .await
+}
+
+#[tauri::command]
 pub fn apply_purchase_column_mapping(
+    caller: tauri::Webview,
     candidate: MappingCandidate,
     selected_header_row: usize,
     mapping: HashMap<String, usize>,
-) -> Result<AnalysisResult, String> {
-    if !candidate
-        .header_options
-        .iter()
-        .any(|option| option.row_index == selected_header_row)
-    {
-        return Err("선택한 머리글 행을 사용할 수 없습니다.".to_owned());
-    }
-    let mapping = normalize_mapping(&mapping)?;
-    if mapping.values().any(|index| {
-        candidate
-            .rows
-            .get(selected_header_row)
-            .is_none_or(|row| *index >= row.len())
-    }) {
-        return Err("원본 열 구성을 확인해 주세요.".to_owned());
-    }
-    let mut items = parse_rows_with_columns(
-        &candidate.rows,
-        &candidate.source_name,
-        selected_header_row,
-        &mapping,
-    )?;
-    if items.is_empty() {
-        return Err("가져올 품목을 찾지 못했습니다.".to_owned());
-    }
-    for (index, item) in items.iter_mut().enumerate() {
-        item.id = format!("purchase-mapped-{}-{index}", candidate.id);
-    }
-    let row_count = items.len();
-    Ok(AnalysisResult {
-        items,
-        sources: vec![SourceSummary {
-            source_name: candidate.source_name,
-            status: "success".to_owned(),
-            row_count,
-            message: None,
-            candidate_id: Some(candidate.id),
-        }],
-        candidates: Vec::new(),
+) -> Result<AnalysisResult, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        if !candidate
+            .header_options
+            .iter()
+            .any(|option| option.row_index == selected_header_row)
+        {
+            return Err("선택한 머리글 행을 사용할 수 없습니다.".to_owned());
+        }
+        let mapping = normalize_mapping(&mapping)?;
+        if mapping.values().any(|index| {
+            candidate
+                .rows
+                .get(selected_header_row)
+                .is_none_or(|row| *index >= row.len())
+        }) {
+            return Err("원본 열 구성을 확인해 주세요.".to_owned());
+        }
+        let mut items = parse_rows_with_columns(
+            &candidate.rows,
+            &candidate.source_name,
+            selected_header_row,
+            &mapping,
+        )?;
+        if items.is_empty() {
+            return Err("가져올 품목을 찾지 못했습니다.".to_owned());
+        }
+        for (index, item) in items.iter_mut().enumerate() {
+            item.id = format!("purchase-mapped-{}-{index}", candidate.id);
+        }
+        let row_count = items.len();
+        Ok(AnalysisResult {
+            items,
+            sources: vec![SourceSummary {
+                source_name: candidate.source_name,
+                status: "success".to_owned(),
+                row_count,
+                message: None,
+                candidate_id: Some(candidate.id),
+            }],
+            candidates: Vec::new(),
+        })
     })
 }
 
@@ -1546,105 +1569,108 @@ fn validate_columns(columns: &[String]) -> Result<(), String> {
 
 #[tauri::command]
 pub fn save_purchase_export(
+    caller: tauri::Webview,
     app: AppHandle,
     format: String,
     items: Vec<PurchaseItem>,
     columns: Vec<String>,
-) -> Result<bool, String> {
-    if items.is_empty() {
-        return Err("내보낼 품목을 선택해 주세요.".to_owned());
-    }
-    validate_columns(&columns)?;
-    if format != "xlsx" && format != "csv" {
-        return Err("지원하지 않는 내보내기 형식입니다.".to_owned());
-    }
-    let filename = format!("품의_품목내역_{}.{}", chrono_free_date(), format);
-    let Some(file) = app
-        .dialog()
-        .file()
-        .set_file_name(&filename)
-        .add_filter(
-            if format == "xlsx" { "Excel" } else { "CSV" },
-            &[format.as_str()],
-        )
-        .blocking_save_file()
-    else {
-        return Ok(false);
-    };
-    let path = file.into_path().map_err(|error| error.to_string())?;
-    if format == "csv" {
-        let mut bytes = vec![0xEF, 0xBB, 0xBF];
-        let mut writer = csv::Writer::from_writer(vec![]);
-        writer
-            .write_record(columns.iter().map(|c| column_label(c)))
-            .map_err(|error| error.to_string())?;
-        for (index, item) in items.iter().enumerate() {
+) -> Result<bool, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        if items.is_empty() {
+            return Err("내보낼 품목을 선택해 주세요.".to_owned());
+        }
+        validate_columns(&columns)?;
+        if format != "xlsx" && format != "csv" {
+            return Err("지원하지 않는 내보내기 형식입니다.".to_owned());
+        }
+        let filename = format!("품의_품목내역_{}.{}", chrono_free_date(), format);
+        let Some(file) = app
+            .dialog()
+            .file()
+            .set_file_name(&filename)
+            .add_filter(
+                if format == "xlsx" { "Excel" } else { "CSV" },
+                &[format.as_str()],
+            )
+            .blocking_save_file()
+        else {
+            return Ok(false);
+        };
+        let path = file.into_path().map_err(|error| error.to_string())?;
+        if format == "csv" {
+            let mut bytes = vec![0xEF, 0xBB, 0xBF];
+            let mut writer = csv::Writer::from_writer(vec![]);
             writer
-                .write_record(
-                    columns
-                        .iter()
-                        .map(|column| csv_output_value(&output_value(item, column, index), column)),
-                )
+                .write_record(columns.iter().map(|c| column_label(c)))
                 .map_err(|error| error.to_string())?;
-        }
-        bytes.extend(writer.into_inner().map_err(|error| error.to_string())?);
-        fs::write(path, bytes).map_err(|error| error.to_string())?;
-    } else {
-        let mut workbook = Workbook::new();
-        let worksheet = workbook.add_worksheet();
-        let header = Format::new().set_bold();
-        let quantity_format = Format::new().set_num_format("0.##");
-        let currency_format = Format::new().set_num_format("#,##0");
-        for (column_index, column) in columns.iter().enumerate() {
-            worksheet
-                .write_with_format(0, column_index as u16, column_label(column), &header)
-                .map_err(|e| e.to_string())?;
-            worksheet
-                .set_column_width(column_index as u16, if column == "name" { 28 } else { 14 })
-                .map_err(|e| e.to_string())?;
-        }
-        for (row_index, item) in items.iter().enumerate() {
+            for (index, item) in items.iter().enumerate() {
+                writer
+                    .write_record(
+                        columns.iter().map(|column| {
+                            csv_output_value(&output_value(item, column, index), column)
+                        }),
+                    )
+                    .map_err(|error| error.to_string())?;
+            }
+            bytes.extend(writer.into_inner().map_err(|error| error.to_string())?);
+            fs::write(path, bytes).map_err(|error| error.to_string())?;
+        } else {
+            let mut workbook = Workbook::new();
+            let worksheet = workbook.add_worksheet();
+            let header = Format::new().set_bold();
+            let quantity_format = Format::new().set_num_format("0.##");
+            let currency_format = Format::new().set_num_format("#,##0");
             for (column_index, column) in columns.iter().enumerate() {
-                let row = row_index as u32 + 1;
-                let col = column_index as u16;
-                match column.as_str() {
-                    "quantity" => {
-                        if let Some(v) = item.quantity {
+                worksheet
+                    .write_with_format(0, column_index as u16, column_label(column), &header)
+                    .map_err(|e| e.to_string())?;
+                worksheet
+                    .set_column_width(column_index as u16, if column == "name" { 28 } else { 14 })
+                    .map_err(|e| e.to_string())?;
+            }
+            for (row_index, item) in items.iter().enumerate() {
+                for (column_index, column) in columns.iter().enumerate() {
+                    let row = row_index as u32 + 1;
+                    let col = column_index as u16;
+                    match column.as_str() {
+                        "quantity" => {
+                            if let Some(v) = item.quantity {
+                                worksheet
+                                    .write_number_with_format(row, col, v, &quantity_format)
+                                    .map_err(|e| e.to_string())?;
+                            }
+                        }
+                        "unitPrice" => {
+                            if let Some(v) = item.unit_price {
+                                worksheet
+                                    .write_number_with_format(row, col, v, &currency_format)
+                                    .map_err(|e| e.to_string())?;
+                            }
+                        }
+                        "amount" => {
+                            if let Some(v) = item
+                                .quantity
+                                .zip(item.unit_price)
+                                .map(|(q, p)| (q * p).round())
+                                .or(item.imported_amount)
+                            {
+                                worksheet
+                                    .write_number_with_format(row, col, v, &currency_format)
+                                    .map_err(|e| e.to_string())?;
+                            }
+                        }
+                        _ => {
                             worksheet
-                                .write_number_with_format(row, col, v, &quantity_format)
+                                .write_string(row, col, output_value(item, column, row_index))
                                 .map_err(|e| e.to_string())?;
                         }
-                    }
-                    "unitPrice" => {
-                        if let Some(v) = item.unit_price {
-                            worksheet
-                                .write_number_with_format(row, col, v, &currency_format)
-                                .map_err(|e| e.to_string())?;
-                        }
-                    }
-                    "amount" => {
-                        if let Some(v) = item
-                            .quantity
-                            .zip(item.unit_price)
-                            .map(|(q, p)| (q * p).round())
-                            .or(item.imported_amount)
-                        {
-                            worksheet
-                                .write_number_with_format(row, col, v, &currency_format)
-                                .map_err(|e| e.to_string())?;
-                        }
-                    }
-                    _ => {
-                        worksheet
-                            .write_string(row, col, output_value(item, column, row_index))
-                            .map_err(|e| e.to_string())?;
                     }
                 }
             }
+            workbook.save(path).map_err(|error| error.to_string())?;
         }
-        workbook.save(path).map_err(|error| error.to_string())?;
-    }
-    Ok(true)
+        Ok(true)
+    })
 }
 
 fn build_edufine_workbook(items: &[PurchaseItem]) -> Result<Workbook, String> {
@@ -1698,23 +1724,26 @@ fn build_edufine_workbook(items: &[PurchaseItem]) -> Result<Workbook, String> {
 
 #[tauri::command]
 pub fn save_purchase_edufine_export(
+    caller: tauri::Webview,
     app: AppHandle,
     items: Vec<PurchaseItem>,
-) -> Result<bool, String> {
-    let mut workbook = build_edufine_workbook(&items)?;
-    let filename = format!("에듀파인_품목내역_{}.xlsx", chrono_free_date());
-    let Some(file) = app
-        .dialog()
-        .file()
-        .set_file_name(&filename)
-        .add_filter("Excel", &["xlsx"])
-        .blocking_save_file()
-    else {
-        return Ok(false);
-    };
-    let path = file.into_path().map_err(|error| error.to_string())?;
-    workbook.save(path).map_err(|error| error.to_string())?;
-    Ok(true)
+) -> Result<bool, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        let mut workbook = build_edufine_workbook(&items)?;
+        let filename = format!("에듀파인_품목내역_{}.xlsx", chrono_free_date());
+        let Some(file) = app
+            .dialog()
+            .file()
+            .set_file_name(&filename)
+            .add_filter("Excel", &["xlsx"])
+            .blocking_save_file()
+        else {
+            return Ok(false);
+        };
+        let path = file.into_path().map_err(|error| error.to_string())?;
+        workbook.save(path).map_err(|error| error.to_string())?;
+        Ok(true)
+    })
 }
 
 pub(crate) fn chrono_free_date() -> String {

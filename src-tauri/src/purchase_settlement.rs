@@ -128,25 +128,28 @@ fn write_purchase_settlement_workbook(
 
 #[tauri::command]
 pub fn save_purchase_settlement_export(
+    caller: tauri::Webview,
     app: AppHandle,
     rows: Vec<PurchaseSettlementExportRow>,
     summary: PurchaseSettlementSummary,
-) -> Result<bool, String> {
-    if rows.is_empty() {
-        return Err("내보낼 구매결과가 없습니다.".to_owned());
-    }
-    let Some(file) = app
-        .dialog()
-        .file()
-        .set_file_name(&format!("품의_구매결과_{}.xlsx", chrono_free_date()))
-        .add_filter("Excel", &["xlsx"])
-        .blocking_save_file()
-    else {
-        return Ok(false);
-    };
-    let path = file.into_path().map_err(|error| error.to_string())?;
-    write_purchase_settlement_workbook(&path, &rows, &summary)?;
-    Ok(true)
+) -> Result<bool, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        if rows.is_empty() {
+            return Err("내보낼 구매결과가 없습니다.".to_owned());
+        }
+        let Some(file) = app
+            .dialog()
+            .file()
+            .set_file_name(&format!("품의_구매결과_{}.xlsx", chrono_free_date()))
+            .add_filter("Excel", &["xlsx"])
+            .blocking_save_file()
+        else {
+            return Ok(false);
+        };
+        let path = file.into_path().map_err(|error| error.to_string())?;
+        write_purchase_settlement_workbook(&path, &rows, &summary)?;
+        Ok(true)
+    })
 }
 
 #[cfg(test)]

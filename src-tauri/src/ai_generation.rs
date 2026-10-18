@@ -201,27 +201,31 @@ pub(crate) async fn request_generation(
 
 #[tauri::command]
 pub async fn generate_ai_text(
+    caller: tauri::Webview,
     provider: String,
     model: String,
     api_key: String,
     prompt: String,
-) -> Result<String, String> {
-    let connection = validate_input(&provider, &model, &api_key)?;
-    let client = Client::builder()
-        .timeout(REQUEST_TIMEOUT)
-        .build()
-        .map_err(|_| CONNECTION_ERROR.to_owned())?;
-    request_generation(
-        &client,
-        GenerationRequest {
-            connection: &connection,
-            prompt: &prompt,
-        },
-        &AiEndpoints {
-            openai_responses_url: OPENAI_RESPONSES_URL,
-            gemini_generate_url: GEMINI_GENERATE_URL,
-        },
-    )
+) -> Result<String, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run_async(&caller, || async {
+        let connection = validate_input(&provider, &model, &api_key)?;
+        let client = Client::builder()
+            .timeout(REQUEST_TIMEOUT)
+            .build()
+            .map_err(|_| CONNECTION_ERROR.to_owned())?;
+        request_generation(
+            &client,
+            GenerationRequest {
+                connection: &connection,
+                prompt: &prompt,
+            },
+            &AiEndpoints {
+                openai_responses_url: OPENAI_RESPONSES_URL,
+                gemini_generate_url: GEMINI_GENERATE_URL,
+            },
+        )
+        .await
+    })
     .await
 }
 

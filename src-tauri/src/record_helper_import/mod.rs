@@ -226,31 +226,46 @@ async fn extract_selected_reports(
 }
 
 #[tauri::command]
-pub async fn extract_record_helper_paths(paths: Vec<String>) -> Result<RecordHelperImportBatch, String> {
-    if paths.is_empty() { return Ok(RecordHelperImportBatch::default()); }
-    run_extraction_worker(move || extract_reports(paths.into_iter().map(PathBuf::from).collect())).await
+pub async fn extract_record_helper_paths(
+    caller: tauri::Webview,
+    paths: Vec<String>,
+) -> Result<RecordHelperImportBatch, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run_async(&caller, || async {
+        if paths.is_empty() {
+            return Ok(RecordHelperImportBatch::default());
+        }
+        run_extraction_worker(move || {
+            extract_reports(paths.into_iter().map(PathBuf::from).collect())
+        })
+        .await
+    })
+    .await
 }
 
 #[tauri::command]
 pub async fn pick_and_extract_record_helper_reports(
+    caller: tauri::Webview,
     app: AppHandle,
-) -> Result<RecordHelperImportBatch, String> {
-    let paths = app
-        .dialog()
-        .file()
-        .add_filter("활동보고서", &["pdf", "hwpx", "docx", "hwp"])
-        .blocking_pick_files()
-        .map(|files| {
-            files
-                .into_iter()
-                .map(|file| {
-                    file.into_path()
-                        .map_err(|_| "파일을 읽지 못했습니다.".to_owned())
-                })
-                .collect::<Result<Vec<_>, _>>()
-        })
-        .transpose()?;
-    extract_selected_reports(paths).await
+) -> Result<RecordHelperImportBatch, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run_async(&caller, || async {
+        let paths = app
+            .dialog()
+            .file()
+            .add_filter("활동보고서", &["pdf", "hwpx", "docx", "hwp"])
+            .blocking_pick_files()
+            .map(|files| {
+                files
+                    .into_iter()
+                    .map(|file| {
+                        file.into_path()
+                            .map_err(|_| "파일을 읽지 못했습니다.".to_owned())
+                    })
+                    .collect::<Result<Vec<_>, _>>()
+            })
+            .transpose()?;
+        extract_selected_reports(paths).await
+    })
+    .await
 }
 
 #[cfg(test)]

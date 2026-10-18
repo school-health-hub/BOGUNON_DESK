@@ -115,16 +115,20 @@ async fn request_validation(
 
 #[tauri::command]
 pub async fn validate_ai_connection(
+    caller: tauri::Webview,
     provider: String,
     model: String,
     api_key: String,
-) -> Result<(), String> {
-    let connection = validate_input(&provider, &model, &api_key)?;
-    let client = Client::builder()
-        .timeout(REQUEST_TIMEOUT)
-        .build()
-        .map_err(|_| CONNECTION_ERROR.to_owned())?;
-    request_validation(&client, &connection, OPENAI_MODELS_URL, GEMINI_MODELS_URL).await
+) -> Result<(), crate::main_caller::CommandError<String>> {
+    crate::main_caller::run_async(&caller, || async {
+        let connection = validate_input(&provider, &model, &api_key)?;
+        let client = Client::builder()
+            .timeout(REQUEST_TIMEOUT)
+            .build()
+            .map_err(|_| CONNECTION_ERROR.to_owned())?;
+        request_validation(&client, &connection, OPENAI_MODELS_URL, GEMINI_MODELS_URL).await
+    })
+    .await
 }
 
 #[cfg(test)]
