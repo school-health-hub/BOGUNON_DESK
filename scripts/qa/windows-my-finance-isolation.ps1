@@ -4,6 +4,7 @@ param([Parameter(Mandatory=$true)][string]$OperatingInstaller,[Parameter(Mandato
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted') { throw 'Disposable GitHub-hosted Windows runner only' }
+if ([string]::IsNullOrWhiteSpace($env:GITHUB_RUN_ID) -or [string]::IsNullOrWhiteSpace($env:GITHUB_RUN_ATTEMPT)) { throw 'GitHub workflow identity is required' }
 $operatingName='BOGUNON DESK'; $qaName='BOGUNON DESK MY FINANCE QA'
 $operatingId='kr.sungandi.schoolhealthdesk'; $qaId='kr.sungandi.schoolhealthdesk.myfinanceqa'
 $operatingDir=Join-Path $env:LOCALAPPDATA $operatingName; $qaDir=Join-Path $env:LOCALAPPDATA $qaName
@@ -50,9 +51,16 @@ function Restore-CdpPolicy([pscustomobject]$Snapshot) {
   if($restored.KeyExisted -ne $Snapshot.KeyExisted -or $restored.ValueExisted -ne $Snapshot.ValueExisted -or ($Snapshot.ValueExisted -and ($restored.Value -cne $Snapshot.Value -or $restored.ValueKind -ne $Snapshot.ValueKind))){throw 'restored registry state does not match its snapshot'}
  }catch{throw "CDP policy restoration failed: $($_.Exception.Message)"}
 }
+function Assert-NoCompetingCdpPolicy {
+ $key=Get-Item -LiteralPath $cdpPolicyPath -ErrorAction SilentlyContinue
+ if($null -eq $key){return}
+ $competing=@(@('*',$operatingId,$qaId)|Where-Object {@($key.GetValueNames()).Contains($_)})
+ if($competing.Count -gt 0){throw 'Existing wildcard or AUMID WebView2 policy prevents an isolated exact-executable override'}
+}
 function Set-CdpPolicy([string]$AppId,[int]$Port) {
  $expected=@{'school-health-desk.exe'=9223;'bogunon-desk-my-finance-qa.exe'=9224}
  if(-not $expected.ContainsKey($AppId) -or $expected[$AppId] -ne $Port){throw 'Refusing a CDP policy outside the two isolated QA executables'}
+ Assert-NoCompetingCdpPolicy
  $snapshot=Get-CdpPolicySnapshot $AppId
  try {
   New-Item -Path $cdpPolicyPath -Force|Out-Null
@@ -102,6 +110,7 @@ function Launch-Evidence([int]$Port) {
  $evidence=[ordered]@{pid=$app.Id;hasExited=$app.HasExited;hasMainWindow=($app.MainWindowHandle -ne 0);webviewProcesses=$children;port=$Port;listeners=$listeners}
  $json=$evidence|ConvertTo-Json -Depth 8 -Compress
  [IO.File]::WriteAllText((Join-Path $out "launch-$Port.json"),$json)
+ if(-not($children|Where-Object {$_.requestedPortObserved}) -or -not($listeners|Where-Object {$ids.Contains([int]$_.owner)})){throw "CDP listener was not owned by the launched app tree: $Port"}
  return $json
 }
 function Probe([int]$Port,[string]$Mode,[string]$Name) {
@@ -178,13 +187,18 @@ try {
  Stop-Owned $prod 9223
  if((Get-FileHash $OperatingInstaller).Hash -ne $operatingInstallerHash -or (Get-FileHash $QaInstaller).Hash -ne $qaInstallerHash){throw 'Installer bytes changed'}
  $signature=Get-AuthenticodeSignature -LiteralPath $QaInstaller
- $result=[ordered]@{status='passed';sourceSha=$env:QA_EXPECTED_SOURCE_SHA;operatingReferenceSha='5cec64358436c148710499b5aa9d2e78c34e0136';sha256=$qaInstallerHash.ToLowerInvariant();authenticodeStatus=[string]$signature.Status;signer=if($signature.SignerCertificate){$signature.SignerCertificate.Subject}else{$null};fullOperatingTreePreservedWhenClosed=$true;operatingFinancialDataPreservedWhileRunning=$true;simultaneousExecution=$true;qaUninstallPreservedBothFinancialStores=$true;operatingNeverUninstalled=$true;outboundBlockedInDisposableRunner=$true;nativeDebugPort='CI environment only, not embedded in installer'}
+ $result=[ordered]@{status='passed';sourceSha=$env:QA_EXPECTED_SOURCE_SHA;workflowRunId=$env:GITHUB_RUN_ID;workflowRunAttempt=$env:GITHUB_RUN_ATTEMPT;operatingReferenceSha='5cec64358436c148710499b5aa9d2e78c34e0136';sha256=$qaInstallerHash.ToLowerInvariant();authenticodeStatus=[string]$signature.Status;signer=if($signature.SignerCertificate){$signature.SignerCertificate.Subject}else{$null};fullOperatingTreePreservedWhenClosed=$true;operatingFinancialDataPreservedWhileRunning=$true;simultaneousExecution=$true;qaUninstallPreservedBothFinancialStores=$true;operatingNeverUninstalled=$true;outboundBlockedInDisposableRunner=$true;nativeDebugPort='CI environment only, not embedded in installer'}
  $result|ConvertTo-Json -Depth 10|Set-Content (Join-Path $out 'ISOLATION.json') -Encoding utf8
  Write-Output "::notice title=MY_FINANCE_QA_SHA256::$($result.sha256)"
  Write-Output "::notice title=MY_FINANCE_QA_SIGNATURE::$($result.authenticodeStatus)"
  Write-Output '::notice title=MY_FINANCE_QA_ISOLATION::PASSED; operating reference preserved; synthetic GitHub runner only'
 } finally {
- foreach($p in $apps){if(-not $p.HasExited){Stop-Owned $p}}
- foreach($name in $rules){Remove-NetFirewallRule -DisplayName $name -ErrorAction SilentlyContinue}
- if($mutexOwned){$runMutex.ReleaseMutex()};$runMutex.Dispose()
+ # A hard runner/process termination can bypass PowerShell finally. The disposable
+ # runner remains the outer cleanup boundary; ordinary failures must restore here.
+ $cleanupErrors=[Collections.Generic.List[string]]::new()
+ foreach($p in $apps){try{if(-not $p.HasExited){Stop-Owned $p}}catch{$cleanupErrors.Add("app cleanup: $($_.Exception.Message)")}}
+ foreach($name in $rules){try{Remove-NetFirewallRule -DisplayName $name -ErrorAction Stop}catch{$cleanupErrors.Add("firewall cleanup: $($_.Exception.Message)")}}
+ try{if($mutexOwned){$runMutex.ReleaseMutex()}}catch{$cleanupErrors.Add("mutex release: $($_.Exception.Message)")}
+ try{$runMutex.Dispose()}catch{$cleanupErrors.Add("mutex dispose: $($_.Exception.Message)")}
+ if($cleanupErrors.Count -gt 0){throw "Isolation cleanup failed: $($cleanupErrors -join '; ')"}
 }

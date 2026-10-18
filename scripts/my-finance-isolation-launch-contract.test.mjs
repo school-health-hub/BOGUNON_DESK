@@ -15,6 +15,8 @@ describe("MY FINANCE Windows isolation launcher", () => {
     expect(source).toContain("[IO.Path]::GetFileName($Path)");
     expect(source).toContain("if($elevated)");
     expect(source).toContain("Set-CdpPolicy");
+    expect(source).toContain("Assert-NoCompetingCdpPolicy");
+    expect(source).toContain("@('*',$operatingId,$qaId)");
     expect(source).toContain("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS");
     expect(source).not.toMatch(/New-ItemProperty[^\n]+["']\*["']/u);
   });
@@ -29,6 +31,7 @@ describe("MY FINANCE Windows isolation launcher", () => {
       /try\s*\{[\s\S]+Start-Process[\s\S]+\}\s*finally\s*\{[\s\S]+Restore-CdpPolicy/u,
     );
     expect(source).toContain("CDP policy restoration failed");
+    expect(source).toContain("Isolation cleanup failed");
   });
 
   it("rejects concurrent runs and occupied ports before exposing CDP", async () => {
@@ -39,6 +42,7 @@ describe("MY FINANCE Windows isolation launcher", () => {
     expect(source).toContain("Assert-CdpPortAvailable");
     expect(source).toContain("Wait-CdpListener");
     expect(source).toContain("Assert-CdpPortClosed");
+    expect(source).toContain("CDP listener was not owned by the launched app tree");
   });
 
   it("does not permanently embed the debugging switch in either installer", async () => {
@@ -59,5 +63,6 @@ describe("MY FINANCE Windows isolation launcher", () => {
     expect(isolation).toBeGreaterThan(-1);
     expect(packaging).toBeGreaterThan(isolation);
     expect(workflow.slice(isolation, packaging)).not.toContain("continue-on-error: true");
+    expect(workflow.slice(isolation, packaging)).not.toContain("if: always()");
   });
 });
