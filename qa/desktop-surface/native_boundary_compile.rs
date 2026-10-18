@@ -258,3 +258,6 @@ mod final_drain_probes;
 
 #[path = "native_pump_phase_compile.rs"]
 mod pump_phase_probes;
+
+#[path = "native_sync_driver_compile.rs"]
+mod synchronous_driver_probes;

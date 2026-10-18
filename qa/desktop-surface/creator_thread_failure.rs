@@ -13,6 +13,7 @@ impl<B: Backend> Host<B> {
 
     /// Terminal resource cleanup; normal fault and stop admission remains closed.
     pub fn failure_cleanup(&mut self) -> Result<super::Report<B::Provenance>, cleanup::Error> {
+        self.completion = None;
         if self.creator != thread::current().id() {
             return Err(cleanup::Error::Thread);
         }

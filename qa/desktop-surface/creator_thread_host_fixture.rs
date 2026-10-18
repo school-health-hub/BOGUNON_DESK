@@ -24,6 +24,8 @@ pub struct Memory {
         Option<crate::native_contract::final_drain_contract::FinalizationObservation<Synthetic>>,
     pub cleanup_request: Option<Request>,
     pub final_drain_facts: crate::native_contract::final_drain_contract::DrainFacts,
+    pub response_hook: Option<fn(&mut Self, &Request) -> Option<Response>>,
+    pub drain_hook: Option<fn(&mut Self)>,
 }
 impl sealed::Sealed for Memory {}
 impl Memory {
@@ -101,6 +103,11 @@ impl Backend for Memory {
         observation
     }
     fn dispatch(&mut self, request: &Request) -> Response {
+        if let Some(hook) = self.response_hook {
+            if let Some(response) = hook(self, request) {
+                return response;
+            }
+        }
         if self.backend_fault {
             return Response {
                 request: request.clone(),
@@ -127,6 +134,9 @@ impl Backend for Memory {
         response
     }
     fn drain(&mut self) -> Result<Vec<Envelope<Synthetic>>, Error> {
+        if let Some(hook) = self.drain_hook {
+            hook(self);
+        }
         if self.overflow {
             return Err(Error::Overflow);
         }
@@ -166,6 +176,8 @@ pub fn fixture() -> Host<Memory> {
             finalization: None,
             cleanup_request: None,
             final_drain_facts: final_drain_fixture::quiet_facts(),
+            response_hook: None,
+            drain_hook: None,
         },
     )
 }

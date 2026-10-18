@@ -22,8 +22,8 @@ impl<B: Backend> Host<B> {
         if completed.request != request {
             return self.fault(Error::Protocol);
         }
-        match completed.outcome {
-            Outcome::CleanupVerified(_) => {}
+        let proof = match &completed.outcome {
+            Outcome::CleanupVerified(proof) => proof.clone(),
             Outcome::CreateSucceeded(_)
             | Outcome::CreateFailed
             | Outcome::CloseStarted
@@ -32,12 +32,13 @@ impl<B: Backend> Host<B> {
             | Outcome::CleanupPending
             | Outcome::CleanupFailed
             | Outcome::NativeOutcomeUnknown => return self.fault(Error::Unknown),
-        }
+        };
         if self.adapter.respond(completed).is_err() {
             return self.fault(Error::Protocol);
         }
         self.pending = None;
         self.bridge.retire();
+        self.completion = Some(proof);
         Ok(())
     }
 }

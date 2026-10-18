@@ -52,6 +52,7 @@ pub struct Host<B: Backend> {
     adapter: Adapter<B::Provenance>,
     bridge: bridge::Bridge<B::Provenance>,
     pending: Option<Response<B::Provenance>>,
+    completion: Option<super::CleanupProof<B::Provenance>>,
     creator: ThreadId,
     entered: bool,
     stopped: bool,
@@ -67,6 +68,7 @@ impl<B: Backend> Host<B> {
             adapter: Adapter::new(main),
             bridge: bridge::Bridge::new(),
             pending: None,
+            completion: None,
             creator: thread::current().id(),
             entered: false,
             stopped: false,
@@ -77,6 +79,7 @@ impl<B: Backend> Host<B> {
         }
     }
     fn fault<T>(&mut self, error: Error) -> Result<T, Error> {
+        self.completion = None;
         self.original.get_or_insert(error);
         self.faulted = true;
         self.adapter.native_unknown();
@@ -204,6 +207,7 @@ impl<B: Backend> Host<B> {
         Ok(())
     }
     pub fn stop(&mut self) -> Result<(), Error> {
+        self.completion = None;
         self.guard()?;
         // Stop first closes command admission, but cannot prove Native owner release.
         self.adapter.native_unknown();
@@ -232,6 +236,8 @@ impl<B: Backend> Host<B> {
 mod native;
 #[cfg(all(windows, not(test)))]
 pub use native::NativeBackend;
+#[path = "synchronous_driver.rs"]
+pub mod synchronous_driver;
 #[cfg(test)]
 #[path = "creator_thread_host_tests.rs"]
 mod tests;

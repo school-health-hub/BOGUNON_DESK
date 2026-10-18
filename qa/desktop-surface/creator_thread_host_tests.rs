@@ -4,7 +4,7 @@ use crate::native_contract::{
     verifier::fake::{Fake, Fault},
 };
 #[path = "creator_thread_host_fixture.rs"]
-mod fixture;
+pub(super) mod fixture;
 use fixture::{available, closed, fixture};
 #[test]
 fn normal_create() {

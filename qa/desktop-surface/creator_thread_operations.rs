@@ -1,6 +1,7 @@
 use super::*;
 impl<B: Backend> Host<B> {
     pub fn create(&mut self) -> Result<(), Error> {
+        self.completion = None;
         self.guard()?;
         let request = match self.adapter.create() {
             Ok(request) => request,
@@ -32,6 +33,7 @@ impl<B: Backend> Host<B> {
         self.submit(request)
     }
     pub fn replacement(&mut self) -> Result<(), Error> {
+        self.completion = None;
         self.guard()?;
         let request = match self.adapter.replacement() {
             Ok(request) => request,
