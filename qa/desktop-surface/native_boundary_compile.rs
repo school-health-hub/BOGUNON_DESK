@@ -5,7 +5,9 @@ mod async_surface;
 mod disposable_surface;
 mod evidence_approval;
 mod evidence_paths;
+mod integrated_entry;
 mod integrated_runner;
+mod integrated_source;
 mod main_boundary;
 mod main_boundary_state;
 mod native_adapter;
@@ -36,3 +38,6 @@ mod synchronous_driver_probes;
 
 #[path = "integrated_boundary_compile.rs"]
 mod integrated_probes;
+
+#[path = "integrated_wiring_compile.rs"]
+mod wiring_probes;

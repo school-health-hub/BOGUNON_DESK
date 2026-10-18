@@ -21,6 +21,8 @@ pub mod evidence;
 #[cfg(test)]
 #[path = "integrated_gate_file_tests.rs"]
 mod gate_file_tests;
+#[path = "integrated_pipeline.rs"]
+pub mod pipeline;
 #[path = "integrated_result.rs"]
 pub mod result;
 #[path = "integrated_store.rs"]

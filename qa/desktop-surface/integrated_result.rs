@@ -81,6 +81,7 @@ pub struct RunResult<P> {
     lifecycle: Lifecycle,
     failure_cleanup: Cleanup,
     proof: Proof,
+    panic_observed: bool,
     lifecycle_failure_cause: Option<Cause>,
     cleanup_failure_fact: Option<CleanupFact>,
     cleanup_admission_error: Option<CleanupAdmission>,
@@ -96,58 +97,11 @@ impl<P> RunResult<P> {
             lifecycle: Lifecycle::NotObserved,
             failure_cleanup: Cleanup::NotObserved,
             proof: Proof::Missing,
+            panic_observed: false,
             lifecycle_failure_cause: None,
             cleanup_failure_fact: None,
             cleanup_admission_error: None,
             binding: None,
-            provenance: PhantomData,
-        }
-    }
-    pub(super) fn from_driver(attempt: &Attempt, report: &DriverReport<P>) -> Self {
-        let lifecycle = match report.lifecycle() {
-            Ok(()) => Lifecycle::Succeeded,
-            Err(f) => Lifecycle::Failed(f.stage.into()),
-        };
-        let proof = match report.proof() {
-            Some(_) => Proof::VerifiedAB,
-            None => Proof::Missing,
-        };
-        let failure_cleanup = match report.failure_cleanup() {
-            None => match proof {
-                Proof::VerifiedAB => Cleanup::NotRequiredVerifiedByProof,
-                Proof::Missing => Cleanup::Unknown,
-            },
-            Some(Err(_)) => Cleanup::Unknown,
-            Some(Ok(report)) => match report.cleanup {
-                failure_cleanup::Status::Succeeded => Cleanup::Succeeded,
-                failure_cleanup::Status::Failed(_) => Cleanup::Failed,
-                failure_cleanup::Status::Unknown(_) => Cleanup::Unknown,
-            },
-        };
-        let lifecycle_failure_cause = report.lifecycle().err().map(|f| f.cause.into());
-        let cleanup_failure_fact = match report.failure_cleanup() {
-            Some(Ok(r)) => match r.cleanup {
-                failure_cleanup::Status::Failed(f) | failure_cleanup::Status::Unknown(f) => {
-                    Some(f.into())
-                }
-                failure_cleanup::Status::Succeeded => None,
-            },
-            Some(Err(_)) | None => None,
-        };
-        let cleanup_admission_error = match report.failure_cleanup() {
-            Some(Err(error)) => Some((*error).into()),
-            Some(Ok(r)) => r.admission.map(Into::into),
-            None => None,
-        };
-        Self {
-            gate: GateStatus::Passed,
-            lifecycle,
-            failure_cleanup,
-            proof,
-            lifecycle_failure_cause,
-            cleanup_failure_fact,
-            cleanup_admission_error,
-            binding: Some(attempt.binding().clone()),
             provenance: PhantomData,
         }
     }
@@ -158,6 +112,7 @@ impl<P> RunResult<P> {
             lifecycle: Lifecycle::Panic,
             failure_cleanup: Cleanup::Unknown,
             proof: Proof::Missing,
+            panic_observed: true,
             lifecycle_failure_cause: None,
             cleanup_failure_fact: None,
             cleanup_admission_error: None,
@@ -165,8 +120,18 @@ impl<P> RunResult<P> {
             provenance: PhantomData,
         }
     }
+    pub(super) fn execution_unknown(attempt: &Attempt) -> Self {
+        let mut result = Self::panic_unknown(attempt);
+        result.lifecycle = Lifecycle::NotObserved;
+        result.panic_observed = false;
+        result
+    }
     pub fn mark_panic(mut self) -> Self {
-        self.lifecycle = Lifecycle::Panic;
+        self.panic_observed = true;
+        self.lifecycle = match self.lifecycle {
+            Lifecycle::Failed(stage) => Lifecycle::Failed(stage),
+            Lifecycle::Succeeded | Lifecycle::NotObserved | Lifecycle::Panic => Lifecycle::Panic,
+        };
         self
     }
     pub(super) fn matches(&self, attempt: &Attempt) -> bool
@@ -194,7 +159,7 @@ impl<P> RunResult<P> {
         if matches!(self.failure_cleanup, Cleanup::Failed | Cleanup::Unknown) {
             return 5;
         }
-        if self.lifecycle == Lifecycle::Panic {
+        if self.panic_observed || self.lifecycle == Lifecycle::Panic {
             return 4;
         }
         if [evidence, stdout, stderr].contains(&Delivery::Failed) {
@@ -234,6 +199,7 @@ impl RunResult<crate::native_contract::ownership_receipt::Synthetic> {
             lifecycle,
             failure_cleanup,
             proof,
+            panic_observed: false,
             lifecycle_failure_cause: None,
             cleanup_failure_fact: None,
             cleanup_admission_error: None,
@@ -247,3 +213,6 @@ pub mod delivery;
 #[cfg(test)]
 #[path = "integrated_result_tests.rs"]
 mod tests;
+
+#[path = "integrated_result_mapping.rs"]
+mod mapping;

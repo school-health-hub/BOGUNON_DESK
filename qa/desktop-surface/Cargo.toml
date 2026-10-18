@@ -51,6 +51,7 @@ live-windows-skip-miri = []
 synthetic-subprocess = []
 own-window-qa-skip-miri = []
 own-synthetic = []
+integrated-native-qa-skip-miri = []
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
@@ -71,3 +72,10 @@ unused_must_use = "deny"
 
 [lints.clippy]
 undocumented_unsafe_blocks = "deny"
+
+[[bin]]
+name = "desktop-surface-integrated"
+path = "integrated_main.rs"
+required-features = ["integrated-native-qa-skip-miri"]
+test = false
+bench = false

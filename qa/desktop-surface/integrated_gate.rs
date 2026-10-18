@@ -7,7 +7,7 @@ use sha2::Digest;
 use std::cell::Cell;
 use std::{path::Path, rc::Rc};
 
-/// Loaded bytes and actual locations are supplied by a future approved entrypoint.
+/// Loaded bytes and actual locations are supplied by the separate Integrated entrypoint.
 /// This contract neither authenticates an operator nor invokes Native code.
 pub struct Input<'a> {
     pub executable: &'a [u8],
@@ -29,7 +29,7 @@ pub struct Permit {
     _creator: Rc<()>,
 }
 /// One consumed Gate permit; retains the claim for the entire attempt.
-/// Future Native entrypoints must take ownership of this capability before Owner creation.
+/// The Integrated Native entrypoint consumes this capability before Owner creation.
 pub struct Attempt {
     executed: Cell<bool>,
     binding: Binding,
@@ -171,8 +171,8 @@ fn lock_inputs(input: &Input<'_>) -> Result<Vec<std::fs::File>, Error> {
     Ok(guards)
 }
 
-/// Future integration seam: the dedicated consumed capability precedes factory entry.
-/// No Native factory or execution is provided by this source-contract module.
+/// The consumed capability precedes entry into the caller's integration operation.
+/// Native execution still requires the Attempt's private one-shot execution key.
 pub fn with_attempt<T>(input: Input<'_>, factory: impl FnOnce(&Attempt) -> T) -> Result<T, Error> {
     let attempt = evaluate(input)?.consume();
     Ok(factory(&attempt))

@@ -1,5 +1,6 @@
 //! Trusted bridge only: construction occurs after the integrated Attempt latch.
-//! No entrypoint calls this source contract and no OS dispatcher exists here.
+//! The separate Integrated entrypoint reaches this bridge only through its Gate.
+//! No OS message dispatcher exists here.
 #[cfg(all(windows, not(test)))]
 pub(crate) fn run(
     key: crate::integrated_runner::gate::ExecutionKey<'_>,

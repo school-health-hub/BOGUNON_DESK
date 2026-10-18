@@ -1,4 +1,6 @@
 //! Existing Synthetic Driver and sealed Memory backend, through the real Gate execution boundary.
+#[path = "integrated_pipeline_driver_tests.rs"]
+mod pipeline;
 use super::{synchronous_driver::Driver, tests::fixture::fixture};
 use crate::{
     integrated_runner::{
