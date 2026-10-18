@@ -241,3 +241,6 @@ pub mod synchronous_driver;
 #[cfg(test)]
 #[path = "creator_thread_host_tests.rs"]
 mod tests;
+#[cfg(test)]
+#[path = "integrated_execution_tests.rs"]
+mod integrated_execution_tests;

@@ -70,6 +70,7 @@ mod worker_evidence_tests;
 mod worker_topology_contract_tests;
 
 mod native_adapter;
+mod integrated_runner;
 mod native_contract;
 mod native_contract_hostile_tests;
 mod native_contract_tests;

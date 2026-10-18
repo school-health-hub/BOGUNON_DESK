@@ -85,3 +85,6 @@ pub mod final_drain_contract;
 
 #[path = "pump_phase.rs"]
 pub mod pump_phase;
+
+#[path = "integrated_execution.rs"]
+pub(crate) mod integrated_execution;
