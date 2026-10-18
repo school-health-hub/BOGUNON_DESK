@@ -17,6 +17,7 @@ impl Envelope {
         self,
         destination: &Channel<TransportFrame>,
         transfer: u64,
+        admitted: impl Fn() -> bool,
     ) -> Result<(), ()> {
         let json = serde_json::to_string(&self).map_err(|_| ())?;
         if json.len() > MAX_TRANSFER_BYTES {
@@ -34,7 +35,7 @@ impl Envelope {
                 data: (*data).to_owned(),
             };
             // Tauri 2.11.5 otherwise uses a shared fetch queue without Webview ownership.
-            if serde_json::to_vec(&frame).map_err(|_| ())?.len() >= 8192 {
+            if !admitted() || serde_json::to_vec(&frame).map_err(|_| ())?.len() >= 8192 {
                 return Err(());
             }
             destination.send(frame).map_err(|_| ())?;

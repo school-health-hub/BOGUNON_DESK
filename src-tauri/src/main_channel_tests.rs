@@ -52,7 +52,7 @@ fn public_channel_sends_the_six_existing_envelopes() {
                     event: event.name(),
                     payload,
                 }
-                .send_frames(destination, transfer)
+                .send_frames(destination, transfer, || true)
             })
             .unwrap();
     }
@@ -94,7 +94,7 @@ fn public_channel_send_error_revokes_destination() {
             event: "desktop:notice",
             payload: serde_json::Value::Null
         }
-        .send_frames(destination, transfer))
+        .send_frames(destination, transfer, || true))
         .is_err());
     assert!(!state.matches(Some(epoch)));
 }
@@ -113,7 +113,7 @@ fn exact_serialized_envelope_boundaries_and_large_unicode_use_only_direct_frames
             payload: payload.clone(),
         };
         assert_eq!(serde_json::to_vec(&envelope).unwrap().len(), size);
-        envelope.send_frames(&channel, 1).unwrap();
+        envelope.send_frames(&channel, 1, || true).unwrap();
         assert_eq!(reassemble(&received.lock().unwrap())["payload"], payload);
     }
     let (channel, received) = collecting_channel();
@@ -122,7 +122,7 @@ fn exact_serialized_envelope_boundaries_and_large_unicode_use_only_direct_frames
         event: "purchase:analysis",
         payload: payload.clone(),
     }
-    .send_frames(&channel, 1)
+    .send_frames(&channel, 1, || true)
     .unwrap();
     assert_eq!(reassemble(&received.lock().unwrap())["payload"], payload);
 }
@@ -134,7 +134,7 @@ fn oversized_transfer_never_sends_any_frame() {
         event: "purchase:analysis",
         payload
     }
-    .send_frames(&channel, 1)
+    .send_frames(&channel, 1, || true)
     .is_err());
     assert!(received.lock().unwrap().is_empty());
 }
@@ -157,8 +157,30 @@ fn partial_transfer_failure_revokes_and_stops_sending() {
             event: "purchase:analysis",
             payload: serde_json::json!({"value": "x".repeat(10_000)})
         }
-        .send_frames(destination, transfer))
+        .send_frames(destination, transfer, || true))
         .is_err());
     assert_eq!(attempts.load(Ordering::SeqCst), 2);
+    assert!(!state.matches(Some(epoch)));
+}
+
+#[test]
+fn generation_retirement_between_frames_stops_transfer_and_revokes_slot() {
+    use std::cell::Cell;
+    let (channel, received) = collecting_channel();
+    let mut state = ChannelState::default();
+    let epoch = state.register(channel).unwrap();
+    let observations = Cell::new(0);
+    assert!(state
+        .deliver(Some(epoch), |destination, transfer| Envelope {
+            event: "purchase:analysis",
+            payload: serde_json::json!({"value": "x".repeat(10_000)})
+        }
+        .send_frames(destination, transfer, || {
+            let count = observations.get();
+            observations.set(count + 1);
+            count == 0
+        }))
+        .is_err());
+    assert_eq!(received.lock().unwrap().len(), 1);
     assert!(!state.matches(Some(epoch)));
 }

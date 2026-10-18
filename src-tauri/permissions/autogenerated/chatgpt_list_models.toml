@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-chatgpt-list-models"
+description = "Enables the chatgpt_list_models command without any pre-configured scope."
+commands.allow = ["chatgpt_list_models"]
+
+[[permission]]
+identifier = "deny-chatgpt-list-models"
+description = "Denies the chatgpt_list_models command without any pre-configured scope."
+commands.deny = ["chatgpt_list_models"]

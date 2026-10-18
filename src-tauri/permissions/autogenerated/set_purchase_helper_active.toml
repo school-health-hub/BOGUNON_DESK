@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-set-purchase-helper-active"
+description = "Enables the set_purchase_helper_active command without any pre-configured scope."
+commands.allow = ["set_purchase_helper_active"]
+
+[[permission]]
+identifier = "deny-set-purchase-helper-active"
+description = "Denies the set_purchase_helper_active command without any pre-configured scope."
+commands.deny = ["set_purchase_helper_active"]

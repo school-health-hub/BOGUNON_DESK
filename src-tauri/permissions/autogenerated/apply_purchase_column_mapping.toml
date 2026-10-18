@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-apply-purchase-column-mapping"
+description = "Enables the apply_purchase_column_mapping command without any pre-configured scope."
+commands.allow = ["apply_purchase_column_mapping"]
+
+[[permission]]
+identifier = "deny-apply-purchase-column-mapping"
+description = "Denies the apply_purchase_column_mapping command without any pre-configured scope."
+commands.deny = ["apply_purchase_column_mapping"]

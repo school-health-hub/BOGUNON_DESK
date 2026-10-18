@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-open-work-folder-favorite"
+description = "Enables the open_work_folder_favorite command without any pre-configured scope."
+commands.allow = ["open_work_folder_favorite"]
+
+[[permission]]
+identifier = "deny-open-work-folder-favorite"
+description = "Denies the open_work_folder_favorite command without any pre-configured scope."
+commands.deny = ["open_work_folder_favorite"]

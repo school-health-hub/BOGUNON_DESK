@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-invalidate-purchase-helper-analysis"
+description = "Enables the invalidate_purchase_helper_analysis command without any pre-configured scope."
+commands.allow = ["invalidate_purchase_helper_analysis"]
+
+[[permission]]
+identifier = "deny-invalidate-purchase-helper-analysis"
+description = "Denies the invalidate_purchase_helper_analysis command without any pre-configured scope."
+commands.deny = ["invalidate_purchase_helper_analysis"]

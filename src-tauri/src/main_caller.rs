@@ -75,22 +75,29 @@ impl MainCallerGuard {
             .resources_table()
             .get::<Identity>(registered.window_resource)
             .ok();
-        registered.pinned.authorize(Observed {
+        let permit = registered.pinned.authorize(Observed {
             webview_label: caller.label(),
             window_label: caller_window.label(),
             caller_webview: caller_webview_identity,
             caller_window: caller_window_identity,
             registered_webview: main_webview_identity,
             registered_window: main_window_identity,
-        })
+        })?;
+        Ok(permit)
     }
 }
 
 fn authorize<R: Runtime>(caller: &Webview<R>) -> Result<Permit, Error> {
-    caller
+    let permit = caller
         .try_state::<MainCallerGuard>()
         .ok_or(Error::Unregistered)?
-        .authorize(caller)
+        .authorize(caller)?;
+    if !crate::main_lifetime::caller_local(caller)
+        || !crate::main_lifetime::admit(caller.app_handle())
+    {
+        return Err(Error::IdentityMismatch);
+    }
+    Ok(permit)
 }
 pub(crate) fn run<R: Runtime, T, E>(
     caller: &Webview<R>,
@@ -112,3 +119,9 @@ mod tests;
 #[cfg(test)]
 #[path = "main_caller_command_tests.rs"]
 mod command_tests;
+
+pub(crate) fn is_registered_main<R: Runtime>(caller: &Webview<R>) -> bool {
+    caller
+        .try_state::<MainCallerGuard>()
+        .is_some_and(|guard| guard.authorize(caller).is_ok())
+}

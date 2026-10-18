@@ -16,9 +16,12 @@ mod browser_launcher;
 mod chatgpt;
 mod desktop_surface;
 mod launcher;
+#[cfg(test)]
+mod main_acl_tests;
 mod main_caller;
 mod main_channel;
 mod main_events;
+mod main_lifetime;
 mod meal;
 mod notifications;
 mod official_document_import;
@@ -261,6 +264,7 @@ pub fn run() {
     builder
         .manage(DesktopState::default())
         .manage(main_caller::MainCallerGuard::default())
+        .manage(main_lifetime::MainLifetime::default())
         .manage(main_events::MainEvents::default())
         .manage(desktop_surface::DesktopSurfaceCoordinator::default())
         .manage(chatgpt::commands::ChatGptAuthState::default())
@@ -268,6 +272,17 @@ pub fn run() {
         .manage(launcher::WorkPortalAutoOpenState::default())
         .manage(auth::SecureSessionState::default())
         .manage(purchase_helper::PurchaseHelperState::default())
+        .plugin(
+            tauri::plugin::Builder::<_, ()>::new("main-navigation")
+                .on_navigation(|webview, url| {
+                    let allowed = main_lifetime::navigation(webview, url);
+                    if let Some(boundary) = webview.try_state::<main_events::MainEvents>() {
+                        boundary.invalidate_channel_for(webview);
+                    }
+                    allowed
+                })
+                .build(),
+        )
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
@@ -332,6 +347,7 @@ pub fn run() {
         .setup(|app| {
             app.state::<main_caller::MainCallerGuard>()
                 .install(app.handle())?;
+            main_lifetime::install(app.handle())?;
             app.state::<main_events::MainEvents>()
                 .install(app.handle())?;
             #[cfg(all(debug_assertions, windows))]
@@ -342,6 +358,7 @@ pub fn run() {
             Ok(())
         })
         .on_page_load(|webview, payload| {
+            main_lifetime::page_load(webview, payload);
             if payload.event() == tauri::webview::PageLoadEvent::Started {
                 if let Some(boundary) = webview.try_state::<main_events::MainEvents>() {
                     boundary.invalidate_channel_for(webview);
@@ -351,6 +368,7 @@ pub fn run() {
         .on_window_event(|window, event| {
             let boundary = window.state::<main_events::MainEvents>();
             if let WindowEvent::Destroyed = event {
+                main_lifetime::retire(window);
                 boundary.retire_window(window);
                 return;
             }

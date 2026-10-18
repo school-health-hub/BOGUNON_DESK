@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-chatgpt-generate-text"
+description = "Enables the chatgpt_generate_text command without any pre-configured scope."
+commands.allow = ["chatgpt_generate_text"]
+
+[[permission]]
+identifier = "deny-chatgpt-generate-text"
+description = "Denies the chatgpt_generate_text command without any pre-configured scope."
+commands.deny = ["chatgpt_generate_text"]

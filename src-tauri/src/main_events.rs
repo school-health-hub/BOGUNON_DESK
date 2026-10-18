@@ -1,12 +1,10 @@
 //! Main-local delivery for locked Tauri 2.11.5. No manager event broadcast.
-//! A lease is the single setup lifetime, not a recreation/navigation registry.
+//! Resource leases additionally bind the current Main document generation.
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc, Mutex, OnceLock,
 };
-use tauri::{
-    ipc::Channel, AppHandle, Manager, Resource, ResourceId, Webview, WebviewWindow, Window,
-};
+use tauri::{ipc::Channel, AppHandle, Manager, Resource, ResourceId, Webview, Window};
 
 #[path = "main_events_identity.rs"]
 mod identity;
@@ -21,6 +19,8 @@ mod transport;
 pub(crate) use transport::TransportFrame;
 #[path = "main_events_channel.rs"]
 mod channel_api;
+#[path = "main_events_lease.rs"]
+mod lease_api;
 
 impl Resource for Identity {}
 struct Registration {
@@ -35,7 +35,7 @@ pub(crate) struct MainEvents {
     channel: Mutex<ChannelState<Channel<TransportFrame>>>,
 }
 #[derive(Clone)]
-pub(crate) struct MainLease(Lease, Option<u64>);
+pub(crate) struct MainLease(Lease, Option<u64>, crate::main_lifetime::Lease);
 
 #[derive(Clone, Copy)]
 pub(crate) enum BusinessEvent {
@@ -93,7 +93,7 @@ impl MainEvents {
             (self.registration.get(), app.get_webview_window("main"))
         {
             let view: &Webview = main.as_ref();
-            if crate::main_caller::run(view, || Ok::<_, String>(())).is_ok() {
+            if crate::main_caller::is_registered_main(view) {
                 result.webview = view
                     .resources_table()
                     .get::<Identity>(registered.webview)
@@ -118,8 +118,13 @@ impl MainEvents {
         if !registered.lease.authorize(&self.observe(app, None)) {
             return Err(UNAVAILABLE.into());
         }
-        let channel = self.channel.lock().map_err(|_| UNAVAILABLE)?.snapshot();
-        Ok(MainLease(registered.lease.clone(), channel))
+        let channel = self.channel.lock().map_err(|_| UNAVAILABLE)?;
+        let lifetime = crate::main_lifetime::snapshot(app).map_err(|_| UNAVAILABLE)?;
+        Ok(MainLease(
+            registered.lease.clone(),
+            channel.snapshot(),
+            lifetime,
+        ))
     }
     pub(crate) fn window_action(&self, window: &Window, input: WindowInput) -> Action {
         let Some(registered) = self.registration.get() else {
@@ -159,65 +164,6 @@ impl MainEvents {
                 self.retired.store(true, Ordering::SeqCst);
             }
         }
-    }
-}
-impl MainLease {
-    pub(crate) fn current(&self, app: &AppHandle) -> bool {
-        app.try_state::<MainEvents>().is_some_and(|state| {
-            self.0.authorize(&state.observe(app, None))
-                && state
-                    .channel
-                    .lock()
-                    .is_ok_and(|channel| channel.matches(self.1))
-        })
-    }
-    pub(crate) fn main(&self, app: &AppHandle) -> Result<WebviewWindow, String> {
-        let main = app.get_webview_window("main").ok_or(UNAVAILABLE)?;
-        let state = app.try_state::<MainEvents>().ok_or(UNAVAILABLE)?;
-        let registered = state.registration.get().ok_or(UNAVAILABLE)?;
-        let view: &Webview = main.as_ref();
-        let webview = view
-            .resources_table()
-            .get::<Identity>(registered.webview)
-            .ok();
-        let window = view
-            .window()
-            .resources_table()
-            .get::<Identity>(registered.window)
-            .ok();
-        let observed = Observed {
-            webview,
-            window,
-            caller_window: None,
-            revoked: state.retired.load(Ordering::SeqCst),
-        };
-        if !self.0.authorize(&observed)
-            || crate::main_caller::run(view, || Ok::<_, String>(())).is_err()
-        {
-            return Err(UNAVAILABLE.into());
-        }
-        Ok(main)
-    }
-    pub(crate) fn emit<S: serde::Serialize>(
-        &self,
-        app: &AppHandle,
-        event: BusinessEvent,
-        payload: S,
-    ) -> Result<(), String> {
-        let payload =
-            serde_json::to_value(payload).map_err(|_| "Main event serialization failed")?;
-        let state = app.try_state::<MainEvents>().ok_or(UNAVAILABLE)?;
-        let mut channel = state.channel.lock().map_err(|_| UNAVAILABLE)?;
-        self.main(app)?;
-        channel
-            .deliver(self.1, |destination, transfer| {
-                Envelope {
-                    event: event.name(),
-                    payload,
-                }
-                .send_frames(destination, transfer)
-            })
-            .map_err(|_| UNAVAILABLE.to_owned())
     }
 }
 pub(crate) fn capture(app: &AppHandle) -> Result<MainLease, String> {

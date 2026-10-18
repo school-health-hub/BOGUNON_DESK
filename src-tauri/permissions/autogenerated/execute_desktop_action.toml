@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-execute-desktop-action"
+description = "Enables the execute_desktop_action command without any pre-configured scope."
+commands.allow = ["execute_desktop_action"]
+
+[[permission]]
+identifier = "deny-execute-desktop-action"
+description = "Denies the execute_desktop_action command without any pre-configured scope."
+commands.deny = ["execute_desktop_action"]

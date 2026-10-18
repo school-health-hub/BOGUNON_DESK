@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-save-launcher-url"
+description = "Enables the save_launcher_url command without any pre-configured scope."
+commands.allow = ["save_launcher_url"]
+
+[[permission]]
+identifier = "deny-save-launcher-url"
+description = "Denies the save_launcher_url command without any pre-configured scope."
+commands.deny = ["save_launcher_url"]

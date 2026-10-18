@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-save-work-portal-auto-open-delay"
+description = "Enables the save_work_portal_auto_open_delay command without any pre-configured scope."
+commands.allow = ["save_work_portal_auto_open_delay"]
+
+[[permission]]
+identifier = "deny-save-work-portal-auto-open-delay"
+description = "Denies the save_work_portal_auto_open_delay command without any pre-configured scope."
+commands.deny = ["save_work_portal_auto_open_delay"]

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-register-main-channel"
+description = "Enables the register_main_channel command without any pre-configured scope."
+commands.allow = ["register_main_channel"]
+
+[[permission]]
+identifier = "deny-register-main-channel"
+description = "Denies the register_main_channel command without any pre-configured scope."
+commands.deny = ["register_main_channel"]

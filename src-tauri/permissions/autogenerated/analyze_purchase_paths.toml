@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-analyze-purchase-paths"
+description = "Enables the analyze_purchase_paths command without any pre-configured scope."
+commands.allow = ["analyze_purchase_paths"]
+
+[[permission]]
+identifier = "deny-analyze-purchase-paths"
+description = "Denies the analyze_purchase_paths command without any pre-configured scope."
+commands.deny = ["analyze_purchase_paths"]

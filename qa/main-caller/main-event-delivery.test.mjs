@@ -6,7 +6,7 @@ test('business delivery uses public guarded Channel without broadcast or private
  const adapter=read('src-tauri/src/main_events.rs');
  const commands=read('src-tauri/src/main_channel.rs');
  const lib=read('src-tauri/src/lib.rs');
- for(const source of [adapter,lib,read('src-tauri/src/purchase_helper.rs')]) {
+ for(const source of [adapter,lib,read('src-tauri/src/purchase_helper.rs'),read('src-tauri/src/main_events_lease.rs'),read('src-tauri/src/main_events_channel.rs'),read('src-tauri/src/main_channel_transport.rs')]) {
   for(const forbidden of ['app.emit(', 'window.emit(', '.emit_to(', '__internal_unstable_listeners_', 'main.eval(script)']) assert.equal(source.includes(forbidden),false,forbidden);
  }
  assert.ok(commands.includes('register_main_channel'));

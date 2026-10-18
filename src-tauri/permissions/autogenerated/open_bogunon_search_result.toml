@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-open-bogunon-search-result"
+description = "Enables the open_bogunon_search_result command without any pre-configured scope."
+commands.allow = ["open_bogunon_search_result"]
+
+[[permission]]
+identifier = "deny-open-bogunon-search-result"
+description = "Denies the open_bogunon_search_result command without any pre-configured scope."
+commands.deny = ["open_bogunon_search_result"]

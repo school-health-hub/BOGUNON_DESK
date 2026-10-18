@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-fetch-bogunon-meal"
+description = "Enables the fetch_bogunon_meal command without any pre-configured scope."
+commands.allow = ["fetch_bogunon_meal"]
+
+[[permission]]
+identifier = "deny-fetch-bogunon-meal"
+description = "Denies the fetch_bogunon_meal command without any pre-configured scope."
+commands.deny = ["fetch_bogunon_meal"]

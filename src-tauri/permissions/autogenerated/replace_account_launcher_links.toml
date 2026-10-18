@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-replace-account-launcher-links"
+description = "Enables the replace_account_launcher_links command without any pre-configured scope."
+commands.allow = ["replace_account_launcher_links"]
+
+[[permission]]
+identifier = "deny-replace-account-launcher-links"
+description = "Denies the replace_account_launcher_links command without any pre-configured scope."
+commands.deny = ["replace_account_launcher_links"]

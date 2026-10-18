@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-save-purchase-settlement-export"
+description = "Enables the save_purchase_settlement_export command without any pre-configured scope."
+commands.allow = ["save_purchase_settlement_export"]
+
+[[permission]]
+identifier = "deny-save-purchase-settlement-export"
+description = "Denies the save_purchase_settlement_export command without any pre-configured scope."
+commands.deny = ["save_purchase_settlement_export"]

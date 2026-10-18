@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-set-workspace-notification-reasons"
+description = "Enables the set_workspace_notification_reasons command without any pre-configured scope."
+commands.allow = ["set_workspace_notification_reasons"]
+
+[[permission]]
+identifier = "deny-set-workspace-notification-reasons"
+description = "Denies the set_workspace_notification_reasons command without any pre-configured scope."
+commands.deny = ["set_workspace_notification_reasons"]
