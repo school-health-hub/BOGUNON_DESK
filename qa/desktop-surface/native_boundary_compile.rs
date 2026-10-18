@@ -255,3 +255,6 @@ fn forbidden_cleanup_capability_fields() -> native_contract::native_owner::Failu
 
 #[path = "native_final_drain_compile.rs"]
 mod final_drain_probes;
+
+#[path = "native_pump_phase_compile.rs"]
+mod pump_phase_probes;

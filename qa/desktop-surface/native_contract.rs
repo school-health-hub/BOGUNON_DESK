@@ -82,3 +82,6 @@ pub mod failure_cleanup;
 
 #[path = "final_drain_contract.rs"]
 pub mod final_drain_contract;
+
+#[path = "pump_phase.rs"]
+pub mod pump_phase;
