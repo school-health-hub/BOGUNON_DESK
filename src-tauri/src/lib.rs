@@ -16,6 +16,7 @@ mod browser_launcher;
 mod chatgpt;
 mod desktop_surface;
 mod launcher;
+mod main_caller;
 mod meal;
 mod notifications;
 mod official_document_import;
@@ -242,6 +243,7 @@ pub fn run() {
 
     builder
         .manage(DesktopState::default())
+        .manage(main_caller::MainCallerGuard::default())
         .manage(desktop_surface::DesktopSurfaceCoordinator::default())
         .manage(chatgpt::commands::ChatGptAuthState::default())
         .manage(chatgpt::credential::ChatGptCredentialMutationState::default())
@@ -308,6 +310,7 @@ pub fn run() {
             weather::fetch_bogunon_weather
         ])
         .setup(|app| {
+            app.state::<main_caller::MainCallerGuard>().install(app.handle())?;
             #[cfg(all(debug_assertions, windows))]
             app.deep_link().register_all()?;
             create_tray(app.handle())?;

@@ -22,36 +22,44 @@ pub(crate) struct ChatGptAuthState {
 
 #[tauri::command]
 pub(crate) async fn chatgpt_list_models(
+    caller: tauri::Webview,
     app: AppHandle,
     state: State<'_, ChatGptCredentialMutationState>,
-) -> Result<Vec<ChatGptModelDto>, ChatGptPlanErrorDto> {
-    let storage = storage_for_app(&app).map_err(|_| ChatGptPlanErrorDto::storage())?;
-    let client = plan::ReqwestPlanTransport::new()?;
-    plan::list_models(
-        &storage,
-        &client,
-        &state,
-        unix_timestamp().map_err(|_| ChatGptPlanErrorDto::clock())?,
-    )
+) -> Result<Vec<ChatGptModelDto>, crate::main_caller::CommandError<ChatGptPlanErrorDto>> {
+    crate::main_caller::run_async(&caller, || async {
+        let storage = storage_for_app(&app).map_err(|_| ChatGptPlanErrorDto::storage())?;
+        let client = plan::ReqwestPlanTransport::new()?;
+        plan::list_models(
+            &storage,
+            &client,
+            &state,
+            unix_timestamp().map_err(|_| ChatGptPlanErrorDto::clock())?,
+        )
+        .await
+    })
     .await
 }
 
 #[tauri::command]
 pub(crate) async fn chatgpt_generate_text(
+    caller: tauri::Webview,
     app: AppHandle,
     state: State<'_, ChatGptCredentialMutationState>,
     model: String,
     prompt: String,
-) -> Result<String, ChatGptPlanErrorDto> {
-    let storage = storage_for_app(&app).map_err(|_| ChatGptPlanErrorDto::storage())?;
-    let client = plan::ReqwestPlanTransport::new()?;
-    plan::generate_text(
-        &storage,
-        &client,
-        &state,
-        unix_timestamp().map_err(|_| ChatGptPlanErrorDto::clock())?,
-        &GenerateTextRequest::new(model, prompt),
-    )
+) -> Result<String, crate::main_caller::CommandError<ChatGptPlanErrorDto>> {
+    crate::main_caller::run_async(&caller, || async {
+        let storage = storage_for_app(&app).map_err(|_| ChatGptPlanErrorDto::storage())?;
+        let client = plan::ReqwestPlanTransport::new()?;
+        plan::generate_text(
+            &storage,
+            &client,
+            &state,
+            unix_timestamp().map_err(|_| ChatGptPlanErrorDto::clock())?,
+            &GenerateTextRequest::new(model, prompt),
+        )
+        .await
+    })
     .await
 }
 
@@ -93,51 +101,62 @@ impl BrowserOpener for SystemBrowserOpener {
 
 #[tauri::command]
 pub(crate) fn chatgpt_get_connection_state(
+    caller: tauri::Webview,
     app: AppHandle,
     state: State<'_, ChatGptAuthState>,
-) -> Result<ChatGptConnectionStateDto, String> {
-    let storage = storage_for_app(&app)?;
-    lifecycle::connection_state(&storage, state.is_active(), None)
-        .map_err(|error| error.to_string())
+) -> Result<ChatGptConnectionStateDto, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        let storage = storage_for_app(&app)?;
+        lifecycle::connection_state(&storage, state.is_active(), None)
+            .map_err(|error| error.to_string())
+    })
 }
 
 #[tauri::command]
 pub(crate) async fn chatgpt_start_sign_in(
+    caller: tauri::Webview,
     app: AppHandle,
     state: State<'_, ChatGptAuthState>,
     credential_state: State<'_, ChatGptCredentialMutationState>,
-) -> Result<ChatGptConnectionStateDto, String> {
-    let _attempt = state.begin_attempt().map_err(|error| error.to_string())?;
-    let storage = storage_for_app(&app)?;
-    let transport =
-        ReqwestTransport::new().map_err(|error| ChatGptLifecycleError::from(error).to_string())?;
-    let opener = SystemBrowserOpener { app };
-    let environment = SignInEnvironment::new(
-        &storage,
-        &transport,
-        &opener,
-        super::loopback::DEFAULT_CALLBACK_TIMEOUT,
-        unix_timestamp()?,
-        &credential_state,
-    );
-    lifecycle::sign_in(environment)
-        .await
-        .map_err(|error| error.to_string())
+) -> Result<ChatGptConnectionStateDto, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run_async(&caller, || async {
+        let _attempt = state.begin_attempt().map_err(|error| error.to_string())?;
+        let storage = storage_for_app(&app)?;
+        let transport = ReqwestTransport::new()
+            .map_err(|error| ChatGptLifecycleError::from(error).to_string())?;
+        let opener = SystemBrowserOpener { app };
+        let environment = SignInEnvironment::new(
+            &storage,
+            &transport,
+            &opener,
+            super::loopback::DEFAULT_CALLBACK_TIMEOUT,
+            unix_timestamp()?,
+            &credential_state,
+        );
+        lifecycle::sign_in(environment)
+            .await
+            .map_err(|error| error.to_string())
+    })
+    .await
 }
 
 #[tauri::command]
 pub(crate) async fn chatgpt_disconnect(
+    caller: tauri::Webview,
     app: AppHandle,
     state: State<'_, ChatGptAuthState>,
     credential_state: State<'_, ChatGptCredentialMutationState>,
-) -> Result<ChatGptConnectionStateDto, String> {
-    let _attempt = state.begin_attempt().map_err(|error| error.to_string())?;
-    let storage = storage_for_app(&app)?;
-    let transport =
-        ReqwestTransport::new().map_err(|error| ChatGptLifecycleError::from(error).to_string())?;
-    lifecycle::disconnect(&storage, &transport, &credential_state)
-        .await
-        .map_err(|error| error.to_string())
+) -> Result<ChatGptConnectionStateDto, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run_async(&caller, || async {
+        let _attempt = state.begin_attempt().map_err(|error| error.to_string())?;
+        let storage = storage_for_app(&app)?;
+        let transport = ReqwestTransport::new()
+            .map_err(|error| ChatGptLifecycleError::from(error).to_string())?;
+        lifecycle::disconnect(&storage, &transport, &credential_state)
+            .await
+            .map_err(|error| error.to_string())
+    })
+    .await
 }
 
 fn storage_for_app(app: &AppHandle) -> Result<DefaultChatGptStorage, String> {

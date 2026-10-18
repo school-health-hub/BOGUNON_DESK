@@ -174,84 +174,102 @@ fn write_entries(path: &Path, entries: &BTreeMap<String, String>) -> Result<(), 
 }
 
 #[tauri::command]
-pub fn open_auth_url(app: AppHandle, url: String) -> Result<(), String> {
-    let target = parse_oauth_url(&url).map_err(|error| error.to_string())?;
-    app.opener()
-        .open_url(target.as_str(), None::<&str>)
-        .map_err(|_| "Windows 기본 브라우저를 열지 못했습니다.".to_owned())
+pub fn open_auth_url(
+    caller: tauri::Webview,
+    app: AppHandle,
+    url: String,
+) -> Result<(), crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        let target = parse_oauth_url(&url).map_err(|error| error.to_string())?;
+        app.opener()
+            .open_url(target.as_str(), None::<&str>)
+            .map_err(|_| "Windows 기본 브라우저를 열지 못했습니다.".to_owned())
+    })
 }
 
 #[tauri::command]
 pub fn secure_session_get(
+    caller: tauri::Webview,
     app: AppHandle,
     state: State<'_, SecureSessionState>,
     key: String,
-) -> Result<Option<String>, String> {
-    if !valid_storage_key(&key) {
-        return Err(AuthStorageError::InvalidKey.to_string());
-    }
-    let _guard = state
-        .0
-        .lock()
-        .map_err(|_| AuthStorageError::StorageUnavailable.to_string())?;
-    let entries = read_entries(&session_path(&app).map_err(|error| error.to_string())?)
-        .map_err(|error| error.to_string())?;
-    Ok(entries.get(&key).cloned())
+) -> Result<Option<String>, crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        if !valid_storage_key(&key) {
+            return Err(AuthStorageError::InvalidKey.to_string());
+        }
+        let _guard = state
+            .0
+            .lock()
+            .map_err(|_| AuthStorageError::StorageUnavailable.to_string())?;
+        let entries = read_entries(&session_path(&app).map_err(|error| error.to_string())?)
+            .map_err(|error| error.to_string())?;
+        Ok(entries.get(&key).cloned())
+    })
 }
 
 #[tauri::command]
 pub fn secure_session_set(
+    caller: tauri::Webview,
     app: AppHandle,
     state: State<'_, SecureSessionState>,
     key: String,
     value: String,
-) -> Result<(), String> {
-    if !valid_storage_key(&key) {
-        return Err(AuthStorageError::InvalidKey.to_string());
-    }
-    let _guard = state
-        .0
-        .lock()
-        .map_err(|_| AuthStorageError::StorageUnavailable.to_string())?;
-    let path = session_path(&app).map_err(|error| error.to_string())?;
-    let mut entries = read_entries_for_update(&path).map_err(|error| error.to_string())?;
-    entries.insert(key, value);
-    write_entries(&path, &entries).map_err(|error| error.to_string())
+) -> Result<(), crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        if !valid_storage_key(&key) {
+            return Err(AuthStorageError::InvalidKey.to_string());
+        }
+        let _guard = state
+            .0
+            .lock()
+            .map_err(|_| AuthStorageError::StorageUnavailable.to_string())?;
+        let path = session_path(&app).map_err(|error| error.to_string())?;
+        let mut entries = read_entries_for_update(&path).map_err(|error| error.to_string())?;
+        entries.insert(key, value);
+        write_entries(&path, &entries).map_err(|error| error.to_string())
+    })
 }
 
 #[tauri::command]
 pub fn secure_session_remove(
+    caller: tauri::Webview,
     app: AppHandle,
     state: State<'_, SecureSessionState>,
     key: String,
-) -> Result<(), String> {
-    if !valid_storage_key(&key) {
-        return Err(AuthStorageError::InvalidKey.to_string());
-    }
-    let _guard = state
-        .0
-        .lock()
-        .map_err(|_| AuthStorageError::StorageUnavailable.to_string())?;
-    let path = session_path(&app).map_err(|error| error.to_string())?;
-    let mut entries = read_entries_for_update(&path).map_err(|error| error.to_string())?;
-    entries.remove(&key);
-    write_entries(&path, &entries).map_err(|error| error.to_string())
+) -> Result<(), crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        if !valid_storage_key(&key) {
+            return Err(AuthStorageError::InvalidKey.to_string());
+        }
+        let _guard = state
+            .0
+            .lock()
+            .map_err(|_| AuthStorageError::StorageUnavailable.to_string())?;
+        let path = session_path(&app).map_err(|error| error.to_string())?;
+        let mut entries = read_entries_for_update(&path).map_err(|error| error.to_string())?;
+        entries.remove(&key);
+        write_entries(&path, &entries).map_err(|error| error.to_string())
+    })
 }
 
 #[tauri::command]
 pub fn secure_session_clear(
+    caller: tauri::Webview,
     app: AppHandle,
     state: State<'_, SecureSessionState>,
-) -> Result<(), String> {
-    let _guard = state
-        .0
-        .lock()
-        .map_err(|_| AuthStorageError::StorageUnavailable.to_string())?;
-    write_entries(
-        &session_path(&app).map_err(|error| error.to_string())?,
-        &BTreeMap::new(),
-    )
-    .map_err(|error| error.to_string())
+) -> Result<(), crate::main_caller::CommandError<String>> {
+    crate::main_caller::run(&caller, || {
+        let _guard = state
+            .0
+            .lock()
+            .map_err(|_| AuthStorageError::StorageUnavailable.to_string())?;
+        write_entries(
+            &session_path(&app).map_err(|error| error.to_string())?,
+            &BTreeMap::new(),
+        )
+        .map_err(|error| error.to_string())
+    })
 }
 
 #[cfg(test)]
