@@ -14,7 +14,8 @@
     "release:updater": "npm run release:check && npm test && npx tsc --noEmit && npm run build && cargo test --manifest-path src-tauri/Cargo.toml && cargo check --manifest-path src-tauri/Cargo.toml && git diff --check && npm run release:updater:check && node scripts/run-updater-build.mjs && node scripts/collect-release-artifacts.mjs --updater",
     "release:version:check": "node scripts/verify-release-version.mjs",
     "release:publish": "node scripts/publish-updater-release.mjs",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "build:surface": "tsc && vite build --config vite.surface.config.mjs"
   },
   "dependencies": {
     "@fontsource/pretendard": "^5.3.0",

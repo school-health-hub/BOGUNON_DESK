@@ -1,0 +1,31 @@
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #243247;
+  background: #f4f8f7;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 280px; }
+.surface-shell { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: 24px; }
+.surface-card { width: 100%; max-width: 440px; padding: 32px; border: 1px solid #dce5e2; border-radius: 20px; background: #fff; }
+.surface-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 36px; }
+.surface-brand { font-size: 12px; font-weight: 700; letter-spacing: .08em; }
+.surface-kind { color: #596675; font-size: 12px; }
+.surface-status { display: flex; align-items: center; gap: 8px; color: #476c62; font-size: 13px; }
+.surface-dot { width: 7px; height: 7px; border-radius: 50%; background: #7a958c; }
+h1 { margin: 14px 0 12px; font-size: 26px; line-height: 1.3; letter-spacing: -.04em; }
+p { word-break: keep-all; overflow-wrap: anywhere; }
+.surface-description { margin: 0; color: #596675; font-size: 14px; line-height: 1.7; }
+.surface-empty { margin: 28px 0; padding: 22px; border: 1px solid #e2ebe7; border-radius: 12px; background: #f6faf8; }
+.surface-empty strong { font-size: 14px; font-weight: 600; }
+.surface-empty p { margin: 8px 0 0; color: #596675; font-size: 13px; line-height: 1.6; }
+.surface-actions { display: grid; gap: 10px; }
+.surface-actions button { min-height: 44px; padding: 12px; border: 1px solid #dce5e2; border-radius: 9px; background: #f1f5f3; color: #66756f; font: inherit; font-size: 13px; cursor: not-allowed; }
+.surface-help { margin: 14px 0 0; color: #68766f; font-size: 12px; line-height: 1.6; }
+@media (max-width: 380px) {
+  .surface-shell { padding: 16px; }
+  .surface-card { padding: 24px; }
+  h1 { font-size: 24px; }
+}

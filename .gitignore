@@ -30,3 +30,5 @@ release-output/
 *.njsproj
 *.sln
 *.sw?
+
+/dist-surface/
