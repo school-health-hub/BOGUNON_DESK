@@ -226,3 +226,6 @@ pub(crate) fn retire<R: Runtime>(window: &Window<R>) {
 pub(crate) fn caller_local<R: Runtime>(view: &Webview<R>) -> bool {
     view.url().is_ok_and(|url| local(view.app_handle(), &url))
 }
+
+#[path = "main_projection.rs"]
+pub mod projection;

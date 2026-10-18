@@ -22,6 +22,7 @@ mod main_caller;
 mod main_channel;
 mod main_events;
 mod main_lifetime;
+pub use main_lifetime::projection as main_projection;
 mod meal;
 mod notifications;
 mod official_document_import;
@@ -29,6 +30,7 @@ mod purchase_helper;
 mod purchase_settlement;
 mod record_helper_import;
 pub mod surface_broker;
+pub mod surface_storage;
 mod weather;
 mod work_folders;
 

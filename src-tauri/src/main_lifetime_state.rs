@@ -1,4 +1,9 @@
 use std::sync::Arc;
+#[path = "main_projection_state.rs"]
+mod projection;
+pub(super) use projection::{
+    ApprovedProjection, ProjectionError, ProjectionRevocation, PublisherLease,
+};
 #[derive(Clone)]
 pub(super) struct Generation {
     instance: Arc<()>,
@@ -8,6 +13,7 @@ pub(super) struct Lifetime {
     instance: Arc<()>,
     generation: u64,
     retired: bool,
+    projection: projection::ProjectionState,
     pending: Option<String>,
     channel: Option<u64>,
     awaiting_start: bool,
@@ -18,6 +24,7 @@ impl Lifetime {
             instance: Arc::new(()),
             generation: 1,
             retired: false,
+            projection: projection::ProjectionState::new(),
             pending: None,
             channel: None,
             awaiting_start: false,
@@ -39,6 +46,7 @@ impl Lifetime {
             && self.generation == lease.generation
     }
     pub(super) fn retire(&mut self) {
+        self.revoke_projection(ProjectionRevocation::Retired);
         self.retired = true;
         self.channel = None;
         self.pending = None;
@@ -57,6 +65,7 @@ impl Lifetime {
             self.awaiting_start = false;
             return;
         }
+        self.revoke_projection(ProjectionRevocation::Navigation);
         self.channel = None;
         if self.retired {
             return;
