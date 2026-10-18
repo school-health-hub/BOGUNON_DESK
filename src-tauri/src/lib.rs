@@ -29,6 +29,7 @@ mod official_document_import;
 mod purchase_helper;
 mod purchase_settlement;
 mod record_helper_import;
+pub mod surface_adapter;
 pub mod surface_broker;
 pub mod surface_storage;
 mod weather;
@@ -256,7 +257,7 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let builder = tauri::Builder::default();
+    let builder = surface_adapter::configure(tauri::Builder::default());
     #[cfg(desktop)]
     let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
         let _ = show_main_window(app);
@@ -278,6 +279,9 @@ pub fn run() {
         .plugin(
             tauri::plugin::Builder::<_, ()>::new("main-navigation")
                 .on_navigation(|webview, url| {
+                    if let Some(allowed) = surface_adapter::runtime_navigation(webview, url) {
+                        return allowed;
+                    }
                     let allowed = main_lifetime::navigation(webview, url);
                     if let Some(boundary) = webview.try_state::<main_events::MainEvents>() {
                         boundary.invalidate_channel_for(webview);

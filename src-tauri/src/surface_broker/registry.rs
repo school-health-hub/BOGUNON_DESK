@@ -1,4 +1,4 @@
-use super::{Action, Error, Synthetic};
+use super::{Action, Error, Synthetic, TauriObserved};
 use std::{marker::PhantomData, sync::Arc};
 
 #[derive(Debug, Clone)]
@@ -8,7 +8,7 @@ pub struct Binding {
     pub(super) operation: Arc<()>,
 }
 impl Binding {
-    fn matches(&self, other: &Self) -> bool {
+    pub(crate) fn matches(&self, other: &Self) -> bool {
         Arc::ptr_eq(&self.instance, &other.instance)
             && self.generation == other.generation
             && Arc::ptr_eq(&self.operation, &other.operation)
@@ -77,6 +77,20 @@ impl Registry<Synthetic> {
         }
     }
 }
+impl Registry<TauriObserved> {
+    pub(crate) fn adapter_reservation() -> Self {
+        Self {
+            binding: Binding {
+                instance: Arc::new(()),
+                generation: 1,
+                operation: Arc::new(()),
+            },
+            sequence: 0,
+            state: State::Active,
+            domain: PhantomData,
+        }
+    }
+}
 impl<D> Registry<D> {
     pub fn binding(&self) -> Binding {
         self.binding.clone()
@@ -117,21 +131,28 @@ impl<D> Registry<D> {
         Ok(())
     }
     pub(super) fn admit(&mut self, request: &Request) -> Result<(), Error> {
+        self.admit_lifecycle(&request.binding, request.sequence)
+    }
+    pub(crate) fn admit_lifecycle(
+        &mut self,
+        binding: &Binding,
+        sequence: u64,
+    ) -> Result<(), Error> {
         if self.state != State::Active {
             return Err(Error::Closed);
         }
-        if !self.binding.matches(&request.binding) {
+        if !self.binding.matches(binding) {
             return Err(Error::Identity);
         }
-        if request.sequence <= self.sequence {
+        if sequence <= self.sequence {
             return Err(Error::Sequence);
         }
         // Reserve the terminal value as a fail-closed exhaustion signal.
-        if request.sequence == u64::MAX {
+        if sequence == u64::MAX {
             self.cleanup_unknown();
             return Err(Error::Overflow);
         }
-        self.sequence = request.sequence;
+        self.sequence = sequence;
         Ok(())
     }
     pub(super) fn validate_pending(&self, binding: &Binding, sequence: u64) -> Result<(), Error> {

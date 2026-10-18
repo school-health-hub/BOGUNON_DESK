@@ -1,3 +1,5 @@
+mod surface_assets_build;
+
 const APP_COMMANDS: &[&str] = &[
     "register_main_channel",
     "unregister_main_channel",
@@ -55,5 +57,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let attributes = tauri_build::Attributes::new()
         .app_manifest(tauri_build::AppManifest::new().commands(APP_COMMANDS));
     tauri_build::try_build(attributes)?;
+    surface_assets_build::generate()?;
     Ok(())
 }
