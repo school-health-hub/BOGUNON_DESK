@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Emitter, Manager, State, WindowEvent,
+    AppHandle, Manager, State, WindowEvent,
 };
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt as AutostartManagerExt};
 #[cfg(all(debug_assertions, windows))]
@@ -17,6 +17,7 @@ mod chatgpt;
 mod desktop_surface;
 mod launcher;
 mod main_caller;
+mod main_events;
 mod meal;
 mod notifications;
 mod official_document_import;
@@ -25,11 +26,6 @@ mod purchase_settlement;
 mod record_helper_import;
 mod weather;
 mod work_folders;
-
-const MAIN_WINDOW_LABEL: &str = "main";
-const DESKTOP_NAVIGATE_EVENT: &str = "desktop:navigate";
-const DESKTOP_NOTICE_EVENT: &str = "desktop:notice";
-const DESKTOP_FILE_DROP_EVENT: &str = "desktop:file-drop";
 
 struct DesktopState {
     close_to_tray: AtomicBool,
@@ -53,9 +49,7 @@ struct DesktopActionOutcome {
 }
 
 fn show_main_window(app: &AppHandle) -> Result<(), String> {
-    let window = app
-        .get_webview_window(MAIN_WINDOW_LABEL)
-        .ok_or_else(|| "메인 창을 찾을 수 없습니다.".to_owned())?;
+    let window = main_events::capture(app)?.main(app)?;
     window.show().map_err(|error| error.to_string())?;
     if window.is_minimized().map_err(|error| error.to_string())? {
         window.unminimize().map_err(|error| error.to_string())?;
@@ -65,8 +59,7 @@ fn show_main_window(app: &AppHandle) -> Result<(), String> {
 
 fn navigate_main_window(app: &AppHandle, action_id: &str) -> Result<(), String> {
     show_main_window(app)?;
-    app.emit(DESKTOP_NAVIGATE_EVENT, action_id)
-        .map_err(|error| error.to_string())
+    main_events::emit(app, main_events::BusinessEvent::Navigate, action_id)
 }
 
 fn execute_registered_action(
@@ -231,7 +224,7 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                 if let Ok(outcome) = execute_registered_action(app, action_id) {
                     if let Some(message) = outcome.message {
                         let _ = show_main_window(app);
-                        let _ = app.emit(DESKTOP_NOTICE_EVENT, message);
+                        let _ = main_events::emit(app, main_events::BusinessEvent::Notice, message);
                     }
                 }
             }
@@ -267,6 +260,7 @@ pub fn run() {
     builder
         .manage(DesktopState::default())
         .manage(main_caller::MainCallerGuard::default())
+        .manage(main_events::MainEvents::default())
         .manage(desktop_surface::DesktopSurfaceCoordinator::default())
         .manage(chatgpt::commands::ChatGptAuthState::default())
         .manage(chatgpt::credential::ChatGptCredentialMutationState::default())
@@ -333,7 +327,10 @@ pub fn run() {
             weather::fetch_bogunon_weather
         ])
         .setup(|app| {
-            app.state::<main_caller::MainCallerGuard>().install(app.handle())?;
+            app.state::<main_caller::MainCallerGuard>()
+                .install(app.handle())?;
+            app.state::<main_events::MainEvents>()
+                .install(app.handle())?;
             #[cfg(all(debug_assertions, windows))]
             app.deep_link().register_all()?;
             create_tray(app.handle())?;
@@ -342,53 +339,77 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            if let WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, .. }) = event {
-                let state = window.state::<purchase_helper::PurchaseHelperState>();
-                if state.is_active() {
-                    let generation = state.begin_analysis();
-                    let _ = window.emit("purchase:analysis-start", generation);
-                    let paths = paths.clone();
-                    let templates = state.templates();
-                    let window = window.clone();
-                    tauri::async_runtime::spawn(async move {
-                        let analysis =
-                            purchase_helper::analyze_paths_in_background(paths, templates).await;
-                        let state = window.state::<purchase_helper::PurchaseHelperState>();
-                        if let Some(analysis) = state.complete_analysis(generation, analysis) {
-                            match analysis {
-                                Ok(result) => {
-                                    let _ = window.emit(
-                                        "purchase:analysis",
-                                        purchase_helper::AnalysisEvent { generation, result },
-                                    );
-                                }
-                                Err(message) => {
-                                    let _ = window.emit(
-                                        "purchase:analysis-error",
-                                        purchase_helper::AnalysisErrorEvent {
-                                            generation,
-                                            message,
-                                        },
-                                    );
-                                }
-                            }
-                        }
-                    });
-                } else {
-                    let dropped_paths = paths.iter().filter_map(|path| path.to_str().map(str::to_owned)).collect::<Vec<_>>();
-                    if !dropped_paths.is_empty() {
-                        let _ = window.emit(DESKTOP_FILE_DROP_EVENT, dropped_paths);
+            let boundary = window.state::<main_events::MainEvents>();
+            if let WindowEvent::Destroyed = event {
+                boundary.retire_window(window);
+                return;
+            }
+            if !boundary.is_main_window(window) {
+                return;
+            }
+            match event {
+                WindowEvent::CloseRequested { api, .. } => {
+                    let state = window.state::<DesktopState>();
+                    let input = main_events::WindowInput::Close {
+                        close_to_tray: state.close_to_tray.load(Ordering::SeqCst),
+                        quitting: state.quitting.load(Ordering::SeqCst),
+                    };
+                    if boundary.window_action(window, input) == main_events::Action::HideMain {
+                        api.prevent_close();
+                        let _ = window.hide();
                     }
                 }
-            }
-            if let WindowEvent::CloseRequested { api, .. } = event {
-                let state = window.state::<DesktopState>();
-                if state.close_to_tray.load(Ordering::SeqCst)
-                    && !state.quitting.load(Ordering::SeqCst)
-                {
-                    api.prevent_close();
-                    let _ = window.hide();
+                WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, .. }) => {
+                    let Ok(lease) = boundary.capture(window.app_handle()) else {
+                        return;
+                    };
+                    let state = window.state::<purchase_helper::PurchaseHelperState>();
+                    let input = main_events::WindowInput::Drop {
+                        purchase_active: state.is_active(),
+                    };
+                    match boundary.window_action(window, input) {
+                        main_events::Action::AnalyzeDrop => {
+                            let generation = state.begin_analysis();
+                            if lease
+                                .emit(
+                                    window.app_handle(),
+                                    main_events::BusinessEvent::AnalysisStart,
+                                    generation,
+                                )
+                                .is_err()
+                            {
+                                return;
+                            }
+                            let paths = paths.clone();
+                            let templates = state.templates();
+                            let app = window.app_handle().clone();
+                            tauri::async_runtime::spawn(async move {
+                                let analysis =
+                                    purchase_helper::analyze_paths_in_background(paths, templates)
+                                        .await;
+                                let state = app.state::<purchase_helper::PurchaseHelperState>();
+                                purchase_helper::deliver_analysis(
+                                    &app, &lease, &state, generation, analysis,
+                                );
+                            });
+                        }
+                        main_events::Action::ForwardDrop => {
+                            let paths = paths
+                                .iter()
+                                .filter_map(|path| path.to_str().map(str::to_owned))
+                                .collect::<Vec<_>>();
+                            if !paths.is_empty() {
+                                let _ = lease.emit(
+                                    window.app_handle(),
+                                    main_events::BusinessEvent::FileDrop,
+                                    paths,
+                                );
+                            }
+                        }
+                        _ => {}
+                    }
                 }
+                _ => {}
             }
         })
         .run(tauri::generate_context!())

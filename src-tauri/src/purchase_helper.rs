@@ -14,7 +14,7 @@ use encoding_rs::EUC_KR;
 use pdf_extract::{Document, MediaBox, OutputDev, OutputError, Transform};
 use rust_xlsxwriter::{Format, Workbook};
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Emitter};
+use tauri::AppHandle;
 use tauri_plugin_dialog::DialogExt;
 use zip::ZipArchive;
 
@@ -1372,6 +1372,22 @@ impl PurchaseHelperState {
     pub(crate) fn complete_analysis<T>(&self, generation: u64, value: T) -> Option<T> {
         self.is_current_analysis(generation).then_some(value)
     }
+    fn deliver_current<T>(
+        &self,
+        generation: u64,
+        destination_current: impl FnOnce() -> bool,
+        value: T,
+        send: impl FnOnce(T),
+    ) -> bool {
+        if !destination_current() {
+            return false;
+        }
+        let Some(value) = self.complete_analysis(generation, value) else {
+            return false;
+        };
+        send(value);
+        true
+    }
     fn invalidate_analysis(&self) -> u64 {
         self.analysis_generation.fetch_add(1, Ordering::SeqCst) + 1
     }
@@ -1410,8 +1426,13 @@ pub async fn pick_and_analyze_purchase_files(
     templates: Vec<ImportTemplate>,
 ) -> Result<AnalysisRequestResult, crate::main_caller::CommandError<String>> {
     crate::main_caller::run_async(&caller, || async {
+        let lease = crate::main_events::capture(&app)?;
         let generation = state.begin_analysis();
-        let _ = app.emit("purchase:analysis-start", generation);
+        lease.emit(
+            &app,
+            crate::main_events::BusinessEvent::AnalysisStart,
+            generation,
+        )?;
         let Some(files) = app
             .dialog()
             .file()
@@ -1431,28 +1452,46 @@ pub async fn pick_and_analyze_purchase_files(
             .map(|file| file.into_path().map_err(|error| error.to_string()))
             .collect::<Result<Vec<_>, _>>()?;
         let analysis = analyze_paths_in_background(paths, templates).await;
-        if let Some(analysis) = state.complete_analysis(generation, analysis) {
-            match analysis {
-                Ok(result) => {
-                    let _ = app.emit("purchase:analysis", AnalysisEvent { generation, result });
-                }
-                Err(message) => {
-                    let _ = app.emit(
-                        "purchase:analysis-error",
-                        AnalysisErrorEvent {
-                            generation,
-                            message,
-                        },
-                    );
-                }
-            }
-        }
+        deliver_analysis(&app, &lease, &state, generation, analysis);
         Ok(AnalysisRequestResult {
             generation,
             started: true,
         })
     })
     .await
+}
+
+pub(crate) fn deliver_analysis(
+    app: &AppHandle,
+    lease: &crate::main_events::MainLease,
+    state: &PurchaseHelperState,
+    generation: u64,
+    analysis: Result<AnalysisResult, String>,
+) {
+    state.deliver_current(
+        generation,
+        || lease.current(app),
+        analysis,
+        |analysis| match analysis {
+            Ok(result) => {
+                let _ = lease.emit(
+                    app,
+                    crate::main_events::BusinessEvent::Analysis,
+                    AnalysisEvent { generation, result },
+                );
+            }
+            Err(message) => {
+                let _ = lease.emit(
+                    app,
+                    crate::main_events::BusinessEvent::AnalysisError,
+                    AnalysisErrorEvent {
+                        generation,
+                        message,
+                    },
+                );
+            }
+        },
+    );
 }
 
 #[tauri::command]
@@ -3165,3 +3204,7 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "purchase_event_tests.rs"]
+mod event_tests;
