@@ -17,6 +17,7 @@ mod chatgpt;
 mod desktop_surface;
 mod launcher;
 mod main_caller;
+mod main_channel;
 mod main_events;
 mod meal;
 mod notifications;
@@ -277,6 +278,8 @@ pub fn run() {
             None,
         ))
         .invoke_handler(tauri::generate_handler![
+            main_channel::register_main_channel,
+            main_channel::unregister_main_channel,
             ai::validate_ai_connection,
             ai_generation::generate_ai_text,
             chatgpt::commands::chatgpt_get_connection_state,
@@ -337,6 +340,13 @@ pub fn run() {
             let state = app.state::<launcher::WorkPortalAutoOpenState>();
             let _ = launcher::schedule_work_portal_auto_open(app.handle(), &state);
             Ok(())
+        })
+        .on_page_load(|webview, payload| {
+            if payload.event() == tauri::webview::PageLoadEvent::Started {
+                if let Some(boundary) = webview.try_state::<main_events::MainEvents>() {
+                    boundary.invalidate_channel_for(webview);
+                }
+            }
         })
         .on_window_event(|window, event| {
             let boundary = window.state::<main_events::MainEvents>();

@@ -100,6 +100,8 @@ macro_rules! command_case {
         }
     };
 }
+command_case!(register_main_channel, "main_channel.rs");
+command_case!(unregister_main_channel, "main_channel.rs");
 command_case!(validate_ai_connection, "ai.rs");
 command_case!(generate_ai_text, "ai_generation.rs");
 command_case!(chatgpt_get_connection_state, "chatgpt/commands.rs");
@@ -176,6 +178,7 @@ fn inventory_covers_every_registered_command() {
         include_str!("work_folders.rs"),
         include_str!("meal.rs"),
         include_str!("weather.rs"),
+        include_str!("main_channel.rs"),
     ];
     let handler = sources[0]
         .split(".invoke_handler(tauri::generate_handler![")
@@ -198,7 +201,14 @@ fn inventory_covers_every_registered_command() {
             check_command(name, source);
         }
     }
-    assert_eq!(registered.len(), 48);
+    assert_eq!(registered.len(), 50);
+    assert_eq!(
+        registered
+            .iter()
+            .filter(|name| !["register_main_channel", "unregister_main_channel"].contains(name))
+            .count(),
+        48
+    );
     assert_eq!(registered, definitions);
     let cases = include_str!("main_caller_command_tests.rs");
     for name in registered {
