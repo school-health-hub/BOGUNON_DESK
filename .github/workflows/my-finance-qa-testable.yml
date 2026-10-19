@@ -1,0 +1,248 @@
+name: MY FINANCE SHA-pinned manual TESTABLE
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  pull-requests: read
+  actions: read
+concurrency:
+  group: my-finance-testable-main
+  cancel-in-progress: false
+jobs:
+  candidate:
+    name: Validate pinned candidate
+    if: ${{ github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/main' }}
+    runs-on: windows-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: qa-source
+    outputs:
+      artifact-id: ${{ steps.transfer-upload.outputs.artifact-id }}
+      transfer-sha256: ${{ steps.transfer-hash.outputs.sha256 }}
+    steps:
+      - name: Check out controller from execution commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          path: control
+          persist-credentials: false
+      - name: Validate manual controller, PR and protected publication environment
+        working-directory: control
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/my-finance-testable-gate.mjs check "$env:RUNNER_TEMP/context.json"
+      - name: Check out exact approved candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: c6f11974822e06a7855314575551983ea6dadcef
+          path: qa-source
+          persist-credentials: false
+      - name: Verify candidate HEAD and clean checkout
+        run: |
+          $head = (git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $head -ne 'c6f11974822e06a7855314575551983ea6dadcef') { throw 'Candidate HEAD mismatch' }
+          $changes = git status --porcelain
+          if ($LASTEXITCODE -ne 0 -or $changes) { throw 'Candidate checkout not clean' }
+      - name: Check out immutable operating reference
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 5cec64358436c148710499b5aa9d2e78c34e0136
+          path: qa-source/operating-source
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249
+        with:
+          targets: x86_64-pc-windows-msvc
+      - name: Read debugger policy and verify child environment without changing settings
+        shell: pwsh
+        run: |
+          $policy = [ordered]@{}
+          foreach ($root in @('HKCU:\Software\Policies\Microsoft\Edge', 'HKLM:\Software\Policies\Microsoft\Edge', 'HKCU:\Software\Policies\Microsoft\Edge\WebView2', 'HKLM:\Software\Policies\Microsoft\Edge\WebView2')) {
+            $key = Get-Item -LiteralPath $root -ErrorAction SilentlyContinue
+            if ($key) {
+              foreach ($name in @('RemoteDebuggingAllowed','DeveloperToolsAvailability')) { $policy["${root}::$name"] = $key.GetValue($name) }
+            }
+          }
+          $start = [System.Diagnostics.ProcessStartInfo]::new((Get-Process -Id $PID).Path)
+          $start.UseShellExecute = $false; $start.RedirectStandardOutput = $true
+          $start.Environment['WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS'] = '--remote-debugging-port=9223'
+          $start.ArgumentList.Add('-NoProfile'); $start.ArgumentList.Add('-Command')
+          $start.ArgumentList.Add('if ($env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS -eq "--remote-debugging-port=9223") { "CHILD_ENV_CONFIRMED" } else { exit 1 }')
+          $child = [System.Diagnostics.Process]::Start($start)
+          $output = $child.StandardOutput.ReadToEnd().Trim(); $child.WaitForExit()
+          $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+          $elevated = ([Security.Principal.WindowsPrincipal]::new($identity)).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+          $versions = @(Get-ChildItem "${env:ProgramFiles(x86)}\Microsoft\EdgeWebView\Application" -Filter msedgewebview2.exe -Recurse | ForEach-Object { $_.VersionInfo.ProductVersion })
+          $evidence = [ordered]@{runnerElevated=$elevated;webviewRuntimeVersions=$versions;childEnvironmentConfirmed=($child.ExitCode -eq 0 -and $output -eq 'CHILD_ENV_CONFIRMED');policy=$policy}
+          $json = ($evidence | ConvertTo-Json -Depth 8 -Compress).Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+          Write-Output "::notice title=WEBVIEW_DEBUGGER_ENVIRONMENT::$json"
+          if (-not $evidence.childEnvironmentConfirmed) { throw 'Explicit child environment propagation failed' }
+      - name: Parse destructive-test guards before any build or install
+        shell: pwsh
+        run: |
+          $tokens = $null; $errors = $null
+          foreach ($script in Get-ChildItem scripts/qa/*finance*.ps1) {
+            [System.Management.Automation.Language.Parser]::ParseFile($script.FullName, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count) { $errors | ForEach-Object { Write-Output "::error title=QA_SCRIPT_PARSE::$($_.Message)" }; throw 'Invalid isolation script' }
+          }
+      - run: npm ci
+      - run: npm test -- --maxWorkers=4
+      - run: npm run build
+      - name: Native finance/crypto/portable round-trip regressions
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml my_finance
+      - name: Reject mismatched feature/config combinations
+        shell: pwsh
+        run: |
+          cargo check --locked --manifest-path src-tauri/Cargo.toml --features my-finance-qa *> qa-wrong-feature.log
+          if ($LASTEXITCODE -eq 0 -or -not (Select-String -Path qa-wrong-feature.log -Pattern 'QA feature requires QA config' -Quiet)) { throw 'Expected QA config guard failure' }
+          $env:TAURI_CONFIG = Get-Content src-tauri/tauri.my-finance-qa.conf.json -Raw
+          try {
+            cargo check --locked --manifest-path src-tauri/Cargo.toml *> qa-wrong-config.log
+            if ($LASTEXITCODE -eq 0 -or -not (Select-String -Path qa-wrong-config.log -Pattern 'QA config requires QA feature' -Quiet)) { throw 'Expected QA feature guard failure' }
+          } finally { Remove-Item Env:TAURI_CONFIG }
+          Remove-Item qa-wrong-feature.log,qa-wrong-config.log
+          exit 0
+      - name: Build operating reference only in disposable runner
+        working-directory: qa-source/operating-source
+        run: |
+          npm ci
+          if ($LASTEXITCODE -ne 0) { throw 'Operating reference npm ci failed' }
+          npm run tauri build -- --target x86_64-pc-windows-msvc --bundles nsis
+      - name: Build separate finance-only QA installer
+        shell: pwsh
+        run: |
+          $log = Join-Path $env:RUNNER_TEMP 'my-finance-qa-build.log'
+          npm run qa:finance:windows 2>&1 | Tee-Object -FilePath $log
+          if ($LASTEXITCODE -ne 0) {
+            $tail = ((Get-Content $log -Tail 30) -join "`n").Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+            Write-Output "::error title=MY_FINANCE_QA_BUILD_FAILURE::$tail"
+            throw 'QA installer build failed'
+          }
+      - name: Verify static OpenSSL linking for QA binary
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
+          $dumpbin = & $vswhere -latest -products * -find 'VC/Tools/MSVC/*/bin/Hostx64/x64/dumpbin.exe' | Select-Object -First 1
+          if (-not $dumpbin) { throw 'No dumpbin' }
+          $binary = 'src-tauri/target/x86_64-pc-windows-msvc/release/bogunon-desk-my-finance-qa.exe'
+          # Tauri renames the binary before bundling with mainBinaryName.
+          $deps = & $dumpbin /dependents $binary
+          if ($LASTEXITCODE -ne 0 -or $deps -match '(?i)libcrypto|libssl') { throw 'QA native dependency check failed' }
+      - name: Co-install, real native UI, preserve operating data, uninstall QA only
+        shell: pwsh
+        run: |
+          $env:QA_EXPECTED_SOURCE_SHA = (git rev-parse HEAD).Trim()
+          $operating = @(Get-ChildItem operating-source/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe)
+          $qa = @(Get-ChildItem src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe)
+          if ($operating.Count -ne 1 -or $qa.Count -ne 1) { throw 'Ambiguous installer inputs' }
+          try { & ./scripts/qa/windows-my-finance-isolation.ps1 -OperatingInstaller $operating[0].FullName -QaInstaller $qa[0].FullName }
+          catch {
+            $message = $_.Exception.Message.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+            Write-Output "::error title=MY_FINANCE_QA_ISOLATION_FAILURE::$message"
+            throw
+          }
+      - name: Mark exact tested QA bytes testable only after isolation succeeds
+        if: ${{ github.event_name == 'workflow_dispatch' && success() }}
+        run: node scripts/package-my-finance-qa.mjs
+      - name: Bind exact tested bytes and isolation evidence to this execution
+        run: |
+          node ../control/scripts/my-finance-testable-package.mjs prepare artifacts/my-finance-qa-ready artifacts/my-finance-qa-evidence/ISOLATION.json "$env:RUNNER_TEMP/context.json"
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate transfer preparation failed' }
+      - name: Hash transfer manifest
+        id: transfer-hash
+        run: |
+          $sha = (Get-FileHash artifacts/my-finance-qa-ready/TRANSFER.json -Algorithm SHA256).Hash.ToLowerInvariant()
+          "sha256=$sha" >> $env:GITHUB_OUTPUT
+      - name: Upload exact internal candidate package for separate approval
+        id: transfer-upload
+        if: ${{ success() && github.event_name == 'workflow_dispatch' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: MY-FINANCE-QA-CANDIDATE-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            qa-source/artifacts/my-finance-qa-ready/BOGUNON-DESK-MY-FINANCE-QA-c6f1197-Windows-x64-Setup.exe
+            qa-source/artifacts/my-finance-qa-ready/SHA256SUMS.txt
+            qa-source/artifacts/my-finance-qa-ready/QA-TEST-STATUS.json
+            qa-source/artifacts/my-finance-qa-ready/START-HERE.ko.md
+            qa-source/artifacts/my-finance-qa-ready/ISOLATION.json
+            qa-source/artifacts/my-finance-qa-ready/TRANSFER.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Show exact separate human approval binding
+        env:
+          ARTIFACT_ID: ${{ steps.transfer-upload.outputs.artifact-id }}
+          TRANSFER_SHA: ${{ steps.transfer-hash.outputs.sha256 }}
+        run: |
+          "## Trusted pinned candidate, not independent security proof" >> $env:GITHUB_STEP_SUMMARY
+          "Review the internal candidate artifact and use this exact environment approval comment:" >> $env:GITHUB_STEP_SUMMARY
+          "QA24R run=$env:GITHUB_RUN_ID attempt=$env:GITHUB_RUN_ATTEMPT artifact=$env:ARTIFACT_ID manifest=$env:TRANSFER_SHA" >> $env:GITHUB_STEP_SUMMARY
+      - name: Upload isolation evidence only, including failures
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: MY-FINANCE-QA-ISOLATION-EVIDENCE-${{ github.run_id }}-${{ github.run_attempt }}
+          path: qa-source/artifacts/my-finance-qa-evidence/**
+          if-no-files-found: ignore
+          retention-days: 14
+  publisher:
+    name: Publish approved TESTABLE
+    needs: candidate
+    if: ${{ success() && needs.candidate.result == 'success' && github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/main' }}
+    runs-on: windows-latest
+    timeout-minutes: 15
+    environment: my-finance-testable-publish
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: control
+    steps:
+      - name: Check out controller only
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          path: control
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Recheck PR, run, candidate artifact and separate approval
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ needs.candidate.outputs.artifact-id }}
+          TRANSFER_SHA: ${{ needs.candidate.outputs.transfer-sha256 }}
+        run: node scripts/my-finance-testable-gate.mjs publish-check "$env:RUNNER_TEMP/publish-context.json" "$env:ARTIFACT_ID" "$env:TRANSFER_SHA" "$env:RUNNER_TEMP/approval.json"
+      - name: Download exact candidate artifact from current execution
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: ${{ needs.candidate.outputs.artifact-id }}
+          path: ${{ runner.temp }}/candidate
+          merge-multiple: true
+      - name: Verify transferred manifest and tested installer bytes
+        run: node scripts/my-finance-testable-package.mjs verify "$env:RUNNER_TEMP/candidate" "$env:RUNNER_TEMP/publish-context.json"
+      - name: Prepare approved TESTABLE without executing candidate code
+        run: node scripts/my-finance-testable-package.mjs publish "$env:RUNNER_TEMP/candidate" "$env:RUNNER_TEMP/publish-context.json" "$env:RUNNER_TEMP/approval.json" "$env:RUNNER_TEMP/testable"
+      - name: Final PR and approval recheck immediately before upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ needs.candidate.outputs.artifact-id }}
+          TRANSFER_SHA: ${{ needs.candidate.outputs.transfer-sha256 }}
+        run: node scripts/my-finance-testable-gate.mjs publish-check "$env:RUNNER_TEMP/final-context.json" "$env:ARTIFACT_ID" "$env:TRANSFER_SHA" "$env:RUNNER_TEMP/final-approval.json"
+      - name: Upload approved synthetic QA TESTABLE only
+        if: ${{ success() && github.event_name == 'workflow_dispatch' && needs.candidate.result == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: MY-FINANCE-QA-TESTABLE-c6f11974822e06a7855314575551983ea6dadcef
+          path: |
+            ${{ runner.temp }}/testable/BOGUNON-DESK-MY-FINANCE-QA-c6f1197-Windows-x64-Setup.exe
+            ${{ runner.temp }}/testable/SHA256SUMS.txt
+            ${{ runner.temp }}/testable/QA-TEST-STATUS.json
+            ${{ runner.temp }}/testable/START-HERE.ko.md
+            ${{ runner.temp }}/testable/ISOLATION.json
+            ${{ runner.temp }}/testable/TRANSFER.json
+            ${{ runner.temp }}/testable/PUBLICATION.json
+          if-no-files-found: error
+          retention-days: 14
