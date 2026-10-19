@@ -65,4 +65,30 @@ describe("MY FINANCE Windows isolation launcher", () => {
     expect(workflow.slice(isolation, packaging)).not.toContain("continue-on-error: true");
     expect(workflow.slice(isolation, packaging)).not.toContain("if: always()");
   });
+
+  it("publishes TESTABLE bytes only after an explicit workflow dispatch", async () => {
+    const workflow = await read(".github/workflows/my-finance-qa-windows.yml");
+    const packaging = workflow.indexOf(
+      "- name: Mark exact tested QA bytes testable only after isolation succeeds",
+    );
+    const upload = workflow.indexOf(
+      "- name: Upload testable QA installer, hash, signature status and instructions",
+    );
+    const evidence = workflow.indexOf(
+      "- name: Upload isolation evidence (not an installer)",
+    );
+
+    expect(packaging).toBeGreaterThan(-1);
+    expect(upload).toBeGreaterThan(-1);
+    expect(evidence).toBeGreaterThan(-1);
+    expect(workflow.match(/node scripts\/package-my-finance-qa\.mjs/g)).toHaveLength(1);
+    expect(workflow.match(/MY-FINANCE-QA-TESTABLE/g)).toHaveLength(1);
+    expect(workflow.slice(packaging, upload)).toContain(
+      "if: ${{ github.event_name == 'workflow_dispatch' && success() }}",
+    );
+    expect(workflow.slice(upload, evidence)).toContain(
+      "if: ${{ github.event_name == 'workflow_dispatch' && success() }}",
+    );
+    expect(workflow.slice(evidence)).toContain("if: always()");
+  });
 });

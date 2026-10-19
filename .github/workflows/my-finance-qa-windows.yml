@@ -136,8 +136,10 @@ jobs:
             throw
           }
       - name: Mark exact tested QA bytes testable only after isolation succeeds
+        if: ${{ github.event_name == 'workflow_dispatch' && success() }}
         run: node scripts/package-my-finance-qa.mjs
       - name: Upload testable QA installer, hash, signature status and instructions
+        if: ${{ github.event_name == 'workflow_dispatch' && success() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: MY-FINANCE-QA-TESTABLE-${{ github.event.pull_request.head.sha || github.sha }}
