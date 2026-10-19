@@ -34,7 +34,7 @@ The publisher verifies the approval history, Environment identity, reviewer iden
 
 ## Candidate validation and transfer
 
-Candidate preserves the fixed source's frontend/native regressions, feature/config mismatch guards, operating-reference build, QA build, static OpenSSL check, native UI/concurrent operating/QA isolation checks, operating-data preservation and QA-only uninstall contract. Isolation failure, cancellation or uncertain cleanup stops packaging/upload. The original package helper accepts only successful strict isolation Evidence and copies the exact tested installer bytes.
+Candidate preserves the fixed source's frontend/native regressions, feature/config mismatch guards, operating-reference build, QA build, static OpenSSL check, native UI/concurrent operating/QA isolation checks, operating-data preservation and QA-only uninstall contract. Isolation failure or uncertain cleanup blocks downstream packaging/upload. Cancellation before upload admission blocks new steps; cancellation during or after upload does not guarantee artifact absence. The original package helper accepts only successful strict isolation Evidence and copies the exact tested installer bytes.
 
 Candidate artifact name is `MY-FINANCE-QA-CANDIDATE-<run>-<attempt>`. It is not a TESTABLE publication. Its exact six files are:
 
@@ -51,9 +51,44 @@ Candidate artifact name is `MY-FINANCE-QA-CANDIDATE-<run>-<attempt>`. It is not 
 
 The protected publisher checks the candidate job's actual successful conclusion and exact artifact ID/name/run/controller identity, then downloads that ID from the same run. It validates the exact inventory, bounded regular files, all transfer hashes, strict isolation/status fields and installer hash against both Evidence and status. It never executes downloaded content. Verified buffers are copied into a new directory without overwrite; publication does not reread unverified candidate files.
 
-The final package has those six files plus `PUBLICATION.json`, recording the verified installer/transfer hash, source/controller/run/attempt and real approval reference. Only this seven-file directory is uploaded as `MY-FINANCE-QA-TESTABLE-c6f11974822e06a7855314575551983ea6dadcef`. Upload is success-only, manual-main-only, after a final PR/run/Environment/approval check. Failed/cancelled runs and cleanup failure cannot publish through this workflow's declared path. Same-name artifact collisions fail; no overwrite is enabled.
+The final package has those six files plus `PUBLICATION.json`, recording the verified installer/transfer hash, source/controller/run/attempt and real approval reference. Only this seven-file directory is uploaded as `MY-FINANCE-QA-TESTABLE-c6f11974822e06a7855314575551983ea6dadcef`. Upload is manual-main-only, after a final PR/run/Environment/approval check. success() checks upload-step admission, not the final workflow conclusion. Earlier candidate or cleanup failures block downstream upload; however, an upload completed before cancellation or a later failure may leave an artifact. Artifact existence is not permission to use it. Same-name artifact collisions fail; no overwrite is enabled.
 
 Unsigned (`NotSigned`) and validly signed installers are distinguished in the original status; unsigned installers may trigger SmartScreen. Neither signature state nor publisher verification authorizes home/school use. Preserve the downloaded installer SHA if two PCs later use the same approved bytes.
+
+## Mandatory manual checks before download, installation or transfer
+
+Manual operator procedure only. No automatic pre-use final-status verifier exists in this change. Existing `gate.mjs` checks publication admission while the publisher is running; `package.mjs`, `testable: true` and `PUBLICATION.json` cannot attest a later workflow conclusion. Artifact existence/name is not authorization to download for use, install or forward it. This procedure does not authorize workflow dispatch, installation or forwarding; separate PC-specific approval and isolation remain required.
+
+1. Before downloading for use, query GitHub metadata for the exact run ID and run attempt. Check both the latest run and the exact attempt: each must have status = completed and conclusion = success, with matching run ID, run attempt and controller SHA. If a newer attempt exists, do not reuse approval or artifacts from an older attempt. Confirm repository, workflow path `.github/workflows/my-finance-qa-testable.yml`, `workflow_dispatch` event and main branch. Do not use a green job/step or the separate clean-install CI run as a substitute.
+2. Check the source SHA is exactly `c6f11974822e06a7855314575551983ea6dadcef`. The controller SHA is the main controller commit recorded by this publication, not the app source SHA or necessarily this PR's pre-merge HEAD. Require matching identities across run metadata, `TRANSFER.json` and `PUBLICATION.json`.
+3. Verify the actual GitHub human approval record for that execution: correct protected Environment, configured reviewer ID different from both run actors, and exact `QA24R run=... attempt=... artifact=... manifest=...` binding. Ordinary comments, copied strings, CI success and previous-attempt approvals are insufficient. Match its candidate artifact ID and transfer digest to `PUBLICATION.json`; also record the final TESTABLE artifact ID separately. Candidate and final artifact IDs are different.
+4. Verify the final artifact ID belongs to the same successful run/controller and is available, not expired. Require the exact seven-file inventory: the six candidate files listed above plus `PUBLICATION.json`, with no extra files or directories. A quarantined, non-executing verification download may be needed to inspect bytes after metadata/approval checks; it is not permission to use, install or forward them. Before any downstream download for use, installation or transfer, finish all content checks below. Never launch the installer to verify a hash.
+5. Compute the installer SHA-256 and match it against `SHA256SUMS.txt`, `QA-TEST-STATUS.json`, `ISOLATION.json`, `TRANSFER.json` and `PUBLICATION.json`. Compute `TRANSFER.json` SHA-256 and match the human approval and publication record. Check every transferred file hash, source/controller/run/attempt identity, strict successful isolation flags, `productionDeployment: false` and signature status. Do not trust manifest claims without comparing the actual bytes. Any mismatch means DENY.
+6. Immediately before use or forwarding, recheck the latest run and the exact attempt and their identities. If metadata, approval, files or hashes cannot be verified, DENY use even when the artifact exists. Discard it from the proposed use; do not automatically delete GitHub artifacts or retry the workflow. Keep a review record of run/attempt, controller/source, approval reference, candidate/final artifact IDs and verified installer/manifest hashes. Checks are not an atomic lock against later changes; stop if state changes or becomes uncertain.
+
+Read-only metadata examples (replace placeholders with the recorded numeric identities):
+
+```text
+gh api repos/school-health-hub/BOGUNON_DESK/actions/runs/RUN_ID
+gh api repos/school-health-hub/BOGUNON_DESK/actions/runs/RUN_ID/attempts/ATTEMPT
+gh api repos/school-health-hub/BOGUNON_DESK/actions/runs/RUN_ID/approvals
+gh api repos/school-health-hub/BOGUNON_DESK/actions/artifacts/ARTIFACT_ID
+```
+
+These commands display metadata; they do not automatically validate this checklist or grant approval. API failure/missing fields, an in-progress run, or any non-success conclusion is fail-closed.
+
+| Final status | Conclusion | Decision even if artifact remains |
+| --- | --- | --- |
+| in_progress | any | DENY |
+| completed | failure | DENY |
+| completed | cancelled | DENY |
+| completed | timed_out | DENY |
+| completed | unknown | DENY |
+| completed | success | Continue identity/approval/hash checks; not installation authorization |
+
+Post-upload example: upload completes -> cancellation or post-step failure -> artifact may remain. Both the failure and cancellation cases require DENY, even if the earlier approval, upload step and installer hash were valid. Unlisted/unknown states also require DENY. `PUBLICATION.json` predates final completion and does not override this decision.
+
+A future read-only consumption verifier is follow-up work. It should automate the metadata, attempt, approval, inventory and byte checks above and fail closed, while still requiring separate authorization for actual PC installation. No such executable verifier, publication redesign or artifact deletion is introduced here.
 
 ## Static verification and remaining runtime work
 
