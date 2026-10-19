@@ -18,6 +18,18 @@ describe("Windows clean-install QA workflow", () => {
     expect(source).toContain("& \"./scripts/qa/windows-clean-install.ps1\" @cleanInstallParameters");
   });
 
+  it("uploads clean-install evidence without publishing the installer", async () => {
+    const source = await readWorkflow();
+    const uploadIndex = source.indexOf("Upload clean-install QA evidence");
+    const uploadBlock = source.slice(uploadIndex);
+
+    expect(uploadIndex).toBeGreaterThan(-1);
+    expect(uploadBlock).toContain("if: always()");
+    expect(uploadBlock).toContain("artifacts/windows-clean-install-qa/**");
+    expect(uploadBlock).not.toContain("release-output/");
+    expect(uploadBlock).not.toMatch(/\.exe\b/u);
+  });
+
   it("keeps optional SHA verification callable with an omitted expectation", async () => {
     const source = await readCleanInstallScript();
     expect(source).toContain('[string]$Expected = ""');
