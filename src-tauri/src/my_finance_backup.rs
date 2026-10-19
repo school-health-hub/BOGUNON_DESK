@@ -12,9 +12,13 @@ const MAGIC: &[u8; 8] = b"BGFNBK01";
 const SALT_LEN: usize = 16;
 const NONCE_LEN: usize = 12;
 const HEADER_LEN: usize = 8 + SALT_LEN + NONCE_LEN;
-const MAX_PLAINTEXT: usize = 64 * 1024 * 1024;
+pub(crate) const MAX_PLAINTEXT: usize = 64 * 1024 * 1024;
 pub(crate) const MAX_BACKUP: usize = MAX_PLAINTEXT + HEADER_LEN + 16;
 const MIN_PASSWORD_BYTES: usize = 12;
+
+pub(crate) const fn plaintext_size_allowed(length: usize, limit: usize) -> bool {
+    length > 0 && length <= limit
+}
 
 fn derive_key(password: &str, salt: &[u8; SALT_LEN]) -> Result<Zeroizing<[u8; 32]>, &'static str> {
     if password.len() > 1024 {
@@ -37,7 +41,7 @@ pub(crate) fn seal(plaintext: &[u8], password: &str) -> Result<Vec<u8>, &'static
     if password.as_bytes().len() < MIN_PASSWORD_BYTES {
         return Err("백업 비밀번호는 12바이트 이상이어야 합니다.");
     }
-    if plaintext.is_empty() || plaintext.len() > MAX_PLAINTEXT {
+    if !plaintext_size_allowed(plaintext.len(), MAX_PLAINTEXT) {
         return Err("백업 데이터 크기가 허용 범위를 벗어났습니다.");
     }
     let salt: [u8; SALT_LEN] = rand::random();
@@ -131,5 +135,12 @@ mod tests {
     fn short_password_and_empty_data_are_rejected() {
         assert!(seal(b"data", "short").is_err());
         assert!(seal(b"", "long-test-password-123").is_err());
+    }
+
+    #[test]
+    fn plaintext_limit_accepts_below_and_exact_but_rejects_over() {
+        assert!(plaintext_size_allowed(MAX_PLAINTEXT - 1, MAX_PLAINTEXT));
+        assert!(plaintext_size_allowed(MAX_PLAINTEXT, MAX_PLAINTEXT));
+        assert!(!plaintext_size_allowed(MAX_PLAINTEXT + 1, MAX_PLAINTEXT));
     }
 }

@@ -23,6 +23,8 @@ pub(crate) enum IncomeMutation {
 
 const CONFLICT: &str = "금융 데이터가 변경되었습니다. 최신 목록을 다시 불러와 주세요.";
 const INVALID: &str = "수입 데이터가 올바르지 않습니다.";
+const SNAPSHOT_TOO_LARGE: &str =
+    "금융 데이터가 백업 가능한 최대 크기를 초과했습니다. 기존 데이터를 줄인 뒤 다시 시도해 주세요.";
 const MAX_SAFE_KRW: i64 = 9_007_199_254_740_991;
 
 impl FinanceStore {
@@ -111,6 +113,15 @@ impl FinanceStore {
         expected: &SnapshotIdentity,
         change: IncomeMutation,
     ) -> Result<FinanceSnapshot, &'static str> {
+        self.apply_with_limit(expected, change, crate::my_finance_backup::MAX_PLAINTEXT)
+    }
+
+    fn apply_with_limit(
+        &mut self,
+        expected: &SnapshotIdentity,
+        change: IncomeMutation,
+        max_serialized_bytes: usize,
+    ) -> Result<FinanceSnapshot, &'static str> {
         let tx = self
             .0
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -119,6 +130,9 @@ impl FinanceStore {
         if &snapshot.identity != expected {
             return Err(CONFLICT);
         }
+        let current_size = serde_json::to_vec(&snapshot)
+            .map_err(|_| STORAGE_ERROR)?
+            .len();
         match change {
             IncomeMutation::Create(entry) => {
                 Self::validate_input(&entry)?;
@@ -151,6 +165,9 @@ impl FinanceStore {
             return Err(INVALID);
         }
         let payload = Zeroizing::new(serde_json::to_vec(&snapshot).map_err(|_| STORAGE_ERROR)?);
+        if !mutation_size_allowed(current_size, payload.len(), max_serialized_bytes) {
+            return Err(SNAPSHOT_TOO_LARGE);
+        }
         if tx
             .execute(
                 "UPDATE finance_snapshot SET payload=?1 WHERE singleton=1",
@@ -182,7 +199,28 @@ impl FinanceStore {
         incoming: FinanceSnapshot,
         confirm_dataset_change: bool,
     ) -> Result<FinanceSnapshot, &'static str> {
-        self.restore_confirmed_with_hook(expected, incoming, confirm_dataset_change, || Ok(()))
+        self.restore_confirmed_with_limit(
+            expected,
+            incoming,
+            confirm_dataset_change,
+            crate::my_finance_backup::MAX_PLAINTEXT,
+        )
+    }
+
+    fn restore_confirmed_with_limit(
+        &mut self,
+        expected: &FinanceSnapshot,
+        incoming: FinanceSnapshot,
+        confirm_dataset_change: bool,
+        max_serialized_bytes: usize,
+    ) -> Result<FinanceSnapshot, &'static str> {
+        self.restore_confirmed_with_hook_and_limit(
+            expected,
+            incoming,
+            confirm_dataset_change,
+            max_serialized_bytes,
+            || Ok(()),
+        )
     }
 
     #[cfg(test)]
@@ -192,9 +230,16 @@ impl FinanceStore {
         incoming: FinanceSnapshot,
         after_update: impl FnOnce() -> Result<(), &'static str>,
     ) -> Result<FinanceSnapshot, &'static str> {
-        self.restore_confirmed_with_hook(expected, incoming, false, after_update)
+        self.restore_confirmed_with_hook_and_limit(
+            expected,
+            incoming,
+            false,
+            crate::my_finance_backup::MAX_PLAINTEXT,
+            after_update,
+        )
     }
 
+    #[cfg(test)]
     fn restore_confirmed_with_hook(
         &mut self,
         expected: &FinanceSnapshot,
@@ -202,6 +247,27 @@ impl FinanceStore {
         confirm_dataset_change: bool,
         after_update: impl FnOnce() -> Result<(), &'static str>,
     ) -> Result<FinanceSnapshot, &'static str> {
+        self.restore_confirmed_with_hook_and_limit(
+            expected,
+            incoming,
+            confirm_dataset_change,
+            crate::my_finance_backup::MAX_PLAINTEXT,
+            after_update,
+        )
+    }
+
+    fn restore_confirmed_with_hook_and_limit(
+        &mut self,
+        expected: &FinanceSnapshot,
+        incoming: FinanceSnapshot,
+        confirm_dataset_change: bool,
+        max_serialized_bytes: usize,
+        after_update: impl FnOnce() -> Result<(), &'static str>,
+    ) -> Result<FinanceSnapshot, &'static str> {
+        let payload = Zeroizing::new(serde_json::to_vec(&incoming).map_err(|_| STORAGE_ERROR)?);
+        if !crate::my_finance_backup::plaintext_size_allowed(payload.len(), max_serialized_bytes) {
+            return Err(SNAPSHOT_TOO_LARGE);
+        }
         let tx = self
             .0
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -237,7 +303,6 @@ impl FinanceStore {
         if Self::read_snapshot(&tx)? != current {
             return Err(CONFLICT);
         }
-        let payload = Zeroizing::new(serde_json::to_vec(&incoming).map_err(|_| STORAGE_ERROR)?);
         if tx
             .execute(
                 "UPDATE finance_snapshot SET payload=?1 WHERE singleton=1",
@@ -284,6 +349,10 @@ impl FinanceStore {
         }
         Ok(snapshot)
     }
+}
+
+const fn mutation_size_allowed(current: usize, next: usize, limit: usize) -> bool {
+    next > 0 && (next <= limit || (current > limit && next < current))
 }
 
 #[cfg(test)]

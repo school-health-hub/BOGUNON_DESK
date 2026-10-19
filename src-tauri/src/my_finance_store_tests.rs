@@ -345,3 +345,81 @@ fn my_finance_accepts_exact_safe_integer_boundary_and_verified_known_category() 
     assert_eq!(saved.income, vec![item]);
     advance(&initial, &saved);
 }
+
+#[test]
+fn my_finance_snapshot_size_boundary_is_enforced_before_commit() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("finance.db");
+    let mut store = FinanceStore::open(&path, &[0x42; 32]).unwrap();
+    let initial = store.load().unwrap();
+    let item = entry();
+
+    let mut expected = initial.clone();
+    expected.identity.revision += 1;
+    expected.identity.history.push(Uuid::new_v4());
+    expected.income.push(item.clone());
+    let exact_limit = serde_json::to_vec(&expected).unwrap().len();
+
+    let saved = store
+        .apply_with_limit(
+            &initial.identity,
+            IncomeMutation::Create(item.clone()),
+            exact_limit,
+        )
+        .unwrap();
+    assert_eq!(saved.income, vec![item.clone()]);
+
+    let before = store.load().unwrap();
+    let before_bytes = std::fs::read(&path).unwrap();
+    assert_eq!(
+        store
+            .apply_with_limit(
+                &before.identity,
+                IncomeMutation::Create(entry()),
+                exact_limit,
+            )
+            .unwrap_err(),
+        SNAPSHOT_TOO_LARGE
+    );
+    assert_eq!(store.load().unwrap(), before);
+    assert_eq!(std::fs::read(&path).unwrap(), before_bytes);
+}
+
+#[test]
+fn my_finance_oversized_legacy_snapshot_can_only_shrink() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("finance.db");
+    let mut store = FinanceStore::open(&path, &[0x42; 32]).unwrap();
+    let initial = store.load().unwrap();
+    let mut first = entry();
+    first.notes = "x".repeat(5000);
+    let current = store
+        .apply(&initial.identity, IncomeMutation::Create(first.clone()))
+        .unwrap();
+    let current_len = serde_json::to_vec(&current).unwrap().len();
+    let legacy_limit = current_len - 1;
+
+    let mut growing = first.clone();
+    growing.contract_label.push('x');
+    assert_eq!(
+        store
+            .apply_with_limit(
+                &current.identity,
+                IncomeMutation::Update(growing),
+                legacy_limit,
+            )
+            .unwrap_err(),
+        SNAPSHOT_TOO_LARGE
+    );
+    assert_eq!(store.load().unwrap(), current);
+
+    let reduced = store
+        .apply_with_limit(
+            &current.identity,
+            IncomeMutation::Delete(first.id),
+            legacy_limit,
+        )
+        .unwrap();
+    assert!(reduced.income.is_empty());
+    assert!(serde_json::to_vec(&reduced).unwrap().len() <= legacy_limit);
+}

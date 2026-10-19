@@ -243,3 +243,44 @@ fn my_finance_restore_two_connections_cannot_overwrite_each_other() {
         winner
     );
 }
+
+#[test]
+fn my_finance_restore_rejects_oversized_snapshot_before_safety_write() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("finance.db");
+    let mut store = FinanceStore::open(&path, &[42; 32]).unwrap();
+    let current = seed(&mut store);
+    let incoming = forward(&current);
+    let exact_limit = serde_json::to_vec(&incoming).unwrap().len();
+
+    let restored = store
+        .restore_confirmed_with_limit(&current, incoming.clone(), false, exact_limit)
+        .unwrap();
+    assert_eq!(restored, incoming);
+    assert_eq!(safety(&store), current);
+
+    let oversized = forward(&restored);
+    let before = store.load().unwrap();
+    let before_safety: i64 = store
+        .0
+        .query_row("SELECT count(*) FROM finance_restore_safety", [], |row| {
+            row.get(0)
+        })
+        .unwrap();
+    assert_eq!(
+        store
+            .restore_confirmed_with_limit(&before, oversized, false, exact_limit)
+            .unwrap_err(),
+        SNAPSHOT_TOO_LARGE
+    );
+    assert_eq!(store.load().unwrap(), before);
+    assert_eq!(
+        store
+            .0
+            .query_row("SELECT count(*) FROM finance_restore_safety", [], |row| {
+                row.get(0)
+            })
+            .unwrap(),
+        before_safety
+    );
+}
