@@ -32,6 +32,11 @@ describe("MY FINANCE trusted diagnostic workflow", () => {
     expect(workflow).toContain("runs-on: windows-latest");
     expect(workflow).toContain("cancel-in-progress: false");
     expect(workflow).toContain("timeout-minutes: 90");
+    expect(workflow).toContain("package-manager-cache: false");
+    expect(workflow).not.toContain("cache: npm");
+    expect(workflow).toContain(
+      "Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6",
+    );
     expect(workflow).not.toContain("pull_request:");
     expect(workflow).not.toMatch(/uses:\s+[^\s]+@(v|main|master)/u);
   });
