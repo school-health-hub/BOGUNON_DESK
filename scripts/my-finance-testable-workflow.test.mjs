@@ -1,9 +1,11 @@
 import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
-const workflow = fs.readFileSync('.github/workflows/my-finance-qa-testable.yml', 'utf8');
-const [candidate, publisher] = workflow.split('\n  publisher:');
-const steps = publisher.split('\n      - ');
-describe('manual TESTABLE workflow wiring', () => {
+const source = fs.readFileSync('.github/workflows/my-finance-qa-testable.yml', 'utf8');
+describe.each([['LF', '\n'], ['CRLF', '\r\n']])('manual TESTABLE workflow wiring (%s)', (_name, newline) => {
+  // Check every original contract after normalizing only the checkout line endings.
+  const workflow = source.replace(/\r?\n/g, newline).replace(/\r\n/g, '\n');
+  const [candidate, publisher] = workflow.split('\n  publisher:');
+  const steps = publisher.split('\n      - ');
   it('exposes exactly one manual trigger and no external inputs', () => {
     expect(workflow.match(/^on:\n([\s\S]*?)^permissions:/m)?.[1]).toBe('  workflow_dispatch:\n');
     expect(workflow).not.toMatch(/inputs:|pull_request:|push:|schedule:|workflow_call:/);
