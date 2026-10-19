@@ -20,6 +20,7 @@ describe.each([['LF', '\n'], ['CRLF', '\r\n']])('manual TESTABLE workflow wiring
     expect(workflow.match(/github\.repository == 'school-health-hub\/BOGUNON_DESK'/g)).toHaveLength(2);
     expect(workflow.match(/github\.ref == 'refs\/heads\/main'/g)).toHaveLength(2);
     expect(publisher).toContain("needs.candidate.result == 'success'");
+    expect(workflow.match(/github[.]run_attempt == 1/g)).toHaveLength(2);
   });
   it('checks controller before checking out fixed candidate without saved credentials', () => {
     expect(candidate.indexOf('my-finance-testable-gate.mjs check')).toBeLessThan(candidate.indexOf('ref: c6f11974822e06a7855314575551983ea6dadcef'));
@@ -59,6 +60,13 @@ describe.each([['LF', '\n'], ['CRLF', '\r\n']])('manual TESTABLE workflow wiring
     expect(failureUpload).toContain('if: ${{ always() }}');
     expect(failureUpload).toContain('path: qa-source/artifacts/my-finance-qa-evidence/**');
     expect(failureUpload).not.toContain('.exe');
+  });
+  it('requires the second GitHub approval action after Candidate before publication', () => {
+    expect(publisher).toContain('needs: candidate');
+    expect(publisher).toContain('environment: my-finance-testable-publish');
+    expect(publisher.indexOf('publish-check')).toBeLessThan(publisher.indexOf('my-finance-testable-package.mjs publish'));
+    expect(candidate).toContain('QA27 run=');
+    expect(candidate).toContain('no independent approval');
   });
   it('pins every external action to a full commit', () => {
     const actions = [...workflow.matchAll(/uses: ([^\n]+)/g)].map(m => m[1]);

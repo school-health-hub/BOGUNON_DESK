@@ -21,6 +21,9 @@ describe.each([['LF', '\n'], ['CRLF', '\r\n']])('publication use contract (%s)',
     expect(rows).toContainEqual(['in_progress', 'any', 'DENY']);
     expect(rows).toContainEqual(['completed', 'success', 'Continue identity/approval/hash checks; not installation authorization']);
   });
+  it('states single-operator policy and its reduced independence', () => {
+    for (const text of ['single-operator, two explicit actions', '281109297', 'prevent_self_review=false', 'independentApproval=false', 'run_attempt=1']) expect(doc).toContain(text);
+  });
   it('does not pretend the document is an automatic consumption gate', () => {
     expect(doc).toContain('No automatic pre-use final-status verifier exists in this change');
     expect(doc).toContain('Manual operator procedure only');

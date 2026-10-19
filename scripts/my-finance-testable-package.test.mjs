@@ -52,15 +52,30 @@ describe('TESTABLE package transfer', () => {
   });
   it('requires explicit bound approval and publishes exact inventory', async () => {
     const f = await fixture(); const checked = await prepare(f.dir, f.evidenceFile, f.context);
-    const approval = { actor: 'human-reviewer', id: '55', artifactId: '77', transferSha256: checked.transferSha256, runId: '123', runAttempt: '2' };
-    const out = path.join(f.root, 'published'); await publish(f.dir, f.context, approval, out);
+    const approval = { actor: 'sungandi86-max', id: '281109297', approvalModel: 'single-operator, two explicit actions', independentApproval: false, artifactId: '77', transferSha256: checked.transferSha256, runId: '123', runAttempt: '2' };
+    const out = path.join(f.root, 'published'); const receipt = await publish(f.dir, f.context, approval, out);
+    expect(receipt.approvalModel).toBe('single-operator, two explicit actions');
+    expect(receipt.independentApproval).toBe(false);
+    expect(receipt.approval.actor).toBe('sungandi86-max');
     expect((await fs.readdir(out)).sort()).toEqual([...PACKAGE_FILES, 'PUBLICATION.json'].sort());
     expect(await fs.readFile(path.join(out, INSTALLER))).toEqual(await fs.readFile(path.join(f.dir, INSTALLER)));
     await expect(publish(f.dir, f.context, approval, out)).rejects.toThrow();
   });
+  it.each([
+    { approvalModel: 'independent reviewers' },
+    { independentApproval: true },
+    { id: '999' },
+    { actor: 'different-operator' },
+    { approvalModel: undefined },
+    { independentApproval: undefined },
+  ])('rejects incorrect or missing publication model %j', async change => {
+    const f = await fixture(); const checked = await prepare(f.dir, f.evidenceFile, f.context);
+    const approval = { actor: 'sungandi86-max', id: '281109297', approvalModel: 'single-operator, two explicit actions', independentApproval: false, artifactId: '77', transferSha256: checked.transferSha256, runId: '123', runAttempt: '2', ...change };
+    await expect(publish(f.dir, f.context, approval, path.join(f.root, 'out'))).rejects.toThrow();
+  });
   it.each(['transferSha256', 'runId', 'runAttempt'])('rejects approval mismatch %s', async key => {
     const f = await fixture(); const checked = await prepare(f.dir, f.evidenceFile, f.context);
-    const approval = { actor: 'human-reviewer', id: '55', artifactId: '77', transferSha256: checked.transferSha256, runId: '123', runAttempt: '2', [key]: 'wrong' };
+    const approval = { actor: 'sungandi86-max', id: '281109297', approvalModel: 'single-operator, two explicit actions', independentApproval: false, artifactId: '77', transferSha256: checked.transferSha256, runId: '123', runAttempt: '2', [key]: 'wrong' };
     await expect(publish(f.dir, f.context, approval, path.join(f.root, 'out'))).rejects.toThrow();
   });
 });

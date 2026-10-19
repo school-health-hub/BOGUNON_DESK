@@ -1,4 +1,4 @@
-# MY FINANCE SHA-pinned TESTABLE publication (QA-24R)
+# MY FINANCE SHA-pinned TESTABLE publication (QA-27)
 
 ## Trust model and scope
 
@@ -7,6 +7,16 @@ The test subject is explicitly trusted source `c6f11974822e06a7855314575551983ea
 TESTABLE means synthetic QA packaging, not production deployment approval or real-user financial-data safety. Home/school installation, data protection, account/VM isolation and cross-PC restore require separate authorization. This implementation does not dispatch the workflow or authorize installation on either PC.
 
 The existing PR #14, CI workflow and diagnostic workflow are unchanged. Operating comparison source is separately pinned to `5cec64358436c148710499b5aa9d2e78c34e0136`; this does not represent every installed production version.
+
+## Single-operator approval boundary
+
+The approval model is **single-operator, two explicit actions**. First, the designated operator manually dispatches this workflow on main. Candidate QA then runs in its own disposable Windows job and produces an internal Candidate artifact. Publisher remains blocked until the same operator reviews the exact Candidate and clicks the separate Environment approval action. No initial confirmation input, automatic PR event or copied approval string can replace that actual GitHub approval record. Review-only Candidate downloads must not execute or install the package.
+
+This deliberately removes the former different-person approval guarantee. It is not independent third-party review: account compromise, operator error and failure to actually inspect Evidence are not mitigated by a second person. Fixed-source trust and the Evidence limitations above remain unchanged. PUBLICATION.json records approvalModel = "single-operator, two explicit actions" and independentApproval=false; it cannot certify the later final run result.
+
+The Environment policy uses GitHub's public required-reviewers/prevent_self_review fields. Public repositories support required reviewers; setting prevent_self_review=false permits this model. It does not remove the required reviewer or administrator-bypass prohibition. No Environment settings are changed by this implementation. After a separately authorized code merge, the owner must separately authorize and configure only my-finance-testable-publish with the exact settings below. Do not modify desktop-production-release or grant execution through that Environment.
+
+References: [required reviewer and self-review settings](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments#required-reviewers), [approval action](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/review-deployments). Actual same-account approval behavior is NOT VERIFIED until a separately authorized GitHub run.
 
 ## Controller and source identities
 
@@ -18,19 +28,19 @@ The app checkout has no persisted Git credentials. Only explicit controller API 
 
 The repository owner must separately configure Environment `my-finance-testable-publish`:
 
-- Required reviewers: one or more individual human GitHub users (Teams are intentionally unsupported by this minimum implementation).
-- Prevent self-review enabled; administrator bypass disabled.
+- Required reviewer: exactly `sungandi86-max`, numeric GitHub user ID `281109297`, type `User`. Teams and additional reviewers are rejected.
+- Prevent self-review: false; administrator bypass disabled. The designated operator must perform the separate Environment approval action.
 - Custom deployment branch policy: exactly the `main` branch; no tag/wildcard/additional branch policies.
 
 The controller checks these real API fields **before candidate build** as well as at publication. A missing Environment or incomplete protections fails closed. The implementation must not create an Environment and accidentally treat its creation as approval. This prerequisite is currently not configured; existing production Environment is untouched.
 
-A reviewer must be different from both the original run actor and rerun triggering actor, and must be one of the configured reviewers. After inspecting the candidate artifact and transfer manifest, approve the Environment in GitHub with the exact comment printed in the candidate job summary:
+The run actor, triggering actor and approver must all be the designated operator `sungandi86-max` (ID `281109297`). After Candidate QA succeeds, inspect its Evidence, installer hash and transfer manifest, then separately approve the Environment in GitHub with the exact comment printed in the candidate job summary:
 
 ```
-QA24R run=<run-id> attempt=<attempt> artifact=<artifact-id> manifest=<TRANSFER.json-sha256>
+QA27 run=<run-id> attempt=<attempt> artifact=<artifact-id> manifest=<TRANSFER.json-sha256>
 ```
 
-The publisher verifies the approval history, Environment identity, reviewer identity and exact comment. Approval without this binding is rejected. A rerun needs fresh bound approval for its own attempt/artifact. No approval is inferred from workflow success, a hash match, a file name or a previous run. Review revocation/PR change between the last check and upload remains a distributed-system race; there is no atomic API transaction combining identity verification, human approval and upload.
+The publisher verifies the approval history, Environment identity, reviewer identity and exact comment. Approval without this binding is rejected. Only run_attempt=1 is admitted by both jobs and both Gate modes. All job/workflow reruns are refused; after failure, begin a new workflow_dispatch and regenerate/review its Candidate. A new run requires its own approval, artifact ID and manifest hash. No approval is inferred from workflow success, a hash match, a file name or a previous run. Review revocation/PR change between the last check and upload remains a distributed-system race; there is no atomic API transaction combining identity verification, human approval and upload.
 
 ## Candidate validation and transfer
 
@@ -59,9 +69,9 @@ Unsigned (`NotSigned`) and validly signed installers are distinguished in the or
 
 Manual operator procedure only. No automatic pre-use final-status verifier exists in this change. Existing `gate.mjs` checks publication admission while the publisher is running; `package.mjs`, `testable: true` and `PUBLICATION.json` cannot attest a later workflow conclusion. Artifact existence/name is not authorization to download for use, install or forward it. This procedure does not authorize workflow dispatch, installation or forwarding; separate PC-specific approval and isolation remain required.
 
-1. Before downloading for use, query GitHub metadata for the exact run ID and run attempt. Check both the latest run and the exact attempt: each must have status = completed and conclusion = success, with matching run ID, run attempt and controller SHA. If a newer attempt exists, do not reuse approval or artifacts from an older attempt. Confirm repository, workflow path `.github/workflows/my-finance-qa-testable.yml`, `workflow_dispatch` event and main branch. Do not use a green job/step or the separate clean-install CI run as a substitute.
+1. Before downloading for use, query GitHub metadata for the exact run ID and run attempt. Check both the latest run and the exact attempt: each must have status = completed and conclusion = success, with matching run ID, run attempt and controller SHA. Require run attempt 1. If a newer attempt exists, reject this execution and do not reuse approval or artifacts from an older attempt. Confirm repository, workflow path `.github/workflows/my-finance-qa-testable.yml`, `workflow_dispatch` event and main branch. Do not use a green job/step or the separate clean-install CI run as a substitute.
 2. Check the source SHA is exactly `c6f11974822e06a7855314575551983ea6dadcef`. The controller SHA is the main controller commit recorded by this publication, not the app source SHA or necessarily this PR's pre-merge HEAD. Require matching identities across run metadata, `TRANSFER.json` and `PUBLICATION.json`.
-3. Verify the actual GitHub human approval record for that execution: correct protected Environment, configured reviewer ID different from both run actors, and exact `QA24R run=... attempt=... artifact=... manifest=...` binding. Ordinary comments, copied strings, CI success and previous-attempt approvals are insufficient. Match its candidate artifact ID and transfer digest to `PUBLICATION.json`; also record the final TESTABLE artifact ID separately. Candidate and final artifact IDs are different.
+3. Verify the actual GitHub human approval record for that execution: correct protected Environment, configured operator ID `281109297` matching both run actors, and exact `QA27 run=... attempt=... artifact=... manifest=...` binding. Ordinary comments, copied strings, CI success and previous-attempt approvals are insufficient. Match its candidate artifact ID and transfer digest to `PUBLICATION.json`; also record the final TESTABLE artifact ID separately. Candidate and final artifact IDs are different.
 4. Verify the final artifact ID belongs to the same successful run/controller and is available, not expired. Require the exact seven-file inventory: the six candidate files listed above plus `PUBLICATION.json`, with no extra files or directories. A quarantined, non-executing verification download may be needed to inspect bytes after metadata/approval checks; it is not permission to use, install or forward them. Before any downstream download for use, installation or transfer, finish all content checks below. Never launch the installer to verify a hash.
 5. Compute the installer SHA-256 and match it against `SHA256SUMS.txt`, `QA-TEST-STATUS.json`, `ISOLATION.json`, `TRANSFER.json` and `PUBLICATION.json`. Compute `TRANSFER.json` SHA-256 and match the human approval and publication record. Check every transferred file hash, source/controller/run/attempt identity, strict successful isolation flags, `productionDeployment: false` and signature status. Do not trust manifest claims without comparing the actual bytes. Any mismatch means DENY.
 6. Immediately before use or forwarding, recheck the latest run and the exact attempt and their identities. If metadata, approval, files or hashes cannot be verified, DENY use even when the artifact exists. Discard it from the proposed use; do not automatically delete GitHub artifacts or retry the workflow. Keep a review record of run/attempt, controller/source, approval reference, candidate/final artifact IDs and verified installer/manifest hashes. Checks are not an atomic lock against later changes; stop if state changes or becomes uncertain.
@@ -108,4 +118,4 @@ QA-24R was implemented on an independent worktree based on main `74b800aa2ab4c60
 - Existing CI/diagnostic/app/Cargo/dependency/lockfiles are unchanged. The original worktree's pre-existing Cargo modification and clean Desktop Surface worktree were preserved.
 - Read-only GitHub checks reconfirmed fixed main and open Draft PR #14. The new publication Environment does not exist yet, so an attempted future run must stop before building until its owner configures the required protections.
 
-Residual risks include non-atomic API-check/upload timing, dependency/action trust, hosted-runner failures and artifact-service behavior. Distinct GitHub user IDs are enforceable; distinct physical humans cannot be established by this workflow. Actual Windows and human approval runtime behavior is NOT VERIFIED. No workflow dispatch or real TESTABLE creation was performed.
+Residual risks include non-atomic API-check/upload timing, dependency/action trust, hosted-runner failures and artifact-service behavior. The same designated GitHub account performs both explicit actions; independent human approval is not provided. Actual Windows and human approval runtime behavior is NOT VERIFIED. No workflow dispatch or real TESTABLE creation was performed.
