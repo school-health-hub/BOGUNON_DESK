@@ -413,6 +413,28 @@ fn my_finance_oversized_legacy_snapshot_can_only_shrink() {
     );
     assert_eq!(store.load().unwrap(), current);
 
+    let mut same_size = first.clone();
+    let mut projected = current.clone();
+    projected.identity.revision += 1;
+    projected.identity.history.push(Uuid::nil());
+    projected.income[0] = same_size.clone();
+    let identity_growth = serde_json::to_vec(&projected).unwrap().len() - current_len;
+    let same_size_notes_len = same_size.notes.len() - identity_growth;
+    same_size.notes.truncate(same_size_notes_len);
+    projected.income[0] = same_size.clone();
+    assert_eq!(serde_json::to_vec(&projected).unwrap().len(), current_len);
+    assert_eq!(
+        store
+            .apply_with_limit(
+                &current.identity,
+                IncomeMutation::Update(same_size),
+                legacy_limit,
+            )
+            .unwrap_err(),
+        SNAPSHOT_TOO_LARGE
+    );
+    assert_eq!(store.load().unwrap(), current);
+
     let reduced = store
         .apply_with_limit(
             &current.identity,
@@ -422,4 +444,9 @@ fn my_finance_oversized_legacy_snapshot_can_only_shrink() {
         .unwrap();
     assert!(reduced.income.is_empty());
     assert!(serde_json::to_vec(&reduced).unwrap().len() <= legacy_limit);
+    let backup =
+        crate::my_finance_codec::export_snapshot(&reduced, "synthetic-password-123").unwrap();
+    let (restored, _) =
+        crate::my_finance_codec::inspect_restore(&backup, "synthetic-password-123", None).unwrap();
+    assert_eq!(restored, reduced);
 }

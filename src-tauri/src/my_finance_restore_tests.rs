@@ -278,7 +278,7 @@ fn my_finance_restore_rejects_oversized_snapshot_before_safety_write() {
         store
             .0
             .query_row("SELECT count(*) FROM finance_restore_safety", [], |row| {
-                row.get(0)
+                row.get::<_, i64>(0)
             })
             .unwrap(),
         before_safety
