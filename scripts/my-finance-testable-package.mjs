@@ -81,6 +81,8 @@ export async function verify(dir, expected) {
 export async function publish(dir, expected, approval, outDir) {
   const checked = await verify(dir, expected);
   requireValue(typeof approval?.actor === 'string' && approval.actor.length > 0 && /^[1-9][0-9]*$/.test(String(approval.id)) && /^[1-9][0-9]*$/.test(String(approval.artifactId)), 'Publication approval missing');
+  requireValue(approval.approvalModel === 'single-operator, two explicit actions' && approval.independentApproval === false, 'Approval model mismatch');
+  requireValue(String(approval.id) === '281109297' && approval.actor === 'sungandi86-max', 'Publication operator mismatch');
   requireValue(approval.transferSha256 === checked.transferSha256, 'Approval bound to different transfer');
   requireValue(approval.runId === expected.runId && approval.runAttempt === expected.runAttempt, 'Approval run mismatch');
   if (expected.artifactId !== undefined) requireValue(String(approval.artifactId) === String(expected.artifactId), 'Approval artifact mismatch');
@@ -89,7 +91,7 @@ export async function publish(dir, expected, approval, outDir) {
     const bytes = checked.files[name];
     await fs.writeFile(path.join(outDir, name), bytes, { flag: 'wx' });
   }
-  const publication = { schemaVersion: 1, ...parseContext(expected), installerSha256: checked.installerSha256, transferSha256: checked.transferSha256, approval, trustModel: 'Trusted pinned candidate; evidence is a validation record, not tamper-proof independent security proof', productionDeployment: false };
+  const publication = { schemaVersion: 1, approvalModel: 'single-operator, two explicit actions', independentApproval: false, ...parseContext(expected), installerSha256: checked.installerSha256, transferSha256: checked.transferSha256, approval, trustModel: 'Trusted pinned candidate; evidence is a validation record, not tamper-proof independent security proof', productionDeployment: false };
   await fs.writeFile(path.join(outDir, 'PUBLICATION.json'), `${JSON.stringify(publication, null, 2)}\n`, { flag: 'wx' });
   return publication;
 }

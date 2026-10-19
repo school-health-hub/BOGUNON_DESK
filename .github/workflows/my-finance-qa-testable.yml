@@ -11,7 +11,7 @@ concurrency:
 jobs:
   candidate:
     name: Validate pinned candidate
-    if: ${{ github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/main' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/main' && github.run_attempt == 1 }}
     runs-on: windows-latest
     timeout-minutes: 120
     defaults:
@@ -157,7 +157,7 @@ jobs:
         run: |
           $sha = (Get-FileHash artifacts/my-finance-qa-ready/TRANSFER.json -Algorithm SHA256).Hash.ToLowerInvariant()
           "sha256=$sha" >> $env:GITHUB_OUTPUT
-      - name: Upload exact internal candidate package for separate approval
+      - name: Upload exact internal candidate package for explicit operator approval
         id: transfer-upload
         if: ${{ success() && github.event_name == 'workflow_dispatch' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -172,14 +172,14 @@ jobs:
             qa-source/artifacts/my-finance-qa-ready/TRANSFER.json
           if-no-files-found: error
           retention-days: 7
-      - name: Show exact separate human approval binding
+      - name: Show exact single-operator approval binding
         env:
           ARTIFACT_ID: ${{ steps.transfer-upload.outputs.artifact-id }}
           TRANSFER_SHA: ${{ steps.transfer-hash.outputs.sha256 }}
         run: |
-          "## Trusted pinned candidate, not independent security proof" >> $env:GITHUB_STEP_SUMMARY
+          "## Single-operator, two explicit actions; no independent approval" >> $env:GITHUB_STEP_SUMMARY
           "Review the internal candidate artifact and use this exact environment approval comment:" >> $env:GITHUB_STEP_SUMMARY
-          "QA24R run=$env:GITHUB_RUN_ID attempt=$env:GITHUB_RUN_ATTEMPT artifact=$env:ARTIFACT_ID manifest=$env:TRANSFER_SHA" >> $env:GITHUB_STEP_SUMMARY
+          "QA27 run=$env:GITHUB_RUN_ID attempt=$env:GITHUB_RUN_ATTEMPT artifact=$env:ARTIFACT_ID manifest=$env:TRANSFER_SHA" >> $env:GITHUB_STEP_SUMMARY
       - name: Upload isolation evidence only, including failures
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -191,7 +191,7 @@ jobs:
   publisher:
     name: Publish approved TESTABLE
     needs: candidate
-    if: ${{ success() && needs.candidate.result == 'success' && github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/main' }}
+    if: ${{ success() && needs.candidate.result == 'success' && github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/main' && github.run_attempt == 1 }}
     runs-on: windows-latest
     timeout-minutes: 15
     environment: my-finance-testable-publish
@@ -209,7 +209,7 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22'
-      - name: Recheck PR, run, candidate artifact and separate approval
+      - name: Recheck PR, run, candidate artifact and operator approval
         env:
           GH_TOKEN: ${{ github.token }}
           ARTIFACT_ID: ${{ needs.candidate.outputs.artifact-id }}
