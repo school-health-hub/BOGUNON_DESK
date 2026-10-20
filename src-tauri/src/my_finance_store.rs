@@ -1,6 +1,6 @@
 //! SQLCipher-only persistence. No network, plaintext export, or automatic restore.
 //! Snapshot/portable backup schema stays independent from the database schema.
-use crate::my_finance_snapshot::{validate_income_entry, IncomeEntry};
+use crate::my_finance_snapshot::{validate_income_entry, validate_phase2, IncomeEntry, Phase2Data};
 use crate::my_finance_snapshot::{
     validate_snapshot, FinanceSnapshot, SnapshotIdentity, SNAPSHOT_SCHEMA_VERSION,
 };
@@ -87,6 +87,7 @@ impl FinanceStore {
                     history: vec![Uuid::new_v4()],
                 },
                 income: vec![],
+                phase2: Phase2Data::default(),
             };
             let payload = Zeroizing::new(serde_json::to_vec(&initial).map_err(|_| STORAGE_ERROR)?);
             let tx = store.0.transaction().map_err(|_| STORAGE_ERROR)?;
@@ -100,6 +101,53 @@ impl FinanceStore {
         }
         store.load()?;
         Ok(store)
+    }
+
+    pub(crate) fn replace_phase2(
+        &mut self,
+        expected: &SnapshotIdentity,
+        phase2: Phase2Data,
+    ) -> Result<FinanceSnapshot, &'static str> {
+        if !validate_phase2(&phase2) {
+            return Err(INVALID);
+        }
+        let tx = self
+            .0
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(|_| CONFLICT)?;
+        let mut snapshot = Self::read_snapshot(&tx)?;
+        if &snapshot.identity != expected {
+            return Err(CONFLICT);
+        }
+        let current_size = serde_json::to_vec(&snapshot)
+            .map_err(|_| STORAGE_ERROR)?
+            .len();
+        snapshot.phase2 = phase2;
+        snapshot.identity.revision = snapshot.identity.revision.checked_add(1).ok_or(INVALID)?;
+        snapshot.identity.history.push(Uuid::new_v4());
+        if !validate_snapshot(&snapshot) {
+            return Err(INVALID);
+        }
+        let payload = Zeroizing::new(serde_json::to_vec(&snapshot).map_err(|_| STORAGE_ERROR)?);
+        if !mutation_size_allowed(
+            current_size,
+            payload.len(),
+            crate::my_finance_backup::MAX_PLAINTEXT,
+        ) {
+            return Err(SNAPSHOT_TOO_LARGE);
+        }
+        if tx
+            .execute(
+                "UPDATE finance_snapshot SET payload=?1 WHERE singleton=1",
+                [payload.as_slice()],
+            )
+            .map_err(|_| STORAGE_ERROR)?
+            != 1
+        {
+            return Err(STORAGE_ERROR);
+        }
+        tx.commit().map_err(|_| STORAGE_ERROR)?;
+        Ok(snapshot)
     }
 
     pub(crate) fn load(&self) -> Result<FinanceSnapshot, &'static str> {
