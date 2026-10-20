@@ -105,3 +105,42 @@
   .workspace-shell .dock__icon svg { width: 28px; height: 28px; }
   .workspace-shell:is(.is-view-mode, .is-edit-mode) .dock__icon { width: 36px; height: 36px; }
 }
+
+/* Approved geometry is unchanged; these rules size content inside its slots. */
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .summary-card { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .summary-stats { align-self: center; align-items: start; grid-template-columns: 2fr 1fr 2fr; margin-top: 0; }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .summary-stats > div { display: grid; align-items: start; align-content: start; gap: var(--space-2); }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .summary-stats strong { font-size: var(--text-2xl); line-height: var(--leading-heading); }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .summary-stats__dday { max-width: none; }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .summary-stats__dday strong { font-size: var(--text-md); white-space: normal; overflow-wrap: anywhere; }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .weather-ready { flex: 1; grid-template-rows: auto minmax(0, 1fr) auto; gap: var(--space-2); }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .weather-current strong { font-size: var(--desktop-clock-size); }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .weather-current svg { width: 28px; height: 28px; }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .priority-card { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: var(--space-2); }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .priority-card h2 { align-self: center; margin: 0; }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .priority-card__meta { margin: 0; }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .calendar-cell { grid-template-rows: 20px minmax(0, 1fr); padding: 2px var(--space-1); overflow-y: auto; }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .calendar-date { width: 20px; height: 20px; }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .calendar-events { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-1); align-items: start; }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .calendar-event { line-height: 1.3; flex-shrink: 0; overflow-wrap: anywhere; }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .calendar-event-overflow { padding-top: 2px; line-height: 1.3; }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .has-6-weeks .calendar-event { -webkit-line-clamp: 1; }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item :is(.task-panel, .schedule-panel) { display: flex; flex-direction: column; min-height: 0; }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item :is(.task-panel, .schedule-panel) > :not(.task-list, .upcoming-list) { flex-shrink: 0; }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item :is(.task-list, .upcoming-list) { flex: 1; overflow-y: auto; scrollbar-width: thin; }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .task-list li { min-height: 42px; }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .task-title { font-size: var(--text-md); line-height: var(--leading-body); }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .upcoming-list p { font-size: var(--text-md); }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .dday-list { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; gap: var(--space-1); }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .dday-list li { grid-template-columns: 52px minmax(0, 1fr); padding-inline: 0; border: 0; }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .dday-list span { font-size: var(--text-md); }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .week-grid article p { display: -webkit-box; white-space: normal; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: var(--leading-body); }
+.workspace-shell .desktop-widget-grid .workspace-connection-placeholder { color: var(--text-muted); min-height: 32px; }
+@media (max-width: 900px) {
+  .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .summary-stats { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-3); }
+  .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .summary-stats__dday { grid-column: 1 / -1; }
+  .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .weather-ready { min-height: 100px; }
+}
+/* Short/DPI-constrained slots keep content reachable rather than clipping it. */
+.workspace-shell.is-view-mode .desktop-widget-grid .widget-frame__body > :is(.panel, .widget-surface) { overflow-y: auto; scrollbar-width: thin; }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .calendar-grid { min-height: 340px; }

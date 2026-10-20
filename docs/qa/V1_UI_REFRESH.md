@@ -117,3 +117,84 @@ Evidence retained outside Git in `C:/Users/Public/Documents/BOGUNON-ui-evidence/
 These are fresh isolated browser previews with signed-out states, not native Windows
 Tauri/WebView2 or authenticated Google data verification. No real user data was used.
 No Rust/native build, PR21/23 mutation, financial/auth logic change or release operation.
+
+## Final populated-widget polish (2026-10-21)
+
+The approved c0c326c desktop composition is retained. No geometry, saved layout,
+widget identity, data adapter, mutation handler, authentication or finance logic changed.
+Only content typography, internal alignment, scrolling and empty-state presentation changed.
+
+### Synthetic render harness
+
+`src/widgets/__fixtures__/desktopWorkspace.ts` contains explicitly synthetic October
+2026 schedules, tasks, health work, D-Day and summary values. The alternate
+`qa/ui/dashboard-preview.config.mjs` substitutes only workspace/weather/meal providers
+at build time. It has no production runtime switch and defaults to a separate
+`dist-dashboard-synthetic` output. Task mutations in this presentation harness return
+`ignored`; screenshots are not persistence, authentication or mutation QA evidence.
+No real school account, repository or data is used. External network is blocked.
+
+Reproduce the QA build from the UI worktree:
+
+```sh
+node node_modules/vite/bin/vite.js build --config qa/ui/dashboard-preview.config.mjs --outDir C:/Users/Public/Documents/BOGUNON-ui-evidence/populated-dist
+node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 1440 --strictPort --outDir C:/Users/Public/Documents/BOGUNON-ui-evidence/populated-dist
+```
+
+Use a fresh browser profile. Set the browser clock to 2026-10-21T09:00:00+09:00
+before navigation. Normal root uses the populated fixture; `?density=sparse` uses
+one task/one D-Day. Skip onboarding without connecting an account. Do not ship the
+QA output. Normal production build/config remain unchanged; production JS was
+scanned and contains no fixture IDs, synthetic school name or synthetic provider.
+
+### Findings and corrections
+
+- Calendar +N fell below a long event title. Keep +N beside the colored event chip;
+  full-title hover text exposes the title and remaining events. Existing one-event/+N
+  selection and date Quick Add behavior remain unchanged.
+- Summary/weather/priority content used small, top-aligned lines in generous slots.
+  Align content within the existing slots and emphasize existing values.
+- Task/upcoming lists now have bounded internal scroll; D-Day uses readable rows;
+  weekly schedule titles wrap to two lines with existing full-title hover.
+- At simulated150% effective viewport, short slots clipped calendar/weather content.
+  Preserve minimum readable calendar content height and panel scrolling; final date
+  and list ends remain reachable. No outer layout changes.
+- A shared connection banner is the only account instruction. Disconnected widgets
+  use a decorative dash plus actual screen-reader-only waiting text. Loading/error
+  states retain their messages; weather/meal non-signedOut actions are unchanged.
+- Dock was already the approved size. Verified hover and keyboard tooltip, all seven
+  reachable buttons, one current item, and Settings becoming the current menu.
+
+### Verification and limits
+
+- Full frontend regression: 178 files / 1181 tests passed.
+- After the final accessible-text and scrolling corrections: 33 focused tests passed.
+- TypeScript noEmit, normal Vite build, synthetic Vite build, diff check passed.
+- Fresh Windows Edge production-style browser QA: 1920×1080, 768×900, 375×900;
+  1536×864 DPR1.25 and1280×720 DPR1.5 emulate effective125%/150% conditions.
+- All viewport checks: four distinct calendar category colors, +N within its date
+  cell, no document horizontal overflow, all Dock buttons in bounds, one active
+  menu, visible tooltip and last task reachable. Sparse fixture also rendered.
+- Independent QA verified calendar October31 after internal scrolling, upcoming/task
+  list ends, fixed09:00 clock, narrow Dock and tools menu. Zero console/page errors.
+- Normal production disconnected screen: one common banner, zero repeated Google
+  connection instructions inside widgets. Fixture exclusion scan passed.
+- Independent goal/visual, code, security, context and runtime QA reviews passed.
+  Review caught the paragraph accessible-name issue; replaced with actual sr-only
+  text and re-reviewed. The browser test caught short calendar clipping; corrected.
+- No native Windows app, WebView2, OS DPI setting, real account/data, Rust build or
+  CI rerun was used. Actual installed-app DPI, cloud delivery, native window and
+  authenticated workflows remain integration/release QA, not claimed here.
+
+Evidence outside Git: `C:/Users/Public/Documents/BOGUNON-ui-evidence/`:
+`polish-large.png`, `polish-dpi125.png`, `polish-dpi150.png`, `polish-small.png`,
+`polish-sparse.png`, `polish-disconnected-dashboard.png`, `polish-report.json`,
+`independent-final-report.json`, `polish-full-tests.log`, `polish-final-tests.log`,
+`polish-production-build.log`, `polish-red.log`, `polish-green.log`.
+
+UI refinement ends with this pass. Remaining work is v1.0 integration/deployment
+verification under its existing approval boundaries; no release or merge performed.
+
+LSP diagnostics were unavailable because the existing TypeScript server is not
+installed and prior setup declined installation. No tooling installation was made;
+compiler validation used the successful whole-project `tsc --noEmit` run instead.

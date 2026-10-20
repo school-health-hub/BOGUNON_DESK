@@ -426,3 +426,17 @@ Default desktop Dock uses 52px targets, 38px icons and 8px spacing. Compact Dock
 retains 42px targets with gaps removed to remain reachable at narrow widths.
 The long signed-out instruction appears once above the grid. Widgets show a
 short noninteractive waiting state; error/loading state semantics stay unchanged.
+
+## Final widget content polish
+
+Approved composition stays fixed. Populated QA uses typed synthetic fixtures in a
+separate build config, never a demo flag in the production app. Calendar event chips
+keep category colors, two-line titles and full-title hover text; +N stays beside the
+chip rather than falling outside the cell. Compact six-week cells may use one line
+with the same full-title hover. The existing one-event/+N data contract is unchanged.
+Summary metrics use stacked labels and larger values, weather uses a clear temperature
+focal point, and task/upcoming lists scroll within their cards. Weekly text wraps to
+two lines. D-Day uses readable rows. All use existing spacing/type/color tokens.
+Signed-out desktop widgets show a quiet dash with an accessible waiting label; the
+shared banner is the only account instruction. Standalone/error/loading guidance
+remains. Dock active marker, accessible name, hover and keyboard tooltip stay intact.

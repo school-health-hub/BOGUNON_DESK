@@ -18,7 +18,7 @@ export function CompactWorkspaceNotices({ children }: { readonly children: React
 
 export function WorkspaceDataNotice({ state }: WorkspaceDataNoticeProps) {
   const compact = useContext(CompactNoticeContext);
-  if (compact && state.status === "signedOut") return <p className="workspace-connection-placeholder">연결 후 표시됩니다.</p>;
+  if (compact && state.status === "signedOut") return <p className="workspace-connection-placeholder"><span aria-hidden="true">—</span><span className="sr-only">계정 연결 대기</span></p>;
   return <div className={`workspace-data-notice is-${state.status}`} role="status">{noticeText[state.status]}</div>;
 }
 
