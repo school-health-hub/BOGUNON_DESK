@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 
 const read = (name) =>
@@ -55,40 +55,63 @@ describe("MY FINANCE Windows isolation launcher", () => {
     expect(qa.app.windows[0].additionalBrowserArgs).toBeUndefined();
   });
 
-  it("keeps TESTABLE packaging strictly after successful isolation", async () => {
+  it("keeps automated isolation evidence after successful isolation", async () => {
     const workflow = await read(".github/workflows/my-finance-qa-windows.yml");
     const isolation = workflow.indexOf("windows-my-finance-isolation.ps1");
-    const packaging = workflow.indexOf("node scripts/package-my-finance-qa.mjs");
-
-    expect(isolation).toBeGreaterThan(-1);
-    expect(packaging).toBeGreaterThan(isolation);
-    expect(workflow.slice(isolation, packaging)).not.toContain("continue-on-error: true");
-    expect(workflow.slice(isolation, packaging)).not.toContain("if: always()");
-  });
-
-  it("publishes TESTABLE bytes only after an explicit workflow dispatch", async () => {
-    const workflow = await read(".github/workflows/my-finance-qa-windows.yml");
-    const packaging = workflow.indexOf(
-      "- name: Mark exact tested QA bytes testable only after isolation succeeds",
-    );
-    const upload = workflow.indexOf(
-      "- name: Upload testable QA installer, hash, signature status and instructions",
-    );
     const evidence = workflow.indexOf(
       "- name: Upload isolation evidence (not an installer)",
     );
 
-    expect(packaging).toBeGreaterThan(-1);
-    expect(upload).toBeGreaterThan(-1);
-    expect(evidence).toBeGreaterThan(-1);
-    expect(workflow.match(/node scripts\/package-my-finance-qa\.mjs/g)).toHaveLength(1);
-    expect(workflow.match(/MY-FINANCE-QA-TESTABLE/g)).toHaveLength(1);
-    expect(workflow.slice(packaging, upload)).toContain(
-      "if: ${{ github.event_name == 'workflow_dispatch' && success() }}",
-    );
-    expect(workflow.slice(upload, evidence)).toContain(
-      "if: ${{ github.event_name == 'workflow_dispatch' && success() }}",
-    );
+    expect(isolation).toBeGreaterThan(-1);
+    expect(evidence).toBeGreaterThan(isolation);
+    expect(workflow.slice(isolation, evidence)).not.toContain("continue-on-error: true");
     expect(workflow.slice(evidence)).toContain("if: always()");
+    expect(workflow.slice(evidence)).toContain(
+      "path: artifacts/my-finance-qa-evidence/**",
+    );
+  });
+
+  it("never publishes installable TESTABLE bytes from the automated QA workflow", async () => {
+    const workflow = await read(".github/workflows/my-finance-qa-windows.yml");
+
+    expect(workflow).toContain("workflow_dispatch:");
+    expect(workflow).toContain("pull_request:");
+    expect(workflow).not.toContain("node scripts/package-my-finance-qa.mjs");
+    expect(workflow).not.toContain("MY-FINANCE-QA-TESTABLE");
+    expect(workflow).not.toContain("artifacts/my-finance-qa-ready");
+    expect(workflow.match(/actions\/upload-artifact@/g)).toHaveLength(1);
+  });
+
+  it("reserves every TESTABLE publisher for the approved main workflow", async () => {
+    const workflowDirectory = new URL("../.github/workflows/", import.meta.url);
+    const workflowFiles = (await readdir(workflowDirectory)).filter((name) =>
+      /\.ya?ml$/u.test(name),
+    );
+    const publishers = [];
+
+    for (const name of workflowFiles) {
+      const source = await read(`.github/workflows/${name}`);
+      const namesTestableOutput =
+        source.includes("node scripts/package-my-finance-qa.mjs") ||
+        source.includes("MY-FINANCE-QA-TESTABLE");
+      const uploadsInstallableQaBytes =
+        source.includes("qa:finance:windows") &&
+        source
+          .split(/\n(?=\s+- name: )/u)
+          .filter((step) => step.includes("actions/upload-artifact@"))
+          .some((step) =>
+            /(?:\.exe|my-finance-qa-ready|bundle\/nsis|release-output)/u.test(step),
+          );
+
+      if (namesTestableOutput || uploadsInstallableQaBytes) {
+        publishers.push(name);
+      }
+    }
+
+    expect(publishers).toEqual(
+      workflowFiles.includes("my-finance-qa-testable.yml")
+        ? ["my-finance-qa-testable.yml"]
+        : [],
+    );
   });
 });
