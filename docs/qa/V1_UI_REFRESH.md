@@ -61,3 +61,10 @@ finance dashboard hierarchy is recorded in DESIGN.md, but no Draft Phase 2 UI
 or calculation is integrated. Existing TESTABLE is not UI-refresh evidence.
 A separately approved Windows build and actual user-session UI review remain
 required before v1.0 release. No Rust build or TESTABLE publication was performed.
+
+Final capture provenance: the dependency junction caused development-server
+font allow-list errors, so development captures are not final font evidence.
+The built production preview on localhost:1438 was re-tested with
+`document.fonts.ready`; all 18 `production-*.png` captures and
+`production-report.json` are the final reference. HTTP >=400 and page errors
+were checked and none were recorded. No production code change was needed.
