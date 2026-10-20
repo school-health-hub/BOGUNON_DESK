@@ -32,6 +32,11 @@ describe('fixed TESTABLE controller policy', () => {
     ['runnerOs', 'Linux', 'context_runner'], ['runId', '', 'context_run'], ['runAttempt', '0', 'context_run'], ['runAttempt', '2', 'context_rerun'],
   ])('rejects context field %s mismatch', (key, value, code) => deny(() => validateContext({ ...context(), [key]: value }), code));
   it('accepts the exact open draft PR', () => expect(validatePr(pr()).sha).toBe(CONFIG.sourceSha));
+  it('pins the save-fix source and rejects the previously published Phase 2 source', () => {
+    expect(CONFIG.sourceSha).toBe('d6f546abb949e2a9d7e85263e1c7aa9a8689c240');
+    const previous = pr(); previous.head.sha = 'daab156c5ac0e340574593990fc9d230d574e9a1';
+    deny(() => validatePr(previous), 'pr_source');
+  });
   it.each([
     (p) => { p.number = CONFIG.pr + 1; }, (p) => { p.state = 'closed'; }, (p) => { p.draft = false; },
     (p) => { p.base.ref = 'other'; }, (p) => { p.base.repo.full_name = 'fork/repo'; },

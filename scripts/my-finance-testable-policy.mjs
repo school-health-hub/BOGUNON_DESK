@@ -3,7 +3,7 @@ export const CONFIG = Object.freeze({
   operatorId: 281109297,
   operatorLogin: 'sungandi86-max',
   approvalModel: 'single-operator, two explicit actions',
-  sourceSha: 'daab156c5ac0e340574593990fc9d230d574e9a1',
+  sourceSha: 'd6f546abb949e2a9d7e85263e1c7aa9a8689c240',
   branch: 'feature/my-finance-phase2',
   pr: 21,
   operatingSha: '5cec64358436c148710499b5aa9d2e78c34e0136',

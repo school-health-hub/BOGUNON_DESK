@@ -36,13 +36,13 @@ jobs:
       - name: Check out exact approved candidate
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: daab156c5ac0e340574593990fc9d230d574e9a1
+          ref: d6f546abb949e2a9d7e85263e1c7aa9a8689c240
           path: qa-source
           persist-credentials: false
       - name: Verify candidate HEAD and clean checkout
         run: |
           $head = (git rev-parse HEAD).Trim()
-          if ($LASTEXITCODE -ne 0 -or $head -ne 'daab156c5ac0e340574593990fc9d230d574e9a1') { throw 'Candidate HEAD mismatch' }
+          if ($LASTEXITCODE -ne 0 -or $head -ne 'd6f546abb949e2a9d7e85263e1c7aa9a8689c240') { throw 'Candidate HEAD mismatch' }
           $changes = git status --porcelain
           if ($LASTEXITCODE -ne 0 -or $changes) { throw 'Candidate checkout not clean' }
       - name: Check out immutable operating reference
@@ -164,7 +164,7 @@ jobs:
         with:
           name: MY-FINANCE-QA-CANDIDATE-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            qa-source/artifacts/my-finance-qa-ready/BOGUNON-DESK-MY-FINANCE-QA-daab156-Windows-x64-Setup.exe
+            qa-source/artifacts/my-finance-qa-ready/BOGUNON-DESK-MY-FINANCE-QA-d6f546a-Windows-x64-Setup.exe
             qa-source/artifacts/my-finance-qa-ready/SHA256SUMS.txt
             qa-source/artifacts/my-finance-qa-ready/QA-TEST-STATUS.json
             qa-source/artifacts/my-finance-qa-ready/START-HERE.ko.md
@@ -235,9 +235,9 @@ jobs:
         if: ${{ success() && github.event_name == 'workflow_dispatch' && needs.candidate.result == 'success' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: MY-FINANCE-QA-TESTABLE-daab156c5ac0e340574593990fc9d230d574e9a1
+          name: MY-FINANCE-QA-TESTABLE-d6f546abb949e2a9d7e85263e1c7aa9a8689c240
           path: |
-            ${{ runner.temp }}/testable/BOGUNON-DESK-MY-FINANCE-QA-daab156-Windows-x64-Setup.exe
+            ${{ runner.temp }}/testable/BOGUNON-DESK-MY-FINANCE-QA-d6f546a-Windows-x64-Setup.exe
             ${{ runner.temp }}/testable/SHA256SUMS.txt
             ${{ runner.temp }}/testable/QA-TEST-STATUS.json
             ${{ runner.temp }}/testable/START-HERE.ko.md

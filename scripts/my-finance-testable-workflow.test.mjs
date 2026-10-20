@@ -23,7 +23,7 @@ describe.each([['LF', '\n'], ['CRLF', '\r\n']])('manual TESTABLE workflow wiring
     expect(workflow.match(/github[.]run_attempt == 1/g)).toHaveLength(2);
   });
   it('checks controller before checking out fixed candidate without saved credentials', () => {
-    expect(candidate.indexOf('my-finance-testable-gate.mjs check')).toBeLessThan(candidate.indexOf('ref: daab156c5ac0e340574593990fc9d230d574e9a1'));
+    expect(candidate.indexOf('my-finance-testable-gate.mjs check')).toBeLessThan(candidate.indexOf('ref: d6f546abb949e2a9d7e85263e1c7aa9a8689c240'));
     expect(candidate).toContain('ref: 5cec64358436c148710499b5aa9d2e78c34e0136');
     expect(workflow.match(/persist-credentials: false/g)).toHaveLength(4);
   });
