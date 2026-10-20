@@ -37,6 +37,8 @@ describe("local finance management", () => {
     api.replaceFinancePhase2.mockImplementation(async (_identity, phase2) => ({ ...snapshot([], 2), phase2 }));
     fireEvent.click(screen.getAllByRole("button", { name: "추가" })[0]);
     await screen.findByText("세금·투자·자산 정보를 암호화 저장소에 저장했습니다.");
+    await waitFor(() => expect(screen.getByPlaceholderText("계좌 이름")).toHaveProperty("value", ""));
+    expect(screen.queryByRole("alert")).toBeNull();
     expect(api.replaceFinancePhase2).toHaveBeenCalledWith(snapshot().identity, expect.objectContaining({ investmentAccounts: [expect.objectContaining({ name: "합성 증권", currency: "KRW" })] }));
   });
   it("filters income and recomputes annual cards using occurrence dates", async () => {

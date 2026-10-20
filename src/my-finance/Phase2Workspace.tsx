@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Landmark, LineChart, Plus, ReceiptText, Trash2, WalletCards } from "lucide-react";
 import { calculateInvestmentPositions, FinanceValidationError, parseScaledDecimal, summarizeNetWorth, summarizeTax, type IncomeRecord, type InvestmentAccount, type Phase2Data } from "./domain";
 import { formatKrw, localToday } from "./presentation";
@@ -13,13 +13,15 @@ const today = localToday();
 export function Phase2Workspace({ income, value, disabled, onSave }: Props) {
   const [section, setSection] = useState<Section>("tax");
   const [error, setError] = useState<string | null>(null);
+  useEffect(() => { setError(null); }, [value]);
   const [year, setYear] = useState(new Date().getFullYear());
   const positions = useMemo(() => { try { return calculateInvestmentPositions(value); } catch { return []; } }, [value]);
   const tax = summarizeTax(income, value.dividends, year);
   const worth = useMemo(() => { try { return summarizeNetWorth(value, today); } catch { return null; } }, [value]);
   const submit = async (event: FormEvent<HTMLFormElement>, build: (data: FormData) => Phase2Data) => {
     event.preventDefault(); setError(null);
-    try { await onSave(build(new FormData(event.currentTarget))); event.currentTarget.reset(); }
+    const form = event.currentTarget;
+    try { await onSave(build(new FormData(form))); form.reset(); }
     catch (caught) { setError(caught instanceof FinanceValidationError ? caught.message : "저장하지 못했습니다. 최신 데이터를 다시 불러와 주세요."); }
   };
   const remove = (key: keyof Phase2Data, id: string) => {
