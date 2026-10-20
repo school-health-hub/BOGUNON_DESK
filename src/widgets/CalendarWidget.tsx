@@ -87,10 +87,10 @@ export function CalendarWidget() {
                 </button>
                 <div className="calendar-events">
                   {eventPreview.firstEvent !== null && (
-                    <span className={`calendar-event ${categoryClass[eventPreview.firstEvent.category]}`}>{eventPreview.firstEvent.title}</span>
+                    <span className={`calendar-event ${categoryClass[eventPreview.firstEvent.category]}`} title={eventPreview.firstEvent.title}>{eventPreview.firstEvent.title}</span>
                   )}
                   {eventPreview.overflowCount > 0 && (
-                    <span className="calendar-event-overflow" aria-label={`${eventPreview.overflowCount}개 일정 더 있음`}>
+                    <span className="calendar-event-overflow" title={dateEvents.slice(1).map((event) => event.title).join(" · ")} aria-label={`${eventPreview.overflowCount}개 일정 더 있음`}>
                       +{eventPreview.overflowCount}
                     </span>
                   )}

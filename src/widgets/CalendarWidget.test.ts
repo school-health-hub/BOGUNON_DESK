@@ -119,3 +119,13 @@ describe("calendar date Quick Add", () => {
     expect(openQuickAddEventForDate).toHaveBeenCalledWith("2026-09-22");
   });
 });
+
+ describe("calendar presentation detail", () => {
+  it("keeps the full title and additional event titles discoverable", () => {
+    hooks.state = { status: "ready", data: { todayTasks: [], calendarEvents: [calendarEvent("1"), calendarEvent("2"), calendarEvent("3")], weekSchedule: [], upcomingEvents: [], ddayItems: [], notifications: [], inboxItems: [], summary: { todayEventCount: 0, todayTaskCount: 0, incompleteTaskCount: 0 } } };
+    const html = renderCalendar();
+    expect(html).toContain('title="일정 1"');
+    expect(html).toContain('title="일정 2 · 일정 3"');
+    expect(html).toContain('aria-label="2개 일정 더 있음"');
+  });
+});

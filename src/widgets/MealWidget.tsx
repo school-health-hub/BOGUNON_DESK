@@ -1,5 +1,6 @@
 import { RefreshCw, Utensils } from "lucide-react";
 import { Panel } from "../components/Panel";
+import { WorkspaceDataNotice } from "../workspace-data/WorkspaceDataNotice";
 import { executeNativeDesktopAction } from "../desktop/actions";
 import { useMealData } from "../meal/MealDataContext";
 import type { MealState } from "../meal/types";
@@ -15,7 +16,7 @@ function MealContent({ state, onRefresh }: { readonly state: MealState; readonly
     case "loading":
       return <p className="meal-state">급식 정보를 불러오는 중입니다.</p>;
     case "signedOut":
-      return <p className="meal-state">급식을 보려면 Google 계정을 연결해 주세요.</p>;
+      return <WorkspaceDataNotice state={{ status: "signedOut" }} />;
     case "connectionRequired":
       return <div className="meal-state"><p>BOGUNON 연결이 필요합니다.</p>{actionButton("설정 열기", () => void executeNativeDesktopAction("settings"))}</div>;
     case "school-missing":

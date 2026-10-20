@@ -2,6 +2,8 @@ import { lazy, Suspense, useState } from "react";
 import "./styles/base.css";
 import "./styles/dashboard.css";
 import "./styles/components.css";
+import "./styles/release-ui.css";
+import "./styles/desktop-workspace.css";
 import { AiConnectionProvider } from "./ai/AiConnectionContext";
 import { AuthProvider } from "./auth/AuthContext";
 import { ChatGptConnectionProvider } from "./chatgpt/ChatGptConnectionContext";

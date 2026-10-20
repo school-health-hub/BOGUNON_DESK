@@ -360,3 +360,83 @@ BOGUNON DESK는 이 브랜드 재료를 사용하되, 배치와 상호작용은 
 - launcher tile은 2열 compact icon-first 구조와 기존 glass surface·corner·focus token을 사용한다. 로컬 폴더와 업무포털에는 색상만이 아닌 `이 기기` 표식을 함께 둔다.
 - 빠른 메모는 단일 session-only 상태를 유지하며 문자 수는 action row의 보조 정보로만 표시한다.
 - Dock tile accent는 표시 순서가 아니라 `data-dock-item` identity에 연결해 숨김·복원·재정렬 후에도 같은 기능의 색을 유지한다.
+
+## v1.0 presentation refresh (2026-10)
+
+This section supersedes the earlier glass opacity/shadow recipes only for the
+health-work workspace. Saved layout, appearance IDs, compact breakpoints and
+session/data policies remain unchanged. TeacherDesk's widget workspace is a
+concept reference (https://tdesk24.com/); no screen, icons or assets are copied.
+
+- Material: white work surfaces on a near-white cool canvas, mint selection,
+  teal text accents, a single low shadow instead of stacked floating glows.
+- Workspace-scoped tokens: ink #243247, secondary #526476, muted #627585,
+  accent #147d70, hover #10665c, soft #eaf6f2, border #dce6e4,
+  error surface #fff5f3, warm memo #fffbed. Existing 4/8/12/16 spacing,
+  12/13/14/16/18 type ramp and Pretendard remain canonical.
+- Widget radius follows the saved compact/soft setting; panels use 16px,
+  controls 8px, control height 36px. Do not resize the saved grid.
+- Primitives: named toolbar actions, Dock launcher, settings navigation,
+  sheet header, outlined input, segmented tab, sticky table header, notice.
+  Hover uses accent-soft; selected uses teal plus existing text/ARIA state;
+  focus-visible uses a 2px teal outline; disabled remains visibly disabled.
+  Loading keeps the existing busy label; empty remains explanatory; errors use
+  error ink/surface and a leading border; success keeps the existing status
+  message and uses the neutral mint-accent notice, never inferred success.
+- At 900px the existing compact widget list remains. Below 600px toolbar stays
+  icon-only with accessible labels; sheet toolbars wrap and tables scroll
+  inside their own container. At short heights sheets stay scrollable.
+- Existing settings navigation is the sidebar pattern; no additional global
+  sidebar or routing state is introduced. Dock, close, focus and persistence
+  behavior remain owned by the existing components.
+- MY FINANCE Phase 2 is deferred to PR #21 integration. Its prospective visual
+  hierarchy is total/net assets, annual income/withholding, realized/unrealized
+  P&L, asset composition and recent transactions using existing domain outputs
+  only. This refresh imports no finance code and introduces no calculation.
+- Verification uses a fresh headless Edge browser profile, localhost-only
+  requests and signed-out empty states, never production accounts or data.
+  Windows native/WebView2 screenshots and signed-in cloud content remain
+  separate release QA. No new instrumentation dependencies are installed for
+  this presentation-only pass on a space-constrained PC.
+- Narrow calendar keeps the existing 620px event grid and provides internal
+  horizontal scrolling; narrow Dock removes gaps, preserving all 42px targets.
+- Generic input styling uses zero-specificity input matching so existing
+  Purchase validation warning borders take precedence.
+
+## v1.0 independent desktop composition
+
+The attached TD2 reference informs spatial rhythm only: a compact top information
+band, a tall monthly calendar, a right work rail, and a bottom utility shelf.
+No reference imagery/icons/code are embedded. This supersedes the earlier
+white card refresh as the main-dashboard composition.
+
+`DesktopWidgetLayout` owns the rendered grid independently from action/data
+coordination. Canonical dense desks render a new 12-column/10-row composition:
+clock/weather/summary/priority above; 6-column, 5-row calendar at center-left;
+tasks/upcoming/meal/D-Day at right; weekly/memo/quick-launcher below. Existing
+saved coordinates/schema are unchanged; only the canonical layout projects into
+this composition. A manually customized layout keeps its coordinates.
+
+Rows expand to available viewport height with a 48px minimum and 180px reserved
+for toolbar/notice/Dock. Below minimum content height use scroll, never squash.
+Canvas tokens: #c7e5eb to #86b9c8 with white/cyan ambient light; translucent
+white fill 0.86–0.94, 1px white rim, 0 8px 26px ink shadow at 10%.
+Top date uses 32px/600; body 13–14px; calendar date 14px and event 12px.
+Default desktop Dock uses 52px targets, 38px icons and 8px spacing. Compact Dock
+retains 42px targets with gaps removed to remain reachable at narrow widths.
+The long signed-out instruction appears once above the grid. Widgets show a
+short noninteractive waiting state; error/loading state semantics stay unchanged.
+
+## Final widget content polish
+
+Approved composition stays fixed. Populated QA uses typed synthetic fixtures in a
+separate build config, never a demo flag in the production app. Calendar event chips
+keep category colors, two-line titles and full-title hover text; +N stays beside the
+chip rather than falling outside the cell. Compact six-week cells may use one line
+with the same full-title hover. The existing one-event/+N data contract is unchanged.
+Summary metrics use stacked labels and larger values, weather uses a clear temperature
+focal point, and task/upcoming lists scroll within their cards. Weekly text wraps to
+two lines. D-Day uses readable rows. All use existing spacing/type/color tokens.
+Signed-out desktop widgets show a quiet dash with an accessible waiting label; the
+shared banner is the only account instruction. Standalone/error/loading guidance
+remains. Dock active marker, accessible name, hover and keyboard tooltip stay intact.

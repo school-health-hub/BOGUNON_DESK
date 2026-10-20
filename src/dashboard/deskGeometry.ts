@@ -1,4 +1,5 @@
 import type { Layout } from "react-grid-layout";
+import { desktopComposition } from "./desktopComposition";
 import { deskWidgetLayouts } from "./layouts";
 import { mergeGridLayout } from "./layoutTransforms";
 import type { DashboardLayout, WidgetLayout } from "./types";
@@ -12,12 +13,10 @@ export const isCanonicalDeskLayout = (layout: DashboardLayout): boolean =>
 
 export const resolveDeskGeometry = (layout: DashboardLayout, viewportWidth: number) => {
   const dense = layout.gridProfile === "dense-desk-v2";
-  const extraRows = viewportWidth >= 1800 ? 2 : viewportWidth >= 1500 ? 1 : 0;
-  const widgets: readonly WidgetLayout[] = dense && isCanonicalDeskLayout(layout) ? layout.widgets.map((widget) => {
-    if (widget.type === "monthly-calendar") return { ...widget, h: widget.h + extraRows };
-    return widget.x < 8 ? { ...widget, y: widget.y + extraRows } : widget;
-  }) : layout.widgets;
-  return { dense, widgets, rowHeight: 40 + extraRows * 2, margin: 10 + extraRows * 2 };
+  const widgets: readonly WidgetLayout[] = dense && isCanonicalDeskLayout(layout)
+    ? layout.widgets.map((widget) => ({ ...widget, ...desktopComposition[widget.type] }))
+    : layout.widgets;
+  return { dense, widgets, rowHeight: 48, margin: viewportWidth >= 1800 ? 14 : 12 };
 };
 
 export const mergeRenderedGridLayout = (current: DashboardLayout, rendered: readonly WidgetLayout[], next: Layout): DashboardLayout => {

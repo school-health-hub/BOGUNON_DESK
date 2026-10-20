@@ -7,14 +7,17 @@ import { parseDashboardLayoutValue } from "./storage";
 import { calculateDashboardGridMetrics, applyPreset } from "../components/dashboard/dashboardCanvasSupport";
 
 describe("dense desk geometry", () => {
-  it.each([[1366,768,5,40,10,590],[1600,900,6,42,12,690],[1920,1080,7,44,14,798]])("fits bounded real slots at %i pixels", (width,height,calendarRows,rowHeight,margin,contentHeight) => {
+  it.each([[1366,768,5,48,12,588],[1600,900,5,61,12,718],[1920,1080,5,77,14,896]])("fits bounded real slots at %i pixels", (width,height,calendarRows,rowHeight,margin,contentHeight) => {
     const geometry = resolveDeskGeometry(createDefaultDashboardLayout(), width);
     const visible = geometry.widgets.filter((widget) => widget.visible);
     const calendar = visible.find((widget) => widget.type === "monthly-calendar");
     const weekly = visible.find((widget) => widget.type === "weekly-schedule");
     const metrics = calculateDashboardGridMetrics(height, Math.max(...visible.map((widget) => widget.y + widget.h)), geometry);
     expect(calendar?.h).toBe(calendarRows);
-    expect(weekly?.y).toBe(calendarRows);
+    expect(calendar?.y).toBe(2);
+    expect(calendar?.w).toBe(6);
+    expect(weekly?.y).toBe(7);
+    expect(metrics.availableHeight - metrics.contentHeight).toBeLessThan(10);
     expect(metrics).toMatchObject({ rowHeight, margin, contentHeight, requiresScroll: false });
     for (const [index,left] of visible.entries()) for (const right of visible.slice(index+1)) {
       expect(left.x < right.x+right.w && left.x+left.w > right.x && left.y < right.y+right.h && left.y+left.h > right.y).toBe(false);

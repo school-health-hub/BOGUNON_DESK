@@ -41,11 +41,13 @@ export const calculateDashboardGridMetrics = (
   const verticalReservation = viewportHeight <= LOW_HEIGHT_VIEWPORT_MAX
     ? LOW_HEIGHT_WORKSPACE_VERTICAL_RESERVATION
     : DESKTOP_WORKSPACE_VERTICAL_RESERVATION;
-  const availableHeight = Math.max(520, viewportHeight - verticalReservation);
-  const rowHeight = denseGeometry?.rowHeight ?? Math.max(
+  const availableHeight = denseGeometry === undefined
+    ? Math.max(520, viewportHeight - verticalReservation)
+    : Math.max(1, viewportHeight - 180);
+  const rowHeight = denseGeometry === undefined ? Math.max(
     44,
     Math.floor((availableHeight - margin * (sizingRowCount - 1)) / sizingRowCount),
-  );
+  ) : Math.max(denseGeometry.rowHeight, Math.floor((availableHeight - margin * (safeVisibleRowCount - 1)) / safeVisibleRowCount));
   const contentHeight = rowHeight * safeVisibleRowCount + margin * (safeVisibleRowCount - 1);
 
   return {
