@@ -5,7 +5,7 @@ const human = (id) => ({ id, type: 'User', login: id === CONFIG.operatorId ? CON
 const context = () => ({ repository: CONFIG.repository, eventName: 'workflow_dispatch', ref: 'refs/heads/main',
   workflowRef: `${CONFIG.repository}/${CONFIG.workflow}@refs/heads/main`, workflowSha: controller,
   controllerSha: controller, githubSha: controller, runnerEnvironment: 'github-hosted', runnerOs: 'Windows', runId: '123', runAttempt: '1' });
-const pr = () => ({ number: 14, state: 'open', draft: true, base: { ref: 'main', repo: { full_name: CONFIG.repository } },
+const pr = () => ({ number: CONFIG.pr, state: 'open', draft: true, base: { ref: 'main', repo: { full_name: CONFIG.repository } },
   head: { ref: CONFIG.branch, sha: CONFIG.sourceSha, repo: { full_name: CONFIG.repository, fork: false } } });
 const run = () => ({ id: 123, run_attempt: 1, head_sha: controller, event: 'workflow_dispatch', head_branch: 'main',
   path: CONFIG.workflow, repository: { full_name: CONFIG.repository }, actor: human(CONFIG.operatorId), triggering_actor: human(CONFIG.operatorId) });
@@ -33,7 +33,7 @@ describe('fixed TESTABLE controller policy', () => {
   ])('rejects context field %s mismatch', (key, value, code) => deny(() => validateContext({ ...context(), [key]: value }), code));
   it('accepts the exact open draft PR', () => expect(validatePr(pr()).sha).toBe(CONFIG.sourceSha));
   it.each([
-    (p) => { p.number = 15; }, (p) => { p.state = 'closed'; }, (p) => { p.draft = false; },
+    (p) => { p.number = CONFIG.pr + 1; }, (p) => { p.state = 'closed'; }, (p) => { p.draft = false; },
     (p) => { p.base.ref = 'other'; }, (p) => { p.base.repo.full_name = 'fork/repo'; },
     (p) => { p.head.repo.full_name = 'fork/repo'; }, (p) => { p.head.repo.fork = true; },
     (p) => { p.head.ref = 'other'; }, (p) => { p.head.sha = controller; }, (p) => { delete p.head.repo; },

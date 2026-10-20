@@ -7,7 +7,7 @@ const human = id => ({ id, type: 'User', login: id === CONFIG.operatorId ? CONFI
 function fixture() {
   const ctx = { repository: CONFIG.repository, eventName: 'workflow_dispatch', ref: 'refs/heads/main', workflowRef: `${CONFIG.repository}/${CONFIG.workflow}@refs/heads/main`, workflowSha: controller, githubSha: controller, controllerSha: controller, runnerEnvironment: 'github-hosted', runnerOs: 'Windows', runId: '123', runAttempt: '1' };
   const data = {
-    'pulls/14': { number: 14, state: 'open', draft: true, base: { ref: 'main', repo: { full_name: CONFIG.repository } }, head: { sha: CONFIG.sourceSha, ref: CONFIG.branch, repo: { full_name: CONFIG.repository, fork: false } } },
+    'pulls/21': { number: 21, state: 'open', draft: true, base: { ref: 'main', repo: { full_name: CONFIG.repository } }, head: { sha: CONFIG.sourceSha, ref: CONFIG.branch, repo: { full_name: CONFIG.repository, fork: false } } },
     [`git/ref/heads/${CONFIG.branch}`]: { ref: `refs/heads/${CONFIG.branch}`, object: { type: 'commit', sha: CONFIG.sourceSha } },
     'actions/runs/123/attempts/1': { id: 123, run_attempt: 1, head_sha: controller, event: 'workflow_dispatch', head_branch: 'main', path: CONFIG.workflow, repository: { full_name: CONFIG.repository }, actor: human(CONFIG.operatorId), triggering_actor: human(CONFIG.operatorId) },
     [`environments/${CONFIG.environment}`]: { id: 5, name: CONFIG.environment, can_admins_bypass: false, protection_rules: [{ type: 'required_reviewers', prevent_self_review: false, reviewers: [{ type: 'User', reviewer: human(CONFIG.operatorId) }] }], deployment_branch_policy: { custom_branch_policies: true, protected_branches: false } },
@@ -29,7 +29,7 @@ describe('controller API gate integration', () => {
     const f = fixture(); const result = await gate('publish-check', f.ctx, '456', hash, f.api);
     expect(result.context.artifactId).toBe('456'); expect(result.approval.actor).toBe(CONFIG.operatorLogin); expect(f.calls).toHaveLength(8);
   });
-  it.each(['pulls/14', `environments/${CONFIG.environment}`, 'actions/runs/123/attempts/1'])('API failure %s stops without permit/output', async key => {
+  it.each(['pulls/21', `environments/${CONFIG.environment}`, 'actions/runs/123/attempts/1'])('API failure %s stops without permit/output', async key => {
     const f = fixture(); delete f.data[key]; await expect(gate('check', f.ctx, undefined, undefined, f.api)).rejects.toThrow('API_UNAVAILABLE');
   });
   it.each([
