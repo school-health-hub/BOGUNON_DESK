@@ -75,3 +75,9 @@ npm run release:windows
 ## 라이선스
 
 BOGUNON DESK 소스 코드는 [Apache License 2.0](LICENSE)으로 배포됩니다. 포함된 서드파티 소프트웨어와 폰트는 각각의 원 라이선스를 따르며 자세한 내용은 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)를 확인하세요.
+
+## MY FINANCE 개발 검증 단계
+
+상단 `MY FINANCE` 메뉴에서 개인 수입 등록·수정·삭제와 연간 집계를 확인할 수 있습니다. 금융정보는 Windows 앱의 SQLCipher 로컬 DB에만 보관하며 계정 설정과 동기화하지 않습니다. 브라우저에서는 암호화 저장소를 사용할 수 없다는 안내를 표시합니다.
+
+아직 실사용 준비 완료 단계가 아닙니다. 암호화 백업·복원 및 학교 PC ↔ 집 PC 검증이 끝나기 전에는 실제 금융정보를 입력하지 마세요. 현재 개발·검증에는 합성 데이터만 사용합니다.

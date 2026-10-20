@@ -17,6 +17,12 @@ mod chatgpt;
 mod desktop_surface;
 mod launcher;
 mod meal;
+mod my_finance_backup;
+mod my_finance_codec;
+mod my_finance_snapshot;
+mod my_finance_store;
+mod my_finance_commands;
+mod my_finance_transfer;
 mod notifications;
 mod official_document_import;
 mod purchase_helper;
@@ -230,6 +236,12 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "my-finance-qa")]
+mod my_finance_qa;
+#[cfg(feature = "my-finance-qa")]
+pub use my_finance_qa::run;
+
+#[cfg(not(feature = "my-finance-qa"))]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default();
@@ -242,6 +254,7 @@ pub fn run() {
 
     builder
         .manage(DesktopState::default())
+        .manage(my_finance_commands::FinanceState::default())
         .manage(desktop_surface::DesktopSurfaceCoordinator::default())
         .manage(chatgpt::commands::ChatGptAuthState::default())
         .manage(chatgpt::credential::ChatGptCredentialMutationState::default())
@@ -258,6 +271,16 @@ pub fn run() {
             None,
         ))
         .invoke_handler(tauri::generate_handler![
+            my_finance_commands::my_finance_load_snapshot,
+            my_finance_commands::my_finance_list_income,
+            my_finance_commands::my_finance_create_income,
+            my_finance_commands::my_finance_update_income,
+            my_finance_commands::my_finance_delete_income,
+            my_finance_commands::my_finance_export_backup,
+            my_finance_commands::my_finance_select_backup,
+            my_finance_commands::my_finance_inspect_backup,
+            my_finance_commands::my_finance_restore_backup,
+            my_finance_commands::my_finance_cancel_backup,
             ai::validate_ai_connection,
             ai_generation::generate_ai_text,
             chatgpt::commands::chatgpt_get_connection_state,

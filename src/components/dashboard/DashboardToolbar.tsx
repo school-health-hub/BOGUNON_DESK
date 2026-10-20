@@ -1,7 +1,8 @@
-import { Blocks, Check, LayoutDashboard, LayoutTemplate, Palette, PanelBottom, Plus, RotateCcw } from "lucide-react";
+import { Wallet, Blocks, Check, LayoutDashboard, LayoutTemplate, Palette, PanelBottom, Plus, RotateCcw } from "lucide-react";
 import type { DashboardEditorPanel } from "./useDesktopNavigation";
 
 type DashboardToolbarProps = {
+  readonly onOpenFinance?: () => void;
   readonly activePanel: DashboardEditorPanel;
   readonly isEditing: boolean;
   readonly onOpenPanel: (panel: DashboardEditorPanel) => void;
@@ -11,6 +12,7 @@ type DashboardToolbarProps = {
 };
 
 export function DashboardToolbar({
+  onOpenFinance,
   activePanel,
   isEditing,
   onOpenPanel,
@@ -21,6 +23,7 @@ export function DashboardToolbar({
   if (!isEditing) {
     return (
       <div className="workspace-view-actions" aria-label="업무판 빠른 작업">
+        {onOpenFinance && <button className="toolbar-button" type="button" data-finance-launcher aria-label="MY FINANCE 개인 수입 관리" onClick={onOpenFinance}><Wallet size={16} /> <span>MY FINANCE</span></button>}
         <button className="toolbar-button workspace-quick-add-button" type="button" aria-label="빠른 추가" title="빠른 추가" onClick={onOpenQuickAdd}>
           <Plus size={16} /> <span>빠른 추가</span>
         </button>
