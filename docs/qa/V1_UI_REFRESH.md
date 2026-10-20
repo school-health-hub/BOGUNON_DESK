@@ -68,3 +68,52 @@ The built production preview on localhost:1438 was re-tested with
 `document.fonts.ready`; all 18 `production-*.png` captures and
 `production-report.json` are the final reference. HTTP >=400 and page errors
 were checked and none were recorded. No production code change was needed.
+
+## Desktop composition replacement (2026-10-21)
+
+This pass replaces the dashboard composition rather than recoloring its previous slots.
+`DesktopWidgetLayout` owns the grid and existing `WidgetFrame` instances; a typed
+12-column/10-row default composition places clock/weather/summary above the calendar,
+tasks/events on the right, and weekly schedule/memo/launcher along the bottom.
+Only canonical dense layouts are projected. User-customized saved coordinates,
+storage schema, widget IDs, data providers and action handlers remain unchanged.
+Small windows retain vertical scrolling and the calendar's internal horizontal scroll.
+
+Observed production Edge browser at 1920×1080:
+
+- Previous centered dashboard cap: 1540px. New workspace: 1920px, widgets begin x32.
+- Calendar: x32/y254, 921×441px. Weekly schedule: y709, 921×259px.
+- Final widget bottom: y968. Dock: y998, 436×72px. No large unused bottom region.
+- Default / Soft / Flat shadows remain distinct after CSS transition settles.
+- One common account instruction replaces repeated long widget notices.
+
+Verification for this pass:
+
+- Failing-first geometry expectations: 3 failures before implementation; targeted suite green after.
+- Full frontend: 178 files, 1180 tests passed (`--cache=false --maxWorkers=2`).
+- TypeScript noEmit and Vite production build passed. Existing bundle size warning remains.
+- 20 browser captures: 1920×1080; 1440/1280/768/375 widths; 1024×600 tool dialogs.
+- Real clicks: settings, Dock tools, Record Helper, Purchase Helper empty-row validation,
+  edit/done, quick add. Narrow calendar scroll and all seven Dock actions verified.
+- Zero page errors or local HTTP errors in capture report. Independent QA also added/hid a widget.
+- Independent goal, code, security, context and hands-on QA reviews passed.
+  Context review found a Soft-shadow override; fixed and re-reviewed before completion.
+- React review: no new effect/listener/data fetch/storage write; keyed widget identities and
+  existing callback ownership retained. Presentation-only notice context has bounded scope.
+
+Runtime audit hypotheses and evidence:
+
+1. Width cap caused unused sides: old production screenshot shows centered 1540px layout;
+   removing the cap yields measured 1920px workspace with 32px widget gutter.
+2. Fixed row sizing left bottom space: old screenshot ends widgets near y848; new height-derived
+   rows end y968, with only 30px before Dock. Short-window minimum height scrolls instead of clipping.
+3. Narrow layout could hide controls: 375px browser run confirms internal calendar scrolling,
+   no document horizontal overflow and every Dock button in viewport.
+
+Evidence retained outside Git in `C:/Users/Public/Documents/BOGUNON-ui-evidence/`:
+`previous-dashboard.png`, `desktop-dashboard.png`, `dashboard-comparison.png`,
+`desktop-dashboard-375.png`, `desktop-report.json`, `layout-metrics.json`,
+`desktop-tests.log`, `desktop-build.log`, `independent-report.json`.
+These are fresh isolated browser previews with signed-out states, not native Windows
+Tauri/WebView2 or authenticated Google data verification. No real user data was used.
+No Rust/native build, PR21/23 mutation, financial/auth logic change or release operation.

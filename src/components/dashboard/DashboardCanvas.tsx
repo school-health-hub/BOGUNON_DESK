@@ -1,4 +1,3 @@
-import { GridLayout, type Layout } from "react-grid-layout";
 import { Sparkles } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -24,7 +23,7 @@ import { getDesktopErrorMessage, isDesktopRuntime, openBogunonSearchResult, open
 import { parseDesktopActionId, type BogunonSearchResultTarget } from "../../desktop/types";
 import { createDefaultDashboardLayout } from "../../dashboard/layouts";
 import { mergeRenderedGridLayout, resolveDeskGeometry } from "../../dashboard/deskGeometry";
-import { hideWidget, restoreWidget, toGridLayout } from "../../dashboard/layoutTransforms";
+import { hideWidget, restoreWidget } from "../../dashboard/layoutTransforms";
 import type { DashboardAppearance, DashboardLayout, WidgetType } from "../../dashboard/types";
 import { settingsService } from "../../settings/settingsService";
 import { accountSyncService } from "../../settings/accountSyncService";
@@ -32,7 +31,7 @@ import { DashboardToolbar } from "./DashboardToolbar";
 import { AppearancePanel } from "./AppearancePanel";
 import { PresetSelector } from "./PresetSelector";
 import { applyPreset, calculateDashboardGridMetrics, getWorkspaceModeClassName, RESET_DASHBOARD_CONFIRMATION, resetDashboardLayout, resolveDashboardGridWidth, useElementWidth, useViewportHeight, useViewportWidth } from "./dashboardCanvasSupport";
-import { WidgetFrame } from "./WidgetFrame";
+import { DesktopWidgetLayout } from "./DesktopWidgetLayout";
 import { WidgetLibraryDrawer } from "./WidgetLibraryDrawer";
 import { useDesktopNavigation, type DashboardEditorPanel } from "./useDesktopNavigation";
 import { useWorkspaceData } from "../../workspace-data/WorkspaceDataContext";
@@ -241,7 +240,6 @@ export function DashboardCanvas({ onOpenFinance, suspended = false }: { readonly
 
   const deskGeometry = useMemo(() => resolveDeskGeometry(dashboardLayout, viewportWidth), [dashboardLayout, viewportWidth]);
   const renderedWidgets = deskGeometry.widgets;
-  const gridLayout = useMemo(() => toGridLayout(renderedWidgets, isEditing && !isCompact), [renderedWidgets, isEditing, isCompact]);
   const visibleWidgets = renderedWidgets.filter((widget) => widget.visible);
   const visibleRowCount = Math.max(1, ...visibleWidgets.map((widget) => widget.y + widget.h));
   const gridMetrics = calculateDashboardGridMetrics(viewportHeight, visibleRowCount, deskGeometry.dense ? deskGeometry : undefined);
@@ -444,40 +442,17 @@ export function DashboardCanvas({ onOpenFinance, suspended = false }: { readonly
             <button type="button" onClick={() => setDashboardLayout(createDefaultDashboardLayout())}>기본 위젯 복원</button>
           </section>
         ) : gridWidth !== null ? (
-          <GridLayout
-            autoSize={false}
-            className={`workspace-grid${isEditing ? " is-editing" : ""}`}
-            dragConfig={{
-              enabled: isEditing && !isCompact,
-              handle: ".widget-frame__drag",
-              cancel: ".react-resizable-handle, button, textarea, input, select, a",
-            }}
-            gridConfig={{ cols: 12, rowHeight: gridMetrics.rowHeight, margin: [gridMetrics.margin, gridMetrics.margin], containerPadding: null, maxRows: 40 }}
-            layout={gridLayout}
-            resizeConfig={{ enabled: isEditing && !isCompact, handles: ["se"] }}
-            style={{ height: gridMetrics.contentHeight }}
-            width={gridWidth}
-            onLayoutChange={(nextLayout: Layout) => {
+          <DesktopWidgetLayout
+            widgets={renderedWidgets} width={gridWidth} compact={isCompact} editing={isEditing}
+            selectedId={selectedWidgetId} metrics={gridMetrics} onSelect={setSelectedWidgetId}
+            onLayoutChange={(nextLayout) => {
               if (isEditing && !isCompact) setDashboardLayout((current) => mergeRenderedGridLayout(current, resolveDeskGeometry(current, viewportWidth).widgets, nextLayout));
             }}
-          >
-            {visibleWidgets.map((widget) => {
-              return (
-                <div key={widget.id} data-widget-type={widget.type} data-grid-height={widget.h} data-grid-width={widget.w} tabIndex={-1}>
-                  <WidgetFrame
-                    isEditing={isEditing}
-                    isSelected={selectedWidgetId === widget.id}
-                    widget={widget}
-                    onHide={() => {
-                      setSelectedWidgetId(null);
-                      setDashboardLayout((current) => hideWidget({ ...current, widgets: resolveDeskGeometry(current, viewportWidth).widgets }, widget.id));
-                    }}
-                    onSelect={() => setSelectedWidgetId(widget.id)}
-                  />
-                </div>
-              );
-            })}
-          </GridLayout>
+            onHide={(id) => {
+              setSelectedWidgetId(null);
+              setDashboardLayout((current) => hideWidget({ ...current, widgets: resolveDeskGeometry(current, viewportWidth).widgets }, id));
+            }}
+          />
         ) : null}
       </main>
 

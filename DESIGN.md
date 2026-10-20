@@ -402,3 +402,27 @@ concept reference (https://tdesk24.com/); no screen, icons or assets are copied.
   horizontal scrolling; narrow Dock removes gaps, preserving all 42px targets.
 - Generic input styling uses zero-specificity input matching so existing
   Purchase validation warning borders take precedence.
+
+## v1.0 independent desktop composition
+
+The attached TD2 reference informs spatial rhythm only: a compact top information
+band, a tall monthly calendar, a right work rail, and a bottom utility shelf.
+No reference imagery/icons/code are embedded. This supersedes the earlier
+white card refresh as the main-dashboard composition.
+
+`DesktopWidgetLayout` owns the rendered grid independently from action/data
+coordination. Canonical dense desks render a new 12-column/10-row composition:
+clock/weather/summary/priority above; 6-column, 5-row calendar at center-left;
+tasks/upcoming/meal/D-Day at right; weekly/memo/quick-launcher below. Existing
+saved coordinates/schema are unchanged; only the canonical layout projects into
+this composition. A manually customized layout keeps its coordinates.
+
+Rows expand to available viewport height with a 48px minimum and 180px reserved
+for toolbar/notice/Dock. Below minimum content height use scroll, never squash.
+Canvas tokens: #c7e5eb to #86b9c8 with white/cyan ambient light; translucent
+white fill 0.86–0.94, 1px white rim, 0 8px 26px ink shadow at 10%.
+Top date uses 32px/600; body 13–14px; calendar date 14px and event 12px.
+Default desktop Dock uses 52px targets, 38px icons and 8px spacing. Compact Dock
+retains 42px targets with gaps removed to remain reachable at narrow widths.
+The long signed-out instruction appears once above the grid. Widgets show a
+short noninteractive waiting state; error/loading state semantics stay unchanged.
