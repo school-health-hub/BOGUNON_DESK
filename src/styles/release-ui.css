@@ -1,0 +1,175 @@
+/* v1.0 workspace presentation. No finance, native or persistence scope. */
+.workspace-shell {
+  --text-secondary: #526476;
+  --text-muted: #627585;
+  --text-subtle-readable: #627585;
+  --accent: #147d70;
+  --accent-hover: #10665c;
+  --accent-soft: #eaf6f2;
+  --border: #dce6e4;
+  --divider: #eaf0ee;
+  --release-error-bg: #fff5f3;
+  --release-memo-bg: #fffbed;
+  --release-radius: 16px;
+  --release-control-height: 36px;
+  --release-shadow: 0 2px 8px rgb(36 50 71 / 4%), 0 8px 24px rgb(36 50 71 / 5%);
+  --desktop-canvas-blue-material: linear-gradient(135deg, #f6faf9, #edf4f6);
+  --desktop-glass-bg: var(--widget-bg);
+  --desktop-widget-primary-bg: var(--widget-bg);
+  --desktop-widget-utility-bg: var(--widget-bg);
+  --desktop-widget-info-bg: var(--widget-bg);
+  --desktop-widget-primary-border: var(--border);
+  --desktop-widget-utility-border: var(--border);
+  --desktop-widget-info-border: var(--border);
+  --desktop-widget-primary-shadow: var(--release-shadow);
+  --desktop-widget-utility-shadow: var(--release-shadow);
+  --desktop-widget-info-shadow: var(--release-shadow);
+  --desktop-personal-object-bg: var(--release-memo-bg);
+  --desktop-personal-object-shadow: var(--release-shadow);
+  --desktop-empty-bg: var(--widget-bg);
+  --desktop-empty-border: var(--border);
+  --desktop-empty-shadow: var(--release-shadow);
+  --desktop-toolbar-bg: var(--widget-bg);
+  --desktop-toolbar-border: var(--border);
+  --desktop-toolbar-shadow: var(--release-shadow);
+  --desktop-dock-bg: var(--widget-bg);
+  --desktop-dock-border: var(--border);
+  --desktop-dock-shadow: var(--release-shadow);
+  --desktop-dock-tile-shadow: none;
+  --desktop-clock-bg: var(--widget-bg);
+  --desktop-clock-shadow: var(--release-shadow);
+  --desktop-summary-bg: var(--widget-bg);
+  --desktop-summary-shadow: var(--release-shadow);
+  --desktop-work-sheet-bg: var(--widget-bg);
+  --desktop-work-sheet-shadow: var(--release-shadow);
+  --desktop-palette-bg: var(--widget-bg);
+  --shadow-floating: var(--release-shadow);
+}
+
+.workspace-shell.is-view-mode .workspace-view-actions {
+  top: var(--space-2);
+  padding: 2px;
+  border-radius: var(--radius-control);
+}
+.workspace-shell.is-view-mode .workspace-view-actions .toolbar-button { opacity: 1; }
+@media (min-width: 600px) {
+  .workspace-shell.is-view-mode .workspace-view-actions .toolbar-button span {
+    position: static;
+    width: auto;
+    height: auto;
+    clip: auto;
+    overflow: visible;
+    font-size: var(--text-sm);
+  }
+}
+.workspace-shell .panel__title { letter-spacing: -0.02em; }
+.workspace-shell .panel__icon { color: var(--accent-hover); }
+.workspace-shell .workspace-data-notice:not(.is-error) { color: var(--text-subtle-readable); }
+.workspace-shell .calendar-date { font-variant-numeric: tabular-nums; }
+.workspace-shell.is-view-mode .calendar-cell.is-today { background: var(--accent-soft); }
+.workspace-shell .calendar-cell.is-today .calendar-date { background: var(--accent-hover); }
+.workspace-shell .calendar-weekday { color: var(--text-secondary); font-weight: var(--weight-semibold); }
+
+.workspace-shell :is(.desktop-settings, .toolbox-panel, .quick-add-panel,
+  .inbox-panel, .record-helper-panel, .purchase-helper-panel, .official-document-panel) {
+  border-color: var(--border);
+  border-radius: var(--release-radius);
+  box-shadow: var(--release-shadow);
+}
+.workspace-shell :is(.record-helper-panel, .purchase-helper-panel, .desktop-settings) > header {
+  padding: var(--space-4);
+  background: var(--widget-bg);
+  border-bottom: 1px solid var(--divider);
+}
+.workspace-shell :is(.record-helper-panel, .purchase-helper-panel) > header :is(strong, h2) {
+  font-size: var(--text-lg);
+  letter-spacing: -0.02em;
+}
+.workspace-shell .desktop-settings__nav { padding: var(--space-2); background: var(--workspace-bg); }
+.workspace-shell .desktop-settings__nav button { border-radius: var(--radius-control); }
+.workspace-shell .desktop-settings__nav button.is-active {
+  color: var(--accent-hover);
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.workspace-shell :is(.record-helper-panel__toolbar, .purchase-helper-panel__toolbar) {
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.workspace-shell :is(.record-helper-panel__toolbar, .purchase-helper-panel__toolbar) button {
+  min-height: var(--release-control-height);
+  border-radius: var(--radius-control);
+}
+.workspace-shell :is(.purchase-helper-tabs, .official-document-panel__tabs) {
+  gap: var(--space-1);
+  background: var(--workspace-bg);
+}
+.workspace-shell :is(.purchase-helper-tabs, .official-document-panel__tabs) button {
+  min-height: var(--release-control-height);
+  border-radius: var(--radius-control);
+}
+.workspace-shell .purchase-helper-tabs button[aria-selected="true"] {
+  color: var(--accent-hover);
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+}
+.workspace-shell :is(.record-helper-panel, .purchase-helper-panel, .official-document-panel,
+  .quick-add-panel, .desktop-settings) :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  border-color: var(--control-border);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  font-size: var(--text-md);
+}
+.workspace-shell :is(.record-helper-panel, .purchase-helper-panel, .official-document-panel,
+  .quick-add-panel, .desktop-settings) :where(input:not([type="checkbox"]):not([type="radio"]), select) {
+  min-height: var(--release-control-height);
+}
+.workspace-shell :is(button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--accent-hover);
+  outline-offset: 2px;
+}
+.workspace-shell .purchase-helper-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--workspace-bg);
+  color: var(--text-primary);
+}
+.workspace-shell .purchase-helper-table tbody tr:hover { background: var(--accent-soft); }
+.workspace-shell :is(.purchase-helper-table-wrap, .record-helper-workspace__main,
+  .record-helper-workspace__list, .desktop-settings__content) { scrollbar-gutter: stable; }
+.workspace-shell .purchase-helper-panel__footer { gap: var(--space-3); flex-wrap: wrap; }
+.workspace-shell .purchase-helper-panel__footer > div { flex-wrap: wrap; }
+.workspace-shell :is(.record-helper-empty, .purchase-helper-dropzone) {
+  border-color: var(--accent-border);
+  background: var(--workspace-bg);
+  line-height: var(--leading-body);
+}
+.workspace-shell :is(.workspace-data-notice.is-error, .quick-add-panel__error,
+  .inbox-panel__error, .desktop-ai-error) {
+  padding: var(--space-3);
+  border-inline-start: 3px solid var(--danger-700);
+  border-radius: var(--radius-control);
+  color: var(--danger-700);
+  background: var(--release-error-bg);
+}
+.workspace-shell .desktop-toast {
+  padding: var(--space-3) var(--space-4);
+  border-inline-start: 3px solid var(--accent);
+  line-height: var(--leading-body);
+}
+@media (max-width: 600px) {
+  .workspace-shell .record-helper-panel__toolbar small { white-space: normal; }
+  .workspace-shell .purchase-helper-panel__footer { align-items: stretch; }
+}
+@media (max-height: 650px) {
+  .workspace-shell :is(.record-helper-backdrop, .purchase-helper-backdrop) { padding-block: var(--space-3); }
+  .workspace-shell :is(.record-helper-panel, .purchase-helper-panel) { min-height: 0; max-height: calc(100dvh - 24px); }
+  .workspace-shell .record-helper-panel__body { overflow-y: auto; }
+}
+@media (max-width: 820px) {
+  .workspace-shell .calendar-panel { overflow-x: auto; overscroll-behavior-x: contain; }
+}
+@media (max-width: 480px) {
+  .workspace-shell:is(.is-view-mode, .is-edit-mode) .dock { gap: 0; padding-inline: var(--space-1); }
+}
