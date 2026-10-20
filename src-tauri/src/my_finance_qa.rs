@@ -37,6 +37,7 @@ pub fn run() {
             my_finance_commands::my_finance_create_income,
             my_finance_commands::my_finance_update_income,
             my_finance_commands::my_finance_delete_income,
+            my_finance_commands::my_finance_replace_phase2,
             my_finance_commands::my_finance_export_backup,
             my_finance_commands::my_finance_select_backup,
             my_finance_commands::my_finance_inspect_backup,

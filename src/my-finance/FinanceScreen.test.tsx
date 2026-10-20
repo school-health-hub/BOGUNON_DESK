@@ -3,13 +3,13 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FinanceScreen } from "./FinanceScreen";
 import type { FinanceSnapshot } from "./repository";
-import type { IncomeRecord } from "./domain";
+import { emptyPhase2Data, type IncomeRecord } from "./domain";
 import fixture from "./fixtures/cross-pc-synthetic.json";
-const api = vi.hoisted(() => ({ listFinanceIncome: vi.fn(), createFinanceIncome: vi.fn(), updateFinanceIncome: vi.fn(), deleteFinanceIncome: vi.fn(), cancelFinanceBackup: vi.fn(), exportFinanceBackup: vi.fn(), selectFinanceBackup: vi.fn(), inspectFinanceBackup: vi.fn(), restoreFinanceBackup: vi.fn() }));
+const api = vi.hoisted(() => ({ listFinanceIncome: vi.fn(), createFinanceIncome: vi.fn(), updateFinanceIncome: vi.fn(), deleteFinanceIncome: vi.fn(), replaceFinancePhase2: vi.fn(), cancelFinanceBackup: vi.fn(), exportFinanceBackup: vi.fn(), selectFinanceBackup: vi.fn(), inspectFinanceBackup: vi.fn(), restoreFinanceBackup: vi.fn() }));
 vi.mock("./repository", () => api);
 const year = new Date().getFullYear();
 const item: IncomeRecord = { id: "00000000-0000-4000-8000-000000000001", sourceName: "합성 지급처 A", incomeKind: "lecture", contractLabel: "합성 계약", taxCategory: "unverified", taxCategoryVerified: false, earnedOn: `${year}-01-10`, paidOn: null, grossKrw: 100_000, deductions: [{ kind: "income_tax", amountKrw: 3_000 }], netKrw: 97_000, notes: "합성 메모" };
-const snapshot = (income: readonly IncomeRecord[] = [], revision = 1): FinanceSnapshot => ({ identity: { schemaVersion: 2, datasetId: "00000000-0000-4000-8000-000000000042", revision, history: Array.from({ length: revision }, (_, i) => `00000000-0000-4000-8000-${String(i + 1).padStart(12, "0")}`) }, income });
+const snapshot = (income: readonly IncomeRecord[] = [], revision = 1): FinanceSnapshot => ({ identity: { schemaVersion: 2, datasetId: "00000000-0000-4000-8000-000000000042", revision, history: Array.from({ length: revision }, (_, i) => `00000000-0000-4000-8000-${String(i + 1).padStart(12, "0")}`) }, income, phase2: emptyPhase2Data() });
 const confirmed = () => within(screen.getByRole("alertdialog")).getByRole("button", { name: "로컬 저장" });
 const change = (name: string | RegExp, value: string) => fireEvent.change(screen.getByLabelText(name), { target: { value } });
 async function ready(data = snapshot()) { api.listFinanceIncome.mockResolvedValue(data); render(<FinanceScreen onClose={vi.fn()} />); await waitFor(() => expect(screen.getByRole("button", { name: "수입 등록" }).hasAttribute("disabled")).toBe(false)); }
@@ -28,6 +28,18 @@ describe("local finance management", () => {
     await act(async () => finish(snapshot()));
     expect(screen.getByText("아직 등록된 수입이 없습니다")).toBeTruthy();
     expect(screen.getByText(/아직 실제 금융정보를 입력하지 마세요/)).toBeTruthy();
+  });
+  it("adds a synthetic investment account through the encrypted snapshot command", async () => {
+    await ready();
+    fireEvent.click(screen.getByRole("button", { name: "세금·투자·자산" }));
+    fireEvent.click(screen.getByRole("button", { name: "투자" }));
+    fireEvent.change(screen.getByPlaceholderText("계좌 이름"), { target: { value: "합성 증권" } });
+    api.replaceFinancePhase2.mockImplementation(async (_identity, phase2) => ({ ...snapshot([], 2), phase2 }));
+    fireEvent.click(screen.getAllByRole("button", { name: "추가" })[0]);
+    await screen.findByText("세금·투자·자산 정보를 암호화 저장소에 저장했습니다.");
+    await waitFor(() => expect(screen.getByPlaceholderText("계좌 이름")).toHaveProperty("value", ""));
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(api.replaceFinancePhase2).toHaveBeenCalledWith(snapshot().identity, expect.objectContaining({ investmentAccounts: [expect.objectContaining({ name: "합성 증권", currency: "KRW" })] }));
   });
   it("filters income and recomputes annual cards using occurrence dates", async () => {
     await ready(snapshot([item, { ...item, id: "synthetic-b", sourceName: "합성 전자책", incomeKind: "ebook", paidOn: `${year + 1}-01-01` }, { ...item, id: "synthetic-c", sourceName: "합성 이전 연도", earnedOn: `${year - 1}-12-31` }]));

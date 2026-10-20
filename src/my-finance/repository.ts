@@ -1,6 +1,6 @@
 /** Explicit local IPC only; never persist finance data in browser/account stores. */
 import { invoke, isTauri } from "@tauri-apps/api/core";
-import type { IncomeRecord } from "./domain";
+import type { IncomeRecord, Phase2Data } from "./domain";
 
 export type FinanceSnapshot = Readonly<{
   identity: Readonly<{
@@ -10,6 +10,7 @@ export type FinanceSnapshot = Readonly<{
     history: readonly string[];
   }>;
   income: readonly IncomeRecord[];
+  phase2?: Phase2Data;
 }>;
 
 /** Initialises the encrypted store on first explicit access in the Windows app. */
@@ -43,6 +44,11 @@ export async function updateFinanceIncome(expected: FinanceIdentity, entry: Inco
 export async function deleteFinanceIncome(expected: FinanceIdentity, id: string): Promise<FinanceSnapshot> {
   requireNative();
   return invoke<FinanceSnapshot>("my_finance_delete_income", { expected, id });
+}
+
+export async function replaceFinancePhase2(expected: FinanceIdentity, phase2: Phase2Data): Promise<FinanceSnapshot> {
+  requireNative();
+  return invoke<FinanceSnapshot>("my_finance_replace_phase2", { expected, phase2 });
 }
 
 export type RestorePreview = Readonly<{

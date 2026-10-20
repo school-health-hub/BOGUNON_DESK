@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowUpRight, CircleDollarSign, Clock3, LockKeyhole, Pencil, Plus, RefreshCw, Trash2, Wallet } from "lucide-react";
-import { createFinanceIncome, deleteFinanceIncome, listFinanceIncome, updateFinanceIncome, type FinanceIdentity, type FinanceSnapshot } from "./repository";
-import type { IncomeRecord } from "./domain";
+import { createFinanceIncome, deleteFinanceIncome, listFinanceIncome, replaceFinancePhase2, updateFinanceIncome, type FinanceIdentity, type FinanceSnapshot } from "./repository";
+import { emptyPhase2Data, type IncomeRecord, type Phase2Data } from "./domain";
 import { deductionLabels, editIncomeForm, emptyIncomeForm, formatKrw, incomeLabels, isFinanceConflict, selectIncome, taxLabels, type IncomeFilter, type IncomeFormValue } from "./presentation";
 import { IncomeForm } from "./IncomeForm";
 import { FinanceConfirmation } from "./FinanceConfirmation";
 import { FinanceTransfer } from "./FinanceTransfer";
+import { Phase2Workspace } from "./Phase2Workspace";
 import "./finance.css";
 
 type Editor = { value: IncomeFormValue; expected: FinanceIdentity; editing: boolean };
@@ -27,6 +28,7 @@ export function FinanceScreen({ onClose, qa = false }: { onClose: () => void; qa
   const [editor, setEditor] = useState<Editor | null>(null);
   const [dirty, setDirty] = useState(false);
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
+  const [workspace, setWorkspace] = useState<"income" | "planning">("income");
   const mounted = useRef(false);
   const sequence = useRef(0);
   const locked = useRef(false);
@@ -92,6 +94,13 @@ export function FinanceScreen({ onClose, qa = false }: { onClose: () => void; qa
     setNotice(null); setDirty(false);
     setEditor({ value: entry ? editIncomeForm(entry) : emptyIncomeForm(), expected: snapshot.identity, editing: entry !== undefined });
   };
+  const savePhase2 = async (phase2: Phase2Data) => {
+    if (!snapshot || !writable || locked.current) return;
+    locked.current = true; setBusy(true); setError(null);
+    try { const next = await replaceFinancePhase2(snapshot.identity, phase2); if (mounted.current) { setSnapshot(next); setNotice("세금·투자·자산 정보를 암호화 저장소에 저장했습니다."); } }
+    catch { if (mounted.current) { setStale(true); setError("저장 상태를 확인하지 못했습니다. 새로고침 후 다시 확인해 주세요."); } throw new Error("phase2-save-failed"); }
+    finally { locked.current = false; if (mounted.current) setBusy(false); }
+  };
   return <div className="finance-screen" onKeyDown={(e) => e.stopPropagation()}>
     <div className="finance-container" inert={confirmation !== null || transferOpen}>
       <header className="finance-header"><button type="button" className="finance-back" onClick={close} disabled={busy}><ArrowLeft size={16} /> {qa ? "QA 앱 종료" : "보건 업무로"}</button><span className="finance-local"><LockKeyhole size={14} /> 이 PC에만 저장</span></header>
@@ -100,6 +109,9 @@ export function FinanceScreen({ onClose, qa = false }: { onClose: () => void; qa
         <p className="finance-beta-note"><LockKeyhole size={15} /><span><strong>개발 검증 단계</strong> · 실제 두 PC 간 이동 및 장애 복구 수동 검증이 끝나기 전입니다. 아직 실제 금융정보를 입력하지 마세요. 클라우드 동기화는 지원하지 않습니다.</span></p>
         {error && <div role="alert" className="finance-error"><strong>{stale ? "최신 상태 확인이 필요합니다" : "저장소 연결 확인"}</strong><p>{error}</p>{snapshot && <p>아래 내역은 마지막 조회 결과입니다. 확인 전에는 변경할 수 없습니다.</p>}<button type="button" onClick={refresh} disabled={loading || busy}>최신 목록 새로고침</button></div>}
         {notice && <p role="status" className="finance-success">{notice}</p>}
+        <nav className="finance-area-tabs" aria-label="MY FINANCE 영역"><button type="button" className={workspace === "income" ? "is-active" : ""} onClick={() => setWorkspace("income")}>수입 관리</button><button type="button" className={workspace === "planning" ? "is-active" : ""} onClick={() => setWorkspace("planning")}>세금·투자·자산</button></nav>
+        {workspace === "planning" && snapshot && <Phase2Workspace income={snapshot.income} value={snapshot.phase2 ?? emptyPhase2Data()} disabled={!writable} onSave={savePhase2} />}
+        {workspace === "income" && <>
         <div className="finance-filters"><label>연도<select value={year} onChange={(e) => { setYear(Number(e.target.value)); setPage(1); }}>{years.map((y) => <option key={y} value={y}>{y}년</option>)}</select></label><label>수입 유형 필터<select value={kind} onChange={(e) => { setKind(e.target.value as IncomeFilter); setPage(1); }}><option value="all">전체 수입</option>{Object.entries(incomeLabels).map(([k, v]) => <option value={k} key={k}>{v}</option>)}</select></label><p>수입 발생일 기준 · {kind === "all" ? "전체 유형" : incomeLabels[kind]}</p></div>
         <section className="finance-summary" aria-label="연간 수입 집계" aria-busy={loading}>
           {[
@@ -126,6 +138,7 @@ export function FinanceScreen({ onClose, qa = false }: { onClose: () => void; qa
           </section>
           {editor && <IncomeForm key={editor.value.id} initial={editor.value} editing={editor.editing} disabled={!writable} onDirty={() => setDirty(true)} onCancel={() => dirty ? ask({ kind: "discard" }) : setEditor(null)} onSave={(entry) => ask({ kind: "save", entry, expected: editor.expected, editing: editor.editing })} />}
         </div>
+        </>}
       </main><footer className="finance-page-footer">개인 수입 전용 공간 · 학교 업무 및 계정 설정과 별도로 관리합니다.</footer>
     </div>
     {transferOpen && snapshot && <FinanceTransfer snapshot={snapshot} onClose={() => setTransferOpen(false)} onRestored={(next) => { setSnapshot(next); setEditor(null); setDirty(false); setPage(1); setError(null); setStale(false); setNotice("암호화 백업을 복원했습니다."); }} onUncertain={() => { setStale(true); setError("복원 상태 확인을 위해 최신 목록을 새로고침해 주세요."); }} />}

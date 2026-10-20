@@ -8,7 +8,7 @@ pub(crate) struct FinanceState(
     Arc<Mutex<crate::my_finance_transfer::TransferSession>>,
 );
 
-use crate::my_finance_snapshot::{IncomeEntry, SnapshotIdentity};
+use crate::my_finance_snapshot::{IncomeEntry, Phase2Data, SnapshotIdentity};
 use crate::my_finance_store::{FinanceStore, IncomeMutation};
 use uuid::Uuid;
 
@@ -77,6 +77,19 @@ pub(crate) async fn my_finance_delete_income(
 ) -> Result<FinanceSnapshot, &'static str> {
     run(app, state.inner().0.clone(), false, move |store| {
         store.apply(&expected, IncomeMutation::Delete(id))
+    })
+    .await
+}
+
+#[tauri::command]
+pub(crate) async fn my_finance_replace_phase2(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, FinanceState>,
+    expected: SnapshotIdentity,
+    phase2: Phase2Data,
+) -> Result<FinanceSnapshot, &'static str> {
+    run(app, state.inner().0.clone(), false, move |store| {
+        store.replace_phase2(&expected, phase2)
     })
     .await
 }
