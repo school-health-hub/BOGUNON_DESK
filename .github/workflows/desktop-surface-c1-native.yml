@@ -1,0 +1,15 @@
+name: Desktop Surface C-1 Windows native boundary verification
+on:
+  workflow_dispatch:
+    inputs:
+      expected_controller_sha:
+        description: Exact reviewed workflow controller SHA; C0 source is fixed to ab5eb3f078b63428511d758137ba7747e54396f0
+        required: true
+        type: string
+permissions: {}
+jobs:
+  registration-only:
+    if: ${{ false }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Registration only; select feature/dashboard-mint-ivory-v2."
