@@ -21,6 +21,8 @@ mod main_security;
 mod main_window_events;
 mod chatgpt;
 mod desktop_surface;
+mod surface_boundary;
+mod surface_broker;
 mod launcher;
 mod meal;
 mod my_finance_backup;
