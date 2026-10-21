@@ -3,9 +3,7 @@ export const CONFIG = Object.freeze({
   operatorId: 281109297,
   operatorLogin: 'sungandi86-max',
   approvalModel: 'single-operator, two explicit actions',
-  sourceSha: 'd6f546abb949e2a9d7e85263e1c7aa9a8689c240',
-  branch: 'feature/my-finance-phase2',
-  pr: 21,
+  sourceSha: '0807f2e7ee12780795df1b6d4b0fe3c5e2da593b',
   operatingSha: '5cec64358436c148710499b5aa9d2e78c34e0136',
   environment: 'my-finance-testable-publish',
   workflow: '.github/workflows/my-finance-qa-testable.yml',
@@ -32,12 +30,16 @@ export function validateContext(ctx) {
   requirePolicy(String(ctx.runAttempt) === '1', 'context_rerun');
   return Object.freeze({ ...ctx, sourceSha: CONFIG.sourceSha, runId: String(ctx.runId), runAttempt: String(ctx.runAttempt) });
 }
-export function validatePr(pr) {
-  requirePolicy(pr?.number === CONFIG.pr && pr.state === 'open' && pr.draft === true, 'pr_state');
-  requirePolicy(pr.base?.ref === 'main' && pr.base?.repo?.full_name === CONFIG.repository, 'pr_base');
-  requirePolicy(pr.head?.repo?.full_name === CONFIG.repository && pr.head.repo.fork === false, 'pr_repository');
-  requirePolicy(pr.head?.ref === CONFIG.branch && pr.head?.sha === CONFIG.sourceSha, 'pr_source');
-  return Object.freeze({ number: CONFIG.pr, sha: CONFIG.sourceSha, branch: CONFIG.branch });
+export function validateSourceAncestry(comparison, controllerSha) {
+  requirePolicy(sha(controllerSha)
+    && comparison?.status === 'ahead'
+    && Number.isSafeInteger(comparison.ahead_by) && comparison.ahead_by > 0
+    && comparison.behind_by === 0
+    && comparison.base_commit?.sha === CONFIG.sourceSha
+    && comparison.merge_base_commit?.sha === CONFIG.sourceSha
+    && Array.isArray(comparison.commits) && comparison.commits.length > 0
+    && comparison.commits.at(-1)?.sha === controllerSha, 'source_ancestry');
+  return Object.freeze({ sourceSha: CONFIG.sourceSha, controllerSha });
 }
 export function validateRun(run, ctx) {
   requirePolicy(decimal(run?.id) && String(run.id) === String(ctx.runId)

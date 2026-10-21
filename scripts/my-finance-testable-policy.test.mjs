@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { CONFIG, PolicyError, validateContext, validatePr, validateRun, validateEnvironment, validateApproval } from './my-finance-testable-policy.mjs';
+import { CONFIG, PolicyError, validateContext, validateSourceAncestry, validateRun, validateEnvironment, validateApproval } from './my-finance-testable-policy.mjs';
 const controller = '74b800aa2ab4c609d9274133d61b94d0c3016799';
 const human = (id) => ({ id, type: 'User', login: id === CONFIG.operatorId ? CONFIG.operatorLogin : `reviewer-${id}` });
 const context = () => ({ repository: CONFIG.repository, eventName: 'workflow_dispatch', ref: 'refs/heads/main',
   workflowRef: `${CONFIG.repository}/${CONFIG.workflow}@refs/heads/main`, workflowSha: controller,
   controllerSha: controller, githubSha: controller, runnerEnvironment: 'github-hosted', runnerOs: 'Windows', runId: '123', runAttempt: '1' });
-const pr = () => ({ number: CONFIG.pr, state: 'open', draft: true, base: { ref: 'main', repo: { full_name: CONFIG.repository } },
-  head: { ref: CONFIG.branch, sha: CONFIG.sourceSha, repo: { full_name: CONFIG.repository, fork: false } } });
+const comparison = () => ({ status: 'ahead', ahead_by: 2, behind_by: 0,
+  base_commit: { sha: CONFIG.sourceSha }, merge_base_commit: { sha: CONFIG.sourceSha },
+  commits: [{ sha: '1'.repeat(40) }, { sha: controller }] });
 const run = () => ({ id: 123, run_attempt: 1, head_sha: controller, event: 'workflow_dispatch', head_branch: 'main',
   path: CONFIG.workflow, repository: { full_name: CONFIG.repository }, actor: human(CONFIG.operatorId), triggering_actor: human(CONFIG.operatorId) });
 const environment = () => ({ id: 5, name: CONFIG.environment, can_admins_bypass: false,
@@ -31,22 +32,24 @@ describe('fixed TESTABLE controller policy', () => {
     ['githubSha', CONFIG.sourceSha, 'context_controller'], ['runnerEnvironment', 'self-hosted', 'context_runner'],
     ['runnerOs', 'Linux', 'context_runner'], ['runId', '', 'context_run'], ['runAttempt', '0', 'context_run'], ['runAttempt', '2', 'context_rerun'],
   ])('rejects context field %s mismatch', (key, value, code) => deny(() => validateContext({ ...context(), [key]: value }), code));
-  it('accepts the exact open draft PR', () => expect(validatePr(pr()).sha).toBe(CONFIG.sourceSha));
-  it('pins the save-fix source and rejects the previously published Phase 2 source', () => {
-    expect(CONFIG.sourceSha).toBe('d6f546abb949e2a9d7e85263e1c7aa9a8689c240');
-    const previous = pr(); previous.head.sha = 'daab156c5ac0e340574593990fc9d230d574e9a1';
-    deny(() => validatePr(previous), 'pr_source');
+  it('pins the integrated main source', () => {
+    expect(CONFIG.sourceSha).toBe('0807f2e7ee12780795df1b6d4b0fe3c5e2da593b');
+  });
+  it('accepts a controller descended from the fixed integrated source', () => {
+    expect(validateSourceAncestry(comparison(), controller)).toEqual({ sourceSha: CONFIG.sourceSha, controllerSha: controller });
   });
   it.each([
-    (p) => { p.number = CONFIG.pr + 1; }, (p) => { p.state = 'closed'; }, (p) => { p.draft = false; },
-    (p) => { p.base.ref = 'other'; }, (p) => { p.base.repo.full_name = 'fork/repo'; },
-    (p) => { p.head.repo.full_name = 'fork/repo'; }, (p) => { p.head.repo.fork = true; },
-    (p) => { p.head.ref = 'other'; }, (p) => { p.head.sha = controller; }, (p) => { delete p.head.repo; },
-  ])('rejects unauthorized PR identity %#', (mutate) => { const value = pr(); mutate(value); expect(() => validatePr(value)).toThrow(PolicyError); });
+    (c) => { c.status = 'diverged'; }, (c) => { c.ahead_by = 0; }, (c) => { c.behind_by = 1; },
+    (c) => { c.base_commit.sha = '2'.repeat(40); }, (c) => { c.merge_base_commit.sha = '2'.repeat(40); },
+    (c) => { c.commits.at(-1).sha = '2'.repeat(40); }, (c) => { c.commits = []; },
+  ])('rejects a controller outside the trusted main lineage %#', (mutate) => {
+    const value = comparison(); mutate(value);
+    deny(() => validateSourceAncestry(value, controller), 'source_ancestry');
+  });
   it('accepts actual run/controller identity', () => expect(validateRun(run(), context()).id).toBe(123));
   it.each([
     ['id', 124], ['run_attempt', 2], ['head_sha', CONFIG.sourceSha], ['event', 'push'],
-    ['head_branch', CONFIG.branch], ['path', 'other.yml'], ['actor', { id: 1 }], ['triggering_actor', { ...human(2), type: 'Bot' }],
+    ['head_branch', 'feature/my-finance-phase2'], ['path', 'other.yml'], ['actor', { id: 1 }], ['triggering_actor', { ...human(2), type: 'Bot' }],
     ['repository', {}], ['actor', human(4)], ['triggering_actor', human(4)],
     ['actor', { ...human(CONFIG.operatorId), login: 'wrong-login' }],
   ])('rejects run field %s mismatch', (key, value) => expect(() => validateRun({ ...run(), [key]: value }, context())).toThrow(PolicyError));

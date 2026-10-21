@@ -3,9 +3,9 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 
-export const SOURCE = 'd6f546abb949e2a9d7e85263e1c7aa9a8689c240';
+export const SOURCE = '0807f2e7ee12780795df1b6d4b0fe3c5e2da593b';
 export const OPERATING = '5cec64358436c148710499b5aa9d2e78c34e0136';
-export const INSTALLER = 'BOGUNON-DESK-MY-FINANCE-QA-d6f546a-Windows-x64-Setup.exe';
+export const INSTALLER = 'BOGUNON-DESK-MY-FINANCE-QA-0807f2e-Windows-x64-Setup.exe';
 export const ORIGINAL = [INSTALLER, 'SHA256SUMS.txt', 'QA-TEST-STATUS.json', 'START-HERE.ko.md'];
 export const TRANSFER_FILES = [...ORIGINAL, 'ISOLATION.json'];
 export const PACKAGE_FILES = [...TRANSFER_FILES, 'TRANSFER.json'];

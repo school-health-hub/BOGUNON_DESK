@@ -21,6 +21,10 @@ async function fixture() {
   return { root, dir, context, evidenceFile };
 }
 describe('TESTABLE package transfer', () => {
+  it('pins the integrated main installer identity', () => {
+    expect(SOURCE).toBe('0807f2e7ee12780795df1b6d4b0fe3c5e2da593b');
+    expect(INSTALLER).toBe('BOGUNON-DESK-MY-FINANCE-QA-0807f2e-Windows-x64-Setup.exe');
+  });
   it('prepares and independently verifies exact same bytes', async () => {
     const f = await fixture();
     const first = await prepare(f.dir, f.evidenceFile, f.context);
