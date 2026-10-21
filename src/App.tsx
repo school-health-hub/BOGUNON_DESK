@@ -11,6 +11,7 @@ import { DashboardCanvas } from "./components/dashboard/DashboardCanvas";
 import { WidgetSessionProvider } from "./dashboard/WidgetSessionContext";
 import { MealDataProvider } from "./meal/MealDataContext";
 import { OfficialDocumentSessionProvider } from "./official-document/OfficialDocumentSessionContext";
+import { ReferencePackageStartup } from "./official-document/ReferencePackageStartup";
 import { OnboardingProvider } from "./onboarding/OnboardingContext";
 import { AccountSyncProvider } from "./settings/AccountSyncContext";
 import { WorkspaceDataProvider } from "./workspace-data/WorkspaceDataContext";
@@ -27,6 +28,7 @@ export function App() {
   };
   return (
     <>
+    <ReferencePackageStartup />
     <div hidden={financeOpen} inert={financeOpen} style={{ display: financeOpen ? "none" : undefined }}>
     <ChatGptConnectionProvider>
       <AiConnectionProvider>

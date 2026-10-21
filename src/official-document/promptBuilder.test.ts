@@ -1,8 +1,28 @@
 import { describe, expect, it } from "vitest";
 import { createEmptyOfficialDocumentInput } from "./documentGenerator";
 import { buildCreatePrompt, buildRevisionPrompt, buildSummaryPrompt } from "./promptBuilder";
+import { syntheticOfficialDocumentReferences } from "./referenceRepository";
 
 describe("provider-neutral official document prompts", () => {
+  it("includes only drafting fields when a local reference has management metadata", () => {
+    const reference = {
+      ...syntheticOfficialDocumentReferences[0],
+      id: "management-id-marker",
+      sourceNo: "management-no-marker",
+      sourceUrl: "https://example.invalid/management-url-marker",
+      documentId: "management-document-marker",
+      description: "management-description-marker",
+      state: "management-state-marker",
+      visibility: "management-visibility-marker",
+      priority: "management-priority-marker",
+      templateBody: "합성 문장 구조 예시",
+    };
+
+    const prompt = buildCreatePrompt(createEmptyOfficialDocumentInput(), reference);
+
+    expect(prompt).toContain("합성 문장 구조 예시");
+    expect(prompt).not.toContain("management-");
+  });
   it("builds a new-document prompt without provider-specific instructions", () => {
     const prompt = buildCreatePrompt({
       ...createEmptyOfficialDocumentInput(),

@@ -6,6 +6,7 @@ import { AiConnectionProvider } from "../../ai/AiConnectionContext";
 import type { AiConnectionService } from "../../ai/types";
 import { OfficialDocumentSessionProvider } from "../../official-document/OfficialDocumentSessionContext";
 import { createOfficialDocumentSession } from "../../official-document/officialDocumentSession";
+import { createSyntheticOfficialDocumentReferenceRepository } from "../../official-document/referenceRepository";
 import type { OfficialDocumentSession } from "../../official-document/types";
 import { OfficialDocumentPanel } from "./OfficialDocumentPanel";
 
@@ -46,7 +47,7 @@ const renderPanel = (initialState: OfficialDocumentSession = revisionSession()):
   render(
     <AiConnectionProvider createService={() => disconnectedAiService}>
       <OfficialDocumentSessionProvider initialState={initialState}>
-        <OfficialDocumentPanel onClose={vi.fn()} onNotice={vi.fn()} onOpenAiSettings={vi.fn()} onSendSummaryToQuickAdd={vi.fn()} />
+        <OfficialDocumentPanel referenceRepository={createSyntheticOfficialDocumentReferenceRepository()} onClose={vi.fn()} onNotice={vi.fn()} onOpenAiSettings={vi.fn()} onSendSummaryToQuickAdd={vi.fn()} />
       </OfficialDocumentSessionProvider>
     </AiConnectionProvider>,
   );

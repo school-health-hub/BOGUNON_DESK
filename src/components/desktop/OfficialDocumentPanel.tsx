@@ -24,7 +24,7 @@ import {
 } from "../../official-document/promptBuilder";
 import { officialDocumentPrivacyNotice } from "../../official-document/privacyGuard";
 import { applyOfficialDocumentReference, createReferenceDraftSeed } from "../../official-document/referenceMapper";
-import { createDefaultOfficialDocumentReferenceRepository } from "../../official-document/referenceRepository";
+import { createNotConnectedOfficialDocumentReferenceRepository } from "../../official-document/referenceRepository";
 import type { OfficialDocumentReference, OfficialDocumentReferenceRepository } from "../../official-document/referenceTypes";
 import { extractOfficialDocumentSummary } from "../../official-document/summaryExtractor";
 import {
@@ -43,6 +43,7 @@ import { OfficialDocumentOutput } from "./OfficialDocumentOutput";
 import { OfficialDocumentSourceField } from "./OfficialDocumentSourceField";
 import { OfficialDocumentReferencePicker } from "./OfficialDocumentReferencePicker";
 import { OfficialDocumentReferenceConfirmation } from "./OfficialDocumentReferenceConfirmation";
+import { OfficialDocumentPackageManager } from "./OfficialDocumentPackageManager";
 
 const modeLabels: Readonly<Record<OfficialDocumentMode, string>> = {
   create: "새 공문 작성",
@@ -70,15 +71,17 @@ type PendingReferenceApplication = {
 
 export { OfficialDocumentAiConfirmation } from "./OfficialDocumentAiConfirmation";
 
-const defaultReferenceRepository = createDefaultOfficialDocumentReferenceRepository(import.meta.env.DEV);
+const defaultReferenceRepository = createNotConnectedOfficialDocumentReferenceRepository();
 
-export function OfficialDocumentPanel({ onClose, onNotice, onOpenAiSettings, onSendSummaryToQuickAdd, referenceRepository = defaultReferenceRepository }: OfficialDocumentPanelProps) {
+export function OfficialDocumentPanel({ onClose, onNotice, onOpenAiSettings, onSendSummaryToQuickAdd, referenceRepository }: OfficialDocumentPanelProps) {
   const ai = useAiConnection();
   const chatGpt = useChatGptConnection();
   const { state, dispatch } = useOfficialDocumentSession();
   const [importingMode, setImportingMode] = useState<"revision" | "summary" | null>(null);
   const [pendingAiConfirmation, setPendingAiConfirmation] = useState<PendingAiConfirmation | null>(null);
   const [pendingReferenceApplication, setPendingReferenceApplication] = useState<PendingReferenceApplication | null>(null);
+  const [packageRepository, setPackageRepository] = useState<OfficialDocumentReferenceRepository>(defaultReferenceRepository);
+  const [packageBusy, setPackageBusy] = useState(false);
   const output = state.outputs[state.mode];
   const apiConnectionAvailable = ai.state.status === "connected" && ai.state.provider !== null;
   const chatGptPlanUsageAvailable = chatGpt.state.status === "connected" && chatGpt.state.planUsageEnabled;
@@ -245,7 +248,8 @@ export function OfficialDocumentPanel({ onClose, onNotice, onOpenAiSettings, onS
         <div className="official-document-panel__body">
           <div className="official-document-editor">
             {state.mode === "create" && <>
-              <OfficialDocumentReferencePicker repository={referenceRepository} selected={state.selectedReference} applied={state.appliedReference} onSelect={(reference) => dispatch({ type: "selectReference", reference })} onApply={applyReference} />
+              {referenceRepository === undefined && <OfficialDocumentPackageManager onRepositoryChange={setPackageRepository} onBusyChange={setPackageBusy} />}
+              <OfficialDocumentReferencePicker disabled={referenceRepository === undefined && packageBusy} repository={referenceRepository ?? packageRepository} selected={state.selectedReference} applied={state.appliedReference} onSelect={(reference) => dispatch({ type: "selectReference", reference })} onApply={applyReference} />
               <OfficialDocumentCreateForm input={state.createInput} onFieldChange={(field, value) => dispatch({ type: "updateCreate", field, value })} onPurposeChange={(purpose) => dispatch({ type: "updateCreatePurpose", purpose })} onWorkAreaChange={(workArea) => dispatch({ type: "updateCreateWorkArea", workArea })} />
             </>}
             {state.mode === "revision" && <div className="official-document-text-inputs"><OfficialDocumentSourceField id="official-document-revision-original" isImporting={importingMode === "revision"} rows={12} sourceName={state.revisionSourceName} value={state.revisionInput.original} placeholder="수정할 공문 원문을 붙여넣으세요." onImport={() => void importSource("revision")} onChange={(event) => dispatch({ type: "updateRevision", value: { ...state.revisionInput, original: event.currentTarget.value } })} /><label><span>수정 요청</span><textarea rows={7} value={state.revisionInput.request} placeholder="관내 특수학교만 대상으로 변경&#10;제출기한은 9월 23일&#10;제출방법은 공문 제출" onChange={(event) => dispatch({ type: "updateRevision", value: { ...state.revisionInput, request: event.currentTarget.value } })} /></label></div>}

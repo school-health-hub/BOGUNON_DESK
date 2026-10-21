@@ -25,6 +25,7 @@ mod my_finance_commands;
 mod my_finance_transfer;
 mod notifications;
 mod official_document_import;
+mod official_reference_package;
 mod purchase_helper;
 mod purchase_settlement;
 mod record_helper_import;
@@ -302,6 +303,9 @@ pub fn run() {
             purchase_helper::invalidate_purchase_helper_analysis,
             official_document_import::pick_and_extract_official_document,
             official_document_import::extract_official_document_path,
+            official_reference_package::read_official_reference_package,
+            official_reference_package::write_official_reference_package,
+            official_reference_package::remove_official_reference_package,
             record_helper_import::pick_and_extract_record_helper_reports,
             record_helper_import::extract_record_helper_paths,
             get_autostart_enabled,

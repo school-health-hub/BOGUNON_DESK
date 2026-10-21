@@ -446,6 +446,16 @@
 .official-reference__block strong { color: var(--text-primary); font-size: var(--text-xs); }
 .official-reference__block pre { max-height: 150px; margin: 0; padding: var(--space-2); overflow: auto; border-radius: var(--radius-control); color: var(--text-secondary); background: var(--workspace-bg); font: inherit; font-size: var(--text-xs); line-height: var(--leading-body); white-space: pre-wrap; word-break: keep-all; overflow-wrap: anywhere; }
 .official-reference__apply { justify-self: end; min-height: 34px; padding-inline: var(--space-3); border: 1px solid var(--accent-border); border-radius: var(--radius-control); color: var(--accent-hover); background: var(--accent-soft); font-size: var(--text-sm); font-weight: var(--weight-semibold); cursor: pointer; }
+.official-package__metadata { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-1) var(--space-3); margin: 0; color: var(--text-secondary); font-size: var(--text-xs); line-height: var(--leading-body); }
+.official-package__metadata dt { color: var(--text-muted); }
+.official-package__metadata dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.official-package__file, .official-package__preview, .official-package__preview > label, .official-package__actions { display: grid; gap: var(--space-2); min-width: 0; color: var(--text-secondary); font-size: var(--text-sm); }
+.official-package__preview { padding: var(--space-3); border: 1px solid var(--divider); border-radius: var(--radius-control); background: var(--workspace-bg); }
+.official-package__preview p, .official-package__actions p { margin: 0; overflow-wrap: anywhere; }
+.official-package__preview ul { max-height: 150px; margin: 0; padding-left: var(--space-5); overflow-y: auto; }
+.official-package button { min-height: 36px; padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-control); color: var(--text-secondary); background: var(--widget-bg); cursor: pointer; }
+.official-package button:disabled { opacity: .55; cursor: default; }
+.official-package input[type="file"] { max-width: 100%; }
 @media (max-width: 1040px) {
   .official-document-panel { width: calc(100vw - 20px); max-height: calc(100dvh - 142px); min-height: 0; }
   .official-document-panel__tabs { flex-wrap: wrap; }

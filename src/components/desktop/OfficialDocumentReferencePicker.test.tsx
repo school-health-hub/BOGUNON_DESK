@@ -3,6 +3,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createSyntheticOfficialDocumentReferenceRepository } from "../../official-document/referenceRepository";
+import { syntheticOfficialDocumentReferences } from "../../official-document/referenceRepository";
 import { OfficialDocumentReferencePicker } from "./OfficialDocumentReferencePicker";
 
 describe("OfficialDocumentReferencePicker", () => {
@@ -45,12 +46,29 @@ describe("OfficialDocumentReferencePicker", () => {
       />,
     );
     await waitFor(() => expect(screen.getByText("참고자료 연결 전")).toBeTruthy());
-    expect(screen.getByText(/Phase 1B 연결 전까지/)).toBeTruthy();
+    expect(screen.getByText(/검토·승인된 로컬 JSON 패키지/)).toBeTruthy();
     cleanup();
     render(<OfficialDocumentReferencePicker repository={{ list: async () => ({ status: "empty" }) }} selected={null} onSelect={vi.fn()} onApply={vi.fn()} />);
     expect(await screen.findByText("사용 가능한 참고자료가 없습니다.")).toBeTruthy();
     cleanup();
     render(<OfficialDocumentReferencePicker repository={{ list: async () => { throw new Error("synthetic failure"); } }} selected={null} onSelect={vi.fn()} onApply={vi.fn()} />);
     expect(await screen.findByRole("alert")).toHaveProperty("textContent", "참고자료를 불러오지 못했습니다.");
+  });
+
+  it("does not present an old selection as the same-No replacement package", async () => {
+    const oldReference = syntheticOfficialDocumentReferences[0];
+    const replacement = { ...oldReference, title: "교체된 합성 자료" };
+    render(<OfficialDocumentReferencePicker repository={{ list: async () => ({ status: "ready", references: [replacement] }) }} selected={oldReference} applied={oldReference} onSelect={vi.fn()} onApply={vi.fn()} />);
+    await screen.findByText("교체된 합성 자료");
+    expect(screen.queryByRole("button", { name: "초안에 적용" })).toBeNull();
+    expect(screen.getByRole("button", { name: /교체된 합성 자료/ })).toHaveProperty("ariaPressed", "false");
+  });
+
+  it("disables selection and application while a package operation is pending", async () => {
+    const reference = syntheticOfficialDocumentReferences[0];
+    render(<OfficialDocumentReferencePicker disabled repository={{ list: async () => ({ status: "ready", references: [reference] }) }} selected={reference} onSelect={vi.fn()} onApply={vi.fn()} />);
+    await screen.findByRole("button", { name: "초안에 적용" });
+    expect(screen.getByRole("button", { name: "초안에 적용" })).toHaveProperty("disabled", true);
+    expect(screen.getByRole("button", { name: /학교보건 계획 기안 예시/ })).toHaveProperty("disabled", true);
   });
 });

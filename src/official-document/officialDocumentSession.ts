@@ -97,7 +97,7 @@ export const reduceOfficialDocumentSession = (
     case "setDraft":
       return { ...state, draft: action.draft };
     case "selectReference":
-      if (state.selectedReference?.id === action.reference?.id) return state;
+      if (state.selectedReference === action.reference) return state;
       return invalidateAiRequest(clearOutput({ ...state, selectedReference: action.reference }, "create"));
     case "applyReference":
       return invalidateAiRequest(clearOutput({

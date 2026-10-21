@@ -6,6 +6,18 @@ import { extractOfficialDocumentSummary } from "./summaryExtractor";
 import { syntheticOfficialDocumentReferences } from "./referenceRepository";
 
 describe("official document session reducer", () => {
+  it("selects a replacement package row with the same No while preserving the applied snapshot", () => {
+    const oldReference = syntheticOfficialDocumentReferences[0];
+    const replacement = { ...oldReference, templateBody: "새 패키지의 합성 본문" };
+    const initial = createOfficialDocumentSession();
+    const applied = reduceOfficialDocumentSession(initial, { type: "applyReference", reference: oldReference, input: initial.createInput });
+
+    const selected = reduceOfficialDocumentSession(applied, { type: "selectReference", reference: replacement });
+
+    expect(selected.selectedReference).toBe(replacement);
+    expect(selected.appliedReference).toBe(oldReference);
+    expect(selected.createInput).toBe(applied.createInput);
+  });
   it("selects a reference without changing user input and resets it with a new task", () => {
     const reference = syntheticOfficialDocumentReferences[0];
     if (reference === undefined) throw new Error("synthetic reference expected");
