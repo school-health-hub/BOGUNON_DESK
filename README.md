@@ -81,3 +81,8 @@ BOGUNON DESK 소스 코드는 [Apache License 2.0](LICENSE)으로 배포됩니�
 상단 `MY FINANCE` 메뉴에서 개인 수입 등록·수정·삭제와 연간 집계를 확인할 수 있습니다. 금융정보는 Windows 앱의 SQLCipher 로컬 DB에만 보관하며 계정 설정과 동기화하지 않습니다. 브라우저에서는 암호화 저장소를 사용할 수 없다는 안내를 표시합니다.
 
 아직 실사용 준비 완료 단계가 아닙니다. 암호화 백업·복원 및 학교 PC ↔ 집 PC 검증이 끝나기 전에는 실제 금융정보를 입력하지 마세요. 현재 개발·검증에는 합성 데이터만 사용합니다.
+# Windows 0.2.2 integration candidate
+
+See [TD2 Dashboard + MY FINANCE 2.0 candidate guide](docs/TD2_FINANCE2_CANDIDATE.md)
+for source identities, manual CI gates, data preservation and reference attribution.
+This candidate is not permission to install or deploy.

@@ -1,5 +1,17 @@
 # Third-Party Notices
 
+## Design and future enhancement references
+
+TD2 inspired the Dashboard UI/UX and composition, reinterpreted for school health
+work. Recorded URL: https://tdesk24.com/ . Exact author/license of the supplied
+reference remain unconfirmed; this is not a claim of direct code/resource reuse.
+
+준일쌤의 이음오피스 (IeumOffice), https://github.com/pblsketch/openoffice ,
+Apache License 2.0, is a reference for future official-document improvements.
+Those unmerged improvements are not included in the 0.2.2 candidate. Attribution
+name/request is user-provided. Actual code/resource reuse requires separate
+LICENSE/NOTICE review; existing dependency notices below remain preserved.
+
 BOGUNON DESK includes or depends on third-party open-source software.
 Those components remain subject to their respective licenses.
 

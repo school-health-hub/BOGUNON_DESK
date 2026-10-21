@@ -1,0 +1,119 @@
+name: TD2 Finance 2.0 operating Windows candidate
+on:
+  workflow_dispatch:
+    inputs:
+      expected_source_sha:
+        description: Exact reviewed candidate commit SHA (not the Finance baseline)
+        required: true
+        type: string
+      timeout_test_file:
+        description: Original five-second timeout test tracked src/*.test file; identify from failure evidence
+        required: true
+        type: string
+      timeout_test_name:
+        description: Exact full Vitest name of that original failed test
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: td2-finance2-operating-candidate
+  cancel-in-progress: false
+jobs:
+  candidate:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/release/td2-finance2-candidate' && github.sha == inputs.expected_source_sha && github.run_attempt == 1 }}
+    runs-on: windows-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CI: 'true'
+      EXPECTED_SOURCE_SHA: ${{ inputs.expected_source_sha }}
+      TIMEOUT_TEST_FILE: ${{ inputs.timeout_test_file }}
+      TIMEOUT_TEST_NAME: ${{ inputs.timeout_test_name }}
+      RELEASE_VERSION: '0.2.2'
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Validate exact operating candidate before dependencies or build
+        run: node scripts/td2-finance2-candidate.mjs guard
+      - name: Initialize diagnostic-only output
+        run: New-Item -ItemType Directory -Path diagnostics | Out-Null
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249
+        with:
+          targets: x86_64-pc-windows-msvc
+      - name: Verify native build prerequisites
+        run: |
+          perl --version
+          if ($LASTEXITCODE -ne 0) { throw 'Perl unavailable' }
+          nasm -v
+          if ($LASTEXITCODE -ne 0) { throw 'NASM unavailable' }
+      - name: Install locked frontend dependencies
+        run: npm ci --loglevel=error
+      - name: Audit all dependency severities
+        run: |
+          npm audit --json > diagnostics/npm-audit.json
+          if ($LASTEXITCODE -ne 0) { throw 'Dependency audit failed' }
+      - name: Verify version and production configuration
+        run: |
+          npm run release:version:check
+          if ($LASTEXITCODE -ne 0) { throw 'Version check failed' }
+          npm run release:check
+      - name: Static candidate contract regressions
+        run: node --test scripts/td2-finance2-candidate.contract.mjs
+      - name: Finance unit and UI regressions
+        run: npm test -- src/my-finance --maxWorkers=4
+      - name: Recheck exactly the original timeout case without increasing timeout
+        run: node scripts/td2-finance2-candidate.mjs timeout
+      - name: Full frontend regressions
+        run: npm test -- --maxWorkers=4
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Production frontend
+        run: npm run build
+      - name: Native Finance crypto backup regressions
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc my_finance
+      - name: Existing complete release checks and NSIS build (no updater publishing)
+        run: npm run release:windows
+      - name: Observe Windows Authenticode status
+        run: |
+          $installer = 'release-output/BOGUNON-DESK-0.2.2-Windows-x64-Setup.exe'
+          $signature = Get-AuthenticodeSignature -LiteralPath $installer
+          @{status=$signature.Status.ToString()} | ConvertTo-Json | Set-Content -Encoding utf8 diagnostics/authenticode.json
+      - name: Bind actual source run and installer bytes
+        run: |
+          node scripts/td2-finance2-candidate.mjs manifest
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate manifest failed' }
+          Copy-Item docs/TD2_FINANCE2_CANDIDATE.md release-output/
+          Copy-Item THIRD_PARTY_NOTICES.md release-output/
+      - name: Upload successful candidate only (not installation approval)
+        if: ${{ success() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: BOGUNON-DESK-0.2.2-candidate-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            release-output/BOGUNON-DESK-0.2.2-Windows-x64-Setup.exe
+            release-output/SHA256SUMS.txt
+            release-output/BUILD-MANIFEST.json
+            release-output/README-FIRST.txt
+            release-output/TD2_FINANCE2_CANDIDATE.md
+            release-output/THIRD_PARTY_NOTICES.md
+      - name: Upload diagnostic JSON only on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: td2-finance2-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: ignore
+          retention-days: 7
+          path: diagnostics/*.json
