@@ -3,7 +3,6 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
-  pull-requests: read
   actions: read
 concurrency:
   group: my-finance-testable-main
@@ -28,7 +27,7 @@ jobs:
           ref: ${{ github.sha }}
           path: control
           persist-credentials: false
-      - name: Validate manual controller, PR and protected publication environment
+      - name: Validate manual controller, pinned source and protected publication environment
         working-directory: control
         env:
           GH_TOKEN: ${{ github.token }}
@@ -36,13 +35,13 @@ jobs:
       - name: Check out exact approved candidate
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: d6f546abb949e2a9d7e85263e1c7aa9a8689c240
+          ref: 0807f2e7ee12780795df1b6d4b0fe3c5e2da593b
           path: qa-source
           persist-credentials: false
       - name: Verify candidate HEAD and clean checkout
         run: |
           $head = (git rev-parse HEAD).Trim()
-          if ($LASTEXITCODE -ne 0 -or $head -ne 'd6f546abb949e2a9d7e85263e1c7aa9a8689c240') { throw 'Candidate HEAD mismatch' }
+          if ($LASTEXITCODE -ne 0 -or $head -ne '0807f2e7ee12780795df1b6d4b0fe3c5e2da593b') { throw 'Candidate HEAD mismatch' }
           $changes = git status --porcelain
           if ($LASTEXITCODE -ne 0 -or $changes) { throw 'Candidate checkout not clean' }
       - name: Check out immutable operating reference
@@ -164,7 +163,7 @@ jobs:
         with:
           name: MY-FINANCE-QA-CANDIDATE-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            qa-source/artifacts/my-finance-qa-ready/BOGUNON-DESK-MY-FINANCE-QA-d6f546a-Windows-x64-Setup.exe
+            qa-source/artifacts/my-finance-qa-ready/BOGUNON-DESK-MY-FINANCE-QA-0807f2e-Windows-x64-Setup.exe
             qa-source/artifacts/my-finance-qa-ready/SHA256SUMS.txt
             qa-source/artifacts/my-finance-qa-ready/QA-TEST-STATUS.json
             qa-source/artifacts/my-finance-qa-ready/START-HERE.ko.md
@@ -209,7 +208,7 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22'
-      - name: Recheck PR, run, candidate artifact and operator approval
+      - name: Recheck source lineage, run, candidate artifact and operator approval
         env:
           GH_TOKEN: ${{ github.token }}
           ARTIFACT_ID: ${{ needs.candidate.outputs.artifact-id }}
@@ -225,7 +224,7 @@ jobs:
         run: node scripts/my-finance-testable-package.mjs verify "$env:RUNNER_TEMP/candidate" "$env:RUNNER_TEMP/publish-context.json"
       - name: Prepare approved TESTABLE without executing candidate code
         run: node scripts/my-finance-testable-package.mjs publish "$env:RUNNER_TEMP/candidate" "$env:RUNNER_TEMP/publish-context.json" "$env:RUNNER_TEMP/approval.json" "$env:RUNNER_TEMP/testable"
-      - name: Final PR and approval recheck immediately before upload
+      - name: Final source and approval recheck immediately before upload
         env:
           GH_TOKEN: ${{ github.token }}
           ARTIFACT_ID: ${{ needs.candidate.outputs.artifact-id }}
@@ -235,9 +234,9 @@ jobs:
         if: ${{ success() && github.event_name == 'workflow_dispatch' && needs.candidate.result == 'success' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: MY-FINANCE-QA-TESTABLE-d6f546abb949e2a9d7e85263e1c7aa9a8689c240
+          name: MY-FINANCE-QA-TESTABLE-0807f2e7ee12780795df1b6d4b0fe3c5e2da593b
           path: |
-            ${{ runner.temp }}/testable/BOGUNON-DESK-MY-FINANCE-QA-d6f546a-Windows-x64-Setup.exe
+            ${{ runner.temp }}/testable/BOGUNON-DESK-MY-FINANCE-QA-0807f2e-Windows-x64-Setup.exe
             ${{ runner.temp }}/testable/SHA256SUMS.txt
             ${{ runner.temp }}/testable/QA-TEST-STATUS.json
             ${{ runner.temp }}/testable/START-HERE.ko.md

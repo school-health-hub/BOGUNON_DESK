@@ -13,7 +13,8 @@ describe.each([['LF', '\n'], ['CRLF', '\r\n']])('manual TESTABLE workflow wiring
   it('uses two separate hosted Windows jobs and read-only API permissions', () => {
     expect(workflow.match(/^  [a-z-]+:\n/gm)).toHaveLength(2);
     expect(workflow.match(/runs-on: windows-latest/g)).toHaveLength(2);
-    expect(workflow).toContain('contents: read\n  pull-requests: read\n  actions: read');
+    expect(workflow).toContain('contents: read\n  actions: read');
+    expect(workflow).not.toContain('pull-requests:');
     expect(workflow).not.toMatch(/self-hosted|: write|secrets\.|overwrite:|release:windows/);
   });
   it('guards both jobs by repository, main and manual event', () => {
@@ -23,9 +24,14 @@ describe.each([['LF', '\n'], ['CRLF', '\r\n']])('manual TESTABLE workflow wiring
     expect(workflow.match(/github[.]run_attempt == 1/g)).toHaveLength(2);
   });
   it('checks controller before checking out fixed candidate without saved credentials', () => {
-    expect(candidate.indexOf('my-finance-testable-gate.mjs check')).toBeLessThan(candidate.indexOf('ref: d6f546abb949e2a9d7e85263e1c7aa9a8689c240'));
+    expect(candidate.indexOf('my-finance-testable-gate.mjs check')).toBeLessThan(candidate.indexOf('ref: 0807f2e7ee12780795df1b6d4b0fe3c5e2da593b'));
     expect(candidate).toContain('ref: 5cec64358436c148710499b5aa9d2e78c34e0136');
     expect(workflow.match(/persist-credentials: false/g)).toHaveLength(4);
+  });
+  it('publishes only the exact integrated-main QA installer identity', () => {
+    expect(workflow).toContain('BOGUNON-DESK-MY-FINANCE-QA-0807f2e-Windows-x64-Setup.exe');
+    expect(publisher).toContain('MY-FINANCE-QA-TESTABLE-0807f2e7ee12780795df1b6d4b0fe3c5e2da593b');
+    expect(workflow).not.toContain('d6f546abb949e2a9d7e85263e1c7aa9a8689c240');
   });
   it('keeps native isolation and cleanup before candidate packaging', () => {
     for (const command of ['npm test -- --maxWorkers=4', 'cargo test --locked', 'QA feature requires QA config', 'QA config requires QA feature', 'dumpbin /dependents', 'windows-my-finance-isolation.ps1']) expect(candidate).toContain(command);
@@ -43,7 +49,7 @@ describe.each([['LF', '\n'], ['CRLF', '\r\n']])('manual TESTABLE workflow wiring
     expect(publisher).toContain('environment: my-finance-testable-publish');
     expect(publisher).not.toMatch(/npm ci|npm run|cargo |isolation\.ps1|ref: c6|Start-Process/);
     expect(publisher.match(/my-finance-testable-gate.mjs publish-check/g)).toHaveLength(2);
-    const final = steps.findIndex(s => s.startsWith('name: Final PR'));
+    const final = steps.findIndex(s => s.startsWith('name: Final source'));
     expect(steps[final + 1]).toContain('name: Upload approved synthetic QA TESTABLE only');
   });
   it('uploads exact six candidate and seven final paths without release globs', () => {

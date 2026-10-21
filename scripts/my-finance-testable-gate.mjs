@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { execFileSync } from 'node:child_process';
-import { CONFIG, validateContext, validatePr, validateRun, validateEnvironment, validateApproval } from './my-finance-testable-policy.mjs';
+import { CONFIG, validateContext, validateSourceAncestry, validateRun, validateEnvironment, validateApproval } from './my-finance-testable-policy.mjs';
 
 async function api(path) {
   if (!process.env.GH_TOKEN) throw new Error('API_TOKEN_MISSING');
@@ -24,10 +24,8 @@ function context() {
     runId: e.GITHUB_RUN_ID, runAttempt: e.GITHUB_RUN_ATTEMPT });
 }
 export async function check(ctx, api) {
-  const pr = await api(`pulls/${CONFIG.pr}`);
-  validatePr(pr);
-  const branch = await api(`git/ref/heads/${CONFIG.branch}`);
-  if (branch.ref !== `refs/heads/${CONFIG.branch}` || branch.object?.type !== 'commit' || branch.object.sha !== CONFIG.sourceSha) throw new Error('BRANCH_CHANGED');
+  const comparison = await api(`compare/${CONFIG.sourceSha}...${ctx.controllerSha}`);
+  validateSourceAncestry(comparison, ctx.controllerSha);
   const run = await api(`actions/runs/${ctx.runId}/attempts/${ctx.runAttempt}`);
   validateRun(run, ctx);
   const environment = await api(`environments/${CONFIG.environment}`);
