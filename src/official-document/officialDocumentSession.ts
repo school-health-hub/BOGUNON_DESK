@@ -11,12 +11,15 @@ const emptyOutput = (): OfficialDocumentModeOutput => ({ prompt: "", aiResponse:
 export const createOfficialDocumentSession = (): OfficialDocumentSession => ({
   mode: "create",
   createInput: createEmptyOfficialDocumentInput(),
+  touchedCreateFields: [],
   revisionInput: { original: "", request: "" },
   revisionSourceName: null,
   summaryOriginal: "",
   summarySourceName: null,
   summaryLocalResult: null,
   draft: null,
+  selectedReference: null,
+  appliedReference: null,
   outputs: { create: emptyOutput(), revision: emptyOutput(), summary: emptyOutput() },
   aiStatus: "idle",
   aiError: null,
@@ -57,13 +60,13 @@ export const reduceOfficialDocumentSession = (
       return invalidateAiRequest({ ...state, mode: action.mode });
     case "updateCreate":
       if (state.createInput[action.field] === action.value) return state;
-      return invalidateAiRequest(clearOutput({ ...state, createInput: { ...state.createInput, [action.field]: action.value }, draft: null }, "create"));
+      return invalidateAiRequest(clearOutput({ ...state, createInput: { ...state.createInput, [action.field]: action.value }, touchedCreateFields: [...new Set([...state.touchedCreateFields, action.field])], draft: null }, "create"));
     case "updateCreatePurpose":
       if (state.createInput.purpose === action.purpose) return state;
-      return invalidateAiRequest(clearOutput({ ...state, createInput: { ...state.createInput, purpose: action.purpose }, draft: null }, "create"));
+      return invalidateAiRequest(clearOutput({ ...state, createInput: { ...state.createInput, purpose: action.purpose }, touchedCreateFields: [...new Set([...state.touchedCreateFields, "purpose" as const])], draft: null }, "create"));
     case "updateCreateWorkArea":
       if (state.createInput.workArea === action.workArea) return state;
-      return invalidateAiRequest(clearOutput({ ...state, createInput: { ...state.createInput, workArea: action.workArea }, draft: null }, "create"));
+      return invalidateAiRequest(clearOutput({ ...state, createInput: { ...state.createInput, workArea: action.workArea }, touchedCreateFields: [...new Set([...state.touchedCreateFields, "workArea" as const])], draft: null }, "create"));
     case "updateRevision":
       if (state.revisionInput.original === action.value.original && state.revisionInput.request === action.value.request) return state;
       return invalidateAiRequest(clearOutput({ ...state, revisionInput: action.value }, "revision"));
@@ -93,6 +96,17 @@ export const reduceOfficialDocumentSession = (
       return { ...state, summaryLocalResult: action.result };
     case "setDraft":
       return { ...state, draft: action.draft };
+    case "selectReference":
+      if (state.selectedReference?.id === action.reference?.id) return state;
+      return invalidateAiRequest(clearOutput({ ...state, selectedReference: action.reference }, "create"));
+    case "applyReference":
+      return invalidateAiRequest(clearOutput({
+        ...state,
+        createInput: action.input,
+        selectedReference: action.reference,
+        appliedReference: action.reference,
+        draft: null,
+      }, "create"));
     case "setPrompt":
       return updateOutput(state, action.mode, {
         ...state.outputs[action.mode],

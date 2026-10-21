@@ -1,9 +1,31 @@
+// @vitest-environment jsdom
+
+import { fireEvent, render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { extractOfficialDocumentSummary } from "../../official-document/summaryExtractor";
 import { OfficialDocumentOutput } from "./OfficialDocumentOutput";
 
 describe("OfficialDocumentOutput", () => {
+  it("renders and copies reference table text separately", () => {
+    const onCopy = vi.fn();
+    render(
+      <OfficialDocumentOutput
+        aiResponse=""
+        aiStatus="idle"
+        draft={{ title: "제목", body: "본문", attachments: "붙임", messenger: "메신저", checklist: "체크", tableText: "구분\t인원", tableGuide: "표에 붙여넣으세요." }}
+        localSummary={null}
+        mode="create"
+        onCopy={onCopy}
+        onSendSummaryToQuickAdd={vi.fn()}
+        prompt=""
+      />,
+    );
+    expect(screen.getByText("표에 붙여넣으세요.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "표 복사" }));
+    expect(onCopy).toHaveBeenCalledWith("표", "구분\t인원");
+  });
+
   it("keeps local summary, prompt, and AI result as separate ordered sections", () => {
     const markup = renderToStaticMarkup(
       <OfficialDocumentOutput

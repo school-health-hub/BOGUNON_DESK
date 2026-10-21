@@ -3,8 +3,31 @@ import { buildRevisionPrompt, buildSummaryPrompt } from "./promptBuilder";
 import { inspectOfficialDocumentPrivacy } from "./privacyGuard";
 import { createOfficialDocumentSession, reduceOfficialDocumentSession } from "./officialDocumentSession";
 import { extractOfficialDocumentSummary } from "./summaryExtractor";
+import { syntheticOfficialDocumentReferences } from "./referenceRepository";
 
 describe("official document session reducer", () => {
+  it("selects a reference without changing user input and resets it with a new task", () => {
+    const reference = syntheticOfficialDocumentReferences[0];
+    if (reference === undefined) throw new Error("synthetic reference expected");
+    const initial = {
+      ...createOfficialDocumentSession(),
+      createInput: { ...createOfficialDocumentSession().createInput, workName: "사용자 입력" },
+    };
+    const selected = reduceOfficialDocumentSession(initial, { type: "selectReference", reference });
+    expect(selected.createInput.workName).toBe("사용자 입력");
+    expect(selected.selectedReference?.id).toBe(reference.id);
+    expect(reduceOfficialDocumentSession(selected, { type: "reset" })).toEqual(createOfficialDocumentSession());
+  });
+
+  it("invalidates an active AI request when the selected reference changes", () => {
+    const reference = syntheticOfficialDocumentReferences[0];
+    if (reference === undefined) throw new Error("synthetic reference expected");
+    const generating = reduceOfficialDocumentSession(createOfficialDocumentSession(), { type: "beginAiRequest", requestId: 9 });
+    const selected = reduceOfficialDocumentSession(generating, { type: "selectReference", reference });
+    const late = reduceOfficialDocumentSession(selected, { type: "resolveAiRequest", requestId: 9, mode: "create", response: "늦은 응답" });
+    expect(selected.activeAiRequestId).toBeNull();
+    expect(late).toEqual(selected);
+  });
   it("switches among all three workspace modes", () => {
     const initial = createOfficialDocumentSession();
     const revision = reduceOfficialDocumentSession(initial, { type: "selectMode", mode: "revision" });

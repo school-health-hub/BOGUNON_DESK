@@ -1,5 +1,6 @@
 import { officialDocumentFieldDefinitions } from "./options";
 import type { OfficialDocumentInput, OfficialDocumentRevisionInput } from "./types";
+import type { OfficialDocumentReference } from "./referenceTypes";
 
 const commonRules = [
   "학교 공문서 문체와 번호 체계를 유지할 것",
@@ -11,7 +12,7 @@ const commonRules = [
 
 const rulesBlock = (): string => `[작성 원칙]\n${commonRules.map((rule) => `- ${rule}`).join("\n")}`;
 
-export const buildCreatePrompt = (input: OfficialDocumentInput): string => {
+export const buildCreatePrompt = (input: OfficialDocumentInput, reference: OfficialDocumentReference | null = null): string => {
   const fieldLines = officialDocumentFieldDefinitions
     .map((field) => [field.label, input[field.name].trim()] as const)
     .filter((entry) => entry[1] !== "")
@@ -23,7 +24,18 @@ export const buildCreatePrompt = (input: OfficialDocumentInput): string => {
     "- 제목, 본문, 붙임, 교직원 메신저 문구, 기안 전 체크리스트를 구분해 출력할 것",
     "- 본문은 관련 근거와 1., 2., 가., 나. 번호 체계를 사용할 것",
     "",
-    "[입력 정보]",
+    ...(reference === null ? [] : [
+      "[참고자료 - 형식 예시]",
+      `- 문서 목적 원문: ${reference.purposeLabel}`,
+      `- 업무 분야 원문: ${reference.workAreaLabel}`,
+      `- 일반 문장 예시: ${reference.templateBody.trim() || "[없음]"}`,
+      `- 붙임 구성 예시: ${reference.attachmentExample.trim() || "[없음]"}`,
+      `- 체크리스트: ${reference.checklist.trim() || "[없음]"}`,
+      "- 참고자료는 문장 구조와 형식의 예시일 뿐이며, 과거 행정정보를 새 문서의 사실로 확정하지 말 것",
+      "- 실제 원본 파일을 다운로드하지 말고 제공된 최소 텍스트만 참고할 것",
+      "",
+    ]),
+    reference === null ? "[입력 정보]" : "[사용자 확정 정보]",
     `- 문서 목적: ${input.purpose}`,
     `- 업무 분야: ${input.workArea}`,
     ...(fieldLines.length === 0 ? ["- 세부 정보: [입력 필요]"] : fieldLines),

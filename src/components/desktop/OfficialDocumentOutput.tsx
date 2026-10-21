@@ -69,6 +69,7 @@ export function OfficialDocumentOutput({ aiResponse, aiStatus, draft, mode, loca
           <article><strong>붙임</strong><pre>{draft.attachments}</pre></article>
           <article><strong>교직원 메신저</strong><pre>{draft.messenger}</pre></article>
           <article><strong>기안 전 체크리스트</strong><pre>{draft.checklist}</pre></article>
+          {draft.tableText ? <article><div><strong>표 복사용 본문</strong><CopyButton label="표" value={draft.tableText} onCopy={onCopy} /></div><pre>{draft.tableText}</pre>{draft.tableGuide ? <p className="official-document-result__notice">{draft.tableGuide}</p> : null}</article> : null}
         </section>
       )}
       {prompt !== "" && (

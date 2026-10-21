@@ -1,6 +1,7 @@
 import { officialDocumentPurposes, officialDocumentWorkAreas } from "./options";
 import { applyOfficialDocumentTemplate, defaultOfficialDocumentChecklist, findOfficialDocumentTemplate } from "./templates";
 import type { OfficialDocumentDraft, OfficialDocumentInput } from "./types";
+import type { OfficialDocumentReferenceDraftSeed } from "./referenceTypes";
 
 const purposeEndings = {
   "계획 기안": "시행하고자 합니다.",
@@ -90,7 +91,56 @@ const buildBody = (input: OfficialDocumentInput): string => {
   ].join("\n");
 };
 
-export const generateOfficialDocumentDraft = (input: OfficialDocumentInput): OfficialDocumentDraft => {
+const referencePlaceholderValues = (input: OfficialDocumentInput): Readonly<Record<string, string>> => ({
+  "관련": input.relatedDocument,
+  "관련 공문": input.relatedDocument,
+  "업무명": input.workName,
+  "대상": input.target,
+  "일시": input.dateTime,
+  "날짜": input.dateTime,
+  "장소": input.place,
+  "방법": input.method,
+  "기관명": input.organization,
+  "인원": input.peopleCount,
+  "예산": input.budget,
+  "주요 내용": input.mainContent,
+  "특이사항": input.notes,
+});
+
+const renderNamedReferencePlaceholders = (text: string, input: OfficialDocumentInput): string => {
+  const values = referencePlaceholderValues(input);
+  return text.replace(/\[([^\]]+)\]/g, (placeholder, label: string) => {
+    const value = values[label]?.trim();
+    return value ? value : placeholder;
+  });
+};
+
+const buildReferenceBody = (input: OfficialDocumentInput, templateBody: string): string => {
+  const fillLabeledPlaceholder = (body: string, label: string, value: string): string => body.replace(
+    new RegExp(`((?:${label})\\s*:\\s*)\\[입력 필요\\]`, "g"),
+    (_match, prefix: string) => `${prefix}${value.trim() || "[입력 필요]"}`,
+  );
+  const contextual = [
+    ["관련(?: 공문)?", input.relatedDocument],
+    ["대상", input.target],
+    ["일시|날짜", input.dateTime],
+    ["장소", input.place],
+    ["방법", input.method],
+    ["기관명", input.organization],
+    ["인원", input.peopleCount],
+    ["예산", input.budget],
+    ["주요 내용", input.mainContent],
+    ["특이사항", input.notes],
+  ].reduce((body, [label, value]) => fillLabeledPlaceholder(body, label, value), templateBody.trim());
+  const rendered = renderNamedReferencePlaceholders(contextual, input);
+  const attachmentText = splitAttachments(input.attachments).map((item) => `${item} 1부.`).join("\n") || "[붙임 자료 입력 필요] 1부.";
+  return /^붙임\s/m.test(rendered) ? rendered : `${rendered}\n\n붙임  ${attachmentText}  끝.`;
+};
+
+export const generateOfficialDocumentDraft = (
+  input: OfficialDocumentInput,
+  reference: OfficialDocumentReferenceDraftSeed | null = null,
+): OfficialDocumentDraft => {
   const template = findOfficialDocumentTemplate(input.workArea);
   const title = buildTitle(input);
   const attachments = splitAttachments(input.attachments);
@@ -98,13 +148,18 @@ export const generateOfficialDocumentDraft = (input: OfficialDocumentInput): Off
     ...input,
     workName: clean(input.workName) || template.label,
   });
-  return {
+  const draft: OfficialDocumentDraft = {
     title,
-    body: buildBody(input),
-    attachments: formatAttachmentList(attachments),
-    messenger: `제목: ${title} 안내\n\n${messenger}`,
-    checklist: [...defaultOfficialDocumentChecklist, ...template.checklist].map((item) => `□ ${item}`).join("\n"),
+    body: reference?.templateBody.trim() ? buildReferenceBody(input, reference.templateBody) : buildBody(input),
+    attachments: formatAttachmentList(attachments.length > 0 ? attachments : splitAttachments(reference?.attachmentExample ?? "")),
+    messenger: reference?.messengerExample.trim()
+      ? renderNamedReferencePlaceholders(reference.messengerExample, input)
+      : `제목: ${title} 안내\n\n${messenger}`,
+    checklist: [...defaultOfficialDocumentChecklist, ...template.checklist, ...splitAttachments(reference?.checklist ?? "")].map((item) => `□ ${item}`).join("\n"),
   };
+  return reference?.tableCopyText.trim()
+    ? { ...draft, tableText: renderNamedReferencePlaceholders(reference.tableCopyText, input), tableGuide: reference.tableCopyGuide }
+    : draft;
 };
 
 export const composeOfficialDocumentDraft = (draft: OfficialDocumentDraft): string => [
@@ -122,4 +177,5 @@ export const composeOfficialDocumentDraft = (draft: OfficialDocumentDraft): stri
   "",
   "기안 전 체크리스트",
   draft.checklist,
+  ...(draft.tableText ? ["", "표 복사용 본문", draft.tableText] : []),
 ].join("\n");

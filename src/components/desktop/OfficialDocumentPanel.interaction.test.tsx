@@ -72,11 +72,44 @@ describe("OfficialDocumentPanel AI interaction", () => {
       return 0;
     });
     vi.stubGlobal("cancelAnimationFrame", vi.fn());
+    vi.stubGlobal("confirm", vi.fn(() => true));
   });
 
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
+  });
+
+  it("never calls AI while browsing, selecting, applying, or generating a local reference draft", async () => {
+    renderPanel(createOfficialDocumentSession());
+    await screen.findByText("학교보건 계획 기안 예시");
+    fireEvent.click(screen.getByRole("button", { name: /학교보건 계획 기안 예시/ }));
+    expect(generateTextMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "초안에 적용" }));
+    expect(generateTextMock).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog", { name: "참고자료를 초안에 적용할까요?" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "취소" })).toBe(document.activeElement);
+    expect(screen.getByText("업무명, 붙임")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "확인 후 적용" }));
+    expect(generateTextMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "기본 초안 만들기" }));
+    expect(await screen.findByText("기본 초안")).toBeTruthy();
+    expect(generateTextMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "AI 프롬프트 만들기" }));
+    expect(screen.getByText("AI 프롬프트 미리보기")).toBeTruthy();
+    expect(generateTextMock).not.toHaveBeenCalled();
+  });
+
+  it("cancels reference application with Escape without changing the form", async () => {
+    renderPanel(createOfficialDocumentSession());
+    await screen.findByText("학교보건 계획 기안 예시");
+    fireEvent.click(screen.getByRole("button", { name: /학교보건 계획 기안 예시/ }));
+    fireEvent.click(screen.getByRole("button", { name: "초안에 적용" }));
+    fireEvent.keyDown(screen.getByRole("dialog", { name: "참고자료를 초안에 적용할까요?" }), { key: "Escape" });
+
+    expect(screen.queryByRole("dialog", { name: "참고자료를 초안에 적용할까요?" })).toBeNull();
+    expect(screen.getByLabelText("업무명")).toHaveProperty("value", "");
+    expect(generateTextMock).not.toHaveBeenCalled();
   });
 
   it("sends exactly the user-reviewed outbound text and never the raw source", async () => {
