@@ -1,23 +1,57 @@
 import {
   defaultPurchaseOutputColumns,
   purchaseOutputColumnIds,
+  type PurchaseAmountCheck,
   type PurchaseItem,
   type PurchaseIssue,
   type PurchaseOutputColumnId,
   type PurchaseOutputReadiness,
 } from "./types";
 
+type PurchaseAmountCheckInput = Pick<PurchaseItem, "quantity" | "unitPrice" | "importedAmount" | "amountMismatchReviewed">;
+
+export const calculatePurchaseAmountCheck = (item: PurchaseAmountCheckInput): PurchaseAmountCheck => {
+  const computedAmount = item.quantity !== null
+    && item.unitPrice !== null
+    && Number.isFinite(item.quantity)
+    && Number.isFinite(item.unitPrice)
+    ? Math.round(item.quantity * item.unitPrice)
+    : null;
+  const importedAmount = item.importedAmount !== null && Number.isFinite(item.importedAmount)
+    ? item.importedAmount
+    : null;
+  const effectiveAmount = computedAmount ?? importedAmount;
+  const difference = computedAmount !== null && importedAmount !== null
+    ? computedAmount - importedAmount
+    : null;
+
+  if (computedAmount === null && importedAmount === null) {
+    return { computedAmount, importedAmount, effectiveAmount, difference, status: "unavailable", blocking: true };
+  }
+  if (computedAmount === null) {
+    return { computedAmount, importedAmount, effectiveAmount, difference, status: "imported-only", blocking: true };
+  }
+  if (importedAmount === null) {
+    return { computedAmount, importedAmount, effectiveAmount, difference, status: "computed-only", blocking: false };
+  }
+  if (difference !== null && Math.abs(difference) < 1) {
+    return { computedAmount, importedAmount, effectiveAmount, difference, status: "matched", blocking: false };
+  }
+  const status = item.amountMismatchReviewed ? "mismatch-reviewed" : "mismatch-unreviewed";
+  return { computedAmount, importedAmount, effectiveAmount, difference, status, blocking: !item.amountMismatchReviewed };
+};
+
 export const resolvePurchaseAmount = (item: Pick<PurchaseItem, "quantity" | "unitPrice" | "importedAmount">): number | null => {
-  if (item.quantity !== null && item.unitPrice !== null && Number.isFinite(item.quantity) && Number.isFinite(item.unitPrice)) return Math.round(item.quantity * item.unitPrice);
-  return item.importedAmount !== null && Number.isFinite(item.importedAmount) ? item.importedAmount : null;
+  return calculatePurchaseAmountCheck({ ...item, amountMismatchReviewed: false }).effectiveAmount;
 };
 
 export const getPurchaseIssues = (item: Omit<PurchaseItem, "issues">): readonly PurchaseIssue[] => {
   const issues: PurchaseIssue[] = [];
+  const amountCheck = calculatePurchaseAmountCheck(item);
   if (item.name.trim() === "") issues.push("missingName");
   if (item.quantity === null || !Number.isFinite(item.quantity) || item.quantity <= 0) issues.push("invalidQuantity");
   if (item.unitPrice === null || !Number.isFinite(item.unitPrice) || item.unitPrice < 0) issues.push("invalidUnitPrice");
-  if (item.quantity !== null && item.unitPrice !== null && item.importedAmount !== null && Math.abs(Math.round(item.quantity * item.unitPrice) - item.importedAmount) >= 1) issues.push("amountMismatch");
+  if (amountCheck.status === "mismatch-unreviewed" || amountCheck.status === "mismatch-reviewed") issues.push("amountMismatch");
   return issues;
 };
 

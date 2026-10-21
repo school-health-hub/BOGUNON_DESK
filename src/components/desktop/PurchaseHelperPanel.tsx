@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { isDesktopRuntime } from "../../desktop/actions";
 import { createPurchaseClipboard } from "../../purchase/purchaseClipboard";
-import { getPurchaseOutputReadiness, normalizePurchaseOutputColumns, resolvePurchaseAmount, selectedPurchaseTotal, updatePurchaseItem } from "../../purchase/purchaseDomain";
+import { calculatePurchaseAmountCheck, getPurchaseOutputReadiness, normalizePurchaseOutputColumns, selectedPurchaseTotal, updatePurchaseItem } from "../../purchase/purchaseDomain";
 import { purchaseRepository } from "../../purchase/purchaseRepository";
 import { createPurchaseDraft } from "../../purchase/purchaseDraft";
 import { createPurchaseSettlement, reconcilePurchaseSettlement } from "../../purchase/purchaseSettlement";
@@ -43,6 +43,7 @@ type Props = {
 };
 
 const numberValue = (value: string): number | null => value.trim() === "" ? null : Number(value.replace(/,/g, ""));
+const signedMoney = (value: number): string => `${value > 0 ? "+" : ""}${value.toLocaleString("ko-KR")}원`;
 const issueLabels: Readonly<Record<string, string>> = { missingName: "품명 필요", invalidQuantity: "수량 확인", invalidUnitPrice: "단가 확인", amountMismatch: "금액 불일치" };
 const purchaseHelperStateQueue = createPurchaseHelperStateQueue((active, templates) =>
   invoke("set_purchase_helper_active", { active, templates }),
@@ -237,7 +238,10 @@ export function PurchaseHelperPanel({ items, sources, columns, candidates, templ
               <td><input aria-label={`${index + 1}행 규격`} value={item.specification} onChange={(event) => update(item.id, { specification: event.target.value })} /></td>
               <td><input aria-label={`${index + 1}행 수량`} inputMode="decimal" value={item.quantity ?? ""} onChange={(event) => update(item.id, { quantity: numberValue(event.target.value) })} /></td>
               <td><input aria-label={`${index + 1}행 단가`} inputMode="decimal" value={item.unitPrice ?? ""} onChange={(event) => update(item.id, { unitPrice: numberValue(event.target.value) })} /></td>
-              <td className="purchase-helper-amount"><span>{resolvePurchaseAmount(item)?.toLocaleString("ko-KR") ?? "-"}</span>{item.issues.includes("amountMismatch") && <><small>원본 {item.importedAmount?.toLocaleString("ko-KR")}원 · 계산 {(item.quantity !== null && item.unitPrice !== null ? Math.round(item.quantity * item.unitPrice) : 0).toLocaleString("ko-KR")}원</small>{item.amountMismatchReviewed ? <em>금액 확인됨</em> : <button type="button" aria-label={`${index + 1}행 금액 불일치 확인`} onClick={() => update(item.id, { amountMismatchReviewed: true })}>금액 확인</button>}</>}</td>
+              <td className="purchase-helper-amount">{(() => {
+                const amountCheck = calculatePurchaseAmountCheck(item);
+                return <><span>{amountCheck.effectiveAmount?.toLocaleString("ko-KR") ?? "-"}</span>{amountCheck.difference !== null && Math.abs(amountCheck.difference) >= 1 && <><small>원본 {amountCheck.importedAmount?.toLocaleString("ko-KR")}원 · 계산 {amountCheck.computedAmount?.toLocaleString("ko-KR")}원 · 차이 {signedMoney(amountCheck.difference)}</small>{amountCheck.status === "mismatch-reviewed" ? <em>금액 확인됨</em> : <button type="button" aria-label={`${index + 1}행 금액 불일치 확인`} onClick={() => update(item.id, { amountMismatchReviewed: true })}>금액 확인</button>}</>}</>;
+              })()}</td>
               <td><input aria-label={`${index + 1}행 구매처`} value={item.vendor} onChange={(event) => update(item.id, { vendor: event.target.value })} /></td>
               <td><input aria-label={`${index + 1}행 비고`} value={item.note} onChange={(event) => update(item.id, { note: event.target.value })} /></td>
               <td><input aria-label={`${index + 1}행 예산항목`} value={item.budgetItem} onChange={(event) => update(item.id, { budgetItem: event.target.value })} /></td>

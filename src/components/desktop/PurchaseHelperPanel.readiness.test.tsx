@@ -70,7 +70,7 @@ describe("PurchaseHelperPanel output readiness", () => {
     });
     renderPanel([mismatch]);
 
-    expect(screen.getByText("원본 2,500원 · 계산 2,000원")).toBeTruthy();
+    expect(screen.getByText("원본 2,500원 · 계산 2,000원 · 차이 -500원")).toBeTruthy();
     expect(screen.getByRole("button", { name: "1행 금액 불일치 확인" }).hasAttribute("disabled")).toBe(false);
     expect(screen.getByRole("button", { name: "표 복사" }).hasAttribute("disabled")).toBe(true);
     expect(screen.getByRole("button", { name: "에듀파인용 Excel" }).hasAttribute("disabled")).toBe(true);
@@ -81,7 +81,7 @@ describe("PurchaseHelperPanel output readiness", () => {
     expect(screen.getByRole("button", { name: "에듀파인용 Excel" }).hasAttribute("disabled")).toBe(false);
 
     fireEvent.change(screen.getByLabelText("1행 수량"), { target: { value: "3" } });
-    expect(screen.getByText("원본 2,500원 · 계산 3,000원")).toBeTruthy();
+    expect(screen.getByText("원본 2,500원 · 계산 3,000원 · 차이 +500원")).toBeTruthy();
     expect(screen.getByRole("button", { name: "표 복사" }).hasAttribute("disabled")).toBe(true);
   });
 

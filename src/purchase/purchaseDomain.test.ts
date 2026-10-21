@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   appendPurchaseItemsWithSessionIds,
+  calculatePurchaseAmountCheck,
   createEmptyPurchaseItem,
   getPurchaseIssues,
   getPurchaseOutputReadiness,
@@ -17,6 +18,32 @@ describe("purchase domain", () => {
     const second = withPurchaseIssues({ ...createEmptyPurchaseItem("2"), name: "장갑", importedAmount: 3000, selected: false });
     expect(resolvePurchaseAmount(first)).toBe(2501);
     expect(selectedPurchaseTotal([first, second])).toBe(2501);
+  });
+  it("derives amount evidence without changing the imported amount", () => {
+    const item = withPurchaseIssues({ ...createEmptyPurchaseItem("amount"), name: "마스크", quantity: 2, unitPrice: 1_000, importedAmount: 2_500 });
+
+    expect(calculatePurchaseAmountCheck(item)).toEqual({
+      computedAmount: 2_000,
+      importedAmount: 2_500,
+      effectiveAmount: 2_000,
+      difference: -500,
+      status: "mismatch-unreviewed",
+      blocking: true,
+    });
+    expect(item.importedAmount).toBe(2_500);
+  });
+  it("classifies unavailable, single-source, matched, and reviewed amount states", () => {
+    const empty = createEmptyPurchaseItem("empty");
+    const computed = { ...empty, quantity: 2, unitPrice: 500 };
+    const imported = { ...empty, importedAmount: 1_000 };
+    const matched = { ...computed, importedAmount: 1_000.5 };
+    const reviewed = { ...computed, importedAmount: 1_500, amountMismatchReviewed: true };
+
+    expect(calculatePurchaseAmountCheck(empty).status).toBe("unavailable");
+    expect(calculatePurchaseAmountCheck(computed)).toMatchObject({ status: "computed-only", blocking: false });
+    expect(calculatePurchaseAmountCheck(imported)).toMatchObject({ status: "imported-only", blocking: true });
+    expect(calculatePurchaseAmountCheck(matched)).toMatchObject({ status: "matched", difference: -0.5, blocking: false });
+    expect(calculatePurchaseAmountCheck(reviewed)).toMatchObject({ status: "mismatch-reviewed", difference: -500, blocking: false });
   });
   it("reports missing and invalid values plus imported mismatch", () => {
     expect(getPurchaseIssues({ ...createEmptyPurchaseItem("1"), quantity: 0, unitPrice: -1, importedAmount: 3 })).toEqual(["missingName", "invalidQuantity", "invalidUnitPrice", "amountMismatch"]);
@@ -90,6 +117,7 @@ describe("purchase domain", () => {
     expect(updatePurchaseItem(reviewed, { note: "확인함" }).amountMismatchReviewed).toBe(true);
     expect(updatePurchaseItem(reviewed, { quantity: 2 }).amountMismatchReviewed).toBe(true);
     expect(updatePurchaseItem(reviewed, { quantity: 3 }).amountMismatchReviewed).toBe(false);
+    expect(updatePurchaseItem(reviewed, { importedAmount: 2_000 }).amountMismatchReviewed).toBe(false);
     expect(updatePurchaseItem(reviewed, { unitPrice: 1_250 }).issues).not.toContain("amountMismatch");
   });
 });

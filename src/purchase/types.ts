@@ -42,11 +42,18 @@ export type PurchaseSettlementItem = {
   readonly actualUnitPrice: number | null;
   readonly note: string;
 };
+export const purchaseTaxModes = ["unspecified", "included", "excluded", "exempt"] as const;
+export type PurchaseTaxMode = (typeof purchaseTaxModes)[number];
+export type PurchaseTaxAdjustment = {
+  readonly mode: PurchaseTaxMode;
+  readonly amount: number | null;
+};
 export type PurchaseSettlement = {
   readonly items: readonly PurchaseSettlementItem[];
   readonly shippingFee: number;
   readonly discountAmount: number;
   readonly adjustmentNote: string;
+  readonly tax?: PurchaseTaxAdjustment;
 };
 export type PurchaseSettlementSummary = {
   readonly plannedTotal: number;
@@ -55,6 +62,14 @@ export type PurchaseSettlementSummary = {
   readonly discountAmount: number;
   readonly finalActual: number;
   readonly difference: number;
+};
+export type PurchaseSettlementDisplaySummary = {
+  readonly legacyExportTotal: number;
+  readonly screenFinalActual: number;
+  readonly screenDifference: number;
+  readonly tax: PurchaseTaxAdjustment;
+  readonly appliedTaxAmount: number;
+  readonly legacyOutputSafe: boolean;
 };
 export type PurchaseSettlementExportRow = {
   readonly number: number;
@@ -79,6 +94,18 @@ export const purchaseOutputColumnLabels: Readonly<Record<PurchaseOutputColumnId,
 };
 
 export type PurchaseIssue = "missingName" | "invalidQuantity" | "invalidUnitPrice" | "amountMismatch";
+
+export const purchaseAmountCheckStatuses = ["unavailable", "computed-only", "imported-only", "matched", "mismatch-unreviewed", "mismatch-reviewed"] as const;
+export type PurchaseAmountCheckStatus = (typeof purchaseAmountCheckStatuses)[number];
+
+export type PurchaseAmountCheck = {
+  readonly computedAmount: number | null;
+  readonly importedAmount: number | null;
+  readonly effectiveAmount: number | null;
+  readonly difference: number | null;
+  readonly status: PurchaseAmountCheckStatus;
+  readonly blocking: boolean;
+};
 
 export type PurchaseItem = {
   readonly id: string;

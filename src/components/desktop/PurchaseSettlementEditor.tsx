@@ -2,6 +2,7 @@ import { ClipboardCopy, FileSpreadsheet } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   calculatePurchaseSettlementSummary,
+  calculatePurchaseSettlementDisplaySummary,
   createPurchaseSettlementClipboard,
   createPurchaseSettlementExportRows,
   createPurchaseSettlementSummaryText,
@@ -11,10 +12,11 @@ import {
   resolveSettlementItemAmount,
   updatePurchaseSettlementItem,
   updatePurchaseSettlementOrder,
+  updatePurchaseSettlementTax,
 } from "../../purchase/purchaseSettlement";
 import { resolvePurchaseAmount } from "../../purchase/purchaseDomain";
 import { purchaseRepository } from "../../purchase/purchaseRepository";
-import { purchaseSettlementStatuses, type PurchaseItem, type PurchaseSettlement, type PurchaseSettlementItem, type PurchaseSettlementStatus } from "../../purchase/types";
+import { purchaseSettlementStatuses, purchaseTaxModes, type PurchaseItem, type PurchaseSettlement, type PurchaseSettlementItem, type PurchaseSettlementStatus, type PurchaseTaxMode } from "../../purchase/types";
 
 type Props = {
   readonly items: readonly PurchaseItem[];
@@ -38,6 +40,21 @@ const settlementStatusValue = (value: string): PurchaseSettlementStatus => {
     default: return "pending";
   }
 };
+const purchaseTaxModeValue = (value: string): PurchaseTaxMode => {
+  switch (value) {
+    case "unspecified": return "unspecified";
+    case "included": return "included";
+    case "excluded": return "excluded";
+    case "exempt": return "exempt";
+    default: return "unspecified";
+  }
+};
+const purchaseTaxModeLabels: Readonly<Record<PurchaseTaxMode, string>> = {
+  unspecified: "세액 미지정",
+  included: "세액 포함",
+  excluded: "세액 별도",
+  exempt: "면세",
+};
 const formatMoney = (value: number): string => `${value.toLocaleString("ko-KR")}원`;
 
 const writeClipboard = async (content: { readonly text: string; readonly html: string }): Promise<void> => {
@@ -56,12 +73,14 @@ export function PurchaseSettlementEditor({ items, outputReady, settlement, onCha
   const selected = items.filter((item) => item.selected);
   const actualById = useMemo(() => new Map(settlement.items.map((item) => [item.purchaseItemId, item])), [settlement.items]);
   const summary = useMemo(() => calculatePurchaseSettlementSummary(items, settlement), [items, settlement]);
+  const displaySummary = useMemo(() => calculatePurchaseSettlementDisplaySummary(items, settlement), [items, settlement]);
   const warnings = useMemo(() => getPurchaseSettlementWarnings(items, settlement), [items, settlement]);
   const updateItem = (purchaseItemId: string, patch: Partial<Omit<PurchaseSettlementItem, "purchaseItemId">>): void => {
     onChange(updatePurchaseSettlementItem(settlement, purchaseItemId, patch));
   };
   const copyTable = async (): Promise<void> => {
     if (!outputReady) { onNotice("입력 오류와 금액 불일치를 먼저 확인해 주세요."); return; }
+    if (!displaySummary.legacyOutputSafe) { onNotice("별도 부가세는 기존 복사 출력에 포함되지 않아 복사할 수 없습니다."); return; }
     try {
       await writeClipboard(createPurchaseSettlementClipboard(items, settlement));
       onNotice("구매결과 표를 복사했습니다.");
@@ -72,6 +91,7 @@ export function PurchaseSettlementEditor({ items, outputReady, settlement, onCha
   };
   const copySummary = async (): Promise<void> => {
     if (!outputReady) { onNotice("입력 오류와 금액 불일치를 먼저 확인해 주세요."); return; }
+    if (!displaySummary.legacyOutputSafe) { onNotice("별도 부가세는 기존 복사 출력에 포함되지 않아 복사할 수 없습니다."); return; }
     try {
       await navigator.clipboard.writeText(createPurchaseSettlementSummaryText(summary));
       onNotice("정산 요약을 복사했습니다.");
@@ -82,6 +102,7 @@ export function PurchaseSettlementEditor({ items, outputReady, settlement, onCha
   };
   const exportXlsx = async (): Promise<void> => {
     if (!outputReady) { onNotice("입력 오류와 금액 불일치를 먼저 확인해 주세요."); return; }
+    if (!displaySummary.legacyOutputSafe) { onNotice("별도 부가세는 기존 XLSX에 포함되지 않아 저장할 수 없습니다."); return; }
     setBusy(true);
     try {
       if (await purchaseRepository.exportSettlement(createPurchaseSettlementExportRows(items, settlement), summary)) onNotice("구매결과 XLSX 파일을 저장했습니다.");
@@ -92,20 +113,24 @@ export function PurchaseSettlementEditor({ items, outputReady, settlement, onCha
       setBusy(false);
     }
   };
-  const differenceLabel = summary.difference === 0 ? "차액 없음" : summary.difference < 0 ? `${formatMoney(Math.abs(summary.difference))} 절감` : `${formatMoney(summary.difference)} 초과`;
+  const differenceLabel = displaySummary.screenDifference === 0 ? "차액 없음" : displaySummary.screenDifference < 0 ? `${formatMoney(Math.abs(displaySummary.screenDifference))} 절감` : `${formatMoney(displaySummary.screenDifference)} 초과`;
   return (
     <div className="purchase-settlement-editor">
       <section className="purchase-settlement-summary" aria-label="구매 정산 요약">
         <div><span>품의금액</span><strong>{formatMoney(summary.plannedTotal)}</strong></div>
         <div><span>상품 실제금액</span><strong>{formatMoney(summary.actualSubtotal)}</strong></div>
-        <div><span>최종 결제예상액</span><strong>{formatMoney(summary.finalActual)}</strong></div>
-        <div className={summary.difference > 0 ? "is-warning" : ""}><span>품의금액 대비</span><strong>{differenceLabel}</strong></div>
+        <div><span>기존 출력 기준액</span><strong>{formatMoney(displaySummary.legacyExportTotal)}</strong></div>
+        <div><span>세액 포함 최종금액</span><strong>{formatMoney(displaySummary.screenFinalActual)}</strong></div>
+        <div className={displaySummary.screenDifference > 0 ? "is-warning" : ""}><span>품의금액 대비</span><strong>{differenceLabel}</strong></div>
       </section>
       <section className="purchase-settlement-adjustments" aria-label="주문 단위 조정">
         <label>배송비<input aria-label="배송비" inputMode="numeric" value={settlement.shippingFee} onChange={(event) => onChange(updatePurchaseSettlementOrder(settlement, { shippingFee: Math.max(0, numberValue(event.target.value) ?? 0) }))} /></label>
         <label>할인 금액<input aria-label="할인 금액" inputMode="numeric" value={settlement.discountAmount} onChange={(event) => onChange(updatePurchaseSettlementOrder(settlement, { discountAmount: Math.max(0, numberValue(event.target.value) ?? 0) }))} /></label>
+        <label>부가세 처리<select aria-label="부가세 처리" value={displaySummary.tax.mode} onChange={(event) => onChange(updatePurchaseSettlementTax(settlement, { mode: purchaseTaxModeValue(event.target.value), amount: displaySummary.tax.amount }))}>{purchaseTaxModes.map((mode) => <option key={mode} value={mode}>{purchaseTaxModeLabels[mode]}</option>)}</select></label>
+        {(displaySummary.tax.mode === "included" || displaySummary.tax.mode === "excluded") && <label>명시 세액<input aria-label="명시 세액" inputMode="numeric" value={displaySummary.tax.amount ?? ""} onChange={(event) => onChange(updatePurchaseSettlementTax(settlement, { mode: displaySummary.tax.mode, amount: numberValue(event.target.value) }))} /></label>}
         <label>조정 메모<input aria-label="조정 메모" value={settlement.adjustmentNote} onChange={(event) => onChange(updatePurchaseSettlementOrder(settlement, { adjustmentNote: event.target.value }))} /></label>
       </section>
+      {!displaySummary.legacyOutputSafe && <div className="purchase-settlement-warnings" role="status"><span>기존 XLSX와 복사 출력에는 별도 부가세가 포함되지 않습니다. 오해를 방지하기 위해 기존 출력을 사용할 수 없습니다.</span></div>}
       {warnings.length > 0 && <div className="purchase-settlement-warnings" role="status">{warnings.map((warning) => <span key={warning}>{warning}</span>)}</div>}
       <div className="purchase-settlement-table-wrap">
         <table className="purchase-settlement-table"><thead><tr><th>상태</th><th>품명</th><th>품의수량</th><th>실제수량</th><th>품의단가</th><th>실제단가</th><th>품의금액</th><th>실제금액</th><th>차액</th><th>비고</th></tr></thead><tbody>
@@ -130,7 +155,7 @@ export function PurchaseSettlementEditor({ items, outputReady, settlement, onCha
           })}
         </tbody></table>
       </div>
-      <footer className="purchase-settlement-actions"><p>실제 구매 수량·금액은 현재 실행 중에만 유지됩니다.</p><div><button type="button" disabled={selected.length === 0 || !outputReady} onClick={() => void copyTable()}><ClipboardCopy size={14} /> 구매결과 표 복사</button><button type="button" disabled={selected.length === 0 || !outputReady} onClick={() => void copySummary()}><ClipboardCopy size={14} /> 정산 요약 복사</button><button type="button" disabled={selected.length === 0 || busy || !outputReady} onClick={() => void exportXlsx()}><FileSpreadsheet size={14} /> 구매결과 XLSX</button></div></footer>
+      <footer className="purchase-settlement-actions"><p>실제 구매 수량·금액은 현재 실행 중에만 유지됩니다.</p><div><button type="button" disabled={selected.length === 0 || !outputReady || !displaySummary.legacyOutputSafe} onClick={() => void copyTable()}><ClipboardCopy size={14} /> 구매결과 표 복사</button><button type="button" disabled={selected.length === 0 || !outputReady || !displaySummary.legacyOutputSafe} onClick={() => void copySummary()}><ClipboardCopy size={14} /> 정산 요약 복사</button><button type="button" disabled={selected.length === 0 || busy || !outputReady || !displaySummary.legacyOutputSafe} onClick={() => void exportXlsx()}><FileSpreadsheet size={14} /> 구매결과 XLSX</button></div></footer>
     </div>
   );
 }

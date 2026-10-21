@@ -2,10 +2,12 @@ import { resolvePurchaseAmount, selectedPurchaseTotal } from "./purchaseDomain";
 import type {
   PurchaseItem,
   PurchaseSettlement,
+  PurchaseSettlementDisplaySummary,
   PurchaseSettlementExportRow,
   PurchaseSettlementItem,
   PurchaseSettlementSummary,
   PurchaseSettlementStatus,
+  PurchaseTaxAdjustment,
 } from "./types";
 
 export const purchaseSettlementStatusLabels: Readonly<Record<PurchaseSettlementStatus, string>> = {
@@ -53,6 +55,23 @@ export const updatePurchaseSettlementOrder = (
   patch: Partial<Pick<PurchaseSettlement, "shippingFee" | "discountAmount" | "adjustmentNote">>,
 ): PurchaseSettlement => ({ ...settlement, ...patch });
 
+const defaultPurchaseTax: PurchaseTaxAdjustment = { mode: "unspecified", amount: null };
+
+export const normalizePurchaseTaxAdjustment = (
+  tax: PurchaseTaxAdjustment | undefined,
+): PurchaseTaxAdjustment => {
+  if (tax === undefined) return defaultPurchaseTax;
+  const amount = tax.amount !== null && Number.isFinite(tax.amount) && tax.amount >= 0
+    ? tax.amount
+    : null;
+  return { mode: tax.mode, amount };
+};
+
+export const updatePurchaseSettlementTax = (
+  settlement: PurchaseSettlement,
+  tax: PurchaseTaxAdjustment,
+): PurchaseSettlement => ({ ...settlement, tax: normalizePurchaseTaxAdjustment(tax) });
+
 export const resolveSettlementItemAmount = (item: PurchaseSettlementItem): number | null => {
   if (item.status === "pending" || item.status === "cancelled") return null;
   if (item.actualQuantity === null || item.actualUnitPrice === null) return null;
@@ -73,6 +92,24 @@ export const calculatePurchaseSettlementSummary = (
   const finalActual = Math.round(actualSubtotal + shippingFee - discountAmount);
   const plannedTotal = selectedPurchaseTotal(items);
   return { plannedTotal, actualSubtotal, shippingFee, discountAmount, finalActual, difference: finalActual - plannedTotal };
+};
+
+export const calculatePurchaseSettlementDisplaySummary = (
+  items: readonly PurchaseItem[],
+  settlement: PurchaseSettlement,
+): PurchaseSettlementDisplaySummary => {
+  const legacy = calculatePurchaseSettlementSummary(items, settlement);
+  const tax = normalizePurchaseTaxAdjustment(settlement.tax);
+  const appliedTaxAmount = tax.mode === "excluded" ? (tax.amount ?? 0) : 0;
+  const screenFinalActual = Math.round(legacy.finalActual + appliedTaxAmount);
+  return {
+    legacyExportTotal: legacy.finalActual,
+    screenFinalActual,
+    screenDifference: screenFinalActual - legacy.plannedTotal,
+    tax,
+    appliedTaxAmount,
+    legacyOutputSafe: screenFinalActual === legacy.finalActual,
+  };
 };
 
 export const getSettlementItemWarnings = (
@@ -99,9 +136,9 @@ export const getPurchaseSettlementWarnings = (
     const planned = byId.get(actual.purchaseItemId);
     return planned === undefined ? [] : getSettlementItemWarnings(planned, actual);
   });
-  const summary = calculatePurchaseSettlementSummary(items, settlement);
-  if (summary.finalActual < 0) warnings.push("최종 결제금액이 0원보다 작습니다.");
-  if (summary.difference > 0) warnings.push(`품의금액보다 ${summary.difference.toLocaleString("ko-KR")}원 많습니다.`);
+  const displaySummary = calculatePurchaseSettlementDisplaySummary(items, settlement);
+  if (displaySummary.screenFinalActual < 0) warnings.push("최종 결제금액이 0원보다 작습니다.");
+  if (displaySummary.screenDifference > 0) warnings.push(`품의금액보다 ${displaySummary.screenDifference.toLocaleString("ko-KR")}원 많습니다.`);
   return [...new Set(warnings)];
 };
 

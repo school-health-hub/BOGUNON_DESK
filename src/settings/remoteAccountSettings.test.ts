@@ -75,6 +75,23 @@ describe("remote AccountSettings boundary", () => {
     expect(parsed === null ? [] : Object.keys(parsed)).toEqual(["workspace", "dock", "launcherLinks", "workspaceFilters", "purchaseOutputColumns", "purchaseImportTemplates", "purchaseDraftTemplates"]);
   });
 
+  it("keeps account sync metadata-only when a payload contains purchase work data", () => {
+    const source = serializeAccountSettings(createSettings());
+    const parsed = parseRemoteAccountSettings(1, {
+      ...source,
+      purchaseItems: [{ name: "동기화하면 안 되는 실제 품목", quantity: 2, unitPrice: 12_000 }],
+      purchaseSettlement: {
+        shippingFee: 3_000,
+        discountAmount: 1_000,
+        tax: { mode: "excluded", amount: 2_600 },
+      },
+    });
+
+    expect(parsed).toEqual(source);
+    expect(JSON.stringify(parsed)).not.toContain("동기화하면 안 되는 실제 품목");
+    expect(parsed === null ? [] : Object.keys(parsed)).toEqual(["workspace", "dock", "launcherLinks", "workspaceFilters", "purchaseOutputColumns", "purchaseImportTemplates", "purchaseDraftTemplates"]);
+  });
+
   it("uses default workspace filters for a legacy payload", () => {
     const source = serializeAccountSettings(createSettings());
     const { workspaceFilters: _legacyMissing, ...legacy } = source;

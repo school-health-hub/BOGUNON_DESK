@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { appendPurchaseItemsWithSessionIds, createEmptyPurchaseItem, withPurchaseIssues } from "./purchaseDomain";
 import {
   calculatePurchaseSettlementSummary,
+  calculatePurchaseSettlementDisplaySummary,
   createPurchaseSettlement,
   createPurchaseSettlementClipboard,
   getPurchaseSettlementWarnings,
@@ -9,6 +10,7 @@ import {
   resolveSettlementItemAmount,
   updatePurchaseSettlementItem,
   updatePurchaseSettlementOrder,
+  updatePurchaseSettlementTax,
 } from "./purchaseSettlement";
 
 const item = (id: string, quantity: number | null, unitPrice: number | null) => withPurchaseIssues({ ...createEmptyPurchaseItem(id), name: id, quantity, unitPrice });
@@ -50,6 +52,66 @@ describe("purchase settlement", () => {
       { purchaseItemId: "B", status: "partial" as const, actualQuantity: 2, actualUnitPrice: 3_500, note: "" },
     ], shippingFee: 3_000, discountAmount: 1_000, adjustmentNote: "" };
     expect(calculatePurchaseSettlementSummary(planned, settlement)).toEqual({ plannedTotal: 34_500, actualSubtotal: 30_000, shippingFee: 3_000, discountAmount: 1_000, finalActual: 32_000, difference: -2_500 });
+  });
+
+  it("keeps legacy settlements and export summaries unchanged when tax is absent", () => {
+    const planned = [item("A", 1, 10_000)];
+    const settlement = createPurchaseSettlement(planned);
+
+    expect(settlement).not.toHaveProperty("tax");
+    expect(calculatePurchaseSettlementSummary(planned, settlement)).toEqual({
+      plannedTotal: 10_000,
+      actualSubtotal: 10_000,
+      shippingFee: 0,
+      discountAmount: 0,
+      finalActual: 10_000,
+      difference: 0,
+    });
+    expect(calculatePurchaseSettlementDisplaySummary(planned, settlement)).toEqual({
+      legacyExportTotal: 10_000,
+      screenFinalActual: 10_000,
+      screenDifference: 0,
+      tax: { mode: "unspecified", amount: null },
+      appliedTaxAmount: 0,
+      legacyOutputSafe: true,
+    });
+  });
+
+  it("adds only explicit excluded tax to the screen total while preserving the legacy export total", () => {
+    const planned = [item("A", 1, 10_000)];
+    const base = createPurchaseSettlement(planned);
+    const excluded = updatePurchaseSettlementTax(base, { mode: "excluded", amount: 1_000 });
+    const included = updatePurchaseSettlementTax(base, { mode: "included", amount: 1_000 });
+
+    expect(calculatePurchaseSettlementSummary(planned, excluded).finalActual).toBe(10_000);
+    expect(calculatePurchaseSettlementDisplaySummary(planned, excluded)).toMatchObject({
+      legacyExportTotal: 10_000,
+      screenFinalActual: 11_000,
+      screenDifference: 1_000,
+      appliedTaxAmount: 1_000,
+      legacyOutputSafe: false,
+    });
+    expect(calculatePurchaseSettlementDisplaySummary(planned, included)).toMatchObject({
+      legacyExportTotal: 10_000,
+      screenFinalActual: 10_000,
+      appliedTaxAmount: 0,
+      legacyOutputSafe: true,
+    });
+  });
+
+  it("does not infer tax and neutralizes invalid explicit tax amounts", () => {
+    const planned = [item("A", 1, 10_000)];
+    const base = createPurchaseSettlement(planned);
+    for (const amount of [-1, Number.NaN, Number.POSITIVE_INFINITY]) {
+      const settlement = updatePurchaseSettlementTax(base, { mode: "excluded", amount });
+      expect(calculatePurchaseSettlementDisplaySummary(planned, settlement)).toMatchObject({
+        screenFinalActual: 10_000,
+        appliedTaxAmount: 0,
+        legacyOutputSafe: true,
+      });
+    }
+    expect(calculatePurchaseSettlementDisplaySummary(planned, updatePurchaseSettlementTax(base, { mode: "exempt", amount: 999 }))).toMatchObject({ appliedTaxAmount: 0 });
+    expect(calculatePurchaseSettlementDisplaySummary(planned, updatePurchaseSettlementTax(base, { mode: "unspecified", amount: 999 }))).toMatchObject({ appliedTaxAmount: 0 });
   });
 
   it("preserves existing values and adds newly selected items", () => {
