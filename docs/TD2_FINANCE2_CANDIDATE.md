@@ -33,25 +33,31 @@ reviewed separately against the upstream LICENSE/NOTICE and modification notices
 ## Manual CI only
 
 Workflow: `.github/workflows/td2-finance2-candidate.yml`.
-Ref: `release/td2-finance2-candidate` only. It must already exist on GitHub and the
-workflow must be registered/available for manual dispatch. GitHub may require a
-workflow on the default branch before a newly added workflow can be dispatched;
-do not merge/change main or bypass that restriction without separate approval.
-
-Inputs: `expected_source_sha` = exact reviewed candidate commit; `timeout_test_file`
-= tracked failing test file; `timeout_test_name` = its exact full Vitest name.
-The previous five-second timeout case is currently UNIDENTIFIED in the available
-records. Do not substitute an arbitrary passing test. Identify that original case
-from its failure record before execution. Missing inputs fail before npm/build.
+Ref: `release/td2-finance2-candidate` only. The only required input is
+`expected_source_sha`, the exact reviewed candidate commit after these changes.
+Default-branch registration uses the same workflow path and input schema with
+`permissions: {}` and a registration-only job whose condition is `if: ${{ false }}`.
+No checkout/build/deployment occurs from that registration copy. Select the
+candidate branch for a later separately approved dispatch. The candidate verifies
+repository, workflow/ref, source/controller SHA, clean checkout and attempt 1.
 No workflow was dispatched during preparation.
 
-CI performs dependency audit (all severities), focused Finance tests, exactly one
-selected timeout regression without raising its timeout, full frontend tests,
-TypeScript, frontend build, Finance Rust regressions and existing release:windows
-checks/build. Audit findings or test failures block installer upload.
-Failure artifacts contain diagnostic JSON only (audit, selected timeout report and
-signature observation when reached). Compiler/build output remains in GitHub step
-logs; an absent JSON report is not evidence that the corresponding check passed.
+The original Finance five-second timeout evidence is unavailable. The manifest
+records `historicalFinanceTimeout: UNKNOWN`; this is not a claim that the old
+failure was identified or fixed. Desktop Surface/Record Helper failures are not
+substituted for that Finance case. Its identity is no longer a required input.
+
+CI requires dependency audit (all severities), all Finance tests, full frontend
+regressions, TypeScript, frontend build, Finance Rust regressions and the existing
+release:windows checks/build. It does not raise test timeouts, ignore failures or
+retry tests. Any required failure blocks the successful installer upload.
+Before dependency installation, actionlint 1.7.12 checks the workflow. Its Windows
+amd64 ZIP SHA-256 is pinned to
+`6e7241b51e6817ea6a047693d8e6fed13b31819c9a0dd6c5a726e1592d22f6e9`.
+A download, checksum or linter failure stops the build.
+Failure artifacts contain diagnostic JSON only (audit and signature observation
+when reached). Compiler/test/build output remains in GitHub step logs; an absent
+JSON report is not evidence that the corresponding check passed.
 
 Successful output contains the NSIS EXE, SHA256SUMS.txt, README-FIRST.txt,
 BUILD-MANIFEST.json, this guide and THIRD_PARTY_NOTICES.md. The manifest records
@@ -81,12 +87,11 @@ workflow dispatch. Windows tests, audit, NSIS output and signatures are pending.
 No previous Candidate/Environment approval is reused. Production Environment,
 release creation, updater publication and deploy secrets are absent.
 
-Local preparation verified 14 Node contract cases, both helper syntax checks,
-the existing release-version guard and git diff whitespace checks. Contrasting
-manual/automatic events, matching/mismatching source SHA, and first/rerun attempts
-confirmed that invalid contexts are rejected by the actual guard function.
-No installed YAML parser or actionlint was available in the checked tools; those
-checks remain unverified. Windows build/QA execution has not been attempted.
-GitHub's workflow list did not register this new candidate workflow at preparation
-time. CI EXECUTION READINESS remains BLOCKED until default-branch registration is
-authorized separately and the original timeout case is identified.
+Local checks cover Node contracts, both helper syntax checks, the existing
+release-version guard, YAML parsing, pinned actionlint and git diff checks.
+Contrasting manual/automatic events, matching/mismatching source SHA, and
+first/rerun attempts confirms rejection by the actual guard function. These are
+source-preparation checks, not Windows application tests. Windows CI, npm audit,
+NSIS output and signatures remain unverified until a separately approved run.
+Registration and candidate commit identities must be rechecked before dispatch;
+registration alone does not approve a run, artifact use or installation.

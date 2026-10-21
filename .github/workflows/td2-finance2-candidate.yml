@@ -6,14 +6,6 @@ on:
         description: Exact reviewed candidate commit SHA (not the Finance baseline)
         required: true
         type: string
-      timeout_test_file:
-        description: Original five-second timeout test tracked src/*.test file; identify from failure evidence
-        required: true
-        type: string
-      timeout_test_name:
-        description: Exact full Vitest name of that original failed test
-        required: true
-        type: string
 permissions:
   contents: read
 concurrency:
@@ -30,8 +22,6 @@ jobs:
     env:
       CI: 'true'
       EXPECTED_SOURCE_SHA: ${{ inputs.expected_source_sha }}
-      TIMEOUT_TEST_FILE: ${{ inputs.timeout_test_file }}
-      TIMEOUT_TEST_NAME: ${{ inputs.timeout_test_name }}
       RELEASE_VERSION: '0.2.2'
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
@@ -48,6 +38,20 @@ jobs:
         run: node scripts/td2-finance2-candidate.mjs guard
       - name: Initialize diagnostic-only output
         run: New-Item -ItemType Directory -Path diagnostics | Out-Null
+      - name: Verify pinned actionlint and lint workflow
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'actionlint_1.7.12_windows_amd64.zip'
+          $toolDir = Join-Path $env:RUNNER_TEMP 'actionlint-1.7.12'
+          $expected = '6e7241b51e6817ea6a047693d8e6fed13b31819c9a0dd6c5a726e1592d22f6e9'
+          Invoke-WebRequest -Uri 'https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_windows_amd64.zip' -OutFile $archive
+          $actual = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -cne $expected) { throw 'actionlint archive checksum mismatch' }
+          Expand-Archive -LiteralPath $archive -DestinationPath $toolDir
+          $linter = Join-Path $toolDir 'actionlint.exe'
+          & $linter -version
+          if ($LASTEXITCODE -ne 0) { throw 'actionlint version check failed' }
+          & $linter '.github/workflows/td2-finance2-candidate.yml'
+          if ($LASTEXITCODE -ne 0) { throw 'actionlint failed' }
       - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249
         with:
           targets: x86_64-pc-windows-msvc
@@ -72,8 +76,6 @@ jobs:
         run: node --test scripts/td2-finance2-candidate.contract.mjs
       - name: Finance unit and UI regressions
         run: npm test -- src/my-finance --maxWorkers=4
-      - name: Recheck exactly the original timeout case without increasing timeout
-        run: node scripts/td2-finance2-candidate.mjs timeout
       - name: Full frontend regressions
         run: npm test -- --maxWorkers=4
       - name: TypeScript
