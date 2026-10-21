@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { CompactWorkspaceNotices, WorkspaceDataNotice } from "./WorkspaceDataNotice";
+import { CompactWorkspaceNotices, WorkspaceConnectionNotice, WorkspaceDataNotice } from "./WorkspaceDataNotice";
 
 describe("desktop connection notice scope", () => {
   it("keeps the standalone connection guidance outside the desktop", () => {
@@ -15,5 +15,16 @@ describe("desktop connection notice scope", () => {
   });
   it("retains loading feedback inside the desktop", () => {
     expect(renderToStaticMarkup(<CompactWorkspaceNotices><WorkspaceDataNotice state={{ status: "loading" }} /></CompactWorkspaceNotices>)).toContain("불러오는 중");
+  });
+});
+
+
+describe("connection-required presentation", () => {
+  it("keeps standalone settings actions but consolidates desktop guidance", () => {
+    const content = <WorkspaceConnectionNotice><button>설정 열기</button></WorkspaceConnectionNotice>;
+    expect(renderToStaticMarkup(content)).toContain("설정 열기");
+    const desktop = renderToStaticMarkup(<CompactWorkspaceNotices>{content}</CompactWorkspaceNotices>);
+    expect(desktop).not.toContain("설정 열기");
+    expect(desktop).toContain("연결 설정 대기");
   });
 });

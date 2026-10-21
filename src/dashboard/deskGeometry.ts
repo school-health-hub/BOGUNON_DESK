@@ -16,7 +16,7 @@ export const resolveDeskGeometry = (layout: DashboardLayout, viewportWidth: numb
   const widgets: readonly WidgetLayout[] = dense && isCanonicalDeskLayout(layout)
     ? layout.widgets.map((widget) => ({ ...widget, ...desktopComposition[widget.type] }))
     : layout.widgets;
-  return { dense, widgets, rowHeight: 48, margin: viewportWidth >= 1800 ? 14 : 12 };
+  return { dense, widgets, rowHeight: 56, margin: viewportWidth >= 1800 ? 14 : 12 };
 };
 
 export const mergeRenderedGridLayout = (current: DashboardLayout, rendered: readonly WidgetLayout[], next: Layout): DashboardLayout => {

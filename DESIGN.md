@@ -1,5 +1,19 @@
 # BOGUNON DESK Integrated Work Desk 디자인 시스템
 
+## Dashboard v2 — Mint & Ivory (current presentation contract)
+
+This section supersedes earlier blue canvas, 82%-calendar height and intentional empty-slot styling. It does not migrate saved layouts.
+
+- Palette: ivory #F7F9F5, white #FFFFFF, mint #E5F4EF, teal #177F71, ink #263B48. Dashboard-scoped CSS tokens own these colors; business status/category colors remain unchanged.
+- Materials: ivory canvas with soft mint ambient light, white/mint translucent sheets, 1px mint-gray rim and restrained two-layer shadow. Compact corners 14px, soft 20px; existing appearance IDs remain meaningful.
+- Geometry: preserve 12-column stored widget coordinates and all custom/legacy layouts. Canonical dense desk uses existing top information row, dominant monthly calendar, right work stack, bottom weekly/memo/launcher band. Do not rewrite storage to force a layout.
+- Heights: full slot height; no 82% calendar shrink, no auto-shrinking empty surface inside a fixed grid slot. Single outer workspace scroll at small heights; long list widgets retain one necessary list scroll. Calendar days never scroll individually.
+- Calendar: one readable category-colored preview and keyboard-operable +N disclosure listing all titles. Date action still opens existing Quick Add. Disclosure is view-only and uses no new repository or event contract.
+- Typography: existing Pretendard tokens; titles 14px/600, body 13px, supporting text 12px; time 32px. Tabular numerals and visible teal focus rings.
+- Reusable states: WidgetFrame default/soft/flat and compact/soft options preserved; empty is a quiet dash/status, errors retain semantic contrast. Dock keeps action registry, tooltips, active dot and keyboard targets; compact windows retain scroll access.
+- Reference: supplied TD2 screenshot informs density and information hierarchy only. No code, icons or assets copied. Main HWND remains a normal Tauri-owned window; this UI is not Windows desktop attachment.
+- QA: synthetic browser data only at 1440x900, 1366x768 and small CSS viewport/DPI equivalents. Native WebView2/DPI remains NOT VERIFIED.
+
 ## Desktop Surface Mode
 
 - 9B-1은 Windows `Progman` / `WorkerW` topology를 읽기만 하는 capability probe다. 앱 창의 parent, style, z-order, taskbar, decorations를 변경하지 않으며 desktop mode의 기본 상태는 일반 창이다.

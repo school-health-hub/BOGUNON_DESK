@@ -1,6 +1,6 @@
 import { CloudSun, RefreshCw } from "lucide-react";
 import { Panel } from "../components/Panel";
-import { WorkspaceDataNotice } from "../workspace-data/WorkspaceDataNotice";
+import { WorkspaceConnectionNotice, WorkspaceDataNotice } from "../workspace-data/WorkspaceDataNotice";
 import { executeNativeDesktopAction } from "../desktop/actions";
 import { useWeatherData } from "../weather/WeatherDataContext";
 import { getWeatherIcon } from "../weather/weatherIcons";
@@ -16,7 +16,7 @@ function WeatherContent({ state, onRefresh }: { readonly state: WeatherState; re
   switch (state.status) {
     case "loading": return <p className="weather-state">날씨를 불러오는 중입니다.</p>;
     case "signedOut": return <WorkspaceDataNotice state={{ status: "signedOut" }} />;
-    case "connectionRequired": return <div className="weather-state"><p>BOGUNON 연결이 필요합니다.</p>{actionButton("설정 열기", () => void executeNativeDesktopAction("settings"))}</div>;
+    case "connectionRequired": return <WorkspaceConnectionNotice><div className="weather-state"><p>BOGUNON 연결이 필요합니다.</p>{actionButton("설정 열기", () => void executeNativeDesktopAction("settings"))}</div></WorkspaceConnectionNotice>;
     case "school-missing": return <div className="weather-state"><p>학교를 등록하면 날씨를 확인할 수 있습니다.</p>{actionButton("BOGUNON에서 학교 등록", () => void executeNativeDesktopAction(WEATHER_SCHOOL_SETTINGS_ACTION_ID))}</div>;
     case "disabled": return <div className="weather-state"><p>BOGUNON에서 날씨 표시가 꺼져 있습니다.</p>{actionButton("설정에서 켜기", () => void executeNativeDesktopAction(WEATHER_SCHOOL_SETTINGS_ACTION_ID))}</div>;
     case "location-unavailable": return <div className="weather-state"><p>학교 위치를 확인하지 못했습니다.</p>{actionButton("학교 정보 확인", () => void executeNativeDesktopAction(WEATHER_SCHOOL_SETTINGS_ACTION_ID))}</div>;

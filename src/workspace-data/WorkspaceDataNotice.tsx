@@ -25,3 +25,9 @@ export function WorkspaceDataNotice({ state }: WorkspaceDataNoticeProps) {
 export function WorkspaceDataEmpty({ children }: { readonly children: string }) {
   return <div className="workspace-data-notice is-empty">{children}</div>;
 }
+
+/** Presentation only: a desktop-level banner owns repeated connection instructions. */
+export function WorkspaceConnectionNotice({ children }: { readonly children: ReactNode }) {
+  const compact = useContext(CompactNoticeContext);
+  return compact ? <p className="workspace-connection-placeholder"><span aria-hidden="true">—</span><span className="sr-only">연결 설정 대기</span></p> : children;
+}

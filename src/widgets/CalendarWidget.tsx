@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from "react";
 import { CalendarRange } from "lucide-react";
 import { scheduleCategories, type ScheduleCategory } from "../types/dashboard";
 import { Panel } from "../components/Panel";
@@ -44,6 +45,8 @@ export const selectCalendarDate = (
 ): void => openQuickAddEventForDate(date);
 
 export function CalendarWidget() {
+  const detailTrigger = useRef<HTMLButtonElement | null>(null);
+  const [detailDate, setDetailDate] = useState<string | null>(null);
   const { openQuickAddEventForDate } = useDesktopPanels();
   const { now } = useWidgetSession();
   const { state } = useWorkspaceData();
@@ -52,6 +55,12 @@ export function CalendarWidget() {
   const cells = getCalendarMonthCells(year, monthIndex);
   const weekCount = cells.length / 7;
   const events = state.status === "ready" ? state.data.calendarEvents : [];
+
+  useLayoutEffect(() => {
+    if (detailDate === null) detailTrigger.current?.focus();
+  }, [detailDate]);
+  const closeDetail = () => setDetailDate(null);
+  const detailEvents = events.filter((event) => event.targetDate === detailDate);
 
   return (
     <Panel
@@ -66,7 +75,7 @@ export function CalendarWidget() {
       <div className="calendar-legend" aria-label="일정 카테고리">
         {scheduleCategories.map((category) => <span key={category}><i className={categoryClass[category]} />{category}</span>)}
       </div>
-      <div className={`calendar-grid has-${weekCount}-weeks`}>
+      <div className={`calendar-grid has-${weekCount}-weeks`} inert={detailDate !== null}>
         {weekdays.map((day) => <div className="calendar-weekday" key={day}>{day}</div>)}
         {cells.map((day, index) => {
           const date = day === null ? null : new Date(year, monthIndex, day);
@@ -81,7 +90,7 @@ export function CalendarWidget() {
                   className="calendar-date calendar-date-action"
                   aria-label={`${year}년 ${monthIndex + 1}월 ${day}일 일정 추가`}
                   title={`${monthIndex + 1}월 ${day}일 일정 추가`}
-                  onClick={() => selectCalendarDate(dateKey!, openQuickAddEventForDate)}
+                  onClick={() => { if (dateKey !== null) selectCalendarDate(dateKey, openQuickAddEventForDate); }}
                 >
                   {day}
                 </button>
@@ -90,9 +99,9 @@ export function CalendarWidget() {
                     <span className={`calendar-event ${categoryClass[eventPreview.firstEvent.category]}`} title={eventPreview.firstEvent.title}>{eventPreview.firstEvent.title}</span>
                   )}
                   {eventPreview.overflowCount > 0 && (
-                    <span className="calendar-event-overflow" title={dateEvents.slice(1).map((event) => event.title).join(" · ")} aria-label={`${eventPreview.overflowCount}개 일정 더 있음`}>
-                      +{eventPreview.overflowCount}
-                    </span>
+                    <button type="button" className="calendar-event-overflow" title={dateEvents.slice(1).map((event) => event.title).join(" · ")} aria-label={`${eventPreview.overflowCount}개 일정 더 있음`} aria-expanded={detailDate === dateKey} onClick={(event) => { detailTrigger.current = event.currentTarget; setDetailDate(dateKey); }}>
+                      +{eventPreview.overflowCount}개
+                    </button>
                   )}
                 </div>
               </>}
@@ -100,6 +109,10 @@ export function CalendarWidget() {
           );
         })}
       </div>
+      {detailDate !== null && <section className="calendar-detail" aria-label={`${detailDate} 전체 일정`} onKeyDown={(event) => { if (event.key === "Escape") closeDetail(); }}>
+        <header><strong>{detailDate} · 일정 {detailEvents.length}개</strong><button type="button" autoFocus onClick={closeDetail}>닫기</button></header>
+        <ul>{detailEvents.map((event) => <li key={event.id}><span className={`calendar-event ${categoryClass[event.category]}`}>{event.category}</span><span>{event.title}</span></li>)}</ul>
+      </section>}
     </Panel>
   );
 }

@@ -1,4 +1,6 @@
 import { GridLayout, type Layout } from "react-grid-layout";
+import { useWeatherData } from "../../weather/WeatherDataContext";
+import { useMealData } from "../../meal/MealDataContext";
 import { useMemo } from "react";
 import { toGridLayout } from "../../dashboard/layoutTransforms";
 import type { WidgetLayout } from "../../dashboard/types";
@@ -21,12 +23,15 @@ type Props = {
 /** Composition boundary: existing widgets retain their data/providers and actions. */
 export function DesktopWidgetLayout({ widgets, width, compact, editing, selectedId, metrics, onLayoutChange, onHide, onSelect }: Props) {
   const { state } = useWorkspaceData();
+  const weather = useWeatherData();
+  const meal = useMealData();
+  const needsConnection = state.status === "signedOut" || weather.state.status === "connectionRequired" || meal.state.status === "connectionRequired";
   const layout = useMemo(() => toGridLayout(widgets, editing && !compact), [widgets, editing, compact]);
   return (
     <section className="desktop-workspace-layout" aria-label="데스크톱 위젯 작업 공간">
-      {state.status === "signedOut" && <p className="desktop-connection-notice" role="status">
-        <strong>BOGUNON 연결 대기</strong>
-        <span>설정에서 Google 계정을 연결하면 업무와 일정을 볼 수 있습니다.</span>
+      {needsConnection && <p className="desktop-connection-notice" role="status">
+        <strong>BOGUNON 연결 안내</strong>
+        <span>설정에서 계정과 BOGUNON 연결을 확인하면 일정·날씨·급식을 볼 수 있습니다.</span>
       </p>}
       <CompactWorkspaceNotices>
         <GridLayout
