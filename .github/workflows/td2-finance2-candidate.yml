@@ -1,0 +1,16 @@
+name: TD2 Finance 2.0 operating Windows candidate
+on:
+  workflow_dispatch:
+    inputs:
+      expected_source_sha:
+        description: Exact reviewed candidate commit SHA (not the Finance baseline)
+        required: true
+        type: string
+permissions: {}
+jobs:
+  registration-only:
+    # Intentionally disabled registration stub; the constant-false lint warning is expected.
+    if: ${{ false }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'echo "Registration only; select release/td2-finance2-candidate."'
