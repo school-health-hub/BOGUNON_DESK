@@ -1,143 +1,170 @@
-use super::{model::*, store::*};
+use super::{model::*, retention, store, timestamps};
 use std::fs;
-
-fn item(id: &str, notes: &str) -> LibraryItem {
-    LibraryItem {
+fn entry(id: &str, notes: &str) -> LibraryEntry {
+    LibraryEntry {
         video_id: id.into(),
-        title: "합성 교육영상".into(),
-        channel_id: "mock-channel".into(),
-        channel_title: "합성 채널".into(),
-        duration_seconds: 600,
-        url: format!("https://www.youtube.com/watch?v={id}"),
-        source: VideoSource::Mock,
-        education_title: "교육".into(),
-        target: "학생".into(),
-        schedule: "2026-10-21".into(),
-        instructions: String::new(),
-        message: "교사 확인 문구".into(),
-        notes: notes.into(),
+        teacher: TeacherData {
+            education_title: "교육".into(),
+            target: "학생".into(),
+            schedule: "기간".into(),
+            instructions: "안내".into(),
+            message: "교사 수정".into(),
+            notes: notes.into(),
+        },
+        provider: None,
     }
 }
-
 #[test]
-fn save_roundtrip_and_import_preserves_teacher_notes() {
+fn save_import_export_preserve_teacher_and_explicit_edits() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("library.json");
-    save_item(&path, item("EVmock00001", "교사 메모")).unwrap();
+    store::save_entry(&path, entry("EVmock00001", "교사 메모")).unwrap();
     let incoming = Library {
-        version: 1,
-        items: vec![
-            item("EVmock00001", "가져온 메모"),
-            item("EVmock00002", "새 메모"),
+        version: 2,
+        entries: vec![
+            entry("EVmock00001", "외부 메모"),
+            entry("EVmock00002", "신규"),
         ],
     };
-    let result = import(&path, &serde_json::to_string(&incoming).unwrap()).unwrap();
-    assert_eq!(result.library.items.len(), 2);
-    assert_eq!(result.library.items[0].notes, "교사 메모");
-    assert_eq!(load(&path).unwrap().library, result.library);
-}
-
-#[test]
-fn corrupt_primary_recovers_backup_without_overwriting_corrupt_evidence() {
-    let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join("library.json");
-    save_item(&path, item("EVmock00001", "first")).unwrap();
-    save_item(&path, item("EVmock00002", "second")).unwrap();
-    fs::write(&path, "broken JSON").unwrap();
-    let result = load(&path).unwrap();
-    assert!(result.recovered);
-    assert_eq!(result.library.items.len(), 1);
+    let result = store::import(&path, &serde_json::to_string(&incoming).unwrap()).unwrap();
+    assert_eq!(result.library.entries.len(), 2);
+    assert_eq!(result.library.entries[0].teacher.notes, "교사 메모");
+    let result = store::save_entry(&path, entry("EVmock00001", "직접 수정")).unwrap();
+    assert_eq!(result.library.entries.len(), 2);
+    assert_eq!(result.library.entries[0].teacher.notes, "직접 수정");
     assert_eq!(
-        fs::read_to_string(path.with_extension("corrupt.json")).unwrap(),
-        "broken JSON"
+        parse(&store::export(&path).unwrap()).unwrap(),
+        result.library
     );
 }
-
 #[test]
-fn invalid_import_and_failed_commit_leave_existing_primary_unchanged() {
-    let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join("library.json");
-    save_item(&path, item("EVmock00001", "keep")).unwrap();
-    let before = fs::read(&path).unwrap();
-    assert!(import(&path, r#"{"version":99,"items":[]}"#).is_err());
-    assert_eq!(fs::read(&path).unwrap(), before);
-    fs::remove_file(path.with_extension("backup.json")).unwrap();
-    fs::create_dir(path.with_extension("backup.json")).unwrap();
-    assert!(save_item(&path, item("EVmock00002", "new")).is_err());
-    assert_eq!(fs::read(path).unwrap(), before);
-}
-
-#[test]
-fn malformed_unknown_secret_fields_duplicates_and_unsafe_urls_are_rejected() {
-    assert!(parse(r#"{"version":1,"items":[],"accessToken":"secret"}"#).is_err());
-    assert!(parse("broken").is_err());
-    let mut entry = item("EVmock00001", "");
-    entry.url = "https://www.youtube.com.evil.example/watch?v=EVmock00001".into();
-    assert!(entry.validate().is_err());
-    let duplicate = Library {
-        version: 1,
-        items: vec![item("EVmock00001", ""), item("EVmock00001", "")],
-    };
-    assert!(parse(&serde_json::to_string(&duplicate).unwrap()).is_err());
-}
-
-#[test]
-fn binary_and_oversized_primary_recover_from_valid_backup() {
-    for damaged in [vec![0xff, 0xfe], vec![b'x'; MAX_BYTES + 1]] {
+fn corruption_and_binary_recover_first_save_backup() {
+    for bytes in [
+        b"broken JSON".to_vec(),
+        vec![0xff, 0xfe],
+        vec![b'x'; MAX_BYTES + 1],
+    ] {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("library.json");
-        save_item(&path, item("EVmock00001", "first")).unwrap();
-        save_item(&path, item("EVmock00002", "second")).unwrap();
-        fs::write(&path, &damaged).unwrap();
-        let result = load(&path).unwrap();
-        assert!(result.recovered);
-        assert_eq!(result.library.items.len(), 1);
-        assert_eq!(
-            fs::read(path.with_extension("corrupt.json")).unwrap(),
-            damaged
-        );
+        store::save_entry(&path, entry("EVmock00001", "보존")).unwrap();
+        fs::write(&path, &bytes).unwrap();
+        let loaded = store::load(&path).unwrap();
+        assert!(loaded.recovered);
+        assert_eq!(loaded.library.entries[0].teacher.notes, "보존");
+        let raw = fs::read_dir(dir.path().join("quarantine"))
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .find(|path| path.extension().is_some_and(|extension| extension == "raw"))
+            .unwrap();
+        assert_eq!(fs::read(raw).unwrap(), bytes);
+    }
+}
+#[test]
+fn failed_backup_write_and_invalid_import_preserve_primary() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("library.json");
+    store::save_entry(&path, entry("EVmock00001", "원본")).unwrap();
+    let before = fs::read(&path).unwrap();
+    assert!(store::import(&path, r#"{"version":99,"entries":[]}"#).is_err());
+    fs::remove_file(path.with_extension("backup.json")).unwrap();
+    fs::create_dir(path.with_extension("backup.json")).unwrap();
+    assert!(store::save_entry(&path, entry("EVmock00002", "신규")).is_err());
+    assert_eq!(fs::read(path).unwrap(), before);
+}
+#[test]
+fn malformed_secret_unknown_version_and_duplicates_rejected() {
+    assert!(parse(r#"{"version":2,"entries":[],"accessToken":"secret"}"#).is_err());
+    assert!(parse(r#"{"version":1,"entries":[]}"#).is_err());
+    let duplicate = Library {
+        version: 2,
+        entries: vec![entry("EVmock00001", ""), entry("EVmock00001", "")],
+    };
+    assert!(parse(&serde_json::to_string(&duplicate).unwrap()).is_err());
+    let mut json = serde_json::to_value(Library {
+        version: 2,
+        entries: vec![entry("EVmock00001", "")],
+    })
+    .unwrap();
+    json["entries"][0]["teacher"]["accessToken"] = serde_json::json!("secret");
+    assert!(parse(&json.to_string()).is_err());
+}
+#[test]
+fn expired_quarantine_cleanup_only_touches_own_receipted_uuid_files() {
+    let dir = tempfile::tempdir().unwrap();
+    let q = dir.path().join("quarantine");
+    fs::create_dir(&q).unwrap();
+    let id = uuid::Uuid::new_v4();
+    let raw = q.join(format!("{id}.raw"));
+    let receipt = q.join(format!("{id}.retention.json"));
+    fs::write(&raw, b"corrupt fixture").unwrap();
+    fs::write(
+        &receipt,
+        format!("{{\"delete_after\":{}}}", timestamps::now_ms().unwrap() - 1),
+    )
+    .unwrap();
+    fs::write(q.join("unrelated.raw"), b"keep").unwrap();
+    retention::cleanup(dir.path(), timestamps::now_ms().unwrap()).unwrap();
+    assert!(!raw.exists());
+    assert!(!receipt.exists());
+    assert!(q.join("unrelated.raw").exists());
+}
+
+#[test]
+fn valid_primary_remains_usable_with_binary_or_oversized_backup() {
+    for damage in [vec![0xff, 0xfe], vec![b'x'; MAX_BYTES + 1]] {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("library.json");
+        store::save_entry(&path, entry("EVmock00001", "원본 메모")).unwrap();
+        fs::write(path.with_extension("backup.json"), damage).unwrap();
+        let loaded = store::load(&path).unwrap();
+        assert_eq!(loaded.library.entries[0].teacher.notes, "원본 메모");
+        assert!(parse(&fs::read_to_string(path.with_extension("backup.json")).unwrap()).is_ok());
     }
 }
 
 #[test]
-fn explicit_save_replaces_notes_and_message_without_duplicate_entries() {
+fn teacher_only_import_cannot_delete_fresh_metadata() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("library.json");
-    save_item(&path, item("EVmock00001", "before")).unwrap();
-    let result = save_item(&path, item("EVmock00001", "teacher edited")).unwrap();
-    assert_eq!(result.library.items.len(), 1);
-    assert_eq!(result.library.items[0].notes, "teacher edited");
+    let now = timestamps::now_ms().unwrap();
+    let mut item = entry("EVmock00001", "메모 유지");
+    item.provider = Some(ProviderMetadata {
+        title: "fresh-provider-sentinel".into(),
+        channel_id: "channel".into(),
+        channel_title: "채널".into(),
+        duration_seconds: None,
+        url: "https://www.youtube.com/watch?v=EVmock00001".into(),
+        source: VideoSource::Live,
+        official: false,
+        official_evidence: None,
+        synthetic: false,
+        fetched_at: timestamps::format_iso(now),
+        expires_at: timestamps::format_iso(now + timestamps::MAX_TTL_MS),
+    });
+    store::save_entry(&path, item).unwrap();
+    let incoming = Library {
+        version: 2,
+        entries: vec![entry("EVmock00001", "다른 메모")],
+    };
+    let loaded = store::import(&path, &serde_json::to_string(&incoming).unwrap()).unwrap();
+    assert!(loaded.library.entries[0].provider.is_some());
+    assert_eq!(loaded.library.entries[0].teacher.notes, "메모 유지");
 }
 
 #[test]
-fn first_saved_library_has_recoverable_backup() {
+fn damaged_quarantine_receipt_cannot_block_valid_primary_or_delete_ambiguous_raw() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("library.json");
-    save_item(&path, item("EVmock00001", "first")).unwrap();
-    fs::write(&path, "truncated").unwrap();
-    let result = load(&path).unwrap();
-    assert!(result.recovered);
-    assert_eq!(result.library.items[0].notes, "first");
-}
-
-#[test]
-fn export_roundtrips_only_allowed_library_fields() {
-    let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join("library.json");
-    save_item(&path, item("EVmock00001", "teacher notes")).unwrap();
-    let json = export(&path).unwrap();
-    assert_eq!(parse(&json).unwrap().items[0].notes, "teacher notes");
-    let mut value: serde_json::Value = serde_json::from_str(&json).unwrap();
-    value["items"][0]["accessToken"] = serde_json::json!("not-allowed");
-    assert!(parse(&serde_json::to_string(&value).unwrap()).is_err());
-}
-
-#[test]
-fn both_corrupt_files_are_preserved_and_no_empty_library_is_fabricated() {
-    let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join("library.json");
-    fs::write(&path, "broken primary").unwrap();
-    fs::write(path.with_extension("backup.json"), "broken backup").unwrap();
-    assert!(load(&path).is_err());
-    assert_eq!(fs::read_to_string(path).unwrap(), "broken primary");
+    store::save_entry(&path, entry("EVmock00001", "안전한 원본")).unwrap();
+    let q = dir.path().join("quarantine");
+    fs::create_dir(&q).unwrap();
+    let id = uuid::Uuid::new_v4();
+    let raw = q.join(format!("{id}.raw"));
+    let receipt = q.join(format!("{id}.retention.json"));
+    fs::write(&raw, b"ambiguous recovery bytes").unwrap();
+    fs::write(&receipt, b"damaged receipt").unwrap();
+    let loaded = store::load(&path).unwrap();
+    assert_eq!(loaded.library.entries[0].teacher.notes, "안전한 원본");
+    assert!(raw.exists());
+    assert!(receipt.exists());
 }

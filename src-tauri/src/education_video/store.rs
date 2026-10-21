@@ -1,11 +1,10 @@
-use super::model::*;
+use super::{legacy, model::*, retention};
 use atomic_write_file::AtomicWriteFile;
 use std::{
     fs,
     io::{Read, Write},
     path::Path,
 };
-
 fn read(path: &Path) -> Result<String, LibraryError> {
     let file = fs::File::open(path).map_err(|_| LibraryError::Io)?;
     let mut text = String::new();
@@ -17,32 +16,53 @@ fn read(path: &Path) -> Result<String, LibraryError> {
     }
     Ok(text)
 }
-
 fn atomic(path: &Path, bytes: &[u8]) -> Result<(), LibraryError> {
     let mut file = AtomicWriteFile::open(path).map_err(|_| LibraryError::Io)?;
     file.write_all(bytes).map_err(|_| LibraryError::Io)?;
     file.commit().map_err(|_| LibraryError::Io)
 }
-
-pub fn recover(path: &Path) -> Result<LoadResult, LibraryError> {
-    let backup = read(&path.with_extension("backup.json")).map_err(|_| LibraryError::Corrupt)?;
-    let library = parse(&backup).map_err(|_| LibraryError::Corrupt)?;
-    if path.exists() {
-        let quarantine = if path.with_extension("corrupt.json").exists() {
-            path.with_extension(format!("corrupt-{}.json", uuid::Uuid::new_v4()))
-        } else {
-            path.with_extension("corrupt.json")
-        };
-        fs::copy(path, quarantine).map_err(|_| LibraryError::Io)?;
+fn serialize(library: &Library) -> Result<String, LibraryError> {
+    serde_json::to_string_pretty(library).map_err(|_| LibraryError::Invalid)
+}
+fn normalized(json: &str, now: i64) -> Result<(Library, bool), LibraryError> {
+    let (mut library, migrated) = legacy::parse_any(json, now)?;
+    let expired = retention::purge_metadata(&mut library, now)?;
+    Ok((library, migrated || expired))
+}
+fn prune_backup(path: &Path, now: i64, primary: &Library) -> Result<(), LibraryError> {
+    let backup = path.with_extension("backup.json");
+    if !backup.is_file() {
+        return Ok(());
     }
-    atomic(path, backup.as_bytes())?;
+    match read(&backup).and_then(|text| normalized(&text, now)) {
+        Ok((library, true)) => atomic(&backup, serialize(&library)?.as_bytes())?,
+        Ok((_, false)) => {}
+        Err(_) => {
+            retention::quarantine(&backup, now)?;
+            atomic(&backup, serialize(primary)?.as_bytes())?;
+        }
+    }
+    Ok(())
+}
+pub fn recover(path: &Path) -> Result<LoadResult, LibraryError> {
+    let now = retention::clock()?;
+    let backup = read(&path.with_extension("backup.json")).map_err(|_| LibraryError::Corrupt)?;
+    let (library, _) = normalized(&backup, now).map_err(|_| LibraryError::Corrupt)?;
+    let json = serialize(&library)?;
+    if path.exists() {
+        retention::quarantine(path, now)?;
+    }
+    atomic(&path.with_extension("backup.json"), json.as_bytes())?;
+    atomic(path, json.as_bytes())?;
     Ok(LoadResult {
         library,
         recovered: true,
     })
 }
-
 pub fn load(path: &Path) -> Result<LoadResult, LibraryError> {
+    let now = retention::clock()?;
+    let directory = path.parent().ok_or(LibraryError::Io)?;
+    retention::cleanup(directory, now)?;
     if !path.exists() {
         if path.with_extension("backup.json").exists() {
             return recover(path);
@@ -52,68 +72,122 @@ pub fn load(path: &Path) -> Result<LoadResult, LibraryError> {
             recovered: false,
         });
     }
-    match read(path).and_then(|json| parse(&json)) {
-        Ok(library) => Ok(LoadResult {
-            library,
-            recovered: false,
-        }),
+    match read(path).and_then(|text| normalized(&text, now).map(|value| (text, value))) {
+        Ok((original, (library, changed))) => {
+            prune_backup(path, now, &library)?;
+            if changed {
+                let (_, migrated) = legacy::parse_any(&original, now)?;
+                if migrated && !path.with_extension("v1-backup.json").exists() {
+                    atomic(&path.with_extension("v1-backup.json"), original.as_bytes())?;
+                }
+                let json = serialize(&library)?;
+                atomic(&path.with_extension("backup.json"), json.as_bytes())?;
+                atomic(path, json.as_bytes())?;
+            }
+            Ok(LoadResult {
+                library,
+                recovered: false,
+            })
+        }
         Err(_) => recover(path),
     }
 }
-
 fn persist(path: &Path, library: &Library) -> Result<(), LibraryError> {
-    let json = serde_json::to_string_pretty(library).map_err(|_| LibraryError::Invalid)?;
+    let mut library = library.clone();
+    let now = retention::clock()?;
+    retention::purge_metadata(&mut library, now)?;
+    let json = serialize(&library)?;
     parse(&json)?;
-    let parent = path.parent().ok_or(LibraryError::Io)?;
-    fs::create_dir_all(parent).map_err(|_| LibraryError::Io)?;
+    fs::create_dir_all(path.parent().ok_or(LibraryError::Io)?).map_err(|_| LibraryError::Io)?;
     if path.exists() {
         let previous = read(path)?;
-        parse(&previous)?;
-        atomic(&path.with_extension("backup.json"), previous.as_bytes())?;
+        let (previous, _) = normalized(&previous, now)?;
+        atomic(
+            &path.with_extension("backup.json"),
+            serialize(&previous)?.as_bytes(),
+        )?;
     } else {
         atomic(&path.with_extension("backup.json"), json.as_bytes())?;
     }
     atomic(path, json.as_bytes())
 }
-
-pub fn save_item(path: &Path, item: LibraryItem) -> Result<LoadResult, LibraryError> {
-    item.validate()?;
+pub fn save_entry(path: &Path, mut entry: LibraryEntry) -> Result<LoadResult, LibraryError> {
+    entry.validate()?;
+    entry.expire(retention::clock()?)?;
     let mut result = load(path)?;
     match result
         .library
-        .items
+        .entries
         .iter_mut()
-        .find(|existing| existing.video_id == item.video_id)
+        .find(|old| old.video_id == entry.video_id)
     {
-        Some(existing) => *existing = item,
-        None => result.library.items.push(item),
+        Some(old) => *old = entry,
+        None => result.library.entries.push(entry),
     }
     persist(path, &result.library)?;
     Ok(result)
 }
-
 pub fn import(path: &Path, json: &str) -> Result<LoadResult, LibraryError> {
-    let incoming = parse(json)?;
+    let (mut incoming, _) = normalized(json, retention::clock()?)?;
     let mut result = load(path)?;
-    for mut item in incoming.items {
+    for entry in incoming.entries.drain(..) {
         match result
             .library
-            .items
+            .entries
             .iter_mut()
-            .find(|existing| existing.video_id == item.video_id)
+            .find(|old| old.video_id == entry.video_id)
         {
-            Some(existing) => {
-                item.notes.clone_from(&existing.notes);
-                item.message.clone_from(&existing.message);
-                *existing = item;
+            Some(old) => {
+                if entry.provider.is_some() {
+                    old.provider = entry.provider;
+                }
             }
-            None => result.library.items.push(item),
+            None => result.library.entries.push(entry),
         }
     }
     persist(path, &result.library)?;
     Ok(result)
 }
-
 pub fn export(path: &Path) -> Result<String, LibraryError> {
-    serde_json::to_string_pretty(&load(path)?.library).map_err(|_| LibraryError::Invalid)
+    serialize(&load(path)?.library)
+}
+pub fn delete_metadata(path: &Path, video_id: &str) -> Result<LoadResult, LibraryError> {
+    let mut result = load(path)?;
+    let entry = result
+        .library
+        .entries
+        .iter_mut()
+        .find(|entry| entry.video_id == video_id)
+        .ok_or(LibraryError::Invalid)?;
+    entry.provider = None;
+    persist(path, &result.library)?;
+    let backup = path.with_extension("backup.json");
+    if backup.is_file() {
+        let (mut library, _) = normalized(&read(&backup)?, retention::clock()?)?;
+        for entry in &mut library.entries {
+            if entry.video_id == video_id {
+                entry.provider = None;
+            }
+        }
+        atomic(&backup, serialize(&library)?.as_bytes())?;
+    }
+    Ok(result)
+}
+pub fn refresh_metadata(
+    path: &Path,
+    video_id: &str,
+    provider: ProviderMetadata,
+) -> Result<LoadResult, LibraryError> {
+    provider.validate(video_id)?;
+    let mut result = load(path)?;
+    let entry = result
+        .library
+        .entries
+        .iter_mut()
+        .find(|entry| entry.video_id == video_id)
+        .ok_or(LibraryError::Invalid)?;
+    entry.provider = Some(provider);
+    entry.expire(retention::clock()?)?;
+    persist(path, &result.library)?;
+    Ok(result)
 }

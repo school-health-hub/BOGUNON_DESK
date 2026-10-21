@@ -324,8 +324,8 @@
 }
 .ev-library li {
   display:flex;
-  justify-content:space-between;
-  align-items:center;
+  flex-direction:column;
+  align-items:stretch;
   gap:12px;
   padding:12px 0;
   border-bottom:1px solid var(--border);
@@ -436,6 +436,13 @@
 }
 .ev-library li > button {
   flex-shrink: 0;
+}
+.ev-library li > .ev-actions {
+  width: 100%;
+}
+.ev-library li > .ev-actions button {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .ev-finder {
   word-break: keep-all;

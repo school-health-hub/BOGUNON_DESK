@@ -16,7 +16,7 @@ import { AccountSyncProvider } from "./settings/AccountSyncContext";
 import { WorkspaceDataProvider } from "./workspace-data/WorkspaceDataContext";
 import { WeatherDataProvider } from "./weather/WeatherDataContext";
 import { DesktopUpdaterProvider } from "./updater/DesktopUpdaterContext";
-import { EducationVideoFinder } from "./education-video/EducationVideoFinder";
+import { ConnectedFinder } from "./education-video/ConnectedFinder";
 
 const FinanceScreen = lazy(() => import("./my-finance/FinanceScreen").then((module) => ({ default: module.FinanceScreen })));
 
@@ -58,7 +58,7 @@ export function App() {
       </AiConnectionProvider>
     </ChatGptConnectionProvider>
     </div>
-    {videoFinderOpen && <EducationVideoFinder onClose={closeVideoFinder} />}
+    {videoFinderOpen && <ConnectedFinder onClose={closeVideoFinder} />}
     {financeOpen && <Suspense fallback={<main aria-busy="true"><p role="status">MY FINANCE 화면을 불러오는 중입니다…</p><button type="button" onClick={closeFinance}>보건 업무로</button></main>}><FinanceScreen onClose={closeFinance} /></Suspense>}
     </>
   );

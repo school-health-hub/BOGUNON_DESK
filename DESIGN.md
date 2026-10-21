@@ -451,3 +451,8 @@ remains. Dock active marker, accessible name, hover and keyboard tooltip stay in
 
 Finder scoped tokens: --ev-accent #176e62; --ev-accent-soft #e5f3ed; --ev-warning #75521c; --ev-warning-bg #fcf6e8; --ev-paper #fff. Warning border #dbc390 and #c7a45c, neutral shadow #243247 at 3% opacity. Compact result12px, body14px, heading17px, page28px. Spacing8/12/14/16/18/20/24/28px; corner6/7/8/12px. Buttons and filters minimum40px.
 Finder narrow CJK text uses word-break:keep-all and overflow-wrap:anywhere fallback. Library row text flex child has min-width:0; unbroken long imported/user titles wrap within their column, and action buttons retain width. This rule addresses the observed390px long-title QA failure; post-fix screenshots are recorded by the QA worker.
+
+## AI 교육영상 Finder Phase 2B states
+
+Keep existing Finder tokens, responsive columns, focus targets and Toolbox entry. Local Mock stays default with explicit synthetic labels. Server preparation shows login status and disabled external dispatch. Loading, zero results, unknown duration, auth/quota failure and expired metadata have distinct states. Official status uses reviewed IDs and separate evidence/date/channel links. Library v2 separates teacher text from expiring provider metadata; expired metadata cannot generate a notice, but confirmed historical teacher text remains copyable. No remote visual assets are added.
+Library v2 item actions occupy their own full-width row below metadata. Buttons wrap between controls while preserving intact Korean labels; long metadata titles cannot squeeze action widths.

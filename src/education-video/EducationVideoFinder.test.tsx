@@ -2,11 +2,12 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { EducationVideoFinder } from './EducationVideoFinder';
-import { searchMockVideos, type LibraryItem } from './model';
+import { searchMockVideos } from './model';
+import {toEntry,type LibraryEntry} from './libraryV2';
 const savedVideo=searchMockVideos({topic:'손씻기',target:'학생',minutes:10})[0];
-const saved:LibraryItem={...savedVideo,educationTitle:'교육A',target:'학생',schedule:'이번주',instructions:'확인',message:'교사 수정문',notes:'보호할 메모'};
-const save=vi.fn(async(item:LibraryItem)=>({library:{version:1,items:[...([saved].filter(existing=>existing.videoId!==item.videoId)),item]},recovered:false}));
-vi.mock('./library',()=>({nativeLibrary:false,libraryRepository:{load:async()=>({library:{version:1,items:[]},recovered:false}),save:(item:LibraryItem)=>save(item),export:async()=>'',import:async()=>({library:{version:1,items:[]},recovered:false}),recover:async()=>({library:{version:1,items:[]},recovered:true})}}));
+const saved=toEntry({...savedVideo,educationTitle:'교육A',target:'학생',schedule:'이번주',instructions:'확인',message:'교사 수정문',notes:'보호할 메모'});
+const save=vi.fn(async(item:LibraryEntry)=>({library:{version:2,entries:[...([saved].filter(existing=>existing.videoId!==item.videoId)),item]},recovered:false}));
+vi.mock('./library',()=>({nativeLibrary:false,libraryRepository:{load:async()=>({library:{version:2,entries:[]},recovered:false}),save:(item:LibraryEntry)=>save(item),export:async()=>'',import:async()=>({library:{version:2,entries:[]},recovered:false}),recover:async()=>({library:{version:2,entries:[]},recovered:true})}}));
 afterEach(()=>{cleanup();save.mockClear();});
 const search=(topic:string)=>{fireEvent.change(screen.getByLabelText('교육 주제'),{target:{value:topic}});fireEvent.change(screen.getByLabelText('검색 대상'),{target:{value:'학생'}});fireEvent.click(screen.getByRole('button',{name:'Mock 영상 검색'}));};
 describe('Finder workflow',()=>{
@@ -22,7 +23,7 @@ describe('Finder workflow',()=>{
   search('손씻기');fireEvent.click(screen.getAllByRole('button',{name:/선택$/})[0]);
   expect((screen.getByLabelText('사용자 메모')).getAttribute('maxlength')).toBe('3000');
   fireEvent.click(screen.getByRole('button',{name:'라이브러리 저장'}));await waitFor(()=>expect(save).toHaveBeenCalledTimes(2));
-  expect(save.mock.calls[1][0].notes).toBe('보호할 메모');expect(save.mock.calls[1][0].message).toBe('교사 수정문');
+  expect(save.mock.calls[1][0].teacher.notes).toBe('보호할 메모');expect(save.mock.calls[1][0].teacher.message).toBe('교사 수정문');
  });
  it('requires complete information and teacher confirmation before copy',async()=>{
  render(<EducationVideoFinder onClose={()=>{}}/>);search('손씻기');
@@ -44,6 +45,6 @@ describe('Finder workflow',()=>{
  fireEvent.click(screen.getByRole('button',{name:'안내문 생성'}));fireEvent.click(screen.getByRole('button',{name:'라이브러리 저장'}));
  await waitFor(()=>expect(save).toHaveBeenCalledTimes(2));
  expect(save.mock.calls[1][0].videoId).not.toBe(saved.videoId);
- expect(save.mock.calls[1][0].title).toContain('흡연예방');
+ expect(save.mock.calls[1][0].provider?.title).toContain('흡연예방');
  });
 });

@@ -1,12 +1,11 @@
 use super::{
-    model::{LibraryError, LibraryItem, LoadResult},
-    store,
+    model::{LibraryEntry, LibraryError, LoadResult, ProviderMetadata},
+    request_core, store,
+    wire::{SearchError, SearchRequest, SearchResponse},
 };
 use std::{path::Path, sync::Mutex};
 use tauri::{AppHandle, Manager};
-
 static LIBRARY_LOCK: Mutex<()> = Mutex::new(());
-
 fn with_library<T>(
     app: &AppHandle,
     operation: impl FnOnce(&Path) -> Result<T, LibraryError>,
@@ -20,9 +19,8 @@ fn with_library<T>(
         .map_err(|_| LibraryError::Io.to_string())?
         .join("education-video")
         .join("library.json");
-    operation(&path).map_err(|error| error.to_string())
+    operation(&path).map_err(|e| e.to_string())
 }
-
 #[tauri::command]
 pub fn education_video_library_load(app: AppHandle) -> Result<LoadResult, String> {
     with_library(&app, store::load)
@@ -30,9 +28,9 @@ pub fn education_video_library_load(app: AppHandle) -> Result<LoadResult, String
 #[tauri::command]
 pub fn education_video_library_save(
     app: AppHandle,
-    item: LibraryItem,
+    entry: LibraryEntry,
 ) -> Result<LoadResult, String> {
-    with_library(&app, |path| store::save_item(path, item))
+    with_library(&app, |path| store::save_entry(path, entry))
 }
 #[tauri::command]
 pub fn education_video_library_import(app: AppHandle, json: String) -> Result<LoadResult, String> {
@@ -45,4 +43,37 @@ pub fn education_video_library_export(app: AppHandle) -> Result<String, String> 
 #[tauri::command]
 pub fn education_video_library_recover(app: AppHandle) -> Result<LoadResult, String> {
     with_library(&app, store::recover)
+}
+#[tauri::command]
+pub fn education_video_library_metadata_delete(
+    app: AppHandle,
+    video_id: String,
+) -> Result<LoadResult, String> {
+    with_library(&app, |path| store::delete_metadata(path, &video_id))
+}
+#[tauri::command]
+pub fn education_video_library_metadata_refresh(
+    app: AppHandle,
+    video_id: String,
+    provider: ProviderMetadata,
+) -> Result<LoadResult, String> {
+    with_library(&app, |path| {
+        store::refresh_metadata(path, &video_id, provider)
+    })
+}
+#[derive(serde::Serialize)]
+pub struct SearchFailure {
+    code: SearchError,
+    message: &'static str,
+}
+#[tauri::command]
+pub fn education_video_search(
+    request: SearchRequest,
+    access_token: String,
+) -> Result<SearchResponse, SearchFailure> {
+    // Intentionally no environment switch can enable real dispatch in this phase.
+    request_core::disabled_dispatch(&request, &access_token).map_err(|code| SearchFailure {
+        code,
+        message: request_core::safe_message(code),
+    })
 }

@@ -8,9 +8,14 @@ export type Video = {
     readonly title: string;
     readonly channelId: string;
     readonly channelTitle: string;
-    readonly durationSeconds: number;
+    readonly durationSeconds: number | null;
     readonly url: string;
-    readonly source: 'mock';
+    readonly source: 'mock' | 'live' | 'synthetic-mock';
+    readonly official?: boolean;
+    readonly officialEvidence?: string | null;
+    readonly synthetic?: boolean;
+    readonly fetchedAt?: string;
+    readonly expiresAt?: string;
 };
 export type Education = {
     readonly educationTitle: string;
@@ -64,7 +69,7 @@ export const safeVideoUrl = (value: string): string | null => {
 const registry = new Map([['mock-verified-health', '합성 레지스트리 테스트 근거 · 실제 기관 또는 공식 채널 검증 아님']]);
 export const officialEvidence = (channelId: string): string | null => registry.get(channelId) ?? null;
 const offsets = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 8] as const;
-export const searchMockVideos = (input: Conditions): readonly Video[] => {
+export const searchMockVideos = (input: Conditions): readonly (Video & { readonly durationSeconds: number; readonly source: 'mock' })[] => {
     const error = validateConditions(input);
     if (error)
         throw new FinderInputError(error);
@@ -76,8 +81,8 @@ export const searchMockVideos = (input: Conditions): readonly Video[] => {
         return { videoId, title: `[합성 Mock ${index + 1}] ${input.topic.trim()} · ${input.target.trim()} 교육 예시`, channelId: index % 3 === 0 ? 'mock-verified-health' : `mock-channel-${index}`, channelTitle: index % 3 === 0 ? '합성 검증 채널 예시' : `합성 교육 채널 ${index + 1}`, durationSeconds: Math.max(30, (input.minutes + offset) * 60), url: `https://www.youtube.com/watch?v=${videoId}`, source: 'mock' };
     });
 };
-export const filterVideos = (videos: readonly Video[], minutes: number, windowMinutes: number | null): readonly Video[] => videos.filter(v => windowMinutes === null || Math.abs(v.durationSeconds - minutes * 60) <= windowMinutes * 60).sort((a, b) => Math.abs(a.durationSeconds - minutes * 60) - Math.abs(b.durationSeconds - minutes * 60) || a.videoId.localeCompare(b.videoId));
-export const formatDuration = (seconds: number): string => `${Math.floor(seconds / 60)}분 ${seconds % 60}초`;
+export const filterVideos = <T extends Video>(videos: readonly T[], minutes: number, windowMinutes: number | null): readonly T[] => videos.filter(v => windowMinutes === null || (v.durationSeconds !== null && Math.abs(v.durationSeconds - minutes * 60) <= windowMinutes * 60)).sort((a, b) => (a.durationSeconds === null ? Infinity : Math.abs(a.durationSeconds - minutes * 60)) - (b.durationSeconds === null ? Infinity : Math.abs(b.durationSeconds - minutes * 60)) || a.videoId.localeCompare(b.videoId));
+export const formatDuration = (seconds: number | null): string => seconds === null ? '길이 미확인' : `${Math.floor(seconds / 60)}분 ${seconds % 60}초`;
 export const createMessage = (education: Education, video: Video | null): {
     readonly text: string;
     readonly missing: readonly string[];
@@ -87,7 +92,7 @@ export const createMessage = (education: Education, video: Video | null): {
         missing.push('올바른 영상 URL');
     if (missing.length || !video)
         return { text: '', missing };
-    return { text: ['[합성 Mock QA · 실제 영상 링크가 아닙니다]', '', '[' + education.educationTitle.trim() + ' 안내]', '', '대상: ' + education.target.trim(), '교육 일시 또는 시청 기간: ' + education.schedule.trim(), '', '시청 영상: ' + video.title, '영상 URL: ' + video.url, '', '안내사항', education.instructions.trim()].join(String.fromCharCode(10)), missing: [] };
+    return { text: [...(video.source === 'live' ? [] : ['[합성 Mock QA · 실제 영상 링크가 아닙니다]', '']), '[' + education.educationTitle.trim() + ' 안내]', '', '대상: ' + education.target.trim(), '교육 일시 또는 시청 기간: ' + education.schedule.trim(), '', '시청 영상: ' + video.title, '영상 URL: ' + video.url, '', '안내사항', education.instructions.trim()].join(String.fromCharCode(10)), missing: [] };
 };
 export const copyMessage = async (text: string, confirmed: boolean, write: (value: string) => Promise<void>): Promise<string> => {
     if (!confirmed || !text.trim())

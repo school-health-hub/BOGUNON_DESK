@@ -335,6 +335,9 @@ pub fn run() {
             education_video::education_video_library_import,
             education_video::education_video_library_export,
             education_video::education_video_library_recover,
+            education_video::education_video_library_metadata_delete,
+            education_video::education_video_library_metadata_refresh,
+            education_video::education_video_search,
             weather::fetch_bogunon_weather
         ])
         .setup(|app| {
