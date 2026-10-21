@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Emitter, Manager, State, WindowEvent,
+    AppHandle, Manager, State,
 };
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt as AutostartManagerExt};
 #[cfg(all(debug_assertions, windows))]
@@ -13,6 +13,12 @@ mod ai;
 mod ai_generation;
 mod auth;
 mod browser_launcher;
+mod main_caller;
+mod main_lifetime;
+mod main_events;
+mod main_channel;
+mod main_security;
+mod main_window_events;
 mod chatgpt;
 mod desktop_surface;
 mod launcher;
@@ -31,10 +37,6 @@ mod record_helper_import;
 mod weather;
 mod work_folders;
 
-const MAIN_WINDOW_LABEL: &str = "main";
-const DESKTOP_NAVIGATE_EVENT: &str = "desktop:navigate";
-const DESKTOP_NOTICE_EVENT: &str = "desktop:notice";
-const DESKTOP_FILE_DROP_EVENT: &str = "desktop:file-drop";
 
 struct DesktopState {
     close_to_tray: AtomicBool,
@@ -58,9 +60,7 @@ struct DesktopActionOutcome {
 }
 
 fn show_main_window(app: &AppHandle) -> Result<(), String> {
-    let window = app
-        .get_webview_window(MAIN_WINDOW_LABEL)
-        .ok_or_else(|| "메인 창을 찾을 수 없습니다.".to_owned())?;
+    let window = main_events::capture(app)?.main(app)?;
     window.show().map_err(|error| error.to_string())?;
     if window.is_minimized().map_err(|error| error.to_string())? {
         window.unminimize().map_err(|error| error.to_string())?;
@@ -70,8 +70,7 @@ fn show_main_window(app: &AppHandle) -> Result<(), String> {
 
 fn navigate_main_window(app: &AppHandle, action_id: &str) -> Result<(), String> {
     show_main_window(app)?;
-    app.emit(DESKTOP_NAVIGATE_EVENT, action_id)
-        .map_err(|error| error.to_string())
+    main_events::emit(app, main_events::BusinessEvent::Navigate, action_id)
 }
 
 fn execute_registered_action(
@@ -117,7 +116,6 @@ fn execute_registered_action(
     }
 }
 
-#[tauri::command]
 fn execute_desktop_action(
     app: AppHandle,
     action_id: String,
@@ -125,7 +123,6 @@ fn execute_desktop_action(
     execute_registered_action(&app, &action_id)
 }
 
-#[tauri::command]
 fn open_bogunon_search_result(
     app: AppHandle,
     kind: launcher::BogunonSearchResultKind,
@@ -143,14 +140,12 @@ fn open_bogunon_search_result(
     })
 }
 
-#[tauri::command]
 fn get_autostart_enabled(app: AppHandle) -> Result<bool, String> {
     app.autolaunch()
         .is_enabled()
         .map_err(|error| error.to_string())
 }
 
-#[tauri::command]
 fn set_autostart_enabled(app: AppHandle, enabled: bool) -> Result<bool, String> {
     let manager = app.autolaunch();
     if enabled {
@@ -161,7 +156,6 @@ fn set_autostart_enabled(app: AppHandle, enabled: bool) -> Result<bool, String> 
     manager.is_enabled().map_err(|error| error.to_string())
 }
 
-#[tauri::command]
 fn set_close_to_tray(state: State<'_, DesktopState>, enabled: bool) {
     state.close_to_tray.store(enabled, Ordering::SeqCst);
 }
@@ -213,7 +207,7 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                 if let Ok(outcome) = execute_registered_action(app, action_id) {
                     if let Some(message) = outcome.message {
                         let _ = show_main_window(app);
-                        let _ = app.emit(DESKTOP_NOTICE_EVENT, message);
+                        let _ = main_events::emit(app, main_events::BusinessEvent::Notice, message);
                     }
                 }
             }
@@ -244,7 +238,7 @@ pub use my_finance_qa::run;
 #[cfg(not(feature = "my-finance-qa"))]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let builder = tauri::Builder::default();
+    let builder = main_security::configure(tauri::Builder::default());
     #[cfg(desktop)]
     let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
         let _ = show_main_window(app);
@@ -271,67 +265,70 @@ pub fn run() {
             None,
         ))
         .invoke_handler(tauri::generate_handler![
-            my_finance_commands::my_finance_load_snapshot,
-            my_finance_commands::my_finance_list_income,
-            my_finance_commands::my_finance_create_income,
-            my_finance_commands::my_finance_update_income,
-            my_finance_commands::my_finance_delete_income,
-            my_finance_commands::my_finance_replace_phase2,
-            my_finance_commands::my_finance_export_backup,
-            my_finance_commands::my_finance_select_backup,
-            my_finance_commands::my_finance_inspect_backup,
-            my_finance_commands::my_finance_restore_backup,
-            my_finance_commands::my_finance_cancel_backup,
-            ai::validate_ai_connection,
-            ai_generation::generate_ai_text,
-            chatgpt::commands::chatgpt_get_connection_state,
-            chatgpt::commands::chatgpt_start_sign_in,
-            chatgpt::commands::chatgpt_disconnect,
-            chatgpt::commands::chatgpt_list_models,
-            chatgpt::commands::chatgpt_generate_text,
-            execute_desktop_action,
-            open_bogunon_search_result,
-            launcher::open_quick_memo_url,
-            purchase_helper::pick_and_analyze_purchase_files,
-            purchase_helper::analyze_purchase_paths,
-            purchase_helper::apply_purchase_column_mapping,
-            purchase_helper::save_purchase_export,
-            purchase_helper::save_purchase_edufine_export,
-            purchase_settlement::save_purchase_settlement_export,
-            purchase_helper::set_purchase_helper_active,
-            purchase_helper::invalidate_purchase_helper_analysis,
-            official_document_import::pick_and_extract_official_document,
-            official_document_import::extract_official_document_path,
-            record_helper_import::pick_and_extract_record_helper_reports,
-            record_helper_import::extract_record_helper_paths,
-            get_autostart_enabled,
-            set_autostart_enabled,
-            set_close_to_tray,
-            desktop_surface::get_desktop_surface_probe,
-            notifications::get_notification_settings,
-            notifications::set_workspace_notifications_enabled,
-            notifications::set_workspace_notification_reasons,
-            notifications::mark_daily_summary_sent,
-            auth::open_auth_url,
-            auth::secure_session_get,
-            auth::secure_session_set,
-            auth::secure_session_remove,
-            auth::secure_session_clear,
-            launcher::get_launcher_settings,
-            launcher::save_launcher_url,
-            launcher::save_work_portal_url,
-            launcher::save_work_portal_auto_open_delay,
-            launcher::replace_account_launcher_links,
-            work_folders::get_work_folder_favorites,
-            work_folders::pick_work_folder_favorite,
-            work_folders::rename_work_folder_favorite,
-            work_folders::delete_work_folder_favorite,
-            work_folders::reorder_work_folder_favorites,
-            work_folders::open_work_folder_favorite,
-            meal::fetch_bogunon_meal,
-            weather::fetch_bogunon_weather
+            main_channel::register_main_channel,
+            main_channel::unregister_main_channel,
+            my_finance_commands::main_commands::my_finance_load_snapshot,
+            my_finance_commands::main_commands::my_finance_list_income,
+            my_finance_commands::main_commands::my_finance_create_income,
+            my_finance_commands::main_commands::my_finance_update_income,
+            my_finance_commands::main_commands::my_finance_delete_income,
+            my_finance_commands::main_commands::my_finance_replace_phase2,
+            my_finance_commands::main_commands::my_finance_export_backup,
+            my_finance_commands::main_commands::my_finance_select_backup,
+            my_finance_commands::main_commands::my_finance_inspect_backup,
+            my_finance_commands::main_commands::my_finance_restore_backup,
+            my_finance_commands::main_commands::my_finance_cancel_backup,
+            ai::main_commands::validate_ai_connection,
+            ai_generation::main_commands::generate_ai_text,
+            chatgpt::commands::main_commands::chatgpt_get_connection_state,
+            chatgpt::commands::main_commands::chatgpt_start_sign_in,
+            chatgpt::commands::main_commands::chatgpt_disconnect,
+            chatgpt::commands::main_commands::chatgpt_list_models,
+            chatgpt::commands::main_commands::chatgpt_generate_text,
+            main_commands::execute_desktop_action,
+            main_commands::open_bogunon_search_result,
+            launcher::main_commands::open_quick_memo_url,
+            purchase_helper::main_commands::pick_and_analyze_purchase_files,
+            purchase_helper::main_commands::analyze_purchase_paths,
+            purchase_helper::main_commands::apply_purchase_column_mapping,
+            purchase_helper::main_commands::save_purchase_export,
+            purchase_helper::main_commands::save_purchase_edufine_export,
+            purchase_settlement::main_commands::save_purchase_settlement_export,
+            purchase_helper::main_commands::set_purchase_helper_active,
+            purchase_helper::main_commands::invalidate_purchase_helper_analysis,
+            official_document_import::main_commands::pick_and_extract_official_document,
+            official_document_import::main_commands::extract_official_document_path,
+            record_helper_import::main_commands::pick_and_extract_record_helper_reports,
+            record_helper_import::main_commands::extract_record_helper_paths,
+            main_commands::get_autostart_enabled,
+            main_commands::set_autostart_enabled,
+            main_commands::set_close_to_tray,
+            desktop_surface::main_commands::get_desktop_surface_probe,
+            notifications::main_commands::get_notification_settings,
+            notifications::main_commands::set_workspace_notifications_enabled,
+            notifications::main_commands::set_workspace_notification_reasons,
+            notifications::main_commands::mark_daily_summary_sent,
+            auth::main_commands::open_auth_url,
+            auth::main_commands::secure_session_get,
+            auth::main_commands::secure_session_set,
+            auth::main_commands::secure_session_remove,
+            auth::main_commands::secure_session_clear,
+            launcher::main_commands::get_launcher_settings,
+            launcher::main_commands::save_launcher_url,
+            launcher::main_commands::save_work_portal_url,
+            launcher::main_commands::save_work_portal_auto_open_delay,
+            launcher::main_commands::replace_account_launcher_links,
+            work_folders::main_commands::get_work_folder_favorites,
+            work_folders::main_commands::pick_work_folder_favorite,
+            work_folders::main_commands::rename_work_folder_favorite,
+            work_folders::main_commands::delete_work_folder_favorite,
+            work_folders::main_commands::reorder_work_folder_favorites,
+            work_folders::main_commands::open_work_folder_favorite,
+            meal::main_commands::fetch_bogunon_meal,
+            weather::main_commands::fetch_bogunon_weather
         ])
         .setup(|app| {
+            main_security::install(app.handle())?;
             #[cfg(all(debug_assertions, windows))]
             app.deep_link().register_all()?;
             create_tray(app.handle())?;
@@ -339,56 +336,10 @@ pub fn run() {
             let _ = launcher::schedule_work_portal_auto_open(app.handle(), &state);
             Ok(())
         })
-        .on_window_event(|window, event| {
-            if let WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, .. }) = event {
-                let state = window.state::<purchase_helper::PurchaseHelperState>();
-                if state.is_active() {
-                    let generation = state.begin_analysis();
-                    let _ = window.emit("purchase:analysis-start", generation);
-                    let paths = paths.clone();
-                    let templates = state.templates();
-                    let window = window.clone();
-                    tauri::async_runtime::spawn(async move {
-                        let analysis =
-                            purchase_helper::analyze_paths_in_background(paths, templates).await;
-                        let state = window.state::<purchase_helper::PurchaseHelperState>();
-                        if let Some(analysis) = state.complete_analysis(generation, analysis) {
-                            match analysis {
-                                Ok(result) => {
-                                    let _ = window.emit(
-                                        "purchase:analysis",
-                                        purchase_helper::AnalysisEvent { generation, result },
-                                    );
-                                }
-                                Err(message) => {
-                                    let _ = window.emit(
-                                        "purchase:analysis-error",
-                                        purchase_helper::AnalysisErrorEvent {
-                                            generation,
-                                            message,
-                                        },
-                                    );
-                                }
-                            }
-                        }
-                    });
-                } else {
-                    let dropped_paths = paths.iter().filter_map(|path| path.to_str().map(str::to_owned)).collect::<Vec<_>>();
-                    if !dropped_paths.is_empty() {
-                        let _ = window.emit(DESKTOP_FILE_DROP_EVENT, dropped_paths);
-                    }
-                }
-            }
-            if let WindowEvent::CloseRequested { api, .. } = event {
-                let state = window.state::<DesktopState>();
-                if state.close_to_tray.load(Ordering::SeqCst)
-                    && !state.quitting.load(Ordering::SeqCst)
-                {
-                    api.prevent_close();
-                    let _ = window.hide();
-                }
-            }
-        })
+        .on_window_event(main_window_events::handle)
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
+#[path = "main_commands/lib.rs"]
+pub(crate) mod main_commands;

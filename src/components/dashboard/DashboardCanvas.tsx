@@ -1,5 +1,5 @@
 import { Sparkles } from "lucide-react";
-import { listen } from "@tauri-apps/api/event";
+import { subscribeMainChannel } from "../../desktop/mainChannelSubscription";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
 import { useWidgetSession } from "../../dashboard/WidgetSessionContext";
@@ -192,49 +192,43 @@ export function DashboardCanvas({ onOpenFinance, suspended = false }: { readonly
 
   useEffect(() => {
     if (suspended || !isDesktopRuntime()) return undefined;
-    let unlisten: (() => void) | null = null;
     let active = true;
-    void listen<string>("desktop:navigate", (event) => {
-      const actionId = parseDesktopActionId(event.payload);
+    const subscription = subscribeMainChannel("desktop:navigate", (payload) => {
+      const actionId = parseDesktopActionId(payload);
       if (actionId !== null) void runDesktopAction(actionId);
-    }).then((dispose) => {
-      if (active) unlisten = dispose;
-      else dispose();
-    }).catch((error: unknown) => {
-      setNotice(getDesktopErrorMessage(error));
+    });
+    void subscription.ready.catch(() => {
+      if (active) setNotice("데스크톱 기능을 준비하지 못했습니다.");
     });
     return () => {
       active = false;
-      unlisten?.();
+      subscription.dispose();
     };
   }, [runDesktopAction, suspended]);
 
   useEffect(() => {
     if (suspended || !isDesktopRuntime()) return undefined;
-    let unlisten: (() => void) | null = null;
     let active = true;
-    void listen<string[]>("desktop:file-drop", (event) => {
-      const paths = Array.isArray(event.payload) ? event.payload.filter((path): path is string => typeof path === "string" && path.trim().length > 0) : [];
+    const subscription = subscribeMainChannel("desktop:file-drop", (payload) => {
+      const paths = Array.isArray(payload) ? payload.filter((path): path is string => typeof path === "string" && path.trim().length > 0) : [];
       if (paths.length > 0) setPendingFileDropPaths(paths);
-    }).then((dispose) => {
-      if (active) unlisten = dispose; else dispose();
-    }).catch((error: unknown) => setNotice(getDesktopErrorMessage(error)));
-    return () => { active = false; unlisten?.(); };
+    });
+    void subscription.ready.catch(() => {
+      if (active) setNotice("데스크톱 기능을 준비하지 못했습니다.");
+    });
+    return () => { active = false; subscription.dispose(); };
   }, [suspended]);
 
   useEffect(() => {
     if (!isDesktopRuntime()) return undefined;
-    let unlisten: (() => void) | null = null;
     let active = true;
-    void listen<string>("desktop:notice", (event) => setNotice(event.payload)).then((dispose) => {
-      if (active) unlisten = dispose;
-      else dispose();
-    }).catch((error: unknown) => {
-      setNotice(getDesktopErrorMessage(error));
+    const subscription = subscribeMainChannel("desktop:notice", (payload) => setNotice(payload));
+    void subscription.ready.catch(() => {
+      if (active) setNotice("데스크톱 기능을 준비하지 못했습니다.");
     });
     return () => {
       active = false;
-      unlisten?.();
+      subscription.dispose();
     };
   }, []);
 

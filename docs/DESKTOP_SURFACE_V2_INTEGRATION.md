@@ -1,10 +1,10 @@
 # Dashboard v2 — Phase B integration contract
 
-Status: design only; **Native activation blocked**. UI baseline 7b0e82f; historical 9B source checkpoint c67f5bf (separate, unmerged).
+Status: Phase B design with Phase C-0 source integration; **Native activation blocked**. UI checkpoint 725c566; historical 9B source checkpoint c67f5bf (preserved separately). See DESKTOP_SURFACE_C0_VERIFICATION.md for current evidence and limits.
 
 ## Evidence and reuse
 
-The candidate contains the 9B-1 probe, not the later guarded Tauri Surface. `src-tauri/src/lib.rs` still has global drop/close handling and does not include `main_caller.rs` or `main_lifetime.rs`. A second operational WebView must not be introduced on this baseline before Main command ACL/caller, window/event and lifetime/navigation boundaries are ported and reviewed for its current commands. Do not assume historical 50-command coverage covers newly added Finance/current commands.
+The candidate retains only the 9B-1 Surface probe; no later Surface window adapter or Native attachment backend is imported. Phase C-0 now ports Main caller, lifetime/navigation, Main-only window handling and public Channel delivery. Coverage is reconciled to 59 existing application commands (including 11 Finance commands), two Channel commands and the separate 12-command Finance QA entry. Source ACL and pure Synthetic checks are present; effective generated ACL, full Tauri compilation and Windows callbacks remain unverified. Preserved plugin grants remain static Main-Webview permissions rather than per-generation guards. These limits still block a second operational WebView.
 
 Historical source references below are relative to the preserved `BOGUNON-9b2a` worktree, not this branch:
 
@@ -41,7 +41,7 @@ Explorer attach/detach must be a separate backend after isolated Tauri lifecycle
 
 ## Minimum subsequent sequence (each separately reviewed)
 
-1. Port/reconcile current Main ACL/caller/event/lifetime boundaries from 9B without changing business behavior. Inventory current commands including Finance.
+1. Complete verification of the C-0 Main security port: full native compilation, generated/merged ACL, plugin lifetime policy and actual callback/bootstrap behavior. Source integration and current command inventory are implemented; no Windows integration success is claimed.
 2. Resolve effective UDF bootstrap and partial ownership/cleanup observations using supported locked APIs. Keep Disabled if impossible; no guessed proof.
 3. Define non-sensitive producer and Surface-specific renderer/delivery. Revision-only Broker cannot display the full business dashboard; a richer allowlist requires explicit design approval.
 4. Prepare an independent exact-source QA artifact, synthetic QA Main/Surface profiles disjoint from operational profiles, one-shot claim and real user approval. Do not run an existing Native Runner as substitute.

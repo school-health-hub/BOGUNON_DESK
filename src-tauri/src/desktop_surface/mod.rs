@@ -11,7 +11,6 @@ use tauri::State;
 
 pub(crate) use state::DesktopSurfaceCoordinator;
 
-#[tauri::command]
 pub(crate) fn get_desktop_surface_probe(
     coordinator: State<'_, DesktopSurfaceCoordinator>,
 ) -> probe::DesktopSurfaceProbe {
@@ -19,3 +18,6 @@ pub(crate) fn get_desktop_surface_probe(
     coordinator.record_probe(result.supported);
     result
 }
+
+#[path = "../main_commands/desktop_surface.rs"]
+pub(crate) mod main_commands;

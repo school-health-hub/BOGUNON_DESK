@@ -1,3 +1,4 @@
+mod main_command_manifest;
 use serde_json::Value;
 fn merge(target: &mut Value, patch: Value) {
     if let Value::Object(patch) = patch {
@@ -65,5 +66,8 @@ fn main() {
             "QA frontend requires QA feature"
         );
     }
-    tauri_build::build()
+    let attributes = tauri_build::Attributes::new().app_manifest(
+        tauri_build::AppManifest::new().commands(main_command_manifest::APP_COMMANDS),
+    );
+    tauri_build::try_build(attributes).expect("Tauri permission generation failed");
 }

@@ -173,7 +173,6 @@ fn write_entries(path: &Path, entries: &BTreeMap<String, String>) -> Result<(), 
     fs::write(path, encrypted).map_err(|_| AuthStorageError::Io)
 }
 
-#[tauri::command]
 pub fn open_auth_url(app: AppHandle, url: String) -> Result<(), String> {
     let target = parse_oauth_url(&url).map_err(|error| error.to_string())?;
     app.opener()
@@ -181,7 +180,6 @@ pub fn open_auth_url(app: AppHandle, url: String) -> Result<(), String> {
         .map_err(|_| "Windows 기본 브라우저를 열지 못했습니다.".to_owned())
 }
 
-#[tauri::command]
 pub fn secure_session_get(
     app: AppHandle,
     state: State<'_, SecureSessionState>,
@@ -199,7 +197,6 @@ pub fn secure_session_get(
     Ok(entries.get(&key).cloned())
 }
 
-#[tauri::command]
 pub fn secure_session_set(
     app: AppHandle,
     state: State<'_, SecureSessionState>,
@@ -219,7 +216,6 @@ pub fn secure_session_set(
     write_entries(&path, &entries).map_err(|error| error.to_string())
 }
 
-#[tauri::command]
 pub fn secure_session_remove(
     app: AppHandle,
     state: State<'_, SecureSessionState>,
@@ -238,7 +234,6 @@ pub fn secure_session_remove(
     write_entries(&path, &entries).map_err(|error| error.to_string())
 }
 
-#[tauri::command]
 pub fn secure_session_clear(
     app: AppHandle,
     state: State<'_, SecureSessionState>,
@@ -256,3 +251,6 @@ pub fn secure_session_clear(
 
 #[cfg(test)]
 mod tests;
+
+#[path = "main_commands/auth.rs"]
+pub(crate) mod main_commands;

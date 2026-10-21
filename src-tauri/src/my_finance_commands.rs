@@ -26,7 +26,6 @@ async fn run<T: Send + 'static>(
     .map_err(|_| "금융 저장소 작업을 완료하지 못했습니다.")?
 }
 
-#[tauri::command]
 pub(crate) async fn my_finance_load_snapshot(
     app: tauri::AppHandle,
     state: tauri::State<'_, FinanceState>,
@@ -34,7 +33,6 @@ pub(crate) async fn my_finance_load_snapshot(
     run(app, state.inner().0.clone(), true, |store| store.load()).await
 }
 
-#[tauri::command]
 pub(crate) async fn my_finance_list_income(
     app: tauri::AppHandle,
     state: tauri::State<'_, FinanceState>,
@@ -42,7 +40,6 @@ pub(crate) async fn my_finance_list_income(
     run(app, state.inner().0.clone(), true, |store| store.load()).await
 }
 
-#[tauri::command]
 pub(crate) async fn my_finance_create_income(
     app: tauri::AppHandle,
     state: tauri::State<'_, FinanceState>,
@@ -55,7 +52,6 @@ pub(crate) async fn my_finance_create_income(
     .await
 }
 
-#[tauri::command]
 pub(crate) async fn my_finance_update_income(
     app: tauri::AppHandle,
     state: tauri::State<'_, FinanceState>,
@@ -68,7 +64,6 @@ pub(crate) async fn my_finance_update_income(
     .await
 }
 
-#[tauri::command]
 pub(crate) async fn my_finance_delete_income(
     app: tauri::AppHandle,
     state: tauri::State<'_, FinanceState>,
@@ -81,7 +76,6 @@ pub(crate) async fn my_finance_delete_income(
     .await
 }
 
-#[tauri::command]
 pub(crate) async fn my_finance_replace_phase2(
     app: tauri::AppHandle,
     state: tauri::State<'_, FinanceState>,
@@ -95,7 +89,6 @@ pub(crate) async fn my_finance_replace_phase2(
 }
 
 /// The dialog supplies the only filesystem path; renderer never provides one.
-#[tauri::command]
 pub(crate) async fn my_finance_export_backup(
     app: tauri::AppHandle,
     state: tauri::State<'_, FinanceState>,
@@ -130,7 +123,6 @@ pub(crate) async fn my_finance_export_backup(
     .await
 }
 
-#[tauri::command]
 pub(crate) async fn my_finance_select_backup(
     app: tauri::AppHandle,
     state: tauri::State<'_, FinanceState>,
@@ -159,7 +151,6 @@ pub(crate) async fn my_finance_select_backup(
     .await
 }
 
-#[tauri::command]
 pub(crate) async fn my_finance_inspect_backup(
     app: tauri::AppHandle,
     state: tauri::State<'_, FinanceState>,
@@ -177,7 +168,6 @@ pub(crate) async fn my_finance_inspect_backup(
     .await
 }
 
-#[tauri::command]
 pub(crate) async fn my_finance_restore_backup(
     app: tauri::AppHandle,
     state: tauri::State<'_, FinanceState>,
@@ -194,7 +184,6 @@ pub(crate) async fn my_finance_restore_backup(
     .await
 }
 
-#[tauri::command]
 pub(crate) async fn my_finance_cancel_backup(
     state: tauri::State<'_, FinanceState>,
     token: Uuid,
@@ -554,3 +543,6 @@ mod tests {
         assert_eq!(load_at(&root).unwrap(), expected);
     }
 }
+
+#[path = "main_commands/my_finance_commands.rs"]
+pub(crate) mod main_commands;

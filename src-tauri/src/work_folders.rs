@@ -158,12 +158,10 @@ fn load_and_migrate(app: &AppHandle) -> Result<Vec<StoredWorkFolderFavorite>, St
     migrate_legacy(app, favorites)
 }
 
-#[tauri::command]
 pub fn get_work_folder_favorites(app: AppHandle) -> Result<Vec<WorkFolderFavorite>, String> {
     load_and_migrate(&app).map(|items| items.into_iter().map(to_public).collect())
 }
 
-#[tauri::command]
 pub fn pick_work_folder_favorite(
     app: AppHandle,
 ) -> Result<Option<Vec<WorkFolderFavorite>>, String> {
@@ -190,7 +188,6 @@ pub fn pick_work_folder_favorite(
     Ok(Some(favorites.into_iter().map(to_public).collect()))
 }
 
-#[tauri::command]
 pub fn rename_work_folder_favorite(
     app: AppHandle,
     id: String,
@@ -208,7 +205,6 @@ pub fn rename_work_folder_favorite(
     Ok(favorites.into_iter().map(to_public).collect())
 }
 
-#[tauri::command]
 pub fn delete_work_folder_favorite(
     app: AppHandle,
     id: String,
@@ -224,7 +220,6 @@ pub fn delete_work_folder_favorite(
     Ok(favorites.into_iter().map(to_public).collect())
 }
 
-#[tauri::command]
 pub fn reorder_work_folder_favorites(
     app: AppHandle,
     ids: Vec<String>,
@@ -250,7 +245,6 @@ pub fn reorder_work_folder_favorites(
     Ok(reordered.into_iter().map(to_public).collect())
 }
 
-#[tauri::command]
 pub fn open_work_folder_favorite(app: AppHandle, id: String) -> Result<(), String> {
     validate_id(&id)?;
     let favorites = load_and_migrate(&app)?;
@@ -289,3 +283,6 @@ mod tests {
         assert_eq!(shown, r"...\학교\2026\검진");
     }
 }
+
+#[path = "main_commands/work_folders.rs"]
+pub(crate) mod main_commands;

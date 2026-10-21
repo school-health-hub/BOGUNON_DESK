@@ -575,12 +575,10 @@ async fn extract_selected_document(
     .map(Some)
 }
 
-#[tauri::command]
 pub async fn extract_official_document_path(path: String) -> Result<OfficialDocumentImportResult, String> {
     extract_selected_document(Some(PathBuf::from(path))).await?.ok_or_else(|| "가져올 공문 파일이 없습니다.".to_owned())
 }
 
-#[tauri::command]
 pub async fn pick_and_extract_official_document(
     app: AppHandle,
 ) -> Result<Option<OfficialDocumentImportResult>, String> {
@@ -994,3 +992,6 @@ mod tests {
         assert_eq!(result, None);
     }
 }
+
+#[path = "main_commands/official_document_import.rs"]
+pub(crate) mod main_commands;

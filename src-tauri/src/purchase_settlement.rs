@@ -126,7 +126,6 @@ fn write_purchase_settlement_workbook(
     workbook.save(path).map_err(|error| error.to_string())
 }
 
-#[tauri::command]
 pub fn save_purchase_settlement_export(
     app: AppHandle,
     rows: Vec<PurchaseSettlementExportRow>,
@@ -198,3 +197,6 @@ mod tests {
             .any(|cell| cell.to_string() == "최종결제금액"));
     }
 }
+
+#[path = "main_commands/purchase_settlement.rs"]
+pub(crate) mod main_commands;

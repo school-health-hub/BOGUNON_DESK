@@ -150,7 +150,6 @@ where
     opener(url)
 }
 
-#[tauri::command]
 pub fn open_quick_memo_url(app: AppHandle, url: String) -> Result<(), String> {
     execute_quick_memo_url(&url, |target| browser_launcher::open_url(&app, &target))
 }
@@ -372,7 +371,6 @@ pub fn schedule_work_portal_auto_open(
     Ok(true)
 }
 
-#[tauri::command]
 pub fn save_work_portal_url(
     app: AppHandle,
     url: Option<String>,
@@ -391,7 +389,6 @@ pub fn save_work_portal_url(
     load_settings(&app).map_err(|error| error.to_string())
 }
 
-#[tauri::command]
 pub fn save_work_portal_auto_open_delay(
     app: AppHandle,
     delay: WorkPortalAutoOpenDelay,
@@ -401,7 +398,6 @@ pub fn save_work_portal_auto_open_delay(
     load_settings(&app).map_err(|error| error.to_string())
 }
 
-#[tauri::command]
 pub fn replace_account_launcher_links(
     app: AppHandle,
     launcher_links: AccountLauncherLinks,
@@ -488,12 +484,10 @@ pub fn open_registered_url(
     Ok(None)
 }
 
-#[tauri::command]
 pub fn get_launcher_settings(app: AppHandle) -> Result<LauncherSettings, String> {
     load_settings(&app).map_err(|error| error.to_string())
 }
 
-#[tauri::command]
 pub fn save_launcher_url(
     app: AppHandle,
     action_id: String,
@@ -513,3 +507,6 @@ pub fn save_launcher_url(
 #[cfg(test)]
 #[path = "launcher_tests.rs"]
 mod tests;
+
+#[path = "main_commands/launcher.rs"]
+pub(crate) mod main_commands;

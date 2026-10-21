@@ -1,14 +1,14 @@
 import { ArrowDown, ArrowUp, ClipboardCopy, FilePlus2, FileSpreadsheet, Plus, RotateCcw, Settings2, Trash2, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { subscribeMainChannel, type MainChannelSubscription } from "../../desktop/mainChannelSubscription";
 import { isDesktopRuntime } from "../../desktop/actions";
 import { createPurchaseClipboard } from "../../purchase/purchaseClipboard";
 import { getPurchaseOutputReadiness, normalizePurchaseOutputColumns, resolvePurchaseAmount, selectedPurchaseTotal, updatePurchaseItem } from "../../purchase/purchaseDomain";
 import { purchaseRepository } from "../../purchase/purchaseRepository";
 import { createPurchaseDraft } from "../../purchase/purchaseDraft";
 import { createPurchaseSettlement, reconcilePurchaseSettlement } from "../../purchase/purchaseSettlement";
-import { purchaseImportFieldIds, purchaseImportFieldLabels, purchaseOutputColumnIds, purchaseOutputColumnLabels, type PurchaseAnalysisErrorEvent, type PurchaseAnalysisEvent, type PurchaseAnalysisResult, type PurchaseColumnMapping, type PurchaseDraft, type PurchaseDraftTemplate, type PurchaseImportTemplate, type PurchaseItem, type PurchaseMappingCandidate, type PurchaseOutputColumnId, type PurchaseSettlement, type PurchaseSourceSummary } from "../../purchase/types";
+import { purchaseImportFieldIds, purchaseImportFieldLabels, purchaseOutputColumnIds, purchaseOutputColumnLabels, type PurchaseAnalysisResult, type PurchaseColumnMapping, type PurchaseDraft, type PurchaseDraftTemplate, type PurchaseImportTemplate, type PurchaseItem, type PurchaseMappingCandidate, type PurchaseOutputColumnId, type PurchaseSettlement, type PurchaseSourceSummary } from "../../purchase/types";
 import { PurchaseDraftEditor } from "./PurchaseDraftEditor";
 import {
   createPurchaseHelperStateQueue,
@@ -89,14 +89,19 @@ export function PurchaseHelperPanel({ items, sources, columns, candidates, templ
   }, [onAnalysis, onNotice]);
   useEffect(() => {
     if (!isDesktopRuntime()) return undefined;
+    const subscriptions: MainChannelSubscription[] = [];
+    const track = (subscription: MainChannelSubscription): Promise<() => void> => {
+      subscriptions.push(subscription);
+      return subscription.ready.then(() => subscription.dispose);
+    };
     const bridge = mountPurchaseHelperNativeBridge({
       registrars: {
         start: (handler) =>
-          listen<number>("purchase:analysis-start", (event) => handler(event.payload)),
+          track(subscribeMainChannel("purchase:analysis-start", handler)),
         analysis: (handler) =>
-          listen<PurchaseAnalysisEvent>("purchase:analysis", (event) => handler(event.payload)),
+          track(subscribeMainChannel("purchase:analysis", handler)),
         error: (handler) =>
-          listen<PurchaseAnalysisErrorEvent>("purchase:analysis-error", (event) => handler(event.payload)),
+          track(subscribeMainChannel("purchase:analysis-error", handler)),
       },
       callbacks: {
         start: () => (generation) => {
@@ -126,6 +131,7 @@ export function PurchaseHelperPanel({ items, sources, columns, candidates, templ
     });
     return () => {
       if (nativeBridgeRef.current === bridge) nativeBridgeRef.current = null;
+      for (const subscription of subscriptions) subscription.dispose();
       bridge.dispose();
     };
   }, []);

@@ -20,7 +20,6 @@ pub(crate) struct ChatGptAuthState {
     active: AtomicBool,
 }
 
-#[tauri::command]
 pub(crate) async fn chatgpt_list_models(
     app: AppHandle,
     state: State<'_, ChatGptCredentialMutationState>,
@@ -36,7 +35,6 @@ pub(crate) async fn chatgpt_list_models(
     .await
 }
 
-#[tauri::command]
 pub(crate) async fn chatgpt_generate_text(
     app: AppHandle,
     state: State<'_, ChatGptCredentialMutationState>,
@@ -91,7 +89,6 @@ impl BrowserOpener for SystemBrowserOpener {
     }
 }
 
-#[tauri::command]
 pub(crate) fn chatgpt_get_connection_state(
     app: AppHandle,
     state: State<'_, ChatGptAuthState>,
@@ -101,7 +98,6 @@ pub(crate) fn chatgpt_get_connection_state(
         .map_err(|error| error.to_string())
 }
 
-#[tauri::command]
 pub(crate) async fn chatgpt_start_sign_in(
     app: AppHandle,
     state: State<'_, ChatGptAuthState>,
@@ -125,7 +121,6 @@ pub(crate) async fn chatgpt_start_sign_in(
         .map_err(|error| error.to_string())
 }
 
-#[tauri::command]
 pub(crate) async fn chatgpt_disconnect(
     app: AppHandle,
     state: State<'_, ChatGptAuthState>,
@@ -157,3 +152,6 @@ fn unix_timestamp() -> Result<u64, String> {
 #[cfg(test)]
 #[path = "commands/tests.rs"]
 mod tests;
+
+#[path = "../main_commands/chatgpt_commands.rs"]
+pub(crate) mod main_commands;

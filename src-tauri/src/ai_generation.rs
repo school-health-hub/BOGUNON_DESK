@@ -199,7 +199,6 @@ pub(crate) async fn request_generation(
     }
 }
 
-#[tauri::command]
 pub async fn generate_ai_text(
     provider: String,
     model: String,
@@ -228,3 +227,6 @@ pub async fn generate_ai_text(
 #[cfg(test)]
 #[path = "ai_generation_tests.rs"]
 mod tests;
+
+#[path = "main_commands/ai_generation.rs"]
+pub(crate) mod main_commands;

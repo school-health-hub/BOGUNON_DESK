@@ -61,7 +61,6 @@ async fn request_meal(
         .map_err(|_| "급식 서버 응답을 확인하지 못했습니다.".to_owned())
 }
 
-#[tauri::command]
 pub async fn fetch_bogunon_meal(
     app: AppHandle,
     access_token: String,
@@ -79,3 +78,6 @@ pub async fn fetch_bogunon_meal(
 #[cfg(test)]
 #[path = "meal_tests.rs"]
 mod tests;
+
+#[path = "main_commands/meal.rs"]
+pub(crate) mod main_commands;

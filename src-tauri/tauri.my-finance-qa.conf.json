@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "BOGUNON DESK MY FINANCE QA \u2014 SYNTHETIC ONLY",
+        "title": "BOGUNON DESK MY FINANCE QA — SYNTHETIC ONLY",
         "width": 1440,
         "height": 900,
         "minWidth": 980,
@@ -24,12 +24,13 @@
       "capabilities": [
         {
           "identifier": "my-finance-qa-only",
-          "windows": [
-            "main"
-          ],
           "permissions": [
             "core:default",
-            "core:window:allow-close"
+            "core:window:allow-close",
+            "finance-qa-commands"
+          ],
+          "webviews": [
+            "main"
           ]
         }
       ],

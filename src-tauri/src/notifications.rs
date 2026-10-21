@@ -84,7 +84,6 @@ fn load_settings(app: &AppHandle) -> Result<NotificationSettings, String> {
     })
 }
 
-#[tauri::command]
 pub fn set_workspace_notification_reasons(
     app: AppHandle,
     reasons: NotificationReasonSettings,
@@ -99,12 +98,10 @@ pub fn set_workspace_notification_reasons(
     load_settings(&app)
 }
 
-#[tauri::command]
 pub fn get_notification_settings(app: AppHandle) -> Result<NotificationSettings, String> {
     load_settings(&app)
 }
 
-#[tauri::command]
 pub fn set_workspace_notifications_enabled(
     app: AppHandle,
     enabled: bool,
@@ -115,7 +112,6 @@ pub fn set_workspace_notifications_enabled(
     load_settings(&app)
 }
 
-#[tauri::command]
 pub fn mark_daily_summary_sent(app: AppHandle, date: String) -> Result<(), String> {
     if !is_valid_date_key(&date) {
         return Err("알림 날짜를 저장할 수 없습니다.".to_owned());
@@ -177,3 +173,6 @@ mod tests {
         assert!(one.has_enabled_reason());
     }
 }
+
+#[path = "main_commands/notifications.rs"]
+pub(crate) mod main_commands;

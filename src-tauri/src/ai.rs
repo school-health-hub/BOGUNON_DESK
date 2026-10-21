@@ -113,7 +113,6 @@ async fn request_validation(
     normalize_status(response.status())
 }
 
-#[tauri::command]
 pub async fn validate_ai_connection(
     provider: String,
     model: String,
@@ -130,3 +129,6 @@ pub async fn validate_ai_connection(
 #[cfg(test)]
 #[path = "ai_tests.rs"]
 mod tests;
+
+#[path = "main_commands/ai.rs"]
+pub(crate) mod main_commands;
