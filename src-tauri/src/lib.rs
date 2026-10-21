@@ -15,6 +15,7 @@ mod auth;
 mod browser_launcher;
 mod chatgpt;
 mod desktop_surface;
+mod education_video;
 mod launcher;
 mod meal;
 mod my_finance_backup;
@@ -329,6 +330,11 @@ pub fn run() {
             work_folders::reorder_work_folder_favorites,
             work_folders::open_work_folder_favorite,
             meal::fetch_bogunon_meal,
+            education_video::education_video_library_load,
+            education_video::education_video_library_save,
+            education_video::education_video_library_import,
+            education_video::education_video_library_export,
+            education_video::education_video_library_recover,
             weather::fetch_bogunon_weather
         ])
         .setup(|app| {

@@ -16,18 +16,24 @@ import { AccountSyncProvider } from "./settings/AccountSyncContext";
 import { WorkspaceDataProvider } from "./workspace-data/WorkspaceDataContext";
 import { WeatherDataProvider } from "./weather/WeatherDataContext";
 import { DesktopUpdaterProvider } from "./updater/DesktopUpdaterContext";
+import { EducationVideoFinder } from "./education-video/EducationVideoFinder";
 
 const FinanceScreen = lazy(() => import("./my-finance/FinanceScreen").then((module) => ({ default: module.FinanceScreen })));
 
 export function App() {
+  const [videoFinderOpen, setVideoFinderOpen] = useState(false);
   const [financeOpen, setFinanceOpen] = useState(false);
+  const closeVideoFinder = () => {
+    setVideoFinderOpen(false);
+    requestAnimationFrame(() => document.querySelector<HTMLButtonElement>("[data-education-video-launcher]")?.focus());
+  };
   const closeFinance = () => {
     setFinanceOpen(false);
     requestAnimationFrame(() => document.querySelector<HTMLButtonElement>("[data-finance-launcher]")?.focus());
   };
   return (
     <>
-    <div hidden={financeOpen} inert={financeOpen} style={{ display: financeOpen ? "none" : undefined }}>
+    <div hidden={financeOpen || videoFinderOpen} inert={financeOpen || videoFinderOpen} style={{ display: financeOpen || videoFinderOpen ? "none" : undefined }}>
     <ChatGptConnectionProvider>
       <AiConnectionProvider>
         <AuthProvider>
@@ -39,7 +45,7 @@ export function App() {
                     <WeatherDataProvider>
                       <OfficialDocumentSessionProvider>
                         <DesktopUpdaterProvider>
-                          <DashboardCanvas onOpenFinance={() => setFinanceOpen(true)} suspended={financeOpen} />
+                          <DashboardCanvas onOpenFinance={() => setFinanceOpen(true)} onOpenEducationVideo={() => setVideoFinderOpen(true)} suspended={financeOpen || videoFinderOpen} />
                         </DesktopUpdaterProvider>
                       </OfficialDocumentSessionProvider>
                     </WeatherDataProvider>
@@ -52,6 +58,7 @@ export function App() {
       </AiConnectionProvider>
     </ChatGptConnectionProvider>
     </div>
+    {videoFinderOpen && <EducationVideoFinder onClose={closeVideoFinder} />}
     {financeOpen && <Suspense fallback={<main aria-busy="true"><p role="status">MY FINANCE 화면을 불러오는 중입니다…</p><button type="button" onClick={closeFinance}>보건 업무로</button></main>}><FinanceScreen onClose={closeFinance} /></Suspense>}
     </>
   );

@@ -440,3 +440,14 @@ two lines. D-Day uses readable rows. All use existing spacing/type/color tokens.
 Signed-out desktop widgets show a quiet dash with an accessible waiting label; the
 shared banner is the only account instruction. Standalone/error/loading guidance
 remains. Dock active marker, accessible name, hover and keyboard tooltip stay intact.
+
+## AI 교육영상 Finder Phase 1
+- Follow existing Pretendard muted mint/navy work-sheet language; use shared CSS tokens for text, border, surface and accent.
+- Full-page independent tool: compact header, three numbered stages, 1.5:1 results/editor desktop columns, one column below 1050px.
+- Persistent amber Mock label: synthetic metadata and fixture links cannot be represented as real search results.
+- Result rows use typographic hierarchy, separator borders and selected mint rim; no remote imagery or decorative motion.
+- Inputs/buttons maintain 40px targets, visible keyboard focus, named fields, error/status live regions; copy requires explicit teacher confirmation and resets confirmation on editing.
+- Library is separate; browser QA storage is explicitly labeled and cannot claim native durability.
+
+Finder scoped tokens: --ev-accent #176e62; --ev-accent-soft #e5f3ed; --ev-warning #75521c; --ev-warning-bg #fcf6e8; --ev-paper #fff. Warning border #dbc390 and #c7a45c, neutral shadow #243247 at 3% opacity. Compact result12px, body14px, heading17px, page28px. Spacing8/12/14/16/18/20/24/28px; corner6/7/8/12px. Buttons and filters minimum40px.
+Finder narrow CJK text uses word-break:keep-all and overflow-wrap:anywhere fallback. Library row text flex child has min-width:0; unbroken long imported/user titles wrap within their column, and action buttons retain width. This rule addresses the observed390px long-title QA failure; post-fix screenshots are recorded by the QA worker.

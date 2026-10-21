@@ -1,13 +1,14 @@
-import { Wrench, X } from "lucide-react";
+import { Video, Wrench, X } from "lucide-react";
 import { healthToolCategories, type ToolboxToolId } from "../../tools/toolRegistry";
 
 type ToolboxPanelProps = {
   readonly isLoading: boolean;
   readonly onClose: () => void;
   readonly onExecute: (actionId: ToolboxToolId) => void;
+  readonly onOpenEducationVideo?: () => void;
 };
 
-export function ToolboxPanel({ isLoading, onClose, onExecute }: ToolboxPanelProps) {
+export function ToolboxPanel({ isLoading, onClose, onExecute, onOpenEducationVideo }: ToolboxPanelProps) {
   return (
     <aside className="toolbox-panel" aria-label="업무 도구함">
       <header>
@@ -16,6 +17,7 @@ export function ToolboxPanel({ isLoading, onClose, onExecute }: ToolboxPanelProp
         <button type="button" aria-label="업무 도구함 닫기" onClick={onClose}><X size={16} /></button>
       </header>
       <div className="toolbox-panel__categories" aria-busy={isLoading}>
+        {onOpenEducationVideo && <section aria-labelledby="tool-category-education-video"><h2 id="tool-category-education-video">교육 자료</h2><div className="toolbox-panel__list"><button type="button" className="toolbox-panel__launch" data-education-video-launcher onClick={onOpenEducationVideo}><span><Video size={18}/></span><span><strong>AI 교육영상 Finder · Mock</strong><small>합성 영상 비교와 메신저 안내문 작성</small></span></button></div></section>}
         {healthToolCategories.map((category) => (
           <section key={category.id} aria-labelledby={`tool-category-${category.id}`}>
             <h2 id={`tool-category-${category.id}`}>{category.label}</h2>
