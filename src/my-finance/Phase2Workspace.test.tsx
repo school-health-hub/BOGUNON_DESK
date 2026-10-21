@@ -19,7 +19,12 @@ const cases = [
 ] satisfies readonly (readonly [string, string, keyof Phase2Data, Readonly<Record<string, string>>])[];
 
 function fill(title: string, fields: Readonly<Record<string, string>>) {
-  const form = screen.getByRole("heading", { name: title }).parentElement?.querySelector("form");
+  const investmentView = title === "증권계좌" || title === "보유 종목" ? "계좌·종목 설정" : title === "매수·매도" ? "거래 내역" : title === "배당" ? "배당" : null;
+  if (investmentView) fireEvent.click(screen.getByRole("button", { name: investmentView }));
+  const panel = screen.getByRole("heading", { name: title }).closest("section");
+  const open = panel?.querySelector("header button");
+  if (open instanceof HTMLButtonElement) fireEvent.click(open);
+  const form = panel?.querySelector("form");
   if (!(form instanceof HTMLFormElement)) throw new Error("Synthetic form missing");
   for (const [name, next] of Object.entries(fields)) {
     const control = form.elements.namedItem(name);
@@ -31,6 +36,38 @@ function fill(title: string, fields: Readonly<Record<string, string>>) {
 afterEach(cleanup);
 
 describe("Phase 2 asynchronous form completion", () => {
+  it("exposes the four investment views and accessible editor controls", () => {
+    render(<Phase2Workspace income={[]} value={value()} disabled={false} onSave={vi.fn()} initialSection="investments" />);
+    for (const name of ["보유 현황", "거래 내역", "배당", "계좌·종목 설정"]) expect(screen.getByRole("button", { name })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "계좌·종목 설정" }));
+    fireEvent.click(screen.getByRole("heading", { name: "증권계좌" }).closest("section")!.querySelector("header button")!);
+    expect(screen.getByRole("textbox", { name: "계좌 이름" })).toBeTruthy();
+    expect(screen.getByRole("combobox", { name: "시장 구분" })).toBeTruthy();
+    expect(screen.getByRole("textbox", { name: "계좌 통화" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "취소" })).toBeTruthy();
+  });
+  it("preserves a dirty investment editor when an inner tab change is cancelled", () => {
+    render(<Phase2Workspace income={[]} value={value()} disabled={false} onSave={vi.fn()} initialSection="investments" />);
+    fireEvent.click(screen.getByRole("button", { name: "계좌·종목 설정" }));
+    const form = fill("증권계좌", { name: "합성 작성 중" });
+    fireEvent.click(screen.getByRole("button", { name: "보유 현황" }));
+    expect(screen.getByRole("alertdialog")).toBeTruthy();
+    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "취소" }));
+    expect(within(form).getByRole("textbox", { name: "계좌 이름" })).toHaveProperty("value", "합성 작성 중");
+    expect(screen.getByRole("button", { name: "계좌·종목 설정" }).getAttribute("aria-current")).toBe("page");
+  });
+  it("keeps dirty state and values when the active editor add button is clicked again", () => {
+    render(<Phase2Workspace income={[]} value={value()} disabled={false} onSave={vi.fn()} initialSection="investments" />);
+    fireEvent.click(screen.getByRole("button", { name: "계좌·종목 설정" }));
+    const form = fill("증권계좌", { name: "합성 유지" });
+    const panel = screen.getByRole("heading", { name: "증권계좌" }).closest("section")!;
+    fireEvent.click(within(panel).getAllByRole("button", { name: "추가" })[0]);
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(within(form).getByRole("textbox", { name: "계좌 이름" })).toHaveProperty("value", "합성 유지");
+    fireEvent.click(screen.getByRole("button", { name: "보유 현황" }));
+    expect(screen.getByRole("alertdialog")).toBeTruthy();
+  });
+
   it.each(cases)("resets %s only after a successful delayed save without a false failure", async (title, tab, key, fields) => {
     // Given a real rendered form and an unresolved save.
     let finish: (() => void) | undefined;
