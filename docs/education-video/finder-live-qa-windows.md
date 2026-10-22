@@ -20,3 +20,7 @@ Preflight before any search: native metadata/SHA match, Finder visible, existing
 Approved live input: 고등학생 / 마약류 예방교육 / 20분 내외 / 공공기관 우선. Submit once through the existing privacy confirmation. On error stop; do not retry or replace with a different provider. If successful compare original URLs/sources/metadata status, inspect public-description review, open the existing draft screen and save/reload in the QA-only library. Never submit a real document or share externally.
 
 Local limits: C: about3.46GiB and current Perl lacks Locale/Maketext/Simple, so no local fullnative build or package/cache cleanup. Parent automation kernel asset error has no identifiedmissingpath; a freshchildNodeREPL successfully initializedsky and enumeratedwindows. No system/runtime installation changes were made.
+
+## Search button initialization regression
+
+The default search service and web-search module have a circular dependency. An arrow-function export was captured before initialization in the production bundle, leaving searchWeb undefined even after model lookup succeeded. The search operation now uses a hoisted function declaration. The bundled-import regression runs the real Rolldown bundler without network calls and is included before Windows compilation. Rebuild the QA executable to receive the fix; changing the selected model does not repair an older binary. Authentication, supported model allowlist and durable one-search receipts are unchanged.

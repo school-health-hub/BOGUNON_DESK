@@ -25,13 +25,13 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Verify exact approved base and QA-only additions
+      - name: Verify approved base and scoped Finder QA changes
         shell: pwsh
         run: |
           if ((git rev-parse HEAD).Trim() -ne $env:BOGUNON_QA_SOURCE_SHA) { throw 'Source mismatch' }
           git merge-base --is-ancestor $env:FINDER_BASE_SHA HEAD
           if ($LASTEXITCODE -ne 0) { throw 'Approved Finder checkpoint missing' }
-          $allowed = '^(\.gitignore|\.github/workflows/finder-live-qa-windows\.yml|scripts/.*finder-live-qa.*|docs/education-video/finder-live-qa.*|qa-finder-live/.*|vite\.finder-live-qa\.config\.ts|src/finder-live-qa/.*|src-tauri/education-video-harness/lib\.rs|src-tauri/(Cargo\.toml|Cargo\.lock|build\.rs|tauri\.finder-live-qa\.conf\.json|src/lib\.rs|src/finder_live_qa.*|src/finder_live_qa/.*|src/chatgpt/(mod\.rs|live_qa\.rs|plan\.rs|plan/live_qa.*\.rs)))$'
+          $allowed = '^(\.gitignore|\.github/workflows/finder-live-qa-windows\.yml|scripts/.*finder-live-qa.*|docs/education-video/finder-live-qa.*|qa-finder-live/.*|vite\.finder-live-qa\.config\.ts|src/finder-live-qa/.*|src/chatgpt/(webSearch\.ts|chatgptPlanService\.bundle\.test\.ts)|src-tauri/education-video-harness/lib\.rs|src-tauri/(Cargo\.toml|Cargo\.lock|build\.rs|tauri\.finder-live-qa\.conf\.json|src/lib\.rs|src/finder_live_qa.*|src/finder_live_qa/.*|src/chatgpt/(mod\.rs|live_qa\.rs|plan\.rs|plan/live_qa.*\.rs)))$'
           foreach ($file in (git diff --name-only $env:FINDER_BASE_SHA HEAD)) {
             if ($file -notmatch $allowed) { throw "Non-QA source change: $file" }
           }
@@ -53,6 +53,8 @@ jobs:
           perl -MLocale::Maketext::Simple -e 'print "Perl dependency ready\n"'
           if ($LASTEXITCODE -ne 0) { throw 'Missing runner Perl module' }
       - run: npm ci
+      - name: Verify bundled search initialization
+        run: node node_modules/vitest/vitest.mjs run src/chatgpt/chatgptPlanService.bundle.test.ts src/chatgpt/webSearch.test.ts
       - name: Build isolated portable executable only
         shell: pwsh
         run: |

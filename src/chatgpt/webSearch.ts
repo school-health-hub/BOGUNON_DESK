@@ -27,8 +27,8 @@ export const parseWebSearchResult = (value: unknown): WebSearchResult => {
   return { text: value.text, checkedAt: value.checkedAt, sources };
 };
 
-export const searchChatGptWebNative = async (model: string, prompt: string): Promise<WebSearchResult> => {
+export async function searchChatGptWebNative(model: string, prompt: string): Promise<WebSearchResult> {
   if (!isTauri() || !supportedWebSearchModel(model)) throw new ChatGptPlanRequestError("unavailable");
   try { return parseWebSearchResult(await invoke<unknown>("chatgpt_search_web", { model, prompt })); }
   catch (error: unknown) { throw new ChatGptPlanRequestError(normalizeChatGptPlanError(error).code); }
-};
+}
