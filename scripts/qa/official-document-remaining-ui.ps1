@@ -71,23 +71,28 @@ function Run-RemainingUi {
             Start-Sleep -Milliseconds 500
             $dialog=@([NativeQaWindow]::ForProcess($ProcessId)) | Where-Object { $_.Visible -and $_.Title -match 'Open|열기' } | Select-Object -First 1
             if ($dialog) {
-                $dialogRoot=[System.Windows.Automation.AutomationElement]::FromHandle([IntPtr]$dialog.Handle)
-                $edits=@($dialogRoot.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition))
-                $filename=$edits | Where-Object { $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Edit -and $_.Current.Name -match 'File name|파일 이름' } | Select-Object -First 1
-                $value=$null
-                if ($filename -and $filename.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern,[ref]$value)) {
-                    $fixture=Join-Path $env:GITHUB_WORKSPACE 'qa/official-document/fixtures/reference-valid.json'
-                    $value.SetValue($fixture)
-                    $open=$edits | Where-Object { $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and $_.Current.Name -match '^Open$|^열기' } | Select-Object -First 1
-                    $invoke=$null
-                    if ($open -and $open.TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern,[ref]$invoke)) { $invoke.Invoke(); Start-Sleep -Milliseconds 700 }
-                }
+                [void][NativeQaWindow]::SetForegroundWindow([IntPtr]$dialog.Handle)
+                Start-Sleep -Milliseconds 200
+                if ([NativeQaWindow]::GetForegroundWindow() -ne [IntPtr]$dialog.Handle) { throw 'Owned file dialog foreground not confirmed.' }
+                $fixture=Join-Path $env:GITHUB_WORKSPACE 'qa/official-document/fixtures/reference-valid.json'
+                if ($fixture -notmatch '^[A-Za-z]:[\/A-Za-z0-9_.-]+$') { throw 'Unexpected non-ASCII fixture path; no keyboard path input performed.' }
+                [System.Windows.Forms.SendKeys]::SendWait('%n')
+                [System.Windows.Forms.SendKeys]::SendWait($fixture)
+                [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
+                Start-Sleep -Milliseconds 700
+
             }
             Snapshot 'package-preview'
             if (Activate-Key '확인 후 패키지 반입') { Check-State 'synthetic-package-import' ((Has-Name '이번 실행에서만 사용') -and -not (Has-Name '확인 후 패키지 반입') -and @(Controls | Where-Object { $_.Current.Name -like '*official-document-qa-valid*' -and $_.Current.Name -notlike '반입 후보:*' }).Count -gt 0) 'Existing synthetic package imported in session mode only.'; Snapshot 'package-imported' }
         } else { Record 'synthetic-package-import' 'NOT RUN' 'Native file input not exposed as focusable control.' }
         # Do not continue with keyboard input if a file dialog remains open.
-        if (@([NativeQaWindow]::ForProcess($ProcessId) | Where-Object { $_.Visible -and $_.Title -match 'Open|열기' }).Count) { Record 'file-dialog' 'NOT RUN' 'Native file dialog remained open; stop interactions safely.'; return }
+        if (@([NativeQaWindow]::ForProcess($ProcessId) | Where-Object { $_.Visible -and $_.Title -match 'Open|열기' }).Count) {
+            $pending=[NativeQaWindow]::ForProcess($ProcessId) | Where-Object { $_.Visible -and $_.Title -match 'Open|열기' } | Select-Object -First 1
+            [void][NativeQaWindow]::SetForegroundWindow([IntPtr]$pending.Handle)
+            if ([NativeQaWindow]::GetForegroundWindow() -ne [IntPtr]$pending.Handle) { throw 'Cannot safely cancel owned file dialog.' }
+            [System.Windows.Forms.SendKeys]::SendWait('{ESC}'); Start-Sleep -Milliseconds 250
+            Record 'file-dialog' 'NOT RUN' 'Synthetic import incomplete; owned dialog cancelled, independent scroll tests continue.'
+        }
     }
     if (Activate-Key '찾기') {
         Snapshot 'reference-list'
@@ -122,6 +127,7 @@ function Run-RemainingUi {
             Snapshot "keyboard-$key"
         }
     }
+    if (Activate-Key '새 작업') { Check-State 'new-work-reset' ((Current-Value '업무명') -eq '' -and -not (Has-Name '공문 참고자료') -and -not (Has-Name '로컬 참고자료 패키지')) 'Reset after reference interactions clears inputs and panels.' }
     # Long synthetic text; no production data or API requests.
     $main=Named-Control '주요 내용'
     if ($main) { Focus-Qa $main; Native-Key '^a'; Native-Key (('QA synthetic long content. ' * 65)+'QA END MARKER'); [void](Activate-Key '기본 초안 만들기')
