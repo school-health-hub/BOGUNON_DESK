@@ -125,3 +125,62 @@ test('scanner CLI never echoes rejected secrets paths or malformed JSON', () => 
     }
   } finally {rmSync(root,{recursive:true,force:true});}
 });
+
+// Structural regression contract only; actionlint independently parses YAML/expressions.
+function runtimePathInitialization(yaml) {
+  const text=yaml.split(String.fromCharCode(13)).join('');
+  const stepsAt=text.indexOf('    steps:');
+  const jobEnv=text.slice(text.indexOf('    env:'),stepsAt);
+  assert.ok(!jobEnv.includes('runner.'),'runner context is forbidden in job env');
+  const name='      - name: Initialize isolated runtime paths';
+  const start=text.indexOf(name,stepsAt);
+  assert.ok(start>=stepsAt,'path initializer missing');
+  assert.equal(text.slice(stepsAt+'    steps:'.length,start).trim(),'','initializer must be first step');
+  const next=text.indexOf(String.fromCharCode(10)+'      - ',start+name.length);
+  const block=text.slice(start,next);
+  assert.ok(block.includes('working-directory: .'),'initializer cannot depend on checkout directory');
+  const run=block.slice(block.indexOf('        run: |')+'        run: |'.length)
+    .split(String.fromCharCode(10)).slice(1).map(line=>line.slice(10)).join(String.fromCharCode(10));
+  assert.ok(run.includes('$env:RUNNER_TEMP'));
+  assert.ok(run.includes('Add-Content -LiteralPath $env:GITHUB_ENV'));
+  assert.ok(run.includes('$env:GITHUB_RUN_ID'));
+  assert.ok(run.includes('$env:GITHUB_RUN_ATTEMPT'));
+  for(const key of ['C2D2_DIAGNOSTICS','C2D2_PREFLIGHT_PATH','C2D2_UDF']){
+    assert.ok(run.includes(key+' ='));
+    assert.ok(!run.includes('$env:'+key),'GITHUB_ENV exports apply only to later steps');
+    const firstUse=text.indexOf('$env:'+key);
+    assert.ok(firstUse===-1||firstUse>next,'runtime path used before initialization');
+  }
+  return run;
+}
+
+test('runtime path initialization forbids job runner context and precedes every use for LF/CRLF',()=>{
+  const yaml=readFileSync(new URL('../.github/workflows/desktop-surface-c2d2-runtime.yml',import.meta.url),'utf8');
+  for(const separator of [String.fromCharCode(10),String.fromCharCode(13,10)]){
+    const text=yaml.split(String.fromCharCode(13)).join('').split(String.fromCharCode(10)).join(separator);
+    assert.doesNotThrow(()=>runtimePathInitialization(text));
+    assert.throws(()=>runtimePathInitialization(text.replace('    env:','    env:'+separator+'      BAD: '+ '$'+'{{ runner.temp }}')));
+  }
+});
+
+test('PowerShell initializer handles spaces and exports three paths for subsequent steps only',()=>{
+  const yaml=readFileSync(new URL('../.github/workflows/desktop-surface-c2d2-runtime.yml',import.meta.url),'utf8');
+  const script=runtimePathInitialization(yaml);
+  const root=mkdtempSync(join(tmpdir(),'c2d2c paths '));
+  try{
+    const envFile=join(root,'github env.txt');
+    const environment={...process.env,RUNNER_TEMP:root,GITHUB_ENV:envFile,GITHUB_RUN_ID:'123456',GITHUB_RUN_ATTEMPT:'1'};
+    for(const key of ['C2D2_DIAGNOSTICS','C2D2_PREFLIGHT_PATH','C2D2_UDF'])delete environment[key];
+    const result=spawnSync('powershell.exe',['-NoProfile','-NonInteractive','-Command',
+      script+String.fromCharCode(10)+'if ($env:C2D2_DIAGNOSTICS) { exit 99 }'],{env:environment,encoding:'utf8'});
+    assert.equal(result.status,0);
+    assert.equal(result.stdout.trim(),'');
+    const text=readFileSync(envFile,'utf8').split(String.fromCharCode(65279)).join('');
+    const lines=text.split(String.fromCharCode(10)).map(line=>line.trim()).filter(Boolean);
+    assert.deepEqual(lines,[
+      'C2D2_DIAGNOSTICS='+join(root,'c2d2-diagnostics'),
+      'C2D2_PREFLIGHT_PATH='+join(root,'c2d2-preflight.json'),
+      'C2D2_UDF='+join(root,'c2d2-udf-123456-1'),
+    ]);
+  }finally{rmSync(root,{recursive:true,force:true});}
+});

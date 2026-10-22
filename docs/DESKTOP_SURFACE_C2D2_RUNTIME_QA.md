@@ -267,3 +267,45 @@ no new test warning remains. Five independent non-runtime review lanes passed
 after the message-pump, redacted-scanner and terminal-reason fixes. actionlint and
 actual WebView2 behavior remain NOT_VERIFIED; static verification is PARTIAL,
 runtime execution readiness BLOCKED. No execution/configuration approval is implied.
+
+## C-2D-2C workflow parsing correction
+
+The prior controller 34afb9dd18f58bc34ae9e1cd8eea97c151d9a43b was rejected by
+GitHub before any job started (run 39760291060): runner.temp is unavailable in
+job-level env. A first Windows PowerShell step now constructs the three fixed
+paths from RUNNER_TEMP using Join-Path and exports them via GITHUB_ENV. It runs
+with working-directory "." before checkout, so the default controller directory
+need not exist. It does not consume those exports in the same step. Run ID and
+first-attempt identity remain part of the UDF name. Artifact step runner.temp
+expressions remain unchanged.
+
+Fresh verification used official rhysd/actionlint v1.7.12, windows/amd64 ZIP,
+matching the existing C-1/C-2C-2 pin:
+https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_windows_amd64.zip
+SHA-256: 6e7241b51e6817ea6a047693d8e6fed13b31819c9a0dd6c5a726e1592d22f6e9
+The hash was checked before extraction/execution. actionlint reproduced all three
+original context errors and returned exit 0 after correction. It actually parsed
+YAML and Actions expressions; string-based regression assertions alone are not
+YAML validation. The tool/archive remain local, ignored beneath .omo/tools;
+they are not included in the checkpoint or a claim of a portable evidence package.
+
+Fresh Node contracts: 11/11 PASS. LF/CRLF tests reject restored job-level runner
+context and check initialization order. A real Windows PowerShell subprocess ran
+only the extracted initializer against a synthetic temp directory containing
+spaces: exact three exported values matched and same-step environment remained
+unchanged. It did not start the Native Host, WebView2, app, or workflow.
+Debugging hypotheses verified: (1) unavailable job context causes parsing failure,
+confirmed by actionlint RED/GREEN; (2) initializer could inherit a nonexistent
+checkout directory, prevented by explicit "."; (3) quoting or same-step export
+assumptions could break paths, checked through the synthetic PowerShell execution.
+
+Rust/controller implementation, Main command/ACL, C-2C-2, dependencies and locks
+are unchanged. Existing Rust39 evidence is reused, not rerun in C-2D-2C.
+Trigger and approval gates plus all original downstream steps remain unchanged.
+Only this workflow, its contract test and this document are modified.
+Five scoped independent reviews passed. git diff --check passed.
+
+This resolves the known parsing defect locally; it is not a successful GitHub
+runtime run. Protected Environment/default-branch registration and a new exact
+controller-SHA execution approval remain separate steps. No Environment changes,
+registration PR, dispatch/rerun, installer or native execution were performed.

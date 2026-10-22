@@ -31,10 +31,22 @@ jobs:
       C2D2_WORKFLOW_SHA: ${{ github.workflow_sha }}
       C2D2_WORKFLOW_REF: ${{ github.workflow_ref }}
       C2D2_CONFIRMATION: ${{ inputs.execute_once }}
-      C2D2_DIAGNOSTICS: ${{ runner.temp }}\c2d2-diagnostics
-      C2D2_PREFLIGHT_PATH: ${{ runner.temp }}\c2d2-preflight.json
-      C2D2_UDF: ${{ runner.temp }}\c2d2-udf-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
+      - name: Initialize isolated runtime paths
+        working-directory: .
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP) -or $env:RUNNER_TEMP.IndexOfAny([char[]]@(10, 13)) -ge 0) { throw 'invalid runner temp boundary' }
+          if (-not [IO.Path]::IsPathRooted($env:RUNNER_TEMP)) { throw 'runner temp must be absolute' }
+          if ($env:GITHUB_RUN_ID -notmatch '^[0-9]+$' -or $env:GITHUB_RUN_ATTEMPT -cne '1') { throw 'invalid one-shot run identity' }
+          $runtimeRoot = [IO.Path]::GetFullPath($env:RUNNER_TEMP)
+          $runtimePaths = [ordered]@{
+            C2D2_DIAGNOSTICS = Join-Path $runtimeRoot 'c2d2-diagnostics'
+            C2D2_PREFLIGHT_PATH = Join-Path $runtimeRoot 'c2d2-preflight.json'
+            C2D2_UDF = Join-Path $runtimeRoot ('c2d2-udf-{0}-{1}' -f $env:GITHUB_RUN_ID, $env:GITHUB_RUN_ATTEMPT)
+          }
+          foreach ($entry in $runtimePaths.GetEnumerator()) {
+            Add-Content -LiteralPath $env:GITHUB_ENV -Value ('{0}={1}' -f $entry.Key, $entry.Value) -Encoding utf8
+          }
       - name: Checkout reviewed runtime controller
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
