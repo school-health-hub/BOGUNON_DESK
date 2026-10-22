@@ -1,9 +1,23 @@
 //! Static contract for the future out-of-process Dashboard Surface.
 //! This module grants no Tauri authority and creates no native resources.
 
+mod cleanup;
+mod identity;
+mod ownership;
 mod policy;
+mod udf;
 
+pub(crate) use cleanup::{
+    evaluate_cleanup, BrowserExitEvidence, CleanupDecision, CleanupUnknownReason,
+};
+pub(crate) use identity::{AttemptBinding, DirectoryIdentity, IdentityToken};
+pub(crate) use ownership::{Ledger, LedgerError, LedgerState, ResourceKind};
 pub(crate) use policy::SurfaceBoundaryPolicy;
+pub(crate) use udf::{
+    preflight_udf, EffectiveDirectory, EffectiveUdfObservation, EnvironmentObservation,
+    ObservedDirectory, OverrideObservation, PathKey, ProfileObservation, UdfError, UdfStatus,
+    VerifiedIsolation,
+};
 
 #[cfg(test)]
 mod tests {
@@ -24,3 +38,15 @@ mod tests {
         assert!(!policy.creates_native_host());
     }
 }
+
+#[cfg(test)]
+#[path = "udf_tests.rs"]
+mod udf_tests;
+
+#[cfg(test)]
+#[path = "ownership_tests.rs"]
+mod ownership_tests;
+
+#[cfg(test)]
+#[path = "cleanup_tests.rs"]
+mod cleanup_tests;
