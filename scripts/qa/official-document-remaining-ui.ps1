@@ -99,9 +99,10 @@ function Run-RemainingUi {
                 Start-Sleep -Milliseconds 200
                 if ([NativeQaWindow]::GetForegroundWindow() -ne [IntPtr]$dialog.Handle) { throw 'Owned file dialog foreground not confirmed.' }
                 $fixture=Join-Path $env:GITHUB_WORKSPACE 'qa/official-document/fixtures/reference-valid.json'
-                if ($fixture -notmatch '^[A-Za-z]:[\/A-Za-z0-9_.-]+$') { throw 'Unexpected non-ASCII fixture path; no keyboard path input performed.' }
+                $keyboardPath=$fixture.Replace([char]92,[char]47)
+                if ($keyboardPath -notmatch '^[A-Za-z]:/[A-Za-z0-9_/.-]+$') { throw 'Unexpected non-ASCII fixture path; no keyboard path input performed.' }
                 [System.Windows.Forms.SendKeys]::SendWait('%n')
-                [System.Windows.Forms.SendKeys]::SendWait($fixture)
+                [System.Windows.Forms.SendKeys]::SendWait($keyboardPath)
                 [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
                 Start-Sleep -Milliseconds 700
 

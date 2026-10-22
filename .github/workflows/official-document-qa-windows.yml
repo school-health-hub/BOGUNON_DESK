@@ -158,8 +158,8 @@ jobs:
         shell: pwsh
     env:
       QA_NATIVE_UI_ONLY: 'true'
-      QA_EXPECTED_SOURCE_SHA: 78cf04155a62e010980a340d9c4c8a1c5a748340
-      QA_EXPECTED_EXE_SHA256: cb97762a66a35d912fea5d480c4fc67c0d5302cb943c6c0d61ae51db0b86aba9
+      QA_EXPECTED_SOURCE_SHA: 5e3583f6b5d7abca2ccba58fc90e64a456bfb817
+      QA_EXPECTED_EXE_SHA256: 14f761fcc5618f9d9cdb90c7be463f53a6fa468c0e53867a5d571f4f4f306f31
     steps:
       - name: Initialize runner-only runtime evidence path
         run: |
@@ -175,8 +175,8 @@ jobs:
       - name: Download previously verified immutable QA binary
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: official-document-qa-78cf04155a62e010980a340d9c4c8a1c5a748340-1
-          run-id: '39795898910'
+          name: official-document-qa-5e3583f6b5d7abca2ccba58fc90e64a456bfb817-1
+          run-id: '39809451795'
           github-token: ${{ github.token }}
           path: ${{ env.QA_ROOT }}/input
       - name: Verify reused binary without installing or rebuilding
