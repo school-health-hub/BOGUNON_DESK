@@ -1,8 +1,8 @@
 import { spawnSync } from 'node:child_process';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, dirname, isAbsolute, join } from 'node:path';
 import { test } from 'node:test';
 import { SOURCE, isAllowedControllerPath, validateDispatch, verifyDiagnostics, evidenceStatus } from './desktop-surface-c2d2.mjs';
 
@@ -163,6 +163,31 @@ test('runtime path initialization forbids job runner context and precedes every 
   }
 });
 
+const canonicalExport = line => {
+  const equals=line.indexOf('=');
+  assert.ok(equals>0,'export key missing');
+  const value=line.slice(equals+1);
+  assert.ok(isAbsolute(value),'export path must be absolute');
+  // Leaves do not exist yet; resolve their existing parent through the filesystem.
+  return line.slice(0,equals+1)+join(realpathSync.native(dirname(value)),basename(value));
+};
+
+test('export path comparison accepts filesystem aliases but rejects outside and sibling paths',()=>{
+  const root=mkdtempSync(join(tmpdir(),'c2d2g paths '));
+  try{
+    const actual=join(root,'actual root');
+    const alias=join(root,'alias root');
+    const outside=join(root,'outside root');
+    mkdirSync(actual);mkdirSync(outside);
+    symlinkSync(actual,alias,'junction');
+    const line=base=>'C2D2_UDF='+join(base,'c2d2-udf-123456-1');
+    assert.equal(canonicalExport(line(alias)),canonicalExport(line(actual)));
+    assert.notEqual(canonicalExport(line(outside)),canonicalExport(line(actual)));
+    assert.notEqual(canonicalExport('C2D2_UDF='+join(alias,'wrong-udf')),canonicalExport(line(actual)));
+    assert.throws(()=>canonicalExport('C2D2_UDF=relative-path'));
+  }finally{rmSync(root,{recursive:true,force:true});}
+});
+
 test('PowerShell initializer handles spaces and exports three paths for subsequent steps only',()=>{
   const yaml=readFileSync(new URL('../.github/workflows/desktop-surface-c2d2-runtime.yml',import.meta.url),'utf8');
   const script=runtimePathInitialization(yaml);
@@ -177,10 +202,10 @@ test('PowerShell initializer handles spaces and exports three paths for subseque
     assert.equal(result.stdout.trim(),'');
     const text=readFileSync(envFile,'utf8').split(String.fromCharCode(65279)).join('');
     const lines=text.split(String.fromCharCode(10)).map(line=>line.trim()).filter(Boolean);
-    assert.deepEqual(lines,[
+    assert.deepEqual(lines.map(canonicalExport),[
       'C2D2_DIAGNOSTICS='+join(root,'c2d2-diagnostics'),
       'C2D2_PREFLIGHT_PATH='+join(root,'c2d2-preflight.json'),
       'C2D2_UDF='+join(root,'c2d2-udf-123456-1'),
-    ]);
+    ].map(canonicalExport));
   }finally{rmSync(root,{recursive:true,force:true});}
 });
