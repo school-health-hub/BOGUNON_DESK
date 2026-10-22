@@ -3,6 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:net';
+import { assessNativeScreen } from './official-document-screen-assessment.mjs';
 import { discoverPage } from './my-finance-cdp-discovery.mjs';
 
 if (process.env.GITHUB_ACTIONS !== 'true' || process.env.RUNNER_ENVIRONMENT !== 'github-hosted' || process.platform !== 'win32') {
@@ -14,7 +15,7 @@ const identifier = 'kr.sungandi.schoolhealthdesk.officialdocumentqa';
 const localData = join(process.env.LOCALAPPDATA, identifier);
 const webviewData = join(localData, 'EBWebView');
 const expectedSource = process.env.QA_EXPECTED_SOURCE_SHA ?? process.env.GITHUB_SHA;
-const report = { status: 'FAIL', scriptSha: process.env.GITHUB_SHA, sourceSha: expectedSource, identifier, localData, webviewData, uiQa: 'NOT RUN' };
+const report = { status: 'FAIL', scriptSha: process.env.GITHUB_SHA, sourceSha: expectedSource, identifier, localData, webviewData, uiQa: 'NOT RUN', cdpHandshake: 'NOT RUN', frontendScreen: 'NOT RUN' };
 const hash = createHash('sha256').update(readFileSync(executable)).digest('hex');
 if ((process.env.QA_EXPECTED_EXE_SHA256 && hash !== process.env.QA_EXPECTED_EXE_SHA256) || !readFileSync(join(evidence, 'SHA256SUMS.txt'), 'utf8').includes(hash)) throw new Error('EXE hash mismatch');
 if (existsSync(localData)) throw new Error('Runner QA profile already exists; refusing reuse');
@@ -43,6 +44,9 @@ try {
   writeFileSync(join(evidence, 'window-probe.log'), before.stdout + before.stderr);
   const discovery = await discoverPage(port, { timeoutMs: 60_000 });
   report.discovery = discovery.evidence;
+  const screenControls = join(evidence, 'native-window-controls-before.json');
+  if (existsSync(screenControls)) Object.assign(report, assessNativeScreen(JSON.parse(readFileSync(screenControls, 'utf8').replace(/^﻿/, '')), existsSync(join(evidence, 'native-window-before.png'))));
+  if (report.frontendScreen === 'FAIL') process.exitCode = 1;
   if (processError) throw processError;
   if (child.exitCode !== null || child.signalCode !== null) throw new Error(`QA app exited during startup: ${child.exitCode}`);
   report.webviewDirectoryCreated = existsSync(webviewData);
@@ -103,6 +107,7 @@ try {
     const flags = ['networkEnabled','loginEnabled','chatGptEnabled','aiEnabled','accountSyncEnabled','updaterEnabled','deepLinkEnabled','autostartEnabled','trayEnabled','externalUrlEnabled'];
     if (!flags.every(key => info[key] === false) || !existsSync(webviewData)) throw new Error('Isolation boundary failed');
     report.status = 'PASS';
+    report.cdpHandshake = 'PASS';
     report.nativeInfo = info;
     report.frontendInitialized = true;
   }

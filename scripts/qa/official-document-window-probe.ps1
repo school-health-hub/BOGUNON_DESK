@@ -166,8 +166,17 @@ try {
             $control=Find-Named $field[0] ([System.Windows.Automation.ValuePattern]::Pattern)
             $pattern=$null
             if ($control -and $control.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern,[ref]$pattern) -and -not $pattern.Current.IsReadOnly) {
-                $pattern.SetValue($field[1])
-                if ($pattern.Current.Value -eq $field[1]) { $filled++; Record "field-$($field[0])" 'PASS' 'Synthetic value read back.'; Capture "field-$($field[0])" } else { Record "field-$($field[0])" 'FAIL' 'Value readback differs.' }
+                Foreground
+                $control.SetFocus()
+                $focused=[System.Windows.Automation.AutomationElement]::FocusedElement
+                if (-not $ids.Contains([int]$focused.Current.ProcessId)) { throw 'Input focus escaped QA process tree.' }
+                [System.Windows.Forms.SendKeys]::SendWait('^a')
+                [System.Windows.Forms.SendKeys]::SendWait($field[1])
+                Start-Sleep -Milliseconds 300
+                $updated=Find-Named $field[0] ([System.Windows.Automation.ValuePattern]::Pattern)
+                $updatedPattern=$null
+                $readback=$updated -and $updated.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern,[ref]$updatedPattern)
+                if ($readback -and $updatedPattern.Current.Value -eq $field[1]) { $filled++; Record "field-$($field[0])" 'PASS' 'Synthetic value read back.'; Capture "field-$($field[0])" } else { Record "field-$($field[0])" 'FAIL' 'Value readback differs.' }
             } else { Record "field-$($field[0])" 'NOT RUN' 'Writable ValuePattern unavailable.' }
         }
         if ($filled -eq 3) {
