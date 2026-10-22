@@ -516,7 +516,8 @@
 }
 
 @media (max-width: 900px) {
-  .official-document-panel { width: calc(100vw - 20px); height: auto; max-height: calc(100dvh - 96px); min-height: 0; }
+  .official-document-backdrop { grid-template-columns: minmax(0, 1fr); }
+  .official-document-panel { width: 100%; min-width: 0; height: auto; max-height: calc(100dvh - 96px); min-height: 0; }
   .official-document-panel__header { grid-template-columns: 32px minmax(0, 1fr) auto; }
   .official-document-panel__heading p, .official-document-connection { display: none; }
   .official-document-panel__body { display: block; overflow-y: auto; }

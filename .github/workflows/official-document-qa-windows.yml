@@ -24,6 +24,7 @@ jobs:
       run:
         shell: pwsh
     env:
+      QA_NATIVE_UI_ONLY: 'true'
       CI: 'true'
       CL: /utf-8
       CARGO_BUILD_JOBS: '2'

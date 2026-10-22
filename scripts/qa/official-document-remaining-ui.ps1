@@ -46,7 +46,26 @@ function Scroll-Evidence($Name,$Percent) {
     Snapshot $Name
     Record "scroll-$Name" 'PASS' "Owned QA content gutter received $steps wheel steps; actual scroll outcome requires captured geometry review."
 }
+function Layout-Observation($Label,$Button) {
+    $summary=Controls | Where-Object { $_.Current.Name -like '격리 정보 · *' -and $_.Current.IsKeyboardFocusable } | Select-Object -First 1
+    if (-not $summary) { Record "dom-$Label" 'NOT RUN' 'QA diagnostic summary unavailable.'; return }
+    Focus-Qa $summary; Native-Key ' '
+    if (Activate-Key $Button) {
+        Start-Sleep -Milliseconds 250
+        $raw=Current-Value 'QA DOM 측정 결과'
+        if ($raw) {
+            $data=$raw | ConvertFrom-Json
+            Save-Json "dom-$Label" $data
+            if ($data.error) { Record "dom-$Label" 'FAIL' $data.error }
+            elseif ($Label -eq 'layout') { Check-State 'dom-horizontal-overflow' (@($data.after | Where-Object { $_.excess -gt 1 }).Count -eq 0) 'Actual native DOM scrollWidth/clientWidth checked; original width rule reproduced separately.' }
+            else { Check-State "last-line-$Label" ($data.visible -eq $true) 'Last character range lies below sticky toolbar and within scroll viewport.' }
+        } else { Record "dom-$Label" 'NOT RUN' 'Native diagnostic textarea value unavailable.' }
+    }
+    Focus-Qa $summary; Native-Key ' '
+    Snapshot "dom-$Label"
+}
 function Run-RemainingUi {
+    Layout-Observation 'layout' 'QA 화면 경계 측정'
     # Expand/collapse controls expose ExpandCollapsePattern rather than InvokePattern.
     if (Activate-Key '찾기' '{ENTER}') {
         Check-State 'reference-find-open' (Has-Name '공문 참고자료') 'Enter activation followed by picker heading presence.'
@@ -69,7 +88,12 @@ function Run-RemainingUi {
             [NativeQaWindow]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
             [NativeQaWindow]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
             Start-Sleep -Milliseconds 500
-            $dialog=@([NativeQaWindow]::ForProcess($ProcessId)) | Where-Object { $_.Visible -and $_.Title -match 'Open|열기' } | Select-Object -First 1
+            $dialog=$null
+            for ($wait=0;$wait -lt 20 -and -not $dialog;$wait++) {
+                $dialog=@([NativeQaWindow]::ForProcess($ProcessId)) | Where-Object { $_.Visible -and $_.Title -match 'Open|열기' } | Select-Object -First 1
+                if (-not $dialog) { Start-Sleep -Milliseconds 150 }
+            }
+            Save-Json 'file-dialog-windows' @([NativeQaWindow]::ForProcess($ProcessId))
             if ($dialog) {
                 [void][NativeQaWindow]::SetForegroundWindow([IntPtr]$dialog.Handle)
                 Start-Sleep -Milliseconds 200
@@ -139,6 +163,7 @@ function Run-RemainingUi {
     Save-Json 'scroll-observation' @(Controls | Where-Object { $_.Current.Name -match 'QA END MARKER|교직원 메신저|기안 전 체크리스트|전체 복사' } | ForEach-Object { @{name=$_.Current.Name;offscreen=$_.Current.IsOffscreen;bounds=$_.Current.BoundingRectangle.ToString()} })
     $copy=Named-Control '전체 복사'
     if ($copy) { Focus-Qa $copy; Snapshot 'toolbar-reachable'; Record 'copy-toolbar-reachable' $(if ($copy.Current.IsOffscreen) {'FAIL'} else {'PASS'}) 'Copy toolbar can be reached by keyboard focus after bottom scroll.' }
+    foreach ($target in @('본문','붙임','메신저','체크리스트')) { Layout-Observation $target "QA $target 끝 보기" }
     Record 'sticky-900' 'NOT RUN' '900px responsive CSS uses static preview; desktop side-by-side sticky is outside this viewport. Review scroll captures for clipping.'
     if (Activate-Key '새 작업') {
         Check-State 'new-work-reset' ((Current-Value '업무명') -eq '' -and -not (Has-Name '공문 참고자료') -and -not (Has-Name '로컬 참고자료 패키지')) 'New work clears input and collapses both reference views.'
