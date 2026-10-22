@@ -52,7 +52,7 @@ function setup() {
     scroller.scrollTop += range.getBoundingClientRect().bottom - (viewport.bottom - 24);
     await frame();
     const rect = range.getBoundingClientRect(); const bar = toolbar?.getBoundingClientRect();
-    output.value = JSON.stringify({ target: label, lastText: last.textContent.trimEnd().slice(-100), visible: rect.top >= Math.max(viewport.top, bar?.bottom ?? 0) && rect.bottom <= viewport.bottom, top: rect.top, bottom: rect.bottom, viewportTop: viewport.top, viewportBottom: viewport.bottom, toolbarBottom: bar?.bottom, widths: metrics() });
+    output.value = JSON.stringify({ target: label, lastText: last.textContent.trimEnd().slice(-100), visible: rect.top >= Math.max(viewport.top, bar?.bottom ?? 0) && rect.bottom <= viewport.bottom && rect.left >= viewport.left && rect.right <= viewport.right, left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, viewportTop: viewport.top, viewportBottom: viewport.bottom, toolbarBottom: bar?.bottom, widths: metrics() });
   });
   details.append(output);
   return true;

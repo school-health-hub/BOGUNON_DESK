@@ -57,8 +57,8 @@ function Layout-Observation($Label,$Button) {
             $data=$raw | ConvertFrom-Json
             Save-Json "dom-$Label" $data
             if ($data.error) { Record "dom-$Label" 'FAIL' $data.error }
-            elseif ($Label -eq 'layout') { Check-State 'dom-horizontal-overflow' (@($data.after | Where-Object { $_.excess -gt 1 }).Count -eq 0) 'Actual native DOM scrollWidth/clientWidth checked; original width rule reproduced separately.' }
-            else { Check-State "last-line-$Label" ($data.visible -eq $true) 'Last character range lies below sticky toolbar and within scroll viewport.' }
+            elseif ($Label -eq 'layout') { Check-State 'dom-horizontal-overflow' ($data.viewport.width -eq 900 -and $data.viewport.height -eq 680 -and @($data.after).Count -eq 7 -and @($data.after | Where-Object { $_.missing -or $_.excess -gt 1 }).Count -eq 0) 'Actual native DOM scrollWidth/clientWidth checked; original width rule reproduced separately.' }
+            else { Check-State "last-line-$Label" ($data.visible -eq $true -and @($data.widths).Count -eq 7 -and @($data.widths | Where-Object { $_.missing -or $_.excess -gt 1 }).Count -eq 0) 'Last character range lies below sticky toolbar and within scroll viewport.' }
         } else { Record "dom-$Label" 'NOT RUN' 'Native diagnostic textarea value unavailable.' }
     }
     Focus-Qa $summary; Native-Key ' '
@@ -154,7 +154,10 @@ function Run-RemainingUi {
     if (Activate-Key '새 작업') { Check-State 'new-work-reset' ((Current-Value '업무명') -eq '' -and -not (Has-Name '공문 참고자료') -and -not (Has-Name '로컬 참고자료 패키지')) 'Reset after reference interactions clears inputs and panels.' }
     # Long synthetic text; no production data or API requests.
     $main=Named-Control '주요 내용'
-    if ($main) { Focus-Qa $main; Native-Key '^a'; Native-Key (('QA synthetic long content. ' * 65)+'QA END MARKER'); [void](Activate-Key '기본 초안 만들기')
+    if ($main) {
+        $attachments=Named-Control '붙임'
+        if ($attachments) { Focus-Qa $attachments; Native-Key '^a'; Native-Key 'QA attachment one, QA ATTACHMENT END' }
+        Focus-Qa $main; Native-Key '^a'; Native-Key (('QA synthetic long content. ' * 65)+'QA END MARKER'); [void](Activate-Key '기본 초안 만들기')
     }
     Scroll-Evidence 'scroll-top' 0
     [void](Activate-Key '관리')
