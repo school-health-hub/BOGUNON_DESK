@@ -184,7 +184,7 @@ jobs:
           if ($source.sourceSha -ne $env:QA_EXPECTED_SOURCE_SHA) { throw 'Binary source SHA mismatch' }
           $exe = "$env:QA_ROOT/input/bogunon-desk-official-document-qa.exe"
           if ((Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant() -ne $env:QA_EXPECTED_EXE_SHA256) { throw 'Binary SHA256 mismatch' }
-          Copy-Item $exe,"$env:QA_ROOT/input/SHA256SUMS.txt" -Destination "$env:QA_ROOT/evidence/"
+          Copy-Item $exe,"$env:QA_ROOT/input/SHA256SUMS.txt","$env:QA_ROOT/input/qa-build.json" -Destination "$env:QA_ROOT/evidence/"
           Copy-Item "$env:QA_ROOT/input/provenance.json" "$env:QA_ROOT/evidence/binary-provenance.json"
           "PSModuleAnalysisCachePath=$env:QA_ROOT/ModuleAnalysisCache" >> $env:GITHUB_ENV
       - name: Runner-only startup and actual isolation handshake

@@ -44,9 +44,16 @@ try {
   writeFileSync(join(evidence, 'window-probe.log'), before.stdout + before.stderr);
   const discovery = await discoverPage(port, { timeoutMs: 60_000 });
   report.discovery = discovery.evidence;
-  const screenControls = join(evidence, 'native-window-controls-before.json');
-  if (existsSync(screenControls)) Object.assign(report, assessNativeScreen(JSON.parse(readFileSync(screenControls, 'utf8').replace(/^﻿/, '')), existsSync(join(evidence, 'native-window-before.png'))));
-  if (report.frontendScreen === 'FAIL') process.exitCode = 1;
+  const assessScreen = () => {
+    const controlsPath = join(evidence, 'native-window-controls-before.json');
+    const capturePath = join(evidence, 'native-window-before-capture.json');
+    if (!existsSync(controlsPath)) return;
+    const json = path => JSON.parse(readFileSync(path, 'utf8').replace(/^﻿/, ''));
+    const captureKind = existsSync(capturePath) && existsSync(join(evidence, 'native-window-before.png')) ? json(capturePath).kind : null;
+    Object.assign(report, assessNativeScreen(json(controlsPath), captureKind));
+    if (report.frontendScreen === 'FAIL') process.exitCode = 1;
+  };
+  assessScreen();
   if (processError) throw processError;
   if (child.exitCode !== null || child.signalCode !== null) throw new Error(`QA app exited during startup: ${child.exitCode}`);
   report.webviewDirectoryCreated = existsSync(webviewData);
@@ -64,15 +71,11 @@ try {
         process.exitCode = 1;
       }
     } else { report.uiQa = 'NOT RUN - native GUI report unavailable'; }
-    const controlsFile = join(evidence, 'native-window-controls-before.json');
-    if (existsSync(controlsFile)) {
-      const controls = JSON.parse(readFileSync(controlsFile, 'utf8').replace(/^﻿/, ''));
-      report.frontendLoadError = Array.isArray(controls) && controls.some(c => /ERR_FILE_NOT_FOUND|File not found/.test(c.name));
-      if (report.frontendLoadError) { report.status = 'FAIL'; report.uiQa = 'FAIL - native frontend could not load'; process.exitCode = 1; }
-      report.frontendInitializedViaUia = Array.isArray(controls) && controls.some(c => c.name === '공문 작업실') && controls.some(c => c.name === '기본 초안 만들기');
-      if (report.frontendInitializedViaUia && gui.status === 0 && existsSync(guiReport) && !report.uiProbeFailures?.length) report.uiQa = 'PARTIAL - actual native UI Automation evidence';
-    }
+    assessScreen();
+    if (report.frontendInitializedViaUia && gui.status === 0 && existsSync(guiReport) && !report.uiProbeFailures?.length) report.uiQa = 'PARTIAL - actual native UI Automation evidence';
+
   } else {
+    report.cdpHandshake = 'FAIL';
     const endpoint = new URL(discovery.page.webSocketDebuggerUrl);
     if (!['127.0.0.1', 'localhost', '[::1]'].includes(endpoint.hostname) || endpoint.port !== String(port)) throw new Error('CDP endpoint must be local');
     socket = new WebSocket(endpoint);
@@ -123,6 +126,7 @@ try {
     report.cleanupError = 'Owned process tree termination not confirmed; retain firewall rules until runner disposal';
     process.exitCode = 1;
   }
+  if (report.frontendScreen === 'FAIL' || report.uiProbeFailures?.length || report.error) report.status = 'FAIL';
   writeFileSync(join(evidence, 'runtime-smoke.json'), JSON.stringify(report, null, 2));
   writeFileSync(join(evidence, 'runtime-stdout.log'), stdout);
   writeFileSync(join(evidence, 'runtime-stderr.log'), stderr);
