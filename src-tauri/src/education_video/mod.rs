@@ -1,4 +1,7 @@
 mod commands;
+mod command_core;
+#[cfg(test)]
+mod command_tests;
 pub(crate) mod destination;
 mod http_transport;
 mod legacy;

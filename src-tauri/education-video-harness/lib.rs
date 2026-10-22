@@ -1,4 +1,10 @@
 //! Exact production pure storage/request modules; no Tauri or HTTP adapter build.
+#[cfg(test)]
+#[path = "../src/education_video/command_core.rs"]
+pub mod command_core;
+#[cfg(test)]
+#[path = "../src/education_video/command_tests.rs"]
+pub mod command_tests;
 #[path = "../src/education_video/destination.rs"]
 pub mod destination;
 #[path = "../src/education_video/legacy.rs"]
@@ -27,3 +33,6 @@ pub mod wire;
 #[cfg(test)]
 #[path = "../src/education_video/tests.rs"]
 pub mod tests;
+
+#[cfg(test)]
+mod stdio_bridge;

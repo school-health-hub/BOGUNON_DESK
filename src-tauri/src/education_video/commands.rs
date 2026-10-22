@@ -1,7 +1,8 @@
 use super::{
+    command_core, http_transport,
     model::{LibraryEntry, LibraryError, LoadResult, ProviderMetadata},
-    request_core, store,
-    wire::{SearchError, SearchRequest, SearchResponse},
+    store,
+    wire::{SearchRequest, SearchResponse},
 };
 use std::{path::Path, sync::Mutex};
 use tauri::{AppHandle, Manager};
@@ -61,22 +62,19 @@ pub fn education_video_library_metadata_refresh(
         store::refresh_metadata(path, &video_id, provider)
     })
 }
-#[derive(serde::Serialize)]
-pub struct SearchFailure {
-    code: SearchError,
-    message: &'static str,
-}
+pub use super::command_core::SearchFailure;
 #[tauri::command]
-pub fn education_video_search(
+pub async fn education_video_search(
     request: SearchRequest,
     access_token: String,
     request_id: String,
 ) -> Result<SearchResponse, SearchFailure> {
-    // Intentionally no environment switch can enable real dispatch in this phase.
-    request_core::disabled_dispatch(&request, &access_token, &request_id).map_err(|code| {
-        SearchFailure {
-            code,
-            message: request_core::safe_message(code),
-        }
-    })
+    // Only the fixed adapter is reachable through IPC; its dispatch gate stays false.
+    command_core::run(
+        &request,
+        &access_token,
+        &request_id,
+        http_transport::execute,
+    )
+    .await
 }

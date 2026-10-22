@@ -1,4 +1,4 @@
-//! Prepared adapter only. Phase 2B IPC never dispatches it.
+//! Fixed production adapter. External dispatch remains disabled by its compile-time gate.
 use super::{
     request_core::{decode, HttpReply, RequestPlan},
     wire::{SearchError, SearchResponse, MAX_RESPONSE_BYTES},
