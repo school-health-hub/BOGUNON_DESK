@@ -60,7 +60,7 @@ pub fn run(
         generation,
         run_nonce: operation,
         runtime_version: base.runtime_version,
-        timeout: base.timeout,
+        control: base.control,
     };
     super::support::timeline_event(&case, &serde_json::json!({"caseId":case_id,"identity":identity,"stage":"starting","outcome":"NOT_RUN","containsSensitiveData":false})).map_err(|_| "case start evidence failed")?;
     let result = failure::run(&case, case_id);
@@ -98,9 +98,20 @@ pub fn run(
             None
         },
         contains_sensitive_data: false,
+        terminal_reason: case.control.reason().or_else(|| {
+            if result.is_err() && observed.is_none() {
+                Some(crate::runtime_budget::TerminalReason::HarnessFailure)
+            } else {
+                None
+            }
+        }),
+        evidence_complete: result.is_ok() || observed == Some(FailureCase::MissingBrowserExit),
     };
-    super::support::timeline_event(&case, &report)
-        .map_err(|_| "case completion evidence failed")?;
+    super::support::timeline_event(
+        &case,
+        &serde_json::json!({"report":report,"terminalReason":case.control.reason()}),
+    )
+    .map_err(|_| "case completion evidence failed")?;
     write_json(&base.diagnostics.join("case-report.json"), &report)
         .map_err(|_| "case report write failed")?;
     if cleanup == CaseCleanup::Unknown {

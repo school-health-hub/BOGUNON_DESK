@@ -38,10 +38,11 @@ checks and validate that Phase 1 receipt. The parent checks exit status, the chi
 all identity fields and independently observes the UDF directory identity.
 A failed/unreadable/mismatched report or CLEANUP_UNKNOWN prevents all following
 process launches. No case is retried and no browser/host process is force-killed.
-An unresponsive child is recorded Unknown immediately; the parent retains and waits
-for that same child without kill/retry or later-case admission. External runner
-cancellation can still interrupt observation and remains Unknown. Process exit alone
-is never cleanup proof.
+An unresponsive child is recorded Unknown; the parent observes that same child only
+within the reserved cleanup deadline, without kill/retry or later-case admission.
+After that deadline the parent returns Unknown even if the process remains alive.
+External runner cancellation can interrupt observation. Process exit alone is never
+cleanup proof.
 
 ## Evidence
 
@@ -122,7 +123,7 @@ No executable, UDF content, profile path or installer is uploaded.
 
 ## Local non-runtime verification
 
-- cargo test --locked --manifest-path src-surface-host/Cargo.toml --lib --test runtime_contract --test security_boundary
+- cargo test --locked --manifest-path src-surface-host/Cargo.toml --lib --test runtime_contract --test runtime_deadline_contract --test security_boundary
 - cargo check --locked --manifest-path src-surface-host/Cargo.toml --all-targets
 - cargo clippy --locked --manifest-path src-surface-host/Cargo.toml --all-targets -- -D warnings
 - cargo fmt --manifest-path src-surface-host/Cargo.toml -- --check
@@ -134,7 +135,7 @@ BLOCKED until the protected Environment, reviewed new controller checkpoint,
 workflow registration and exact one-shot execution approval are separately verified.
 Do not dispatch from this implementation checkpoint automatically.
 
-## Implementation checkpoint verification
+## Prior C-2D-2 implementation checkpoint verification
 
 Local non-runtime results: 29 Rust tests passed (16 Library, 10 runtime contracts,
 3 security contracts); all-target cargo check passed; Library/binary clippy with
@@ -158,3 +159,111 @@ checks; actual Runtime remains NOT_VERIFIED and execution readiness BLOCKED.
 No Main src-tauri, C-2C-2 workflow, dependency or lockfile changes are included.
 Secret scanners were unavailable; intended tracked files receive best-effort
 credential/private-path inspection only, with residual scanner coverage risk.
+
+
+## C-2D-2A deadline, cancellation and evidence contract
+
+The 30-minute workflow job includes dependency/compile checks (12-minute compile
+step) and the existing five-minute runtime step. The host does not increase those
+limits. Its single 240-second run deadline is inherited by every child, together
+with a narrower case deadline; children cannot extend the parent's lease.
+
+| Budget | Allocation | Reserved boundaries |
+| --- | --- | --- |
+| Host run | 240 seconds | Phase 1 40 + Phase 2 160 + final reporting reserve 40 |
+| Phase 1 | 40 seconds | work 25, cleanup 12, evidence 3 |
+| Phase 2 | at most 160 seconds | eight fixed cases, at most 20 seconds each |
+| Parent per case | 20 seconds | primary observation through second 12, same-child drain through 18, evidence 2 |
+| Child per case | 18 seconds | work 10, cleanup 6, evidence 2 |
+| Outer runtime step | 300 seconds | host 240 leaves 60 seconds before external step timeout |
+
+The wall-clock deadline is paired with a monotonic cap; rollback does not extend
+an admitted lease. Callback observation and sleeps recheck remaining time.
+Message pumping is limited to 64 messages per batch and checks cancellation and
+deadline between messages. The pure flood test uses the same batching helper.
+A pending callback may drain within cleanup reserve after admission closes; this
+is the same request, never a retry or a new factory call.
+
+There is no child.wait(), process kill, browser kill or automatic retry.
+The finite supervisor first observes the child until its work boundary. On expiry,
+poll failure or cooperative cancellation, it closes later-case admission, records
+TIMEOUT/CANCELLED/HARNESS_FAILURE, requests cancellation, and only observes the same
+process until the drain boundary. Late exit cannot promote Unknown to PASS.
+If the child still exists, its known PID remains diagnostic identity, not cleanup
+proof. Disposable-runner disposal is not promoted to a native cleanup receipt.
+
+Cooperative cancellation uses a fixed cancellation-request.json beneath RUNNER_TEMP.
+Only its presence is needed; environment/registry values are never copied into it.
+A malformed/unreadable transport fails closed. It closes new native/case admission;
+already-owned resources may only be released through their existing ownership.
+The injected cancel-before-controller case remains an expected test fault and is
+distinct from external run cancellation.
+
+These are cooperative software budgets, not preemption of arbitrary synchronous
+COM calls, window procedures, filesystem operations or OS hangs. GitHub forced job
+termination can kill the observer before final records/upload. Missing evidence is
+INCOMPLETE/NOT_VERIFIED, never PASS. Native timing, cancellation delivery, COM
+teardown and forced-job behavior remain separately authorized Windows QA items.
+No Miri/sanitizer proof of Win32 FFI is claimed by these pure/compile checks.
+
+### Separate final outcomes
+
+Root JSON separates phaseOneResult, phaseTwoResult, expectedRejectionsPass,
+intentionalCleanupUnknownObserved, terminalReason, evidenceState,
+and runtimeCleanupPass. The fixed final missing-browser-exit case produces
+INTENTIONAL_CLEANUP_UNKNOWN_OBSERVED only after the expected observations. This
+never sets runtimeCleanupPass=true; the command exits nonzero, leaving a diagnostic
+run rather than an overall cleanup success. Unexpected Unknown, incomplete evidence,
+harness failure, cancellation and timeout are separate from expected rejections.
+No case follows the intentional terminal Unknown.
+
+The scanner still limits JSON/JSONL files, size, directory depth and fixed case
+names. It additionally checks decoded string/key values for absolute drive/UNC/home
+paths and common credential/token markers. Rejections and malformed JSON use fixed
+redacted CLI errors; rejected input is not echoed into Actions logs. Child stdout
+and stderr remain suppressed, and the parent prints only a fixed failure message.
+Safe incomplete diagnostics may be uploaded with an INCOMPLETE classification;
+scanner rejection prevents upload. evidenceStatus is a completeness check, not
+independent authentication of runtime evidence or a comprehensive secret scanner.
+No preflight registry/environment value dump is uploaded. No real runtime Evidence
+was produced by this checkpoint.
+
+### Reproduction and approval boundary
+
+Run the local non-runtime commands above, including runtime_deadline_contract.
+The existing all-target Clippy unwrap warnings remain outside this patch; only the
+Library/binary Clippy gate is green. actionlint is unavailable and NOT_VERIFIED;
+nothing is downloaded to replace it. Main src-tauri, C-2C-2, dependencies and locks
+remain unchanged. No Environment, dispatch, PR, installer or native run is authorized.
+Environment setup, default-branch registration, final controller-SHA pinning and
+one-shot execution approval are still required after static review.
+
+## C-2D-2A local verification record
+
+The existing 29 Rust tests are retained. Ten new pure deadline/cancellation/outcome
+contracts run without the native host (39 total). Nine Node controller contracts
+include real scanner CLI subprocess rejection with synthetic secrets/malformed
+JSON, LF/CRLF, missing evidence and diagnostic allowlist checks. The scanner CLI
+is exercised; neither host executable nor WebView2 is run.
+
+Debugging hypotheses and observed non-native evidence:
+1. Queue flooding could prevent deadline checks: shared 64-message batching and a
+   continuously nonempty synthetic queue now return on count/deadline.
+2. Rejection could echo secrets: subprocess stdout/stderr tests reject synthetic
+   path/token/malformed input without echoing the marker or diagnostic root.
+3. Incomplete finalization could overwrite TIMEOUT/CANCELLED: typed reason
+   preservation test keeps recorded reasons ahead of the fallback.
+These observations do not establish Win32 runtime behavior or secret-scan completeness.
+
+Check changes only under the C-2D-2 workflow, controller/contracts, runtime host
+budget/diagnostic integration, documentation and tests. The small windows_host
+change bounds the existing message pump; no new Win32 FFI call is introduced.
+No protected Main/C-2C-2/dependency/lockfile changes or unrelated tests are staged.
+
+Final local C-2D-2A results: Rust 39/39, Node 9/9, all-target cargo check,
+Library/binary clippy -D warnings, rustfmt and diff check passed. The extra
+all-target Clippy run reported exactly the same fourteen existing unwrap warnings;
+no new test warning remains. Five independent non-runtime review lanes passed
+after the message-pump, redacted-scanner and terminal-reason fixes. actionlint and
+actual WebView2 behavior remain NOT_VERIFIED; static verification is PARTIAL,
+runtime execution readiness BLOCKED. No execution/configuration approval is implied.

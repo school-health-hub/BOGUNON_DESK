@@ -1,13 +1,13 @@
+mod types;
+use types::UdfEvidence;
+pub use types::{RuntimeCase, RuntimeQaError};
 mod child;
 mod support;
 use support::{close_controller, expire_budget, ownership_event, wait_for, write_json};
 pub mod failure;
 pub mod suite;
 
-use std::{fs::create_dir_all, path::Path, time::Duration};
-
-use serde::Serialize;
-use thiserror::Error;
+use std::fs::create_dir_all;
 
 use crate::{
     browser_exit::BrowserExitSubscription,
@@ -22,45 +22,6 @@ use crate::{
     },
 };
 
-#[derive(Debug, Error)]
-pub enum RuntimeQaError {
-    #[error("host failed: {0}")]
-    Host(#[from] HostError),
-    #[error("runtime stage timed out")]
-    Timeout,
-    #[error("UDF verification failed: {0}")]
-    Udf(#[from] udf::UdfError),
-    #[error("cleanup receipt was not issued: {0:?}")]
-    Cleanup(cleanup::CleanupUnknown),
-    #[error("diagnostic write failed: {0}")]
-    Io(#[from] std::io::Error),
-    #[error("diagnostic serialization failed: {0}")]
-    Json(#[from] serde_json::Error),
-    #[error("runtime binding or process identity did not match")]
-    Identity,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct UdfEvidence<'a> {
-    schema: u8,
-    requested_under_runner_temp: bool,
-    effective_matches_requested: bool,
-    profile_under_effective_udf: bool,
-    directory_identity_matches: bool,
-    runtime_version: &'a str,
-    contains_sensitive_data: bool,
-}
-
-pub struct RuntimeCase<'a> {
-    pub udf: &'a Path,
-    pub diagnostics: &'a Path,
-    pub generation: u64,
-    pub run_nonce: u64,
-    pub runtime_version: &'a str,
-    pub timeout: Duration,
-}
-
 pub fn run_normal(case: &RuntimeCase<'_>) -> Result<(), RuntimeQaError> {
     run_with_fault(case, None)
 }
@@ -70,6 +31,7 @@ fn run_with_fault(
     fault: Option<crate::runtime_evidence::FailureCase>,
 ) -> Result<(), RuntimeQaError> {
     use crate::runtime_evidence::FailureCase;
+    support::admit(case)?;
     create_dir_all(case.udf)?;
     create_dir_all(case.diagnostics)?;
     let canonical_requested = std::fs::canonicalize(case.udf)?;
@@ -98,6 +60,7 @@ fn run_with_fault(
         .acquire(attempt, crate::ownership::Resource::Window, 2)
         .map_err(|_| RuntimeQaError::Identity)?;
     ownership_event(case, "Window", "acquire")?;
+    support::admit(case)?;
     let environment_request = EnvironmentRequest::begin(&sta, case.udf, binding)?;
     if fault == Some(FailureCase::EnvironmentDeadline) {
         expire_budget(|| environment_request.try_complete())?;
@@ -107,7 +70,7 @@ fn run_with_fault(
             &serde_json::json!({"stage":"environment-deadline","expected":true}),
         )?;
     }
-    let environment = wait_for(case.timeout, || environment_request.try_complete())?;
+    let environment = wait_for(case, false, || environment_request.try_complete())?;
     drop(environment_request);
     ledger
         .acquire(attempt, crate::ownership::Resource::Environment, 3)
@@ -137,6 +100,7 @@ fn run_with_fault(
         crate::runtime_evidence::CreationStage::Controller,
     )
     .map_err(|_| RuntimeQaError::Identity)?;
+    support::admit(case)?;
     let controller_request =
         ControllerRequest::begin(&environment.environment, window.hwnd(), binding)?;
     if fault == Some(FailureCase::CancelBeforeController) {
@@ -155,7 +119,7 @@ fn run_with_fault(
             &serde_json::json!({"stage":fault,"admissionOpen":false}),
         )?;
     }
-    let controller = wait_for(case.timeout, || controller_request.try_complete())?;
+    let controller = wait_for(case, false, || controller_request.try_complete())?;
     drop(controller_request);
     if fault == Some(FailureCase::CancelBeforeController)
         && cancel_state
@@ -208,6 +172,7 @@ fn run_with_fault(
             effective_udf: effective.identity.clone(),
         },
     )?;
+    let _ = case.control.admission();
     close_controller(&controller.controller)?;
     drop(controller);
     ledger
@@ -226,7 +191,7 @@ fn run_with_fault(
     if fault == Some(FailureCase::MissingBrowserExit) {
         expire_budget(|| browser_exit.try_observe())?;
     }
-    let exit = wait_for(case.timeout, || browser_exit.try_observe())?;
+    let exit = wait_for(case, true, || browser_exit.try_observe())?;
     if exit.binding != binding || exit.browser_process_id != observation.browser_process_id {
         return Err(RuntimeQaError::Identity);
     }
@@ -269,5 +234,15 @@ fn run_with_fault(
     // The fault expires the receipt observer budget. The real exit was still drained to
     // avoid abandoning resources; a late observation cannot repair the expired case.
     cleanup::evaluate(false, &ledger, &runtime, accepted_exit).map_err(RuntimeQaError::Cleanup)?;
+    case.control.observe_cancellation();
+    if let Some(reason) = case.control.reason() {
+        return Err(match reason {
+            crate::runtime_budget::TerminalReason::Cancelled => RuntimeQaError::Cancelled,
+            _ => RuntimeQaError::Timeout,
+        });
+    }
+    if case.control.evidence.expired() || case.control.run.expired() {
+        return Err(RuntimeQaError::Timeout);
+    }
     support::write_completion(case, fault)
 }

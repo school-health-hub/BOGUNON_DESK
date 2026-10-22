@@ -1,9 +1,10 @@
+import { spawnSync } from 'node:child_process';
 import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { SOURCE, isAllowedControllerPath, validateDispatch, verifyDiagnostics } from './desktop-surface-c2d2.mjs';
+import { SOURCE, isAllowedControllerPath, validateDispatch, verifyDiagnostics, evidenceStatus } from './desktop-surface-c2d2.mjs';
 
 const sha = 'a'.repeat(40);
 const valid = {
@@ -86,4 +87,41 @@ test('all case outputs are fixed diagnostic paths and scanner success gates uplo
   assert.equal(isAllowedControllerPath('src-surface-host/src/runtime_qa/child.rs'),true);
   assert.equal(isAllowedControllerPath('src-surface-host/src/browser_exit.rs'),true);
   assert.equal(isAllowedControllerPath('src-tauri/capabilities/default.json'),false);
+});
+
+test('partial evidence cannot be classified complete and secrets outside Users paths are denied', () => {
+  const root=mkdtempSync(join(tmpdir(),'c2d2-privacy-'));
+  try {
+    writeFileSync(join(root,'runtime-summary.json'),JSON.stringify({schema:2,evidenceState:'INCOMPLETE'}));
+    assert.equal(evidenceStatus(root),'INCOMPLETE');
+    assert.doesNotThrow(()=>verifyDiagnostics(root));
+    for(const value of [{path:'D:/private/cache'},{accessToken:'synthetic'},{path:'/home/synthetic/cache'}]) {
+      writeFileSync(join(root,'runtime-summary.json'),JSON.stringify(value));
+      assert.throws(()=>verifyDiagnostics(root));
+    }
+  } finally {rmSync(root,{recursive:true,force:true});}
+});
+
+test('supervisor is bounded, redacted and never retries or kills the child', () => {
+  const suite=readFileSync(new URL('../src-surface-host/src/runtime_qa/suite.rs',import.meta.url),'utf8');
+  const binary=readFileSync(new URL('../src-surface-host/src/bin/c2d2-runtime-qa.rs',import.meta.url),'utf8');
+  assert.ok(suite.includes('runtime_budget::observe('));
+  assert.ok(!suite.includes('child.wait();'));
+  assert.ok(!suite.includes('child.kill('));
+  assert.ok(binary.includes('inspect validated diagnostics'));
+  assert.ok(!binary.includes('blocked: {error}'));
+});
+
+test('scanner CLI never echoes rejected secrets paths or malformed JSON', () => {
+  const root=mkdtempSync(join(tmpdir(),'c2d2-redaction-'));
+  const marker='SYNTHETIC_PRIVATE_MARKER_913';
+  try {
+    for(const record of [JSON.stringify({path:'D:/'+marker}),JSON.stringify({accessToken:marker}),'{'+marker]) {
+      writeFileSync(join(root,'runtime-summary.json'),record);
+      const result=spawnSync(process.execPath,['scripts/desktop-surface-c2d2.mjs','diagnostics',root],{encoding:'utf8'});
+      assert.equal(result.status,1);
+      assert.ok(!(result.stdout+result.stderr).includes(marker));
+      assert.ok(!(result.stdout+result.stderr).includes(root));
+    }
+  } finally {rmSync(root,{recursive:true,force:true});}
 });

@@ -75,12 +75,12 @@ jobs:
         run: |
           $nonce = [Guid]::NewGuid().ToString('N')
           Add-Content -LiteralPath $env:GITHUB_ENV -Value "C2D2_APPROVAL_NONCE=$nonce"
-      - name: Run isolated phase one once
+      - name: Run bounded isolated phases once
         timeout-minutes: 5
         run: |
           New-Item -ItemType Directory -Path $env:C2D2_DIAGNOSTICS -Force | Out-Null
           cargo run --locked --manifest-path src-surface-host/Cargo.toml --bin c2d2-runtime-qa
-          if ($LASTEXITCODE -ne 0) { throw 'phase one failed; phase two is forbidden' }
+          if ($LASTEXITCODE -ne 0) { throw 'runtime did not establish overall cleanup PASS; inspect phase-specific diagnostics' }
       - name: Verify runtime diagnostics contain no sensitive paths
         id: diagnostics
         if: ${{ always() }}

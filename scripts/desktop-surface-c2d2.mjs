@@ -19,6 +19,8 @@ const ALLOWED_DIAGNOSTICS = new Set([
   'retention-observation.json',
   'phase-one-receipt.json',
   'phase-two-summary.json',
+  'evidence-validation.json',
+  'cancellation-request.json',
 ]);
 export const FAILURE_CASES = Object.freeze([
   'environment-rejected', 'controller-rejected', 'environment-deadline', 'controller-deadline',
@@ -51,7 +53,8 @@ export function isAllowedControllerPath(path) {
     || path === 'src-surface-host/src/bin/c2d2-runtime-qa.rs'
     || path === 'src-surface-host/src/browser_exit.rs'
     || path === 'src-surface-host/src/native_window.rs'
-    || path === 'src-surface-host/tests/runtime_contract.rs';
+    || path === 'src-surface-host/tests/runtime_contract.rs'
+    || path === 'src-surface-host/tests/runtime_deadline_contract.rs';
 }
 
 export function verifyDiagnostics(root) {
@@ -75,12 +78,44 @@ export function verifyDiagnostics(root) {
       total += size;
       assert.ok(total <= 8 * 1024 * 1024, 'diagnostic total exceeds limit');
       const text = readFileSync(path, 'utf8');
-      assert.doesNotMatch(text.split(String.fromCharCode(92)).join('/'), /[a-z]:[/]+users[/]+|AppData|cookie|credential|password|finance[.]db|key[.]dpapi/i);
+      if (/[a-z]:[/]+users[/]+|AppData|cookie|credential|password|finance[.]db|key[.]dpapi/i.test(text.split(String.fromCharCode(92)).join('/'))) throw new Error('sensitive diagnostic denied');
       const records = entry.name.endsWith('.jsonl') ? text.trim().split(String.fromCharCode(10)) : [text];
-      for (const record of records) JSON.parse(record);
+      for (const record of records) {
+        let value;
+        try { value = JSON.parse(record); } catch { throw new Error('invalid diagnostic record'); }
+        inspectValue(value);
+      }
     }
   };
   scan(root);
+}
+
+function inspectValue(value) {
+  if (typeof value === 'string') {
+    const normalized = value.split(String.fromCharCode(92)).join('/');
+    if (/[a-z]:[/]|[/]{2}[^/]|[/](?:Users|home)[/]|Bearer +|gh[pousr]_[a-z0-9]{20,}|github_pat_|BEGIN .*PRIVATE KEY/i.test(normalized)) throw new Error('sensitive diagnostic denied');
+  } else if (Array.isArray(value)) {
+    for (const item of value) inspectValue(item);
+  } else if (value && typeof value === 'object') {
+    for (const [key,item] of Object.entries(value)) {
+      if (/^(?:password|credential|cookie|accessToken|refreshToken|authorization|privateKey)$/i.test(key)) throw new Error('sensitive diagnostic denied');
+      inspectValue(item);
+    }
+  }
+}
+
+export function evidenceStatus(root) {
+  try {
+    const summary = JSON.parse(readFileSync(join(root,'runtime-summary.json'),'utf8'));
+    if (summary.schema !== 2 || summary.evidenceState !== 'COMPLETE' || summary.phaseOneResult !== 'PASS') return 'INCOMPLETE';
+    const phase = JSON.parse(readFileSync(join(root,'phase-two-summary.json'),'utf8'));
+    if (phase.cases.length !== FAILURE_CASES.length) return 'INCOMPLETE';
+    for (const id of FAILURE_CASES) {
+      const report = JSON.parse(readFileSync(join(root,id,'case-report.json'),'utf8'));
+      if (report.caseId !== id || report.evidenceComplete !== true) return 'INCOMPLETE';
+    }
+    return 'COMPLETE';
+  } catch { return 'INCOMPLETE'; }
 }
 
 function guard(controller, source) {
@@ -107,8 +142,17 @@ function guard(controller, source) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try {
   const [mode, first, second] = process.argv.slice(2);
   if (mode === 'guard') guard(resolve(first), resolve(second));
-  else if (mode === 'diagnostics') verifyDiagnostics(resolve(first));
+  else if (mode === 'diagnostics') {
+    verifyDiagnostics(resolve(first));
+    // Complete safety scan and complete runtime evidence are different facts.
+    console.log(JSON.stringify({diagnosticSafetyScan:'PASSED_LIMITED_PATTERNS',evidenceState:evidenceStatus(resolve(first))}));
+  }
   else throw new Error('Expected guard <controller> <source> or diagnostics <directory>');
+  } catch {
+    console.error('C-2D-2 validation failed; input details withheld');
+    process.exitCode = 1;
+  }
 }

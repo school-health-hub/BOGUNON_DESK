@@ -185,6 +185,8 @@ pub struct CaseReport {
     pub cleanup: CaseCleanup,
     pub native_creation_attempted: Option<bool>,
     pub contains_sensitive_data: bool,
+    pub terminal_reason: Option<crate::runtime_budget::TerminalReason>,
+    pub evidence_complete: bool,
 }
 
 pub fn case_generation(base: u64, case: FailureCase) -> Option<(u64, u64)> {
@@ -208,6 +210,8 @@ impl CaseReport {
             && self.case_id == case
             && self.expected_failure == case
             && !self.contains_sensitive_data
+            && (self.terminal_reason.is_none() || !success)
+            && (self.evidence_complete || !success)
             && match self.outcome {
                 CaseOutcome::ExpectedRejection => {
                     self.observed_failure == Some(case)
@@ -257,3 +261,5 @@ pub fn admit_factory(
         _ => Ok(()),
     }
 }
+
+pub use crate::runtime_outcome::{phase_two_result, PhaseTwoResult};

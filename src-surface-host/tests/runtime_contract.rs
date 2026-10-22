@@ -86,6 +86,8 @@ fn identity_and_exit_status_cannot_turn_unknown_into_verified() {
         cleanup: CaseCleanup::Verified,
         native_creation_attempted: Some(true),
         contains_sensitive_data: false,
+        terminal_reason: None,
+        evidence_complete: true,
     };
     assert!(report.matches_result(&identity, report.case_id, true));
     report.cleanup = CaseCleanup::Unknown;

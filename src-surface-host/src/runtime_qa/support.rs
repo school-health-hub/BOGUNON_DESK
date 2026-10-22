@@ -1,7 +1,7 @@
 use super::{RuntimeCase, RuntimeQaError};
 use crate::{
     runtime_evidence::FailureCase,
-    windows_host::{pump_pending, HostError},
+    windows_host::{pump_pending_bounded, HostError},
 };
 use serde::Serialize;
 use std::{
@@ -9,26 +9,58 @@ use std::{
     io::Write,
     path::Path,
     thread,
-    time::{Duration, Instant},
+    time::Duration,
 };
 use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2Controller;
+pub(super) fn admit(case: &RuntimeCase<'_>) -> Result<(), RuntimeQaError> {
+    case.control.admission().map_err(|reason| match reason {
+        crate::runtime_budget::TerminalReason::Cancelled => RuntimeQaError::Cancelled,
+        _ => RuntimeQaError::Timeout,
+    })
+}
+
 pub(super) fn wait_for<T>(
-    timeout: Duration,
+    case: &RuntimeCase<'_>,
+    cleanup_only: bool,
     mut poll: impl FnMut() -> Result<Option<T>, HostError>,
 ) -> Result<T, RuntimeQaError> {
-    let deadline = Instant::now() + timeout;
-    if timeout.is_zero() {
-        return Err(RuntimeQaError::Timeout);
-    }
     loop {
-        let _ = pump_pending()?;
+        // Cancellation closes admission, but an already-dispatched callback is drained
+        // only within the reserved cleanup budget. No replacement request is made.
+        case.control.observe_cancellation();
+        let admitted = cleanup_only || case.control.admission().is_ok();
+        let deadline = if cleanup_only || !admitted {
+            &case.control.cleanup
+        } else {
+            &case.control.work
+        };
+        let left = deadline.remaining().min(case.control.run.remaining());
+        if left.is_zero() {
+            case.control
+                .stop(crate::runtime_budget::TerminalReason::Timeout);
+            return Err(RuntimeQaError::Timeout);
+        }
+        let _ = pump_pending_bounded(|| {
+            case.control.observe_cancellation();
+            !deadline.expired()
+                && !case.control.run.expired()
+                && (cleanup_only || !admitted || case.control.reason().is_none())
+        })?;
+        if deadline.expired()
+            || case.control.run.expired()
+            || (admitted && !cleanup_only && case.control.reason().is_some())
+        {
+            continue;
+        }
         if let Some(value) = poll()? {
             return Ok(value);
         }
-        if Instant::now() >= deadline {
-            return Err(RuntimeQaError::Timeout);
-        }
-        thread::sleep(Duration::from_millis(10));
+        thread::sleep(
+            deadline
+                .remaining()
+                .min(case.control.run.remaining())
+                .min(Duration::from_millis(10)),
+        );
     }
 }
 
@@ -48,10 +80,9 @@ pub(super) fn write_json(path: &Path, value: &impl Serialize) -> Result<(), Runt
 pub(super) fn expire_budget<T>(
     poll: impl FnMut() -> Result<Option<T>, HostError>,
 ) -> Result<(), RuntimeQaError> {
-    match wait_for(Duration::ZERO, poll) {
-        Err(RuntimeQaError::Timeout) => Ok(()),
-        _ => Err(RuntimeQaError::Identity),
-    }
+    // A zero observer budget expires before invoking the pending request.
+    drop(poll);
+    Ok(())
 }
 
 pub(super) fn ownership_event(
