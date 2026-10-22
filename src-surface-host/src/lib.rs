@@ -10,6 +10,12 @@ pub mod lifecycle;
 pub mod native_window;
 pub mod ownership;
 pub mod renderer;
+pub mod runtime_evidence;
+pub mod runtime_guard;
+#[cfg(windows)]
+pub mod runtime_identity;
+#[cfg(windows)]
+pub mod runtime_qa;
 pub mod udf;
 
 #[cfg(windows)]

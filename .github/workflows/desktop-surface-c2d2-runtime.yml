@@ -1,0 +1,92 @@
+name: Desktop Surface C-2D-2 disposable runtime QA
+on:
+  workflow_dispatch:
+    inputs:
+      expected_controller_sha:
+        description: Exact reviewed C-2D-2 controller SHA
+        required: true
+        type: string
+      execute_once:
+        description: Type RUN_C2D2_ONCE after protected Environment approval
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: desktop-surface-c2d2-runtime
+  cancel-in-progress: false
+jobs:
+  runtime:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/feature/dashboard-mint-ivory-v2' && github.sha == inputs.expected_controller_sha && github.run_attempt == 1 && inputs.execute_once == 'RUN_C2D2_ONCE' }}
+    environment: desktop-surface-runtime-qa
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: controller
+    env:
+      CI: 'true'
+      EXPECTED_CONTROLLER_SHA: ${{ inputs.expected_controller_sha }}
+      C2D2_WORKFLOW_SHA: ${{ github.workflow_sha }}
+      C2D2_WORKFLOW_REF: ${{ github.workflow_ref }}
+      C2D2_CONFIRMATION: ${{ inputs.execute_once }}
+      C2D2_DIAGNOSTICS: ${{ runner.temp }}\c2d2-diagnostics
+      C2D2_PREFLIGHT_PATH: ${{ runner.temp }}\c2d2-preflight.json
+      C2D2_UDF: ${{ runner.temp }}\c2d2-udf-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - name: Checkout reviewed runtime controller
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          path: controller
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Checkout immutable C-2D-1 source independently
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 97dd7116a0844f86414812946b446cbbfdb5a209
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Fail closed before runtime dependencies
+        run: node scripts/desktop-surface-c2d2.mjs guard . ../source
+      - name: Controller static contracts
+        run: node --test scripts/desktop-surface-c2d2.contract.mjs
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249
+        with:
+          targets: x86_64-pc-windows-msvc
+      - name: Compile runtime harness without execution
+        timeout-minutes: 12
+        run: cargo test --locked --manifest-path src-surface-host/Cargo.toml --no-run
+      - name: Read WebView2 overrides policies and runtime before creation
+        run: scripts/desktop-surface-c2d2-preflight.ps1
+      - name: Mint process-local one-shot authorization
+        run: |
+          $nonce = [Guid]::NewGuid().ToString('N')
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value "C2D2_APPROVAL_NONCE=$nonce"
+      - name: Run isolated phase one once
+        timeout-minutes: 5
+        run: |
+          New-Item -ItemType Directory -Path $env:C2D2_DIAGNOSTICS -Force | Out-Null
+          cargo run --locked --manifest-path src-surface-host/Cargo.toml --bin c2d2-runtime-qa
+          if ($LASTEXITCODE -ne 0) { throw 'phase one failed; phase two is forbidden' }
+      - name: Verify runtime diagnostics contain no sensitive paths
+        if: ${{ always() }}
+        run: node scripts/desktop-surface-c2d2.mjs diagnostics $env:C2D2_DIAGNOSTICS
+      - name: Preserve diagnostic JSON only
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: c2d2-runtime-${{ github.run_id }}-${{ github.run_attempt }}
+          retention-days: 14
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}\c2d2-diagnostics\runtime-summary.json
+            ${{ runner.temp }}\c2d2-diagnostics\timeline.jsonl
+            ${{ runner.temp }}\c2d2-diagnostics\ownership-ledger.json
+            ${{ runner.temp }}\c2d2-diagnostics\udf-observation.json
+            ${{ runner.temp }}\c2d2-diagnostics\cleanup-receipt.json
+            ${{ runner.temp }}\c2d2-diagnostics\cleanup-unknown.json

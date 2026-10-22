@@ -19,7 +19,9 @@ use windows::{
     Win32::{
         Foundation::HWND,
         System::Com::{CoInitializeEx, CoUninitialize, COINIT_APARTMENTTHREADED},
-        UI::WindowsAndMessaging::{DispatchMessageW, GetMessageW, TranslateMessage, MSG},
+        UI::WindowsAndMessaging::{
+            DispatchMessageW, GetMessageW, PeekMessageW, TranslateMessage, MSG, PM_REMOVE,
+        },
     },
 };
 
@@ -221,6 +223,24 @@ pub fn pump_once() -> Result<bool, HostError> {
             }
             Ok(true)
         }
+    }
+}
+
+pub fn pump_pending() -> Result<usize, HostError> {
+    let mut count = 0;
+    loop {
+        let mut message = MSG::default();
+        // SAFETY: message is writable stack storage and PM_REMOVE transfers one queued message.
+        let present = unsafe { PeekMessageW(&mut message, None, 0, 0, PM_REMOVE) }.as_bool();
+        if !present {
+            return Ok(count);
+        }
+        // SAFETY: PeekMessageW populated message and it is dispatched on the owning UI thread.
+        unsafe {
+            let _ = TranslateMessage(&message);
+            DispatchMessageW(&message);
+        }
+        count += 1;
     }
 }
 
