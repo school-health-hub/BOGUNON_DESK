@@ -55,6 +55,14 @@ function Layout-Observation($Label,$Button) {
         $raw=Current-Value 'QA DOM 측정 결과'
         if ($raw) {
             $data=$raw | ConvertFrom-Json
+            if ($Label -eq 'layout') {
+                Save-Json 'dom-layout-raw' $data
+                $beforePanel=$data.before | Where-Object selector -eq '.official-document-panel'
+                $afterPanel=$data.after | Where-Object selector -eq '.official-document-panel'
+                $verified=$beforePanel.width -gt $afterPanel.width
+                $data | Add-Member -NotePropertyName baselineVerified -NotePropertyValue $verified
+                if (-not $verified) { Record 'old-css-reproduction' 'NOT RUN' 'Temporary style did not change geometry under existing CSP; not used as baseline proof.' }
+            }
             Save-Json "dom-$Label" $data
             if ($data.error) { Record "dom-$Label" 'FAIL' $data.error }
             elseif ($Label -eq 'layout') { Check-State 'dom-horizontal-overflow' ($data.viewport.width -eq 900 -and $data.viewport.height -eq 680 -and @($data.after).Count -eq 7 -and @($data.after | Where-Object { $_.missing -or $_.excess -gt 1 }).Count -eq 0) 'Actual native DOM scrollWidth/clientWidth checked; original width rule reproduced separately.' }
@@ -77,8 +85,8 @@ function Run-RemainingUi {
         Snapshot 'manage-open'
         if (Activate-Key '관리' '{ENTER}') { Check-State 'reference-manage-close' (-not (Has-Name '로컬 참고자료 패키지')) 'Enter activation followed by manager heading absence.'; Snapshot 'manage-closed' }
     }
-    # Open only the existing reviewed synthetic JSON fixture via the native file dialog.
-    if (Activate-Key '관리') {
+    # File dialog failure evidence is retained in run39813335776; keep core layout captures unobstructed.
+    if ($env:QA_SKIP_FILE_PICKER -ne 'true' -and (Activate-Key '관리')) {
         $fileControl=Controls | Where-Object { $_.Current.Name -like '참고자료 JSON 패키지 선택:*' -and $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button } | Select-Object -First 1
         if ($fileControl) {
             Foreground
@@ -119,6 +127,7 @@ function Run-RemainingUi {
             Record 'file-dialog' 'NOT RUN' 'Synthetic import incomplete; owned dialog cancelled, independent scroll tests continue.'
         }
     }
+    if ($env:QA_SKIP_FILE_PICKER -eq 'true') { Record 'synthetic-package-import' 'NOT RUN' 'Prior native dialog attempt preserved; skipped to capture unobstructed layout.' }
     if (Activate-Key '찾기') {
         Snapshot 'reference-list'
         $reference=Controls | Where-Object { $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and $_.Current.Name -like '합성 보건업무 계획*' } | Select-Object -First 1

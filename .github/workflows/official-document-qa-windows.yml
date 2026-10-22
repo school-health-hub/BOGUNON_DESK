@@ -158,6 +158,7 @@ jobs:
         shell: pwsh
     env:
       QA_NATIVE_UI_ONLY: 'true'
+      QA_SKIP_FILE_PICKER: 'true'
       QA_EXPECTED_SOURCE_SHA: 5e3583f6b5d7abca2ccba58fc90e64a456bfb817
       QA_EXPECTED_EXE_SHA256: 14f761fcc5618f9d9cdb90c7be463f53a6fa468c0e53867a5d571f4f4f306f31
     steps:
