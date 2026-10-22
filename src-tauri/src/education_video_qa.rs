@@ -14,6 +14,41 @@ struct QaInfo {
     integrations_disabled: bool,
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct QaSearchRequest {
+    topic: String,
+    audience: String,
+    desired_minutes: u16,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct QaSearchVideo {
+    video_id: &'static str,
+    title: String,
+    channel_id: &'static str,
+    channel_title: &'static str,
+    duration_seconds: u32,
+    url: &'static str,
+    official: bool,
+    official_evidence: Option<&'static str>,
+    synthetic: bool,
+}
+
+#[derive(Serialize)]
+struct QaSearchResponse {
+    source: &'static str,
+    notice: &'static str,
+    results: Vec<QaSearchVideo>,
+}
+
+#[derive(Serialize)]
+struct QaSearchFailure {
+    code: &'static str,
+    message: &'static str,
+}
+
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct QaReport {
@@ -42,6 +77,97 @@ fn education_video_qa_info(app: tauri::AppHandle) -> Result<QaInfo, String> {
         source_sha: env!("BOGUNON_QA_SOURCE_SHA"),
         local_data: ensure_qa(&app)?,
         integrations_disabled: true,
+    })
+}
+
+#[tauri::command]
+fn education_video_qa_search(
+    app: tauri::AppHandle,
+    request: QaSearchRequest,
+    access_token: String,
+) -> Result<serde_json::Value, QaSearchFailure> {
+    ensure_qa(&app).map_err(|_| QaSearchFailure {
+        code: "FORBIDDEN",
+        message: "QA identity mismatch",
+    })?;
+    if access_token != "synthetic-finder-qa-token" {
+        return Err(QaSearchFailure {
+            code: "UNAUTHORIZED",
+            message: "Synthetic QA token required",
+        });
+    }
+    if request.topic.trim().is_empty()
+        || request.topic.chars().count() > 100
+        || request.audience.trim().is_empty()
+        || request.audience.chars().count() > 100
+        || !(1..=180).contains(&request.desired_minutes)
+    {
+        return Err(QaSearchFailure {
+            code: "INVALID_REQUEST",
+            message: "Invalid synthetic QA request",
+        });
+    }
+    if request.topic.trim() == "QA timeout" {
+        return Err(QaSearchFailure {
+            code: "TIMEOUT",
+            message: "Synthetic QA timeout",
+        });
+    }
+    if request.topic.trim() == "QA 잘못된 응답" {
+        return Ok(serde_json::json!({"source":"synthetic-mock","notice":7,"results":[]}));
+    }
+    let results = if request.topic.trim() == "QA 결과 없음" {
+        Vec::new()
+    } else {
+        [
+            (
+                "qaVideo0001",
+                "합성 보건교육 채널",
+                0_i32,
+                "https://www.youtube.com/watch?v=qaVideo0001",
+            ),
+            (
+                "qaVideo0002",
+                "합성 학교교육 채널",
+                2_i32,
+                "https://www.youtube.com/watch?v=qaVideo0002",
+            ),
+            (
+                "qaVideo0003",
+                "합성 안전교육 채널",
+                -2_i32,
+                "https://www.youtube.com/watch?v=qaVideo0003",
+            ),
+        ]
+        .into_iter()
+        .map(|(video_id, channel_title, offset, url)| QaSearchVideo {
+            video_id,
+            title: format!(
+                "{} · {} 합성 교육영상",
+                request.topic.trim(),
+                request.audience.trim()
+            ),
+            channel_id: "qa-synthetic-channel",
+            channel_title,
+            duration_seconds: u32::from(request.desired_minutes)
+                .saturating_mul(60)
+                .saturating_add_signed(offset.saturating_mul(60))
+                .max(30),
+            url,
+            official: false,
+            official_evidence: None,
+            synthetic: true,
+        })
+        .collect()
+    };
+    serde_json::to_value(QaSearchResponse {
+        source: "synthetic-mock",
+        notice: "합성 Tauri IPC 검색 결과입니다. 실제 YouTube 요청은 발생하지 않았습니다.",
+        results,
+    })
+    .map_err(|_| QaSearchFailure {
+        code: "INVALID_RESPONSE",
+        message: "Synthetic QA serialization failed",
     })
 }
 
@@ -76,6 +202,7 @@ pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             education_video_qa_info,
+            education_video_qa_search,
             education_video_qa_reset,
             education_video_qa_corrupt_primary,
             education_video_qa_complete,
