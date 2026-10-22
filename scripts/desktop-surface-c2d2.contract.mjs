@@ -51,6 +51,9 @@ test('workflow is protected, non-retrying, source-pinned and diagnostic-only', (
   assert.match(yaml, /cancel-in-progress: false/);
   assert.match(yaml, /timeout-minutes:/);
   assert.match(yaml, /contents: read/);
+  assert.match(yaml, /required_reviewers/);
+  assert.match(yaml, /can_admins_bypass -ne \$false/);
+  assert.match(yaml, /GH_TOKEN: \$\{\{ github\.token \}\}/);
   assert.doesNotMatch(yaml, /continue-on-error:|strategy:|matrix:|pull_request:|\bpush:/);
   const upload = yaml.slice(yaml.indexOf('uses: actions/upload-artifact'));
   assert.doesNotMatch(upload, /\.exe|\.zip|target|release-output|\*\*/i);
