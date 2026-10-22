@@ -622,3 +622,6 @@ fn terminal_refresh_error(code: Option<&str>) -> bool {
 mod tests;
 
 pub(crate) mod web_search;
+
+#[cfg(feature = "finder-live-qa")]
+pub(crate) mod live_qa;

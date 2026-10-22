@@ -237,6 +237,13 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
+#[cfg(all(feature = "finder-live-qa", any(feature = "my-finance-qa", feature = "education-video-qa")))]
+compile_error!("QA features are mutually exclusive");
+#[cfg(feature = "finder-live-qa")]
+mod finder_live_qa;
+#[cfg(feature = "finder-live-qa")]
+pub use finder_live_qa::run;
+
 #[cfg(feature = "my-finance-qa")]
 mod my_finance_qa;
 #[cfg(feature = "my-finance-qa")]
@@ -250,7 +257,7 @@ mod education_video_qa;
 #[cfg(all(not(feature = "my-finance-qa"), feature = "education-video-qa"))]
 pub use education_video_qa::run;
 
-#[cfg(not(any(feature = "my-finance-qa", feature = "education-video-qa")))]
+#[cfg(not(any(feature = "my-finance-qa", feature = "education-video-qa", feature = "finder-live-qa")))]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default();

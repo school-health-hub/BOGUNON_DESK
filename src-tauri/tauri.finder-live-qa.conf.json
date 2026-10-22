@@ -1,0 +1,17 @@
+{
+ "$schema": "https://schema.tauri.app/config/2",
+ "productName": "BOGUNON DESK FINDER LIVE QA",
+ "identifier": "kr.sungandi.schoolhealthdesk.finderliveqa",
+ "mainBinaryName": "bogunon-desk-finder-live-qa",
+ "build": { "beforeBuildCommand": "node scripts/build-finder-live-qa-frontend.mjs", "frontendDist": "../dist-finder-live-qa", "devUrl": null, "beforeDevCommand": null },
+ "app": {
+  "windows": [{ "label": "main", "title": "BOGUNON DESK Finder LIVE QA · 기존 연결 읽기 전용", "width": 1280, "height": 860, "minWidth": 720, "minHeight": 560 }],
+  "security": {
+   "capabilities": [{ "identifier": "finder-live-qa-only", "windows": ["main"], "permissions": ["core:default"] }],
+   "csp": { "default-src": "'self'", "script-src": "'self'", "style-src": "'self'", "style-src-attr": "'unsafe-inline'", "font-src": "'self'", "img-src": "'self' data:", "connect-src": "'self' ipc: http://ipc.localhost", "object-src": "'none'", "frame-src": "'none'", "frame-ancestors": "'none'", "base-uri": "'none'", "form-action": "'none'", "worker-src": "'none'" },
+   "devCsp": null
+  }
+ },
+ "plugins": { "updater": null, "deep-link": null },
+ "bundle": { "active": false, "createUpdaterArtifacts": false }
+}

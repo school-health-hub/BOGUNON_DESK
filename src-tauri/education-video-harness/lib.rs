@@ -43,3 +43,7 @@ mod chatgpt_web_search_parser;
 
 #[path = "../src/education_video/ai_metadata.rs"]
 pub mod ai_metadata;
+
+#[cfg(test)]
+#[path = "../src/chatgpt/plan/live_qa_policy.rs"]
+mod finder_live_qa_policy;

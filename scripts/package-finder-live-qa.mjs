@@ -1,0 +1,18 @@
+import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+const baseSha = 'f0981bf965b191ca380d5a97afe9aa61f9a1c3d8';
+const sourceSha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+if (sourceSha !== process.env.BOGUNON_QA_SOURCE_SHA) throw new Error('Build source mismatch');
+const root = 'src-tauri/target/x86_64-pc-windows-msvc/release';
+const names = ['bogunon-desk-finder-live-qa.exe', 'school-health-desk.exe'];
+const found = names.filter(name => existsSync(`${root}/${name}`));
+if (found.length !== 1) throw new Error('Ambiguous QA executable');
+const bytes = readFileSync(`${root}/${found[0]}`);
+if (!bytes.includes(Buffer.from('chatgpt_search_web')) || !bytes.includes(Buffer.from('finder_live_qa_metadata'))) throw new Error('Missing QA/search command markers');
+const sha256 = createHash('sha256').update(bytes).digest('hex');
+mkdirSync('artifacts/finder-live-qa', { recursive: true });
+copyFileSync(`${root}/${found[0]}`, 'artifacts/finder-live-qa/bogunon-desk-finder-live-qa.exe');
+writeFileSync('artifacts/finder-live-qa/SOURCE.json', JSON.stringify({ baseSha, sourceSha, sha256, identifier: 'kr.sungandi.schoolhealthdesk.finderliveqa', nativeFeature: 'finder-live-qa', runId: process.env.GITHUB_RUN_ID ?? null, liveQa: 'NOT RUN', credentials: 'existing local credentials read-only; no CI credentials', installation: 'portable; do not install over production' }, null, 2));
+writeFileSync('artifacts/finder-live-qa/SHA256SUMS.txt', `${sha256}  bogunon-desk-finder-live-qa.exe\n`);
+console.log(JSON.stringify({ baseSha, sourceSha, sha256 }));
