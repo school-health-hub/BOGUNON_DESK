@@ -1,0 +1,20 @@
+name: Desktop Surface C-2D-2 disposable runtime QA
+on:
+  workflow_dispatch:
+    inputs:
+      expected_controller_sha:
+        description: Exact reviewed C-2D-2 controller SHA
+        required: true
+        type: string
+      execute_once:
+        description: Type RUN_C2D2_ONCE after protected Environment approval
+        required: true
+        type: string
+permissions: {}
+jobs:
+  registration:
+    if: ${{ github.event_name == 'workflow_dispatch' && false }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Registration only; no runtime execution
+        run: 'true'
