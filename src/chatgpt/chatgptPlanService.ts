@@ -1,3 +1,4 @@
+import { searchChatGptWebNative } from "./webSearch";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import type {
   ChatGptModel,
@@ -112,4 +113,5 @@ export const generateChatGptTextNative = async (model: string, prompt: string): 
 export const chatGptPlanService = {
   listModels: listChatGptModelsNative,
   generateText: generateChatGptTextNative,
+  searchWeb: searchChatGptWebNative,
 } as const satisfies ChatGptPlanService;

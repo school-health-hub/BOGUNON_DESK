@@ -620,3 +620,5 @@ fn terminal_refresh_error(code: Option<&str>) -> bool {
 #[cfg(test)]
 #[path = "plan/tests.rs"]
 mod tests;
+
+pub(crate) mod web_search;

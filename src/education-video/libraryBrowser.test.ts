@@ -10,3 +10,22 @@ describe('browser QA physical metadata retention',()=>{
  it('purges expired metadata from primary and valid backup, keeps teacher text',async()=>{const entry=toEntry(item,Date.now()-31*86400000);const original=JSON.stringify({version:2,entries:[entry]});localStorage.setItem(key,original);localStorage.setItem(key+'.backup',original);await libraryRepository.load();for(const location of [key,key+'.backup']){const raw=JSON.parse(localStorage.getItem(location)??'{}');expect(raw.entries[0].provider).toBeNull();expect(raw.entries[0].teacher.notes).toBe('교사 메모');}});
  it('explicit metadata deletion also scrubs backup',async()=>{await libraryRepository.save(toEntry(item));await libraryRepository.save(toEntry({...item,notes:'수정 메모'}));await libraryRepository.deleteMetadata(item.videoId);for(const location of [key,key+'.backup']){expect(JSON.parse(localStorage.getItem(location)??'{}').entries[0].provider).toBeNull();}});
 });
+const aiEvidence=()=>({videoId:item.videoId,url:item.url,title:'합성 출처 제목',publisher:null,durationSeconds:null,description:'공개 소개정보 요약',relevance:'교육 관련성',reason:'추천 이유',sources:[{url:item.url,title:'합성 출처 제목'}],checkedAt:new Date().toISOString(),needsReview:true as const});
+it('explicit AI metadata deletion scrubs primary and backup but preserves notes',async()=>{
+ const entry={...toEntry(item),ai:aiEvidence()};
+ await libraryRepository.save(entry);
+ await libraryRepository.save({...entry,teacher:{...entry.teacher,notes:'유지 메모'}});
+ await libraryRepository.deleteMetadata(item.videoId);
+ for(const location of [key,key+'.backup']){
+  const raw=JSON.parse(localStorage.getItem(location)??'{}');
+  expect(raw.entries[0].ai).toBeUndefined();expect(raw.entries[0].teacher.notes).toBe('유지 메모');
+ }
+});
+it('legacy teacher editing without AI field preserves stored AI provenance',async()=>{
+ const entry=toEntry(item);const ai=aiEvidence();
+ await libraryRepository.save({...entry,ai});
+ await libraryRepository.save({...entry,teacher:{...entry.teacher,notes:'교사 수정'}});
+ const loaded=await libraryRepository.load();
+ expect(loaded.library.entries[0]?.ai).toEqual(ai);
+ expect(loaded.library.entries[0]?.teacher.notes).toBe('교사 수정');
+});

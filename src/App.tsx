@@ -33,7 +33,6 @@ export function App() {
   };
   return (
     <>
-    <div hidden={financeOpen || videoFinderOpen} inert={financeOpen || videoFinderOpen} style={{ display: financeOpen || videoFinderOpen ? "none" : undefined }}>
     <ChatGptConnectionProvider>
       <AiConnectionProvider>
         <AuthProvider>
@@ -45,7 +44,10 @@ export function App() {
                     <WeatherDataProvider>
                       <OfficialDocumentSessionProvider>
                         <DesktopUpdaterProvider>
-                          <DashboardCanvas onOpenFinance={() => setFinanceOpen(true)} onOpenEducationVideo={() => setVideoFinderOpen(true)} suspended={financeOpen || videoFinderOpen} />
+                          <div hidden={financeOpen || videoFinderOpen} inert={financeOpen || videoFinderOpen} style={{ display: financeOpen || videoFinderOpen ? "none" : undefined }}>
+                            <DashboardCanvas onOpenFinance={() => setFinanceOpen(true)} onOpenEducationVideo={() => setVideoFinderOpen(true)} suspended={financeOpen || videoFinderOpen} />
+                          </div>
+                          {videoFinderOpen && <ConnectedFinder onClose={closeVideoFinder} />}
                         </DesktopUpdaterProvider>
                       </OfficialDocumentSessionProvider>
                     </WeatherDataProvider>
@@ -57,8 +59,6 @@ export function App() {
         </AuthProvider>
       </AiConnectionProvider>
     </ChatGptConnectionProvider>
-    </div>
-    {videoFinderOpen && <ConnectedFinder onClose={closeVideoFinder} />}
     {financeOpen && <Suspense fallback={<main aria-busy="true"><p role="status">MY FINANCE 화면을 불러오는 중입니다…</p><button type="button" onClick={closeFinance}>보건 업무로</button></main>}><FinanceScreen onClose={closeFinance} /></Suspense>}
     </>
   );

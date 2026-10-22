@@ -1,3 +1,4 @@
+import type { WebSearchResult } from "./webSearch";
 export const chatGptConnectionStatuses = ["disconnected", "connected", "busy", "failed"] as const;
 export type ChatGptConnectionStatus = (typeof chatGptConnectionStatuses)[number];
 
@@ -63,4 +64,5 @@ export type ChatGptPlanError = {
 export type ChatGptPlanService = {
   readonly listModels: () => Promise<readonly ChatGptModel[]>;
   readonly generateText: (model: string, prompt: string) => Promise<string>;
+  readonly searchWeb?: (model: string, prompt: string) => Promise<WebSearchResult>;
 };

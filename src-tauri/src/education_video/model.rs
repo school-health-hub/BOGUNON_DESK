@@ -41,6 +41,8 @@ pub struct LibraryEntry {
     pub video_id: String,
     pub teacher: TeacherData,
     pub provider: Option<ProviderMetadata>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ai: Option<super::ai_metadata::AiMetadata>,
 }
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -145,6 +147,9 @@ impl LibraryEntry {
         {
             return Err(LibraryError::Invalid);
         }
+        if let Some(ai) = &self.ai {
+            ai.validate(&self.video_id)?;
+        }
         if let Some(provider) = &self.provider {
             provider.validate(&self.video_id)?;
         }
@@ -158,7 +163,14 @@ impl LibraryEntry {
         if expired {
             self.provider = None;
         }
-        Ok(expired)
+        let ai_expired = match &self.ai {
+            Some(ai) => ai.expired(now)?,
+            None => false,
+        };
+        if ai_expired {
+            self.ai = None;
+        }
+        Ok(expired || ai_expired)
     }
 }
 pub fn parse(json: &str) -> Result<Library, LibraryError> {

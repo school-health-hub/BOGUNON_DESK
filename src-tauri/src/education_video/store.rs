@@ -121,7 +121,12 @@ pub fn save_entry(path: &Path, mut entry: LibraryEntry) -> Result<LoadResult, Li
         .iter_mut()
         .find(|old| old.video_id == entry.video_id)
     {
-        Some(old) => *old = entry,
+        Some(old) => {
+            if entry.ai.is_none() {
+                entry.ai = old.ai.take();
+            }
+            *old = entry;
+        }
         None => result.library.entries.push(entry),
     }
     persist(path, &result.library)?;
@@ -138,6 +143,9 @@ pub fn import(path: &Path, json: &str) -> Result<LoadResult, LibraryError> {
             .find(|old| old.video_id == entry.video_id)
         {
             Some(old) => {
+                if entry.ai.is_some() {
+                    old.ai = entry.ai;
+                }
                 if entry.provider.is_some() {
                     old.provider = entry.provider;
                 }
@@ -160,6 +168,7 @@ pub fn delete_metadata(path: &Path, video_id: &str) -> Result<LoadResult, Librar
         .find(|entry| entry.video_id == video_id)
         .ok_or(LibraryError::Invalid)?;
     entry.provider = None;
+    entry.ai = None;
     persist(path, &result.library)?;
     let backup = path.with_extension("backup.json");
     if backup.is_file() {
@@ -167,6 +176,7 @@ pub fn delete_metadata(path: &Path, video_id: &str) -> Result<LoadResult, Librar
         for entry in &mut library.entries {
             if entry.video_id == video_id {
                 entry.provider = None;
+                entry.ai = None;
             }
         }
         atomic(&backup, serialize(&library)?.as_bytes())?;

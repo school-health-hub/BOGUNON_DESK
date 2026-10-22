@@ -1,3 +1,4 @@
+mod ai_metadata;
 mod commands;
 mod command_core;
 #[cfg(test)]

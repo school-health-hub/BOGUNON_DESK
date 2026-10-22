@@ -3,6 +3,7 @@ use std::fs;
 
 fn entry() -> LibraryEntry {
     LibraryEntry {
+        ai: None,
         video_id: "EVmock00001".into(),
         teacher: TeacherData {
             education_title: "교육".into(),
@@ -171,4 +172,86 @@ fn official_live_fixture_and_refresh_keep_teacher_data() {
     let backup = fs::read_to_string(path.with_extension("backup.json")).unwrap();
     assert!(!backup.contains("moe.go.kr"));
     assert!(backup.contains("교사 메모"));
+}
+
+#[test]
+fn ai_evidence_roundtrip_preserves_teacher_and_expires_metadata() {
+    let mut saved = entry();
+    let now = timestamps::now_ms().unwrap();
+    let checked = saved.provider.as_ref().unwrap().fetched_at.clone();
+    saved.ai = Some(super::ai_metadata::AiMetadata {
+        video_id: saved.video_id.clone(),
+        url: format!("https://www.youtube.com/watch?v={}", saved.video_id),
+        title: "합성 출처 제목".into(),
+        publisher: None,
+        duration_seconds: None,
+        description: "공개 소개정보 기반 합성 요약".into(),
+        relevance: "교육 관련성".into(),
+        reason: "선정 이유".into(),
+        sources: vec![super::ai_metadata::AiSource {
+            url: format!("https://www.youtube.com/watch?v={}", saved.video_id),
+            title: "합성 출처 제목".into(),
+        }],
+        checked_at: checked,
+        needs_review: true,
+    });
+    saved.validate().unwrap();
+    let encoded = serde_json::to_string(&Library {
+        version: 2,
+        entries: vec![saved.clone()],
+    })
+    .unwrap();
+    let parsed = super::model::parse(&encoded).unwrap();
+    assert_eq!(parsed.entries[0].ai, saved.ai);
+    saved.expire(now + timestamps::MAX_TTL_MS + 1).unwrap();
+    assert!(saved.ai.is_none());
+    assert_eq!(saved.teacher.notes, "교사 메모");
+}
+
+#[test]
+fn ai_evidence_rejects_private_source_and_unknown_fields() {
+    let json = serde_json::json!({"videoId":"EVmock00001","url":"https://www.youtube.com/watch?v=EVmock00001","title":"합성","publisher":null,"durationSeconds":null,"description":"소개","relevance":"관련","reason":"추천","sources":[{"url":"http://localhost/private","title":"출처"}],"checkedAt":"2026-01-01T00:00:00.000Z","needsReview":true});
+    let metadata: super::ai_metadata::AiMetadata = serde_json::from_value(json.clone()).unwrap();
+    assert!(metadata.validate("EVmock00001").is_err());
+    let mut extra = json;
+    extra["accessToken"] = serde_json::json!("synthetic-forbidden-field");
+    assert!(serde_json::from_value::<super::ai_metadata::AiMetadata>(extra).is_err());
+}
+
+#[test]
+fn legacy_teacher_save_preserves_ai_evidence_until_explicit_delete() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("library.json");
+    let mut saved = entry();
+    let checked = saved.provider.as_ref().unwrap().fetched_at.clone();
+    let source_url = format!("https://www.youtube.com/watch?v={}", saved.video_id);
+    saved.ai = Some(super::ai_metadata::AiMetadata {
+        video_id: saved.video_id.clone(),
+        url: source_url.clone(),
+        title: "합성 출처".into(),
+        publisher: None,
+        duration_seconds: None,
+        description: "소개 정보".into(),
+        relevance: "관련성".into(),
+        reason: "추천 이유".into(),
+        sources: vec![super::ai_metadata::AiSource {
+            url: source_url,
+            title: "합성 출처".into(),
+        }],
+        checked_at: checked,
+        needs_review: true,
+    });
+    store::save_entry(&path, saved.clone()).unwrap();
+    let mut legacy = saved.clone();
+    legacy.ai = None;
+    legacy.teacher.notes = "수정 메모".into();
+    store::save_entry(&path, legacy).unwrap();
+    let loaded = store::load(&path).unwrap();
+    assert_eq!(loaded.library.entries[0].ai, saved.ai);
+    assert_eq!(loaded.library.entries[0].teacher.notes, "수정 메모");
+    store::delete_metadata(&path, &saved.video_id).unwrap();
+    for location in [&path, &path.with_extension("backup.json")] {
+        let library = super::model::parse(&fs::read_to_string(location).unwrap()).unwrap();
+        assert!(library.entries[0].ai.is_none());
+    }
 }

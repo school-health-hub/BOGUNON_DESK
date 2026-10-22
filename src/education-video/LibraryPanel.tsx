@@ -10,8 +10,8 @@ export function LibraryPanel(p:Props){return <section className="ev-library" ari
  <label className="ev-import"><Upload size={16}/>가져오기<input type="file" accept=".json,application/json" disabled={p.busy} onChange={e=>{p.onImport(e.target.files?.[0]);e.target.value='';}}/></label>
  <button type="button" disabled={p.busy} onClick={p.onRecover}>백업 복구</button></div>
  {p.library.entries.length===0?<p className="ev-empty-inline">저장한 영상이 없습니다. 안내문을 작성한 뒤 저장해 주세요.</p>:<ul>{p.library.entries.map(entry=><li key={entry.videoId}>
- <div><strong>{entry.teacher.educationTitle||entry.provider?.title||'저장된 교사 자료'}</strong><p>{entry.teacher.schedule} · {entry.teacher.target}</p>
- <small>{entry.provider?`${entry.provider.synthetic?'합성 Mock':'YouTube 메타데이터'} · 유효기간 ${entry.provider.expiresAt.slice(0,10)}`:'메타데이터 만료 또는 삭제 · 교사 자료 보존'}</small></div>
- <div className="ev-actions"><button type="button" onClick={()=>p.onLoad(entry)}>불러오기</button><button type="button" disabled={p.busy} onClick={()=>p.onRefresh(entry.videoId)}>현재 결과로 메타데이터 갱신</button><button type="button" disabled={p.busy||entry.provider===null} onClick={()=>p.onDelete(entry.videoId)}>메타데이터 삭제</button></div>
+ <div><strong>{entry.teacher.educationTitle||entry.provider?.title||entry.ai?.title||'저장된 교사 자료'}</strong><p>{entry.teacher.schedule} · {entry.teacher.target}</p>
+ <small>{entry.ai?`AI 검색 출처 · 원문 확인 필요 · 확인일 ${entry.ai.checkedAt.slice(0,10)}`:entry.provider?`${entry.provider.synthetic?'합성 Mock':'YouTube 메타데이터'} · 유효기간 ${entry.provider.expiresAt.slice(0,10)}`:'메타데이터 만료 또는 삭제 · 교사 자료 보존'}</small></div>
+ <div className="ev-actions"><button type="button" onClick={()=>p.onLoad(entry)}>불러오기</button><button type="button" disabled={p.busy} onClick={()=>p.onRefresh(entry.videoId)}>현재 결과로 메타데이터 갱신</button><button type="button" disabled={p.busy||(entry.provider===null&&!entry.ai)} onClick={()=>p.onDelete(entry.videoId)}>메타데이터 삭제</button></div>
  </li>)}</ul>}
  </section>;}

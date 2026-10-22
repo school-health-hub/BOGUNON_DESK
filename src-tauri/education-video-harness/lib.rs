@@ -36,3 +36,10 @@ pub mod tests;
 
 #[cfg(test)]
 mod stdio_bridge;
+
+#[cfg(test)]
+#[path = "../src/chatgpt/plan/web_search_parser.rs"]
+mod chatgpt_web_search_parser;
+
+#[path = "../src/education_video/ai_metadata.rs"]
+pub mod ai_metadata;

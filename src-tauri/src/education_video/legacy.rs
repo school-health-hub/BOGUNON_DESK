@@ -43,6 +43,7 @@ pub fn parse_any(json: &str, now: i64) -> Result<(Library, bool), LibraryError> 
             return Err(LibraryError::Invalid);
         }
         let entry = LibraryEntry {
+            ai: None,
             video_id: item.video_id,
             teacher: TeacherData {
                 education_title: item.education_title,

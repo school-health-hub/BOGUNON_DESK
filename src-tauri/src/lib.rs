@@ -298,6 +298,7 @@ pub fn run() {
             chatgpt::commands::chatgpt_disconnect,
             chatgpt::commands::chatgpt_list_models,
             chatgpt::commands::chatgpt_generate_text,
+            chatgpt::commands::chatgpt_search_web,
             execute_desktop_action,
             open_bogunon_search_result,
             launcher::open_quick_memo_url,
