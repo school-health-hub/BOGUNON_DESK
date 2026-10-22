@@ -1,0 +1,105 @@
+name: Official document isolated Windows QA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/official-document-enhancement]
+    paths: [.github/workflows/official-document-qa-windows.yml]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: official-document-qa-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  native-build:
+    if: github.ref == 'refs/heads/feature/official-document-enhancement'
+    runs-on: windows-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CI: 'true'
+      CL: /utf-8
+      CARGO_BUILD_JOBS: '2'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Initialize isolated paths and provenance
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP "official-document-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          New-Item -ItemType Directory -Path "$root/evidence" -Force | Out-Null
+          "QA_ROOT=$root" >> $env:GITHUB_ENV
+          "BOGUNON_OFFICIAL_DOCUMENT_QA_OUTPUT_ROOT=$root/output" >> $env:GITHUB_ENV
+          "PSModuleAnalysisCachePath=$root/ModuleAnalysisCache" >> $env:GITHUB_ENV
+          [ordered]@{ sourceSha=$env:GITHUB_SHA; ref=$env:GITHUB_REF; identifier='kr.sungandi.schoolhealthdesk.officialdocumentqa'; webview2UiQa='NOT RUN'; externalServices='NOT USED'; runId=$env:GITHUB_RUN_ID } | ConvertTo-Json | Set-Content "$root/evidence/provenance.json"
+          Start-Transcript -Path "$root/evidence/environment.log"
+          node --version
+          git status --short
+          Get-PSDrive C,D -ErrorAction SilentlyContinue | Select-Object Name,Used,Free
+          Stop-Transcript
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249
+        with:
+          toolchain: stable
+          targets: x86_64-pc-windows-msvc
+      - name: Verify native prerequisites
+        run: |
+          Start-Transcript -Path "$env:QA_ROOT/evidence/toolchain.log"
+          foreach ($tool in @('perl','nasm','cargo','rustc')) { Get-Command $tool -ErrorAction Stop | Select-Object Name,Source }
+          perl -v
+          cargo --version
+          rustc -vV
+          Stop-Transcript
+      - name: Install locked frontend dependencies
+        run: |
+          npm ci --no-audit --no-fund 2>&1 | Tee-Object "$env:QA_ROOT/evidence/npm-ci.log"
+          if ($LASTEXITCODE -ne 0) { throw 'npm ci failed' }
+      - name: TypeScript
+        run: |
+          node node_modules/typescript/bin/tsc --noEmit 2>&1 | Tee-Object "$env:QA_ROOT/evidence/typescript.log"
+          if ($LASTEXITCODE -ne 0) { throw 'TypeScript failed' }
+      - name: Vitest regressions
+        run: |
+          npm test -- --maxWorkers=4 2>&1 | Tee-Object "$env:QA_ROOT/evidence/vitest.log"
+          if ($LASTEXITCODE -ne 0) { throw 'Vitest failed' }
+      - name: QA path contracts
+        run: |
+          node --test scripts/official-document-qa-paths.test.mjs 2>&1 | Tee-Object "$env:QA_ROOT/evidence/path-tests.log"
+          if ($LASTEXITCODE -ne 0) { throw 'Path tests failed' }
+      - name: Build and inspect synthetic-only QA frontend
+        run: |
+          node scripts/build-official-document-qa-frontend.mjs 2>&1 | Tee-Object "$env:QA_ROOT/evidence/frontend.log"
+          if ($LASTEXITCODE -ne 0) { throw 'QA frontend failed' }
+          Copy-Item "$env:BOGUNON_OFFICIAL_DOCUMENT_QA_OUTPUT_ROOT/dist-official-document-qa/qa-build.json" "$env:QA_ROOT/evidence/qa-build.json"
+      - name: Fetch locked Rust dependencies for subsequent offline build
+        run: |
+          cargo fetch --locked --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc 2>&1 | Tee-Object "$env:QA_ROOT/evidence/cargo-fetch.log"
+          if ($LASTEXITCODE -ne 0) { throw 'Locked Cargo fetch failed' }
+      - name: Build isolated QA executable without installer or app launch
+        run: |
+          node scripts/build-official-document-qa.mjs 2>&1 | Tee-Object "$env:QA_ROOT/evidence/native-build.log"
+          if ($LASTEXITCODE -ne 0) { throw 'Native QA build failed' }
+          git diff --exit-code -- package-lock.json src-tauri/Cargo.lock
+          if ($LASTEXITCODE -ne 0) { throw 'Lockfile changed' }
+          $exe = Join-Path $env:BOGUNON_OFFICIAL_DOCUMENT_QA_OUTPUT_ROOT 'target/x86_64-pc-windows-msvc/release/bogunon-desk-official-document-qa.exe'
+          if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'QA EXE missing' }
+          Copy-Item -LiteralPath $exe -Destination "$env:QA_ROOT/evidence/"
+          $hash = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  bogunon-desk-official-document-qa.exe" | Set-Content "$env:QA_ROOT/evidence/SHA256SUMS.txt"
+          "Native build PASS. WebView2 actual UI QA NOT RUN. Source: $env:GITHUB_SHA. EXE SHA256: $hash" >> $env:GITHUB_STEP_SUMMARY
+      - name: Preserve executable and diagnostic logs even on failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: official-document-qa-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ env.QA_ROOT }}/evidence/*
+          if-no-files-found: warn
+          retention-days: 14
