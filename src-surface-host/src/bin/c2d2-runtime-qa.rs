@@ -180,6 +180,16 @@ fn execute() -> Result<(), String> {
             result
         }
         Err(error) => {
+            // Preserve typed terminal failures even if a synchronous teardown crossed the evidence deadline.
+            control.stop(match &error {
+                bogunon_desktop_surface_host::runtime_qa::RuntimeQaError::Cancelled => {
+                    bogunon_desktop_surface_host::runtime_budget::TerminalReason::Cancelled
+                }
+                bogunon_desktop_surface_host::runtime_qa::RuntimeQaError::Timeout => {
+                    bogunon_desktop_surface_host::runtime_budget::TerminalReason::Timeout
+                }
+                _ => bogunon_desktop_surface_host::runtime_budget::TerminalReason::HarnessFailure,
+            });
             let unknown = serde_json::json!({
                 "schema": 2,
                 "result": "CLEANUP_UNKNOWN",
