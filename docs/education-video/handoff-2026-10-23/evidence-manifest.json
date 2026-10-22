@@ -1,0 +1,152 @@
+{
+  "formatVersion": 1,
+  "createdAt": "2026-10-22T17:32:54.579Z",
+  "scope": "Sanitized QA1-QA4 closure package; source data and runtime credentials are excluded",
+  "rawProviderResponses": "NOT RETAINED",
+  "entries": [
+    {
+      "path": "evidence/windows-fixed-live-result.json",
+      "origin": "Finder worktree .omo/evidence/chatgpt-finder/windows-fixed-live-result.json",
+      "bytes": 1192,
+      "sha256": "55583d569274fbd8edd8ec191abda5ce34bf67dfe6b4c59dd15803f19d484eb9",
+      "originalMtimeUtc": "2026-10-22T14:39:54.319Z",
+      "copy": "byte-identical already-sanitized record; not raw provider response"
+    },
+    {
+      "path": "evidence/search-2-live-result.json",
+      "origin": "Finder worktree .omo/evidence/chatgpt-finder/search-2-live-result.json",
+      "bytes": 2697,
+      "sha256": "070b26d242ca34894c57715806fc178e531706990e44f26b29232c29ffefe4d2",
+      "originalMtimeUtc": "2026-10-22T15:16:15.629Z",
+      "copy": "byte-identical already-sanitized record; not raw provider response"
+    },
+    {
+      "path": "evidence/search-3-valid-auth-live-result-20261022T1626.json",
+      "origin": "Finder worktree .omo/evidence/chatgpt-finder/search-3-valid-auth-live-result-20261022T1626.json",
+      "bytes": 3481,
+      "sha256": "c72e58a0417ad29fd01ba5697f4b077cb695c532e31aab41e28e02102523d346",
+      "originalMtimeUtc": "2026-10-22T16:27:57.493Z",
+      "copy": "byte-identical already-sanitized record; not raw provider response"
+    },
+    {
+      "path": "evidence/qa4-live-result.json",
+      "origin": "Finder worktree .omo/evidence/chatgpt-finder/qa4-live-result.json",
+      "bytes": 4031,
+      "sha256": "c965d8199b91aca906a0b3c32c4bddd31b95cb08884be8b4148d80d2b1499407",
+      "originalMtimeUtc": "2026-10-22T17:29:13.377Z",
+      "copy": "byte-identical already-sanitized record; not raw provider response"
+    },
+    {
+      "path": "evidence/official-sdk-sse-comparison.json",
+      "origin": "Finder worktree .omo/evidence/chatgpt-finder/official-sdk-sse-comparison.json",
+      "bytes": 948,
+      "sha256": "9d4949f60cddda4482ce9d963a6512bd42eb3b2ee1033e49d8f6ba74cdb255e9",
+      "originalMtimeUtc": "2026-10-22T16:37:48.683Z",
+      "copy": "byte-identical already-sanitized record; not raw provider response"
+    },
+    {
+      "path": "evidence/runtime/search-2-before-dispatch.json",
+      "origin": "QA local data / search-2-before-dispatch.json",
+      "bytes": 62,
+      "sha256": "7e9c501fec41c541ebd3fd13d308ceffe51215850ba9db88af8fb5365dc82d61",
+      "originalMtimeUtc": "2026-10-22T15:14:06.916Z",
+      "copy": "byte-identical already-sanitized record; not raw provider response"
+    },
+    {
+      "path": "evidence/runtime/search-2-http-response.json",
+      "origin": "QA local data / search-2-http-response.json",
+      "bytes": 498,
+      "sha256": "bc4d5885cf4d2dc74f3fb98b85543229fe701a4eb05fd9d61f61fcfd07de608c",
+      "originalMtimeUtc": "2026-10-22T15:14:56.886Z",
+      "copy": "byte-identical already-sanitized record; not raw provider response"
+    },
+    {
+      "path": "evidence/runtime/search-2-native-result.json",
+      "origin": "QA local data / search-2-native-result.json",
+      "bytes": 57,
+      "sha256": "708f195cc0f9d24e0efa88622b06752f99713294d417769bfdb0e07e859e58ca",
+      "originalMtimeUtc": "2026-10-22T15:14:56.896Z",
+      "copy": "byte-identical already-sanitized record; not raw provider response"
+    },
+    {
+      "path": "evidence/runtime/search-3-before-dispatch.json",
+      "origin": "QA local data / search-3-before-dispatch.json",
+      "bytes": 62,
+      "sha256": "2508ba7002cdd0e666305df29fcb6f33c80627e9b9a07a2fffb6ebef08a16463",
+      "originalMtimeUtc": "2026-10-22T16:26:08.734Z",
+      "copy": "byte-identical already-sanitized record; not raw provider response"
+    },
+    {
+      "path": "evidence/runtime/search-3-http-response.json",
+      "origin": "QA local data / search-3-http-response.json",
+      "bytes": 1375,
+      "sha256": "b2304ebac70d45e9737f12aad3580e180945f0ea455e51d895579711e8b4138f",
+      "originalMtimeUtc": "2026-10-22T16:26:40.978Z",
+      "copy": "byte-identical already-sanitized record; not raw provider response"
+    },
+    {
+      "path": "evidence/runtime/search-3-native-result.json",
+      "origin": "QA local data / search-3-native-result.json",
+      "bytes": 57,
+      "sha256": "708f195cc0f9d24e0efa88622b06752f99713294d417769bfdb0e07e859e58ca",
+      "originalMtimeUtc": "2026-10-22T16:26:40.983Z",
+      "copy": "byte-identical already-sanitized record; not raw provider response"
+    },
+    {
+      "path": "evidence/runtime/search-4-before-dispatch.json",
+      "origin": "QA local data / search-4-before-dispatch.json",
+      "bytes": 82,
+      "sha256": "c19536861d6849111644a707dc9ee19edbf6af84b3fd2f840c4ff484fe067c07",
+      "originalMtimeUtc": "2026-10-22T17:28:03.503Z",
+      "copy": "byte-identical already-sanitized record; not raw provider response"
+    },
+    {
+      "path": "evidence/runtime/search-4-http-response.json",
+      "origin": "QA local data / search-4-http-response.json",
+      "bytes": 1375,
+      "sha256": "9e74816325215057fe479ba005bd37a2000cb10132f917e8ad7b0f2f21337e65",
+      "originalMtimeUtc": "2026-10-22T17:28:39.382Z",
+      "copy": "byte-identical already-sanitized record; not raw provider response"
+    },
+    {
+      "path": "evidence/runtime/search-4-native-result.json",
+      "origin": "QA local data / search-4-native-result.json",
+      "bytes": 57,
+      "sha256": "708f195cc0f9d24e0efa88622b06752f99713294d417769bfdb0e07e859e58ca",
+      "originalMtimeUtc": "2026-10-22T17:28:39.404Z",
+      "copy": "byte-identical already-sanitized record; not raw provider response"
+    },
+    {
+      "path": "evidence/runtime/search-attempt.receipt",
+      "origin": "QA local data / search-attempt.receipt",
+      "bytes": 53,
+      "sha256": "6966c048a8110b1bf38787a09f2d40c8e3cb00e6ac5c81046ef36fff00da3d02",
+      "originalMtimeUtc": "2026-10-22T14:37:36.699Z",
+      "copy": "byte-identical already-sanitized record; not raw provider response"
+    },
+    {
+      "path": "evidence/runtime/search-attempt-2.receipt",
+      "origin": "QA local data / search-attempt-2.receipt",
+      "bytes": 53,
+      "sha256": "6966c048a8110b1bf38787a09f2d40c8e3cb00e6ac5c81046ef36fff00da3d02",
+      "originalMtimeUtc": "2026-10-22T15:14:06.909Z",
+      "copy": "byte-identical already-sanitized record; not raw provider response"
+    },
+    {
+      "path": "evidence/runtime/search-attempt-3.receipt",
+      "origin": "QA local data / search-attempt-3.receipt",
+      "bytes": 53,
+      "sha256": "6966c048a8110b1bf38787a09f2d40c8e3cb00e6ac5c81046ef36fff00da3d02",
+      "originalMtimeUtc": "2026-10-22T16:26:08.727Z",
+      "copy": "byte-identical already-sanitized record; not raw provider response"
+    },
+    {
+      "path": "evidence/runtime/search-attempt-4.receipt",
+      "origin": "QA local data / search-attempt-4.receipt",
+      "bytes": 53,
+      "sha256": "6966c048a8110b1bf38787a09f2d40c8e3cb00e6ac5c81046ef36fff00da3d02",
+      "originalMtimeUtc": "2026-10-22T17:28:03.494Z",
+      "copy": "byte-identical already-sanitized record; not raw provider response"
+    }
+  ]
+}

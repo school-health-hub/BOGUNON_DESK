@@ -1,0 +1,121 @@
+{
+  "recordedAt": "2026-10-22T16:27:57.491Z",
+  "sourceSha": "93e3d182b1bc5d1b5aadb322e310eb4e1973d31f",
+  "exeSha256": "1819f34e61f086089cba732980a8a16684ed445f2e6054fef1024ff617d534a0",
+  "status": "LIVE_REQUEST_COMPLETED_PARSER_REJECTED",
+  "preflight": "PASS",
+  "model": "gpt-6.1-sol",
+  "additionalAiSearchRequests": 1,
+  "cumulativeAiSearchRequests": 3,
+  "automaticRetry": false,
+  "recommendedCards": 0,
+  "thirdSlotUsed": true,
+  "protectedFilesUnchanged": 9,
+  "externalDispatchFlags": false,
+  "evidence": [
+    {
+      "file": "search-3-before-dispatch.json",
+      "sha256": "2508ba7002cdd0e666305df29fcb6f33c80627e9b9a07a2fffb6ebef08a16463",
+      "diagnostic": {
+        "automaticRetry": false,
+        "slot": 3,
+        "stage": "reservedBeforeHttp"
+      }
+    },
+    {
+      "file": "search-3-http-response.json",
+      "sha256": "b2304ebac70d45e9737f12aad3580e180945f0ea455e51d895579711e8b4138f",
+      "diagnostic": {
+        "apiErrorCode": "unknown",
+        "apiErrorParam": "unknown",
+        "apiErrorType": "unknown",
+        "bodyBytes": 36176,
+        "completedItemCounts": {
+          "message": 1,
+          "other": 0,
+          "reasoning": 3,
+          "webSearch": 6
+        },
+        "completedItemEvidence": {
+          "completedSearchCount": 6,
+          "missingUrlCount": 0,
+          "sourceCount": 82,
+          "textBytes": 14,
+          "unsafeUrlCount": 0
+        },
+        "completedSearchCount": 0,
+        "completedStatus": "completed",
+        "eventCounts": {
+          "completed": 1,
+          "error": 0,
+          "failed": 0,
+          "incomplete": 0,
+          "other": 44,
+          "textDelta": 1
+        },
+        "finalOutput": {
+          "count": 0,
+          "kind": "array",
+          "messagePresent": false,
+          "present": true,
+          "sourcePresent": false
+        },
+        "httpAccepted": true,
+        "httpStatus": 200,
+        "isSse": true,
+        "malformedFrames": 0,
+        "missingUrlCount": 0,
+        "outputCounts": {
+          "message": 0,
+          "other": 0,
+          "webSearch": 0
+        },
+        "requestIdPresent": false,
+        "searchParseReason": "conflictingOutput",
+        "sharedStreamAccepted": true,
+        "sourceCount": 0,
+        "streamEventCounts": {
+          "annotationAdded": 0,
+          "completed": 1,
+          "contentPartAdded": 1,
+          "contentPartDone": 1,
+          "created": 1,
+          "error": 0,
+          "failed": 0,
+          "inProgress": 1,
+          "incomplete": 0,
+          "outputItemAdded": 10,
+          "outputItemDone": 10,
+          "reasoningSummaryPartAdded": 0,
+          "reasoningSummaryPartDone": 0,
+          "reasoningSummaryTextDelta": 0,
+          "reasoningSummaryTextDone": 0,
+          "reasoningTextDelta": 0,
+          "reasoningTextDone": 0,
+          "textDelta": 1,
+          "textDone": 1,
+          "unknown": 1,
+          "webSearchCompleted": 6,
+          "webSearchInProgress": 6,
+          "webSearchSearching": 6
+        },
+        "textBytes": 0,
+        "toolLifecycleCounts": {
+          "completed": 6,
+          "inProgress": 6,
+          "searching": 6
+        },
+        "unsafeUrlCount": 0,
+        "utf8": true
+      }
+    },
+    {
+      "file": "search-3-native-result.json",
+      "sha256": "708f195cc0f9d24e0efa88622b06752f99713294d417769bfdb0e07e859e58ca",
+      "diagnostic": {
+        "code": "invalidResponse",
+        "stage": "nativeSearchRejected"
+      }
+    }
+  ]
+}

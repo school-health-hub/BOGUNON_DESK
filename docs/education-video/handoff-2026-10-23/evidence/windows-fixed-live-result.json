@@ -1,0 +1,43 @@
+{
+  "sourceSha": "6941b94879677393d4bf7a7063370e4108306aae",
+  "exeSha256": "4a690a46a0bc85c367666f0ba1a1f381aa3e0745df50dc71bd8ee290cfc26fd4",
+  "buildRun": "39795860649",
+  "buildAndArtifact": "PASS",
+  "searchButtonFix": "PASS",
+  "searchAttempts": 1,
+  "searchParsedSuccessfully": false,
+  "reviewAttempts": 0,
+  "observedConditions": {
+    "topic": "양성평등교육",
+    "target": "초등학생",
+    "minutes": 10
+  },
+  "requestedDrugHighSchoolScenario": "NOT RUN",
+  "visibleError": "ChatGPT 응답을 확인할 수 없습니다.",
+  "recommendations": 0,
+  "draft": "NOT RUN",
+  "libraryRoundTrip": "NOT RUN",
+  "production": [
+    {
+      "relative": "BOGUNON DESK/school-health-desk.exe",
+      "unchanged": true
+    },
+    {
+      "relative": "kr.sungandi.schoolhealthdesk/chatgpt-auth.bin",
+      "unchanged": true
+    },
+    {
+      "relative": "kr.sungandi.schoolhealthdesk/chatgpt-registration.bin",
+      "unchanged": true
+    },
+    {
+      "relative": "kr.sungandi.schoolhealthdesk/chatgpt-host.json",
+      "unchanged": true
+    }
+  ],
+  "externalDispatch": {
+    "desktop": false,
+    "proxy": false
+  },
+  "retry": "NOT RUN; allowance consumed; receipts preserved"
+}

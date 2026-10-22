@@ -1,0 +1,18 @@
+{
+  "recordedAt": "2026-10-22T16:37:48.680Z",
+  "additionalAiRequests": 0,
+  "productionChanged": false,
+  "priorUncommittedTestsPreserved": true,
+  "officialSdkExecution": "NOT RUN; source and upstream test expectations inspected",
+  "officialNodeRevision": "802a3239e91b46c408c350e11ecff84b76fb17d4",
+  "officialPythonRevision": "7db9d884c33b0d5ef252e9a4b6e7ae0bbd217e5b",
+  "endpoint": "https://api.openai.com/v1/responses",
+  "auth": "OAuth Bearer; no secret values recorded",
+  "version": "v1 URL; no date version pinned",
+  "officialPolicy": "Missing/null output recovered; explicitly empty output remains empty",
+  "finderPolicy": "Explicit empty output conflicts with done items and is rejected",
+  "nativeParserTests": 28,
+  "frontendTests": 52,
+  "protectedFilesUnchanged": true,
+  "next": "Retain parser; separately consider empty-provider-output error classification without creating candidates; seek provider contract clarification."
+}
