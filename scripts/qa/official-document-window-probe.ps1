@@ -147,7 +147,11 @@ try {
             Record 'client-1440x900' 'NOT RUN' 'Screen cannot fit target client plus measured window chrome; actual client dimensions recorded.'
         }
         if ($fit) { [void][NativeQaWindow]::SetWindowPos($script:qaHandle,[IntPtr]::Zero,$fit.WorkingArea.X,$fit.WorkingArea.Y,$targetWidth,$targetHeight,0x0044) }
-        else { Record 'fit-1440x900' 'NOT RUN' 'No physical screen working area supports 1440x900 outer bounds.' }
+        else {
+            $small=[System.Windows.Forms.Screen]::AllScreens | Where-Object { $_.WorkingArea.Width -ge (900+$chromeWidth) -and $_.WorkingArea.Height -ge (680+$chromeHeight) } | Select-Object -First 1
+            if ($small) { [void][NativeQaWindow]::SetWindowPos($script:qaHandle,[IntPtr]::Zero,$small.WorkingArea.X,$small.WorkingArea.Y,(900+$chromeWidth),(680+$chromeHeight),0x0044) }
+            Record 'fit-1440x900' 'NOT RUN' 'Physical display is too small; attempted screen-supported 900x680 client fallback, actual geometry recorded.'
+        }
         try { Foreground; Record 'foreground' 'PASS' 'Verified QA HWND before native capture.' } catch { Record 'foreground' 'FAIL' $_.Exception.Message }
         $client=[NativeQaWindow+Rect]::new()
         [void][NativeQaWindow]::GetClientRect($script:qaHandle,[ref]$client)
@@ -174,6 +178,17 @@ try {
                 Save-Json 'attachment-observation' $matches
                 Record 'attachment-duplicate-inspection' 'NOT RUN' 'Saved UIA evidence only; no deduplication assertion performed.'
                 Capture 'draft'
+                foreach ($label in @('제목','본문','전체')) {
+                    if (Invoke-Named "$label 복사") {
+                        $notice="$label"+'을(를) 복사했습니다.'
+                        if (@(Controls | Where-Object { $_.Current.Name -eq $notice }).Count) {
+                            $text=[System.Windows.Forms.Clipboard]::GetText()
+                            $marker=if ($label -eq '본문') { 'QA synthetic main content' } else { 'QA synthetic document' }
+                            Record "copy-$label" $(if ($text.Contains($marker)) {'PASS'} else {'FAIL'}) 'Clipboard read only after synthetic draft copy success notice; synthetic marker checked, clipboard bytes not logged.'
+                            Capture "copy-$label"
+                        } else { Record "copy-$label" 'NOT RUN' 'No confirmed copy success notice; clipboard not read.' }
+                    }
+                }
             }
         } else { Record 'draft' 'NOT RUN' 'All three synthetic fields must be confirmed before generating a draft.' }
         foreach ($name in @('찾기','관리')) { if (Invoke-Named $name) { Inventory "controls-$name"; Capture $name } }
@@ -195,7 +210,7 @@ try {
     } else { Record 'interaction' 'NOT RUN' 'Interaction not requested or no visible QA window.' }
     Record 'window-enumeration' $(if ($windows.Count) {'PASS'} else {'FAIL'}) "$($windows.Count) top-level windows belong to QA PID."
     Record 'sticky-scroll-layout' 'NOT RUN' 'No sticky-position or scroll-layout assertion performed.'
-    Record 'clipboard-copy' 'NOT RUN' 'Clipboard not read; synthetic draft copy verification is not implemented.'
+    Record 'clipboard-copy-summary' 'NOT RUN' 'See individual copy results if synthetic draft was generated; no blanket copy PASS inferred.'
 } catch {
     Record 'probe' 'FAIL' $_.Exception.Message
 } finally {

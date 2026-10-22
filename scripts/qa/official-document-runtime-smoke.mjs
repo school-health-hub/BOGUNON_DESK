@@ -63,6 +63,8 @@ try {
     const controlsFile = join(evidence, 'native-window-controls-before.json');
     if (existsSync(controlsFile)) {
       const controls = JSON.parse(readFileSync(controlsFile, 'utf8').replace(/^﻿/, ''));
+      report.frontendLoadError = Array.isArray(controls) && controls.some(c => /ERR_FILE_NOT_FOUND|File not found/.test(c.name));
+      if (report.frontendLoadError) { report.status = 'FAIL'; report.uiQa = 'FAIL - native frontend could not load'; process.exitCode = 1; }
       report.frontendInitializedViaUia = Array.isArray(controls) && controls.some(c => c.name === '공문 작업실') && controls.some(c => c.name === '기본 초안 만들기');
       if (report.frontendInitializedViaUia && gui.status === 0 && existsSync(guiReport) && !report.uiProbeFailures?.length) report.uiQa = 'PARTIAL - actual native UI Automation evidence';
     }

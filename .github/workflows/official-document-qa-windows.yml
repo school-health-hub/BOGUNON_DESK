@@ -36,7 +36,6 @@ jobs:
           $root = Join-Path $env:RUNNER_TEMP "official-document-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
           New-Item -ItemType Directory -Path "$root/evidence" -Force | Out-Null
           "QA_ROOT=$root" >> $env:GITHUB_ENV
-          "BOGUNON_OFFICIAL_DOCUMENT_QA_OUTPUT_ROOT=$root/output" >> $env:GITHUB_ENV
           "PSModuleAnalysisCachePath=$root/ModuleAnalysisCache" >> $env:GITHUB_ENV
           [ordered]@{ sourceSha=$env:GITHUB_SHA; ref=$env:GITHUB_REF; identifier='kr.sungandi.schoolhealthdesk.officialdocumentqa'; webview2UiQa='NOT RUN'; externalServices='NOT USED'; runId=$env:GITHUB_RUN_ID } | ConvertTo-Json | Set-Content "$root/evidence/provenance.json"
           Start-Transcript -Path "$root/evidence/environment.log"
@@ -78,9 +77,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Path tests failed' }
       - name: Build and inspect synthetic-only QA frontend
         run: |
+          # Tauri treats Windows drive-letter absolute frontendDist as a URL.
+          # Use the existing relative-path QA contract to embed assets in the EXE.
+          Remove-Item Env:BOGUNON_OFFICIAL_DOCUMENT_QA_OUTPUT_ROOT -ErrorAction SilentlyContinue
           node scripts/build-official-document-qa-frontend.mjs 2>&1 | Tee-Object "$env:QA_ROOT/evidence/frontend.log"
           if ($LASTEXITCODE -ne 0) { throw 'QA frontend failed' }
-          Copy-Item "$env:BOGUNON_OFFICIAL_DOCUMENT_QA_OUTPUT_ROOT/dist-official-document-qa/qa-build.json" "$env:QA_ROOT/evidence/qa-build.json"
+          Copy-Item "dist-official-document-qa/qa-build.json" "$env:QA_ROOT/evidence/qa-build.json"
       - name: Fetch locked Rust dependencies for subsequent offline build
         run: |
           cargo fetch --locked --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc 2>&1 | Tee-Object "$env:QA_ROOT/evidence/cargo-fetch.log"
@@ -91,7 +93,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Native QA build failed' }
           git diff --exit-code -- package-lock.json src-tauri/Cargo.lock
           if ($LASTEXITCODE -ne 0) { throw 'Lockfile changed' }
-          $exe = Join-Path $env:BOGUNON_OFFICIAL_DOCUMENT_QA_OUTPUT_ROOT 'target/x86_64-pc-windows-msvc/release/bogunon-desk-official-document-qa.exe'
+          $exe = Join-Path $env:GITHUB_WORKSPACE 'src-tauri/target-official-document-qa/x86_64-pc-windows-msvc/release/bogunon-desk-official-document-qa.exe'
           if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'QA EXE missing' }
           Copy-Item -LiteralPath $exe -Destination "$env:QA_ROOT/evidence/"
           $hash = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
