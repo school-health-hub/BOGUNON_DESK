@@ -2,7 +2,7 @@ use serde::Serialize;
 use serde_json::Value;
 #[path = "web_search_error.rs"]
 mod error;
-use error::ParseError;
+pub(crate) use error::ParseError;
 #[path = "web_search_stream.rs"]
 mod stream;
 
@@ -30,7 +30,7 @@ pub(crate) fn request_body(model: &str, prompt: &str) -> Value {
     serde_json::json!({
         "model":model,"input":[{"role":"user","content":prompt}],
         "store":false,"stream":true,"tools":[{"type":"web_search"}],
-        "tool_choice":"required","include":["web_search_call.action.sources"]
+        "tool_choice":"auto","include":["web_search_call.action.sources"]
     })
 }
 

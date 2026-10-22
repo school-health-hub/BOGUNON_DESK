@@ -8,11 +8,11 @@ fn body(output: Value) -> Vec<u8> {
     .into_bytes()
 }
 #[test]
-fn request_requires_web_search_and_no_storage() {
+fn request_allows_auto_web_search_and_no_storage() {
     let body = request_body("gpt-6-astra", "synthetic");
     assert_eq!(body["store"], false);
     assert_eq!(body["stream"], true);
-    assert_eq!(body["tool_choice"], "required");
+    assert_eq!(body["tool_choice"], "auto");
     assert_eq!(body["tools"][0]["type"], "web_search");
     assert_eq!(body["include"][0], "web_search_call.action.sources");
     assert!(body["input"].is_array());
@@ -41,6 +41,17 @@ fn requires_completed_event_and_search_evidence() {
     let mut output = evidence();
     output.as_array_mut().unwrap().remove(0);
     assert!(parse(&body(output), 0).is_err());
+}
+#[test]
+fn recommendation_json_and_citation_cannot_replace_a_completed_search() {
+    let output = json!([{
+        "type":"message","status":"completed","content":[{
+            "type":"output_text",
+            "text":"{\"videos\":[{\"url\":\"https://www.youtube.com/watch?v=abcdefghijk\"}]}",
+            "annotations":[{"type":"url_citation","url":"https://www.youtube.com/watch?v=abcdefghijk","title":"Synthetic unsearched claim"}]
+        }]
+    }]);
+    assert_eq!(parse(&body(output), 0).expect_err("search evidence required"), ParseError::MissingSearch);
 }
 #[test]
 fn rejects_unsafe_source_and_incomplete_search() {

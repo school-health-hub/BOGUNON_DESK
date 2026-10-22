@@ -8,6 +8,7 @@ import type {
 } from "./types";
 
 const ERROR_MESSAGES: Readonly<Record<ChatGptPlanErrorCode, string>> = {
+  searchNotPerformed: "AI가 이번 요청에서 웹 검색을 실행하지 않았습니다. 확인되지 않은 영상은 추천하지 않습니다.",
   reauthenticationRequired: "ChatGPT 계정을 다시 연결해 주세요.",
   accessDenied: "현재 계정 또는 지역에서는 ChatGPT 요금제 요청을 사용할 수 없습니다.",
   usageLimitExceeded: "ChatGPT 요금제 사용 한도에 도달했거나 현재 사용할 수 없습니다.",
@@ -42,7 +43,9 @@ export const normalizeChatGptPlanError = (error: unknown): ChatGptPlanError => {
     return { code: error.code, message: error.message };
   }
   const code = readErrorCode(error).toLowerCase();
-  const normalizedCode: ChatGptPlanErrorCode = code === "reauthenticationrequired"
+  const normalizedCode: ChatGptPlanErrorCode = code === "searchnotperformed"
+    ? "searchNotPerformed"
+    : code === "reauthenticationrequired"
     ? "reauthenticationRequired"
     : code === "permissiondenied"
       ? "accessDenied"

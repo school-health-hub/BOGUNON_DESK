@@ -121,3 +121,62 @@ fn synthetic_present_empty_final_output_cannot_contradict_completed_items() {
     events.push(completed(json!([])));
     assert_eq!(diagnose(&stream(events)), "conflictingOutput");
 }
+
+#[test]
+fn synthetic_matching_final_output_preserves_completed_item_order() {
+    // Given: the same completed items in both representations.
+    let output = items();
+    let mut events = done_items(output.clone());
+    events.push(completed(json!(output)));
+    // When: the production parser reconciles the synthetic stream.
+    let result = parse(&stream(events), 0).expect("matching completed output");
+    // Then: the message and its source survive reconciliation.
+    assert_eq!(result.text, "{\"videos\":[]}");
+    assert_eq!(result.sources.len(), 1);
+}
+
+#[test]
+fn synthetic_search_tools_without_message_are_not_recommendations() {
+    // Given: a completed search with a source but no message.
+    let mut events = done_items(vec![items()[0].clone()]);
+    events.push(json!({"type":"response.completed","response":{"status":"completed"}}));
+    // When: the production parser sees only tool evidence.
+    let reason = diagnose(&stream(events));
+    // Then: a source is not promoted into a recommendation.
+    assert_eq!(reason, "missingText");
+}
+
+#[test]
+fn synthetic_qa3_count_shape_with_empty_final_output_is_conflicting() {
+    // Given: invented values matching counts, NOT the unavailable original SSE.
+    let mut output: Vec<Value> = (0..3)
+        .map(|index| json!({"id":format!("synthetic_reasoning_{index}"),"type":"reasoning","summary":[]}))
+        .collect();
+    for index in 0..6 {
+        let count = if index == 0 { 17 } else { 13 };
+        let sources: Vec<Value> = (0..count)
+            .map(|source| json!({"url":format!("https://example.org/synthetic/{index}/{source}"),"title":"Synthetic source"}))
+            .collect();
+        output.push(json!({"id":format!("synthetic_search_{index}"),"type":"web_search_call","status":"completed","action":{"type":"search","sources":sources}}));
+    }
+    output.push(items()[1].clone());
+    let mut events = done_items(output);
+    events.push(completed(json!([])));
+    // When: completed items coexist with an explicitly empty final array.
+    let reason = diagnose(&stream(events));
+    // Then: the existing fail-closed policy reproduces the structural rejection.
+    assert_eq!(reason, "conflictingOutput");
+}
+
+#[test]
+fn synthetic_duplicate_ids_at_different_indices_are_rejected() {
+    // Given: two different indices claiming the same completed item ID.
+    let mut output = items();
+    output[1]["id"] = output[0]["id"].clone();
+    let mut events = done_items(output);
+    events.push(json!({"type":"response.completed","response":{"status":"completed"}}));
+    // When: the stream is reconciled.
+    let reason = diagnose(&stream(events));
+    // Then: ambiguous identity cannot become search evidence.
+    assert_eq!(reason, "duplicateItem");
+}

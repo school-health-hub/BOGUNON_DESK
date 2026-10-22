@@ -8,6 +8,7 @@ const fixture = { text: '{"videos":[]}', checkedAt: '2026-10-22T00:00:00Z', sour
 beforeEach(() => { native.mockReset(); });
 it.each([
   ['invalidResponse', 'invalidResponse'],
+  ['searchNotPerformed', 'searchNotPerformed'],
   ['reauthenticationRequired', 'reauthenticationRequired'],
   ['permissionDenied', 'accessDenied'],
   ['rateLimited', 'rateLimited'],
@@ -30,6 +31,10 @@ it('does not label malformed candidate JSON as the observed invalidResponse noti
 });
 it('maps invalidResponse to the exact observed UI notice', () => {
   expect(normalizeChatGptPlanError({ code: 'invalidResponse' }).message).toBe('ChatGPT 응답을 확인할 수 없습니다.');
+});
+it('preserves the safe skipped-search notice without provider details', () => {
+  expect(normalizeChatGptPlanError({ code: 'searchNotPerformed', message: 'untrusted provider detail' }).message)
+    .toBe('AI가 이번 요청에서 웹 검색을 실행하지 않았습니다. 확인되지 않은 영상은 추천하지 않습니다.');
 });
 it('accepts an explicit zero-video response without citations, but never invents candidates', () => {
   const empty = parseWebSearchResult({ ...fixture, sources: [] });

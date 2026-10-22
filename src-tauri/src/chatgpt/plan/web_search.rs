@@ -44,5 +44,11 @@ pub(crate) async fn search_web<S: ChatGptCredentialStorage, T: PlanTransport>(
         .duration_since(std::time::UNIX_EPOCH)
         .map_err(|_| ChatGptPlanErrorDto::clock())?
         .as_secs();
-    parser::parse(&response.body, checked_at).map_err(|_| InternalError::INVALID_RESPONSE.dto())
+    parser::parse(&response.body, checked_at).map_err(|error| match error {
+        parser::ParseError::MissingSearch => ChatGptPlanErrorDto {
+            code: ChatGptPlanErrorCode::SearchNotPerformed,
+            message: "AI가 이번 요청에서 웹 검색을 실행하지 않았습니다. 확인되지 않은 영상은 추천하지 않습니다.",
+        },
+        _ => InternalError::INVALID_RESPONSE.dto(),
+    })
 }

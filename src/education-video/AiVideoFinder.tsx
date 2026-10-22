@@ -80,7 +80,15 @@ export function AiVideoFinder(p: Props) {
       } else if (action.candidate) {
         setReviews(current => ({ ...current, [action.candidate?.videoId ?? '']: text })); setNotice('소개정보 기반 AI 검토를 표시했습니다. 교사가 원문과 영상을 확인해 주세요.');
       }
-    } catch (error) { if (request === sequence.current && action.identity === identityRef.current) setNotice(normalizeChatGptPlanError(error).message); }
+    } catch (error) {
+      if (request === sequence.current && action.identity === identityRef.current) {
+        const failure = normalizeChatGptPlanError(error);
+        if (action.kind === 'search' && failure.code === 'searchNotPerformed') {
+          setResults([]); setReviews({}); setSearched(false);
+        }
+        setNotice(failure.message);
+      }
+    }
     finally { if (request === sequence.current) setBusy(false); }
   };
   const open = (url: string) => { void p.onOpenUrl(url).catch(() => setNotice('링크를 열지 못했습니다. 데스크톱 앱에서 다시 시도해 주세요.')); };

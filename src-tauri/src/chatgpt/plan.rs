@@ -39,6 +39,7 @@ impl GenerateTextRequest {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) enum ChatGptPlanErrorCode {
+    SearchNotPerformed,
     ReauthenticationRequired,
     PermissionDenied,
     UsageLimitExceeded,

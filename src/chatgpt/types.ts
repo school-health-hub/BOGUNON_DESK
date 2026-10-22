@@ -45,6 +45,7 @@ export type ChatGptModel = {
 };
 
 export const chatGptPlanErrorCodes = [
+  "searchNotPerformed",
   "reauthenticationRequired",
   "accessDenied",
   "usageLimitExceeded",
