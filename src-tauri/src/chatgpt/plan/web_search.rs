@@ -2,7 +2,7 @@ use super::*;
 
 #[path = "web_search_parser.rs"]
 mod parser;
-pub(crate) use parser::WebSearchResult;
+pub(crate) use parser::{diagnose, WebSearchResult};
 
 use parser::{request_body, supported_model};
 

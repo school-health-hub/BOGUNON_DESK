@@ -17,7 +17,7 @@ it.each([
   native.mockRejectedValue({ code, message: 'synthetic native DTO' });
   await expect(searchChatGptWebNative('gpt-6.1-sol', 'synthetic public topic')).rejects.toMatchObject({ code: expected });
 });
-it.each([null, {}, { ...fixture, sources: [] }, { output: [], status: 'completed' }])('rejects a synthetic malformed IPC envelope', value => {
+it.each([null, {}, { ...fixture, sources: undefined }, { output: [], status: 'completed' }])('rejects a synthetic malformed IPC envelope', value => {
   expect(() => parseWebSearchResult(value)).toThrow(ChatGptPlanRequestError);
 });
 it('distinguishes valid empty video results from transport envelope failure', () => {
@@ -30,4 +30,8 @@ it('does not label malformed candidate JSON as the observed invalidResponse noti
 });
 it('maps invalidResponse to the exact observed UI notice', () => {
   expect(normalizeChatGptPlanError({ code: 'invalidResponse' }).message).toBe('ChatGPT 응답을 확인할 수 없습니다.');
+});
+it('accepts an explicit zero-video response without citations, but never invents candidates', () => {
+  const empty = parseWebSearchResult({ ...fixture, sources: [] });
+  expect(parseVideoSearchResult(empty)).toEqual({ candidates: [], excludedCount: 0 });
 });

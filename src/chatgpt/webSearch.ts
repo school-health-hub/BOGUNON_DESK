@@ -10,10 +10,21 @@ export type WebSearchResult = {
 export const supportedWebSearchModel = (model: string): boolean =>
   ["gpt-6-astra", "gpt-6.1-sol", "gpt-6-sol", "gpt-5.6-luna"].includes(model);
 
+const emptySearchResult = (text: string): boolean => {
+  try {
+    const decoded: unknown = JSON.parse(text);
+    return typeof decoded === "object" && decoded !== null && !Array.isArray(decoded)
+      && Object.keys(decoded).length === 1 && "videos" in decoded && Array.isArray(decoded.videos) && decoded.videos.length === 0;
+  } catch (error: unknown) {
+    if (error instanceof SyntaxError) return false;
+    throw error;
+  }
+};
+
 export const parseWebSearchResult = (value: unknown): WebSearchResult => {
   if (typeof value !== "object" || value === null || !("text" in value) || typeof value.text !== "string"
     || !("checkedAt" in value) || typeof value.checkedAt !== "string" || !Number.isFinite(Date.parse(value.checkedAt))
-    || !("sources" in value) || !Array.isArray(value.sources) || value.sources.length === 0) {
+    || !("sources" in value) || !Array.isArray(value.sources) || (value.sources.length === 0 && !emptySearchResult(value.text))) {
     throw new ChatGptPlanRequestError("invalidResponse");
   }
   const sources = value.sources.map((source: unknown) => {

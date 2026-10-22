@@ -95,6 +95,8 @@ impl PlanTransport for ReadOnlyTransport {
                         response.request_id.is_some(),
                         &response.body,
                     );
+                    summary["searchParseReason"] =
+                        serde_json::json!(web_search::diagnose(&response.body));
                     summary["httpAccepted"] = serde_json::json!(ensure_success(response).is_ok());
                     summary["sharedStreamAccepted"] =
                         serde_json::json!(parse_response_stream(&response.body).is_ok());
