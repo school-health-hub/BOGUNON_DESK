@@ -54,7 +54,7 @@ if (process.platform !== "win32") throw new Error("Official-document QA requires
 if (
   config.identifier !== "kr.sungandi.schoolhealthdesk.officialdocumentqa"
   || config.mainBinaryName !== "bogunon-desk-official-document-qa"
-  || config.app?.windows?.[0]?.dataDirectory !== "official-document-qa-webview"
+  || config.app?.windows?.[0]?.dataDirectory !== null
   || config.bundle?.active !== false
 ) {
   throw new Error("Official-document QA isolation config mismatch");

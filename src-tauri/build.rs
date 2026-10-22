@@ -86,9 +86,9 @@ fn main() {
             config["build"]["frontendDist"],
             frontend_dist.to_string_lossy().as_ref()
         );
-        assert_eq!(
-            config["app"]["windows"][0]["dataDirectory"],
-            "official-document-qa-webview"
+        assert!(
+            config["app"]["windows"][0]["dataDirectory"].is_null(),
+            "Official document QA must use identifier-scoped default WebView2 storage"
         );
         assert!(
             config["plugins"].get("updater").is_none()

@@ -95,6 +95,42 @@ jobs:
           $hash = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
           "$hash  bogunon-desk-official-document-qa.exe" | Set-Content "$env:QA_ROOT/evidence/SHA256SUMS.txt"
           "Native build PASS. WebView2 actual UI QA NOT RUN. Source: $env:GITHUB_SHA. EXE SHA256: $hash" >> $env:GITHUB_STEP_SUMMARY
+      - name: Runner-only startup and actual isolation handshake
+        timeout-minutes: 4
+        run: |
+          $exe = Join-Path $env:QA_ROOT 'evidence/bogunon-desk-official-document-qa.exe'
+          $webview = @(Get-ChildItem "${env:ProgramFiles(x86)}/Microsoft/EdgeWebView/Application" -Filter msedgewebview2.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)
+          $rules = @()
+          $ready = $false
+          $launched = $false
+          try {
+            if (-not $webview.Count) { throw 'WebView2 runtime unavailable' }
+            # Block every non-loopback destination for this QA EXE and WebView2 only.
+            $remote = @('0.0.0.0-126.255.255.255','128.0.0.0-255.255.255.255','::2-ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff')
+            foreach ($program in @($exe) + $webview) {
+              $name = 'official-qa-' + [guid]::NewGuid().ToString('N')
+              $rules += $name
+              New-NetFirewallRule -Name $name -DisplayName $name -Direction Outbound -Action Block -Program $program -RemoteAddress $remote -Profile Any -ErrorAction Stop | Out-Null
+            }
+            $ready = $true
+          } catch {
+            @{ status='NOT RUN'; reason=$_.Exception.Message; uiQa='NOT RUN' } | ConvertTo-Json | Set-Content "$env:QA_ROOT/evidence/runtime-smoke.json"
+          }
+          try {
+            if ($ready) {
+              $launched = $true
+              node scripts/qa/official-document-runtime-smoke.mjs 2>&1 | Tee-Object "$env:QA_ROOT/evidence/runtime-smoke.log"
+              if ($LASTEXITCODE -ne 0) { throw 'Runner startup/isolation verification failed' }
+            }
+            Get-Content "$env:QA_ROOT/evidence/runtime-smoke.json" >> $env:GITHUB_STEP_SUMMARY
+          } finally {
+            $report = Get-Content "$env:QA_ROOT/evidence/runtime-smoke.json" -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json
+            if (-not $launched -or $report.cleanupConfirmed -eq $true) {
+              foreach ($name in $rules) { Remove-NetFirewallRule -Name $name -ErrorAction SilentlyContinue }
+            } else {
+              Write-Warning 'Process cleanup unconfirmed; outbound blocks retained until disposable runner shutdown'
+            }
+          }
       - name: Preserve executable and diagnostic logs even on failure
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

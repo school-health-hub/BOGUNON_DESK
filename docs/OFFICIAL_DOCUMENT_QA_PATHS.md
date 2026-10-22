@@ -70,11 +70,10 @@ QA identifier: `kr.sungandi.schoolhealthdesk.officialdocumentqa`.
 - 패키지 저장: Windows LocalAppData Known Folder 아래
   `kr.sungandi.schoolhealthdesk.officialdocumentqa/official-document-references`.
 - QA Rust 격리 검사는 identifier 디렉터리의 `EBWebView`를 기대한다.
-- 현재 Tauri 설정의 상대 `dataDirectory`는 `official-document-qa-webview`다.
-  lockfile의 Tauri 2.11.5 from_config 구현은 이를 LocalAppData 아래
-  `main/official-document-qa-webview`로 해석한다. WebView2가 그 안에 추가 데이터를 만들 수 있다.
-  따라서 실제 WebView2 경로와 Rust 격리 검사 기대값의 일치는 실행 전에 다시 확인해야 한다.
-  이번 변경은 이 기존 경로 차이를 수정하거나 안전하다고 선언하지 않는다.
+- QA 설정의 `dataDirectory: null`은 상대 경로 override를 사용하지 않는다.
+  lockfile의 Tauri 2.11.5는 Windows 기본 user data folder를 LocalAppData/QA identifier로 정한다.
+  WebView2가 그 아래 `EBWebView`를 생성하고 기존 Rust 검사가 실제 디렉터리와 reparse 여부를 확인한다.
+  운영 Tauri 설정은 변경하지 않는다. Runner 시작 검증은 이 실제 경로와 프런트엔드 격리 handshake를 별도로 기록한다.
 - LOCALAPPDATA/USERPROFILE 변경만으로 Known Folder를 E:로 옮길 수 있다고 가정하지 않는다.
 - C:에 WebView2 cache·프로필·crash/log 파일, QA 패키지 데이터, OS/도구 진단 자료 및
   시스템 관리 pagefile 증가가 남을 수 있다. 외부 build target만으로 이를 막을 수 없다.
