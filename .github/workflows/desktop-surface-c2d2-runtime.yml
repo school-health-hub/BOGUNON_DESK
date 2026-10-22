@@ -82,19 +82,86 @@ jobs:
           cargo run --locked --manifest-path src-surface-host/Cargo.toml --bin c2d2-runtime-qa
           if ($LASTEXITCODE -ne 0) { throw 'phase one failed; phase two is forbidden' }
       - name: Verify runtime diagnostics contain no sensitive paths
+        id: diagnostics
         if: ${{ always() }}
         run: node scripts/desktop-surface-c2d2.mjs diagnostics $env:C2D2_DIAGNOSTICS
       - name: Preserve diagnostic JSON only
-        if: ${{ always() }}
+        if: ${{ always() && steps.diagnostics.outcome == 'success' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: c2d2-runtime-${{ github.run_id }}-${{ github.run_attempt }}
           retention-days: 14
           if-no-files-found: error
           path: |
-            ${{ runner.temp }}\c2d2-diagnostics\runtime-summary.json
-            ${{ runner.temp }}\c2d2-diagnostics\timeline.jsonl
-            ${{ runner.temp }}\c2d2-diagnostics\ownership-ledger.json
-            ${{ runner.temp }}\c2d2-diagnostics\udf-observation.json
-            ${{ runner.temp }}\c2d2-diagnostics\cleanup-receipt.json
-            ${{ runner.temp }}\c2d2-diagnostics\cleanup-unknown.json
+            ${{ runner.temp }}/c2d2-diagnostics/runtime-summary.json
+            ${{ runner.temp }}/c2d2-diagnostics/timeline.jsonl
+            ${{ runner.temp }}/c2d2-diagnostics/ownership-ledger.json
+            ${{ runner.temp }}/c2d2-diagnostics/udf-observation.json
+            ${{ runner.temp }}/c2d2-diagnostics/cleanup-receipt.json
+            ${{ runner.temp }}/c2d2-diagnostics/cleanup-unknown.json
+            ${{ runner.temp }}/c2d2-diagnostics/phase-one-receipt.json
+            ${{ runner.temp }}/c2d2-diagnostics/phase-two-summary.json
+            ${{ runner.temp }}/c2d2-diagnostics/environment-rejected/case-report.json
+            ${{ runner.temp }}/c2d2-diagnostics/environment-rejected/timeline.jsonl
+            ${{ runner.temp }}/c2d2-diagnostics/environment-rejected/ownership-ledger.json
+            ${{ runner.temp }}/c2d2-diagnostics/environment-rejected/udf-observation.json
+            ${{ runner.temp }}/c2d2-diagnostics/environment-rejected/runtime-summary.json
+            ${{ runner.temp }}/c2d2-diagnostics/environment-rejected/cleanup-receipt.json
+            ${{ runner.temp }}/c2d2-diagnostics/environment-rejected/cleanup-unknown.json
+            ${{ runner.temp }}/c2d2-diagnostics/environment-rejected/retention-observation.json
+            ${{ runner.temp }}/c2d2-diagnostics/controller-rejected/case-report.json
+            ${{ runner.temp }}/c2d2-diagnostics/controller-rejected/timeline.jsonl
+            ${{ runner.temp }}/c2d2-diagnostics/controller-rejected/ownership-ledger.json
+            ${{ runner.temp }}/c2d2-diagnostics/controller-rejected/udf-observation.json
+            ${{ runner.temp }}/c2d2-diagnostics/controller-rejected/runtime-summary.json
+            ${{ runner.temp }}/c2d2-diagnostics/controller-rejected/cleanup-receipt.json
+            ${{ runner.temp }}/c2d2-diagnostics/controller-rejected/cleanup-unknown.json
+            ${{ runner.temp }}/c2d2-diagnostics/controller-rejected/retention-observation.json
+            ${{ runner.temp }}/c2d2-diagnostics/environment-deadline/case-report.json
+            ${{ runner.temp }}/c2d2-diagnostics/environment-deadline/timeline.jsonl
+            ${{ runner.temp }}/c2d2-diagnostics/environment-deadline/ownership-ledger.json
+            ${{ runner.temp }}/c2d2-diagnostics/environment-deadline/udf-observation.json
+            ${{ runner.temp }}/c2d2-diagnostics/environment-deadline/runtime-summary.json
+            ${{ runner.temp }}/c2d2-diagnostics/environment-deadline/cleanup-receipt.json
+            ${{ runner.temp }}/c2d2-diagnostics/environment-deadline/cleanup-unknown.json
+            ${{ runner.temp }}/c2d2-diagnostics/environment-deadline/retention-observation.json
+            ${{ runner.temp }}/c2d2-diagnostics/controller-deadline/case-report.json
+            ${{ runner.temp }}/c2d2-diagnostics/controller-deadline/timeline.jsonl
+            ${{ runner.temp }}/c2d2-diagnostics/controller-deadline/ownership-ledger.json
+            ${{ runner.temp }}/c2d2-diagnostics/controller-deadline/udf-observation.json
+            ${{ runner.temp }}/c2d2-diagnostics/controller-deadline/runtime-summary.json
+            ${{ runner.temp }}/c2d2-diagnostics/controller-deadline/cleanup-receipt.json
+            ${{ runner.temp }}/c2d2-diagnostics/controller-deadline/cleanup-unknown.json
+            ${{ runner.temp }}/c2d2-diagnostics/controller-deadline/retention-observation.json
+            ${{ runner.temp }}/c2d2-diagnostics/cancel-before-controller/case-report.json
+            ${{ runner.temp }}/c2d2-diagnostics/cancel-before-controller/timeline.jsonl
+            ${{ runner.temp }}/c2d2-diagnostics/cancel-before-controller/ownership-ledger.json
+            ${{ runner.temp }}/c2d2-diagnostics/cancel-before-controller/udf-observation.json
+            ${{ runner.temp }}/c2d2-diagnostics/cancel-before-controller/runtime-summary.json
+            ${{ runner.temp }}/c2d2-diagnostics/cancel-before-controller/cleanup-receipt.json
+            ${{ runner.temp }}/c2d2-diagnostics/cancel-before-controller/cleanup-unknown.json
+            ${{ runner.temp }}/c2d2-diagnostics/cancel-before-controller/retention-observation.json
+            ${{ runner.temp }}/c2d2-diagnostics/held-event-token/case-report.json
+            ${{ runner.temp }}/c2d2-diagnostics/held-event-token/timeline.jsonl
+            ${{ runner.temp }}/c2d2-diagnostics/held-event-token/ownership-ledger.json
+            ${{ runner.temp }}/c2d2-diagnostics/held-event-token/udf-observation.json
+            ${{ runner.temp }}/c2d2-diagnostics/held-event-token/runtime-summary.json
+            ${{ runner.temp }}/c2d2-diagnostics/held-event-token/cleanup-receipt.json
+            ${{ runner.temp }}/c2d2-diagnostics/held-event-token/cleanup-unknown.json
+            ${{ runner.temp }}/c2d2-diagnostics/held-event-token/retention-observation.json
+            ${{ runner.temp }}/c2d2-diagnostics/held-com-reference/case-report.json
+            ${{ runner.temp }}/c2d2-diagnostics/held-com-reference/timeline.jsonl
+            ${{ runner.temp }}/c2d2-diagnostics/held-com-reference/ownership-ledger.json
+            ${{ runner.temp }}/c2d2-diagnostics/held-com-reference/udf-observation.json
+            ${{ runner.temp }}/c2d2-diagnostics/held-com-reference/runtime-summary.json
+            ${{ runner.temp }}/c2d2-diagnostics/held-com-reference/cleanup-receipt.json
+            ${{ runner.temp }}/c2d2-diagnostics/held-com-reference/cleanup-unknown.json
+            ${{ runner.temp }}/c2d2-diagnostics/held-com-reference/retention-observation.json
+            ${{ runner.temp }}/c2d2-diagnostics/missing-browser-exit/case-report.json
+            ${{ runner.temp }}/c2d2-diagnostics/missing-browser-exit/timeline.jsonl
+            ${{ runner.temp }}/c2d2-diagnostics/missing-browser-exit/ownership-ledger.json
+            ${{ runner.temp }}/c2d2-diagnostics/missing-browser-exit/udf-observation.json
+            ${{ runner.temp }}/c2d2-diagnostics/missing-browser-exit/runtime-summary.json
+            ${{ runner.temp }}/c2d2-diagnostics/missing-browser-exit/cleanup-receipt.json
+            ${{ runner.temp }}/c2d2-diagnostics/missing-browser-exit/cleanup-unknown.json
+            ${{ runner.temp }}/c2d2-diagnostics/missing-browser-exit/retention-observation.json

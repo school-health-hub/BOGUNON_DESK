@@ -5,7 +5,7 @@ use std::{env, fs, path::PathBuf, time::Duration};
 
 use bogunon_desktop_surface_host::{
     runtime_guard::{authorize, Authorization},
-    runtime_qa::{run_normal, RuntimeCase},
+    runtime_qa::{run_normal, suite, RuntimeCase},
 };
 use serde::Deserialize;
 
@@ -73,14 +73,19 @@ fn execute() -> Result<(), String> {
     let nonce = approval_nonce.bytes().take(8).fold(0_u64, |value, byte| {
         value.wrapping_mul(257).wrapping_add(byte as u64)
     });
-    let result = run_normal(&RuntimeCase {
+    let case = RuntimeCase {
         udf: &requested_udf,
         diagnostics: &diagnostics,
         generation,
         run_nonce: nonce.max(1),
         runtime_version: &preflight.runtime_version,
         timeout: Duration::from_secs(60),
-    });
+    };
+    let args: Vec<String> = env::args().skip(1).collect();
+    if !args.is_empty() {
+        return suite::child(&case, &controller_sha, &run_id, &args);
+    }
+    let result = run_normal(&case);
     match result {
         Ok(()) => {
             let summary = serde_json::json!({
@@ -103,7 +108,8 @@ fn execute() -> Result<(), String> {
                     serde_json::to_string_pretty(&summary).map_err(|error| error.to_string())?
                 ),
             )
-            .map_err(|error| error.to_string())
+            .map_err(|error| error.to_string())?;
+            suite::run(&case, &controller_sha, &run_id)
         }
         Err(error) => {
             let unknown = serde_json::json!({

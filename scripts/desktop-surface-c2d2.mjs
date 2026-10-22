@@ -15,6 +15,14 @@ const ALLOWED_DIAGNOSTICS = new Set([
   'udf-observation.json',
   'cleanup-receipt.json',
   'cleanup-unknown.json',
+  'case-report.json',
+  'retention-observation.json',
+  'phase-one-receipt.json',
+  'phase-two-summary.json',
+]);
+export const FAILURE_CASES = Object.freeze([
+  'environment-rejected', 'controller-rejected', 'environment-deadline', 'controller-deadline',
+  'cancel-before-controller', 'held-event-token', 'held-com-reference', 'missing-browser-exit',
 ]);
 const git = (root, ...args) => execFileSync('git', ['-C', root, ...args], { encoding: 'utf8' }).trim();
 
@@ -41,19 +49,38 @@ export function isAllowedControllerPath(path) {
     || path === 'src-surface-host/src/lib.rs'
     || path === 'src-surface-host/src/windows_host.rs'
     || path === 'src-surface-host/src/bin/c2d2-runtime-qa.rs'
+    || path === 'src-surface-host/src/browser_exit.rs'
+    || path === 'src-surface-host/src/native_window.rs'
     || path === 'src-surface-host/tests/runtime_contract.rs';
 }
 
 export function verifyDiagnostics(root) {
-  const files = readdirSync(root, { withFileTypes: true });
-  assert.ok(files.length > 0, 'diagnostic directory is empty');
-  for (const entry of files) {
-    assert.equal(entry.isFile(), true, `nested diagnostic path denied: ${entry.name}`);
-    assert.equal(ALLOWED_DIAGNOSTICS.has(entry.name), true, `diagnostic denied: ${entry.name}`);
-    assert.ok(statSync(join(root, entry.name)).size <= 1024 * 1024, `diagnostic too large: ${entry.name}`);
-    const text = readFileSync(join(root, entry.name), 'utf8');
-    assert.doesNotMatch(text, /[a-z]:[\\/]+users[\\/]+|AppData|cookie|credential|password|finance\.db|key\.dpapi/i);
-  }
+  let total = 0;
+  const scan = (directory, nested = false) => {
+    const files = readdirSync(directory, { withFileTypes: true });
+    assert.ok(files.length > 0, 'diagnostic directory is empty');
+    for (const entry of files) {
+      assert.equal(entry.isSymbolicLink(), false, 'diagnostic link denied');
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) {
+        assert.equal(nested, false, 'nested case directory denied');
+        assert.ok(FAILURE_CASES.includes(entry.name), 'unknown case directory');
+        scan(path, true);
+        continue;
+      }
+      assert.equal(entry.isFile(), true, 'non-file diagnostic denied');
+      assert.ok(ALLOWED_DIAGNOSTICS.has(entry.name), 'unknown diagnostic file');
+      const size = statSync(path).size;
+      assert.ok(size <= 1024 * 1024, 'diagnostic too large');
+      total += size;
+      assert.ok(total <= 8 * 1024 * 1024, 'diagnostic total exceeds limit');
+      const text = readFileSync(path, 'utf8');
+      assert.doesNotMatch(text.split(String.fromCharCode(92)).join('/'), /[a-z]:[/]+users[/]+|AppData|cookie|credential|password|finance[.]db|key[.]dpapi/i);
+      const records = entry.name.endsWith('.jsonl') ? text.trim().split(String.fromCharCode(10)) : [text];
+      for (const record of records) JSON.parse(record);
+    }
+  };
+  scan(root);
 }
 
 function guard(controller, source) {
@@ -74,7 +101,7 @@ function guard(controller, source) {
   assert.equal(git(controller, 'status', '--porcelain'), '');
   assert.equal(git(source, 'status', '--porcelain'), '');
   git(controller, 'merge-base', '--is-ancestor', SOURCE, 'HEAD');
-  const changed = git(controller, 'diff', '--name-only', SOURCE, 'HEAD').split(/\r?\n/).filter(Boolean);
+  const changed = git(controller, 'diff', '--name-only', SOURCE, 'HEAD').split(String.fromCharCode(10)).map(line => line.trim()).filter(Boolean);
   assert.ok(changed.length > 0);
   for (const path of changed) assert.equal(isAllowedControllerPath(path), true, `controller delta denied: ${path}`);
 }

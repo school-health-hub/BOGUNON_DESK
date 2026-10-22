@@ -67,6 +67,17 @@ impl OwnedWindow {
         })
     }
 
+    /// Confirm teardown results instead of treating dispatch/Drop as proof.
+    pub fn destroy(mut self) -> Result<()> {
+        // SAFETY: this !Send wrapper owns the HWND on the current creator thread.
+        unsafe { DestroyWindow(self.hwnd) }?;
+        self.hwnd = HWND::default();
+        // SAFETY: the owned window is gone and this instance registered the class.
+        unsafe { UnregisterClassW(CLASS_NAME, Some(self.instance)) }?;
+        self.class_registered = false;
+        Ok(())
+    }
+
     pub fn hwnd(&self) -> HWND {
         self.hwnd
     }

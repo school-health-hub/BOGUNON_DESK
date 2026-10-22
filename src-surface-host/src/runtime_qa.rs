@@ -1,14 +1,13 @@
-use std::{
-    fs::{create_dir_all, File},
-    io::Write,
-    path::Path,
-    thread,
-    time::{Duration, Instant},
-};
+mod child;
+mod support;
+use support::{close_controller, expire_budget, ownership_event, wait_for, write_json};
+pub mod failure;
+pub mod suite;
+
+use std::{fs::create_dir_all, path::Path, time::Duration};
 
 use serde::Serialize;
 use thiserror::Error;
-use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2Controller;
 
 use crate::{
     browser_exit::BrowserExitSubscription,
@@ -19,8 +18,7 @@ use crate::{
     runtime_identity::directory_identity,
     udf::{self, DirectoryObservation},
     windows_host::{
-        observe_runtime, pump_pending, ControllerRequest, EnvironmentRequest, HostError,
-        RuntimeBinding, StaGuard,
+        observe_runtime, ControllerRequest, EnvironmentRequest, HostError, RuntimeBinding, StaGuard,
     },
 };
 
@@ -64,6 +62,14 @@ pub struct RuntimeCase<'a> {
 }
 
 pub fn run_normal(case: &RuntimeCase<'_>) -> Result<(), RuntimeQaError> {
+    run_with_fault(case, None)
+}
+
+fn run_with_fault(
+    case: &RuntimeCase<'_>,
+    fault: Option<crate::runtime_evidence::FailureCase>,
+) -> Result<(), RuntimeQaError> {
+    use crate::runtime_evidence::FailureCase;
     create_dir_all(case.udf)?;
     create_dir_all(case.diagnostics)?;
     let canonical_requested = std::fs::canonicalize(case.udf)?;
@@ -80,16 +86,33 @@ pub fn run_normal(case: &RuntimeCase<'_>) -> Result<(), RuntimeQaError> {
     ledger
         .acquire(attempt, crate::ownership::Resource::Host, 1)
         .map_err(|_| RuntimeQaError::Identity)?;
+    ownership_event(case, "Host", "acquire")?;
+    crate::runtime_evidence::admit_factory(
+        fault,
+        crate::runtime_evidence::CreationStage::Environment,
+    )
+    .map_err(|_| RuntimeQaError::Identity)?;
     let sta = StaGuard::initialize()?;
     let window = OwnedWindow::create_hidden().map_err(HostError::Com)?;
     ledger
         .acquire(attempt, crate::ownership::Resource::Window, 2)
         .map_err(|_| RuntimeQaError::Identity)?;
+    ownership_event(case, "Window", "acquire")?;
     let environment_request = EnvironmentRequest::begin(&sta, case.udf, binding)?;
+    if fault == Some(FailureCase::EnvironmentDeadline) {
+        expire_budget(|| environment_request.try_complete())?;
+        // Drain the SAME request below, not a retry.
+        support::timeline_event(
+            case,
+            &serde_json::json!({"stage":"environment-deadline","expected":true}),
+        )?;
+    }
     let environment = wait_for(case.timeout, || environment_request.try_complete())?;
+    drop(environment_request);
     ledger
         .acquire(attempt, crate::ownership::Resource::Environment, 3)
         .map_err(|_| RuntimeQaError::Identity)?;
+    ownership_event(case, "Environment", "acquire")?;
     if environment.binding != binding {
         return Err(RuntimeQaError::Identity);
     }
@@ -97,12 +120,54 @@ pub fn run_normal(case: &RuntimeCase<'_>) -> Result<(), RuntimeQaError> {
     ledger
         .acquire(attempt, crate::ownership::Resource::EventToken, 4)
         .map_err(|_| RuntimeQaError::Identity)?;
+    ownership_event(case, "EventToken", "acquire")?;
+    let mut cancel_state = crate::lifecycle::Lifecycle::new(attempt);
+    for phase in [
+        crate::lifecycle::Phase::CreatingWindow,
+        crate::lifecycle::Phase::CreatingEnvironment,
+        crate::lifecycle::Phase::EnvironmentObserved,
+        crate::lifecycle::Phase::CreatingController,
+    ] {
+        cancel_state
+            .transition(attempt, phase)
+            .map_err(|_| RuntimeQaError::Identity)?;
+    }
+    crate::runtime_evidence::admit_factory(
+        fault,
+        crate::runtime_evidence::CreationStage::Controller,
+    )
+    .map_err(|_| RuntimeQaError::Identity)?;
     let controller_request =
         ControllerRequest::begin(&environment.environment, window.hwnd(), binding)?;
+    if fault == Some(FailureCase::CancelBeforeController) {
+        cancel_state
+            .transition(attempt, crate::lifecycle::Phase::Retiring)
+            .map_err(|_| RuntimeQaError::Identity)?;
+    }
+    if matches!(
+        fault,
+        Some(FailureCase::ControllerDeadline | FailureCase::CancelBeforeController)
+    ) {
+        expire_budget(|| controller_request.try_complete())?;
+        // Cancellation closes admission before callback retrieval. No new request/retry.
+        support::timeline_event(
+            case,
+            &serde_json::json!({"stage":fault,"admissionOpen":false}),
+        )?;
+    }
     let controller = wait_for(case.timeout, || controller_request.try_complete())?;
+    drop(controller_request);
+    if fault == Some(FailureCase::CancelBeforeController)
+        && cancel_state
+            .transition(attempt, crate::lifecycle::Phase::Quarantined)
+            .is_ok()
+    {
+        return Err(RuntimeQaError::Identity);
+    }
     ledger
         .acquire(attempt, crate::ownership::Resource::Controller, 5)
         .map_err(|_| RuntimeQaError::Identity)?;
+    ownership_event(case, "Controller", "acquire")?;
     if controller.binding != binding {
         return Err(RuntimeQaError::Identity);
     }
@@ -110,9 +175,11 @@ pub fn run_normal(case: &RuntimeCase<'_>) -> Result<(), RuntimeQaError> {
     ledger
         .acquire(attempt, crate::ownership::Resource::WebView, 6)
         .map_err(|_| RuntimeQaError::Identity)?;
+    ownership_event(case, "WebView", "acquire")?;
     ledger
         .release(attempt, crate::ownership::Resource::WebView, 6)
         .map_err(|_| RuntimeQaError::Identity)?;
+    ownership_event(case, "WebView", "release")?;
     let effective = DirectoryObservation {
         path: std::fs::canonicalize(&observation.effective_udf)?,
         identity: directory_identity(&observation.effective_udf)?,
@@ -130,31 +197,58 @@ pub fn run_normal(case: &RuntimeCase<'_>) -> Result<(), RuntimeQaError> {
             contains_sensitive_data: false,
         },
     )?;
+    failure::held_resource_probe(
+        case,
+        fault,
+        &environment,
+        &RuntimeIdentity {
+            attempt,
+            environment: case.generation,
+            browser_process_id: observation.browser_process_id,
+            effective_udf: effective.identity.clone(),
+        },
+    )?;
     close_controller(&controller.controller)?;
     drop(controller);
     ledger
         .release(attempt, crate::ownership::Resource::Controller, 5)
         .map_err(|_| RuntimeQaError::Identity)?;
-    drop(window);
+    ownership_event(case, "Controller", "release")?;
+    if fault.is_some() {
+        window.destroy().map_err(HostError::Com)?;
+    } else {
+        drop(window);
+    }
     ledger
         .release(attempt, crate::ownership::Resource::Window, 2)
         .map_err(|_| RuntimeQaError::Identity)?;
+    ownership_event(case, "Window", "release")?;
+    if fault == Some(FailureCase::MissingBrowserExit) {
+        expire_budget(|| browser_exit.try_observe())?;
+    }
     let exit = wait_for(case.timeout, || browser_exit.try_observe())?;
     if exit.binding != binding || exit.browser_process_id != observation.browser_process_id {
         return Err(RuntimeQaError::Identity);
     }
-    drop(browser_exit);
+    if fault.is_some() {
+        browser_exit.unsubscribe()?;
+    } else {
+        drop(browser_exit);
+    }
     ledger
         .release(attempt, crate::ownership::Resource::EventToken, 4)
         .map_err(|_| RuntimeQaError::Identity)?;
+    ownership_event(case, "EventToken", "release")?;
     drop(environment);
     ledger
         .release(attempt, crate::ownership::Resource::Environment, 3)
         .map_err(|_| RuntimeQaError::Identity)?;
+    ownership_event(case, "Environment", "release")?;
     drop(sta);
     ledger
         .release(attempt, crate::ownership::Resource::Host, 1)
         .map_err(|_| RuntimeQaError::Identity)?;
+    ownership_event(case, "Host", "release")?;
     let runtime = RuntimeIdentity {
         attempt,
         environment: case.generation,
@@ -167,69 +261,13 @@ pub fn run_normal(case: &RuntimeCase<'_>) -> Result<(), RuntimeQaError> {
         browser_process_id: exit.browser_process_id,
         normal_exit: exit.normal,
     };
-    cleanup::evaluate(false, &ledger, &runtime, Some(&exit)).map_err(RuntimeQaError::Cleanup)?;
-    write_json(
-        &case.diagnostics.join("cleanup-receipt.json"),
-        &serde_json::json!({
-            "schema": 1,
-            "result": "PASS",
-            "generation": case.generation,
-            "containsSensitiveData": false
-        }),
-    )?;
-    write_json(
-        &case.diagnostics.join("ownership-ledger.json"),
-        &serde_json::json!({
-            "schema": 1,
-            "result": "RESOLVED",
-            "generation": case.generation,
-            "containsSensitiveData": false
-        }),
-    )?;
-    write_json(
-        &case.diagnostics.join("runtime-summary.json"),
-        &serde_json::json!({
-            "schema": 1,
-            "result": "PASS",
-            "phaseOneComplete": true,
-            "phaseTwoStarted": false,
-            "generation": case.generation,
-            "containsSensitiveData": false
-        }),
-    )?;
-    let mut timeline = File::create(case.diagnostics.join("timeline.jsonl"))?;
-    timeline.write_all(
-        b"{\"stage\":\"phase-one\",\"result\":\"PASS\",\"containsSensitiveData\":false}\n",
-    )?;
-    Ok(())
-}
-
-fn wait_for<T>(
-    timeout: Duration,
-    mut poll: impl FnMut() -> Result<Option<T>, HostError>,
-) -> Result<T, RuntimeQaError> {
-    let deadline = Instant::now() + timeout;
-    loop {
-        let _ = pump_pending()?;
-        if let Some(value) = poll()? {
-            return Ok(value);
-        }
-        if Instant::now() >= deadline {
-            return Err(RuntimeQaError::Timeout);
-        }
-        thread::sleep(Duration::from_millis(10));
-    }
-}
-
-fn close_controller(controller: &ICoreWebView2Controller) -> Result<(), RuntimeQaError> {
-    // SAFETY: the controller is live, belongs to this STA, and is closed exactly once here.
-    unsafe { controller.Close() }.map_err(HostError::Com)?;
-    Ok(())
-}
-
-fn write_json(path: &Path, value: &impl Serialize) -> Result<(), RuntimeQaError> {
-    let mut file = File::create(path)?;
-    serde_json::to_writer_pretty(&mut file, value)?;
-    file.write_all(b"\n")?;
-    Ok(())
+    let accepted_exit = if fault == Some(FailureCase::MissingBrowserExit) {
+        None
+    } else {
+        Some(&exit)
+    };
+    // The fault expires the receipt observer budget. The real exit was still drained to
+    // avoid abandoning resources; a late observation cannot repair the expired case.
+    cleanup::evaluate(false, &ledger, &runtime, accepted_exit).map_err(RuntimeQaError::Cleanup)?;
+    support::write_completion(case, fault)
 }

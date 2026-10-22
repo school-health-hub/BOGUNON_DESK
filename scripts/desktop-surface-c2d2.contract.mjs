@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -36,7 +36,7 @@ test('diagnostic allowlist rejects executable and sensitive path evidence', () =
     writeFileSync(join(root, 'host.exe'), 'x');
     assert.throws(() => verifyDiagnostics(root));
     rmSync(join(root, 'host.exe'));
-    writeFileSync(join(root, 'timeline.jsonl'), JSON.stringify({ path: 'C:\\Users\\secret' }));
+    writeFileSync(join(root, 'timeline.jsonl'), JSON.stringify({ path: ['C:', 'Users', 'secret'].join(String.fromCharCode(92)) }));
     assert.throws(() => verifyDiagnostics(root));
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -58,4 +58,32 @@ test('workflow is protected, non-retrying, source-pinned and diagnostic-only', (
   const upload = yaml.slice(yaml.indexOf('uses: actions/upload-artifact'));
   assert.doesNotMatch(upload, /\.exe|\.zip|target|release-output|\*\*/i);
   assert.match(upload, /runtime-summary\.json/);
+});
+
+test('case diagnostics accept LF/CRLF JSONL but reject unknown files and nested paths', () => {
+  const root = mkdtempSync(join(tmpdir(), 'c2d2-cases-'));
+  const dir = join(root, 'controller-deadline');
+  try {
+    mkdirSync(dir);
+    for (const newline of [String.fromCharCode(10), String.fromCharCode(13,10)]) {
+      writeFileSync(join(dir, 'timeline.jsonl'), ['{"stage":"requested"}','{"stage":"closed"}'].join(newline));
+      assert.doesNotThrow(() => verifyDiagnostics(root));
+    }
+    writeFileSync(join(dir,'host.exe'),'not an executable');
+    assert.throws(() => verifyDiagnostics(root));
+    rmSync(join(dir,'host.exe'));
+    writeFileSync(join(dir,'timeline.jsonl'),'not JSON');
+    assert.throws(() => verifyDiagnostics(root));
+  } finally { rmSync(root,{recursive:true,force:true}); }
+});
+
+test('all case outputs are fixed diagnostic paths and scanner success gates upload', () => {
+  const yaml=readFileSync(new URL('../.github/workflows/desktop-surface-c2d2-runtime.yml',import.meta.url),'utf8');
+  assert.ok(yaml.includes("steps.diagnostics.outcome == 'success'"));
+  for (const id of ['environment-rejected','controller-rejected','environment-deadline','controller-deadline','cancel-before-controller','held-event-token','held-com-reference','missing-browser-exit']) {
+    assert.ok(yaml.includes(id+'/case-report.json'));
+  }
+  assert.equal(isAllowedControllerPath('src-surface-host/src/runtime_qa/child.rs'),true);
+  assert.equal(isAllowedControllerPath('src-surface-host/src/browser_exit.rs'),true);
+  assert.equal(isAllowedControllerPath('src-tauri/capabilities/default.json'),false);
 });

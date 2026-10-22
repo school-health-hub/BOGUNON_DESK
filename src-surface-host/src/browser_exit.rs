@@ -21,6 +21,7 @@ pub struct BrowserExitObservation {
 pub struct BrowserExitSubscription {
     environment: ICoreWebView2Environment5,
     token: i64,
+    subscribed: bool,
     receiver: mpsc::Receiver<BrowserExitObservation>,
     _creator_thread: std::marker::PhantomData<std::rc::Rc<()>>,
 }
@@ -56,9 +57,18 @@ impl BrowserExitSubscription {
         Ok(Self {
             environment,
             token,
+            subscribed: true,
             receiver,
             _creator_thread: std::marker::PhantomData,
         })
+    }
+
+    /// Explicit result-bearing removal for QA; Drop remains the fallback on errors.
+    pub fn unsubscribe(mut self) -> Result<(), HostError> {
+        // SAFETY: the token belongs to this exact live environment on its owning STA.
+        unsafe { self.environment.remove_BrowserProcessExited(self.token) }?;
+        self.subscribed = false;
+        Ok(())
     }
 
     pub fn try_observe(&self) -> Result<Option<BrowserExitObservation>, HostError> {
@@ -73,6 +83,9 @@ impl BrowserExitSubscription {
 impl Drop for BrowserExitSubscription {
     fn drop(&mut self) {
         // SAFETY: this token was returned by this exact environment and is removed once.
-        let _ = unsafe { self.environment.remove_BrowserProcessExited(self.token) };
+        if self.subscribed {
+            // SAFETY: the live token belongs to this exact environment on this STA.
+            let _ = unsafe { self.environment.remove_BrowserProcessExited(self.token) };
+        }
     }
 }
