@@ -68,7 +68,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'TypeScript failed' }
       - name: Vitest regressions
         run: |
-          npm test -- --maxWorkers=4 2>&1 | Tee-Object "$env:QA_ROOT/evidence/vitest.log"
+          npm test -- --maxWorkers=4 --exclude scripts/official-document-qa-paths.test.mjs 2>&1 | Tee-Object "$env:QA_ROOT/evidence/vitest.log"
           if ($LASTEXITCODE -ne 0) { throw 'Vitest failed' }
       - name: QA path contracts
         run: |
