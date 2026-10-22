@@ -12,7 +12,7 @@ const item: IncomeRecord = { id: "00000000-0000-4000-8000-000000000001", sourceN
 const snapshot = (income: readonly IncomeRecord[] = [], revision = 1): FinanceSnapshot => ({ identity: { schemaVersion: 2, datasetId: "00000000-0000-4000-8000-000000000042", revision, history: Array.from({ length: revision }, (_, i) => `00000000-0000-4000-8000-${String(i + 1).padStart(12, "0")}`) }, income, phase2: emptyPhase2Data() });
 const confirmed = () => within(screen.getByRole("alertdialog")).getByRole("button", { name: "로컬 저장" });
 const change = (name: string | RegExp, value: string) => fireEvent.change(screen.getByLabelText(name), { target: { value } });
-async function ready(data = snapshot()) { api.listFinanceIncome.mockResolvedValue(data); render(<FinanceScreen onClose={vi.fn()} />); await waitFor(() => expect(screen.getByRole("button", { name: "수입 등록" }).hasAttribute("disabled")).toBe(false)); }
+async function ready(data = snapshot()) { api.listFinanceIncome.mockResolvedValue(data); render(<FinanceScreen onClose={vi.fn()} />); await screen.findByRole("heading", { name: "재무 홈" }); fireEvent.click(screen.getByRole("button", { name: "수입 관리" })); await waitFor(() => expect(screen.getByRole("button", { name: "수입 등록" }).hasAttribute("disabled")).toBe(false)); }
 async function newForm() { await ready(); fireEvent.click(screen.getByRole("button", { name: "수입 등록" })); change("지급처", "합성 새 지급처"); change(/^총수입 \(원\)/, "200000"); }
 
 describe("local finance management", () => {
@@ -23,21 +23,28 @@ describe("local finance management", () => {
     api.listFinanceIncome.mockReturnValue(new Promise((r) => { finish = r; }));
     render(<FinanceScreen onClose={vi.fn()} />);
     expect(screen.getByText("암호화 저장소를 불러오는 중입니다")).toBeTruthy();
-    expect(screen.queryByText("아직 등록된 수입이 없습니다")).toBeNull();
-    expect(screen.getByRole("button", { name: "수입 등록" }).hasAttribute("disabled")).toBe(true);
+    expect(screen.queryByRole("heading", { name: "재무 홈" })).toBeNull();
+    expect(screen.getByRole("button", { name: "수입 관리" })).toBeTruthy();
     await act(async () => finish(snapshot()));
-    expect(screen.getByText("아직 등록된 수입이 없습니다")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "재무 홈" })).toBeTruthy();
+    expect(screen.getByText("등록된 수입이 없습니다.")).toBeTruthy();
     expect(screen.getByText(/아직 실제 금융정보를 입력하지 마세요/)).toBeTruthy();
   });
   it("adds a synthetic investment account through the encrypted snapshot command", async () => {
     await ready();
-    fireEvent.click(screen.getByRole("button", { name: "세금·투자·자산" }));
-    fireEvent.click(screen.getByRole("button", { name: "투자" }));
+    fireEvent.click(screen.getByRole("button", { name: "투자 관리" }));
+    fireEvent.click(screen.getByRole("button", { name: "계좌·종목 설정" }));
+    const accountPanel = screen.getByRole("heading", { name: "증권계좌" }).closest("section");
+    if (!accountPanel) throw new Error("Synthetic account panel missing");
+    fireEvent.click(within(accountPanel).getByRole("button", { name: "추가" }));
     fireEvent.change(screen.getByPlaceholderText("계좌 이름"), { target: { value: "합성 증권" } });
     api.replaceFinancePhase2.mockImplementation(async (_identity, phase2) => ({ ...snapshot([], 2), phase2 }));
-    fireEvent.click(screen.getAllByRole("button", { name: "추가" })[0]);
+    const accountForm = accountPanel.querySelector("form");
+    if (!accountForm) throw new Error("Synthetic account form missing");
+    fireEvent.click(within(accountForm).getByRole("button", { name: "추가" }));
     await screen.findByText("세금·투자·자산 정보를 암호화 저장소에 저장했습니다.");
-    await waitFor(() => expect(screen.getByPlaceholderText("계좌 이름")).toHaveProperty("value", ""));
+    await waitFor(() => expect(screen.queryByPlaceholderText("계좌 이름")).toBeNull());
+    expect(screen.getByText("합성 증권 · KRW")).toBeTruthy();
     expect(screen.queryByRole("alert")).toBeNull();
     expect(api.replaceFinancePhase2).toHaveBeenCalledWith(snapshot().identity, expect.objectContaining({ investmentAccounts: [expect.objectContaining({ name: "합성 증권", currency: "KRW" })] }));
   });
@@ -124,17 +131,47 @@ describe("local finance management", () => {
     await screen.findByRole("alert");
     expect(screen.queryByText("아직 등록된 수입이 없습니다")).toBeNull();
     expect(document.body.textContent).not.toContain("SYNTHETIC_PRIVATE_INPUT");
-    expect(within(screen.getByRole("region", { name: "연간 수입 집계" })).queryByText("0원")).toBeNull();
+    expect(screen.queryByText("0원")).toBeNull();
   });
   it("asks before losing unsaved input when returning to school work", async () => {
     api.listFinanceIncome.mockResolvedValue(snapshot()); const close = vi.fn(); render(<FinanceScreen onClose={close} />);
     await waitFor(() => expect(screen.getByRole("button", { name: "수입 등록" }).hasAttribute("disabled")).toBe(false));
     fireEvent.click(screen.getByRole("button", { name: "수입 등록" })); change("지급처", "합성 미저장");
-    fireEvent.click(screen.getByRole("button", { name: "보건 업무로" })); expect(close).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "BOGUNON DESK로 돌아가기" })); expect(close).not.toHaveBeenCalled();
     fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "취소" }));
     expect(screen.getByLabelText("지급처")).toHaveProperty("value", "합성 미저장");
-    fireEvent.click(screen.getByRole("button", { name: "보건 업무로" })); fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "확인" }));
+    fireEvent.click(screen.getByRole("button", { name: "BOGUNON DESK로 돌아가기" })); fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "확인" }));
     expect(close).toHaveBeenCalledTimes(1);
+  });
+  it("asks before changing finance sections while an income draft is dirty", async () => {
+    await newForm();
+    fireEvent.click(screen.getByRole("button", { name: "자산·부채" }));
+    expect(screen.getByRole("alertdialog").textContent).toContain("저장하지 않은 입력 내용을 버립니다");
+    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "취소" }));
+    expect(screen.getByLabelText("지급처")).toHaveProperty("value", "합성 새 지급처");
+    expect(screen.queryByRole("heading", { name: "자산·부채" })).toBeNull();
+  });
+  it("clears a cancelled navigation target before later discarding the editor", async () => {
+    await newForm();
+    fireEvent.click(screen.getByRole("button", { name: "자산·부채" }));
+    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "취소" }));
+    fireEvent.click(screen.getByRole("button", { name: "입력 취소" }));
+    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "확인" }));
+    expect(screen.getByRole("heading", { name: "수입 관리" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "자산·부채" })).toBeNull();
+  });
+  it("reports a home calculation failure without presenting false zero balances", async () => {
+    const invalid: FinanceSnapshot = { ...snapshot(), phase2: {
+      ...emptyPhase2Data(),
+      investmentAccounts: [{ id: "account", name: "합성 계좌", market: "kr", currency: "KRW" }],
+      instruments: [{ id: "stock", accountId: "account", symbol: "QA", name: "합성 종목", kind: "stock", currency: "KRW", marketPriceMinor: 10_000_00, valuationExchangeRateMicros: 1_000_000, valuedOn: `${year}-01-01` }],
+      trades: [{ id: "invalid-sell", instrumentId: "stock", kind: "sell", tradedOn: `${year}-01-01`, quantityMicros: 1_000_000, unitPriceMinor: 10_000_00, exchangeRateMicros: 1_000_000, feesKrw: 0, taxesKrw: 0 }],
+    } };
+    api.listFinanceIncome.mockResolvedValue(invalid);
+    render(<FinanceScreen onClose={vi.fn()} />);
+    await screen.findByRole("alert");
+    expect(screen.getByText("재무 요약을 계산하지 못했습니다")).toBeTruthy();
+    expect(screen.queryByText("0원")).toBeNull();
   });
   it("keeps keyboard focus and draft when a save confirmation is cancelled", async () => {
     await newForm();
@@ -162,14 +199,14 @@ it("shows the native cross-PC fixture totals after initial adoption and a screen
   api.cancelFinanceBackup.mockResolvedValue(undefined); api.selectFinanceBackup.mockResolvedValue("synthetic-ticket");
   api.inspectFinanceBackup.mockResolvedValue({ token: "synthetic-ticket", eligible: true, reason: "사용 이력이 없는 빈 저장소입니다.", requiresDatasetConfirmation: true, currentDatasetId: snapshot().identity.datasetId, backupDatasetId: restored.identity.datasetId, currentRevision: 1, backupRevision: 6, recordCount: 4 });
   api.restoreFinanceBackup.mockResolvedValue(restored);
-  await ready(); fireEvent.click(screen.getByRole("button", { name: "백업·복원" }));
+  await ready(); fireEvent.click(screen.getByRole("button", { name: "백업·복원" })); fireEvent.click(screen.getByRole("button", { name: "백업·복원 열기" }));
   fireEvent.click(screen.getByRole("button", { name: "백업 복원" })); fireEvent.click(screen.getByRole("button", { name: "백업 파일 선택" }));
   await screen.findByLabelText("복원 비밀번호"); change("복원 비밀번호", "synthetic-password-123");
   fireEvent.click(screen.getByRole("button", { name: "복호화 및 유효성 검사" }));
   await screen.findByRole("checkbox"); fireEvent.click(screen.getByRole("checkbox"));
   fireEvent.click(screen.getByRole("button", { name: "복원 최종 확인" }));
   fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "데이터셋 변경 후 이식" }));
-  await screen.findByText("암호화 백업을 복원했습니다."); change("연도", "2026");
+  await screen.findByText("암호화 백업을 복원했습니다."); fireEvent.click(screen.getByRole("button", { name: "수입 관리" })); change("연도", "2026");
   expect(screen.getByText("1,350,000원")).toBeTruthy(); expect(screen.getByText("40,500원")).toBeTruthy(); expect(screen.getByText("1,309,500원")).toBeTruthy();
   expect(screen.getAllByRole("article", { name: "수입 항목" })).toHaveLength(3);
   expect(api.restoreFinanceBackup).toHaveBeenCalledExactlyOnceWith("synthetic-ticket", true);

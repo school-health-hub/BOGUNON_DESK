@@ -440,3 +440,24 @@ two lines. D-Day uses readable rows. All use existing spacing/type/color tokens.
 Signed-out desktop widgets show a quiet dash with an accessible waiting label; the
 shared banner is the only account instruction. Standalone/error/loading guidance
 remains. Dock active marker, accessible name, hover and keyboard tooltip stay intact.
+
+## MY FINANCE 2.0 workspace
+
+- MY FINANCE is a local financial workspace, not a draggable dashboard. It reuses
+  the final workspace ink, teal, mint, border, spacing, typography and focus tokens
+  without importing `WidgetFrame` or `AppDock` behavior.
+- The default route is `재무 홈`. A compact local rail owns navigation to income,
+  assets/liabilities, investments, tax and encrypted backup/restore. Market data and
+  financial tools remain absent until they have an implemented offline contract.
+- Home values are derived only from the loaded encrypted snapshot. Loading and error
+  states never substitute zero balances. Annual income explicitly includes dividends;
+  realized and unrealized investment results stay separate; valuation date, currency
+  and exchange-rate context remain visible in their detailed workspace.
+- Cards use white work sheets, a 1px `#dce6e4` border, 12–14px radius and one low
+  shadow. Controls use 8px radius, approximately 36px height, Pretendard, tabular
+  numerals, Korean `keep-all`, 2px teal focus and reduced-motion support.
+- At compact widths the rail becomes a horizontally scrollable local navigation row.
+  Editing moves above the list, keeping every control reachable at 980×700 and
+  Windows DPI 125–150%. Forms open only after an explicit create/edit action.
+- The redesign changes no database schema, calculation, SQLCipher/DPAPI boundary,
+  local path, application identifier, `.bgfnbk` format or restore confirmation flow.
