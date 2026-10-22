@@ -242,7 +242,15 @@ mod my_finance_qa;
 #[cfg(feature = "my-finance-qa")]
 pub use my_finance_qa::run;
 
-#[cfg(not(feature = "my-finance-qa"))]
+#[cfg(all(feature = "my-finance-qa", feature = "education-video-qa"))]
+compile_error!("QA features are mutually exclusive");
+
+#[cfg(all(not(feature = "my-finance-qa"), feature = "education-video-qa"))]
+mod education_video_qa;
+#[cfg(all(not(feature = "my-finance-qa"), feature = "education-video-qa"))]
+pub use education_video_qa::run;
+
+#[cfg(not(any(feature = "my-finance-qa", feature = "education-video-qa")))]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default();

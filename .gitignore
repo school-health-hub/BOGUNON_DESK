@@ -32,5 +32,6 @@ release-output/
 *.sw?
 
 /dist-my-finance-qa/
+/dist-education-video-qa/
 /operating-source/
 /artifacts/my-finance-qa*/

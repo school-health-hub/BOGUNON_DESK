@@ -1,0 +1,35 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "BOGUNON DESK FINDER IPC QA",
+  "identifier": "kr.sungandi.schoolhealthdesk.educationvideoqa",
+  "mainBinaryName": "bogunon-desk-finder-ipc-qa",
+  "build": {
+    "beforeBuildCommand": "node scripts/build-education-video-qa-frontend.mjs",
+    "frontendDist": "../dist-education-video-qa",
+    "devUrl": null,
+    "beforeDevCommand": null
+  },
+  "app": {
+    "windows": [{ "label": "main", "title": "BOGUNON DESK Finder IPC QA · SYNTHETIC ONLY", "width": 980, "height": 760, "minWidth": 720, "minHeight": 560 }],
+    "security": {
+      "capabilities": [{ "identifier": "education-video-qa-only", "windows": ["main"], "permissions": ["core:default"] }],
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self'",
+        "style-src": "'self'",
+        "style-src-attr": "'unsafe-inline'",
+        "font-src": "'self'",
+        "img-src": "'self' data:",
+        "connect-src": "'self' ipc: http://ipc.localhost",
+        "object-src": "'none'",
+        "frame-src": "'none'",
+        "frame-ancestors": "'none'",
+        "base-uri": "'none'",
+        "form-action": "'none'",
+        "worker-src": "'none'"
+      }
+    }
+  },
+  "plugins": { "updater": null, "deep-link": null },
+  "bundle": { "active": false, "createUpdaterArtifacts": false }
+}

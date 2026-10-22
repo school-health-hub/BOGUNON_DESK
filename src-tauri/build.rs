@@ -26,9 +26,14 @@ fn main() {
             serde_json::from_str(&patch).expect("Invalid Tauri config overlay"),
         );
     }
-    let qa = std::env::var_os("CARGO_FEATURE_MY_FINANCE_QA").is_some();
+    let finance_qa = std::env::var_os("CARGO_FEATURE_MY_FINANCE_QA").is_some();
+    let finder_qa = std::env::var_os("CARGO_FEATURE_EDUCATION_VIDEO_QA").is_some();
+    assert!(
+        !(finance_qa && finder_qa),
+        "QA features are mutually exclusive"
+    );
     let id = config["identifier"].as_str().unwrap_or_default();
-    if qa {
+    if finance_qa {
         println!("cargo:rerun-if-changed=../dist-my-finance-qa/qa-build.json");
         assert_eq!(
             id, "kr.sungandi.schoolhealthdesk.myfinanceqa",
@@ -55,6 +60,36 @@ fn main() {
         );
         assert_eq!(stamp["identifier"], id);
         println!("cargo:rustc-env=BOGUNON_QA_SOURCE_SHA={sha}");
+    } else if finder_qa {
+        println!("cargo:rerun-if-changed=../dist-education-video-qa/qa-build.json");
+        assert_eq!(
+            id, "kr.sungandi.schoolhealthdesk.educationvideoqa",
+            "Finder QA feature requires Finder QA config"
+        );
+        assert_eq!(config["productName"], "BOGUNON DESK FINDER IPC QA");
+        assert_eq!(config["mainBinaryName"], "bogunon-desk-finder-ipc-qa");
+        assert_eq!(
+            config["build"]["frontendDist"],
+            "../dist-education-video-qa"
+        );
+        assert!(
+            config["plugins"].get("updater").is_none()
+                && config["plugins"].get("deep-link").is_none(),
+            "Finder QA must not register production integrations"
+        );
+        let sha = std::env::var("BOGUNON_QA_SOURCE_SHA").expect("QA source SHA required");
+        assert!(sha.len() == 40 && sha.bytes().all(|byte| byte.is_ascii_hexdigit()));
+        let stamp: Value = serde_json::from_str(
+            &std::fs::read_to_string("../dist-education-video-qa/qa-build.json")
+                .expect("Build Finder QA frontend first"),
+        )
+        .unwrap();
+        assert_eq!(
+            stamp["sourceSha"], sha,
+            "Finder QA frontend/native source mismatch"
+        );
+        assert_eq!(stamp["identifier"], id);
+        println!("cargo:rustc-env=BOGUNON_QA_SOURCE_SHA={sha}");
     } else {
         assert_ne!(
             id, "kr.sungandi.schoolhealthdesk.myfinanceqa",
@@ -63,6 +98,14 @@ fn main() {
         assert_ne!(
             config["build"]["frontendDist"], "../dist-my-finance-qa",
             "QA frontend requires QA feature"
+        );
+        assert_ne!(
+            id, "kr.sungandi.schoolhealthdesk.educationvideoqa",
+            "Finder QA config requires Finder QA feature"
+        );
+        assert_ne!(
+            config["build"]["frontendDist"], "../dist-education-video-qa",
+            "Finder QA frontend requires Finder QA feature"
         );
     }
     tauri_build::build()
