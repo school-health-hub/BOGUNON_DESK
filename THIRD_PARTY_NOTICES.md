@@ -33,3 +33,30 @@ When distributing compiled Windows installers, preserve all notices and
 license obligations required by bundled third-party software. Before a
 production release, regenerate or review the dependency license inventory
 against the committed lockfiles.
+
+## Official Document Workspace provenance review (draft)
+
+The workspace includes assets adapted from the user's own
+`healthroom-document-helper` project: document options, templates, checklist
+text and deterministic drafting logic. This is recorded as first-party
+project migration, not as an additional third-party dependency.
+
+IeumOffice (`pblsketch/openoffice`) and its GenOffice ancestry are under
+provenance review. The user reports permission from the IeumOffice author.
+The reviewed public snapshot carries Apache-2.0 and a NOTICE; however, no
+specific reused file or original reuse revision has yet been established
+for this workspace. This review status is not a finding of non-use and is
+not an attribution that those projects are bundled with BOGUNON DESK.
+They are not added to the confirmed component table on that basis alone.
+
+See [the provenance draft](docs/OPEN_SOURCE_PROVENANCE.md) for pinned
+source links, file correspondences, evidence limits and outstanding checks.
+If reuse is established, preserve the applicable upstream copyright and
+NOTICE material, supply the license text, and identify modifications as
+required by the applicable license. Include only relevant material; do not
+claim that all components in an upstream NOTICE are used here.
+
+This source notice is not proof that notice files reach a Windows installer
+or portable distribution. Verify delivery of required license texts and
+notices in the actual release package before distribution. This draft does
+not certify a complete dependency-license audit.
