@@ -1,0 +1,93 @@
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--workspace-bg);
+}
+
+.official-document-qa-shell {
+  min-height: 100vh;
+  padding-top: 72px;
+}
+
+.official-document-qa-banner {
+  position: fixed;
+  z-index: 1001;
+  inset: 0 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(180px, 0.5fr);
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 48px;
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--accent-border);
+  background: var(--accent-soft);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-widget);
+}
+
+.official-document-qa-banner > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  align-items: baseline;
+}
+
+.official-document-qa-banner strong {
+  color: var(--accent-hover);
+  font-size: var(--text-base);
+}
+
+.official-document-qa-banner span,
+.official-document-qa-banner p,
+.official-document-qa-banner summary {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.official-document-qa-banner details {
+  max-width: 360px;
+}
+
+.official-document-qa-banner details p {
+  overflow-wrap: anywhere;
+}
+
+.official-document-qa-state {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: var(--space-6);
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.official-document-qa-shell .official-document-backdrop {
+  top: 72px;
+}
+
+@media (max-width: 700px) {
+  .official-document-qa-shell {
+    padding-top: 120px;
+  }
+
+  .official-document-qa-banner {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .official-document-qa-banner details {
+    display: none;
+  }
+
+  .official-document-qa-shell .official-document-backdrop {
+    top: 120px;
+  }
+}
