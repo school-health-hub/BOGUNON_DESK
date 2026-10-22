@@ -1,7 +1,11 @@
 import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 
-const directory = "qa/official-document/fixtures";
+import { officialDocumentQaPaths, prepareOfficialDocumentQaPaths } from "./official-document-qa-paths.mjs";
+
+const paths = officialDocumentQaPaths();
+prepareOfficialDocumentQaPaths(paths);
+const directory = paths.fixtures;
 const headers = [
   "No", "사용여부", "문서목적", "업무분야", "자료명", "설명", "참고문서URL", "문서ID", "파일형태",
   "템플릿본문", "붙임예시", "메신저예시", "체크리스트", "공개구분", "비식별여부", "자동본문추출",

@@ -62,7 +62,17 @@ fn main() {
         assert_eq!(stamp["identifier"], id);
         println!("cargo:rustc-env=BOGUNON_QA_SOURCE_SHA={sha}");
     } else if official_document_qa {
-        println!("cargo:rerun-if-changed=../dist-official-document-qa/qa-build.json");
+        println!("cargo:rerun-if-env-changed=BOGUNON_OFFICIAL_DOCUMENT_QA_OUTPUT_ROOT");
+        let frontend_dist = match std::env::var_os("BOGUNON_OFFICIAL_DOCUMENT_QA_OUTPUT_ROOT") {
+            Some(root) => {
+                let root = std::path::PathBuf::from(root);
+                assert!(root.is_absolute(), "QA output root must be absolute");
+                root.join("dist-official-document-qa")
+            }
+            None => std::path::PathBuf::from("../dist-official-document-qa"),
+        };
+        let stamp_path = frontend_dist.join("qa-build.json");
+        println!("cargo:rerun-if-changed={}", stamp_path.display());
         assert_eq!(
             id, "kr.sungandi.schoolhealthdesk.officialdocumentqa",
             "Official document QA feature requires QA config"
@@ -74,7 +84,7 @@ fn main() {
         );
         assert_eq!(
             config["build"]["frontendDist"],
-            "../dist-official-document-qa"
+            frontend_dist.to_string_lossy().as_ref()
         );
         assert_eq!(
             config["app"]["windows"][0]["dataDirectory"],
@@ -90,7 +100,7 @@ fn main() {
             .expect("Official document QA source SHA required");
         assert!(sha.len() == 40 && sha.bytes().all(|byte| byte.is_ascii_hexdigit()));
         let stamp: Value = serde_json::from_str(
-            &std::fs::read_to_string("../dist-official-document-qa/qa-build.json")
+            &std::fs::read_to_string(&stamp_path)
                 .expect("Build official document QA frontend first"),
         )
         .unwrap();
@@ -99,6 +109,13 @@ fn main() {
             "QA frontend/native source mismatch"
         );
         assert_eq!(stamp["identifier"], id);
+        assert_eq!(stamp["externalConnections"], false);
+        if frontend_dist.is_absolute() {
+            assert_eq!(
+                stamp["frontendDist"],
+                frontend_dist.to_string_lossy().as_ref()
+            );
+        }
         println!("cargo:rustc-env=BOGUNON_OFFICIAL_DOCUMENT_QA_SOURCE_SHA={sha}");
     } else {
         assert_ne!(
