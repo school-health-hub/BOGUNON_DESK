@@ -77,7 +77,7 @@ function Run-RemainingUi {
                 }
             }
             Snapshot 'package-preview'
-            if (Activate-Key '확인 후 패키지 반입') { Check-State 'synthetic-package-import' (@(Controls | Where-Object { $_.Current.Name -like '*official-document-qa-valid*' }).Count -gt 0) 'Existing synthetic package imported in session mode only.'; Snapshot 'package-imported' }
+            if (Activate-Key '확인 후 패키지 반입') { Check-State 'synthetic-package-import' ((Has-Name '이번 실행에서만 사용') -and -not (Has-Name '확인 후 패키지 반입') -and @(Controls | Where-Object { $_.Current.Name -like '*official-document-qa-valid*' -and $_.Current.Name -notlike '반입 후보:*' }).Count -gt 0) 'Existing synthetic package imported in session mode only.'; Snapshot 'package-imported' }
         } else { Record 'synthetic-package-import' 'NOT RUN' 'Native file input not exposed as focusable control.' }
         # Do not continue with keyboard input if a file dialog remains open.
         if (@([NativeQaWindow]::ForProcess($ProcessId) | Where-Object { $_.Visible -and $_.Title -match 'Open|열기' }).Count) { Record 'file-dialog' 'NOT RUN' 'Native file dialog remained open; stop interactions safely.'; return }
