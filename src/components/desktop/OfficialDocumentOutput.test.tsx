@@ -1,12 +1,25 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { extractOfficialDocumentSummary } from "../../official-document/summaryExtractor";
+import { composeOfficialDocumentDraft, createEmptyOfficialDocumentInput, generateOfficialDocumentDraft } from "../../official-document/documentGenerator";
 import { OfficialDocumentOutput } from "./OfficialDocumentOutput";
 
 describe("OfficialDocumentOutput", () => {
+  afterEach(cleanup);
+  it.each(["계획서, 안내문", ""])("renders the generated attachment block once without changing copied data (%s)", (attachments) => {
+    const draft = generateOfficialDocumentDraft({ ...createEmptyOfficialDocumentInput(), attachments });
+    const onCopy = vi.fn();
+    const view = render(<OfficialDocumentOutput aiResponse="" aiStatus="idle" draft={draft} localSummary={null} mode="create" onCopy={onCopy} onSendSummaryToQuickAdd={vi.fn()} prompt="" />);
+    const attachmentBlock = view.getByRole("region", { name: "붙임" });
+    expect(attachmentBlock.textContent).toBe(draft.attachments);
+    fireEvent.click(view.getByRole("button", { name: "전체 복사" }));
+    expect(onCopy).toHaveBeenCalledWith("전체", composeOfficialDocumentDraft(draft));
+    view.unmount();
+  });
+
   it("renders and copies reference table text separately", () => {
     const onCopy = vi.fn();
     render(
