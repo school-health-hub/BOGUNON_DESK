@@ -12,3 +12,12 @@ describe('isolated QA frontend service boundary', () => {
   expect(service.getState().status).toBe('disconnected'); await expect(service.generateText('synthetic')).rejects.toThrow('API Key'); expect(native).not.toHaveBeenCalled();
  });
 });
+
+it('matches the exact approved public prompt fingerprint used by the native QA guard', async () => {
+ const { buildVideoSearchPrompt } = await import('../education-video/aiVideo');
+ const { APPROVED_SEARCH_CONDITIONS, APPROVED_SEARCH_PROMPT_SHA256 } = await import('./services');
+ const bytes = new TextEncoder().encode(buildVideoSearchPrompt(APPROVED_SEARCH_CONDITIONS));
+ const digest = await crypto.subtle.digest('SHA-256', bytes);
+ expect(bytes.length).toBe(964);
+ expect(Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')).toBe(APPROVED_SEARCH_PROMPT_SHA256);
+});

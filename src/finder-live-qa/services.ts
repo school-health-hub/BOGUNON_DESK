@@ -17,3 +17,5 @@ export function createDisabledApiConnection(): AiConnectionService {
  const blocked = () => { state = { ...state, error: guidance }; listeners.forEach(listener => listener(state)); };
  return { getState: () => state, subscribe: listener => { listeners.add(listener); return () => { listeners.delete(listener); }; }, connect: async () => blocked(), validate: async () => blocked(), generateText: async () => { throw new Error(guidance); }, disconnect: blocked };
 }
+export const APPROVED_SEARCH_CONDITIONS = { topic: '마약류 예방교육', target: '고등학생', minutes: 20, publicFirst: true } as const;
+export const APPROVED_SEARCH_PROMPT_SHA256 = 'e806072de6813dbb960686403f4d88f4eef5a682c3f13909d441b14f85b4e802';

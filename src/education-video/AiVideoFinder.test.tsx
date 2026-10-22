@@ -52,3 +52,29 @@ describe('AI Finder explicit outbound workflow', () => {
   fireEvent.click(screen.getByRole('button', { name: '저장 영상' })); fireEvent.click(screen.getByRole('button', { name: '기안 초안으로 연결' })); expect(p.onDraft).toHaveBeenCalledWith(expect.objectContaining({ workName: '저장된 교육', target: '고등학생' }));
  });
 });
+
+it('keeps the captured request when visible conditions change during an offline pending search', async () => {
+ let finish: ((value: WebSearchResult) => void) | undefined;
+ const c = { ...connection(), searchWeb: vi.fn(() => new Promise<WebSearchResult>(resolve => { finish = resolve; })) };
+ render(<AiVideoFinder connection={c} {...callbacks()} />);
+ fireEvent.change(screen.getByLabelText('교육 주제'), { target: { value: '마약류 예방교육' } });
+ fireEvent.change(screen.getByLabelText('교육 대상'), { target: { value: '고등학생' } });
+ fireEvent.change(screen.getByLabelText('희망 영상 길이'), { target: { value: '20' } });
+ fireEvent.click(screen.getByRole('button', { name: '교육영상 검색' }));
+ fireEvent.click(screen.getByRole('button', { name: '확인 후 전송' }));
+ await waitFor(() => expect(c.searchWeb).toHaveBeenCalledTimes(1));
+ fireEvent.change(screen.getByLabelText('교육 주제'), { target: { value: '양성평등교육' } });
+ expect(c.searchWeb).toHaveBeenCalledWith(expect.stringContaining('주제: 마약류 예방교육 / 대상: 고등학생 / 희망 길이: 20분 내외'));
+ expect(screen.getByLabelText('교육 주제')).toHaveProperty('value', '양성평등교육');
+ finish?.(result);
+ await screen.findByRole('heading', { name: '합성 교육영상' });
+});
+
+it('sends the edited confirmation prompt rather than regenerating it from displayed conditions', async () => {
+ const c = connection(); render(<AiVideoFinder connection={c} {...callbacks()} />); start();
+ const editor = screen.getByLabelText('AI 서비스로 전송될 내용');
+ const edited = '합성 공개 자료 요청: 마약류 예방교육 / 고등학생 / 20분 / 공공기관 우선';
+ fireEvent.change(editor, { target: { value: edited } });
+ fireEvent.click(screen.getByRole('button', { name: '확인 후 전송' }));
+ await waitFor(() => expect(c.searchWeb).toHaveBeenCalledWith(edited));
+});

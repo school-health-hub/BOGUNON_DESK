@@ -2,7 +2,10 @@ use super::*;
 use std::path::PathBuf;
 #[path = "live_qa_policy.rs"]
 mod policy;
+pub(crate) use policy::approved_fingerprint;
 use policy::Mode;
+#[path = "live_qa_diagnostics.rs"]
+pub(crate) mod diagnostics;
 
 pub(crate) struct ReadOnlyTransport {
     client: ReqwestPlanTransport,
@@ -14,7 +17,7 @@ impl ReadOnlyTransport {
         Self::new(root, Mode::Models, "unused")
     }
     pub(crate) fn search(root: &std::path::Path) -> Result<Self, ChatGptPlanErrorDto> {
-        Self::new(root, Mode::Search, "search-attempt.receipt")
+        Self::new(root, Mode::Search, "search-attempt-2.receipt")
     }
     pub(crate) fn review(root: &std::path::Path) -> Result<Self, ChatGptPlanErrorDto> {
         Self::new(root, Mode::Review, "review-attempt.receipt")
@@ -64,10 +67,44 @@ impl PlanTransport for ReadOnlyTransport {
                     return Err(InternalError::INVALID_RESPONSE);
                 }
                 // Fail closed on refresh, duplicate dispatch, receipt failure and restart.
-                policy::claim_once(&self.receipt)
-                    .map_err(|_| InternalError::bare(InternalErrorKind::Permission))?;
+                if matches!(self.mode, Mode::Search) {
+                    let root = self
+                        .receipt
+                        .parent()
+                        .ok_or(InternalError::INVALID_RESPONSE)?;
+                    policy::claim_second(root)
+                        .map_err(|_| InternalError::bare(InternalErrorKind::Permission))?;
+                    diagnostics::write_new(&root.join("search-2-before-dispatch.json"), &serde_json::json!({"slot":2,"stage":"reservedBeforeHttp","automaticRetry":false}))
+                        .map_err(|_| InternalError::TRANSPORT)?;
+                } else {
+                    // This approval permits no additional AI review request.
+                    return Err(InternalError::bare(InternalErrorKind::Permission));
+                }
             }
         }
-        self.client.send(request).await
+        let result = self.client.send(request).await;
+        if matches!(self.mode, Mode::Search) {
+            let root = self
+                .receipt
+                .parent()
+                .ok_or(InternalError::INVALID_RESPONSE)?;
+            let summary = match &result {
+                Ok(response) => {
+                    let mut summary = diagnostics::summarize(
+                        response.status,
+                        response.request_id.is_some(),
+                        &response.body,
+                    );
+                    summary["httpAccepted"] = serde_json::json!(ensure_success(response).is_ok());
+                    summary["sharedStreamAccepted"] =
+                        serde_json::json!(parse_response_stream(&response.body).is_ok());
+                    summary
+                }
+                Err(_) => serde_json::json!({"stage":"httpTransportFailure","retryAllowed":false}),
+            };
+            diagnostics::write_new(&root.join("search-2-http-response.json"), &summary)
+                .map_err(|_| InternalError::TRANSPORT)?;
+        }
+        result
     }
 }

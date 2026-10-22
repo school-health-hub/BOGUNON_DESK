@@ -9,7 +9,7 @@ The QA frontend mounts the existing Finder and common ChatGPT/official-document 
 
 Existing local ChatGPT credentials are read by the existing native DPAPI storage under the production identifier folder. No credential copies or values are printed. The QA storage rejects every credential mutation and the QA transport rejects discovery, refresh and revoke before HTTP. Expired access credentials therefore block QA; a fresh connection must be prepared by the human in the operating app. The QA does not sign in, disconnect, refresh or change the operating account.
 
-Search is limited to one durable reservation before HTTP dispatch, including across restarts. No automatic retries. One separate public-description text review is allowed only after successful search. Do not delete receipts to retry. The global receipt is in the separate QA app-local-data folder. Existing YouTube Desktop/Proxy dispatch flags remain false.
+The initial wrapper reserved one search durably before HTTP. The current second-attempt approval preserves that receipt and permits exactly one additional slot2 reservation across restarts, requiring the original receipt. The native QA command requires the exact approved drug/high-school/20minutes/public-first prompt fingerprint before authentication or reservation. No automatic retries and no additional AI review are permitted in this approval. Never delete receipts to retry. Bounded structural diagnostics are recorded in the separate QA data directory; no response text or secrets are stored. Existing YouTube Desktop/Proxy dispatch flags remain false.
 
 ## Run prerequisites
 
@@ -17,7 +17,7 @@ Download the artifact from the successful SHA-bound Actions run; compare SOURCE.
 
 Preflight before any search: native metadata/SHA match, Finder visible, existing connection connected with plan use enabled, account model catalog contains a documented supported model, search button enabled and invocation path registered. Do not print account identifiers, tokens, headers, cookies or full connection state. If credentials/model/permission cannot be confirmed, stop with zero search requests.
 
-Approved live input: 고등학생 / 마약류 예방교육 / 20분 내외 / 공공기관 우선. Submit once through the existing privacy confirmation. On error stop; do not retry or replace with a different provider. If successful compare original URLs/sources/metadata status, inspect public-description review, open the existing draft screen and save/reload in the QA-only library. Never submit a real document or share externally.
+Approved live input: 고등학생 / 마약류 예방교육 / 20분 내외 / 공공기관 우선. Submit once through the existing privacy confirmation. On error stop; do not retry or replace with a different provider. If successful compare original URLs/sources/metadata status, inspect public-source metadata, open the existing draft screen and save/reload in the QA-only library without additional AI review requests. Never submit a real document or share externally.
 
 Local limits: C: about3.46GiB and current Perl lacks Locale/Maketext/Simple, so no local fullnative build or package/cache cleanup. Parent automation kernel asset error has no identifiedmissingpath; a freshchildNodeREPL successfully initializedsky and enumeratedwindows. No system/runtime installation changes were made.
 

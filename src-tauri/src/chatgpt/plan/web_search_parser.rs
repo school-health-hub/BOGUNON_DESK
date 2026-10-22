@@ -234,4 +234,86 @@ mod tests {
         assert_eq!(result.sources.len(), 1);
         assert_eq!(result.sources[0].title, "Provider citation title");
     }
+    // Synthetic envelopes only; these are not captured live provider responses.
+    #[test]
+    fn synthetic_empty_and_non_sse_responses_are_rejected() {
+        for input in [
+            b"".as_slice(),
+            b"data: [DONE]\n\n",
+            b"{\"output\":[]}",
+            b"data: {\"type\":\"unknown\"}\n\n",
+        ] {
+            assert!(parse(input, 0).is_err());
+        }
+    }
+    #[test]
+    fn synthetic_failed_and_incomplete_events_are_rejected() {
+        for kind in ["response.failed", "response.incomplete"] {
+            let event = format!(
+                "data: {}\n\n",
+                json!({"type":kind,"response":{"status":"failed"}})
+            );
+            assert!(parse(event.as_bytes(), 0).is_err());
+        }
+    }
+    #[test]
+    fn synthetic_completed_envelope_requires_status_and_output_array() {
+        for response in [
+            json!({}),
+            json!({"status":"in_progress","output":[]}),
+            json!({"status":"completed","output":{}}),
+        ] {
+            let event = format!(
+                "data: {}\n\n",
+                json!({"type":"response.completed","response":response})
+            );
+            assert!(parse(event.as_bytes(), 0).is_err());
+        }
+    }
+    #[test]
+    fn synthetic_malformed_json_utf8_and_duplicate_completion_are_rejected() {
+        assert!(parse(b"data: {\n\n", 0).is_err());
+        assert!(parse(&[0xff], 0).is_err());
+        let mut duplicate = body(evidence());
+        duplicate.extend(body(evidence()));
+        assert!(parse(&duplicate, 0).is_err());
+    }
+    #[test]
+    fn synthetic_missing_sources_are_rejected() {
+        let mut output = evidence();
+        output[0]["action"]["sources"] = json!([]);
+        assert!(parse(&body(output), 0).is_err());
+    }
+    #[test]
+    fn synthetic_missing_or_blank_output_text_is_rejected() {
+        for text in [json!("  "), json!(null), json!(42)] {
+            let mut output = evidence();
+            output[1]["content"][0]["text"] = text;
+            assert!(parse(&body(output), 0).is_err());
+        }
+    }
+    #[test]
+    fn synthetic_citation_only_evidence_and_crlf_are_accepted() {
+        let mut output = evidence();
+        output[0]["action"]["sources"] = json!([]);
+        output[1]["content"][0]["annotations"] = json!([{"type":"url_citation","url":"https://example.org/video","title":"synthetic citation"}]);
+        let crlf = String::from_utf8(body(output))
+            .unwrap()
+            .replace('\n', "\r\n");
+        assert_eq!(parse(crlf.as_bytes(), 0).unwrap().sources.len(), 1);
+    }
+    #[test]
+    fn synthetic_zero_videos_is_not_a_native_envelope_error() {
+        let mut output = evidence();
+        output[1]["content"][0]["text"] = json!("{\"videos\":[]}");
+        let result = parse(&body(output), 0).unwrap();
+        assert_eq!(result.text, "{\"videos\":[]}");
+        assert_eq!(result.sources.len(), 1);
+    }
+    #[test]
+    fn synthetic_finder_json_validation_is_left_to_the_consumer() {
+        let mut output = evidence();
+        output[1]["content"][0]["text"] = json!("not Finder JSON");
+        assert_eq!(parse(&body(output), 0).unwrap().text, "not Finder JSON");
+    }
 }

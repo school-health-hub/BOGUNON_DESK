@@ -47,6 +47,9 @@ struct Metadata {
     library_isolated: bool,
     search_attempts: u8,
     review_attempts: u8,
+    active_approved_slot: u8,
+    search_slot_one_used: bool,
+    search_slot_two_used: bool,
     external_dispatch_enabled: bool,
 }
 #[tauri::command]
@@ -58,7 +61,11 @@ fn finder_live_qa_metadata(app: AppHandle) -> Result<Metadata, String> {
         base_sha: BASE_SHA,
         read_only_auth: true,
         library_isolated: true,
-        search_attempts: u8::from(root.join("search-attempt.receipt").exists()),
+        search_attempts: u8::from(root.join("search-attempt.receipt").exists())
+            + u8::from(root.join("search-attempt-2.receipt").exists()),
+        active_approved_slot: 2,
+        search_slot_one_used: root.join("search-attempt.receipt").exists(),
+        search_slot_two_used: root.join("search-attempt-2.receipt").exists(),
         review_attempts: u8::from(root.join("review-attempt.receipt").exists()),
         external_dispatch_enabled: false,
     })
@@ -89,6 +96,14 @@ async fn chatgpt_search_web(
     model: String,
     prompt: String,
 ) -> Result<plan::web_search::WebSearchResult, ChatGptPlanErrorDto> {
+    use sha2::{Digest, Sha256};
+    let digest = format!("{:x}", Sha256::digest(prompt.as_bytes()));
+    if !plan::live_qa::approved_fingerprint(prompt.len(), &digest) {
+        return Err(ChatGptPlanErrorDto {
+            code: plan::ChatGptPlanErrorCode::PermissionDenied,
+            message: "승인된 검색 조건과 일치하지 않습니다.",
+        });
+    }
     let storage = storage(&app).map_err(|_| ChatGptPlanErrorDto::storage())?;
     let root = qa_root(&app).map_err(|_| ChatGptPlanErrorDto::storage())?;
     let result = plan::web_search::search_web(
@@ -98,11 +113,20 @@ async fn chatgpt_search_web(
         now()?,
         &GenerateTextRequest::new(model, prompt),
     )
-    .await?;
+    .await;
+    let code = match &result {
+        Ok(_) => serde_json::json!({"stage":"nativeSearchAccepted","code":"success"}),
+        Err(error) => serde_json::json!({"stage":"nativeSearchRejected","code":error.code}),
+    };
+    if root.join("search-attempt-2.receipt").is_file() {
+        plan::live_qa::diagnostics::write_new(&root.join("search-2-native-result.json"), &code)
+            .map_err(|_| ChatGptPlanErrorDto::storage())?;
+    }
+    let result = result?;
     std::fs::OpenOptions::new()
         .write(true)
         .create_new(true)
-        .open(root.join("search-success.receipt"))
+        .open(root.join("search-success-2.receipt"))
         .map_err(|_| ChatGptPlanErrorDto::storage())?
         .sync_all()
         .map_err(|_| ChatGptPlanErrorDto::storage())?;

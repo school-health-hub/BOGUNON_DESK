@@ -47,3 +47,7 @@ pub mod ai_metadata;
 #[cfg(test)]
 #[path = "../src/chatgpt/plan/live_qa_policy.rs"]
 mod finder_live_qa_policy;
+
+#[cfg(test)]
+#[path = "../src/chatgpt/plan/live_qa_diagnostics.rs"]
+mod finder_live_qa_diagnostics;
