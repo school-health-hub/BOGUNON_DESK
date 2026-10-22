@@ -1,0 +1,15 @@
+name: Desktop Surface C-2C-2 Windows native verification
+on:
+  workflow_dispatch:
+    inputs:
+      expected_controller_sha:
+        description: Exact reviewed controller SHA; select feature/dashboard-mint-ivory-v2 and enter b9f06ec52e03b026dcb7ade89e2de2d548a67603
+        required: true
+        type: string
+permissions: {}
+jobs:
+  registration-only:
+    if: ${{ false }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Registration only; select feature/dashboard-mint-ivory-v2 and use controller b9f06ec52e03b026dcb7ade89e2de2d548a67603."
