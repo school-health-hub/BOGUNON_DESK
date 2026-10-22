@@ -15,7 +15,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 60
     env:
-      FINDER_BASE_SHA: df8375a015f1868b27d7741a754e0df772837684
+      FINDER_BASE_SHA: 419e31e2c9e32c6a36dd6c4982572436fb96669b
       BOGUNON_QA_SOURCE_SHA: ${{ github.sha }}
       CARGO_PROFILE_RELEASE_LTO: 'false'
       CARGO_PROFILE_RELEASE_CODEGEN_UNITS: '16'
@@ -54,7 +54,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Missing runner Perl module' }
       - run: npm ci
       - name: Verify bundled search initialization
-        run: node node_modules/vitest/vitest.mjs run src/chatgpt src/finder-live-qa/services.test.ts src/education-video/AiVideoFinder.test.tsx
+        run: node node_modules/vitest/vitest.mjs run src/chatgpt src/finder-live-qa/services.test.ts src/education-video/AiVideoFinder.test.tsx src/education-video/AiVideoFinder.autoSearch.test.tsx
       - name: Build isolated portable executable only
         shell: pwsh
         run: |

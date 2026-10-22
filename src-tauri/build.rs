@@ -60,7 +60,7 @@ fn main() {
         )
         .unwrap();
         assert_eq!(stamp["sourceSha"], sha, "Live QA source mismatch");
-        assert_eq!(stamp["baseSha"], "df8375a015f1868b27d7741a754e0df772837684");
+        assert_eq!(stamp["baseSha"], "419e31e2c9e32c6a36dd6c4982572436fb96669b");
         assert_eq!(stamp["identifier"], id);
         println!("cargo:rustc-env=BOGUNON_QA_SOURCE_SHA={sha}");
     } else if finance_qa {

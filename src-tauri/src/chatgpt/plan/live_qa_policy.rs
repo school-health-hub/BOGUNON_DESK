@@ -56,6 +56,27 @@ pub(crate) fn claim_third(root: &Path) -> io::Result<()> {
     claim_once(&root.join("search-attempt-3.receipt"))
 }
 
+pub(crate) fn approved_tool_choice(choice: Option<&str>) -> bool {
+    choice == Some("auto")
+}
+
+pub(crate) fn claim_fourth(root: &Path) -> io::Result<()> {
+    if [
+        "search-attempt.receipt",
+        "search-attempt-2.receipt",
+        "search-attempt-3.receipt",
+    ]
+    .iter()
+    .any(|name| !root.join(name).is_file())
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            "all three previous attempts required",
+        ));
+    }
+    claim_once(&root.join("search-attempt-4.receipt"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -151,6 +172,52 @@ mod tests {
         let first_only = tempfile::tempdir().unwrap();
         claim_once(&first_only.path().join("search-attempt.receipt")).unwrap();
         assert!(claim_third(first_only.path()).is_err());
+    }
+    #[test]
+    fn fourth_approval_requires_all_previous_and_never_reuses_receipts() {
+        let names = [
+            "search-attempt.receipt",
+            "search-attempt-2.receipt",
+            "search-attempt-3.receipt",
+        ];
+        for missing in 0..3 {
+            let directory = tempfile::tempdir().unwrap();
+            for (index, name) in names.iter().enumerate() {
+                if index != missing {
+                    claim_once(&directory.path().join(name)).unwrap();
+                }
+            }
+            assert!(claim_fourth(directory.path()).is_err());
+            assert!(!directory.path().join("search-attempt-4.receipt").exists());
+        }
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path();
+        for (index, name) in names.iter().enumerate() {
+            std::fs::write(root.join(name), format!("original-{index}")).unwrap();
+        }
+        let originals: Vec<_> = names
+            .iter()
+            .map(|name| std::fs::read(root.join(name)).unwrap())
+            .collect();
+        claim_fourth(root).unwrap();
+        assert_eq!(
+            claim_fourth(root).unwrap_err().kind(),
+            io::ErrorKind::AlreadyExists
+        );
+        assert_eq!(
+            names
+                .iter()
+                .map(|name| std::fs::read(root.join(name)).unwrap())
+                .collect::<Vec<_>>(),
+            originals
+        );
+    }
+    #[test]
+    fn fourth_approval_only_accepts_auto_tool_choice() {
+        assert!(approved_tool_choice(Some("auto")));
+        for choice in [None, Some("required"), Some("none"), Some("AUTO"), Some("")] {
+            assert!(!approved_tool_choice(choice));
+        }
     }
     #[test]
     fn durable_attempt_cannot_be_reused_after_restart() {

@@ -13,7 +13,7 @@ use std::{
 };
 use tauri::{AppHandle, Manager, State};
 const QA_IDENTIFIER: &str = "kr.sungandi.schoolhealthdesk.finderliveqa";
-const BASE_SHA: &str = "df8375a015f1868b27d7741a754e0df772837684";
+const BASE_SHA: &str = "419e31e2c9e32c6a36dd6c4982572436fb96669b";
 fn qa_root(app: &AppHandle) -> Result<PathBuf, String> {
     if app.config().identifier != QA_IDENTIFIER {
         return Err("Finder Live QA identifier mismatch".into());
@@ -51,6 +51,8 @@ struct Metadata {
     search_slot_one_used: bool,
     search_slot_two_used: bool,
     search_slot_three_used: bool,
+    search_slot_four_used: bool,
+    search_tool_choice: &'static str,
     sse_diagnostics_version: u8,
     external_dispatch_enabled: bool,
 }
@@ -65,12 +67,15 @@ fn finder_live_qa_metadata(app: AppHandle) -> Result<Metadata, String> {
         library_isolated: true,
         search_attempts: u8::from(root.join("search-attempt.receipt").exists())
             + u8::from(root.join("search-attempt-2.receipt").exists())
-            + u8::from(root.join("search-attempt-3.receipt").exists()),
-        active_approved_slot: 3,
+            + u8::from(root.join("search-attempt-3.receipt").exists())
+            + u8::from(root.join("search-attempt-4.receipt").exists()),
+        active_approved_slot: 4,
+        search_tool_choice: "auto",
         sse_diagnostics_version: 2,
         search_slot_one_used: root.join("search-attempt.receipt").exists(),
         search_slot_two_used: root.join("search-attempt-2.receipt").exists(),
         search_slot_three_used: root.join("search-attempt-3.receipt").exists(),
+        search_slot_four_used: root.join("search-attempt-4.receipt").exists(),
         review_attempts: u8::from(root.join("review-attempt.receipt").exists()),
         external_dispatch_enabled: false,
     })
@@ -123,15 +128,15 @@ async fn chatgpt_search_web(
         Ok(_) => serde_json::json!({"stage":"nativeSearchAccepted","code":"success"}),
         Err(error) => serde_json::json!({"stage":"nativeSearchRejected","code":error.code}),
     };
-    if root.join("search-attempt-3.receipt").is_file() {
-        plan::live_qa::diagnostics::write_new(&root.join("search-3-native-result.json"), &code)
+    if root.join("search-attempt-4.receipt").is_file() {
+        plan::live_qa::diagnostics::write_new(&root.join("search-4-native-result.json"), &code)
             .map_err(|_| ChatGptPlanErrorDto::storage())?;
     }
     let result = result?;
     std::fs::OpenOptions::new()
         .write(true)
         .create_new(true)
-        .open(root.join("search-success-3.receipt"))
+        .open(root.join("search-success-4.receipt"))
         .map_err(|_| ChatGptPlanErrorDto::storage())?
         .sync_all()
         .map_err(|_| ChatGptPlanErrorDto::storage())?;

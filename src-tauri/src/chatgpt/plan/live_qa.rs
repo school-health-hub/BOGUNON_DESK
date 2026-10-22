@@ -17,7 +17,7 @@ impl ReadOnlyTransport {
         Self::new(root, Mode::Models, "unused")
     }
     pub(crate) fn search(root: &std::path::Path) -> Result<Self, ChatGptPlanErrorDto> {
-        Self::new(root, Mode::Search, "search-attempt-3.receipt")
+        Self::new(root, Mode::Search, "search-attempt-4.receipt")
     }
     pub(crate) fn review(root: &std::path::Path) -> Result<Self, ChatGptPlanErrorDto> {
         Self::new(root, Mode::Review, "review-attempt.receipt")
@@ -66,15 +66,24 @@ impl PlanTransport for ReadOnlyTransport {
                 if web_tool != expected_web {
                     return Err(InternalError::INVALID_RESPONSE);
                 }
+                if matches!(self.mode, Mode::Search)
+                    && !policy::approved_tool_choice(
+                        payload
+                            .get("tool_choice")
+                            .and_then(serde_json::Value::as_str),
+                    )
+                {
+                    return Err(InternalError::bare(InternalErrorKind::Permission));
+                }
                 // Fail closed on refresh, duplicate dispatch, receipt failure and restart.
                 if matches!(self.mode, Mode::Search) {
                     let root = self
                         .receipt
                         .parent()
                         .ok_or(InternalError::INVALID_RESPONSE)?;
-                    policy::claim_third(root)
+                    policy::claim_fourth(root)
                         .map_err(|_| InternalError::bare(InternalErrorKind::Permission))?;
-                    diagnostics::write_new(&root.join("search-3-before-dispatch.json"), &serde_json::json!({"slot":3,"stage":"reservedBeforeHttp","automaticRetry":false}))
+                    diagnostics::write_new(&root.join("search-4-before-dispatch.json"), &serde_json::json!({"slot":4,"stage":"reservedBeforeHttp","automaticRetry":false,"toolChoice":"auto"}))
                         .map_err(|_| InternalError::TRANSPORT)?;
                 } else {
                     // This approval permits no additional AI review request.
@@ -104,7 +113,7 @@ impl PlanTransport for ReadOnlyTransport {
                 }
                 Err(_) => serde_json::json!({"stage":"httpTransportFailure","retryAllowed":false}),
             };
-            diagnostics::write_new(&root.join("search-3-http-response.json"), &summary)
+            diagnostics::write_new(&root.join("search-4-http-response.json"), &summary)
                 .map_err(|_| InternalError::TRANSPORT)?;
         }
         result

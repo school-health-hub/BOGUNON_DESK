@@ -6,7 +6,7 @@ const sourceSha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' 
 if (!/^[a-f0-9]{40}$/.test(sourceSha)) throw new Error('Finder Live QA source commit unavailable');
 export default defineConfig({
  root: 'qa-finder-live', plugins: [react()], envPrefix: 'FINDER_LIVE_QA_PUBLIC_',
- define: { __FINDER_LIVE_QA_SOURCE_SHA__: JSON.stringify(sourceSha), __FINDER_LIVE_QA_BASE_SHA__: JSON.stringify('df8375a015f1868b27d7741a754e0df772837684') },
+ define: { __FINDER_LIVE_QA_SOURCE_SHA__: JSON.stringify(sourceSha), __FINDER_LIVE_QA_BASE_SHA__: JSON.stringify('419e31e2c9e32c6a36dd6c4982572436fb96669b') },
  resolve: { alias: [
   { find: '/src', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
   { find: '../auth/authService', replacement: fileURLToPath(new URL('./src/finder-live-qa/authStub.ts', import.meta.url)) },
