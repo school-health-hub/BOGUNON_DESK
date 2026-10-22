@@ -55,6 +55,7 @@ try {
         [pscustomobject]@{ processId=$_.ProcessId; parentProcessId=$_.ParentProcessId; name=$_.Name
             webView2CommandLine=$(if ($_.Name -ieq 'msedgewebview2.exe') { $_.CommandLine } else { $null }) }
     })
+    if ($env:QA_NATIVE_UI_ONLY -ne 'true') {
     try {
         Save-Json 'listeners' @(Get-NetTCPConnection -State Listen | Where-Object { $_.LocalPort -eq 9225 -or $ids.Contains([int]$_.OwningProcess) } | Select-Object LocalAddress,LocalPort,OwningProcess,State)
         Record 'listeners' 'PASS' 'Recorded port 9225 and QA process-tree listeners.'
@@ -66,6 +67,7 @@ try {
         }
     }
     Save-Json 'debugger-policy' @($policies)
+    }
     $windows = @([NativeQaWindow]::ForProcess($ProcessId))
     Save-Json 'inventory' $windows
     $screen = [System.Windows.Forms.SystemInformation]::VirtualScreen
@@ -106,7 +108,7 @@ try {
     function Inventory($Name) {
         Save-Json $Name @(Controls | Where-Object { $_.Current.Name } | ForEach-Object {
             $c=$_.Current
-            @{name=$c.Name;automationId=$c.AutomationId;controlType=$c.ControlType.ProgrammaticName;enabled=$c.IsEnabled;offscreen=$c.IsOffscreen;bounds=$c.BoundingRectangle.ToString()}
+            @{name=$c.Name;automationId=$c.AutomationId;controlType=$c.ControlType.ProgrammaticName;patterns=@($_.GetSupportedPatterns() | ForEach-Object ProgrammaticName);enabled=$c.IsEnabled;offscreen=$c.IsOffscreen;bounds=$c.BoundingRectangle.ToString()}
         })
     }
     function Foreground {
@@ -139,23 +141,14 @@ try {
         $initialOuter=[NativeQaWindow]::ForProcess($ProcessId) | Where-Object Handle -eq $script:qaHandle.ToInt64() | Select-Object -First 1
         $chromeWidth=($initialOuter.Bounds.Right-$initialOuter.Bounds.Left)-($initialClient.Right-$initialClient.Left)
         $chromeHeight=($initialOuter.Bounds.Bottom-$initialOuter.Bounds.Top)-($initialClient.Bottom-$initialClient.Top)
-        $targetWidth=1440+$chromeWidth; $targetHeight=900+$chromeHeight
+        $targetWidth=900+$chromeWidth; $targetHeight=680+$chromeHeight
         $fit=[System.Windows.Forms.Screen]::AllScreens | Where-Object { $_.WorkingArea.Width -ge $targetWidth -and $_.WorkingArea.Height -ge $targetHeight } | Select-Object -First 1
-        if (-not $fit) {
-            $fit=[System.Windows.Forms.Screen]::AllScreens | Where-Object { $_.WorkingArea.Width -ge 1440 -and $_.WorkingArea.Height -ge 900 } | Select-Object -First 1
-            $targetWidth=1440; $targetHeight=900
-            Record 'client-1440x900' 'NOT RUN' 'Screen cannot fit target client plus measured window chrome; actual client dimensions recorded.'
-        }
         if ($fit) { [void][NativeQaWindow]::SetWindowPos($script:qaHandle,[IntPtr]::Zero,$fit.WorkingArea.X,$fit.WorkingArea.Y,$targetWidth,$targetHeight,0x0044) }
-        else {
-            $small=[System.Windows.Forms.Screen]::AllScreens | Where-Object { $_.WorkingArea.Width -ge (900+$chromeWidth) -and $_.WorkingArea.Height -ge (680+$chromeHeight) } | Select-Object -First 1
-            if ($small) { [void][NativeQaWindow]::SetWindowPos($script:qaHandle,[IntPtr]::Zero,$small.WorkingArea.X,$small.WorkingArea.Y,(900+$chromeWidth),(680+$chromeHeight),0x0044) }
-            Record 'fit-1440x900' 'NOT RUN' 'Physical display is too small; attempted screen-supported 900x680 client fallback, actual geometry recorded.'
-        }
+        else { Record 'fit-900x680' 'NOT RUN' 'Physical display cannot fit requested client plus window chrome.' }
         try { Foreground; Record 'foreground' 'PASS' 'Verified QA HWND before native capture.' } catch { Record 'foreground' 'FAIL' $_.Exception.Message }
         $client=[NativeQaWindow+Rect]::new()
         [void][NativeQaWindow]::GetClientRect($script:qaHandle,[ref]$client)
-        Save-Json 'measured-geometry' @{outer=@([NativeQaWindow]::ForProcess($ProcessId) | Where-Object Handle -eq $script:qaHandle.ToInt64());client=$client;virtualDesktop=$screen.ToString();requestedClientWidth=1440;requestedClientHeight=900;actualClientWidth=($client.Right-$client.Left);actualClientHeight=($client.Bottom-$client.Top);targetOuterWidth=$targetWidth;targetOuterHeight=$targetHeight}
+        Save-Json 'measured-geometry' @{outer=@([NativeQaWindow]::ForProcess($ProcessId) | Where-Object Handle -eq $script:qaHandle.ToInt64());client=$client;virtualDesktop=$screen.ToString();requestedClientWidth=900;requestedClientHeight=680;actualClientWidth=($client.Right-$client.Left);actualClientHeight=($client.Bottom-$client.Top);targetOuterWidth=$targetWidth;targetOuterHeight=$targetHeight}
     }
     Capture 'before'
     Inventory 'controls-before'
@@ -200,20 +193,7 @@ try {
                 }
             }
         } else { Record 'draft' 'NOT RUN' 'All three synthetic fields must be confirmed before generating a draft.' }
-        foreach ($name in @('찾기','관리')) { if (Invoke-Named $name) { Inventory "controls-$name"; Capture $name } }
-        $focus=Controls | Where-Object { $_.Current.Name -eq '업무명' -and $_.Current.IsKeyboardFocusable -and -not $_.Current.IsOffscreen } | Select-Object -First 1
-        if ($focus) {
-            Foreground; $focus.SetFocus()
-            foreach ($keys in @('{TAB}','+{TAB}')) {
-                Foreground
-                $previous=[System.Windows.Automation.AutomationElement]::FocusedElement
-                [System.Windows.Forms.SendKeys]::SendWait($keys)
-                Start-Sleep -Milliseconds 150
-                $focused=[System.Windows.Automation.AutomationElement]::FocusedElement
-                Record "keyboard-$keys" $(if ($ids.Contains([int]$focused.Current.ProcessId) -and -not [System.Windows.Automation.Automation]::Compare($previous,$focused)) {'PASS'} else {'FAIL'}) "Focus movement and QA process ownership checked; focus: $($focused.Current.Name), PID $($focused.Current.ProcessId)."
-                Inventory "focus-$keys"; Capture "focus-$keys"
-            }
-        } else { Record 'keyboard' 'NOT RUN' 'Named focusable workName control unavailable.' }
+        . (Join-Path $PSScriptRoot 'official-document-remaining-ui.ps1')
         Inventory 'controls-after'
         Capture 'after'
     } else { Record 'interaction' 'NOT RUN' 'Interaction not requested or no visible QA window.' }

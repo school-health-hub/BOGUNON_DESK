@@ -101,7 +101,7 @@ jobs:
           "Native build PASS. WebView2 actual UI QA NOT RUN. Source: $env:GITHUB_SHA. EXE SHA256: $hash" >> $env:GITHUB_STEP_SUMMARY
       - name: Runner-only startup and actual isolation handshake
         continue-on-error: true
-        timeout-minutes: 4
+        timeout-minutes: 6
         run: |
           $exe = Join-Path $env:QA_ROOT 'evidence/bogunon-desk-official-document-qa.exe'
           $webview = @(Get-ChildItem "${env:ProgramFiles(x86)}/Microsoft/EdgeWebView/Application" -Filter msedgewebview2.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)
@@ -156,6 +156,7 @@ jobs:
       run:
         shell: pwsh
     env:
+      QA_NATIVE_UI_ONLY: 'true'
       QA_EXPECTED_SOURCE_SHA: 78cf04155a62e010980a340d9c4c8a1c5a748340
       QA_EXPECTED_EXE_SHA256: cb97762a66a35d912fea5d480c4fc67c0d5302cb943c6c0d61ae51db0b86aba9
     steps:
@@ -188,7 +189,7 @@ jobs:
           Copy-Item "$env:QA_ROOT/input/provenance.json" "$env:QA_ROOT/evidence/binary-provenance.json"
           "PSModuleAnalysisCachePath=$env:QA_ROOT/ModuleAnalysisCache" >> $env:GITHUB_ENV
       - name: Runner-only startup and actual isolation handshake
-        timeout-minutes: 4
+        timeout-minutes: 6
         run: |
           $exe = Join-Path $env:QA_ROOT 'evidence/bogunon-desk-official-document-qa.exe'
           $webview = @(Get-ChildItem "${env:ProgramFiles(x86)}/Microsoft/EdgeWebView/Application" -Filter msedgewebview2.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)

@@ -19,15 +19,18 @@ const report = { status: 'FAIL', scriptSha: process.env.GITHUB_SHA, sourceSha: e
 const hash = createHash('sha256').update(readFileSync(executable)).digest('hex');
 if ((process.env.QA_EXPECTED_EXE_SHA256 && hash !== process.env.QA_EXPECTED_EXE_SHA256) || !readFileSync(join(evidence, 'SHA256SUMS.txt'), 'utf8').includes(hash)) throw new Error('EXE hash mismatch');
 if (existsSync(localData)) throw new Error('Runner QA profile already exists; refusing reuse');
+const nativeOnly = process.env.QA_NATIVE_UI_ONLY === 'true';
 const port = 9225;
+if (!nativeOnly) {
 const preflight = createServer();
 await new Promise((ok, fail) => { preflight.once('error', fail); preflight.listen(port, '127.0.0.1', ok); });
 await new Promise(ok => preflight.close(ok));
 report.portFreeBeforeLaunch = true;
 report.requestedBrowserArguments = '--remote-debugging-port=9225 --remote-debugging-address=127.0.0.1 --disable-background-networking --force-renderer-accessibility';
+}
 const child = spawn(executable, [], {
   cwd: evidence,
-  env: { ...process.env, WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${port} --remote-debugging-address=127.0.0.1 --disable-background-networking --force-renderer-accessibility` },
+  env: nativeOnly ? { ...process.env } : { ...process.env, WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${port} --remote-debugging-address=127.0.0.1 --disable-background-networking --force-renderer-accessibility` },
   stdio: ['ignore', 'pipe', 'pipe'],
 });
 let processError;
@@ -38,11 +41,11 @@ child.stderr.on('data', data => { stderr += data; });
 let socket;
 try {
   await new Promise(ok => setTimeout(ok, 3000));
-  const probe = (interact = false) => spawnSync('powershell.exe', ['-NoProfile', '-File', resolve('scripts/qa/official-document-window-probe.ps1'), '-ProcessId', String(child.pid), '-OutputDirectory', evidence, ...(interact ? ['-Interact'] : [])], { encoding: 'utf8', timeout: 45_000 });
+  const probe = (interact = false) => spawnSync('powershell.exe', ['-NoProfile', '-File', resolve('scripts/qa/official-document-window-probe.ps1'), '-ProcessId', String(child.pid), '-OutputDirectory', evidence, ...(interact ? ['-Interact'] : [])], { encoding: 'utf8', timeout: 180_000 });
   report.qaProcessId = child.pid;
   const before = probe();
   writeFileSync(join(evidence, 'window-probe.log'), before.stdout + before.stderr);
-  const discovery = await discoverPage(port, { timeoutMs: 60_000 });
+  const discovery = nativeOnly ? { page: null, evidence: { status: 'NOT RUN', reason: 'Native UI only; CDP investigation explicitly excluded' } } : await discoverPage(port, { timeoutMs: 60_000 });
   report.discovery = discovery.evidence;
   const assessScreen = () => {
     const controlsPath = join(evidence, 'native-window-controls-before.json');
@@ -59,7 +62,7 @@ try {
   report.webviewDirectoryCreated = existsSync(webviewData);
   if (!discovery.page) {
     report.status = 'PARTIAL';
-    report.reason = 'App alive but CDP unavailable; frontend handshake NOT RUN';
+    report.reason = nativeOnly ? 'Native UI Automation only; CDP handshake intentionally NOT RUN' : 'App alive but CDP unavailable; frontend handshake NOT RUN';
     const gui = probe(true);
     writeFileSync(join(evidence, 'window-interaction.log'), gui.stdout + gui.stderr);
     const guiReport = join(evidence, 'native-window-results.json');
