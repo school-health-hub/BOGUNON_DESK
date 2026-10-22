@@ -9,6 +9,18 @@ beforeEach(()=>localStorage.clear());afterEach(()=>cleanup());
 const fill=()=>{fireEvent.change(screen.getByLabelText('교육 주제'),{target:{value:'교육'}});fireEvent.change(screen.getByLabelText('검색 대상'),{target:{value:'학생'}});fireEvent.click(screen.getByRole('button',{name:'서버 검색 준비'}));};
 const session=async()=>({accessToken:'fake-in-memory-only',userId:'qa-user',expiresAt:Date.now()+60000});
 const row=()=>({videoId:'validVid001',title:'주입 영상',channelId:'UCexUyFaq9YH7XJfCQzVR_jg',channelTitle:'교육부',durationSeconds:null,url:'https://www.youtube.com/watch?v=validVid001',official:true,officialEvidence:'https://moe.go.kr/main.do',synthetic:false,fetchedAt:new Date().toISOString()});
+it('creates a fresh request UUID when the teacher starts another search',async()=>{
+ const transport=vi.fn<SearchDependencies['transport']>(async()=>({source:'synthetic-mock',notice:'합성 검색 완료',results:[]}));
+ render(<EducationVideoFinder onClose={()=>{}} authStatus="signedIn" authIdentity="qa-user" searchDependencies={{getSession:session,transport}}/>);
+ fill();fireEvent.click(screen.getByRole('button',{name:'서버 검색(외부 호출 차단)'}));
+ await waitFor(()=>expect(transport).toHaveBeenCalledTimes(1));
+ await waitFor(()=>expect(screen.getByRole('button',{name:'서버 검색(외부 호출 차단)'}).hasAttribute('disabled')).toBe(false));
+ fireEvent.click(screen.getByRole('button',{name:'서버 검색(외부 호출 차단)'}));
+ await waitFor(()=>expect(transport).toHaveBeenCalledTimes(2));
+ const first=transport.mock.calls[0];const second=transport.mock.calls[1];
+ expect(first?.[2]).toMatch(/^[0-9a-f-]{36}$/);expect(second?.[2]).toMatch(/^[0-9a-f-]{36}$/);
+ expect(first?.[2]).not.toBe(second?.[2]);
+});
 describe('Phase2 authenticated UI',()=>{
  it('blocks signed-out search and leaves local Mock available',()=>{const transport=vi.fn();render(<EducationVideoFinder onClose={()=>{}} searchDependencies={{getSession:session,transport}}/>);fill();expect(screen.getByRole('button',{name:'서버 검색(외부 호출 차단)'}).hasAttribute('disabled')).toBe(true);expect(transport).not.toHaveBeenCalled();fireEvent.click(screen.getByRole('button',{name:'로컬 Mock'}));expect(screen.getByRole('button',{name:'Mock 영상 검색'}).hasAttribute('disabled')).toBe(false);});
  it('does not apply in-flight response after logout',async()=>{

@@ -46,7 +46,7 @@ New raw damaged evidence is scoped to `education-video/quarantine/<uuid>.raw`, a
 
 ## Native search transport preparation
 
-IPC `education_video_search({request:{topic,audience,desiredMinutes},accessToken})` validates conditions/token then always returns structured `REAL_DISPATCH_DISABLED`. No environment variable can enable dispatch in Phase 2B. The prepared HTTP adapter is also independently hard gated.
+IPC `education_video_search({request:{topic,audience,desiredMinutes},accessToken,requestId})` validates conditions/token/UUID then always returns structured `REAL_DISPATCH_DISABLED`. Phase 2E-1A adds request identity and safe Proxy error preservation; see [the current contract](education-video-phase2e-1a.md). No environment variable can enable dispatch. The prepared HTTP adapter is also independently hard gated.
 
 The request plan uses request-scoped `Authorization: Bearer ...`, fixed `/api/education-video/search`, timeout 12 seconds and no redirects. Production remains exact `https://bogunon.vercel.app`; debug builds alone accept explicit `BOGUNON_EDUCATION_VIDEO_DEV_PROXY=http://localhost:3000` or `http://127.0.0.1:3000`. No caller-supplied arbitrary URL is accepted. Existing meal/weather restrictions are unchanged.
 

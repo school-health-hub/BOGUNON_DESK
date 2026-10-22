@@ -17,6 +17,10 @@ pub async fn execute(plan: RequestPlan) -> Result<SearchResponse, SearchError> {
         .post(&plan.url)
         .header(reqwest::header::AUTHORIZATION, &plan.authorization)
         .header(reqwest::header::CONTENT_TYPE, "application/json")
+        .header(
+            "x-education-video-request-id",
+            plan.request_id.header_value(),
+        )
         .body(plan.body)
         .send()
         .await

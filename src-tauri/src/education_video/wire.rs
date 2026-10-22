@@ -33,12 +33,18 @@ pub struct SearchResponse {
     pub notice: String,
     pub results: Vec<SearchVideo>,
 }
-#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SearchError {
     InvalidRequest,
     Unauthorized,
+    Forbidden,
     QuotaExceeded,
+    NotConfigured,
+    Unavailable,
+    SearchBusy,
+    UpstreamQuota,
+    UpstreamInvalid,
     UpstreamUnavailable,
     InvalidResponse,
     ResponseTooLarge,

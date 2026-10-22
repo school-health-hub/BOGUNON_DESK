@@ -3,7 +3,7 @@ import {ArrowLeft,Search} from 'lucide-react';
 import {copyMessage,createMessage,filterVideos,FinderInputError,searchMockVideos,validateConditions,type Conditions,type Education,type Video} from './model';
 import {libraryRepository} from './library';
 import {entryVideo,expireMetadata,toEntry,type LibraryEntry,type LibraryV2} from './libraryV2';
-import {FinderSearchError,searchWithSession,type FinderAuthStatus,type SearchDependencies} from './searchService';
+import {FinderSearchError,createSearchOperation,type FinderAuthStatus,type SearchDependencies} from './searchService';
 import {VideoResults} from './VideoResults';
 import {MessageEditor} from './MessageEditor';
 import {LibraryPanel} from './LibraryPanel';
@@ -43,7 +43,7 @@ export function EducationVideoFinder({onClose,authStatus='signedOut',authIdentit
   const epoch=++requestEpoch.current;const owner=authSnapshot.current;setSearched({...conditions});setWindow(3);
   if(mode==='mock'){setVideos(searchMockVideos(conditions));setNotice('합성 Mock 결과 12개입니다. 실제 YouTube를 검색하지 않았습니다.');return;}
   setBusy(true);setVideos([]);
-  try{const result=await searchWithSession(conditions,authStatus,searchDependencies,authIdentity,()=>epoch===requestEpoch.current&&owner===authSnapshot.current);if(epoch===requestEpoch.current&&owner===authSnapshot.current){setVideos(result.results);setNotice(result.results.length?result.notice||'주입된 검색 응답입니다. 실제 외부 호출은 차단되어 있습니다.':'검색 결과가 없습니다. 조건을 변경해 주세요.');}}
+  try{const operation=createSearchOperation(conditions);const result=await operation.execute(authStatus,searchDependencies,authIdentity,()=>epoch===requestEpoch.current&&owner===authSnapshot.current);if(epoch===requestEpoch.current&&owner===authSnapshot.current){setVideos(result.results);setNotice(result.results.length?result.notice||'주입된 검색 응답입니다. 실제 외부 호출은 차단되어 있습니다.':'검색 결과가 없습니다. 조건을 변경해 주세요.');}}
   catch(error){if(epoch===requestEpoch.current&&owner===authSnapshot.current)reportError(error);}finally{if(epoch===requestEpoch.current&&owner===authSnapshot.current)setBusy(false);}
  };
  const changeEducation=(value:Education)=>{setEducation(value);setConfirmed(false);};

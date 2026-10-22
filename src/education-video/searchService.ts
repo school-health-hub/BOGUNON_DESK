@@ -9,7 +9,7 @@ export type FinderSession={readonly accessToken:string;readonly userId:string;re
 export type SearchCode='UNAUTHORIZED'|'SESSION_EXPIRED'|'REAL_DISPATCH_DISABLED'|'INVALID_RESPONSE'|'INVALID_REQUEST'|'QUOTA_EXCEEDED'|'RATE_LIMITED'|'NOT_CONFIGURED'|'SEARCH_FAILED'|'FORBIDDEN'|'UNAVAILABLE'|'SEARCH_BUSY'|'UPSTREAM_QUOTA'|'UPSTREAM_INVALID'|'UPSTREAM_UNAVAILABLE'|'TIMEOUT';
 const messages:Readonly<Record<SearchCode,string>>={FORBIDDEN:'허용된 화면에서 다시 요청해 주세요.',UNAVAILABLE:'서버 검색을 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.',SEARCH_BUSY:'같은 검색을 처리 중입니다. 잠시 후 다시 시도해 주세요.',UPSTREAM_QUOTA:'영상 제공자의 사용량 한도에 도달했습니다.',UPSTREAM_INVALID:'영상 제공자의 응답을 확인하지 못했습니다.',UPSTREAM_UNAVAILABLE:'영상 제공자에 연결하지 못했습니다.',TIMEOUT:'검색 요청 시간이 초과되었습니다. 다시 시도해 주세요.',UNAUTHORIZED:'서버 검색은 BOGUNON 로그인이 필요합니다.',SESSION_EXPIRED:'로그인이 만료되었습니다. 다시 로그인해 주세요.',REAL_DISPATCH_DISABLED:'Phase 2B에서는 실제 외부 검색이 차단되어 있습니다. 로컬 Mock을 사용해 주세요.',INVALID_RESPONSE:'검색 응답 형식을 확인하지 못했습니다.',INVALID_REQUEST:'검색 조건을 확인해 주세요.',QUOTA_EXCEEDED:'검색 사용량 한도를 초과했습니다.',RATE_LIMITED:'요청이 많습니다. 잠시 후 다시 시도해 주세요.',NOT_CONFIGURED:'서버 검색 설정이 준비되지 않았습니다.',SEARCH_FAILED:'검색 요청을 처리하지 못했습니다.'};
 export class FinderSearchError extends Error{readonly name='FinderSearchError';constructor(readonly code:SearchCode){super(messages[code]);}}
-export type SearchDependencies={readonly getSession:()=>Promise<FinderSession|null>;readonly transport:(request:SearchRequest,accessToken:string)=>Promise<unknown>};
+export type SearchDependencies={readonly getSession:()=>Promise<FinderSession|null>;readonly transport:(request:SearchRequest,accessToken:string,requestId:string)=>Promise<unknown>};
 const object=(value:unknown):value is Record<string,unknown>=>typeof value==='object'&&value!==null&&!Array.isArray(value);
 const invalid=():never=>{throw new FinderSearchError('INVALID_RESPONSE');};
 export const canonicalTimestamp=(value:unknown):value is string=>typeof value==='string'&&Number.isFinite(Date.parse(value))&&new Date(value).toISOString()===value;
@@ -33,10 +33,15 @@ const safeError=(error:unknown):FinderSearchError=>{
 };
 export const nativeSearchDependencies:SearchDependencies={
  getSession:async()=>{const {data,error}=await getSupabaseClient().auth.getSession();const session=data.session;if(error||!session)return null;return {accessToken:session.access_token,userId:session.user.id,expiresAt:(session.expires_at??0)*1000};},
- transport:async(request,accessToken)=>{if(!isTauri())throw new FinderSearchError('REAL_DISPATCH_DISABLED');return invoke<unknown>('education_video_search',{request,accessToken});},
+ transport:async(request,accessToken,requestId)=>{if(!isTauri())throw new FinderSearchError('REAL_DISPATCH_DISABLED');return invoke<unknown>('education_video_search',{request,accessToken,requestId});},
 };
-export const searchWithSession=async(conditions:Conditions,status:FinderAuthStatus,dependencies:SearchDependencies=nativeSearchDependencies,expectedUserId='',isCurrent:()=>boolean=()=>true):Promise<SearchResponse>=>{
+export const searchWithSession=async(conditions:Conditions,status:FinderAuthStatus,dependencies:SearchDependencies=nativeSearchDependencies,expectedUserId='',isCurrent:()=>boolean=()=>true,requestId=crypto.randomUUID()):Promise<SearchResponse>=>{
  if(status!=='signedIn')throw new FinderSearchError('UNAUTHORIZED');
  if(validateConditions(conditions))throw new FinderSearchError('INVALID_REQUEST');
- try{const session=await dependencies.getSession();if(!session||!session.accessToken||!session.userId||session.expiresAt<=Date.now()||!isCurrent()||(expectedUserId!==''&&session.userId!==expectedUserId))throw new FinderSearchError('SESSION_EXPIRED');const response=await dependencies.transport({topic:conditions.topic.trim(),audience:conditions.target.trim(),desiredMinutes:conditions.minutes},session.accessToken);if(!isCurrent()||session.expiresAt<=Date.now())throw new FinderSearchError('SESSION_EXPIRED');return parseSearchResponse(response);}catch(error){throw safeError(error);}
+ try{const session=await dependencies.getSession();if(!session||!session.accessToken||!session.userId||session.expiresAt<=Date.now()||!isCurrent()||(expectedUserId!==''&&session.userId!==expectedUserId))throw new FinderSearchError('SESSION_EXPIRED');const response=await dependencies.transport({topic:conditions.topic.trim(),audience:conditions.target.trim(),desiredMinutes:conditions.minutes},session.accessToken,requestId);if(!isCurrent()||session.expiresAt<=Date.now())throw new FinderSearchError('SESSION_EXPIRED');return parseSearchResponse(response);}catch(error){throw safeError(error);}
+};
+
+export const createSearchOperation=(conditions:Conditions)=>{
+ const snapshot=Object.freeze({...conditions});const requestId=crypto.randomUUID();
+ return Object.freeze({requestId,execute:(status:FinderAuthStatus,dependencies:SearchDependencies=nativeSearchDependencies,expectedUserId='',isCurrent:()=>boolean=()=>true)=>searchWithSession(snapshot,status,dependencies,expectedUserId,isCurrent,requestId)});
 };

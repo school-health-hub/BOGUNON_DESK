@@ -70,10 +70,13 @@ pub struct SearchFailure {
 pub fn education_video_search(
     request: SearchRequest,
     access_token: String,
+    request_id: String,
 ) -> Result<SearchResponse, SearchFailure> {
     // Intentionally no environment switch can enable real dispatch in this phase.
-    request_core::disabled_dispatch(&request, &access_token).map_err(|code| SearchFailure {
-        code,
-        message: request_core::safe_message(code),
+    request_core::disabled_dispatch(&request, &access_token, &request_id).map_err(|code| {
+        SearchFailure {
+            code,
+            message: request_core::safe_message(code),
+        }
     })
 }
