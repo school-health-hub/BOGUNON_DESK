@@ -22,7 +22,7 @@ const isolatedInfo = {
   identifier: "kr.sungandi.schoolhealthdesk.officialdocumentqa",
   sourceSha: "a".repeat(40),
   localData: "C:\\QA\\kr.sungandi.schoolhealthdesk.officialdocumentqa",
-  webviewData: "C:\\QA\\kr.sungandi.schoolhealthdesk.officialdocumentqa\\main\\official-document-qa-webview",
+  webviewData: "C:\\QA\\kr.sungandi.schoolhealthdesk.officialdocumentqa\\EBWebView",
   networkEnabled: false,
   loginEnabled: false,
   chatGptEnabled: false,
@@ -63,6 +63,18 @@ describe("OfficialDocumentQaApp", () => {
 
   it("fails closed when native isolation metadata is not exact", async () => {
     invoke.mockResolvedValue({ ...isolatedInfo, identifier: "kr.sungandi.schoolhealthdesk" });
+
+    render(<OfficialDocumentQaApp />);
+
+    expect((await screen.findByRole("alert")).textContent).toContain("QA 격리 정보를 확인하지 못했습니다");
+    expect(screen.queryByRole("dialog", { name: "공문 작업실" })).toBeNull();
+  });
+
+  it("fails closed when native isolation metadata reports the old synthetic WebView path", async () => {
+    invoke.mockResolvedValue({
+      ...isolatedInfo,
+      webviewData: "C:\\QA\\kr.sungandi.schoolhealthdesk.officialdocumentqa\\main\\official-document-qa-webview",
+    });
 
     render(<OfficialDocumentQaApp />);
 

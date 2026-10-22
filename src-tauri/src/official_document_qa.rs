@@ -8,7 +8,7 @@ use tauri::Manager;
 use crate::{official_document_import, official_reference_package};
 
 const QA_IDENTIFIER: &str = "kr.sungandi.schoolhealthdesk.officialdocumentqa";
-const QA_WEBVIEW_DIRECTORY: &str = "official-document-qa-webview";
+const QA_WEBVIEW_DIRECTORY: &str = "EBWebView";
 const QA_PATH_ERROR: &str = "QA data path is not isolated";
 
 #[cfg(windows)]
@@ -47,12 +47,14 @@ fn verify_identifier_root(actual: &Path) -> Result<PathBuf, &'static str> {
     Ok(actual.to_path_buf())
 }
 
-fn verify_webview_root(app_data: &Path) -> Result<PathBuf, &'static str> {
-    let verified_app_data = verify_identifier_root(app_data)?;
-    let window_root = verified_app_data.join("main");
-    reject_reparse_ancestors(&window_root)?;
-    let webview_root = window_root.join(QA_WEBVIEW_DIRECTORY);
+fn verify_webview_root(local_data: &Path) -> Result<PathBuf, &'static str> {
+    let verified_local_data = verify_identifier_root(local_data)?;
+    let webview_root = verified_local_data.join(QA_WEBVIEW_DIRECTORY);
     reject_reparse_ancestors(&webview_root)?;
+    let metadata = fs::symlink_metadata(&webview_root).map_err(|_| QA_PATH_ERROR)?;
+    if !metadata.is_dir() || is_reparse_point(&metadata) {
+        return Err(QA_PATH_ERROR);
+    }
     Ok(webview_root)
 }
 
@@ -62,9 +64,8 @@ fn official_document_qa_info(app: tauri::AppHandle) -> Result<serde_json::Value,
         return Err("QA identity mismatch");
     }
     let local_data = app.path().app_local_data_dir().map_err(|_| QA_PATH_ERROR)?;
-    let app_data = app.path().app_data_dir().map_err(|_| QA_PATH_ERROR)?;
     let verified_local_data = verify_identifier_root(&local_data)?;
-    let verified_webview_data = verify_webview_root(&app_data)?;
+    let verified_webview_data = verify_webview_root(&local_data)?;
     Ok(serde_json::json!({
         "identifier": app.config().identifier,
         "sourceSha": env!("BOGUNON_OFFICIAL_DOCUMENT_QA_SOURCE_SHA"),
@@ -104,9 +105,8 @@ pub fn run() {
         ])
         .setup(|app| {
             let local_data = app.path().app_local_data_dir().map_err(|_| QA_PATH_ERROR)?;
-            let app_data = app.path().app_data_dir().map_err(|_| QA_PATH_ERROR)?;
             verify_identifier_root(&local_data)?;
-            verify_webview_root(&app_data)?;
+            verify_webview_root(&local_data)?;
             Ok(())
         })
         .run(context)

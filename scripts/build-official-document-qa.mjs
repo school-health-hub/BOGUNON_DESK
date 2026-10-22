@@ -10,6 +10,7 @@ const approvedFiles = new Set([
   "src-tauri/Cargo.toml",
   "src-tauri/build.rs",
   "src-tauri/src/lib.rs",
+  "src-tauri/src/official_document_import.rs",
   "src-tauri/src/official_document_qa.rs",
   "src-tauri/tauri.official-document-qa.conf.json",
   "vite.official-document-qa.config.ts",

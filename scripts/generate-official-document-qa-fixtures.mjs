@@ -128,27 +128,45 @@ const zip = (entries) => {
   return Buffer.concat([...localParts, centralDirectory, end]);
 };
 
-const pdf = `%PDF-1.4
-1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
-2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj
-3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]/Resources<</Font<</F1 4 0 R>>>>/Contents 5 0 R>>endobj
-4 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj
-5 0 obj<</Length 58>>stream
-BT /F1 14 Tf 72 720 Td (Synthetic official document QA) Tj ET
-endstream endobj
-xref
-0 6
-0000000000 65535 f
-0000000009 00000 n
-0000000058 00000 n
-0000000115 00000 n
-0000000241 00000 n
-0000000311 00000 n
-trailer<</Size 6/Root 1 0 R>>
-startxref
-418
-%%EOF
-`;
+const makePdf = () => {
+  const newline = "\r\n";
+  const content = "BT /F1 14 Tf 72 720 Td (Synthetic official document QA) Tj ET";
+  const objects = [
+    "<</Type/Catalog/Pages 2 0 R>>",
+    "<</Type/Pages/Kids[3 0 R]/Count 1>>",
+    "<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]/Resources<</Font<</F1 4 0 R>>>>/Contents 5 0 R>>",
+    "<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>",
+    `<</Length ${Buffer.byteLength(content)}>>stream${newline}${content}${newline}endstream`,
+  ];
+  const parts = [Buffer.from(`%PDF-1.4${newline}`)];
+  const offsets = [];
+  let length = parts[0].length;
+
+  objects.forEach((body, index) => {
+    offsets.push(length);
+    const object = Buffer.from(`${index + 1} 0 obj${newline}${body}${newline}endobj${newline}`);
+    parts.push(object);
+    length += object.length;
+  });
+
+  const xrefOffset = length;
+  const xref = [
+    "xref",
+    `0 ${objects.length + 1}`,
+    "0000000000 65535 f",
+    ...offsets.map((offset) => `${String(offset).padStart(10, "0")} 00000 n`),
+    "trailer",
+    `<</Size ${objects.length + 1}/Root 1 0 R>>`,
+    "startxref",
+    String(xrefOffset),
+    "%%EOF",
+    "",
+  ].join(newline);
+  parts.push(Buffer.from(xref));
+  return Buffer.concat(parts);
+};
+
+const pdf = makePdf();
 
 await mkdir(directory, { recursive: true });
 await Promise.all([

@@ -4,14 +4,16 @@ import { defineConfig } from "vite";
 
 const projectFile = (path: string): string => fileURLToPath(new URL(path, import.meta.url));
 const inertConnections = projectFile("./src/official-document-qa/inertConnections.ts");
+const aiConnectionContext = /^(?:.*[\\/])?ai[\\/]AiConnectionContext(?:\.tsx)?$/u;
+const chatGptConnectionContext = /^(?:.*[\\/])?chatgpt[\\/]ChatGptConnectionContext(?:\.tsx)?$/u;
 
 export default defineConfig({
   root: "qa/official-document",
   plugins: [react()],
   resolve: {
     alias: [
-      { find: projectFile("./src/ai/AiConnectionContext.tsx"), replacement: inertConnections },
-      { find: projectFile("./src/chatgpt/ChatGptConnectionContext.tsx"), replacement: inertConnections },
+      { find: aiConnectionContext, replacement: inertConnections },
+      { find: chatGptConnectionContext, replacement: inertConnections },
       { find: "/src", replacement: projectFile("./src") },
     ],
   },

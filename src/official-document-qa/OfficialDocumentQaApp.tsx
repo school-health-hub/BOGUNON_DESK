@@ -41,7 +41,7 @@ const isIsolated = (info: QaInfo): boolean => (
   info.identifier === QA_IDENTIFIER
   && /^[a-f0-9]{40}$/.test(info.sourceSha)
   && /kr\.sungandi\.schoolhealthdesk\.officialdocumentqa[\\/]?$/.test(info.localData)
-  && /kr\.sungandi\.schoolhealthdesk\.officialdocumentqa[\\/]main[\\/]official-document-qa-webview[\\/]?$/.test(info.webviewData)
+  && /kr\.sungandi\.schoolhealthdesk\.officialdocumentqa[\\/]EBWebView[\\/]?$/.test(info.webviewData)
   && booleanBoundaries.every((key) => info[key] === false)
 );
 
@@ -83,6 +83,7 @@ export function OfficialDocumentQaApp() {
           <summary>격리 정보 · {info.sourceSha.slice(0, 7)}</summary>
           <p>{info.identifier}</p>
           <p>{info.localData}</p>
+          <p>WebView2 데이터: {info.webviewData}</p>
         </details>
         <p role="status">{notice}</p>
       </header>

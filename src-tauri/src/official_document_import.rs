@@ -730,6 +730,17 @@ mod tests {
     }
 
     #[test]
+    fn extracts_checked_in_qa_pdf_fixture() {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../qa/official-document/fixtures/synthetic-document.pdf");
+
+        assert_eq!(
+            extract_pdf_text(&path),
+            Ok("Synthetic official document QA".to_owned())
+        );
+    }
+
+    #[test]
     fn rejects_blank_and_oversized_page_count_pdfs() {
         let blank = write_synthetic_pdf("blank", &[""]);
         assert_eq!(extract_pdf_text(&blank), Err(ImportError::PdfWithoutText));
