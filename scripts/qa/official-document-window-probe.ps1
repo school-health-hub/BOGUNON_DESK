@@ -34,6 +34,8 @@ public class NativeQaWindow {
  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h,int n);
  [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h,IntPtr after,int x,int y,int w,int height,uint flags);
  [DllImport("user32.dll")] public static extern bool GetClientRect(IntPtr h,out Rect r);
+ [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y);
+ [DllImport("user32.dll")] public static extern void mouse_event(uint flags,uint dx,uint dy,int data,UIntPtr extra);
  public static Window[] ForProcess(int pid) {
   var list=new List<Window>(); EnumWindows((h,p)=>{uint id;GetWindowThreadProcessId(h,out id);
    if(id==pid){Rect r;GetWindowRect(h,out r);var s=new StringBuilder(2048);GetWindowText(h,s,s.Capacity);

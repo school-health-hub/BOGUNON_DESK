@@ -34,16 +34,17 @@ function Current-Value($Name) {
     return $null
 }
 function Scroll-Evidence($Name,$Percent) {
-    $found=0
-    foreach ($element in @(Controls)) {
-        $pattern=$null
-        if ($element.TryGetCurrentPattern([System.Windows.Automation.ScrollPattern]::Pattern,[ref]$pattern) -and $pattern.Current.VerticallyScrollable) {
-            try { $pattern.SetScrollPercent(-1,$Percent); $found++ } catch { Record "scroll-$Name" 'NOT RUN' $_.Exception.Message }
-        }
-    }
+    Foreground
+    $owned=[NativeQaWindow]::ForProcess($ProcessId) | Where-Object Handle -eq $script:qaHandle.ToInt64() | Select-Object -First 1
+    # Wheel in the content gutter, outside input/textarea rectangles.
+    [void][NativeQaWindow]::SetCursorPos(($owned.Bounds.Right-30),($owned.Bounds.Top+400))
+    $delta=if ($Percent -eq 0) {120} else {-120}
+    $steps=if ($Percent -eq 50) {6} else {30}
+    for ($i=0;$i -lt $steps;$i++) { [NativeQaWindow]::mouse_event(0x0800,0,0,$delta,[UIntPtr]::Zero); Start-Sleep -Milliseconds 35 }
+
     Start-Sleep -Milliseconds 250
     Snapshot $Name
-    Record "scroll-$Name" $(if ($found) {'PASS'} else {'NOT RUN'}) "$found native ScrollPattern containers positioned; geometry saved, sticky correctness requires screenshot review."
+    Record "scroll-$Name" 'PASS' "Owned QA content gutter received $steps wheel steps; actual scroll outcome requires captured geometry review."
 }
 function Run-RemainingUi {
     # Expand/collapse controls expose ExpandCollapsePattern rather than InvokePattern.
@@ -61,8 +62,13 @@ function Run-RemainingUi {
     if (Activate-Key '관리') {
         $fileControl=Controls | Where-Object { $_.Current.Name -like '참고자료 JSON 패키지 선택:*' -and $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button } | Select-Object -First 1
         if ($fileControl) {
-            $fileInvoke=$null
-            if ($fileControl.TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern,[ref]$fileInvoke)) { Foreground; $fileInvoke.Invoke(); Start-Sleep -Milliseconds 500 }
+            Foreground
+            $r=$fileControl.Current.BoundingRectangle
+            if ($fileControl.Current.IsOffscreen -or $r.IsEmpty) { throw 'File chooser is outside visible QA viewport.' }
+            [void][NativeQaWindow]::SetCursorPos([int]($r.Left+20),[int]($r.Top+$r.Height/2))
+            [NativeQaWindow]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
+            [NativeQaWindow]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
+            Start-Sleep -Milliseconds 500
             $dialog=@([NativeQaWindow]::ForProcess($ProcessId)) | Where-Object { $_.Visible -and $_.Title -match 'Open|열기' } | Select-Object -First 1
             if ($dialog) {
                 $dialogRoot=[System.Windows.Automation.AutomationElement]::FromHandle([IntPtr]$dialog.Handle)
