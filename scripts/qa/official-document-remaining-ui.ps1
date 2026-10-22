@@ -59,9 +59,10 @@ function Run-RemainingUi {
     }
     # Open only the existing reviewed synthetic JSON fixture via the native file dialog.
     if (Activate-Key '관리') {
-        $fileControl=Controls | Where-Object { $_.Current.Name -eq '참고자료 JSON 패키지 선택' -and $_.Current.IsKeyboardFocusable } | Select-Object -First 1
+        $fileControl=Controls | Where-Object { $_.Current.Name -like '참고자료 JSON 패키지 선택:*' -and $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button } | Select-Object -First 1
         if ($fileControl) {
-            Focus-Qa $fileControl; Native-Key ' '
+            $fileInvoke=$null
+            if ($fileControl.TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern,[ref]$fileInvoke)) { Foreground; $fileInvoke.Invoke(); Start-Sleep -Milliseconds 500 }
             $dialog=@([NativeQaWindow]::ForProcess($ProcessId)) | Where-Object { $_.Visible -and $_.Title -match 'Open|열기' } | Select-Object -First 1
             if ($dialog) {
                 $dialogRoot=[System.Windows.Automation.AutomationElement]::FromHandle([IntPtr]$dialog.Handle)
