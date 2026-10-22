@@ -83,6 +83,9 @@ describe("OfficialDocumentPanel AI interaction", () => {
 
   it("never calls AI while browsing, selecting, applying, or generating a local reference draft", async () => {
     renderPanel(createOfficialDocumentSession());
+    const findReferences = screen.getByRole("button", { name: "찾기" });
+    expect(findReferences.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(findReferences);
     await screen.findByText("학교보건 계획 기안 예시");
     fireEvent.click(screen.getByRole("button", { name: /학교보건 계획 기안 예시/ }));
     expect(generateTextMock).not.toHaveBeenCalled();
@@ -103,6 +106,7 @@ describe("OfficialDocumentPanel AI interaction", () => {
 
   it("cancels reference application with Escape without changing the form", async () => {
     renderPanel(createOfficialDocumentSession());
+    fireEvent.click(screen.getByRole("button", { name: "찾기" }));
     await screen.findByText("학교보건 계획 기안 예시");
     fireEvent.click(screen.getByRole("button", { name: /학교보건 계획 기안 예시/ }));
     fireEvent.click(screen.getByRole("button", { name: "초안에 적용" }));

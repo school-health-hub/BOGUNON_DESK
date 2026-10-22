@@ -70,6 +70,12 @@ body {
 
 .official-document-qa-shell .official-document-backdrop {
   top: 72px;
+  padding: 16px;
+}
+
+.official-document-qa-shell .official-document-panel {
+  height: min(840px, calc(100dvh - 104px));
+  max-height: calc(100dvh - 104px);
 }
 
 @media (max-width: 700px) {
@@ -89,5 +95,10 @@ body {
 
   .official-document-qa-shell .official-document-backdrop {
     top: 120px;
+  }
+
+  .official-document-qa-shell .official-document-panel {
+    height: calc(100dvh - 152px);
+    max-height: calc(100dvh - 152px);
   }
 }
