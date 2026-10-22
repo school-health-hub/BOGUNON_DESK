@@ -2,7 +2,7 @@ use super::*;
 use std::path::PathBuf;
 #[path = "live_qa_policy.rs"]
 mod policy;
-pub(crate) use policy::approved_fingerprint;
+pub(crate) use policy::approved_search;
 use policy::Mode;
 #[path = "live_qa_diagnostics.rs"]
 pub(crate) mod diagnostics;
@@ -17,7 +17,7 @@ impl ReadOnlyTransport {
         Self::new(root, Mode::Models, "unused")
     }
     pub(crate) fn search(root: &std::path::Path) -> Result<Self, ChatGptPlanErrorDto> {
-        Self::new(root, Mode::Search, "search-attempt-2.receipt")
+        Self::new(root, Mode::Search, "search-attempt-3.receipt")
     }
     pub(crate) fn review(root: &std::path::Path) -> Result<Self, ChatGptPlanErrorDto> {
         Self::new(root, Mode::Review, "review-attempt.receipt")
@@ -72,9 +72,9 @@ impl PlanTransport for ReadOnlyTransport {
                         .receipt
                         .parent()
                         .ok_or(InternalError::INVALID_RESPONSE)?;
-                    policy::claim_second(root)
+                    policy::claim_third(root)
                         .map_err(|_| InternalError::bare(InternalErrorKind::Permission))?;
-                    diagnostics::write_new(&root.join("search-2-before-dispatch.json"), &serde_json::json!({"slot":2,"stage":"reservedBeforeHttp","automaticRetry":false}))
+                    diagnostics::write_new(&root.join("search-3-before-dispatch.json"), &serde_json::json!({"slot":3,"stage":"reservedBeforeHttp","automaticRetry":false}))
                         .map_err(|_| InternalError::TRANSPORT)?;
                 } else {
                     // This approval permits no additional AI review request.
@@ -104,7 +104,7 @@ impl PlanTransport for ReadOnlyTransport {
                 }
                 Err(_) => serde_json::json!({"stage":"httpTransportFailure","retryAllowed":false}),
             };
-            diagnostics::write_new(&root.join("search-2-http-response.json"), &summary)
+            diagnostics::write_new(&root.join("search-3-http-response.json"), &summary)
                 .map_err(|_| InternalError::TRANSPORT)?;
         }
         result

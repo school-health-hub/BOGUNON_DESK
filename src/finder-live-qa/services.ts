@@ -19,3 +19,14 @@ export function createDisabledApiConnection(): AiConnectionService {
 }
 export const APPROVED_SEARCH_CONDITIONS = { topic: '마약류 예방교육', target: '고등학생', minutes: 20, publicFirst: true } as const;
 export const APPROVED_SEARCH_PROMPT_SHA256 = 'e806072de6813dbb960686403f4d88f4eef5a682c3f13909d441b14f85b4e802';
+export function verifyThirdSearchMetadata(value: unknown, stamp: { readonly sourceSha: string; readonly baseSha: string }): boolean {
+ return typeof value === 'object' && value !== null
+  && 'identifier' in value && value.identifier === 'kr.sungandi.schoolhealthdesk.finderliveqa'
+  && 'sourceSha' in value && value.sourceSha === stamp.sourceSha && 'baseSha' in value && value.baseSha === stamp.baseSha
+  && 'readOnlyAuth' in value && value.readOnlyAuth === true && 'libraryIsolated' in value && value.libraryIsolated === true
+  && 'externalDispatchEnabled' in value && value.externalDispatchEnabled === false
+  && 'activeApprovedSlot' in value && value.activeApprovedSlot === 3
+  && 'searchSlotOneUsed' in value && value.searchSlotOneUsed === true && 'searchSlotTwoUsed' in value && value.searchSlotTwoUsed === true
+  && 'searchSlotThreeUsed' in value && value.searchSlotThreeUsed === false
+  && 'sseDiagnosticsVersion' in value && value.sseDiagnosticsVersion === 2;
+}

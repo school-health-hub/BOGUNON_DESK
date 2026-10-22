@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { build } from 'vite';
 const sourceSha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
-const baseSha = 'f0981bf965b191ca380d5a97afe9aa61f9a1c3d8';
+const baseSha = 'df8375a015f1868b27d7741a754e0df772837684';
 if (!/^[a-f0-9]{40}$/.test(sourceSha)) throw new Error('Finder Live QA source commit unavailable');
 await build({ configFile: 'vite.finder-live-qa.config.ts' });
 for (const file of await readdir('dist-finder-live-qa/assets')) {

@@ -1,7 +1,7 @@
 # Finder Windows Live QA executable
 
-Approved Finder base: f0981bf965b191ca380d5a97afe9aa61f9a1c3d8.
-The Windows artifact uses this checkpoint plus the minimum QA wrapper commit. SOURCE.json records both baseSha and actual sourceSha and SHA-256. It must not be described as an unmodified f0981bf binary.
+Current approved SSE checkpoint: df8375a015f1868b27d7741a754e0df772837684 (2026-10-23 KST). Original Finder implementation base: f0981bf965b191ca380d5a97afe9aa61f9a1c3d8.
+The Windows artifact uses this checkpoint plus the minimum QA wrapper commit. SOURCE.json records both baseSha and actual sourceSha and SHA-256. It must not be described as an unmodified SSE checkpoint binary: the QA overlay adds only the separately approved third-attempt controls and matching provenance stamps.
 
 Build: `.github/workflows/finder-live-qa-windows.yml`, existing pinned Windows checkout/Node/Rust/cache actions, exact event SHA, ancestry and QA-only file guards. No production release environment, signing key, service API key, deployment or installer. Build output is a portable executable with identifier `kr.sungandi.schoolhealthdesk.finderliveqa`.
 
@@ -9,17 +9,21 @@ The QA frontend mounts the existing Finder and common ChatGPT/official-document 
 
 Existing local ChatGPT credentials are read by the existing native DPAPI storage under the production identifier folder. No credential copies or values are printed. The QA storage rejects every credential mutation and the QA transport rejects discovery, refresh and revoke before HTTP. Expired access credentials therefore block QA; a fresh connection must be prepared by the human in the operating app. The QA does not sign in, disconnect, refresh or change the operating account.
 
-The initial wrapper reserved one search durably before HTTP. The current second-attempt approval preserves that receipt and permits exactly one additional slot2 reservation across restarts, requiring the original receipt. The native QA command requires the exact approved drug/high-school/20minutes/public-first prompt fingerprint before authentication or reservation. No automatic retries and no additional AI review are permitted in this approval. Never delete receipts to retry. Bounded structural diagnostics are recorded in the separate QA data directory; no response text or secrets are stored. Existing YouTube Desktop/Proxy dispatch flags remain false.
+The first two attempts are preserved permanently. Current approval permits only a third slot, requiring both previous receipts and atomically creating search-attempt-3.receipt before HTTP. Its diagnostics and success receipt use slot3 names and cannot overwrite earlier records. The command requires model gpt-6.1-sol plus the exact964-byte approved public prompt fingerprint BEFORE authentication or reservation. No automatic retry or additional AI review is permitted. Never delete receipts to retry. QA metadata must match source/base/id/readOnly/isolation/false-dispatch, diagnostics version2, both old slots used and third slot unused. Bounded structural diagnostics contain no response body/text, prompt, URLs, account data or secrets. Existing YouTube Desktop/Proxy dispatch flags remain false.
+
+Native policy6/6, frontend QA service/preflight4/4, TypeScript and QA frontend build passed before the overlay commit. The Windows executable and live request are not validated by those tests. Exact gpt-6.1-sol native rejection of other supported models was added after review and tested. Existing credential files, installed executable and both prior receipt/diagnostic bytes must be hashed before/after QA; only names/hashes or unchanged booleans may be recorded.
+
+Build once from the final overlay SHA. Both push(workflow path on the feature branch) and workflow_dispatch triggers exist; skip the intermediate checkpoint CI and dispatch only one reviewed final build. Never combine automatic and manual runs for the same QA preparation. SOURCE.json and package guards require search command, metadata command, SSE diagnostic markers and third-slot receipt marker in the executable.
 
 ## Run prerequisites
 
 Download the artifact from the successful SHA-bound Actions run; compare SOURCE.json sourceSha/runId and executable SHA-256 to the run. Run only the separate `bogunon-desk-finder-live-qa.exe`, never an installer or the operating executable path. Preserve the production app and all data. A child-only WebView2 debugging argument may be used for local browser QA if native window automation cannot target the QA window; never change machine/user environment or policy.
 
-Preflight before any search: native metadata/SHA match, Finder visible, existing connection connected with plan use enabled, account model catalog contains a documented supported model, search button enabled and invocation path registered. Do not print account identifiers, tokens, headers, cookies or full connection state. If credentials/model/permission cannot be confirmed, stop with zero search requests.
+Preflight before any search: native metadata/SHA match, Finder visible, existing connection connected with plan use enabled, account model catalog contains gpt-6.1-sol, search button enabled and invocation path registered. Do not print account identifiers, tokens, headers, cookies or full connection state. If credentials/model/permission cannot be confirmed, stop with zero search requests.
 
-Approved live input: 고등학생 / 마약류 예방교육 / 20분 내외 / 공공기관 우선. Submit once through the existing privacy confirmation. On error stop; do not retry or replace with a different provider. If successful compare original URLs/sources/metadata status, inspect public-source metadata, open the existing draft screen and save/reload in the QA-only library without additional AI review requests. Never submit a real document or share externally.
+Approved live input: 고등학생 / 마약류 예방교육 / 20분 내외 / 공공기관 우선. Submit once through the existing privacy confirmation. On error stop; do not retry or replace with a different provider. If successful inspect recommendation cards and their original URLs/sources only, then stop. Do not run AI detailed review, draft generation, library save/reload, document submission or external sharing. Do not record the full prompt or raw response; compare the confirmation prompt SHA in memory. After one success or failure stop.
 
-Local limits: C: about3.46GiB and current Perl lacks Locale/Maketext/Simple, so no local fullnative build or package/cache cleanup. Parent automation kernel asset error has no identifiedmissingpath; a freshchildNodeREPL successfully initializedsky and enumeratedwindows. No system/runtime installation changes were made.
+Local limits: C: about2.9GB and current Perl lacks Locale/Maketext/Simple, so no local fullnative build or package/cache cleanup. Parent automation kernel asset error has no identifiedmissingpath; a freshchildNodeREPL successfully initializedsky and enumeratedwindows. No system/runtime installation changes were made.
 
 ## Search button initialization regression
 

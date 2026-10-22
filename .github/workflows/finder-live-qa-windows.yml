@@ -15,7 +15,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 60
     env:
-      FINDER_BASE_SHA: f0981bf965b191ca380d5a97afe9aa61f9a1c3d8
+      FINDER_BASE_SHA: df8375a015f1868b27d7741a754e0df772837684
       BOGUNON_QA_SOURCE_SHA: ${{ github.sha }}
       CARGO_PROFILE_RELEASE_LTO: 'false'
       CARGO_PROFILE_RELEASE_CODEGEN_UNITS: '16'

@@ -21,3 +21,12 @@ it('matches the exact approved public prompt fingerprint used by the native QA g
  expect(bytes.length).toBe(964);
  expect(Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')).toBe(APPROVED_SEARCH_PROMPT_SHA256);
 });
+it('allows only the unused third slot with both preserved attempts and the SSE diagnostics contract', async () => {
+ const services = await import('./services');
+ const stamp = { sourceSha: 'c'.repeat(40), baseSha: 'df8375a015f1868b27d7741a754e0df772837684' };
+ const metadata = { ...stamp, identifier: 'kr.sungandi.schoolhealthdesk.finderliveqa', readOnlyAuth: true, libraryIsolated: true, externalDispatchEnabled: false, activeApprovedSlot: 3, searchSlotOneUsed: true, searchSlotTwoUsed: true, searchSlotThreeUsed: false, sseDiagnosticsVersion: 2 };
+ expect(services.verifyThirdSearchMetadata(metadata, stamp)).toBe(true);
+ for (const invalid of [null, {}, {...metadata, activeApprovedSlot:2}, {...metadata, searchSlotTwoUsed:false}, {...metadata, searchSlotThreeUsed:true}, {...metadata, sseDiagnosticsVersion:1}, {...metadata, sourceSha:'wrong'}, {...metadata, baseSha:'wrong'}, {...metadata, readOnlyAuth:false}, {...metadata, libraryIsolated:false}, {...metadata, externalDispatchEnabled:true}]) {
+  expect(services.verifyThirdSearchMetadata(invalid, stamp)).toBe(false);
+ }
+});

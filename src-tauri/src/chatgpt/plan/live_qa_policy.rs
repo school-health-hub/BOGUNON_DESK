@@ -15,6 +15,10 @@ pub(crate) fn approved_fingerprint(byte_len: usize, sha256: &str) -> bool {
     byte_len == 964 && sha256 == "e806072de6813dbb960686403f4d88f4eef5a682c3f13909d441b14f85b4e802"
 }
 
+pub(crate) fn approved_search(model: &str, byte_len: usize, sha256: &str) -> bool {
+    model == "gpt-6.1-sol" && approved_fingerprint(byte_len, sha256)
+}
+
 pub(crate) fn permits(mode: Mode, method: &str, url: &str) -> bool {
     match mode {
         Mode::Models => method == "GET" && url == "https://api.openai.com/v1/models",
@@ -40,6 +44,18 @@ pub(crate) fn claim_second(root: &Path) -> io::Result<()> {
     claim_once(&root.join("search-attempt-2.receipt"))
 }
 
+pub(crate) fn claim_third(root: &Path) -> io::Result<()> {
+    if !root.join("search-attempt.receipt").is_file()
+        || !root.join("search-attempt-2.receipt").is_file()
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            "both previous attempts required",
+        ));
+    }
+    claim_once(&root.join("search-attempt-3.receipt"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -49,6 +65,21 @@ mod tests {
         assert!(approved_fingerprint(964, digest));
         assert!(!approved_fingerprint(963, digest));
         assert!(!approved_fingerprint(964, "wrong"));
+    }
+    #[test]
+    fn third_search_requires_exact_approved_model_before_dispatch() {
+        let digest = "e806072de6813dbb960686403f4d88f4eef5a682c3f13909d441b14f85b4e802";
+        assert!(approved_search("gpt-6.1-sol", 964, digest));
+        for model in [
+            "gpt-6-astra",
+            "gpt-6-sol",
+            "gpt-5.6-luna",
+            "gpt-6.1-sol-extra",
+            "",
+        ] {
+            assert!(!approved_search(model, 964, digest));
+        }
+        assert!(!approved_search("gpt-6.1-sol", 963, digest));
     }
     #[test]
     fn refresh_and_revoke_are_never_permitted() {
@@ -90,6 +121,36 @@ mod tests {
             io::ErrorKind::AlreadyExists
         );
         assert_eq!(std::fs::read(&first).unwrap(), original);
+    }
+    #[test]
+    fn third_approval_requires_both_preserves_them_and_cannot_repeat() {
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path();
+        assert!(claim_third(root).is_err());
+        let first = root.join("search-attempt.receipt");
+        let second = root.join("search-attempt-2.receipt");
+        claim_once(&second).unwrap();
+        assert!(claim_third(root).is_err());
+        claim_once(&first).unwrap();
+        let originals = (
+            std::fs::read(&first).unwrap(),
+            std::fs::read(&second).unwrap(),
+        );
+        claim_third(root).unwrap();
+        assert_eq!(
+            claim_third(root).unwrap_err().kind(),
+            io::ErrorKind::AlreadyExists
+        );
+        assert_eq!(
+            (
+                std::fs::read(&first).unwrap(),
+                std::fs::read(&second).unwrap()
+            ),
+            originals
+        );
+        let first_only = tempfile::tempdir().unwrap();
+        claim_once(&first_only.path().join("search-attempt.receipt")).unwrap();
+        assert!(claim_third(first_only.path()).is_err());
     }
     #[test]
     fn durable_attempt_cannot_be_reused_after_restart() {
