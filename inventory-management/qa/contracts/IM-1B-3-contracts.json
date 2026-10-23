@@ -1,0 +1,36 @@
+{
+  "suite": "IM-1B-3-use-rpc",
+  "baseManifest": "qa-contracts.json",
+  "baseContractCount": 34,
+  "contracts": [
+    {"id":"IM1B3-01","scope":"single-lot use","status":"PASS"},
+    {"id":"IM1B3-02","scope":"movement audit idempotency atomic record","status":"PASS"},
+    {"id":"IM1B3-03","scope":"same UUID replay","status":"PASS"},
+    {"id":"IM1B3-04","scope":"changed payload conflict","status":"PASS"},
+    {"id":"IM1B3-05","scope":"multi-lot FEFO","status":"PASS"},
+    {"id":"IM1B3-06","scope":"unusable lot exclusion","status":"PASS"},
+    {"id":"IM1B3-07","scope":"available stock response","status":"PASS"},
+    {"id":"IM1B3-08","scope":"insufficient stock rollback","status":"PASS"},
+    {"id":"IM1B3-09","scope":"invalid quantity","status":"PASS"},
+    {"id":"IM1B3-10","scope":"missing and inactive item","status":"PASS"},
+    {"id":"IM1B3-11","scope":"cross-school denial","status":"PASS"},
+    {"id":"IM1B3-12","scope":"inactive membership denial","status":"PASS"},
+    {"id":"IM1B3-13","scope":"forged metadata denial","status":"PASS"},
+    {"id":"IM1B3-14","scope":"missing auth uid","status":"PASS"},
+    {"id":"IM1B3-15","scope":"anon execute denial","status":"PASS"},
+    {"id":"IM1B3-16","scope":"reason control-character validation","status":"PASS"},
+    {"id":"IM1B3-17","scope":"injected audit failure","status":"PASS"},
+    {"id":"IM1B3-18","scope":"full transaction rollback","status":"PASS"},
+    {"id":"IM1B3-A01","scope":"RPC execute grants","status":"PASS"},
+    {"id":"IM1B3-A02","scope":"SECURITY DEFINER search path","status":"PASS"},
+    {"id":"IM1B3-C01","scope":"teacher instructor race","status":"PASS"},
+    {"id":"IM1B3-C02","scope":"two instructor race","status":"PASS"},
+    {"id":"IM1B3-C03","scope":"last unit race","status":"PASS"},
+    {"id":"IM1B3-C04","scope":"simultaneous identical UUID","status":"PASS"}
+  ],
+  "deferred": [
+    "bounded application retry after serialization failure",
+    "receipt disposal adjustment and reversal RPCs",
+    "purchase-unit conversion"
+  ]
+}

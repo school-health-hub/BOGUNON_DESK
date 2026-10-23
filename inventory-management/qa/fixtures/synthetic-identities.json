@@ -1,0 +1,15 @@
+{
+  "schools": [
+    {"schoolId":"10000000-0000-4000-8000-00000000000a","name":"Synthetic School A"},
+    {"schoolId":"20000000-0000-4000-8000-00000000000b","name":"Synthetic School B"}
+  ],
+  "actors": [
+    {"userId":"a1000000-0000-4000-8000-000000000001","email":"teacher-a@example.invalid","school":"A","role":"teacher_admin","active":true},
+    {"userId":"a1000000-0000-4000-8000-000000000002","email":"instructor-a@example.invalid","school":"A","role":"instructor","active":true},
+    {"userId":"b2000000-0000-4000-8000-000000000001","email":"teacher-b@example.invalid","school":"B","role":"teacher_admin","active":true},
+    {"userId":"b2000000-0000-4000-8000-000000000002","email":"instructor-b@example.invalid","school":"B","role":"instructor","active":true},
+    {"userId":"c3000000-0000-4000-8000-000000000001","email":"unassigned@example.invalid","school":null,"role":null,"active":true},
+    {"userId":"a1000000-0000-4000-8000-000000000003","email":"inactive-a@example.invalid","school":"A","role":"instructor","active":false}
+  ],
+  "anonymousActor":{"authenticated":false}
+}

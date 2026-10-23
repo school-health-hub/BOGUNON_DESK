@@ -1,0 +1,31 @@
+{
+  "suite": "IM-1B-2-ledger-foundation",
+  "baseManifest": "qa-contracts.json",
+  "baseContractCount": 34,
+  "contracts": [
+    {"id":"IM1B2-01","scope":"movement balance equation","status":"PASS"},
+    {"id":"IM1B2-02","scope":"negative result rejection","status":"PASS"},
+    {"id":"IM1B2-03","scope":"cross-tenant composite FK","status":"PASS"},
+    {"id":"IM1B2-04","scope":"movement update immutability","status":"PASS"},
+    {"id":"IM1B2-05","scope":"movement delete immutability","status":"PASS"},
+    {"id":"IM1B2-06","scope":"audit direct insert denial","status":"PASS"},
+    {"id":"IM1B2-07","scope":"audit update and delete immutability","status":"PASS"},
+    {"id":"IM1B2-08","scope":"idempotency direct access denial","status":"PASS"},
+    {"id":"IM1B2-09","scope":"idempotency unique request scope","status":"PASS"},
+    {"id":"IM1B2-10","scope":"changed-payload duplicate detection foundation","status":"PASS"},
+    {"id":"IM1B2-11","scope":"cross-tenant movement read isolation","status":"PASS"},
+    {"id":"IM1B2-12","scope":"cross-tenant audit read isolation","status":"PASS"},
+    {"id":"IM1B2-13","scope":"instructor audit denial","status":"PASS"},
+    {"id":"IM1B2-14","scope":"inactive membership denial","status":"PASS"},
+    {"id":"IM1B2-15","scope":"failed transaction leaves no partial state","status":"PASS"},
+    {"id":"IM1B2-A01","scope":"GRANT and REVOKE boundary","status":"PASS"},
+    {"id":"IM1B2-A02","scope":"immutable trigger helper EXECUTE boundary","status":"PASS"}
+  ],
+  "deferred": [
+    "same UUID and same payload result replay",
+    "IDEMPOTENCY_CONFLICT typed RPC response",
+    "concurrent stock decrement",
+    "FEFO lot selection",
+    "lot balance and ledger mutation through a business RPC"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "asOfDate":"2099-01-15",
+  "items":[
+    {"itemId":"a1100000-0000-4000-8000-000000000001","school":"A","name":"Synthetic Item Alpha","baseUnit":"unit","recommendedStock":20},
+    {"itemId":"b2200000-0000-4000-8000-000000000001","school":"B","name":"Synthetic Item Beta","baseUnit":"unit","recommendedStock":30}
+  ],
+  "lots":[
+    {"lotId":"a1110000-0000-4000-8000-000000000001","itemSchool":"A","item":"Alpha","balance":3,"expirationDate":"2099-02-01","status":"usable"},
+    {"lotId":"a1110000-0000-4000-8000-000000000002","itemSchool":"A","item":"Alpha","balance":5,"expirationDate":"2099-03-01","status":"usable"},
+    {"lotId":"a1110000-0000-4000-8000-000000000003","itemSchool":"A","item":"Alpha","balance":5,"expirationDate":"2099-01-14","status":"expired"},
+    {"lotId":"a1110000-0000-4000-8000-000000000004","itemSchool":"A","item":"Alpha","balance":5,"expirationDate":"2099-04-01","status":"quarantined"}
+  ],
+  "unitConversion":{"purchaseUnit":"box","baseUnit":"unit","baseUnitsPerPurchaseUnit":100,"purchaseQuantity":2,"expectedBaseQuantity":200},
+  "requestIds":{"consume":"d1000000-0000-4000-8000-000000000001","receipt":"d1000000-0000-4000-8000-000000000002"}
+}

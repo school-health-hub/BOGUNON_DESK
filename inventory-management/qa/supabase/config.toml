@@ -1,0 +1,38 @@
+project_id = "inventory_qa"
+
+[api]
+enabled = true
+port = 56321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 56322
+shadow_port = 56320
+major_version = 17
+
+[db.seed]
+enabled = false
+
+[studio]
+enabled = true
+port = 56323
+
+[local_smtp]
+enabled = true
+port = 56324
+smtp_port = 56325
+pop3_port = 56326
+
+[analytics]
+enabled = true
+port = 56327
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:56300"
+additional_redirect_urls = ["http://127.0.0.1:56300"]
+jwt_expiry = 3600
+enable_signup = true
+
