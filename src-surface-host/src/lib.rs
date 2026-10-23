@@ -9,7 +9,14 @@ pub mod lifecycle;
 #[cfg(windows)]
 pub mod native_window;
 pub mod ownership;
+#[cfg(test)]
+mod ownership_tests;
 pub mod renderer;
+pub mod renderer_session;
+#[cfg(test)]
+mod renderer_session_test_support;
+#[cfg(test)]
+mod renderer_session_tests;
 pub mod runtime_evidence;
 pub mod runtime_guard;
 #[cfg(windows)]

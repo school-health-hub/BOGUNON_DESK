@@ -21,9 +21,36 @@ pub struct BrowserExitObservation {
 pub struct BrowserExitSubscription {
     environment: ICoreWebView2Environment5,
     token: i64,
-    subscribed: bool,
+    release: SubscriptionReleaseState,
     receiver: mpsc::Receiver<BrowserExitObservation>,
     _creator_thread: std::marker::PhantomData<std::rc::Rc<()>>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct SubscriptionReleaseState {
+    owned: bool,
+}
+
+impl SubscriptionReleaseState {
+    const fn owned() -> Self {
+        Self { owned: true }
+    }
+
+    #[cfg(test)]
+    const fn is_owned(self) -> bool {
+        self.owned
+    }
+}
+
+fn confirm_subscription_release<E>(
+    state: &mut SubscriptionReleaseState,
+    unsubscribe: impl FnOnce() -> Result<(), E>,
+) -> Result<(), E> {
+    if state.owned {
+        unsubscribe()?;
+        state.owned = false;
+    }
+    Ok(())
 }
 
 impl BrowserExitSubscription {
@@ -57,7 +84,7 @@ impl BrowserExitSubscription {
         Ok(Self {
             environment,
             token,
-            subscribed: true,
+            release: SubscriptionReleaseState::owned(),
             receiver,
             _creator_thread: std::marker::PhantomData,
         })
@@ -65,10 +92,12 @@ impl BrowserExitSubscription {
 
     /// Explicit result-bearing removal for QA; Drop remains the fallback on errors.
     pub fn unsubscribe(mut self) -> Result<(), HostError> {
-        // SAFETY: the token belongs to this exact live environment on its owning STA.
-        unsafe { self.environment.remove_BrowserProcessExited(self.token) }?;
-        self.subscribed = false;
-        Ok(())
+        let environment = self.environment.clone();
+        let token = self.token;
+        confirm_subscription_release(&mut self.release, || {
+            // SAFETY: the token belongs to this exact live environment on its owning STA.
+            unsafe { environment.remove_BrowserProcessExited(token) }.map_err(HostError::Com)
+        })
     }
 
     pub fn try_observe(&self) -> Result<Option<BrowserExitObservation>, HostError> {
@@ -82,10 +111,43 @@ impl BrowserExitSubscription {
 
 impl Drop for BrowserExitSubscription {
     fn drop(&mut self) {
-        // SAFETY: this token was returned by this exact environment and is removed once.
-        if self.subscribed {
+        let environment = self.environment.clone();
+        let token = self.token;
+        let _ = confirm_subscription_release(&mut self.release, || {
             // SAFETY: the live token belongs to this exact environment on this STA.
-            let _ = unsafe { self.environment.remove_BrowserProcessExited(self.token) };
-        }
+            unsafe { environment.remove_BrowserProcessExited(token) }.map_err(HostError::Com)
+        });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{confirm_subscription_release, SubscriptionReleaseState};
+    use std::cell::Cell;
+
+    #[test]
+    fn subscription_remains_owned_when_native_unsubscribe_fails() {
+        let mut state = SubscriptionReleaseState::owned();
+
+        let result =
+            confirm_subscription_release(&mut state, || Err::<(), _>("unsubscribe failed"));
+
+        assert_eq!(result, Err("unsubscribe failed"));
+        assert!(state.is_owned());
+    }
+
+    #[test]
+    fn confirmed_subscription_release_is_idempotent_at_the_internal_state_seam() {
+        let mut state = SubscriptionReleaseState::owned();
+        let calls = Cell::new(0);
+        let release = || {
+            calls.set(calls.get() + 1);
+            Ok::<(), &str>(())
+        };
+
+        assert_eq!(confirm_subscription_release(&mut state, release), Ok(()));
+        assert_eq!(confirm_subscription_release(&mut state, release), Ok(()));
+        assert_eq!(calls.get(), 1);
+        assert!(!state.is_owned());
     }
 }

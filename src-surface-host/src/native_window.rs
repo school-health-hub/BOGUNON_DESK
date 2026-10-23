@@ -18,8 +18,49 @@ const CLASS_NAME: windows::core::PCWSTR = w!("BogunonDesktopSurfaceHost");
 pub struct OwnedWindow {
     hwnd: HWND,
     instance: HINSTANCE,
-    class_registered: bool,
+    release: NativeReleaseState,
     _creator_thread: PhantomData<Rc<()>>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct NativeReleaseState {
+    window_owned: bool,
+    class_owned: bool,
+}
+
+impl NativeReleaseState {
+    const fn owned() -> Self {
+        Self {
+            window_owned: true,
+            class_owned: true,
+        }
+    }
+
+    #[cfg(test)]
+    const fn window_owned(self) -> bool {
+        self.window_owned
+    }
+
+    #[cfg(test)]
+    const fn class_owned(self) -> bool {
+        self.class_owned
+    }
+}
+
+fn confirm_native_release<E>(
+    state: &mut NativeReleaseState,
+    destroy_window: impl FnOnce() -> std::result::Result<(), E>,
+    unregister_class: impl FnOnce() -> std::result::Result<(), E>,
+) -> std::result::Result<(), E> {
+    if state.window_owned {
+        destroy_window()?;
+        state.window_owned = false;
+    }
+    if state.class_owned {
+        unregister_class()?;
+        state.class_owned = false;
+    }
+    Ok(())
 }
 
 impl OwnedWindow {
@@ -62,20 +103,26 @@ impl OwnedWindow {
         Ok(Self {
             hwnd,
             instance,
-            class_registered: true,
+            release: NativeReleaseState::owned(),
             _creator_thread: PhantomData,
         })
     }
 
     /// Confirm teardown results instead of treating dispatch/Drop as proof.
     pub fn destroy(mut self) -> Result<()> {
-        // SAFETY: this !Send wrapper owns the HWND on the current creator thread.
-        unsafe { DestroyWindow(self.hwnd) }?;
-        self.hwnd = HWND::default();
-        // SAFETY: the owned window is gone and this instance registered the class.
-        unsafe { UnregisterClassW(CLASS_NAME, Some(self.instance)) }?;
-        self.class_registered = false;
-        Ok(())
+        let hwnd = self.hwnd;
+        let instance = self.instance;
+        confirm_native_release(
+            &mut self.release,
+            || {
+                // SAFETY: this !Send wrapper owns the HWND on the current creator thread.
+                unsafe { DestroyWindow(hwnd) }
+            },
+            || {
+                // SAFETY: the owned window was destroyed and this instance registered the class.
+                unsafe { UnregisterClassW(CLASS_NAME, Some(instance)) }
+            },
+        )
     }
 
     pub fn hwnd(&self) -> HWND {
@@ -85,16 +132,19 @@ impl OwnedWindow {
 
 impl Drop for OwnedWindow {
     fn drop(&mut self) {
-        if !self.hwnd.is_invalid() {
-            // SAFETY: OwnedWindow is !Send, so its creator thread destroys its owned HWND once.
-            let _ = unsafe { DestroyWindow(self.hwnd) };
-            self.hwnd = HWND::default();
-        }
-        if self.class_registered {
-            // SAFETY: the class was registered by this instance and no owned window remains.
-            let _ = unsafe { UnregisterClassW(CLASS_NAME, Some(self.instance)) };
-            self.class_registered = false;
-        }
+        let hwnd = self.hwnd;
+        let instance = self.instance;
+        let _ = confirm_native_release(
+            &mut self.release,
+            || {
+                // SAFETY: OwnedWindow is !Send, so its creator thread destroys its owned HWND once.
+                unsafe { DestroyWindow(hwnd) }
+            },
+            || {
+                // SAFETY: the owned window is gone and this instance registered the class.
+                unsafe { UnregisterClassW(CLASS_NAME, Some(instance)) }
+            },
+        );
     }
 }
 
@@ -106,4 +156,61 @@ unsafe extern "system" fn window_proc(
 ) -> LRESULT {
     // SAFETY: all messages are forwarded unchanged to the system default procedure.
     unsafe { DefWindowProcW(hwnd, message, wparam, lparam) }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{confirm_native_release, NativeReleaseState};
+    use std::cell::Cell;
+
+    #[test]
+    fn native_release_state_advances_only_after_each_confirmed_operation() {
+        let mut state = NativeReleaseState::owned();
+        let unregister_calls = Cell::new(0);
+
+        let result = confirm_native_release(
+            &mut state,
+            || Err::<(), _>("destroy failed"),
+            || {
+                unregister_calls.set(unregister_calls.get() + 1);
+                Ok(())
+            },
+        );
+
+        assert_eq!(result, Err("destroy failed"));
+        assert!(state.window_owned());
+        assert!(state.class_owned());
+        assert_eq!(unregister_calls.get(), 0);
+    }
+
+    #[test]
+    fn partial_native_release_keeps_only_the_unconfirmed_class_owned() {
+        let mut state = NativeReleaseState::owned();
+
+        let result = confirm_native_release(
+            &mut state,
+            || Ok::<(), &str>(()),
+            || Err("unregister failed"),
+        );
+
+        assert_eq!(result, Err("unregister failed"));
+        assert!(!state.window_owned());
+        assert!(state.class_owned());
+    }
+
+    #[test]
+    fn confirmed_native_release_is_idempotent_at_the_internal_state_seam() {
+        let mut state = NativeReleaseState::owned();
+        let calls = Cell::new(0);
+        let release = || {
+            calls.set(calls.get() + 1);
+            Ok::<(), &str>(())
+        };
+
+        assert_eq!(confirm_native_release(&mut state, release, release), Ok(()));
+        assert_eq!(confirm_native_release(&mut state, release, release), Ok(()));
+        assert_eq!(calls.get(), 2);
+        assert!(!state.window_owned());
+        assert!(!state.class_owned());
+    }
 }
