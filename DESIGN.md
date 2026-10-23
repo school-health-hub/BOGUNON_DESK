@@ -339,6 +339,30 @@ BOGUNON DESK는 이 브랜드 재료를 사용하되, 배치와 상호작용은 
 - Quick Add handoff는 `healthWork`, `officialDocument`, `normal`을 사용하며 공문 원문, 근거, 제출자료, 붙임, 담당자, source filename, AI prompt와 응답은 전달하거나 업로드하지 않는다. 연도가 없거나 기간인 기한은 추정하지 않고 마감일을 비워 두어 사용자가 직접 선택한다.
 - domain asset은 `healthroom-document-helper` main `57e433ac34e7a0670c403c7d19813b5bbe5fee28`의 options, templates, deterministic generator, reference-document 개념을 참고해 TypeScript pure function과 local registry로 재작성했다. 기존 웹 UI, Google Apps Script, Google Sheet live dependency, admin Gemini cleanup pipeline은 이식하지 않는다.
 
+### Official Document desktop workspace surface
+
+- 공문 작업실은 Desktop-first 문서 도구다. 1440×900을 기본 기준으로 하고 1366×768, 1100×720, 900×680의 좁은 데스크톱 창을 지원한다. 900px 미만의 기존 단일 열 fallback은 유지하지만 별도 모바일 기능은 만들지 않는다.
+- 작업실은 최대 1360px 안에서 compact toolbar, mode tabs, 왼쪽 작성 panel, 오른쪽 document preview 순서로 읽힌다. 왼쪽은 약 390–500px, 오른쪽은 최소 500px을 확보하며 1920px에서도 문서 줄 길이를 늘리지 않는다.
+- primary action은 navy fill의 로컬 초안·핵심정리다. AI prompt, 연결 provider, 연결 설정은 secondary utility로 배치하고 AI 상태가 문서나 작성 흐름보다 강하게 보이지 않게 한다.
+- 참고자료는 기본 접힘 상태이며 `찾기`와 `관리`를 분리한다. 선택 상태와 초안 적용 상태를 서로 다른 문구로 표시하고, 검색·선택만으로 사용자 입력을 변경하지 않는다.
+- 결과는 아이보리 workspace 위의 하나의 white paper surface로 표현한다. 제목, 본문, 붙임은 한 문서 안에 놓고 메신저 문구, 체크리스트, 표 복사용 본문은 별도 appendix에 둔다. 미리보기는 textarea나 contenteditable처럼 보이지 않아야 한다.
+- 카드 중첩 대신 section heading, divider, spacing을 사용한다. panel body가 주 scroll을 소유하며 document paper는 내부 scroll을 만들지 않는다. 검색 목록, 긴 참고자료 원문과 appendix처럼 경계가 분명한 보조 정보에만 제한적 overflow를 허용한다.
+- document surface는 기존 `--widget-bg`, `--workspace-bg`, `--border`, `--divider`, `--shadow-*`, text scale과 Pretendard를 사용한다. 종이에는 4px corner와 낮은 blue-gray shadow만 허용하며 gradient, KPI card, pill badge, decorative animation을 추가하지 않는다.
+- keyboard focus는 모든 tab, disclosure, form control, copy action에 2px mint outline으로 표시한다. DOM tab order는 toolbar → mode → form → reference tools → actions → preview copy 순서를 유지한다.
+
+## Official Document Workspace Phase 1B: reviewed local reference packages
+
+- This extends the existing workspace and Phase 1A repository, search, preview, confirmation and deterministic drafting flows. It is not a separate application and introduces no live Google Sheets, Drive, Apps Script, Supabase or AI request.
+- Manually selected JSON packages use schemaVersion 1, packageId, packageVersion, publishedAt, source, usageTerms, redistribution, review metadata and the existing 29 named headers/rows. XLSX import, license servers, payments and publisher signatures are out of scope. All committed fixtures must be synthetic; real or paid references must never be bundled with installers.
+- Boundaries are 5 MiB UTF-8 JSON, 500 data rows and 50,000 characters per cell. Header order may vary, but missing, duplicate and unknown headers, duplicate No values, malformed metadata or cell types fail without changing the active package. Preserve source numbering and unsupported classification labels.
+- Eligible rows require enabled and deidentified TRUE, an explicit row approval and matching SHA-256 of the canonical normalized 29-cell row. Disabled, unapproved, non-deidentified, hash-mismatched and locally suspicious rows are excluded. Display safe counts/reasons without printing rejected content. Flags, hashes and heuristic scanning do not prove privacy, publisher authenticity or copyright permission.
+- Import is staged for explicit confirmation. Cancellation, validation failure and storage failure preserve the active package and document. User-edited fields, including deliberately cleared fields, remain protected by Phase 1A touched-field rules. Replacement or deletion does not rewrite a reference snapshot already applied to a draft.
+- Users choose session-only use or storage on this PC. Persist only sanitized accepted rows and matching approvals in a fixed app-local-data subdirectory, official-document-references, separate from auth-session.bin, ChatGPT credentials, my-finance, Tauri Store and AccountSettings. Do not copy or modify the input file, use arbitrary caller-supplied filesystem paths, or send packages to account sync/cloud backups.
+- Stored payloads have an integrity envelope, bounded reads and revalidation at app startup before exposure. Startup reads only the dedicated reference-package file; failures are retained for the document-workspace UI without blocking other tools. A corrupt package is never exposed as available. Atomic whole-package replacement preserves the previous file on failure; deletion targets only the dedicated package file. Local files remain subject to OS/user backup policy; this is not encrypted content or DRM.
+- Show package version, source, review information, usage terms and redistribution restrictions as untrusted plain text. Manual package distribution and publisher review remain required. No claim of paid-content copy protection is permitted.
+- Management fields (approval history, notes, source identifiers and URLs) are not automatically included in AI requests. Importing, restoring, searching or selecting never sends content externally. Existing provider selection, confirmation and privacy guards remain required for explicit AI use.
+- Verification is limited to synthetic pure-function, storage-adapter and component tests plus TypeScript checks. Native command tests may be authored but native compilation, app execution, OS file-dialog/clipboard behavior and on-disk Windows atomicity remain unverified until separately approved isolated native QA. Preserve the pre-existing Cargo.toml status and PowerShell cache; do not install dependencies or alter lockfiles.
+
 ## Shareable Windows beta
 
 - BOGUNON DESK 0.1.0 공유 베타의 first-run 안내는 Workspace 소개, 선택적 BOGUNON 연결, 개인정보·로컬 처리의 최대 3단계 compact dialog다.

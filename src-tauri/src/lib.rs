@@ -1,46 +1,76 @@
+#[cfg(not(feature = "official-document-qa"))]
 use std::sync::atomic::{AtomicBool, Ordering};
 
+#[cfg(not(feature = "official-document-qa"))]
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager, State, WindowEvent,
 };
+#[cfg(not(feature = "official-document-qa"))]
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt as AutostartManagerExt};
-#[cfg(all(debug_assertions, windows))]
+#[cfg(all(not(feature = "official-document-qa"), debug_assertions, windows))]
 use tauri_plugin_deep_link::DeepLinkExt;
 
+#[cfg(not(feature = "official-document-qa"))]
 mod ai;
+#[cfg(not(feature = "official-document-qa"))]
 mod ai_generation;
+#[cfg(not(feature = "official-document-qa"))]
 mod auth;
+#[cfg(not(feature = "official-document-qa"))]
 mod browser_launcher;
+#[cfg(not(feature = "official-document-qa"))]
 mod chatgpt;
+#[cfg(not(feature = "official-document-qa"))]
 mod desktop_surface;
+#[cfg(not(feature = "official-document-qa"))]
 mod launcher;
+#[cfg(not(feature = "official-document-qa"))]
 mod meal;
+#[cfg(not(feature = "official-document-qa"))]
 mod my_finance_backup;
+#[cfg(not(feature = "official-document-qa"))]
 mod my_finance_codec;
+#[cfg(not(feature = "official-document-qa"))]
 mod my_finance_snapshot;
+#[cfg(not(feature = "official-document-qa"))]
 mod my_finance_store;
+#[cfg(not(feature = "official-document-qa"))]
 mod my_finance_commands;
+#[cfg(not(feature = "official-document-qa"))]
 mod my_finance_transfer;
+#[cfg(not(feature = "official-document-qa"))]
 mod notifications;
 mod official_document_import;
+mod official_reference_package;
+#[cfg(not(feature = "official-document-qa"))]
 mod purchase_helper;
+#[cfg(not(feature = "official-document-qa"))]
 mod purchase_settlement;
+#[cfg(not(feature = "official-document-qa"))]
 mod record_helper_import;
+#[cfg(not(feature = "official-document-qa"))]
 mod weather;
+#[cfg(not(feature = "official-document-qa"))]
 mod work_folders;
 
+#[cfg(not(feature = "official-document-qa"))]
 const MAIN_WINDOW_LABEL: &str = "main";
+#[cfg(not(feature = "official-document-qa"))]
 const DESKTOP_NAVIGATE_EVENT: &str = "desktop:navigate";
+#[cfg(not(feature = "official-document-qa"))]
 const DESKTOP_NOTICE_EVENT: &str = "desktop:notice";
+#[cfg(not(feature = "official-document-qa"))]
 const DESKTOP_FILE_DROP_EVENT: &str = "desktop:file-drop";
 
+#[cfg(not(feature = "official-document-qa"))]
 struct DesktopState {
     close_to_tray: AtomicBool,
     quitting: AtomicBool,
 }
 
+#[cfg(not(feature = "official-document-qa"))]
 impl Default for DesktopState {
     fn default() -> Self {
         Self {
@@ -50,6 +80,7 @@ impl Default for DesktopState {
     }
 }
 
+#[cfg(not(feature = "official-document-qa"))]
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct DesktopActionOutcome {
@@ -57,6 +88,7 @@ struct DesktopActionOutcome {
     message: Option<&'static str>,
 }
 
+#[cfg(not(feature = "official-document-qa"))]
 fn show_main_window(app: &AppHandle) -> Result<(), String> {
     let window = app
         .get_webview_window(MAIN_WINDOW_LABEL)
@@ -68,12 +100,14 @@ fn show_main_window(app: &AppHandle) -> Result<(), String> {
     window.set_focus().map_err(|error| error.to_string())
 }
 
+#[cfg(not(feature = "official-document-qa"))]
 fn navigate_main_window(app: &AppHandle, action_id: &str) -> Result<(), String> {
     show_main_window(app)?;
     app.emit(DESKTOP_NAVIGATE_EVENT, action_id)
         .map_err(|error| error.to_string())
 }
 
+#[cfg(not(feature = "official-document-qa"))]
 fn execute_registered_action(
     app: &AppHandle,
     action_id: &str,
@@ -117,6 +151,7 @@ fn execute_registered_action(
     }
 }
 
+#[cfg(not(feature = "official-document-qa"))]
 #[tauri::command]
 fn execute_desktop_action(
     app: AppHandle,
@@ -125,6 +160,7 @@ fn execute_desktop_action(
     execute_registered_action(&app, &action_id)
 }
 
+#[cfg(not(feature = "official-document-qa"))]
 #[tauri::command]
 fn open_bogunon_search_result(
     app: AppHandle,
@@ -143,6 +179,7 @@ fn open_bogunon_search_result(
     })
 }
 
+#[cfg(not(feature = "official-document-qa"))]
 #[tauri::command]
 fn get_autostart_enabled(app: AppHandle) -> Result<bool, String> {
     app.autolaunch()
@@ -150,6 +187,7 @@ fn get_autostart_enabled(app: AppHandle) -> Result<bool, String> {
         .map_err(|error| error.to_string())
 }
 
+#[cfg(not(feature = "official-document-qa"))]
 #[tauri::command]
 fn set_autostart_enabled(app: AppHandle, enabled: bool) -> Result<bool, String> {
     let manager = app.autolaunch();
@@ -161,11 +199,13 @@ fn set_autostart_enabled(app: AppHandle, enabled: bool) -> Result<bool, String> 
     manager.is_enabled().map_err(|error| error.to_string())
 }
 
+#[cfg(not(feature = "official-document-qa"))]
 #[tauri::command]
 fn set_close_to_tray(state: State<'_, DesktopState>, enabled: bool) {
     state.close_to_tray.store(enabled, Ordering::SeqCst);
 }
 
+#[cfg(not(feature = "official-document-qa"))]
 fn create_tray(app: &AppHandle) -> tauri::Result<()> {
     let open = MenuItem::with_id(app, "open", "BOGUNON DESK 열기", true, None::<&str>)?;
     let today_tasks = MenuItem::with_id(app, "today-tasks", "오늘의 보건업무", true, None::<&str>)?;
@@ -238,10 +278,18 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
 
 #[cfg(feature = "my-finance-qa")]
 mod my_finance_qa;
-#[cfg(feature = "my-finance-qa")]
+#[cfg(all(feature = "my-finance-qa", not(feature = "official-document-qa")))]
 pub use my_finance_qa::run;
 
-#[cfg(not(feature = "my-finance-qa"))]
+#[cfg(feature = "official-document-qa")]
+mod official_document_qa;
+#[cfg(all(feature = "official-document-qa", not(feature = "my-finance-qa")))]
+pub use official_document_qa::run;
+
+#[cfg(all(feature = "my-finance-qa", feature = "official-document-qa"))]
+compile_error!("QA features are mutually exclusive");
+
+#[cfg(not(any(feature = "my-finance-qa", feature = "official-document-qa")))]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default();
@@ -302,6 +350,9 @@ pub fn run() {
             purchase_helper::invalidate_purchase_helper_analysis,
             official_document_import::pick_and_extract_official_document,
             official_document_import::extract_official_document_path,
+            official_reference_package::read_official_reference_package,
+            official_reference_package::write_official_reference_package,
+            official_reference_package::remove_official_reference_package,
             record_helper_import::pick_and_extract_record_helper_reports,
             record_helper_import::extract_record_helper_paths,
             get_autostart_enabled,

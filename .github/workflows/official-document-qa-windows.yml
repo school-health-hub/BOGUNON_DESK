@@ -1,0 +1,236 @@
+name: Official document isolated Windows QA
+
+on:
+  workflow_dispatch:
+    inputs:
+      runtime_only:
+        description: Reuse the verified QA EXE without rebuilding
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: official-document-qa-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  native-build:
+    if: github.ref == 'refs/heads/feature/official-document-enhancement' && !inputs.runtime_only
+    runs-on: windows-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      QA_NATIVE_UI_ONLY: 'true'
+      CI: 'true'
+      CL: /utf-8
+      CARGO_BUILD_JOBS: '2'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Initialize isolated paths and provenance
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP "official-document-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          New-Item -ItemType Directory -Path "$root/evidence" -Force | Out-Null
+          "QA_ROOT=$root" >> $env:GITHUB_ENV
+          "PSModuleAnalysisCachePath=$root/ModuleAnalysisCache" >> $env:GITHUB_ENV
+          [ordered]@{ sourceSha=$env:GITHUB_SHA; ref=$env:GITHUB_REF; identifier='kr.sungandi.schoolhealthdesk.officialdocumentqa'; webview2UiQa='NOT RUN'; externalServices='NOT USED'; runId=$env:GITHUB_RUN_ID } | ConvertTo-Json | Set-Content "$root/evidence/provenance.json"
+          Start-Transcript -Path "$root/evidence/environment.log"
+          node --version
+          git status --short
+          Get-PSDrive C,D -ErrorAction SilentlyContinue | Select-Object Name,Used,Free
+          Stop-Transcript
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249
+        with:
+          toolchain: stable
+          targets: x86_64-pc-windows-msvc
+      - name: Verify native prerequisites
+        run: |
+          Start-Transcript -Path "$env:QA_ROOT/evidence/toolchain.log"
+          foreach ($tool in @('perl','nasm','cargo','rustc')) { Get-Command $tool -ErrorAction Stop | Select-Object Name,Source }
+          perl -v
+          cargo --version
+          rustc -vV
+          Stop-Transcript
+      - name: Install locked frontend dependencies
+        run: |
+          npm ci --no-audit --no-fund 2>&1 | Tee-Object "$env:QA_ROOT/evidence/npm-ci.log"
+          if ($LASTEXITCODE -ne 0) { throw 'npm ci failed' }
+      - name: TypeScript
+        run: |
+          node node_modules/typescript/bin/tsc --noEmit 2>&1 | Tee-Object "$env:QA_ROOT/evidence/typescript.log"
+          if ($LASTEXITCODE -ne 0) { throw 'TypeScript failed' }
+      - name: Vitest regressions
+        run: |
+          npm test -- --maxWorkers=4 --exclude scripts/official-document-qa-paths.test.mjs --exclude scripts/qa/official-document-screen-assessment.test.mjs 2>&1 | Tee-Object "$env:QA_ROOT/evidence/vitest.log"
+          if ($LASTEXITCODE -ne 0) { throw 'Vitest failed' }
+      - name: QA path contracts
+        run: |
+          node --test scripts/official-document-qa-paths.test.mjs scripts/qa/official-document-screen-assessment.test.mjs 2>&1 | Tee-Object "$env:QA_ROOT/evidence/path-tests.log"
+          if ($LASTEXITCODE -ne 0) { throw 'Path tests failed' }
+      - name: Build and inspect synthetic-only QA frontend
+        run: |
+          # Tauri treats Windows drive-letter absolute frontendDist as a URL.
+          # Use the existing relative-path QA contract to embed assets in the EXE.
+          Remove-Item Env:BOGUNON_OFFICIAL_DOCUMENT_QA_OUTPUT_ROOT -ErrorAction SilentlyContinue
+          node scripts/build-official-document-qa-frontend.mjs 2>&1 | Tee-Object "$env:QA_ROOT/evidence/frontend.log"
+          if ($LASTEXITCODE -ne 0) { throw 'QA frontend failed' }
+          Copy-Item "dist-official-document-qa/qa-build.json" "$env:QA_ROOT/evidence/qa-build.json"
+      - name: Fetch locked Rust dependencies for subsequent offline build
+        run: |
+          cargo fetch --locked --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc 2>&1 | Tee-Object "$env:QA_ROOT/evidence/cargo-fetch.log"
+          if ($LASTEXITCODE -ne 0) { throw 'Locked Cargo fetch failed' }
+      - name: Build isolated QA executable without installer or app launch
+        run: |
+          node scripts/build-official-document-qa.mjs 2>&1 | Tee-Object "$env:QA_ROOT/evidence/native-build.log"
+          if ($LASTEXITCODE -ne 0) { throw 'Native QA build failed' }
+          git diff --exit-code -- package-lock.json src-tauri/Cargo.lock
+          if ($LASTEXITCODE -ne 0) { throw 'Lockfile changed' }
+          $exe = Join-Path $env:GITHUB_WORKSPACE 'src-tauri/target-official-document-qa/x86_64-pc-windows-msvc/release/bogunon-desk-official-document-qa.exe'
+          if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'QA EXE missing' }
+          Copy-Item -LiteralPath $exe -Destination "$env:QA_ROOT/evidence/"
+          $hash = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  bogunon-desk-official-document-qa.exe" | Set-Content "$env:QA_ROOT/evidence/SHA256SUMS.txt"
+          "Native build PASS. WebView2 actual UI QA NOT RUN. Source: $env:GITHUB_SHA. EXE SHA256: $hash" >> $env:GITHUB_STEP_SUMMARY
+      - name: Runner-only startup and actual isolation handshake
+        continue-on-error: true
+        timeout-minutes: 6
+        run: |
+          $exe = Join-Path $env:QA_ROOT 'evidence/bogunon-desk-official-document-qa.exe'
+          $webview = @(Get-ChildItem "${env:ProgramFiles(x86)}/Microsoft/EdgeWebView/Application" -Filter msedgewebview2.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)
+          $rules = @()
+          $ready = $false
+          $launched = $false
+          try {
+            if (-not $webview.Count) { throw 'WebView2 runtime unavailable' }
+            # Block every non-loopback destination for this QA EXE and WebView2 only.
+            $remote = @('0.0.0.0-126.255.255.255','128.0.0.0-255.255.255.255','::2-ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff')
+            foreach ($program in @($exe) + $webview) {
+              $name = 'official-qa-' + [guid]::NewGuid().ToString('N')
+              $rules += $name
+              New-NetFirewallRule -Name $name -DisplayName $name -Direction Outbound -Action Block -Program $program -RemoteAddress $remote -Profile Any -ErrorAction Stop | Out-Null
+            }
+            $ready = $true
+          } catch {
+            @{ status='NOT RUN'; reason=$_.Exception.Message; uiQa='NOT RUN' } | ConvertTo-Json | Set-Content "$env:QA_ROOT/evidence/runtime-smoke.json"
+          }
+          try {
+            if ($ready) {
+              $launched = $true
+              node scripts/qa/official-document-runtime-smoke.mjs 2>&1 | Tee-Object "$env:QA_ROOT/evidence/runtime-smoke.log"
+              if ($LASTEXITCODE -ne 0) { throw 'Runner startup/isolation verification failed' }
+            }
+            Get-Content "$env:QA_ROOT/evidence/runtime-smoke.json" >> $env:GITHUB_STEP_SUMMARY
+          } finally {
+            $report = Get-Content "$env:QA_ROOT/evidence/runtime-smoke.json" -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json
+            if (-not $launched -or $report.cleanupConfirmed -eq $true) {
+              foreach ($name in $rules) { Remove-NetFirewallRule -Name $name -ErrorAction SilentlyContinue }
+            } else {
+              Write-Warning 'Process cleanup unconfirmed; outbound blocks retained until disposable runner shutdown'
+            }
+          }
+      - name: Preserve executable and diagnostic logs even on failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: official-document-qa-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ env.QA_ROOT }}/evidence/*
+          if-no-files-found: warn
+          retention-days: 14
+
+  runtime-ui:
+    if: github.ref == 'refs/heads/feature/official-document-enhancement' && inputs.runtime_only
+    runs-on: windows-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      QA_NATIVE_UI_ONLY: 'true'
+      QA_SKIP_FILE_PICKER: 'true'
+      QA_EXPECTED_SOURCE_SHA: 5e3583f6b5d7abca2ccba58fc90e64a456bfb817
+      QA_EXPECTED_EXE_SHA256: 14f761fcc5618f9d9cdb90c7be463f53a6fa468c0e53867a5d571f4f4f306f31
+    steps:
+      - name: Initialize runner-only runtime evidence path
+        run: |
+          "QA_ROOT=$env:RUNNER_TEMP/official-document-ui-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT" >> $env:GITHUB_ENV
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Test independent native-screen verdicts
+        run: node --test scripts/qa/official-document-screen-assessment.test.mjs
+      - name: Download previously verified immutable QA binary
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: official-document-qa-5e3583f6b5d7abca2ccba58fc90e64a456bfb817-1
+          run-id: '39809451795'
+          github-token: ${{ github.token }}
+          path: ${{ env.QA_ROOT }}/input
+      - name: Verify reused binary without installing or rebuilding
+        run: |
+          New-Item -ItemType Directory "$env:QA_ROOT/evidence" -Force | Out-Null
+          $source = Get-Content "$env:QA_ROOT/input/qa-build.json" -Raw | ConvertFrom-Json
+          if ($source.sourceSha -ne $env:QA_EXPECTED_SOURCE_SHA) { throw 'Binary source SHA mismatch' }
+          $exe = "$env:QA_ROOT/input/bogunon-desk-official-document-qa.exe"
+          if ((Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant() -ne $env:QA_EXPECTED_EXE_SHA256) { throw 'Binary SHA256 mismatch' }
+          Copy-Item $exe,"$env:QA_ROOT/input/SHA256SUMS.txt","$env:QA_ROOT/input/qa-build.json" -Destination "$env:QA_ROOT/evidence/"
+          Copy-Item "$env:QA_ROOT/input/provenance.json" "$env:QA_ROOT/evidence/binary-provenance.json"
+          "PSModuleAnalysisCachePath=$env:QA_ROOT/ModuleAnalysisCache" >> $env:GITHUB_ENV
+      - name: Runner-only startup and actual isolation handshake
+        timeout-minutes: 6
+        run: |
+          $exe = Join-Path $env:QA_ROOT 'evidence/bogunon-desk-official-document-qa.exe'
+          $webview = @(Get-ChildItem "${env:ProgramFiles(x86)}/Microsoft/EdgeWebView/Application" -Filter msedgewebview2.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)
+          $rules = @()
+          $ready = $false
+          $launched = $false
+          try {
+            if (-not $webview.Count) { throw 'WebView2 runtime unavailable' }
+            # Block every non-loopback destination for this QA EXE and WebView2 only.
+            $remote = @('0.0.0.0-126.255.255.255','128.0.0.0-255.255.255.255','::2-ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff')
+            foreach ($program in @($exe) + $webview) {
+              $name = 'official-qa-' + [guid]::NewGuid().ToString('N')
+              $rules += $name
+              New-NetFirewallRule -Name $name -DisplayName $name -Direction Outbound -Action Block -Program $program -RemoteAddress $remote -Profile Any -ErrorAction Stop | Out-Null
+            }
+            $ready = $true
+          } catch {
+            @{ status='NOT RUN'; reason=$_.Exception.Message; uiQa='NOT RUN' } | ConvertTo-Json | Set-Content "$env:QA_ROOT/evidence/runtime-smoke.json"
+          }
+          try {
+            if ($ready) {
+              $launched = $true
+              node scripts/qa/official-document-runtime-smoke.mjs 2>&1 | Tee-Object "$env:QA_ROOT/evidence/runtime-smoke.log"
+              if ($LASTEXITCODE -ne 0) { throw 'Runner startup/isolation verification failed' }
+            }
+            Get-Content "$env:QA_ROOT/evidence/runtime-smoke.json" >> $env:GITHUB_STEP_SUMMARY
+          } finally {
+            $report = Get-Content "$env:QA_ROOT/evidence/runtime-smoke.json" -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json
+            if (-not $launched -or $report.cleanupConfirmed -eq $true) {
+              foreach ($name in $rules) { Remove-NetFirewallRule -Name $name -ErrorAction SilentlyContinue }
+            } else {
+              Write-Warning 'Process cleanup unconfirmed; outbound blocks retained until disposable runner shutdown'
+            }
+          }
+      - name: Preserve actual native UI evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: official-document-native-ui-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.QA_ROOT }}/evidence/*
+          if-no-files-found: warn
+          retention-days: 14

@@ -50,10 +50,15 @@ export function OfficialDocumentOutput({ aiResponse, aiStatus, draft, mode, loca
     const copy = emptyStateCopy[mode];
     return (
       <div className="official-document-output is-empty">
-        <section className="official-document-empty" aria-live="polite">
-          <span aria-hidden="true"><FileText size={22} /></span>
-          <strong>{copy.title}</strong>
-          <p>{copy.description}</p>
+        <section className="official-document-preview" aria-label="문서 미리보기">
+          <header className="official-document-preview__toolbar"><strong>문서 미리보기</strong><span>로컬 작업 결과</span></header>
+          <div className="official-document-paper is-empty" aria-live="polite">
+            <div className="official-document-empty">
+              <span aria-hidden="true"><FileText size={22} /></span>
+              <strong>{copy.title}</strong>
+              <p>{copy.description}</p>
+            </div>
+          </div>
         </section>
       </div>
     );
@@ -62,23 +67,32 @@ export function OfficialDocumentOutput({ aiResponse, aiStatus, draft, mode, loca
     <div className="official-document-output">
       {localSummary !== null && <OfficialDocumentLocalSummaryView summary={localSummary} onCopy={onCopy} onSendToQuickAdd={onSendSummaryToQuickAdd} />}
       {draft !== null && (
-        <section className="official-document-result">
-          <header><strong>기본 초안</strong><CopyButton label="전체" value={composeOfficialDocumentDraft(draft)} onCopy={onCopy} /></header>
-          <article><div><strong>제목</strong><CopyButton label="제목" value={draft.title} onCopy={onCopy} /></div><pre>{draft.title}</pre></article>
-          <article><div><strong>본문</strong><CopyButton label="본문" value={draft.body} onCopy={onCopy} /></div><pre>{draft.body}</pre></article>
-          <article><strong>붙임</strong><pre>{draft.attachments}</pre></article>
-          <article><strong>교직원 메신저</strong><pre>{draft.messenger}</pre></article>
-          <article><strong>기안 전 체크리스트</strong><pre>{draft.checklist}</pre></article>
+        <section className="official-document-preview" aria-label="기본 초안 문서 미리보기">
+          <header className="official-document-preview__toolbar">
+            <div><strong>기본 초안</strong><span>읽기 전용 미리보기</span></div>
+            <div><CopyButton label="제목" value={draft.title} onCopy={onCopy} /><CopyButton label="본문" value={draft.body} onCopy={onCopy} /><CopyButton label="전체" value={composeOfficialDocumentDraft(draft)} onCopy={onCopy} /></div>
+          </header>
+          <article className="official-document-paper">
+            <header><span>공문 제목</span><h3>{draft.title}</h3></header>
+            <section aria-label="공문 본문"><pre>{draft.body}</pre></section>
+            <section className="official-document-paper__attachments" aria-label="붙임"><pre>{draft.attachments}</pre></section>
+          </article>
+          <div className="official-document-appendix" aria-label="공문 부록">
+            <header><strong>공문 부록</strong><span>업무 전달과 기안 전 확인에 활용하세요.</span></header>
+            <section><strong>교직원 메신저</strong><pre>{draft.messenger}</pre></section>
+            <section><strong>기안 전 체크리스트</strong><pre>{draft.checklist}</pre></section>
+            {draft.tableText ? <section className="is-wide"><div><strong>표 복사용 본문</strong><CopyButton label="표" value={draft.tableText} onCopy={onCopy} /></div><pre>{draft.tableText}</pre>{draft.tableGuide ? <p className="official-document-result__notice">{draft.tableGuide}</p> : null}</section> : null}
+          </div>
         </section>
       )}
       {prompt !== "" && (
-        <section className="official-document-result">
+        <section className="official-document-result official-document-result--supporting">
           <header><strong>AI 프롬프트 미리보기</strong><CopyButton label="프롬프트" value={prompt} onCopy={onCopy} /></header>
           <pre>{prompt}</pre>
         </section>
       )}
       {aiResponse !== "" && (
-        <section className="official-document-result is-ai">
+        <section className="official-document-result official-document-result--supporting is-ai">
           <header><strong>{aiStatus === "generating" ? "이전 AI 결과" : aiStatus === "error" ? "이전 AI 결과 유지됨" : "연결한 AI 작성 결과"}</strong><CopyButton label="AI 결과" value={aiResponse} onCopy={onCopy} /></header>
           {aiStatus === "generating" && <p className="official-document-result__notice">새 결과를 작성하는 동안 이전 정상 결과를 표시합니다.</p>}
           <pre>{aiResponse}</pre>
