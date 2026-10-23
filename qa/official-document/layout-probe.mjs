@@ -35,8 +35,8 @@ function setup() {
   const targets = [
     ['본문', '.official-document-paper section[aria-label="공문 본문"] pre'],
     ['붙임', '.official-document-paper__attachments pre'],
-    ['메신저', '.official-document-appendix section:first-child pre'],
-    ['체크리스트', '.official-document-appendix section:nth-child(2) pre'],
+    ['메신저', '.official-document-appendix section:nth-of-type(1) pre'],
+    ['체크리스트', '.official-document-appendix section:nth-of-type(2) pre'],
   ];
   for (const [label, selector] of targets) button(`QA ${label} 끝 보기`, async () => {
     const element = document.querySelector(selector);

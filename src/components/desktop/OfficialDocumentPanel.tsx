@@ -263,7 +263,8 @@ export function OfficialDocumentPanel({ onClose, onNotice, onOpenAiSettings, onS
         </div>
         <div className="official-document-panel__body">
           <div className="official-document-editor">
-            {state.mode === "create" && <>
+            <div className="official-document-editor__content">
+              {state.mode === "create" && <>
               <OfficialDocumentCreateForm input={state.createInput} onFieldChange={(field, value) => dispatch({ type: "updateCreate", field, value })} onPurposeChange={(purpose) => dispatch({ type: "updateCreatePurpose", purpose })} onWorkAreaChange={(workArea) => dispatch({ type: "updateCreateWorkArea", workArea })} />
               <section className="official-document-reference-tools" aria-labelledby="official-document-reference-tools-title">
                 <header>
@@ -278,9 +279,10 @@ export function OfficialDocumentPanel({ onClose, onNotice, onOpenAiSettings, onS
                 </div>
                 {referenceRepository === undefined && <div hidden={referenceWorkspaceView !== "manage"}><OfficialDocumentPackageManager onRepositoryChange={setPackageRepository} onBusyChange={setPackageBusy} /></div>}
               </section>
-            </>}
-            {state.mode === "revision" && <div className="official-document-text-inputs"><OfficialDocumentSourceField id="official-document-revision-original" isImporting={importingMode === "revision"} rows={12} sourceName={state.revisionSourceName} value={state.revisionInput.original} placeholder="수정할 공문 원문을 붙여넣으세요." onImport={() => void importSource("revision")} onChange={(event) => dispatch({ type: "updateRevision", value: { ...state.revisionInput, original: event.currentTarget.value } })} /><label><span>수정 요청</span><textarea rows={7} value={state.revisionInput.request} placeholder="관내 특수학교만 대상으로 변경&#10;제출기한은 9월 23일&#10;제출방법은 공문 제출" onChange={(event) => dispatch({ type: "updateRevision", value: { ...state.revisionInput, request: event.currentTarget.value } })} /></label></div>}
-            {state.mode === "summary" && <div className="official-document-text-inputs"><OfficialDocumentSourceField id="official-document-summary-original" isImporting={importingMode === "summary"} rows={20} sourceName={state.summarySourceName} value={state.summaryOriginal} placeholder="핵심을 정리할 공문 원문을 붙여넣으세요." onImport={() => void importSource("summary")} onChange={(event) => dispatch({ type: "updateSummary", original: event.currentTarget.value })} /></div>}
+              </>}
+              {state.mode === "revision" && <div className="official-document-text-inputs"><OfficialDocumentSourceField id="official-document-revision-original" isImporting={importingMode === "revision"} rows={12} sourceName={state.revisionSourceName} value={state.revisionInput.original} placeholder="수정할 공문 원문을 붙여넣으세요." onImport={() => void importSource("revision")} onChange={(event) => dispatch({ type: "updateRevision", value: { ...state.revisionInput, original: event.currentTarget.value } })} /><label><span>수정 요청</span><textarea rows={7} value={state.revisionInput.request} placeholder="관내 특수학교만 대상으로 변경&#10;제출기한은 9월 23일&#10;제출방법은 공문 제출" onChange={(event) => dispatch({ type: "updateRevision", value: { ...state.revisionInput, request: event.currentTarget.value } })} /></label></div>}
+              {state.mode === "summary" && <div className="official-document-text-inputs"><OfficialDocumentSourceField id="official-document-summary-original" isImporting={importingMode === "summary"} rows={20} sourceName={state.summarySourceName} value={state.summaryOriginal} placeholder="핵심을 정리할 공문 원문을 붙여넣으세요." onImport={() => void importSource("summary")} onChange={(event) => dispatch({ type: "updateSummary", original: event.currentTarget.value })} /></div>}
+            </div>
             <section className="official-document-action-area" aria-label="공문 작업 실행">
               {(state.mode === "create" || state.mode === "summary") && <div className="official-document-action-group is-local">
                 <span>로컬 작업</span>

@@ -78,6 +78,7 @@ export function OfficialDocumentOutput({ aiResponse, aiStatus, draft, mode, loca
             <section className="official-document-paper__attachments" aria-label="붙임"><pre>{draft.attachments}</pre></section>
           </article>
           <div className="official-document-appendix" aria-label="공문 부록">
+            <header><strong>공문 부록</strong><span>업무 전달과 기안 전 확인에 활용하세요.</span></header>
             <section><strong>교직원 메신저</strong><pre>{draft.messenger}</pre></section>
             <section><strong>기안 전 체크리스트</strong><pre>{draft.checklist}</pre></section>
             {draft.tableText ? <section className="is-wide"><div><strong>표 복사용 본문</strong><CopyButton label="표" value={draft.tableText} onCopy={onCopy} /></div><pre>{draft.tableText}</pre>{draft.tableGuide ? <p className="official-document-result__notice">{draft.tableGuide}</p> : null}</section> : null}
