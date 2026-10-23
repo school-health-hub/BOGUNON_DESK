@@ -2,7 +2,7 @@
 
 ## 조사 기준
 
-- 실제 저장소: `C:\Users\sehwa\Documents\GitHub\bogunon`
+- 실제 저장소: `<BOGUNON_WEB_ROOT>`
 - 구현 브랜치: `codex/medication-lot-management`
 - 근거 SHA: `1191f3b683e3d0be819ed864cfb28b24513ce919`
 - 기본 checkout은 사용자 변경이 있어 건드리지 않고 Git 객체를 읽었다.

@@ -6,7 +6,7 @@
 
 ## Git 기준선
 
-- Worktree: `C:\Users\sehwa\Documents\GitHub\BOGUNON_DESK-inventory`
+- Worktree: `<WORKTREE_ROOT>`
 - Branch: `feature/inventory-management`
 - HEAD: `5e9747851b278c65c5206d323e85343dba2cad4e`
 - 기존 IM-1A 운영 검증 문서 5개: untracked 상태 그대로 보존

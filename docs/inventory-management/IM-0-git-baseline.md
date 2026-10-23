@@ -4,7 +4,7 @@
 
 ## 기준 선택
 
-- 신규 worktree: `C:\Users\sehwa\Documents\GitHub\BOGUNON_DESK-inventory`
+- 신규 worktree: `<WORKTREE_ROOT>`
 - 브랜치: `feature/inventory-management`
 - 기준 SHA / 생성 직후 HEAD: `97f9ee9a6fe6ba93b7bfb7a89707902c7b4f2d96`
 - 기준 ref: `origin/main`
@@ -33,5 +33,5 @@
 
 ## 규칙
 
-`C:\Users\sehwa\.codex\AGENTS.md`의 Development Closure & PC Handoff v1.0을 확인했다. 저장소 루트에는 별도 AGENTS 파일이 없었다. `node_modules` 내부 AGENTS 파일은 해당 의존성 내부 작업이 아니므로 적용 범위 밖이다.
+`<CODEX_HOME>\AGENTS.md`의 Development Closure & PC Handoff v1.0을 확인했다. 저장소 루트에는 별도 AGENTS 파일이 없었다. `node_modules` 내부 AGENTS 파일은 해당 의존성 내부 작업이 아니므로 적용 범위 밖이다.
 

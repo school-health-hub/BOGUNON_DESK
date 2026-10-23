@@ -18,7 +18,7 @@
 ## 월요일 재개 순서
 
 ```powershell
-cd C:\Users\sehwa\Documents\GitHub\BOGUNON_DESK-inventory
+Set-Location -LiteralPath '<WORKTREE_ROOT>'
 git status --short
 pwsh -NoProfile -File inventory-management/qa/scripts/Invoke-LocalSupabase.ps1 start
 npx --yes --package=supabase@2.121.0 -- supabase --workdir inventory-management/qa db reset --local --yes

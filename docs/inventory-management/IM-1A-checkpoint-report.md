@@ -6,7 +6,7 @@
 
 | 항목 | 결과 |
 |---|---|
-| Worktree | `C:\Users\sehwa\Documents\GitHub\BOGUNON_DESK-inventory` |
+| Worktree | `<WORKTREE_ROOT>` |
 | Branch | `feature/inventory-management` |
 | 기존 HEAD | `97f9ee9a6fe6ba93b7bfb7a89707902c7b4f2d96` |
 | 신규 HEAD / Commit | `5e9747851b278c65c5206d323e85343dba2cad4e` |

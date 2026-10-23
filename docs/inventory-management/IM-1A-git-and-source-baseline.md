@@ -6,7 +6,7 @@
 
 | 항목 | 결과 |
 |---|---|
-| Worktree | `C:\Users\sehwa\Documents\GitHub\BOGUNON_DESK-inventory` |
+| Worktree | `<WORKTREE_ROOT>` |
 | Branch | `feature/inventory-management` |
 | HEAD / IM-0 기준 | `97f9ee9a6fe6ba93b7bfb7a89707902c7b4f2d96` |
 | Upstream | 없음 |
@@ -19,7 +19,7 @@
 
 ## 지침
 
-전역 `C:\Users\sehwa\.codex\AGENTS.md`를 확인했다. 저장소별 `AGENTS.md`는 발견되지 않았다. IM-0 문서 12개는 모두 untracked이며 원문을 수정하지 않았다.
+전역 `<CODEX_HOME>\AGENTS.md`를 확인했다. 저장소별 `AGENTS.md`는 발견되지 않았다. IM-0 문서 12개는 모두 untracked이며 원문을 수정하지 않았다.
 
 ## 근거 소스
 

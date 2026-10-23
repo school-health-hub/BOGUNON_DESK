@@ -2,7 +2,7 @@
 
 ## 기준
 
-- worktree: `C:\Users\sehwa\Documents\GitHub\BOGUNON_DESK-purchase`
+- worktree: `<PURCHASE_WORKTREE_ROOT>`
 - branch: `feature/purchase-helper-enhancement`
 - HEAD: `888917b8b35b679ac7e406a0b89c9b0425282ce9`
 - 상태: clean, upstream 대비 0/0. 수정하지 않았다.
