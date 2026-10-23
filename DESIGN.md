@@ -375,6 +375,15 @@ BOGUNON DESK는 이 브랜드 재료를 사용하되, 배치와 상호작용은 
 - 빠른 메모는 단일 session-only 상태를 유지하며 문자 수는 action row의 보조 정보로만 표시한다.
 - Dock tile accent는 표시 순서가 아니라 `data-dock-item` identity에 연결해 숨김·복원·재정렬 후에도 같은 기능의 색을 유지한다.
 
+## Desktop Surface synthetic preview
+
+- Desktop Surface 미리보기는 기존 민트·아이보리 token과 정보형·업무형·utility surface 문법을 재사용한다. 새로운 브랜드 palette를 만들지 않는다.
+- 정확히 월간 일정, 오늘 할 일, D-Day, 시계·날짜, 날씨, 빠른 실행 여섯 위젯만 하나의 12열 renderer 안에 배치한다. 카드 radius는 16px 이하, control radius는 8px, focus는 2px teal outline을 사용한다.
+- Surface widget은 Main Provider, 인증, Supabase client, Tauri command를 import하지 않는다. S-1은 명시적으로 표시된 합성 projection과 합성 action log만 사용한다.
+- Preview layout은 production Dashboard layout과 별도인 versioned schema이며 `widget id / x / y / width / height / visibility`만 보관한다. 미리보기 persistence는 전용 session key에 한정한다.
+- View mode에서 카드는 조용한 작업 표면으로 보이고, Edit mode에서만 drag handle, resize handle, 숨김 control을 노출한다. 버튼과 drag handle은 입력 경계를 분리한다.
+- 1280×800 이상 primary-monitor preview를 기준으로 하며, 긴 한국어는 한 줄 ellipsis 또는 의미 단위 keep-all로 처리한다. 작은 창에서도 page-level overflow로 조작 가능성을 보존한다.
+
 ## v1.0 presentation refresh (2026-10)
 
 This section supersedes the earlier glass opacity/shadow recipes only for the

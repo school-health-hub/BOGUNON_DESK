@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:surface": "vite --config vite.surface.config.ts",
     "build": "tsc && vite build",
+    "build:surface": "tsc --noEmit && vite build --config vite.surface.config.ts",
+    "test:surface": "vitest run --config vitest.surface.config.ts",
     "test": "vitest run",
     "preview": "vite preview",
     "release:check": "node scripts/release-preflight.mjs",
