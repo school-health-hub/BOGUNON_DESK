@@ -51,6 +51,8 @@ const modeLabels: Readonly<Record<OfficialDocumentMode, string>> = {
   summary: "공문 핵심정리",
 };
 
+const privacyNoticeParts = officialDocumentPrivacyNotice.split(/(탐지하지 못할 수 있습니다\.|AI 서비스로)/);
+
 type OfficialDocumentPanelProps = {
   readonly onClose: () => void;
   readonly onNotice: (message: string) => void;
@@ -307,7 +309,16 @@ export function OfficialDocumentPanel({ onClose, onNotice, onOpenAiSettings, onS
               </div>
               {state.aiStatus === "generating" && <p className="official-document-prompt-help">화면 반영만 중단할 수 있으며 이미 전송된 요청은 회수되지 않습니다.</p>}
               <p className="official-document-prompt-help">공문 내용과 요청사항을 정리해 ChatGPT, Gemini 등에서 사용할 수 있는 프롬프트를 만듭니다.</p>
-              <aside className="official-document-privacy"><ShieldAlert size={16} /><span>{officialDocumentPrivacyNotice}</span></aside>
+              <aside className="official-document-privacy">
+                <ShieldAlert size={16} />
+                <span>
+                  {privacyNoticeParts.map((part) =>
+                    part === "탐지하지 못할 수 있습니다." || part === "AI 서비스로"
+                      ? <span className="official-document-privacy__nowrap" key={part}>{part}</span>
+                      : part
+                  )}
+                </span>
+              </aside>
               {apiConnectionAvailable || chatGptPlanAvailable ? (
                 <div className="official-document-ai-state official-document-ai-state--routes">
                   {chatGptPlanAvailable && selectedChatGptModelLabel !== null && <span><CircleCheck size={15} /> ChatGPT 요금제 연결됨 · {selectedChatGptModelLabel}</span>}

@@ -37,6 +37,7 @@ body {
   flex-wrap: wrap;
   gap: var(--space-2) var(--space-4);
   align-items: baseline;
+  padding-inline-start: var(--space-3);
 }
 
 .official-document-qa-banner strong {

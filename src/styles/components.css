@@ -405,6 +405,8 @@
 .official-document-prompt-help { margin: 0; color: var(--text-muted); font-size: var(--text-sm); line-height: var(--leading-body); }
 .official-document-privacy { display: flex; gap: var(--space-2); align-items: flex-start; margin-top: var(--space-1); padding: var(--space-2) var(--space-3); border: 1px solid var(--yellow-700); border-radius: var(--radius-control); color: var(--yellow-700); background: var(--yellow-100); font-size: var(--text-sm); line-height: var(--leading-body); }
 .official-document-privacy svg { flex: 0 0 auto; margin-top: 1px; }
+.official-document-privacy > span { min-width: 0; overflow-wrap: break-word; text-wrap: balance; word-break: keep-all; }
+.official-document-privacy__nowrap { white-space: nowrap; }
 .official-document-ai-state { display: flex; min-height: 30px; align-items: center; justify-content: space-between; gap: 10px; color: var(--text-subtle-readable); font-size: var(--text-sm); font-weight: var(--weight-semibold); }
 .official-document-ai-state--routes { flex-direction: column; align-items: flex-start; justify-content: center; }
 .official-document-ai-state--routes span { display: inline-flex; align-items: center; gap: 6px; }
