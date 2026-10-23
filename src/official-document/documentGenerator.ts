@@ -19,6 +19,16 @@ const titleSuffixes = {
   "외부기관 제출": "결과 제출",
 } as const;
 
+const titleSuffixLeadingTerms = {
+  "계획 기안": "시행",
+  "결과 보고": "결과",
+  "안내문 발송": "안내문",
+  "실적 보고": "실적",
+  "외부기관 제출": "결과",
+} as const;
+
+const structuredListStart = /^(?:\d+\.|[가나다라마바사아자차카타파하]\.|(?:\d+|[가나다라마바사아자차카타파하])\))\s+/u;
+
 const clean = (value: string): string => value.trim();
 const valueOrNeed = (value: string): string => clean(value) || "[입력 필요]";
 
@@ -59,12 +69,19 @@ const buildTitle = (input: OfficialDocumentInput): string => {
   const workName = clean(input.workName) || template.label;
   const suffix = titleSuffixes[input.purpose];
   const hasSuffix = workName.includes(suffix) || workName.endsWith("계획") || workName.endsWith("보고");
-  return [clean(input.schoolYear), hasSuffix ? workName : `${workName} ${suffix}`].filter((part) => part !== "").join(" ");
+  const leadingTerm = titleSuffixLeadingTerms[input.purpose];
+  const title = hasSuffix
+    ? workName
+    : leadingTerm !== null && workName.endsWith(leadingTerm)
+      ? `${workName}${suffix.slice(leadingTerm.length)}`
+      : `${workName} ${suffix}`;
+  return [clean(input.schoolYear), title].filter((part) => part !== "").join(" ");
 };
 
 const buildBody = (input: OfficialDocumentInput): string => {
   const template = findOfficialDocumentTemplate(input.workArea);
   const purpose = clean(input.mainContent) || template.purpose;
+  const hasStructuredMainContent = structuredListStart.test(purpose);
   const details = [
     optionalLine("가. 대상", input.target),
     optionalLine("나. 일시", input.dateTime),
@@ -73,19 +90,24 @@ const buildBody = (input: OfficialDocumentInput): string => {
     optionalLine("마. 기관명", input.organization),
     optionalLine("바. 인원", input.peopleCount),
     optionalLine("사. 비용 또는 예산", input.budget),
-    optionalLine("아. 주요 내용", input.mainContent),
+    hasStructuredMainContent ? null : optionalLine("아. 주요 내용", input.mainContent),
     optionalLine("자. 특이사항", input.notes),
   ].filter((line): line is string => line !== null);
   const attachments = splitAttachments(input.attachments);
   const attachmentText = attachments.length === 0
     ? "[붙임 자료 입력 필요] 1부."
     : attachments.map((item) => `${item} 1부.`).join("\n");
+  const purposeLine = hasStructuredMainContent
+    ? `2. 주요 내용\n${purpose.split("\n").map((line) => `  ${line}`).join("\n")}`
+    : `2. ${purpose}을(를) 위해 다음과 같이 ${purposeEndings[input.purpose]}`;
+  const detailSection = hasStructuredMainContent && details.length === 0
+    ? []
+    : ["", details.length === 0 ? "가. 세부 내용: [입력 필요]" : details.join("\n")];
   return [
     `1. 관련: ${valueOrNeed(input.relatedDocument)}`,
     "",
-    `2. ${purpose}을(를) 위해 다음과 같이 ${purposeEndings[input.purpose]}`,
-    "",
-    details.length === 0 ? "가. 세부 내용: [입력 필요]" : details.join("\n"),
+    purposeLine,
+    ...detailSection,
     "",
     `붙임  ${attachmentText}  끝.`,
   ].join("\n");
