@@ -1,0 +1,87 @@
+name: Newsletter NS-2 Windows QA
+
+on:
+  push:
+    branches:
+      - feature/newsletter-studio
+    paths:
+      - ".github/workflows/newsletter-ns2-qa.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "src/newsletter/**"
+      - "src-tauri/src/newsletter/**"
+      - "src-tauri/src/lib.rs"
+      - "src-tauri/Cargo.toml"
+      - "src-tauri/Cargo.lock"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: newsletter-ns2-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  frontend:
+    name: Frontend and TypeScript
+    runs-on: windows-2025
+    timeout-minutes: 60
+    steps:
+      - name: Check out tested commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Set up Node.js 22.23.3
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22.23.3"
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install locked frontend dependencies
+        run: npm ci
+      - name: Run Newsletter Vitest suite
+        run: npm test -- src/newsletter --maxWorkers=2
+      - name: Run complete Vitest suite with limited workers
+        run: npm test -- --maxWorkers=2
+      - name: Run TypeScript checks
+        run: npx tsc --noEmit
+      - name: Build production frontend
+        run: npm run build
+
+  native:
+    name: Native Rust
+    runs-on: windows-2025
+    timeout-minutes: 120
+    steps:
+      - name: Check out tested commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Set up Rust 1.98.1
+        uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249
+        with:
+          toolchain: "1.98.1"
+          targets: x86_64-pc-windows-msvc
+      - name: Restore Rust build cache
+        uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c
+        with:
+          cache-on-failure: true
+          workspaces: src-tauri
+      - name: Record Windows native build environment
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          rustc --version
+          cargo --version
+          where.exe perl
+          perl --version
+          perl -MLocale::Maketext::Simple -e "print qq(OK\n)"
+          nasm -v
+          Get-PSDrive -Name C | Format-Table Name, Used, Free
+          Get-CimInstance Win32_OperatingSystem |
+            Select-Object TotalVisibleMemorySize, FreePhysicalMemory |
+            Format-List
+          foreach ($name in @("OPENSSL_DIR", "OPENSSL_LIB_DIR", "OPENSSL_INCLUDE_DIR", "OPENSSL_STATIC", "OPENSSL_NO_VENDOR")) {
+            $present = [bool][Environment]::GetEnvironmentVariable($name)
+            Write-Host "${name}_SET=$present"
+          }
+      - name: Run Newsletter native tests
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc newsletter
+      - name: Check complete native application
+        run: cargo check --locked --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc
