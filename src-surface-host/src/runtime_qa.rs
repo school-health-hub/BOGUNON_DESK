@@ -179,10 +179,16 @@ fn run_with_fault(
         .release(attempt, crate::ownership::Resource::Controller, 5)
         .map_err(|_| RuntimeQaError::Identity)?;
     ownership_event(case, "Controller", "release")?;
-    if fault.is_some() {
-        window.destroy().map_err(HostError::Com)?;
-    } else {
-        drop(window);
+    if let Err(error) = window.destroy() {
+        ledger
+            .quarantine_release(attempt, crate::ownership::Resource::Window, 2)
+            .map_err(|_| RuntimeQaError::Identity)?;
+        ownership_event(case, "Window", "release-unconfirmed")?;
+        support::timeline_event(
+            case,
+            &serde_json::json!({"stage":"cleanup","resource":"Window","result":"CLEANUP_UNKNOWN"}),
+        )?;
+        return Err(HostError::Com(error).into());
     }
     ledger
         .release(attempt, crate::ownership::Resource::Window, 2)
@@ -195,10 +201,16 @@ fn run_with_fault(
     if exit.binding != binding || exit.browser_process_id != observation.browser_process_id {
         return Err(RuntimeQaError::Identity);
     }
-    if fault.is_some() {
-        browser_exit.unsubscribe()?;
-    } else {
-        drop(browser_exit);
+    if let Err(error) = browser_exit.unsubscribe() {
+        ledger
+            .quarantine_release(attempt, crate::ownership::Resource::EventToken, 4)
+            .map_err(|_| RuntimeQaError::Identity)?;
+        ownership_event(case, "EventToken", "release-unconfirmed")?;
+        support::timeline_event(
+            case,
+            &serde_json::json!({"stage":"cleanup","resource":"EventToken","result":"CLEANUP_UNKNOWN"}),
+        )?;
+        return Err(error.into());
     }
     ledger
         .release(attempt, crate::ownership::Resource::EventToken, 4)
@@ -226,11 +238,7 @@ fn run_with_fault(
         browser_process_id: exit.browser_process_id,
         normal_exit: exit.normal,
     };
-    let accepted_exit = if fault == Some(FailureCase::MissingBrowserExit) {
-        None
-    } else {
-        Some(&exit)
-    };
+    let accepted_exit = (fault != Some(FailureCase::MissingBrowserExit)).then_some(&exit);
     // The fault expires the receipt observer budget. The real exit was still drained to
     // avoid abandoning resources; a late observation cannot repair the expired case.
     cleanup::evaluate(false, &ledger, &runtime, accepted_exit).map_err(RuntimeQaError::Cleanup)?;

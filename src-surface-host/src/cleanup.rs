@@ -105,4 +105,21 @@ mod tests {
             Err(CleanupUnknown::BrowserExitMissing)
         );
     }
+
+    #[test]
+    fn partial_native_cleanup_cannot_issue_a_receipt() {
+        let (attempt, mut ledger, runtime, exit) = fixture();
+        assert_eq!(ledger.acquire(attempt, Resource::Window, 2), Ok(()));
+        assert_eq!(ledger.acquire(attempt, Resource::EventToken, 4), Ok(()));
+        assert_eq!(ledger.release(attempt, Resource::Window, 2), Ok(()));
+        assert_eq!(
+            ledger.quarantine_release(attempt, Resource::EventToken, 4),
+            Ok(())
+        );
+
+        assert_eq!(
+            evaluate(false, &ledger, &runtime, Some(&exit)),
+            Err(CleanupUnknown::ResourceReleaseIncomplete)
+        );
+    }
 }

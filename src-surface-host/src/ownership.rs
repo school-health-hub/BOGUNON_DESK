@@ -115,6 +115,25 @@ impl Ledger {
         }
     }
 
+    pub fn quarantine_release(
+        &mut self,
+        attempt: Attempt,
+        resource: Resource,
+        identity: u64,
+    ) -> Result<(), OwnershipError> {
+        self.require_attempt(attempt)?;
+        let slot = &mut self.slots[index(resource)];
+        match *slot {
+            Slot::Owned(value) if value == identity => {
+                *slot = Slot::Unresolved;
+                Ok(())
+            }
+            Slot::Owned(_) | Slot::Released(_) => Err(OwnershipError::WrongIdentity),
+            Slot::Unresolved => Err(OwnershipError::Unresolved),
+            Slot::NotAttempted => Err(OwnershipError::NotOwned),
+        }
+    }
+
     pub fn is_resolved(&self) -> bool {
         self.slots
             .iter()
@@ -159,6 +178,26 @@ mod tests {
         assert!(!ledger.is_resolved());
         assert_eq!(
             ledger.release(attempt, Resource::Controller, 7),
+            Err(OwnershipError::Unresolved)
+        );
+    }
+
+    #[test]
+    fn failed_native_release_quarantines_owned_resource_and_blocks_receipt() {
+        let Some(attempt) = Attempt::new(1, 2) else {
+            panic!("non-zero generation and sequence must create an attempt");
+        };
+        let mut ledger = Ledger::new(attempt);
+        assert_eq!(ledger.acquire(attempt, Resource::Window, 17), Ok(()));
+
+        assert_eq!(
+            ledger.quarantine_release(attempt, Resource::Window, 17),
+            Ok(())
+        );
+
+        assert!(!ledger.is_resolved());
+        assert_eq!(
+            ledger.release(attempt, Resource::Window, 17),
             Err(OwnershipError::Unresolved)
         );
     }
