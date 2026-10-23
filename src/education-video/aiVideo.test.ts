@@ -8,6 +8,8 @@ describe('source backed education video search', () => {
     const { candidates } = parseVideoSearchResult(result([{ ...item, title: 'invented', publisher: 'invented', durationSeconds: 100 }]));
     expect(candidates).toHaveLength(1); expect(candidates[0].title).toBe('출처의 제목');
     expect(candidates[0].publisher).toBeNull(); expect(candidates[0].durationSeconds).toBeNull();
+    expect(candidates[0].provenance).toBe('web-search-verified');
+    expect(candidates[0].metadataVerification).toEqual({title:'unverified',publisher:'unverified',durationSeconds:'unverified'});
   });
   it('excludes invented links and deduplicates results without padding', () => {
     expect(parseVideoSearchResult(result([item], [])).candidates).toEqual([]);

@@ -194,6 +194,8 @@ fn ai_evidence_roundtrip_preserves_teacher_and_expires_metadata() {
         }],
         checked_at: checked,
         needs_review: true,
+        provenance: super::ai_metadata::CandidateProvenance::WebSearchVerified,
+        metadata_verification: super::ai_metadata::MetadataVerification::default(),
     });
     saved.validate().unwrap();
     let encoded = serde_json::to_string(&Library {
@@ -219,6 +221,65 @@ fn ai_evidence_rejects_private_source_and_unknown_fields() {
 }
 
 #[test]
+fn ai_evidence_legacy_defaults_never_promote_provenance_or_facts() {
+    let json = serde_json::json!({"videoId":"EVmock00001","url":"https://www.youtube.com/watch?v=EVmock00001","title":"기존 제목","publisher":null,"durationSeconds":null,"description":"소개","relevance":"관련","reason":"추천","sources":[{"url":"https://www.youtube.com/watch?v=EVmock00001","title":"출처"}],"checkedAt":"2026-01-01T00:00:00.000Z","needsReview":true});
+    let metadata: super::ai_metadata::AiMetadata = serde_json::from_value(json).unwrap();
+    assert_eq!(
+        metadata.provenance,
+        super::ai_metadata::CandidateProvenance::Unverified
+    );
+    assert_eq!(
+        metadata.metadata_verification,
+        super::ai_metadata::MetadataVerification::default()
+    );
+}
+
+#[test]
+fn ai_evidence_rejects_partially_upgraded_verification_contract() {
+    let base = serde_json::json!({"videoId":"EVmock00001","url":"https://www.youtube.com/watch?v=EVmock00001","title":"기존 제목","publisher":null,"durationSeconds":null,"description":"소개","relevance":"관련","reason":"추천","sources":[{"url":"https://www.youtube.com/watch?v=EVmock00001","title":"출처"}],"checkedAt":"2026-01-01T00:00:00.000Z","needsReview":true});
+    let mut provenance_only = base.clone();
+    provenance_only["provenance"] = serde_json::json!("teacher-supplied");
+    assert!(serde_json::from_value::<super::ai_metadata::AiMetadata>(provenance_only).is_err());
+    let mut verification_only = base;
+    verification_only["metadataVerification"] = serde_json::json!({"title":"unverified","publisher":"unverified","durationSeconds":"unverified"});
+    assert!(serde_json::from_value::<super::ai_metadata::AiMetadata>(verification_only).is_err());
+}
+
+#[test]
+fn ai_evidence_rejects_explicit_null_verification_contract() {
+    let base = serde_json::json!({"videoId":"EVmock00001","url":"https://www.youtube.com/watch?v=EVmock00001","title":"기존 제목","publisher":null,"durationSeconds":null,"description":"소개","relevance":"관련","reason":"추천","sources":[{"url":"https://www.youtube.com/watch?v=EVmock00001","title":"출처"}],"checkedAt":"2026-01-01T00:00:00.000Z","needsReview":true});
+    for (provenance, verification) in [
+        (serde_json::Value::Null, serde_json::Value::Null),
+        (
+            serde_json::Value::Null,
+            serde_json::json!({"title":"unverified","publisher":"unverified","durationSeconds":"unverified"}),
+        ),
+        (serde_json::json!("unverified"), serde_json::Value::Null),
+    ] {
+        let mut candidate = base.clone();
+        candidate["provenance"] = provenance;
+        candidate["metadataVerification"] = verification;
+        assert!(serde_json::from_value::<super::ai_metadata::AiMetadata>(candidate).is_err());
+    }
+}
+
+#[test]
+fn ai_evidence_keeps_provenance_separate_and_rejects_confirmation_without_a_value() {
+    let base = serde_json::json!({"videoId":"EVmock00001","url":"https://www.youtube.com/watch?v=EVmock00001","title":"제목","publisher":null,"durationSeconds":null,"description":"소개","relevance":"관련","reason":"추천","sources":[{"url":"https://www.youtube.com/watch?v=EVmock00001","title":"출처"}],"checkedAt":"2026-01-01T00:00:00.000Z","needsReview":true,"provenance":"teacher-confirmed","metadataVerification":{"title":"unverified","publisher":"unverified","durationSeconds":"unverified"}});
+    let metadata: super::ai_metadata::AiMetadata = serde_json::from_value(base.clone()).unwrap();
+    assert!(metadata.validate("EVmock00001").is_ok());
+    let mut confirmed_title = base.clone();
+    confirmed_title["provenance"] = serde_json::json!("teacher-supplied");
+    confirmed_title["metadataVerification"]["title"] = serde_json::json!("teacher-confirmed");
+    let metadata: super::ai_metadata::AiMetadata = serde_json::from_value(confirmed_title).unwrap();
+    assert!(metadata.validate("EVmock00001").is_ok());
+    let mut invalid_null = base;
+    invalid_null["metadataVerification"]["publisher"] = serde_json::json!("teacher-confirmed");
+    let metadata: super::ai_metadata::AiMetadata = serde_json::from_value(invalid_null).unwrap();
+    assert!(metadata.validate("EVmock00001").is_err());
+}
+
+#[test]
 fn legacy_teacher_save_preserves_ai_evidence_until_explicit_delete() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("library.json");
@@ -240,6 +301,8 @@ fn legacy_teacher_save_preserves_ai_evidence_until_explicit_delete() {
         }],
         checked_at: checked,
         needs_review: true,
+        provenance: super::ai_metadata::CandidateProvenance::WebSearchVerified,
+        metadata_verification: super::ai_metadata::MetadataVerification::default(),
     });
     store::save_entry(&path, saved.clone()).unwrap();
     let mut legacy = saved.clone();

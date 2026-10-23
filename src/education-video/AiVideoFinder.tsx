@@ -7,7 +7,7 @@ import { OfficialDocumentAiConfirmation } from '../components/desktop/OfficialDo
 import { prepareOfficialDocumentAiSend } from '../official-document/officialDocumentAiService';
 import type { OfficialDocumentInput } from '../official-document/types';
 import { AiVideoFinderCards } from './AiVideoFinderCards';
-import { buildVideoReviewPrompt, buildVideoSearchPrompt, candidateDraftInput, canonicalVideoUrl, parseVideoSearchResult, type AiVideoCandidate, type SearchConditions } from './aiVideo';
+import { buildVideoReviewPrompt, buildVideoSearchPrompt, candidateDraftInput, canonicalVideoUrl, parseVideoSearchResult, UNVERIFIED_METADATA_VERIFICATION, type AiVideoCandidate, type SearchConditions } from './aiVideo';
 import './aiFinder.css';
 
 export type AiFinderConnection = {
@@ -96,7 +96,7 @@ export function AiVideoFinder(p: Props) {
   const manual = () => {
     const video = canonicalVideoUrl(manualUrl);
     if (!video) { setNotice('유효한 HTTPS YouTube 개별 영상 URL을 입력해 주세요.'); return; }
-    const candidate: AiVideoCandidate = { ...video, title: '직접 추가한 영상 · 제목 확인 필요', publisher: null, durationSeconds: null, description: '직접 입력한 URL입니다. 공개 소개정보와 교육 적합성을 교사가 확인해 주세요.', relevance: '직접 확인 필요', reason: '검색 AI가 추천한 영상이 아닙니다.', sources: [{ url: video.url, title: '직접 입력한 영상 URL' }], checkedAt: new Date().toISOString(), needsReview: true };
+    const candidate: AiVideoCandidate = { ...video, title: '직접 추가한 영상 · 제목 확인 필요', publisher: null, durationSeconds: null, description: '직접 입력한 URL입니다. 공개 소개정보와 교육 적합성을 교사가 확인해 주세요.', relevance: '직접 확인 필요', reason: '검색 AI가 추천한 영상이 아닙니다.', sources: [{ url: video.url, title: '직접 입력한 영상 URL' }], checkedAt: new Date().toISOString(), needsReview: true, provenance: 'teacher-supplied', metadataVerification: UNVERIFIED_METADATA_VERIFICATION };
     setResults([candidate]); setResultConditions({ ...conditions }); setSearched(true); setNotice('직접 입력한 영상입니다. 제목·기관·길이·내용을 확인해 주세요.');
   };
   return <main className="aiv-finder">

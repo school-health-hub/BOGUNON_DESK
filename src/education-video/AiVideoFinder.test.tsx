@@ -31,6 +31,7 @@ describe('AI Finder explicit outbound workflow', () => {
   fireEvent.change(screen.getByLabelText('YouTube 영상 URL'), { target: { value: 'https://youtu.be/abcdefghijk' } });
   fireEvent.click(screen.getByRole('button', { name: 'URL 확인 후 추가' }));
   fireEvent.click(screen.getByRole('button', { name: '라이브러리 저장' })); await waitFor(() => expect(p.onSave).toHaveBeenCalledTimes(1));
+  expect(p.onSave).toHaveBeenCalledWith(expect.objectContaining({provenance:'teacher-supplied',metadataVerification:{title:'unverified',publisher:'unverified',durationSeconds:'unverified'}}),expect.anything());
   fireEvent.click(screen.getByRole('button', { name: '기안 초안으로 연결' })); expect(p.onDraft).toHaveBeenCalledTimes(1); expect(c.searchWeb).not.toHaveBeenCalled();
  });
  it('discards pending search if account or permission changes', async () => {
@@ -47,7 +48,7 @@ describe('AI Finder explicit outbound workflow', () => {
   await waitFor(() => expect(screen.getByRole('status').textContent).toContain('ChatGPT')); expect(screen.queryByRole('heading', { name: '합성 교육영상' })).toBeNull();
  });
  it('loads saved topic and target instead of assigning current search conditions', () => {
-  const candidate = { videoId: 'abcdefghijk', url: 'https://www.youtube.com/watch?v=abcdefghijk', title: '저장 영상', publisher: null, durationSeconds: null, description: '소개', relevance: '관련', reason: '확인', sources: result.sources, checkedAt: result.checkedAt, needsReview: true as const };
+  const candidate = { videoId: 'abcdefghijk', url: 'https://www.youtube.com/watch?v=abcdefghijk', title: '저장 영상', publisher: null, durationSeconds: null, description: '소개', relevance: '관련', reason: '확인', sources: result.sources, checkedAt: result.checkedAt, needsReview: true as const, provenance: 'unverified' as const, metadataVerification: { title: 'unverified' as const, publisher: 'unverified' as const, durationSeconds: 'unverified' as const } };
   const p = callbacks(); render(<AiVideoFinder connection={connection()} {...p} saved={[{ candidate, conditions: { topic: '저장된 교육', target: '고등학생', minutes: null, publicFirst: true } }]} />);
   fireEvent.click(screen.getByRole('button', { name: '저장 영상' })); fireEvent.click(screen.getByRole('button', { name: '기안 초안으로 연결' })); expect(p.onDraft).toHaveBeenCalledWith(expect.objectContaining({ workName: '저장된 교육', target: '고등학생' }));
  });

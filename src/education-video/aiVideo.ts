@@ -7,6 +7,18 @@ export type SearchConditions = {
   readonly minutes: number | null;
   readonly publicFirst: boolean;
 };
+export const candidateProvenances = ['web-search-verified', 'teacher-supplied', 'teacher-confirmed', 'unverified'] as const;
+export type CandidateProvenance = typeof candidateProvenances[number];
+export const factVerificationStatuses = ['unverified', 'teacher-confirmed'] as const;
+export type FactVerificationStatus = typeof factVerificationStatuses[number];
+export type MetadataVerification = {
+  readonly title: FactVerificationStatus;
+  readonly publisher: FactVerificationStatus;
+  readonly durationSeconds: FactVerificationStatus;
+};
+export const UNVERIFIED_METADATA_VERIFICATION: MetadataVerification = Object.freeze({
+  title: 'unverified', publisher: 'unverified', durationSeconds: 'unverified',
+});
 export type AiVideoCandidate = {
   readonly videoId: string;
   readonly url: string;
@@ -19,6 +31,8 @@ export type AiVideoCandidate = {
   readonly sources: readonly { readonly url: string; readonly title: string }[];
   readonly checkedAt: string;
   readonly needsReview: true;
+  readonly provenance: CandidateProvenance;
+  readonly metadataVerification: MetadataVerification;
 };
 
 export function canonicalVideoUrl(value: string): { videoId: string; url: string } | null {
@@ -70,7 +84,8 @@ export function parseVideoSearchResult(result: WebSearchResult): { candidates: A
       continue;
     }
     candidates.push({ ...video, title: source.title.trim(), publisher: null, durationSeconds: null, description, relevance, reason,
-      sources: [{ url: video.url, title: source.title.trim() }], checkedAt: result.checkedAt, needsReview: true });
+      sources: [{ url: video.url, title: source.title.trim() }], checkedAt: result.checkedAt, needsReview: true,
+      provenance: 'web-search-verified', metadataVerification: UNVERIFIED_METADATA_VERIFICATION });
   }
   return { candidates, excludedCount };
 }
