@@ -8,6 +8,7 @@ import { prepareOfficialDocumentAiSend } from '../official-document/officialDocu
 import type { OfficialDocumentInput } from '../official-document/types';
 import { AiVideoFinderCards } from './AiVideoFinderCards';
 import { buildYouTubeSearchHandoff, parseTeacherVideoUrls, type TeacherVideoUrlError } from './aiVideoHandoff';
+import { buildRecommendationReasonsPrompt, parseRecommendationReasons } from './aiRecommendationReasons';
 import { buildVideoReviewPrompt, buildVideoSearchPrompt, candidateDraftInput, parseVideoSearchResult, UNVERIFIED_METADATA_VERIFICATION, type AiVideoCandidate, type SearchConditions } from './aiVideo';
 import './aiFinder.css';
 
@@ -29,7 +30,7 @@ type Props = {
   readonly onDraft: (input: OfficialDocumentInput) => void;
   readonly saved?: readonly { readonly candidate: AiVideoCandidate; readonly conditions: SearchConditions }[];
 };
-type Pending = { readonly prompt: string; readonly kind: 'search' | 'review'; readonly candidate?: AiVideoCandidate; readonly conditions: SearchConditions; readonly identity: string };
+type Pending = { readonly prompt: string; readonly kind: 'search' | 'review' | 'reasons'; readonly candidate?: AiVideoCandidate; readonly candidateIds?: readonly string[]; readonly conditions: SearchConditions; readonly identity: string };
 const topics = ['마약류 예방교육', '양성평등교육', '성폭력 예방교육', '감염병 예방교육', '생명존중교육', '응급처치교육', '직접 입력'];
 
 export function AiVideoFinder(p: Props) {
@@ -38,6 +39,8 @@ export function AiVideoFinder(p: Props) {
   const [resultConditions, setResultConditions] = useState(conditions);
   const [candidateConditions, setCandidateConditions] = useState<Readonly<Record<string, SearchConditions>>>({});
   const [reviews, setReviews] = useState<Readonly<Record<string, string>>>({});
+  const [recommendationReasons, setRecommendationReasons] = useState<Readonly<Record<string, string>>>({});
+  const [selectedCandidateIds, setSelectedCandidateIds] = useState<readonly string[]>([]);
   const [pending, setPending] = useState<Pending | null>(null);
   const [busy, setBusy] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -55,10 +58,11 @@ export function AiVideoFinder(p: Props) {
   const sequence = useRef(0);
   identityRef.current = identity;
   useEffect(() => {
-    sequence.current += 1; setPending(null); setBusy(false); setResults([]); setCandidateConditions({}); setReviews({}); setSearched(false); setSearchFailure(false);
+    sequence.current += 1; setPending(null); setBusy(false); setResults([]); setCandidateConditions({}); setReviews({}); setRecommendationReasons({}); setSelectedCandidateIds([]); setSearched(false); setSearchFailure(false);
     return () => { sequence.current += 1; };
   }, [identity]);
   const available = p.connection.state.status === 'connected' && p.connection.supportsWebSearch;
+  const canGenerateText = p.connection.state.status === 'connected';
   const handoff = useMemo(() => {
     try { return buildYouTubeSearchHandoff(conditions); } catch { return null; }
   }, [conditions]);
@@ -72,21 +76,34 @@ export function AiVideoFinder(p: Props) {
       setPending({ kind, candidate, prompt, conditions: kind === 'search' ? { ...conditions } : resultConditions, identity });
     } catch { setNotice('교육 주제와 검색 조건을 확인해 주세요.'); }
   };
+  const prepareReasons = () => {
+    if (p.connection.state.status !== 'connected') { setNotice('추천 이유를 정리하려면 ChatGPT 계정을 연결해 주세요.'); return; }
+    const selected = results.filter(candidate => selectedCandidateIds.includes(candidate.videoId));
+    try {
+      const prompt = buildRecommendationReasonsPrompt(selected.map(candidate => ({ candidate, conditions: candidateConditions[candidate.videoId] ?? resultConditions })));
+      const checked = prepareOfficialDocumentAiSend({ outboundText: prompt, generate: async () => '' });
+      if (checked.status === 'blocked') { setNotice(checked.error); return; }
+      checked.gate.cancel();
+      setPending({ kind: 'reasons', candidateIds: selected.map(candidate => candidate.videoId), prompt, conditions: { ...conditions }, identity });
+    } catch { setNotice('추천 이유를 정리할 후보를 1~5개 선택해 주세요.'); }
+  };
   const confirm = async (outboundText: string) => {
     const action = pending;
-    if (!action || action.identity !== identityRef.current || !available) { setPending(null); return; }
+    if (!action || action.identity !== identityRef.current || (action.kind === 'search' ? !available : !canGenerateText)) { setPending(null); return; }
     let webResult: WebSearchResult | null = null;
     const prepared = prepareOfficialDocumentAiSend({ outboundText, generate: async prompt => {
-      if (action.kind === 'review') return p.connection.generateText(prompt);
+      if (action.kind === 'review' || action.kind === 'reasons') return p.connection.generateText(prompt);
       const found = await p.connection.searchWeb(prompt); webResult = found; return found.text;
     } });
     if (prepared.status === 'blocked') { setNotice(prepared.error); return; }
     const request = ++sequence.current;
-    setPending(null); setBusy(true); setNotice(action.kind === 'search' ? '공개 교육영상의 검색 출처를 찾고 있습니다…' : '공개 소개정보를 검토하고 있습니다…');
+    setPending(null); setBusy(true); setNotice(action.kind === 'search' ? '공개 교육영상의 검색 출처를 찾고 있습니다…' : action.kind === 'reasons' ? '선택한 후보의 추천 이유를 정리하고 있습니다…' : '공개 소개정보를 검토하고 있습니다…');
     if (action.kind === 'search') {
       const retained = results.filter(candidate => candidate.provenance !== 'web-search-verified');
       setSearchFailure(false);
       setResults(retained);
+      setSelectedCandidateIds(current => current.filter(id => retained.some(candidate => candidate.videoId === id)));
+      setRecommendationReasons(current => Object.fromEntries(retained.flatMap(candidate => current[candidate.videoId] === undefined ? [] : [[candidate.videoId, current[candidate.videoId]] as const])));
       setCandidateConditions(current => Object.fromEntries(retained.flatMap(candidate => current[candidate.videoId] ? [[candidate.videoId, current[candidate.videoId]] as const] : [])));
     }
     try {
@@ -103,6 +120,14 @@ export function AiVideoFinder(p: Props) {
         }));
         setResultConditions(action.conditions); setSearched(true); setReviews({});
         setNotice(parsed.candidates.length ? `${parsed.candidates.length}개 후보를 찾았습니다. 원문과 교육 적합성을 직접 확인해 주세요.${parsed.excludedCount ? ` 근거가 부족하거나 중복된 ${parsed.excludedCount}개 항목은 제외했습니다.` : ''}` : '확인 가능한 영상 검색 출처가 없습니다. 조건을 바꾸거나 직접 URL을 입력해 주세요.');
+      } else if (action.kind === 'reasons' && action.candidateIds) {
+        try {
+          const parsed = parseRecommendationReasons(text, action.candidateIds);
+          setRecommendationReasons(current => ({ ...current, ...parsed }));
+          setNotice(`${action.candidateIds.length}개 후보의 AI 추천 이유를 표시했습니다. 내용을 수정하거나 삭제할 수 있습니다.`);
+        } catch {
+          setNotice('추천 이유 응답을 확인할 수 없습니다. 기존 후보 정보는 유지됩니다.');
+        }
       } else if (action.candidate) {
         setReviews(current => ({ ...current, [action.candidate?.videoId ?? '']: text })); setNotice('소개정보 기반 AI 검토를 표시했습니다. 교사가 원문과 영상을 확인해 주세요.');
       }
@@ -116,7 +141,8 @@ export function AiVideoFinder(p: Props) {
     finally { if (request === sequence.current) setBusy(false); }
   };
   const open = (url: string) => { void p.onOpenUrl(url).catch(() => setNotice('링크를 열지 못했습니다. 데스크톱 앱에서 다시 시도해 주세요.')); };
-  const save = (candidate: AiVideoCandidate) => { void p.onSave(candidate, candidateConditions[candidate.videoId] ?? resultConditions).then(() => setNotice('독립 로컬 라이브러리에 저장했습니다.')).catch(() => setNotice('저장하지 못했습니다. 기존 자료는 유지됩니다.')); };
+  const withRecommendationReason = (candidate: AiVideoCandidate): AiVideoCandidate => recommendationReasons[candidate.videoId] === undefined ? candidate : { ...candidate, reason: recommendationReasons[candidate.videoId] };
+  const save = (candidate: AiVideoCandidate) => { void p.onSave(withRecommendationReason(candidate), candidateConditions[candidate.videoId] ?? resultConditions).then(() => setNotice('독립 로컬 라이브러리에 저장했습니다.')).catch(() => setNotice('저장하지 못했습니다. 기존 자료는 유지됩니다.')); };
   const manual = () => {
     const parsed = parseTeacherVideoUrls(manualUrl, results.map(candidate => candidate.videoId));
     const checkedAt = new Date().toISOString();
@@ -165,8 +191,9 @@ export function AiVideoFinder(p: Props) {
       <p className="aiv-status" role="status" aria-live="polite">{notice}</p><p className="aiv-muted">AI 요약은 원문 소개나 영상 전체 분석 결과가 아닙니다. 공공기관 우선 검색은 공식 채널·교육 적합성 인증이 아닙니다.</p>
       {candidateWarning && <p className="aiv-warning">{candidateWarning}</p>}
       {results.length === 0 && <div className="aiv-empty"><Search size={30} aria-hidden="true" /><h3>{searched ? '조건을 바꿔 다시 찾아보세요' : '검색 조건을 정하고 후보를 비교하세요'}</h3><p>출처가 확인되는 영상만 표시합니다. 제목·길이·기관이 불확실하면 직접 확인이 필요하다고 표시합니다.</p></div>}
-      <AiVideoFinderCards candidates={results} busy={busy} canReview={available} reviews={reviews} onOpen={open} onReview={candidate => prepare('review', candidate)} onSave={save} onDraft={candidate => p.onDraft(candidateDraftInput(candidate, candidateConditions[candidate.videoId] ?? resultConditions))} onRemove={candidate => { setResults(current => current.filter(item => item.videoId !== candidate.videoId)); setCandidateConditions(current => { const { [candidate.videoId]: removed, ...remaining } = current; void removed; return remaining; }); setReviews(current => { const { [candidate.videoId]: removed, ...remaining } = current; void removed; return remaining; }); setNotice('후보에서 삭제했습니다. 저장된 라이브러리는 변경하지 않았습니다.'); }} />
-      {(p.saved?.length ?? 0) > 0 && <details className="aiv-saved"><summary>저장된 AI 후보 {p.saved?.length}개</summary>{p.saved?.map(saved => <button key={saved.candidate.videoId} type="button" onClick={() => { setResults([saved.candidate]); setCandidateConditions({ [saved.candidate.videoId]: saved.conditions }); setSearched(true); setResultConditions(saved.conditions); setConditions(saved.conditions); setNotice('저장된 교육 주제·대상을 불러왔습니다. 내용을 확인한 뒤 기안으로 연결해 주세요.'); }}>{saved.candidate.title}</button>)}</details>}
+      {results.length > 0 && <section className="aiv-reason-toolbar" aria-label="AI 추천 이유"><div><strong>추천 이유가 필요한 후보를 선택하세요.</strong><span>선택 {selectedCandidateIds.length}개 · 최대 5개</span></div><button type="button" className="aiv-primary" disabled={busy || !canGenerateText || selectedCandidateIds.length < 1 || selectedCandidateIds.length > 5} onClick={prepareReasons}>AI로 추천 이유 정리</button></section>}
+      <AiVideoFinderCards candidates={results} busy={busy} canReview={available} reviews={reviews} recommendationReasons={recommendationReasons} selectedCandidateIds={selectedCandidateIds} onToggleSelected={candidate => setSelectedCandidateIds(current => current.includes(candidate.videoId) ? current.filter(id => id !== candidate.videoId) : current.length < 5 ? [...current, candidate.videoId] : current)} onReasonChange={(candidate, reason) => setRecommendationReasons(current => ({ ...current, [candidate.videoId]: reason }))} onReasonDelete={candidate => setRecommendationReasons(current => { const { [candidate.videoId]: removed, ...remaining } = current; void removed; return remaining; })} onOpen={open} onReview={candidate => prepare('review', candidate)} onSave={save} onDraft={candidate => p.onDraft(candidateDraftInput(withRecommendationReason(candidate), candidateConditions[candidate.videoId] ?? resultConditions))} onRemove={candidate => { setResults(current => current.filter(item => item.videoId !== candidate.videoId)); setSelectedCandidateIds(current => current.filter(id => id !== candidate.videoId)); setCandidateConditions(current => { const { [candidate.videoId]: removed, ...remaining } = current; void removed; return remaining; }); setReviews(current => { const { [candidate.videoId]: removed, ...remaining } = current; void removed; return remaining; }); setRecommendationReasons(current => { const { [candidate.videoId]: removed, ...remaining } = current; void removed; return remaining; }); setNotice('후보에서 삭제했습니다. 저장된 라이브러리는 변경하지 않았습니다.'); }} />
+      {(p.saved?.length ?? 0) > 0 && <details className="aiv-saved"><summary>저장된 AI 후보 {p.saved?.length}개</summary>{p.saved?.map(saved => <button key={saved.candidate.videoId} type="button" disabled={busy} onClick={() => { setResults([saved.candidate]); setCandidateConditions({ [saved.candidate.videoId]: saved.conditions }); setReviews({}); setRecommendationReasons({}); setSelectedCandidateIds([]); setSearched(true); setResultConditions(saved.conditions); setConditions(saved.conditions); setNotice('저장된 교육 주제·대상을 불러왔습니다. 내용을 확인한 뒤 기안으로 연결해 주세요.'); }}>{saved.candidate.title}</button>)}</details>}
     </section></div>
     {pending && <OfficialDocumentAiConfirmation key={`${pending.kind}:${pending.prompt}`} confirmation={{ outboundText: pending.prompt, providerLabel: `ChatGPT (${p.connection.selectedModel ?? ''})` }} onCancel={() => setPending(null)} onConfirm={({ outboundText }) => { void confirm(outboundText); }} />}
     {handoffConfirm && handoff && <section className="aiv-handoff" role="dialog" aria-modal="true" aria-label="YouTube 검색 확인"><h2>YouTube 검색 페이지로 이동할까요?</h2><p>아래 검색어가 외부 사이트 YouTube로 전달됩니다. 학생 이름·건강정보 등 개인정보가 포함되지 않았는지 확인해 주세요.</p><p className="aiv-query"><strong>검색어</strong> {handoff.query}</p><p className="aiv-handoff-url">{handoff.url}</p>{handoffOpenFailed && <p className="aiv-warning">브라우저를 열지 못했습니다. 아래 버튼으로 검색 URL을 복사할 수 있습니다.</p>}<div><button type="button" onClick={() => setHandoffConfirm(false)}>취소</button><button className="aiv-primary" type="button" onClick={() => { void openHandoff(); }}>검색 페이지 열기</button>{handoffOpenFailed && <button type="button" onClick={() => { void copyHandoff(); }}><ClipboardCopy size={16} />검색 URL 복사</button>}</div></section>}

@@ -159,6 +159,120 @@ describe('AI Finder explicit outbound workflow', () => {
   fireEvent.click(screen.getAllByRole('button', { name: '후보 삭제' })[0]);
   expect(screen.getByText('5개')).toBeTruthy();
  });
+ it('requests reasons only for selected candidates after explicit confirmation and never searches again', async () => {
+  const c = { ...connection(), generateText: vi.fn(async () => JSON.stringify({ reasons: [
+    { candidateId: 'lmnopqrstuv', reason: '두 번째 영상 추천 이유' },
+    { candidateId: 'abcdefghijk', reason: '첫 번째 영상 추천 이유' },
+  ] })) };
+  render(<AiVideoFinder connection={c} {...callbacks()} />);
+  fireEvent.change(screen.getByLabelText('교육 주제'), { target: { value: '감염병 예방교육' } });
+  fireEvent.change(screen.getByLabelText('YouTube 영상 URL 여러 개'), { target: { value: 'https://youtu.be/abcdefghijk\nhttps://youtu.be/lmnopqrstuv' } });
+  fireEvent.click(screen.getByRole('button', { name: '유효한 영상 추가' }));
+  fireEvent.click(screen.getByLabelText('후보 1 선택'));
+  fireEvent.click(screen.getByLabelText('후보 2 선택'));
+  expect(screen.getByText(/선택 2개/)).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'AI로 추천 이유 정리' }));
+  expect(c.generateText).not.toHaveBeenCalled();
+  expect(screen.getByLabelText('AI 서비스로 전송될 내용')).not.toHaveProperty('value', expect.stringContaining('https://'));
+  fireEvent.click(screen.getByRole('button', { name: '취소' }));
+  expect(c.generateText).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'AI로 추천 이유 정리' }));
+  fireEvent.click(screen.getByRole('button', { name: '확인 후 전송' }));
+  await screen.findByDisplayValue('첫 번째 영상 추천 이유');
+  expect(screen.getByDisplayValue('두 번째 영상 추천 이유')).toBeTruthy();
+  expect(c.generateText).toHaveBeenCalledTimes(1);
+  expect(c.searchWeb).not.toHaveBeenCalled();
+ });
+ it('supports editing and deleting AI reasons without changing candidate facts', async () => {
+  const c = { ...connection(), generateText: vi.fn(async () => JSON.stringify({ reasons: [{ candidateId: 'abcdefghijk', reason: '합성 추천 이유' }] })) };
+  const p = callbacks(); render(<AiVideoFinder connection={c} {...p} />);
+  fireEvent.change(screen.getByLabelText('YouTube 영상 URL 여러 개'), { target: { value: 'https://youtu.be/abcdefghijk' } });
+  fireEvent.click(screen.getByRole('button', { name: '유효한 영상 추가' }));
+  fireEvent.click(screen.getByLabelText('후보 1 선택'));
+  fireEvent.click(screen.getByRole('button', { name: 'AI로 추천 이유 정리' }));
+  fireEvent.click(screen.getByRole('button', { name: '확인 후 전송' }));
+  const editor = await screen.findByRole('textbox', { name: '후보 1 AI 추천 이유' });
+  fireEvent.change(editor, { target: { value: '교사가 수정한 추천 이유' } });
+  fireEvent.click(screen.getByRole('button', { name: '라이브러리 저장' }));
+  await waitFor(() => expect(p.onSave).toHaveBeenCalledWith(expect.objectContaining({
+    videoId: 'abcdefghijk', url: 'https://www.youtube.com/watch?v=abcdefghijk', title: '확인 필요', publisher: null,
+    durationSeconds: null, provenance: 'teacher-supplied', reason: '교사가 수정한 추천 이유',
+    metadataVerification: { title: 'unverified', publisher: 'unverified', durationSeconds: 'unverified' },
+  }), expect.anything()));
+  fireEvent.click(screen.getByRole('button', { name: 'AI 추천 이유 삭제' }));
+  expect(screen.queryByRole('textbox', { name: '후보 1 AI 추천 이유' })).toBeNull();
+  expect(screen.getByText('영상 정보 · 원문 확인 필요')).toBeTruthy();
+ });
+ it('keeps controls stable while a recommendation request is in flight', async () => {
+  let resolve: ((value: string) => void) | undefined;
+  const c = { ...connection(), generateText: vi.fn(() => new Promise<string>(done => { resolve = done; })) };
+  render(<AiVideoFinder connection={c} {...callbacks()} />);
+  fireEvent.change(screen.getByLabelText('YouTube 영상 URL 여러 개'), { target: { value: 'https://youtu.be/abcdefghijk' } });
+  fireEvent.click(screen.getByRole('button', { name: '유효한 영상 추가' }));
+  fireEvent.click(screen.getByLabelText('후보 1 선택'));
+  fireEvent.click(screen.getByRole('button', { name: 'AI로 추천 이유 정리' }));
+  fireEvent.click(screen.getByRole('button', { name: '확인 후 전송' }));
+  await waitFor(() => expect(c.generateText).toHaveBeenCalledTimes(1));
+  expect(screen.getByLabelText('후보 1 선택')).toHaveProperty('disabled', true);
+  resolve?.(JSON.stringify({ reasons: [{ candidateId: 'abcdefghijk', reason: '완료된 추천 이유' }] }));
+  expect(await screen.findByDisplayValue('완료된 추천 이유')).toBeTruthy();
+ });
+ it.each(['usageLimitExceeded', 'rateLimited', 'temporaryFailure'] as const)('preserves candidates and an existing reason when recommendation generation fails with %s', async code => {
+  const c = { ...connection(), generateText: vi.fn()
+    .mockResolvedValueOnce(JSON.stringify({ reasons: [{ candidateId: 'abcdefghijk', reason: '기존 추천 이유' }] }))
+    .mockRejectedValueOnce({ code }) };
+  const p = callbacks();
+  render(<AiVideoFinder connection={c} {...p} />);
+  fireEvent.change(screen.getByLabelText('YouTube 영상 URL 여러 개'), { target: { value: 'https://youtu.be/abcdefghijk' } });
+  fireEvent.click(screen.getByRole('button', { name: '유효한 영상 추가' }));
+  fireEvent.click(screen.getByLabelText('후보 1 선택'));
+  fireEvent.click(screen.getByRole('button', { name: 'AI로 추천 이유 정리' }));
+  fireEvent.click(screen.getByRole('button', { name: '확인 후 전송' }));
+  await screen.findByDisplayValue('기존 추천 이유');
+  fireEvent.click(screen.getByRole('button', { name: 'AI로 추천 이유 정리' }));
+  fireEvent.click(screen.getByRole('button', { name: '확인 후 전송' }));
+  await waitFor(() => expect(c.generateText).toHaveBeenCalledTimes(2));
+  expect(screen.getByDisplayValue('기존 추천 이유')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: '라이브러리 저장' }));
+  await waitFor(() => expect(p.onSave).toHaveBeenCalledWith(expect.objectContaining({
+    videoId: 'abcdefghijk', title: '확인 필요', publisher: null, durationSeconds: null,
+    provenance: 'teacher-supplied', reason: '기존 추천 이유',
+    metadataVerification: { title: 'unverified', publisher: 'unverified', durationSeconds: 'unverified' },
+  }), expect.anything()));
+ });
+ it('clears stale recommendation UI state when a saved candidate is loaded', async () => {
+  const savedCandidate = {
+    videoId: 'abcdefghijk', url: 'https://www.youtube.com/watch?v=abcdefghijk', title: '저장 후보', publisher: null, durationSeconds: null,
+    description: '저장 설명', relevance: '저장 관련성', reason: '저장된 이유', sources: result.sources, checkedAt: result.checkedAt, needsReview: true as const,
+    provenance: 'teacher-supplied' as const,
+    metadataVerification: { title: 'unverified' as const, publisher: 'unverified' as const, durationSeconds: 'unverified' as const },
+  };
+  const c = { ...connection(), generateText: vi.fn(async () => JSON.stringify({ reasons: [{ candidateId: 'abcdefghijk', reason: '세션 추천 이유' }] })) };
+  const p = callbacks();
+  render(<AiVideoFinder connection={c} {...p} saved={[{ candidate: savedCandidate, conditions: { topic: '저장 교육', target: '중학생', minutes: 10, publicFirst: false } }]} />);
+  fireEvent.change(screen.getByLabelText('YouTube 영상 URL 여러 개'), { target: { value: 'https://youtu.be/abcdefghijk' } });
+  fireEvent.click(screen.getByRole('button', { name: '유효한 영상 추가' }));
+  fireEvent.click(screen.getByLabelText('후보 1 선택'));
+  fireEvent.click(screen.getByRole('button', { name: 'AI로 추천 이유 정리' }));
+  fireEvent.click(screen.getByRole('button', { name: '확인 후 전송' }));
+  await screen.findByDisplayValue('세션 추천 이유');
+  fireEvent.click(screen.getByRole('button', { name: '저장 후보' }));
+  expect(screen.queryByDisplayValue('세션 추천 이유')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: '라이브러리 저장' }));
+  await waitFor(() => expect(p.onSave).toHaveBeenLastCalledWith(expect.objectContaining({ reason: '저장된 이유' }), expect.anything()));
+ });
+ it('keeps every candidate unchanged when the recommendation response is invalid', async () => {
+  const c = { ...connection(), generateText: vi.fn(async () => JSON.stringify({ reasons: [{ candidateId: 'unknown-id', reason: '잘못된 이유' }] })) };
+  render(<AiVideoFinder connection={c} {...callbacks()} />);
+  fireEvent.change(screen.getByLabelText('YouTube 영상 URL 여러 개'), { target: { value: 'https://youtu.be/abcdefghijk' } });
+  fireEvent.click(screen.getByRole('button', { name: '유효한 영상 추가' }));
+  fireEvent.click(screen.getByLabelText('후보 1 선택'));
+  fireEvent.click(screen.getByRole('button', { name: 'AI로 추천 이유 정리' }));
+  fireEvent.click(screen.getByRole('button', { name: '확인 후 전송' }));
+  await waitFor(() => expect(screen.getByRole('status').textContent).toContain('추천 이유'));
+  expect(screen.getByRole('heading', { name: '확인 필요' })).toBeTruthy();
+  expect(screen.queryByRole('textbox', { name: '후보 1 AI 추천 이유' })).toBeNull();
+ });
  it('discards pending search if account or permission changes', async () => {
   let resolve: ((result: WebSearchResult) => void) | undefined;
   const c = { ...connection(), searchWeb: vi.fn(() => new Promise<WebSearchResult>(done => { resolve = done; })) }; const p = callbacks();
