@@ -23,6 +23,7 @@ mod my_finance_snapshot;
 mod my_finance_store;
 mod my_finance_commands;
 mod my_finance_transfer;
+mod newsletter;
 mod notifications;
 mod official_document_import;
 mod purchase_helper;
@@ -282,6 +283,13 @@ pub fn run() {
             my_finance_commands::my_finance_inspect_backup,
             my_finance_commands::my_finance_restore_backup,
             my_finance_commands::my_finance_cancel_backup,
+            newsletter::newsletter_project_create,
+            newsletter::newsletter_project_get,
+            newsletter::newsletter_project_save,
+            newsletter::newsletter_project_update,
+            newsletter::newsletter_project_clone,
+            newsletter::newsletter_project_list_revisions,
+            newsletter::newsletter_project_restore,
             ai::validate_ai_connection,
             ai_generation::generate_ai_text,
             chatgpt::commands::chatgpt_get_connection_state,
