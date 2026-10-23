@@ -1,11 +1,52 @@
-use crate::{lifecycle::Attempt, ownership::Ledger, udf::DirectoryIdentity};
+use crate::{
+    lifecycle::Attempt,
+    ownership::{Ledger, LedgerIdentity, OwnershipError},
+    udf::DirectoryIdentity,
+};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// Runtime identity and single-issued receipt authority bound to its ownership ledger.
+///
+/// ```compile_fail
+/// # use bogunon_desktop_surface_host::cleanup::RuntimeIdentity;
+/// fn duplicate(runtime: RuntimeIdentity) {
+///     let _ = runtime.clone();
+/// }
+/// ```
+///
+/// ```compile_fail
+/// # use bogunon_desktop_surface_host::cleanup::RuntimeIdentity;
+/// let _ = RuntimeIdentity::default();
+/// ```
+#[derive(Debug, PartialEq, Eq)]
 pub struct RuntimeIdentity {
-    pub attempt: Attempt,
-    pub environment: u64,
-    pub browser_process_id: u32,
-    pub effective_udf: DirectoryIdentity,
+    _launch: std::rc::Rc<()>,
+    ledger: LedgerIdentity,
+    pub(crate) attempt: Attempt,
+    pub(crate) environment: u64,
+    pub(crate) browser_process_id: u32,
+    pub(crate) effective_udf: DirectoryIdentity,
+}
+
+impl RuntimeIdentity {
+    pub(crate) fn bind(
+        ledger: &mut Ledger,
+        launch: &crate::runtime_qa::RuntimeLaunchAuthority,
+        attempt: Attempt,
+        environment: u64,
+        browser_process_id: u32,
+        effective_udf: DirectoryIdentity,
+    ) -> Result<Self, OwnershipError> {
+        let launch = launch.claim()?;
+        let identity = ledger.claim_cleanup_authority(attempt)?;
+        Ok(Self {
+            _launch: launch,
+            ledger: identity,
+            attempt,
+            environment,
+            browser_process_id,
+            effective_udf,
+        })
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -20,6 +61,7 @@ pub struct BrowserExitEvidence {
 pub enum CleanupUnknown {
     AdmissionOpen,
     ResourceReleaseIncomplete,
+    LedgerMismatch,
     BrowserExitMissing,
     AttemptMismatch,
     EnvironmentMismatch,
@@ -41,6 +83,9 @@ pub fn evaluate(
     }
     if !ledger.is_resolved() {
         return Err(CleanupUnknown::ResourceReleaseIncomplete);
+    }
+    if ledger.identity() != runtime.ledger {
+        return Err(CleanupUnknown::LedgerMismatch);
     }
     let exit = exit.ok_or(CleanupUnknown::BrowserExitMissing)?;
     if exit.attempt != runtime.attempt {
@@ -65,13 +110,17 @@ mod tests {
 
     fn fixture() -> (Attempt, Ledger, RuntimeIdentity, BrowserExitEvidence) {
         let attempt = Attempt::new(1, 2).unwrap();
-        let ledger = Ledger::new(attempt);
-        let runtime = RuntimeIdentity {
+        let launch = crate::runtime_qa::RuntimeLaunchAuthority::for_test();
+        let mut ledger = Ledger::new(attempt);
+        let runtime = RuntimeIdentity::bind(
+            &mut ledger,
+            &launch,
             attempt,
-            environment: 8,
-            browser_process_id: 42,
-            effective_udf: DirectoryIdentity { volume: 1, file: 3 },
-        };
+            8,
+            42,
+            DirectoryIdentity { volume: 1, file: 3 },
+        )
+        .unwrap_or_else(|error| panic!("runtime authority must bind: {error}"));
         let exit = BrowserExitEvidence {
             attempt,
             environment: 8,
@@ -89,6 +138,24 @@ mod tests {
             evaluate(true, &ledger, &runtime, Some(&exit)),
             Err(CleanupUnknown::AdmissionOpen)
         );
+    }
+
+    #[test]
+    fn rejects_each_browser_exit_identity_mismatch() {
+        let (_, ledger, runtime, valid) = fixture();
+        for field in 0..4 {
+            let mut wrong = valid.clone();
+            match field {
+                0 => wrong.environment = 9,
+                1 => wrong.browser_process_id = 43,
+                2 => wrong.normal_exit = false,
+                _ => {
+                    wrong.attempt = Attempt::new(2, 3)
+                        .unwrap_or_else(|| panic!("nonzero attempt must be valid"))
+                }
+            }
+            assert!(evaluate(false, &ledger, &runtime, Some(&wrong)).is_err());
+        }
     }
 
     #[test]
@@ -121,5 +188,64 @@ mod tests {
             evaluate(false, &ledger, &runtime, Some(&exit)),
             Err(CleanupUnknown::ResourceReleaseIncomplete)
         );
+    }
+
+    #[test]
+    fn substitute_resolved_ledger_cannot_hide_unresolved_runtime_ownership() {
+        let attempt = Attempt::new(1, 2).unwrap_or_else(|| panic!("attempt must be valid"));
+        let launch = crate::runtime_qa::RuntimeLaunchAuthority::for_test();
+        let mut actual = Ledger::new(attempt);
+        let mut lease = actual
+            .acquire_backend_registration(attempt, 23)
+            .unwrap_or_else(|error| panic!("lease must be acquired: {error}"));
+        lease
+            .quarantine(attempt)
+            .unwrap_or_else(|error| panic!("lease must quarantine: {error}"));
+
+        let substitute = Ledger::new(attempt);
+        let runtime = RuntimeIdentity::bind(
+            &mut actual,
+            &launch,
+            attempt,
+            8,
+            42,
+            DirectoryIdentity { volume: 1, file: 3 },
+        )
+        .unwrap_or_else(|error| panic!("runtime authority must bind: {error}"));
+        let exit = BrowserExitEvidence {
+            attempt,
+            environment: 8,
+            browser_process_id: 42,
+            normal_exit: true,
+        };
+
+        assert_eq!(
+            evaluate(false, &substitute, &runtime, Some(&exit)),
+            Err(CleanupUnknown::LedgerMismatch)
+        );
+        assert!(!actual.is_resolved());
+
+        assert!(matches!(
+            RuntimeIdentity::bind(
+                &mut Ledger::new(attempt),
+                &launch,
+                attempt,
+                8,
+                42,
+                DirectoryIdentity { volume: 1, file: 3 },
+            ),
+            Err(OwnershipError::AlreadyRecorded)
+        ));
+        assert!(matches!(
+            RuntimeIdentity::bind(
+                &mut actual,
+                &crate::runtime_qa::RuntimeLaunchAuthority::for_test(),
+                attempt,
+                8,
+                42,
+                DirectoryIdentity { volume: 1, file: 3 },
+            ),
+            Err(OwnershipError::AlreadyRecorded)
+        ));
     }
 }

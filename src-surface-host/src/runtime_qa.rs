@@ -7,7 +7,7 @@ use support::{close_controller, expire_budget, ownership_event, wait_for, write_
 pub mod failure;
 pub mod suite;
 
-use std::fs::create_dir_all;
+use std::{cell::Cell, fs::create_dir_all, rc::Rc};
 
 use crate::{
     browser_exit::BrowserExitSubscription,
@@ -21,6 +21,32 @@ use crate::{
         observe_runtime, ControllerRequest, EnvironmentRequest, HostError, RuntimeBinding, StaGuard,
     },
 };
+
+pub(crate) struct RuntimeLaunchAuthority {
+    claimed: Cell<bool>,
+    identity: Rc<()>,
+}
+
+impl RuntimeLaunchAuthority {
+    fn new() -> Self {
+        Self {
+            claimed: Cell::new(false),
+            identity: Rc::new(()),
+        }
+    }
+
+    pub(crate) fn claim(&self) -> Result<Rc<()>, crate::ownership::OwnershipError> {
+        if self.claimed.replace(true) {
+            return Err(crate::ownership::OwnershipError::AlreadyRecorded);
+        }
+        Ok(Rc::clone(&self.identity))
+    }
+
+    #[cfg(test)]
+    pub(crate) fn for_test() -> Self {
+        Self::new()
+    }
+}
 
 pub fn run_normal(case: &RuntimeCase<'_>) -> Result<(), RuntimeQaError> {
     run_with_fault(case, None)
@@ -40,6 +66,7 @@ fn run_with_fault(
         identity: directory_identity(case.udf)?,
     };
     let attempt = Attempt::new(case.generation, case.run_nonce).ok_or(RuntimeQaError::Identity)?;
+    let launch = RuntimeLaunchAuthority::new();
     let binding = RuntimeBinding {
         generation: case.generation,
         attempt: case.run_nonce,
@@ -161,17 +188,16 @@ fn run_with_fault(
             contains_sensitive_data: false,
         },
     )?;
-    failure::held_resource_probe(
-        case,
-        fault,
-        &environment,
-        &RuntimeIdentity {
-            attempt,
-            environment: case.generation,
-            browser_process_id: observation.browser_process_id,
-            effective_udf: effective.identity.clone(),
-        },
-    )?;
+    let runtime = RuntimeIdentity::bind(
+        &mut ledger,
+        &launch,
+        attempt,
+        case.generation,
+        observation.browser_process_id,
+        effective.identity.clone(),
+    )
+    .map_err(|_| RuntimeQaError::Identity)?;
+    failure::held_resource_probe(case, fault, &environment, &runtime)?;
     let _ = case.control.admission();
     close_controller(&controller.controller)?;
     drop(controller);
@@ -226,12 +252,6 @@ fn run_with_fault(
         .release(attempt, crate::ownership::Resource::Host, 1)
         .map_err(|_| RuntimeQaError::Identity)?;
     ownership_event(case, "Host", "release")?;
-    let runtime = RuntimeIdentity {
-        attempt,
-        environment: case.generation,
-        browser_process_id: observation.browser_process_id,
-        effective_udf: effective.identity,
-    };
     let exit = BrowserExitEvidence {
         attempt,
         environment: case.generation,

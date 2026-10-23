@@ -115,49 +115,6 @@ fn identity_and_exit_status_cannot_turn_unknown_into_verified() {
 }
 
 #[test]
-fn real_cleanup_contract_rejects_each_identity_mismatch_without_native_execution() {
-    use bogunon_desktop_surface_host::{
-        cleanup::{evaluate, BrowserExitEvidence, RuntimeIdentity},
-        lifecycle::Attempt,
-        ownership::Ledger,
-        udf::DirectoryIdentity,
-    };
-    let attempt = Attempt {
-        generation: 1,
-        nonce: 2,
-    };
-    let ledger = Ledger::new(attempt);
-    let runtime = RuntimeIdentity {
-        attempt,
-        environment: 7,
-        browser_process_id: 42,
-        effective_udf: DirectoryIdentity { volume: 1, file: 2 },
-    };
-    let valid = BrowserExitEvidence {
-        attempt,
-        environment: 7,
-        browser_process_id: 42,
-        normal_exit: true,
-    };
-    assert!(evaluate(false, &ledger, &runtime, Some(&valid)).is_ok());
-    for field in 0..4 {
-        let mut wrong = valid.clone();
-        match field {
-            0 => wrong.environment = 8,
-            1 => wrong.browser_process_id = 43,
-            2 => wrong.normal_exit = false,
-            _ => {
-                wrong.attempt = Attempt {
-                    generation: 2,
-                    nonce: 3,
-                }
-            }
-        };
-        assert!(evaluate(false, &ledger, &runtime, Some(&wrong)).is_err());
-    }
-}
-
-#[test]
 fn scheduler_does_not_invoke_a_second_runner_after_unknown() {
     let mut gate = PhaseTwoGate::new(false);
     let mut calls = 0;
