@@ -22,7 +22,7 @@ fn request_allows_auto_web_search_and_no_storage() {
 fn evidence() -> Value {
     json!([
         {"type":"web_search_call","status":"completed","action":{"sources":[{"url":"https://example.org/video","title":"synthetic"}]}},
-        {"type":"message","content":[{"type":"output_text","text":"synthetic result","annotations":[]}]}
+        {"type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"synthetic result","annotations":[]}]}
     ])
 }
 #[test]
@@ -45,13 +45,16 @@ fn requires_completed_event_and_search_evidence() {
 #[test]
 fn recommendation_json_and_citation_cannot_replace_a_completed_search() {
     let output = json!([{
-        "type":"message","status":"completed","content":[{
+        "type":"message","status":"completed","role":"assistant","content":[{
             "type":"output_text",
             "text":"{\"videos\":[{\"url\":\"https://www.youtube.com/watch?v=abcdefghijk\"}]}",
             "annotations":[{"type":"url_citation","url":"https://www.youtube.com/watch?v=abcdefghijk","title":"Synthetic unsearched claim"}]
         }]
     }]);
-    assert_eq!(parse(&body(output), 0).expect_err("search evidence required"), ParseError::MissingSearch);
+    assert_eq!(
+        parse(&body(output), 0).expect_err("search evidence required"),
+        ParseError::MissingSearch
+    );
 }
 #[test]
 fn rejects_unsafe_source_and_incomplete_search() {

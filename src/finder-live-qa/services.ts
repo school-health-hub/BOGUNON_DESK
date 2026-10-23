@@ -30,5 +30,5 @@ export function verifyFourthSearchMetadata(value: unknown, stamp: { readonly sou
   && 'searchSlotThreeUsed' in value && value.searchSlotThreeUsed === true
   && 'searchSlotFourUsed' in value && value.searchSlotFourUsed === false
   && 'searchToolChoice' in value && value.searchToolChoice === 'auto'
-  && 'sseDiagnosticsVersion' in value && value.sseDiagnosticsVersion === 2;
+  && 'sseDiagnosticsVersion' in value && value.sseDiagnosticsVersion === 3;
 }

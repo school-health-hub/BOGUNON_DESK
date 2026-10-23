@@ -71,7 +71,7 @@ fn finder_live_qa_metadata(app: AppHandle) -> Result<Metadata, String> {
             + u8::from(root.join("search-attempt-4.receipt").exists()),
         active_approved_slot: 4,
         search_tool_choice: "auto",
-        sse_diagnostics_version: 2,
+        sse_diagnostics_version: 3,
         search_slot_one_used: root.join("search-attempt.receipt").exists(),
         search_slot_two_used: root.join("search-attempt-2.receipt").exists(),
         search_slot_three_used: root.join("search-attempt-3.receipt").exists(),

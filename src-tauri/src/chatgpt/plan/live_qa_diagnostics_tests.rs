@@ -117,3 +117,57 @@ fn known_reasoning_event_types_have_separate_fixed_counters() {
     assert_eq!(summary["streamEventCounts"]["reasoningSummaryTextDelta"], 1);
     assert!(!summary.to_string().contains("SECRET"));
 }
+
+#[test]
+fn synthetic_diagnostics_link_items_without_persisting_ids_or_text() {
+    let bytes = b"data: {\"type\":\"response.output_item.added\",\"output_index\":1,\"item\":{\"id\":\"SECRET-MESSAGE-ID\",\"type\":\"message\",\"status\":\"in_progress\",\"role\":\"assistant\",\"content\":[]}}\n\ndata: {\"type\":\"response.content_part.done\",\"item_id\":\"SECRET-MESSAGE-ID\",\"output_index\":1,\"content_index\":0,\"part\":{\"type\":\"output_text\",\"text\":\"SECRET-TEXT\"}}\n\ndata: {\"type\":\"response.output_item.done\",\"output_index\":1,\"item\":{\"id\":\"SECRET-MESSAGE-ID\",\"type\":\"message\",\"status\":\"completed\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"SECRET-TEXT\"}]}}\n\ndata: {\"type\":\"response.completed\",\"response\":{\"id\":\"SECRET-RESPONSE-ID\",\"status\":\"completed\",\"incomplete_details\":null,\"usage\":{\"total_tokens\":987654321},\"output\":[]}}\n\n";
+    let summary = summarize(200, true, bytes);
+    assert_eq!(summary["completedItemShapes"][0]["itemRef"], 0);
+    assert_eq!(summary["completedItemShapes"][0]["outputIndex"], 1);
+    assert_eq!(summary["completedItemShapes"][0]["type"], "message");
+    assert_eq!(summary["completedItemShapes"][0]["status"], "completed");
+    assert_eq!(summary["completedItemShapes"][0]["role"], "assistant");
+    assert_eq!(
+        summary["completedItemShapes"][0]["contentTypes"],
+        json!({"outputText":1,"refusal":0,"other":0})
+    );
+    assert_eq!(
+        summary["linkedContentEvents"][0],
+        json!({"event":"contentPartDone","itemRef":0,"outputIndex":1,"contentIndex":0,"contentType":"outputText"})
+    );
+    assert_eq!(
+        summary["responseMeta"],
+        json!({"idPresent":true,"status":"completed","incompleteDetailsPresent":false,"usagePresent":true})
+    );
+    let encoded = summary.to_string();
+    assert!(!encoded.contains("SECRET"));
+    assert!(!encoded.contains("987654321"));
+}
+
+#[test]
+fn non_streaming_success_has_the_same_redacted_response_evidence() {
+    let bytes = br#"{"id":"SECRET-RESPONSE-ID","status":"completed","usage":{"total_tokens":987654321},"output":[{"id":"SECRET-SEARCH-ID","type":"web_search_call","status":"completed","action":{"sources":[{"url":"https://example.org/video"}]}},{"id":"SECRET-MESSAGE-ID","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"SECRET-TEXT","annotations":[]}]}]}"#;
+    let summary = summarize(200, true, bytes);
+    assert_eq!(summary["isSse"], false);
+    assert_eq!(summary["finalOutput"]["kind"], "array");
+    assert_eq!(summary["finalOutput"]["count"], 2);
+    assert_eq!(
+        summary["outputCounts"],
+        json!({"webSearch":1,"message":1,"other":0})
+    );
+    assert_eq!(
+        summary["responseMeta"],
+        json!({"idPresent":true,"status":"completed","incompleteDetailsPresent":false,"usagePresent":true})
+    );
+    let encoded = summary.to_string();
+    assert!(!encoded.contains("SECRET"));
+    assert!(!encoded.contains("987654321"));
+}
+
+#[test]
+fn content_event_without_observed_item_is_not_reported_as_linked() {
+    let bytes = b"data: {\"type\":\"response.content_part.done\",\"item_id\":\"SECRET-UNSEEN-ID\",\"output_index\":0,\"content_index\":0,\"part\":{\"type\":\"output_text\",\"text\":\"SECRET\"}}\n\n";
+    let summary = summarize(200, true, bytes);
+    assert_eq!(summary["linkedContentEvents"], json!([]));
+    assert!(!summary.to_string().contains("SECRET"));
+}

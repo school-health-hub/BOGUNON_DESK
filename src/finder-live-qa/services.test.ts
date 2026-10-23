@@ -24,9 +24,9 @@ it('matches the exact approved public prompt fingerprint used by the native QA g
 it('allows only the unused fourth slot with three preserved attempts and the SSE diagnostics contract', async () => {
  const services = await import('./services');
  const stamp = { sourceSha: 'c'.repeat(40), baseSha: '419e31e2c9e32c6a36dd6c4982572436fb96669b' };
- const metadata = { ...stamp, identifier: 'kr.sungandi.schoolhealthdesk.finderliveqa', readOnlyAuth: true, libraryIsolated: true, externalDispatchEnabled: false, activeApprovedSlot: 4, searchSlotOneUsed: true, searchSlotTwoUsed: true, searchSlotThreeUsed: true, searchSlotFourUsed: false, searchToolChoice: 'auto', sseDiagnosticsVersion: 2 };
+ const metadata = { ...stamp, identifier: 'kr.sungandi.schoolhealthdesk.finderliveqa', readOnlyAuth: true, libraryIsolated: true, externalDispatchEnabled: false, activeApprovedSlot: 4, searchSlotOneUsed: true, searchSlotTwoUsed: true, searchSlotThreeUsed: true, searchSlotFourUsed: false, searchToolChoice: 'auto', sseDiagnosticsVersion: 3 };
  expect(services.verifyFourthSearchMetadata(metadata, stamp)).toBe(true);
- for (const invalid of [null, {}, {...metadata, activeApprovedSlot:2}, {...metadata, searchSlotTwoUsed:false}, {...metadata, searchSlotThreeUsed:false}, {...metadata, searchSlotFourUsed:true}, {...metadata, searchToolChoice:'required'}, {...metadata, sseDiagnosticsVersion:1}, {...metadata, sourceSha:'wrong'}, {...metadata, baseSha:'wrong'}, {...metadata, readOnlyAuth:false}, {...metadata, libraryIsolated:false}, {...metadata, externalDispatchEnabled:true}]) {
+ for (const invalid of [null, {}, {...metadata, activeApprovedSlot:2}, {...metadata, searchSlotTwoUsed:false}, {...metadata, searchSlotThreeUsed:false}, {...metadata, searchSlotFourUsed:true}, {...metadata, searchToolChoice:'required'}, {...metadata, sseDiagnosticsVersion:2}, {...metadata, sourceSha:'wrong'}, {...metadata, baseSha:'wrong'}, {...metadata, readOnlyAuth:false}, {...metadata, libraryIsolated:false}, {...metadata, externalDispatchEnabled:true}]) {
   expect(services.verifyFourthSearchMetadata(invalid, stamp)).toBe(false);
  }
 });

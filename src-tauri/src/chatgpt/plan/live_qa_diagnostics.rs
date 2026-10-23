@@ -77,8 +77,24 @@ pub(crate) fn summarize(status: u16, request_id_present: bool, bytes: &[u8]) -> 
     let text = utf8.as_ref().copied().unwrap_or("").replace("\r\n", "\n");
     let is_sse = text.lines().any(|line| line.starts_with("data:"));
     if !is_sse {
-        if let Ok(value) = serde_json::from_slice::<Value>(bytes) {
-            (api_code, api_type, api_param) = error_fields(&value["error"]);
+        if let Ok(response) = serde_json::from_slice::<Value>(bytes) {
+            (api_code, api_type, api_param) = error_fields(&response["error"]);
+            if response.get("error").is_none_or(Value::is_null) {
+                shape.response(&response);
+                completed_status = allowed(
+                    response["status"].as_str(),
+                    &["completed", "failed", "incomplete", "in_progress"],
+                );
+                count_output(
+                    &response,
+                    &mut output_counts,
+                    &mut completed_search_count,
+                    &mut source_count,
+                    &mut missing_url,
+                    &mut unsafe_url,
+                    &mut text_bytes,
+                );
+            }
         }
     }
     for frame in text.split("\n\n") {
@@ -128,56 +144,66 @@ pub(crate) fn summarize(status: u16, request_id_present: bool, bytes: &[u8]) -> 
         if kind != Some("response.completed") {
             continue;
         }
-        if let Some(output) = response["output"].as_array() {
-            for item in output {
-                match item["type"].as_str() {
-                    Some("web_search_call") => {
-                        output_counts[0] += 1;
-                        if item["status"] == "completed" {
-                            completed_search_count += 1;
-                        }
-                        if let Some(sources) = item["action"]["sources"].as_array() {
-                            for source in sources {
-                                count_source(
-                                    source,
-                                    &mut source_count,
-                                    &mut missing_url,
-                                    &mut unsafe_url,
-                                );
-                            }
-                        }
+        count_output(
+            response,
+            &mut output_counts,
+            &mut completed_search_count,
+            &mut source_count,
+            &mut missing_url,
+            &mut unsafe_url,
+            &mut text_bytes,
+        );
+    }
+    shape.final_output["messagePresent"] = json!(output_counts[1] > 0);
+    shape.final_output["sourcePresent"] = json!(source_count > 0);
+    json!({"completedItemEvidence":shape.completed_item_evidence,"completedItemShapes":shape.completed_item_shapes,"linkedContentEvents":shape.linked_content_events,"responseMeta":shape.response_meta,"streamEventCounts":shape.events,"toolLifecycleCounts":shape.lifecycle,"completedItemCounts":shape.completed_items,"finalOutput":shape.final_output,"httpStatus":status,"requestIdPresent":request_id_present,"bodyBytes":bytes.len(),"utf8":utf8.is_ok(),"isSse":is_sse,"eventCounts":{"completed":counts[0],"failed":counts[1],"incomplete":counts[2],"textDelta":counts[3],"error":counts[4],"other":counts[5]},"completedStatus":completed_status,"outputCounts":{"webSearch":output_counts[0],"message":output_counts[1],"other":output_counts[2]},"sourceCount":source_count,"completedSearchCount":completed_search_count,"missingUrlCount":missing_url,"unsafeUrlCount":unsafe_url,"textBytes":text_bytes,"malformedFrames":malformed,"apiErrorCode":api_code,"apiErrorType":api_type,"apiErrorParam":api_param})
+}
+fn count_output(
+    response: &Value,
+    output_counts: &mut [u64; 3],
+    completed_search_count: &mut u64,
+    source_count: &mut u64,
+    missing_url: &mut u64,
+    unsafe_url: &mut u64,
+    text_bytes: &mut u64,
+) {
+    let Some(output) = response["output"].as_array() else {
+        return;
+    };
+    for item in output {
+        match item["type"].as_str() {
+            Some("web_search_call") => {
+                output_counts[0] += 1;
+                if item["status"] == "completed" {
+                    *completed_search_count += 1;
+                }
+                if let Some(sources) = item["action"]["sources"].as_array() {
+                    for source in sources {
+                        count_source(source, source_count, missing_url, unsafe_url);
                     }
-                    Some("message") => {
-                        output_counts[1] += 1;
-                        if let Some(content) = item["content"].as_array() {
-                            for part in content {
-                                if part["type"] == "output_text" {
-                                    text_bytes +=
-                                        part["text"].as_str().map_or(0, |text| text.len() as u64);
-                                    if let Some(annotations) = part["annotations"].as_array() {
-                                        for source in annotations {
-                                            if source["type"] == "url_citation" {
-                                                count_source(
-                                                    source,
-                                                    &mut source_count,
-                                                    &mut missing_url,
-                                                    &mut unsafe_url,
-                                                );
-                                            }
-                                        }
-                                    }
+                }
+            }
+            Some("message") => {
+                output_counts[1] += 1;
+                if let Some(content) = item["content"].as_array() {
+                    for part in content {
+                        if part["type"] != "output_text" {
+                            continue;
+                        }
+                        *text_bytes += part["text"].as_str().map_or(0, |text| text.len() as u64);
+                        if let Some(annotations) = part["annotations"].as_array() {
+                            for source in annotations {
+                                if source["type"] == "url_citation" {
+                                    count_source(source, source_count, missing_url, unsafe_url);
                                 }
                             }
                         }
                     }
-                    _ => output_counts[2] += 1,
                 }
             }
+            _ => output_counts[2] += 1,
         }
     }
-    shape.final_output["messagePresent"] = json!(output_counts[1] > 0);
-    shape.final_output["sourcePresent"] = json!(source_count > 0);
-    json!({"completedItemEvidence":shape.completed_item_evidence,"streamEventCounts":shape.events,"toolLifecycleCounts":shape.lifecycle,"completedItemCounts":shape.completed_items,"finalOutput":shape.final_output,"httpStatus":status,"requestIdPresent":request_id_present,"bodyBytes":bytes.len(),"utf8":utf8.is_ok(),"isSse":is_sse,"eventCounts":{"completed":counts[0],"failed":counts[1],"incomplete":counts[2],"textDelta":counts[3],"error":counts[4],"other":counts[5]},"completedStatus":completed_status,"outputCounts":{"webSearch":output_counts[0],"message":output_counts[1],"other":output_counts[2]},"sourceCount":source_count,"completedSearchCount":completed_search_count,"missingUrlCount":missing_url,"unsafeUrlCount":unsafe_url,"textBytes":text_bytes,"malformedFrames":malformed,"apiErrorCode":api_code,"apiErrorType":api_type,"apiErrorParam":api_param})
 }
 fn count_source(source: &Value, count: &mut u64, missing: &mut u64, unsafe_count: &mut u64) {
     *count += 1;

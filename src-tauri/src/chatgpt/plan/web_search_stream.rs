@@ -43,32 +43,9 @@ pub(super) fn output(body: &[u8]) -> Result<Vec<Value>, ParseError> {
                 };
             }
             "response.output_item.done" => {
-                if terminal {
-                    return Err(ParseError::ItemAfterCompletion);
-                }
-                let index = event
-                    .get("output_index")
-                    .and_then(Value::as_u64)
-                    .filter(|index| *index < 100)
-                    .ok_or(ParseError::InvalidItem)?;
-                let item = event
-                    .get("item")
-                    .filter(|item| item.is_object())
-                    .ok_or(ParseError::InvalidItem)?;
-                if item
-                    .get("id")
-                    .and_then(Value::as_str)
-                    .is_none_or(str::is_empty)
-                {
-                    return Err(ParseError::InvalidItem);
-                }
-                if matches!(
-                    item.get("type").and_then(Value::as_str),
-                    Some("message" | "web_search_call")
-                ) && item.get("status").and_then(Value::as_str) != Some("completed")
-                {
-                    return Err(ParseError::IncompleteItem);
-                }
+                require_before_terminal(terminal)?;
+                let (index, item) = indexed_item(&event)?;
+                validate_completed_item(item)?;
                 if items
                     .values()
                     .any(|existing: &Value| existing.get("id") == item.get("id"))
@@ -80,23 +57,111 @@ pub(super) fn output(body: &[u8]) -> Result<Vec<Value>, ParseError> {
             _ => {}
         }
     }
+    reconcile(terminal, final_output, items)
+}
+
+fn reconcile(
+    terminal: bool,
+    final_output: Option<Vec<Value>>,
+    items: BTreeMap<u64, Value>,
+) -> Result<Vec<Value>, ParseError> {
     if !terminal {
         return Err(ParseError::MissingCompletion);
     }
     if let Some(output) = final_output {
-        for (index, item) in items {
-            let index = usize::try_from(index).map_err(|_| ParseError::InvalidItem)?;
-            if output.get(index) != Some(&item) {
+        for (index, item) in &items {
+            let index = usize::try_from(*index).map_err(|_| ParseError::InvalidItem)?;
+            if output.get(index) != Some(item) {
                 return Err(ParseError::ConflictingOutput);
             }
         }
         if output.is_empty() {
             return Err(ParseError::MissingOutput);
         }
+        for item in &output {
+            validate_final_item(item)?;
+        }
         return Ok(output);
     }
     if items.is_empty() {
         return Err(ParseError::MissingOutput);
     }
+    require_contiguous(&items)?;
     Ok(items.into_values().collect())
+}
+
+fn require_before_terminal(terminal: bool) -> Result<(), ParseError> {
+    if terminal {
+        Err(ParseError::ItemAfterCompletion)
+    } else {
+        Ok(())
+    }
+}
+
+fn indexed_item(event: &Value) -> Result<(u64, &Value), ParseError> {
+    let index = event
+        .get("output_index")
+        .and_then(Value::as_u64)
+        .filter(|index| *index < 100)
+        .ok_or(ParseError::InvalidItem)?;
+    let item = event
+        .get("item")
+        .filter(|item| item.is_object())
+        .ok_or(ParseError::InvalidItem)?;
+    Ok((index, item))
+}
+
+fn validate_completed_item(item: &Value) -> Result<(), ParseError> {
+    item.get("id")
+        .and_then(Value::as_str)
+        .filter(|id| !id.is_empty() && id.len() <= 256)
+        .ok_or(ParseError::InvalidItem)?;
+    validate_item_shape(item, true)
+}
+
+fn validate_final_item(item: &Value) -> Result<(), ParseError> {
+    validate_item_shape(item, true)
+}
+
+fn validate_item_shape(item: &Value, require_completed_status: bool) -> Result<(), ParseError> {
+    let kind = item
+        .get("type")
+        .and_then(Value::as_str)
+        .filter(|kind| !kind.is_empty() && kind.len() <= 64)
+        .ok_or(ParseError::InvalidItem)?;
+    if matches!(kind, "message" | "web_search_call") {
+        match item.get("status") {
+            Some(Value::String(status)) if status == "completed" => {}
+            None if !require_completed_status => {}
+            _ => return Err(ParseError::IncompleteItem),
+        }
+    }
+    if kind == "message" {
+        match item.get("role") {
+            Some(Value::String(role)) if role == "assistant" => {}
+            None if !require_completed_status => {}
+            _ => return Err(ParseError::InvalidItem),
+        }
+        let content = item
+            .get("content")
+            .and_then(Value::as_array)
+            .ok_or(ParseError::InvalidItem)?;
+        if content.iter().any(|part| {
+            !matches!(
+                part.get("type").and_then(Value::as_str),
+                Some("output_text" | "refusal")
+            )
+        }) {
+            return Err(ParseError::InvalidItem);
+        }
+    }
+    Ok(())
+}
+
+fn require_contiguous(items: &BTreeMap<u64, Value>) -> Result<(), ParseError> {
+    if items.keys().copied().eq(0..items.len() as u64) {
+        Ok(())
+    } else {
+        Err(ParseError::InvalidItem)
+    }
 }
