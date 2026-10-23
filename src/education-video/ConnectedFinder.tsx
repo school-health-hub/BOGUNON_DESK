@@ -16,6 +16,8 @@ import { saveAiCandidate } from './aiLibrary';
 import type { AiVideoCandidate, SearchConditions } from './aiVideo';
 import { libraryRepository } from './library';
 import type { LibraryV2 } from './libraryV2';
+import type { RecommendationReason } from './recommendationReason';
+import { candidateFromRecord } from './candidateRecord';
 import type { FinderAuthStatus } from './searchService';
 const fields: readonly OfficialDocumentInputField[] = ['schoolYear', 'schoolName', 'relatedDocument', 'workName', 'target', 'dateTime', 'place', 'method', 'organization', 'peopleCount', 'budget', 'mainContent', 'attachments', 'notes'];
 export function ConnectedFinder({ onClose }: { readonly onClose: () => void }) {
@@ -28,8 +30,8 @@ export function ConnectedFinder({ onClose }: { readonly onClose: () => void }) {
  const [notice, setNotice] = useState('');
  const [library, setLibrary] = useState<LibraryV2>({ version: 2, entries: [] });
  useEffect(() => { let active = true; void libraryRepository.load().then(loaded => { if (active) setLibrary(loaded.library); }).catch(() => { if (active) setNotice('로컬 라이브러리를 읽지 못했습니다. 기존 파일은 유지됩니다.'); }); return () => { active = false; }; }, []);
- const save = async (candidate: AiVideoCandidate, conditions: SearchConditions) => {
-  const loaded = await saveAiCandidate(libraryRepository, candidate, { educationTitle: conditions.topic, target: conditions.target, schedule: '', instructions: '' });
+ const save = async (candidate: AiVideoCandidate, conditions: SearchConditions, recommendationReason?: RecommendationReason) => {
+  const loaded = await saveAiCandidate(libraryRepository, candidate, { educationTitle: conditions.topic, target: conditions.target, schedule: '', instructions: '' }, recommendationReason);
   setLibrary(loaded.library);
  };
  const applyDraft = (input: OfficialDocumentInput) => {
@@ -54,7 +56,7 @@ export function ConnectedFinder({ onClose }: { readonly onClose: () => void }) {
   <nav className="aiv-navigation" aria-label="영상 Finder 방식"><button type="button" aria-pressed={tab === 'ai'} onClick={() => setTab('ai')}>AI 교육영상 검색</button><button type="button" aria-pressed={tab === 'legacy'} onClick={() => setTab('legacy')}>기존 영상 Finder / 라이브러리</button></nav>
   {notice && <p role="status">{notice}</p>}
   {settings && <section className="aiv-settings" aria-label="Finder AI 연결 설정"><button type="button" onClick={() => setSettings(false)}>연결 설정 닫기</button><ChatGptAccountSettings state={connection.state} models={connection.models} selectedModel={connection.selectedModel} modelsLoading={connection.modelsLoading} modelsError={connection.modelsError} onModelChange={connection.setSelectedModel} onRefreshModels={() => { void connection.refreshModels(); }} onSignIn={() => { void connection.startSignIn(); }} onDisconnect={() => { void connection.disconnect(); }} /></section>}
-  {tab === 'ai' ? <AiVideoFinder connection={connection} onClose={onClose} onOpenSettings={() => setSettings(true)} onOpenUrl={openQuickMemoUrl} onSave={save} onDraft={draft} saved={library.entries.flatMap(entry => entry.ai ? [{ candidate: entry.ai, conditions: { topic: entry.teacher.educationTitle, target: entry.teacher.target, minutes: null, publicFirst: true } }] : [])} /> : <LegacyFinder onClose={onClose} />}
+  {tab === 'ai' ? <AiVideoFinder connection={connection} onClose={onClose} onOpenSettings={() => setSettings(true)} onOpenUrl={openQuickMemoUrl} onSave={save} onDraft={draft} saved={library.entries.flatMap(entry => { const candidate=entry.ai??(entry.candidateRecord?candidateFromRecord(entry.videoId,entry.candidateRecord):null);return candidate?[{ candidate, conditions: { topic: entry.teacher.educationTitle, target: entry.teacher.target, minutes: null, publicFirst: true }, recommendationReason: entry.recommendationReason }]:[]; })} /> : <LegacyFinder onClose={onClose} />}
   </div>
   {pendingDraft && <AiVideoDraftConfirmation onCancel={() => setPendingDraft(null)} onConfirm={() => applyDraft(pendingDraft)} />}
  </>;

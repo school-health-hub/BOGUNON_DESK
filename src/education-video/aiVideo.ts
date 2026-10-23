@@ -1,5 +1,6 @@
 import type { WebSearchResult } from '../chatgpt/webSearch';
 import type { OfficialDocumentInput } from '../official-document/types';
+import { activeRecommendationReason, type RecommendationReason } from './recommendationReason';
 
 export type SearchConditions = {
   readonly topic: string;
@@ -96,9 +97,14 @@ export function buildVideoReviewPrompt(candidate: AiVideoCandidate): string {
     `제목: ${candidate.title}`, `URL: ${candidate.url}`, `공개 소개정보를 검색 AI가 요약한 내용(원문 확인 필요): ${candidate.description}`].join('\n');
 }
 
-export function candidateDraftInput(candidate: AiVideoCandidate, conditions: SearchConditions): OfficialDocumentInput {
+export function candidateDraftInput(candidate: AiVideoCandidate, conditions: SearchConditions, recommendationReason?: RecommendationReason): OfficialDocumentInput {
+  const lines = ['선택한 교육영상', candidate.url];
+  if (candidate.metadataVerification.title === 'teacher-confirmed') lines.unshift(`확인된 영상 제목: ${candidate.title}`);
+  if (candidate.metadataVerification.publisher === 'teacher-confirmed' && candidate.publisher) lines.push(`확인된 제작기관: ${candidate.publisher}`);
+  if (candidate.metadataVerification.durationSeconds === 'teacher-confirmed' && candidate.durationSeconds !== null) lines.push(`교사 확인 재생시간: ${Math.floor(candidate.durationSeconds / 60)}분 ${candidate.durationSeconds % 60}초`);
+  const reason = activeRecommendationReason(recommendationReason);
+  if (reason) lines.push(`교사 승인 추천 이유: ${reason}`);
   return { purpose: '계획 기안', workArea: '학생 보건교육 계획', schoolYear: '', schoolName: '', relatedDocument: '',
-    workName: conditions.topic, target: conditions.target, dateTime: '', place: '', method: '교육영상 활용', organization: candidate.publisher ?? '',
-    peopleCount: '', budget: '', mainContent: `${candidate.title}\n${candidate.url}\n공개 소개정보 요약(원문 확인 필요): ${candidate.description}`,
-    attachments: '', notes: '영상 시청·전체 자막 분석 결과가 아닙니다. 교육 적합성과 기관·길이·내용을 교사가 확인한 뒤 기안을 확정하세요.' };
+    workName: conditions.topic, target: conditions.target, dateTime: '', place: '', method: '교육영상 활용', organization: candidate.metadataVerification.publisher === 'teacher-confirmed' ? candidate.publisher ?? '' : '',
+    peopleCount: '', budget: '', mainContent: lines.join('\n'), attachments: '', notes: '확인된 사실정보와 영상 URL만 전달했습니다. 교육 적합성과 영상 내용을 교사가 확인한 뒤 기안을 확정하세요.' };
 }

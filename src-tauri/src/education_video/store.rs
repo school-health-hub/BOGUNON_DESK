@@ -24,6 +24,80 @@ fn atomic(path: &Path, bytes: &[u8]) -> Result<(), LibraryError> {
 fn serialize(library: &Library) -> Result<String, LibraryError> {
     serde_json::to_string_pretty(library).map_err(|_| LibraryError::Invalid)
 }
+fn candidate_record_from_ai(ai: &super::ai_metadata::AiMetadata) -> super::model::CandidateRecord {
+    use super::ai_metadata::FactVerificationStatus;
+    super::model::CandidateRecord {
+        provenance: ai.provenance.clone(),
+        title: (ai.metadata_verification.title == FactVerificationStatus::TeacherConfirmed)
+            .then(|| ai.title.clone()),
+        publisher: (ai.metadata_verification.publisher == FactVerificationStatus::TeacherConfirmed)
+            .then(|| ai.publisher.clone())
+            .flatten(),
+        duration_seconds: (ai.metadata_verification.duration_seconds
+            == FactVerificationStatus::TeacherConfirmed)
+            .then_some(ai.duration_seconds)
+            .flatten(),
+        metadata_verification: ai.metadata_verification.clone(),
+        saved_at: ai.checked_at.clone(),
+    }
+}
+fn preserve_confirmed_candidate_record(old: &LibraryEntry, entry: &mut LibraryEntry) {
+    use super::ai_metadata::{CandidateProvenance, FactVerificationStatus};
+    fn provenance_rank(value: CandidateProvenance) -> u8 {
+        match value {
+            CandidateProvenance::Unverified => 0,
+            CandidateProvenance::TeacherSupplied => 1,
+            CandidateProvenance::WebSearchVerified => 2,
+            CandidateProvenance::TeacherConfirmed => 3,
+        }
+    }
+    let previous_record = old
+        .candidate_record
+        .clone()
+        .or_else(|| old.ai.as_ref().map(candidate_record_from_ai));
+    if entry.candidate_record.is_none() {
+        entry.candidate_record = entry.ai.as_ref().map(candidate_record_from_ai);
+    }
+    if let (Some(previous), Some(next)) = (&previous_record, &mut entry.candidate_record) {
+        if provenance_rank(previous.provenance) > provenance_rank(next.provenance) {
+            next.provenance = previous.provenance;
+        }
+        if next.metadata_verification.title == FactVerificationStatus::Unverified
+            && previous.metadata_verification.title == FactVerificationStatus::TeacherConfirmed
+        {
+            next.title = previous.title.clone();
+            next.metadata_verification.title = FactVerificationStatus::TeacherConfirmed;
+        }
+        if next.metadata_verification.publisher == FactVerificationStatus::Unverified
+            && previous.metadata_verification.publisher == FactVerificationStatus::TeacherConfirmed
+        {
+            next.publisher = previous.publisher.clone();
+            next.metadata_verification.publisher = FactVerificationStatus::TeacherConfirmed;
+        }
+        if next.metadata_verification.duration_seconds == FactVerificationStatus::Unverified
+            && previous.metadata_verification.duration_seconds
+                == FactVerificationStatus::TeacherConfirmed
+        {
+            next.duration_seconds = previous.duration_seconds;
+            next.metadata_verification.duration_seconds = FactVerificationStatus::TeacherConfirmed;
+        }
+    } else if entry.candidate_record.is_none() {
+        entry.candidate_record = previous_record;
+    }
+    if let (Some(ai), Some(next)) = (&mut entry.ai, &entry.candidate_record) {
+        ai.provenance = next.provenance;
+        ai.metadata_verification = next.metadata_verification.clone();
+        if let Some(title) = &next.title {
+            ai.title = title.clone();
+        }
+        if next.publisher.is_some() {
+            ai.publisher = next.publisher.clone();
+        }
+        if next.duration_seconds.is_some() {
+            ai.duration_seconds = next.duration_seconds;
+        }
+    }
+}
 fn normalized(json: &str, now: i64) -> Result<(Library, bool), LibraryError> {
     let (mut library, migrated) = legacy::parse_any(json, now)?;
     let expired = retention::purge_metadata(&mut library, now)?;
@@ -123,8 +197,13 @@ pub fn save_entry(path: &Path, mut entry: LibraryEntry) -> Result<LoadResult, Li
     {
         Some(old) => {
             if entry.ai.is_none() {
-                entry.ai = old.ai.take();
+                entry.ai = old.ai.clone();
             }
+            preserve_confirmed_candidate_record(old, &mut entry);
+            if entry.recommendation_reason.is_none() {
+                entry.recommendation_reason = old.recommendation_reason.take();
+            }
+            entry.validate()?;
             *old = entry;
         }
         None => result.library.entries.push(entry),
@@ -135,7 +214,7 @@ pub fn save_entry(path: &Path, mut entry: LibraryEntry) -> Result<LoadResult, Li
 pub fn import(path: &Path, json: &str) -> Result<LoadResult, LibraryError> {
     let (mut incoming, _) = normalized(json, retention::clock()?)?;
     let mut result = load(path)?;
-    for entry in incoming.entries.drain(..) {
+    for mut entry in incoming.entries.drain(..) {
         match result
             .library
             .entries
@@ -143,11 +222,21 @@ pub fn import(path: &Path, json: &str) -> Result<LoadResult, LibraryError> {
             .find(|old| old.video_id == entry.video_id)
         {
             Some(old) => {
-                if entry.ai.is_some() {
+                let updates_candidate = entry.ai.is_some() || entry.candidate_record.is_some();
+                if updates_candidate {
+                    if entry.ai.is_none() {
+                        entry.ai = old.ai.clone();
+                    }
+                    preserve_confirmed_candidate_record(old, &mut entry);
+                    entry.validate()?;
                     old.ai = entry.ai;
+                    old.candidate_record = entry.candidate_record;
                 }
                 if entry.provider.is_some() {
                     old.provider = entry.provider;
+                }
+                if entry.recommendation_reason.is_some() {
+                    old.recommendation_reason = entry.recommendation_reason;
                 }
             }
             None => result.library.entries.push(entry),

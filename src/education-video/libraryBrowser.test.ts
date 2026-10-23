@@ -2,6 +2,7 @@
 import {beforeEach,describe,expect,it} from 'vitest';
 import {libraryRepository} from './library';
 import {toEntry} from './libraryV2';
+import {candidateRecord} from './candidateRecord';
 import {searchMockVideos} from './model';
 const key='bogunon.education-video.browser-qa.v2';
 const item={...searchMockVideos({topic:'교육',target:'학생',minutes:10})[0],educationTitle:'교육명',target:'학생',schedule:'이번주',instructions:'확인',message:'교사 문구',notes:'교사 메모'};
@@ -23,19 +24,25 @@ it('explicit AI metadata deletion scrubs primary and backup but preserves notes'
 });
 it('legacy teacher editing without AI field preserves stored AI provenance',async()=>{
  const entry=toEntry(item);const ai=aiEvidence();
- await libraryRepository.save({...entry,ai});
+ const confirmedAi={...ai,title:'교사 확인 제목',metadataVerification:{...ai.metadataVerification,title:'teacher-confirmed' as const}};const record=candidateRecord(confirmedAi);
+ const recommendationReason={status:'teacher-edited' as const,text:'교사 최종 이유'};
+ await libraryRepository.save({...entry,ai:confirmedAi,candidateRecord:record,recommendationReason});
  await libraryRepository.save({...entry,teacher:{...entry.teacher,notes:'교사 수정'}});
  const loaded=await libraryRepository.load();
- expect(loaded.library.entries[0]?.ai).toEqual(ai);
+ expect(loaded.library.entries[0]?.ai).toEqual(confirmedAi);
+ expect(loaded.library.entries[0]?.candidateRecord).toEqual(record);
+ expect(loaded.library.entries[0]?.recommendationReason).toEqual(recommendationReason);
  expect(loaded.library.entries[0]?.teacher.notes).toBe('교사 수정');
 });
 it('exports imports and reloads candidate provenance without promoting facts',async()=>{
- const entry=toEntry(item);const ai=aiEvidence();
- await libraryRepository.save({...entry,ai});
+ const entry=toEntry(item);const ai=aiEvidence();const record=candidateRecord(ai);const recommendationReason={status:'deleted' as const};
+ await libraryRepository.save({...entry,ai,candidateRecord:record,recommendationReason});
  const exported=await libraryRepository.export();
  localStorage.clear();
  await libraryRepository.import(exported);
  const loaded=await libraryRepository.load();
  expect(loaded.library.entries[0]?.ai).toEqual(ai);
  expect(loaded.library.entries[0]?.ai?.metadataVerification).toEqual({title:'unverified',publisher:'unverified',durationSeconds:'unverified'});
+ expect(loaded.library.entries[0]?.candidateRecord).toEqual(record);
+ expect(loaded.library.entries[0]?.recommendationReason).toEqual(recommendationReason);
 });

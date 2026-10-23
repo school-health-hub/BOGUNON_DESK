@@ -29,7 +29,7 @@ export const libraryRepository={
  load:async():Promise<LoadedLibrary>=>nativeLibrary?parseLoaded(await invoke<unknown>('education_video_library_load')):{library:readBrowser(),recovered:false},
  save:async(entry:LibraryEntry):Promise<LoadedLibrary>=>{
   if(nativeLibrary)return parseLoaded(await invoke<unknown>('education_video_library_save',{entry}));
-  const current=readBrowser();const previous=current.entries.find(row=>row.videoId===entry.videoId);const saved=entry.ai===undefined&&previous?.ai?{...entry,ai:previous.ai}:entry;return persistBrowser({version:2,entries:[...current.entries.filter(row=>row.videoId!==entry.videoId),saved]});
+  const current=readBrowser();const previous=current.entries.find(row=>row.videoId===entry.videoId);const saved={...entry,...(entry.ai===undefined&&previous?.ai?{ai:previous.ai}:{}),...(entry.candidateRecord===undefined&&previous?.candidateRecord?{candidateRecord:previous.candidateRecord}:{}),...(entry.recommendationReason===undefined&&previous?.recommendationReason?{recommendationReason:previous.recommendationReason}:{})};return persistBrowser({version:2,entries:[...current.entries.filter(row=>row.videoId!==entry.videoId),saved]});
  },
  import:async(json:string):Promise<LoadedLibrary>=>{
   const incoming=parseLibraryV2(json);

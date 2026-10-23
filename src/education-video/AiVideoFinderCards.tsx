@@ -1,11 +1,12 @@
 import type { AiVideoCandidate } from './aiVideo';
+import { activeRecommendationReason, type RecommendationReason } from './recommendationReason';
 
 type Props = {
   readonly candidates: readonly AiVideoCandidate[];
   readonly busy: boolean;
   readonly canReview: boolean;
   readonly reviews: Readonly<Record<string, string>>;
-  readonly recommendationReasons: Readonly<Record<string, string>>;
+  readonly recommendationReasons: Readonly<Record<string, RecommendationReason>>;
   readonly selectedCandidateIds: readonly string[];
   readonly onOpen: (url: string) => void;
   readonly onReview: (candidate: AiVideoCandidate) => void;
@@ -38,7 +39,7 @@ export function AiVideoFinderCards(p: Props) {
         : <><p className="aiv-summary-label">영상 정보 · 원문 확인 필요</p><p>제목·제작기관·재생시간과 교육 적합성을 영상 원문에서 직접 확인해 주세요.</p></>}
       <p className="aiv-video-url">{candidate.url}</p><div className="aiv-source"><span>출처</span>{candidate.sources.map(source => <button type="button" key={source.url} onClick={() => p.onOpen(source.url)}>{source.title}</button>)}</div>
       {p.reviews[candidate.videoId] && <section className="aiv-review" aria-label="AI 검토 내용"><h4>소개정보 기반 AI 검토</h4><p>{p.reviews[candidate.videoId]}</p><small>영상 시청·전체 자막 분석 결과가 아닙니다.</small></section>}
-      {p.recommendationReasons[candidate.videoId] !== undefined && <section className="aiv-reason" aria-label={`후보 ${index + 1} AI 추천 이유`}><h4>AI 작성 추천 이유</h4><textarea maxLength={600} value={p.recommendationReasons[candidate.videoId]} disabled={p.busy} onChange={event => p.onReasonChange(candidate, event.currentTarget.value)} aria-label={`후보 ${index + 1} AI 추천 이유`} /><small>영상 내용 분석이 아닌, 전송 전 확인한 사실정보와 교육 조건을 바탕으로 작성되었습니다.</small><button type="button" disabled={p.busy} onClick={() => p.onReasonDelete(candidate)}>AI 추천 이유 삭제</button></section>}
+      {p.recommendationReasons[candidate.videoId] !== undefined && p.recommendationReasons[candidate.videoId]?.status !== 'deleted' && <section className="aiv-reason" aria-label={`후보 ${index + 1} AI 추천 이유`}><h4>{p.recommendationReasons[candidate.videoId]?.status === 'teacher-edited' ? '교사 수정 추천 이유' : 'AI 작성 추천 이유'}</h4><textarea maxLength={600} value={activeRecommendationReason(p.recommendationReasons[candidate.videoId]) ?? ''} disabled={p.busy} onChange={event => p.onReasonChange(candidate, event.currentTarget.value)} aria-label={`후보 ${index + 1} AI 추천 이유`} /><small>영상 내용 분석이 아닌, 전송 전 확인한 사실정보와 교육 조건을 바탕으로 작성되었습니다.</small><button type="button" disabled={p.busy} onClick={() => p.onReasonDelete(candidate)}>AI 추천 이유 삭제</button></section>}
       <div className="aiv-actions"><button type="button" onClick={() => p.onOpen(candidate.url)}>영상 열기</button>
         <button type="button" disabled={p.busy || !p.canReview || candidate.provenance !== 'web-search-verified'} onClick={() => p.onReview(candidate)}>AI로 소개정보 검토</button>
         <button type="button" disabled={p.busy} onClick={() => p.onSave(candidate)}>라이브러리 저장</button>

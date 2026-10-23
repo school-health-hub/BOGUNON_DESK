@@ -3,6 +3,8 @@ use std::fs;
 
 fn entry() -> LibraryEntry {
     LibraryEntry {
+        recommendation_reason: None,
+        candidate_record: None,
         ai: None,
         video_id: "EVmock00001".into(),
         teacher: TeacherData {
@@ -78,6 +80,186 @@ fn metadata_delete_preserves_teacher_and_unknown_duration() {
     let result = store::delete_metadata(&path, "EVmock00001").unwrap();
     assert_eq!(result.library.entries[0].teacher.message, "교사 수정");
     assert!(result.library.entries[0].provider.is_none());
+}
+#[test]
+fn recommendation_reason_roundtrip_preserves_edits_and_explicit_deletion() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("library.json");
+    let mut item = entry();
+    item.recommendation_reason = Some(RecommendationReason::TeacherEdited {
+        text: "교사 최종 이유".into(),
+    });
+    let saved = store::save_entry(&path, item).unwrap();
+    assert_eq!(
+        saved.library.entries[0].recommendation_reason,
+        Some(RecommendationReason::TeacherEdited {
+            text: "교사 최종 이유".into()
+        })
+    );
+    let mut deleted = entry();
+    deleted.recommendation_reason = Some(RecommendationReason::Deleted);
+    let saved = store::save_entry(&path, deleted).unwrap();
+    assert_eq!(
+        saved.library.entries[0].recommendation_reason,
+        Some(RecommendationReason::Deleted)
+    );
+    assert_eq!(
+        parse(&store::export(&path).unwrap()).unwrap(),
+        saved.library
+    );
+    let mut padded = entry();
+    padded.recommendation_reason = Some(RecommendationReason::TeacherEdited {
+        text: " padded ".into(),
+    });
+    assert!(padded.validate().is_err());
+}
+#[test]
+fn candidate_record_roundtrip_survives_ai_expiry_and_rejects_unconfirmed_values() {
+    use super::ai_metadata::{CandidateProvenance, FactVerificationStatus, MetadataVerification};
+    let mut item = entry();
+    let saved_at = timestamps::format_iso(timestamps::now_ms().unwrap());
+    item.candidate_record = Some(CandidateRecord {
+        provenance: CandidateProvenance::TeacherSupplied,
+        title: Some("교사 확인 제목".into()),
+        publisher: None,
+        duration_seconds: Some(600),
+        metadata_verification: MetadataVerification {
+            title: FactVerificationStatus::TeacherConfirmed,
+            publisher: FactVerificationStatus::Unverified,
+            duration_seconds: FactVerificationStatus::TeacherConfirmed,
+        },
+        saved_at,
+    });
+    item.validate().unwrap();
+    let encoded = serde_json::to_string(&Library {
+        version: 2,
+        entries: vec![item.clone()],
+    })
+    .unwrap();
+    let restored = parse(&encoded).unwrap();
+    assert_eq!(restored.entries[0].candidate_record, item.candidate_record);
+    let mut invalid = item;
+    invalid.candidate_record.as_mut().unwrap().publisher = Some("AI 추정 기관".into());
+    assert!(invalid.validate().is_err());
+}
+#[test]
+fn legacy_v2_import_cannot_downgrade_confirmed_candidate_facts() {
+    use super::ai_metadata::{
+        AiMetadata, AiSource, CandidateProvenance, FactVerificationStatus, MetadataVerification,
+    };
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("library.json");
+    let checked_at = timestamps::format_iso(timestamps::now_ms().unwrap());
+    let mut confirmed = entry();
+    confirmed.ai = Some(AiMetadata {
+        video_id: confirmed.video_id.clone(),
+        url: format!("https://www.youtube.com/watch?v={}", confirmed.video_id),
+        title: "교사 확인 제목".into(),
+        publisher: Some("교육기관".into()),
+        duration_seconds: Some(600),
+        description: "합성 설명".into(),
+        relevance: "관련성".into(),
+        reason: "이유".into(),
+        sources: vec![AiSource {
+            url: format!("https://www.youtube.com/watch?v={}", confirmed.video_id),
+            title: "출처".into(),
+        }],
+        checked_at: checked_at.clone(),
+        needs_review: true,
+        provenance: CandidateProvenance::TeacherConfirmed,
+        metadata_verification: MetadataVerification {
+            title: FactVerificationStatus::TeacherConfirmed,
+            publisher: FactVerificationStatus::TeacherConfirmed,
+            duration_seconds: FactVerificationStatus::TeacherConfirmed,
+        },
+    });
+    store::save_entry(&path, confirmed).unwrap();
+
+    let mut legacy = entry();
+    legacy.provider = None;
+    legacy.ai = Some(AiMetadata {
+        video_id: legacy.video_id.clone(),
+        url: format!("https://www.youtube.com/watch?v={}", legacy.video_id),
+        title: "검증되지 않은 제목".into(),
+        publisher: None,
+        duration_seconds: None,
+        description: "합성 설명".into(),
+        relevance: "관련성".into(),
+        reason: "이유".into(),
+        sources: vec![AiSource {
+            url: format!("https://www.youtube.com/watch?v={}", legacy.video_id),
+            title: "출처".into(),
+        }],
+        checked_at,
+        needs_review: true,
+        provenance: CandidateProvenance::Unverified,
+        metadata_verification: MetadataVerification::default(),
+    });
+    let imported = store::import(
+        &path,
+        &serde_json::to_string(&Library {
+            version: 2,
+            entries: vec![legacy],
+        })
+        .unwrap(),
+    )
+    .unwrap();
+    let restored = &imported.library.entries[0];
+    assert_eq!(
+        restored.candidate_record.as_ref().unwrap().title.as_deref(),
+        Some("교사 확인 제목")
+    );
+    assert_eq!(restored.ai.as_ref().unwrap().title, "교사 확인 제목");
+    assert_eq!(
+        restored.ai.as_ref().unwrap().provenance,
+        CandidateProvenance::TeacherConfirmed
+    );
+}
+#[test]
+fn import_allows_verified_provenance_upgrade_but_not_confirmed_downgrade() {
+    use super::ai_metadata::{AiMetadata, AiSource, CandidateProvenance, MetadataVerification};
+    fn metadata(provenance: CandidateProvenance) -> AiMetadata {
+        let video_id = "EVmock00001".to_owned();
+        AiMetadata {
+            video_id: video_id.clone(),
+            url: format!("https://www.youtube.com/watch?v={video_id}"),
+            title: "합성 제목".into(),
+            publisher: None,
+            duration_seconds: None,
+            description: "합성 설명".into(),
+            relevance: "관련성".into(),
+            reason: "이유".into(),
+            sources: vec![AiSource {
+                url: format!("https://www.youtube.com/watch?v={video_id}"),
+                title: "출처".into(),
+            }],
+            checked_at: timestamps::format_iso(timestamps::now_ms().unwrap()),
+            needs_review: true,
+            provenance,
+            metadata_verification: MetadataVerification::default(),
+        }
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("library.json");
+    let mut initial = entry();
+    initial.ai = Some(metadata(CandidateProvenance::Unverified));
+    store::save_entry(&path, initial).unwrap();
+    let mut incoming = entry();
+    incoming.provider = None;
+    incoming.ai = Some(metadata(CandidateProvenance::WebSearchVerified));
+    let imported = store::import(
+        &path,
+        &serde_json::to_string(&Library {
+            version: 2,
+            entries: vec![incoming],
+        })
+        .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        imported.library.entries[0].ai.as_ref().unwrap().provenance,
+        CandidateProvenance::WebSearchVerified
+    );
 }
 #[test]
 fn wire_allows_empty_unknown_duration_and_rejects_bad_metadata() {
@@ -197,7 +379,20 @@ fn ai_evidence_roundtrip_preserves_teacher_and_expires_metadata() {
         provenance: super::ai_metadata::CandidateProvenance::WebSearchVerified,
         metadata_verification: super::ai_metadata::MetadataVerification::default(),
     });
+    saved.candidate_record = Some(CandidateRecord {
+        provenance: super::ai_metadata::CandidateProvenance::WebSearchVerified,
+        title: None,
+        publisher: None,
+        duration_seconds: None,
+        metadata_verification: super::ai_metadata::MetadataVerification::default(),
+        saved_at: timestamps::format_iso(now),
+    });
     saved.validate().unwrap();
+    saved.candidate_record.as_mut().unwrap().provenance =
+        super::ai_metadata::CandidateProvenance::TeacherSupplied;
+    assert!(saved.validate().is_err());
+    saved.candidate_record.as_mut().unwrap().provenance =
+        super::ai_metadata::CandidateProvenance::WebSearchVerified;
     let encoded = serde_json::to_string(&Library {
         version: 2,
         entries: vec![saved.clone()],
@@ -207,6 +402,7 @@ fn ai_evidence_roundtrip_preserves_teacher_and_expires_metadata() {
     assert_eq!(parsed.entries[0].ai, saved.ai);
     saved.expire(now + timestamps::MAX_TTL_MS + 1).unwrap();
     assert!(saved.ai.is_none());
+    assert!(saved.candidate_record.is_some());
     assert_eq!(saved.teacher.notes, "교사 메모");
 }
 

@@ -43,6 +43,27 @@ pub struct LibraryEntry {
     pub provider: Option<ProviderMetadata>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ai: Option<super::ai_metadata::AiMetadata>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub candidate_record: Option<CandidateRecord>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub recommendation_reason: Option<RecommendationReason>,
+}
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CandidateRecord {
+    pub provenance: super::ai_metadata::CandidateProvenance,
+    pub title: Option<String>,
+    pub publisher: Option<String>,
+    pub duration_seconds: Option<u32>,
+    pub metadata_verification: super::ai_metadata::MetadataVerification,
+    pub saved_at: String,
+}
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(tag = "status", rename_all = "kebab-case", deny_unknown_fields)]
+pub enum RecommendationReason {
+    AiGenerated { text: String },
+    TeacherEdited { text: String },
+    Deleted,
 }
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -150,8 +171,64 @@ impl LibraryEntry {
         if let Some(ai) = &self.ai {
             ai.validate(&self.video_id)?;
         }
+        if let Some(record) = &self.candidate_record {
+            use super::ai_metadata::FactVerificationStatus::{TeacherConfirmed, Unverified};
+            let saved = timestamps::parse_iso(&record.saved_at)?;
+            let title_ok = match (&record.title, record.metadata_verification.title) {
+                (Some(value), TeacherConfirmed) => {
+                    !value.trim().is_empty() && valid_text(value, 500)
+                }
+                (None, Unverified) => true,
+                _ => false,
+            };
+            let publisher_ok = match (&record.publisher, record.metadata_verification.publisher) {
+                (Some(value), TeacherConfirmed) => {
+                    !value.trim().is_empty() && valid_text(value, 500)
+                }
+                (None, Unverified) => true,
+                _ => false,
+            };
+            let duration_ok = match (
+                record.duration_seconds,
+                record.metadata_verification.duration_seconds,
+            ) {
+                (Some(value), TeacherConfirmed) => value > 0 && value <= 86400,
+                (None, Unverified) => true,
+                _ => false,
+            };
+            if saved > timestamps::now_ms()? + 300000 || !title_ok || !publisher_ok || !duration_ok
+            {
+                return Err(LibraryError::Invalid);
+            }
+            if let Some(ai) = &self.ai {
+                let consistent = record.provenance == ai.provenance
+                    && record.metadata_verification == ai.metadata_verification
+                    && record.title.as_ref().is_none_or(|value| value == &ai.title)
+                    && record
+                        .publisher
+                        .as_ref()
+                        .is_none_or(|value| Some(value) == ai.publisher.as_ref())
+                    && record
+                        .duration_seconds
+                        .is_none_or(|value| Some(value) == ai.duration_seconds);
+                if !consistent {
+                    return Err(LibraryError::Invalid);
+                }
+            }
+        }
         if let Some(provider) = &self.provider {
             provider.validate(&self.video_id)?;
+        }
+        if let Some(reason) = &self.recommendation_reason {
+            match reason {
+                RecommendationReason::AiGenerated { text }
+                | RecommendationReason::TeacherEdited { text }
+                    if text.trim().is_empty() || text.trim() != text || !valid_text(text, 600) =>
+                {
+                    return Err(LibraryError::Invalid)
+                }
+                _ => {}
+            }
         }
         Ok(())
     }

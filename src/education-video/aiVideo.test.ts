@@ -29,6 +29,24 @@ describe('source backed education video search', () => {
     const input = candidateDraftInput(candidate, { topic: '감염병 예방교육', target: '초등학생', minutes: 10, publicFirst: true });
     expect(input.dateTime).toBe(''); expect(input.budget).toBe(''); expect(input.mainContent).toContain(url);
   });
+  it('hands off only teacher-confirmed facts and the active final reason', () => {
+    const base = parseVideoSearchResult(result([item])).candidates[0];
+    const candidate = { ...base, title: '교사 확인 제목', publisher: '교육기관', durationSeconds: 615,
+      metadataVerification: { title: 'teacher-confirmed', publisher: 'teacher-confirmed', durationSeconds: 'teacher-confirmed' } as const };
+    const conditions = { topic: '감염병 예방교육', target: '초등학생', minutes: 10, publicFirst: true } as const;
+    const confirmed = candidateDraftInput(candidate, conditions, { status: 'teacher-edited', text: '교사 최종 이유' });
+    expect(confirmed.organization).toBe('교육기관');
+    expect(confirmed.mainContent).toContain('확인된 영상 제목: 교사 확인 제목');
+    expect(confirmed.mainContent).toContain('교사 확인 재생시간: 10분 15초');
+    expect(confirmed.mainContent).toContain('교사 승인 추천 이유: 교사 최종 이유');
+    const blocked = candidateDraftInput(base, conditions, { status: 'deleted' });
+    expect(blocked.organization).toBe('');
+    expect(blocked.mainContent).not.toContain(base.title);
+    expect(blocked.mainContent).not.toContain(base.description);
+    expect(blocked.mainContent).not.toContain('추천 이유');
+    const blank = candidateDraftInput(candidate, conditions, { status: 'teacher-edited', text: '   ' });
+    expect(blank.mainContent).not.toContain('교사 승인 추천 이유');
+  });
   it('validates conditions and requests evidence rather than unsupported claims', () => {
     expect(() => buildVideoSearchPrompt({ topic: '', target: '초등학생', minutes: 10, publicFirst: true })).toThrow();
     expect(buildVideoSearchPrompt({ topic: '응급처치교육', target: '중학생', minutes: null, publicFirst: true })).toContain('실제 확인되지 않은');

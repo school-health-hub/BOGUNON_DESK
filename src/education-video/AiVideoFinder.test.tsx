@@ -196,12 +196,18 @@ describe('AI Finder explicit outbound workflow', () => {
   fireEvent.click(screen.getByRole('button', { name: '라이브러리 저장' }));
   await waitFor(() => expect(p.onSave).toHaveBeenCalledWith(expect.objectContaining({
     videoId: 'abcdefghijk', url: 'https://www.youtube.com/watch?v=abcdefghijk', title: '확인 필요', publisher: null,
-    durationSeconds: null, provenance: 'teacher-supplied', reason: '교사가 수정한 추천 이유',
+    durationSeconds: null, provenance: 'teacher-supplied', reason: '확인 필요',
     metadataVerification: { title: 'unverified', publisher: 'unverified', durationSeconds: 'unverified' },
-  }), expect.anything()));
+  }), expect.anything(), { status: 'teacher-edited', text: '교사가 수정한 추천 이유' }));
+  fireEvent.change(editor, { target: { value: '' } });
+  expect(screen.getByRole('textbox', { name: '후보 1 AI 추천 이유' })).toBeTruthy();
+  fireEvent.change(screen.getByRole('textbox', { name: '후보 1 AI 추천 이유' }), { target: { value: '다시 입력한 이유' } });
+  expect(screen.getByDisplayValue('다시 입력한 이유')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'AI 추천 이유 삭제' }));
   expect(screen.queryByRole('textbox', { name: '후보 1 AI 추천 이유' })).toBeNull();
   expect(screen.getByText('영상 정보 · 원문 확인 필요')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: '라이브러리 저장' }));
+  await waitFor(() => expect(p.onSave).toHaveBeenLastCalledWith(expect.objectContaining({ videoId: 'abcdefghijk' }), expect.anything(), { status: 'deleted' }));
  });
  it('keeps controls stable while a recommendation request is in flight', async () => {
   let resolve: ((value: string) => void) | undefined;
@@ -236,9 +242,9 @@ describe('AI Finder explicit outbound workflow', () => {
   fireEvent.click(screen.getByRole('button', { name: '라이브러리 저장' }));
   await waitFor(() => expect(p.onSave).toHaveBeenCalledWith(expect.objectContaining({
     videoId: 'abcdefghijk', title: '확인 필요', publisher: null, durationSeconds: null,
-    provenance: 'teacher-supplied', reason: '기존 추천 이유',
+    provenance: 'teacher-supplied', reason: '확인 필요',
     metadataVerification: { title: 'unverified', publisher: 'unverified', durationSeconds: 'unverified' },
-  }), expect.anything()));
+  }), expect.anything(), { status: 'ai-generated', text: '기존 추천 이유' }));
  });
  it('clears stale recommendation UI state when a saved candidate is loaded', async () => {
   const savedCandidate = {
@@ -260,6 +266,17 @@ describe('AI Finder explicit outbound workflow', () => {
   expect(screen.queryByDisplayValue('세션 추천 이유')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: '라이브러리 저장' }));
   await waitFor(() => expect(p.onSave).toHaveBeenLastCalledWith(expect.objectContaining({ reason: '저장된 이유' }), expect.anything()));
+ });
+ it('restores a persisted teacher-edited reason with the saved candidate', () => {
+  const savedCandidate = {
+   videoId: 'abcdefghijk', url: 'https://www.youtube.com/watch?v=abcdefghijk', title: '저장 후보', publisher: null, durationSeconds: null,
+   description: '저장 설명', relevance: '저장 관련성', reason: '검색 이유', sources: result.sources, checkedAt: result.checkedAt, needsReview: true as const,
+   provenance: 'teacher-supplied' as const, metadataVerification: { title: 'unverified' as const, publisher: 'unverified' as const, durationSeconds: 'unverified' as const },
+  };
+  render(<AiVideoFinder connection={connection()} {...callbacks()} saved={[{ candidate: savedCandidate, conditions: { topic: '저장 교육', target: '중학생', minutes: 10, publicFirst: false }, recommendationReason: { status: 'teacher-edited', text: '저장된 교사 최종 이유' } }]} />);
+  fireEvent.click(screen.getByRole('button', { name: '저장 후보' }));
+  expect(screen.getByDisplayValue('저장된 교사 최종 이유')).toBeTruthy();
+  expect(screen.getByRole('heading', { name: '교사 수정 추천 이유' })).toBeTruthy();
  });
  it('keeps every candidate unchanged when the recommendation response is invalid', async () => {
   const c = { ...connection(), generateText: vi.fn(async () => JSON.stringify({ reasons: [{ candidateId: 'unknown-id', reason: '잘못된 이유' }] })) };

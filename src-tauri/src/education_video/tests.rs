@@ -2,6 +2,8 @@ use super::{model::*, retention, store, timestamps};
 use std::fs;
 fn entry(id: &str, notes: &str) -> LibraryEntry {
     LibraryEntry {
+        recommendation_reason: None,
+        candidate_record: None,
         ai: None,
         video_id: id.into(),
         teacher: TeacherData {
