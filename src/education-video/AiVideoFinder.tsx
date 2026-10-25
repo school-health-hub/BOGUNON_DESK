@@ -6,7 +6,7 @@ import { normalizeChatGptPlanError } from '../chatgpt/chatgptPlanService';
 import { OfficialDocumentAiConfirmation } from '../components/desktop/OfficialDocumentAiConfirmation';
 import { prepareOfficialDocumentAiSend } from '../official-document/officialDocumentAiService';
 import type { OfficialDocumentInput } from '../official-document/types';
-import { AiVideoFinderCards } from './AiVideoFinderCards';
+import { AiVideoFinderCards, type ConfirmedCandidateMetadata } from './AiVideoFinderCards';
 import { buildYouTubeSearchHandoff, parseTeacherVideoUrls, type TeacherVideoUrlError } from './aiVideoHandoff';
 import { buildRecommendationReasonsPrompt, parseRecommendationReasons } from './aiRecommendationReasons';
 import { buildVideoReviewPrompt, buildVideoSearchPrompt, candidateDraftInput, parseVideoSearchResult, UNVERIFIED_METADATA_VERIFICATION, type AiVideoCandidate, type SearchConditions } from './aiVideo';
@@ -163,6 +163,24 @@ export function AiVideoFinder(p: Props) {
     const added = candidates.length > 0 ? `${candidates.length}개 영상을 후보에 추가했습니다.` : '추가할 수 있는 새 영상이 없습니다.';
     setNotice(parsed.errors.length > 0 ? `${added} ${parsed.errors.length}개 줄은 아래 오류를 확인해 주세요.` : `${added} 제목·기관·길이·내용을 직접 확인해 주세요.`);
   };
+  const confirmMetadata = (candidate: AiVideoCandidate, metadata: ConfirmedCandidateMetadata) => {
+    const titleWasConfirmed = candidate.metadataVerification.title === 'teacher-confirmed';
+    const publisherWasConfirmed = candidate.metadataVerification.publisher === 'teacher-confirmed';
+    const durationWasConfirmed = candidate.metadataVerification.durationSeconds === 'teacher-confirmed';
+    const updated: AiVideoCandidate = {
+      ...candidate,
+      title: metadata.title ?? (titleWasConfirmed || candidate.provenance !== 'teacher-supplied' ? candidate.title : '확인 필요'),
+      publisher: metadata.publisher ?? (publisherWasConfirmed ? candidate.publisher : null),
+      durationSeconds: metadata.durationSeconds ?? (durationWasConfirmed ? candidate.durationSeconds : null),
+      metadataVerification: {
+        title: metadata.title !== null || titleWasConfirmed ? 'teacher-confirmed' : 'unverified',
+        publisher: metadata.publisher !== null || publisherWasConfirmed ? 'teacher-confirmed' : 'unverified',
+        durationSeconds: metadata.durationSeconds !== null || durationWasConfirmed ? 'teacher-confirmed' : 'unverified',
+      },
+    };
+    setResults(current => current.map(item => item.videoId === candidate.videoId ? updated : item));
+    setNotice('교사가 확인한 사실정보를 후보에 반영했습니다. 빈 항목은 기존 확인값 또는 확인 필요 상태를 유지합니다.');
+  };
   const openManual = () => { setManualOpen(true); window.setTimeout(() => manualRef.current?.focus(), 0); };
   const openHandoff = async () => {
     if (handoff === null) return;
@@ -201,7 +219,7 @@ export function AiVideoFinder(p: Props) {
       {candidateWarning && <p className="aiv-warning">{candidateWarning}</p>}
       {results.length === 0 && <div className="aiv-empty"><Search size={30} aria-hidden="true" /><h3>{searched ? '조건을 바꿔 다시 찾아보세요' : '검색 조건을 정하고 후보를 비교하세요'}</h3><p>출처가 확인되는 영상만 표시합니다. 제목·길이·기관이 불확실하면 직접 확인이 필요하다고 표시합니다.</p></div>}
       {results.length > 0 && <section className="aiv-reason-toolbar" aria-label="AI 추천 이유"><div><strong>추천 이유가 필요한 후보를 선택하세요.</strong><span>선택 {selectedCandidateIds.length}개 · 최대 5개</span></div><button type="button" className="aiv-primary" disabled={busy || !canGenerateText || selectedCandidateIds.length < 1 || selectedCandidateIds.length > 5} onClick={prepareReasons}>AI로 추천 이유 정리</button></section>}
-      <AiVideoFinderCards candidates={results} busy={busy} canReview={available} reviews={reviews} recommendationReasons={recommendationReasons} selectedCandidateIds={selectedCandidateIds} onToggleSelected={candidate => setSelectedCandidateIds(current => current.includes(candidate.videoId) ? current.filter(id => id !== candidate.videoId) : current.length < 5 ? [...current, candidate.videoId] : current)} onReasonChange={(candidate, reason) => setRecommendationReasons(current => ({ ...current, [candidate.videoId]: { status: 'teacher-edited', text: reason } }))} onReasonDelete={candidate => setRecommendationReasons(current => ({ ...current, [candidate.videoId]: { status: 'deleted' } }))} onOpen={open} onReview={candidate => prepare('review', candidate)} onSave={save} onDraft={candidate => p.onDraft(candidateDraftInput(candidate, candidateConditions[candidate.videoId] ?? resultConditions, recommendationReasons[candidate.videoId]))} onRemove={candidate => { setResults(current => current.filter(item => item.videoId !== candidate.videoId)); setSelectedCandidateIds(current => current.filter(id => id !== candidate.videoId)); setCandidateConditions(current => { const { [candidate.videoId]: removed, ...remaining } = current; void removed; return remaining; }); setReviews(current => { const { [candidate.videoId]: removed, ...remaining } = current; void removed; return remaining; }); setRecommendationReasons(current => { const { [candidate.videoId]: removed, ...remaining } = current; void removed; return remaining; }); setNotice('후보에서 삭제했습니다. 저장된 라이브러리는 변경하지 않았습니다.'); }} />
+      <AiVideoFinderCards candidates={results} busy={busy} canReview={available} reviews={reviews} recommendationReasons={recommendationReasons} selectedCandidateIds={selectedCandidateIds} onToggleSelected={candidate => setSelectedCandidateIds(current => current.includes(candidate.videoId) ? current.filter(id => id !== candidate.videoId) : current.length < 5 ? [...current, candidate.videoId] : current)} onReasonChange={(candidate, reason) => setRecommendationReasons(current => ({ ...current, [candidate.videoId]: { status: 'teacher-edited', text: reason } }))} onReasonDelete={candidate => setRecommendationReasons(current => ({ ...current, [candidate.videoId]: { status: 'deleted' } }))} onConfirmMetadata={confirmMetadata} onOpen={open} onReview={candidate => prepare('review', candidate)} onSave={save} onDraft={candidate => p.onDraft(candidateDraftInput(candidate, candidateConditions[candidate.videoId] ?? resultConditions, recommendationReasons[candidate.videoId]))} onRemove={candidate => { setResults(current => current.filter(item => item.videoId !== candidate.videoId)); setSelectedCandidateIds(current => current.filter(id => id !== candidate.videoId)); setCandidateConditions(current => { const { [candidate.videoId]: removed, ...remaining } = current; void removed; return remaining; }); setReviews(current => { const { [candidate.videoId]: removed, ...remaining } = current; void removed; return remaining; }); setRecommendationReasons(current => { const { [candidate.videoId]: removed, ...remaining } = current; void removed; return remaining; }); setNotice('후보에서 삭제했습니다. 저장된 라이브러리는 변경하지 않았습니다.'); }} />
       {(p.saved?.length ?? 0) > 0 && <details className="aiv-saved"><summary>저장된 AI 후보 {p.saved?.length}개</summary>{p.saved?.map(saved => <button key={saved.candidate.videoId} type="button" disabled={busy} onClick={() => { setResults([saved.candidate]); setCandidateConditions({ [saved.candidate.videoId]: saved.conditions }); setReviews({}); setRecommendationReasons(saved.recommendationReason ? { [saved.candidate.videoId]: saved.recommendationReason } : {}); setSelectedCandidateIds([]); setSearched(true); setResultConditions(saved.conditions); setConditions(saved.conditions); setNotice('저장된 교육 주제·대상을 불러왔습니다. 내용을 확인한 뒤 기안으로 연결해 주세요.'); }}>{saved.candidate.title}</button>)}</details>}
     </section></div>
     {pending && <OfficialDocumentAiConfirmation key={`${pending.kind}:${pending.prompt}`} confirmation={{ outboundText: pending.prompt, providerLabel: `ChatGPT (${p.connection.selectedModel ?? ''})` }} onCancel={() => setPending(null)} onConfirm={({ outboundText }) => { void confirm(outboundText); }} />}

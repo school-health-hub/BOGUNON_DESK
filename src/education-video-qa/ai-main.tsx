@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { createRoot } from 'react-dom/client';
+import { createRoot, type Root } from 'react-dom/client';
 import '@fontsource/pretendard/400.css';
 import '@fontsource/pretendard/500.css';
 import '@fontsource/pretendard/600.css';
@@ -12,6 +12,7 @@ import { AiVideoFinder, type AiFinderConnection } from '../education-video/AiVid
 import type { AiVideoCandidate, SearchConditions } from '../education-video/aiVideo';
 import type { RecommendationReason } from '../education-video/recommendationReason';
 const mode = new URLSearchParams(location.search).get('mode');
+declare global { interface Window { __finderQaRoot?: Root } }
 const videos = ['abcdefghijk', 'bcdefghijkl', 'cdefghijklm'].map((id, index) => ({ url: `https://www.youtube.com/watch?v=${id}`, description: `합성 QA 공개 소개정보 ${index + 1}. 실제 영상의 설명이 아닙니다.`, relevance: '교육 대상이 이해할 수 있는 설명인지 확인합니다.', reason: '교사가 원문과 영상 내용을 직접 확인해야 합니다.' }));
 function Fixture() {
  const [selectedModel, setSelectedModel] = useState('gpt-6-sol');
@@ -28,6 +29,11 @@ function Fixture() {
     : '합성 AI 검토: 공개 소개정보만 검토했습니다. 실제 영상 시청·전체 자막 분석 결과가 아닙니다.';
   },
  };
- return <><p style={{ padding: '12px 28px', background: '#fcf6e8', color: '#75521c' }}>합성 QA 전용 · 실제 계정·AI·웹 검색·로컬 파일에 연결되지 않습니다.</p>{message && <p role="status">{message}</p>}<AiVideoFinder connection={connection} onClose={() => setMessage('합성 QA 닫기')} onOpenSettings={() => setMessage('합성 QA에서는 실제 계정 설정을 열지 않습니다.')} onOpenUrl={async () => { setMessage('합성 QA: 외부 URL 실행 생략'); }} onSave={async (candidate, conditions, recommendationReason) => setSaved(current => [...current.filter(item => item.candidate.videoId !== candidate.videoId), { candidate, conditions, recommendationReason }])} onDraft={input => setMessage(`합성 기안 연결: ${input.workName} / ${input.target}`)} saved={saved} /></>;
+ return <><p style={{ padding: '12px 28px', background: '#fcf6e8', color: '#75521c' }}>합성 QA 전용 · 실제 계정·AI·웹 검색·로컬 파일에 연결되지 않습니다.</p>{message && <p role="status">{message}</p>}<AiVideoFinder connection={connection} onClose={() => setMessage('합성 QA 닫기')} onOpenSettings={() => setMessage('합성 QA에서는 실제 계정 설정을 열지 않습니다.')} onOpenUrl={async () => { setMessage('합성 QA: 외부 URL 실행 생략'); }} onSave={async (candidate, conditions, recommendationReason) => setSaved(current => [...current.filter(item => item.candidate.videoId !== candidate.videoId), { candidate, conditions, recommendationReason }])} onDraft={input => setMessage(`합성 기안 연결: ${input.workName} / ${input.target} / ${input.organization || '기관 미전달'} / ${input.mainContent}`)} saved={saved} /></>;
 }
-const root = document.getElementById('root'); if (root) createRoot(root).render(<Fixture />);
+const container = document.getElementById('root');
+if (container) {
+ const root = window.__finderQaRoot ?? createRoot(container);
+ window.__finderQaRoot = root;
+ root.render(<Fixture />);
+}
