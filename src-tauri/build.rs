@@ -60,6 +60,10 @@ fn main() {
             "../dist-finder-integration-qa"
         );
         assert_eq!(config["app"]["windows"][0]["devtools"], true);
+        assert_eq!(
+            config["app"]["windows"][0]["additionalBrowserArgs"],
+            "--remote-debugging-port=9231 --remote-debugging-address=127.0.0.1 --disable-background-networking"
+        );
         assert!(config["app"]["windows"][0]["dataDirectory"].is_null());
         assert!(
             config["plugins"].get("updater").is_none()

@@ -18,6 +18,7 @@
       "minWidth": 390,
       "minHeight": 640,
       "devtools": true,
+      "additionalBrowserArgs": "--remote-debugging-port=9231 --remote-debugging-address=127.0.0.1 --disable-background-networking",
       "dataDirectory": null
     }],
     "security": {
