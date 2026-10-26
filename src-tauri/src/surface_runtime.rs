@@ -1,5 +1,5 @@
 #[cfg(windows)]
-use crate::main_restore_ipc::MainRestoreEndpoint;
+use crate::main_restore_ipc::MainRestoreServer;
 #[cfg(windows)]
 use std::{
     io::Write,
@@ -106,45 +106,46 @@ pub fn launch_qa_surface(app: &AppHandle, state: &SurfaceRuntimeState) -> Result
     let surface_pid = child.id();
     let generation = u64::from(surface_pid);
     let attempt = 1;
+    let app = app.clone();
+    let server =
+        MainRestoreServer::start(app, generation, attempt, surface_pid).map_err(|error| {
+            terminate_child(&mut child);
+            error
+        })?;
     let prepared = (|| {
-        let (endpoint, grant) = MainRestoreEndpoint::create(generation, attempt, surface_pid)
-            .map_err(|error| error.to_string())?;
+        let grant = server.receive_grant()?;
         let grant = grant.to_memory_bytes().map_err(|error| error.to_string())?;
         let stdin = child
             .stdin
             .take()
             .ok_or_else(|| "Surface Host inherited channel is unavailable".to_owned())?;
-        Ok::<_, String>((endpoint, grant, stdin))
+        Ok::<_, String>((grant, stdin))
     })();
-    let (mut endpoint, mut grant, mut stdin) = match prepared {
+    let (mut grant, mut stdin) = match prepared {
         Ok(prepared) => prepared,
         Err(error) => {
+            server.retire();
             terminate_child(&mut child);
             return Err(error);
         }
     };
     if let Err(error) = stdin.write_all(&grant) {
         grant.fill(0);
+        server.retire();
         terminate_child(&mut child);
         return Err(error.to_string());
     }
     grant.fill(0);
     drop(stdin);
     if let Err((error, mut child)) = state.replace(child) {
+        server.retire();
         terminate_child(&mut child);
         return Err(error);
     }
-    let app = app.clone();
-    std::thread::Builder::new()
-        .name("surface-main-restore".to_owned())
-        .spawn(move || {
-            let _ = endpoint.serve_once(&app);
-            endpoint.retire_surface();
-        })
-        .map_err(|error| {
-            state.stop();
-            error.to_string()
-        })?;
+    server.serve().map_err(|error| {
+        state.stop();
+        error
+    })?;
     Ok(())
 }
 
