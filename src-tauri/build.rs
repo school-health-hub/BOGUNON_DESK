@@ -19,6 +19,7 @@ fn merge(target: &mut Value, patch: Value) {
 fn main() {
     println!("cargo:rerun-if-env-changed=BOGUNON_QA_SOURCE_SHA");
     println!("cargo:rerun-if-env-changed=BOGUNON_OFFICIAL_DOCUMENT_QA_SOURCE_SHA");
+    println!("cargo:rerun-if-env-changed=BOGUNON_FINDER_INTEGRATION_QA_SOURCE_SHA");
     println!("cargo:rerun-if-env-changed=TAURI_CONFIG");
     let mut config: Value = serde_json::from_str(include_str!("tauri.conf.json")).unwrap();
     if let Ok(patch) = std::env::var("TAURI_CONFIG") {
@@ -31,16 +32,52 @@ fn main() {
     let official_document_qa = std::env::var_os("CARGO_FEATURE_OFFICIAL_DOCUMENT_QA").is_some();
     let finder_qa = std::env::var_os("CARGO_FEATURE_EDUCATION_VIDEO_QA").is_some();
     let live_qa = std::env::var_os("CARGO_FEATURE_FINDER_LIVE_QA").is_some();
+    let finder_integration_qa = std::env::var_os("CARGO_FEATURE_FINDER_INTEGRATION_QA").is_some();
     assert!(
-        [finance_qa, official_document_qa, finder_qa, live_qa]
-            .into_iter()
-            .filter(|enabled| *enabled)
-            .count()
+        [
+            finance_qa,
+            official_document_qa,
+            finder_qa,
+            live_qa,
+            finder_integration_qa
+        ]
+        .into_iter()
+        .filter(|enabled| *enabled)
+        .count()
             <= 1,
         "QA features are mutually exclusive"
     );
     let id = config["identifier"].as_str().unwrap_or_default();
-    if live_qa {
+    if finder_integration_qa {
+        assert_eq!(id, "kr.sungandi.schoolhealthdesk.finderintegrationqa");
+        assert_eq!(config["productName"], "BOGUNON DESK FINDER INTEGRATION QA");
+        assert_eq!(
+            config["mainBinaryName"],
+            "bogunon-desk-finder-integration-qa"
+        );
+        assert_eq!(
+            config["build"]["frontendDist"],
+            "../dist-finder-integration-qa"
+        );
+        assert!(config["app"]["windows"][0]["dataDirectory"].is_null());
+        assert!(
+            config["plugins"].get("updater").is_none()
+                && config["plugins"].get("deep-link").is_none()
+        );
+        assert_eq!(config["bundle"]["active"], false);
+        let sha = std::env::var("BOGUNON_FINDER_INTEGRATION_QA_SOURCE_SHA")
+            .expect("F-10 source SHA required");
+        assert!(sha.len() == 40 && sha.bytes().all(|byte| byte.is_ascii_hexdigit()));
+        let stamp: Value = serde_json::from_str(
+            &std::fs::read_to_string("../dist-finder-integration-qa/qa-build.json")
+                .expect("Build F-10 frontend first"),
+        )
+        .unwrap();
+        assert_eq!(stamp["sourceSha"], sha);
+        assert_eq!(stamp["identifier"], id);
+        assert_eq!(stamp["externalConnections"], false);
+        println!("cargo:rustc-env=BOGUNON_FINDER_INTEGRATION_QA_SOURCE_SHA={sha}");
+    } else if live_qa {
         assert_eq!(
             id, "kr.sungandi.schoolhealthdesk.finderliveqa5",
             "Live QA feature requires isolated config"
@@ -180,6 +217,10 @@ fn main() {
         }
         println!("cargo:rustc-env=BOGUNON_OFFICIAL_DOCUMENT_QA_SOURCE_SHA={sha}");
     } else {
+        assert_ne!(
+            id, "kr.sungandi.schoolhealthdesk.finderintegrationqa",
+            "F-10 config requires F-10 feature"
+        );
         assert_ne!(
             id, "kr.sungandi.schoolhealthdesk.finderliveqa5",
             "QA5 config requires Live QA feature"

@@ -1,0 +1,83 @@
+name: Finder integration F-10 Windows QA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [integration/education-video-finder-f10]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: finder-integration-f10-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  native-and-webview2:
+    if: github.ref == 'refs/heads/integration/education-video-finder-f10'
+    runs-on: windows-latest
+    timeout-minutes: 90
+    defaults: { run: { shell: pwsh } }
+    env:
+      CI: 'true'
+      CARGO_BUILD_JOBS: '2'
+      CL: /utf-8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: { persist-credentials: false }
+      - name: Initialize isolated evidence
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP "finder-f10-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          New-Item -ItemType Directory -Path "$root/evidence" -Force | Out-Null
+          "QA_ROOT=$root" >> $env:GITHUB_ENV
+          [ordered]@{ sourceSha=$env:GITHUB_SHA; identifier='kr.sungandi.schoolhealthdesk.finderintegrationqa'; externalServices='BLOCKED'; signing='NOT USED'; deployment='NOT USED' } | ConvertTo-Json | Set-Content "$root/evidence/provenance.json"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: { node-version: '22', cache: npm }
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249
+        with: { toolchain: stable, targets: x86_64-pc-windows-msvc }
+      - name: Install locked frontend dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Focused integration regressions
+        run: |
+          node node_modules/typescript/bin/tsc --noEmit
+          npm test -- --run src/education-video/AiVideoFinder.test.tsx src/education-video/AiVideoFinder.metadata.test.tsx src/education-video/ConnectedFinder.test.tsx src/components/desktop/OfficialDocumentPanel.test.tsx
+          git diff --check
+      - name: Build synthetic-only frontend
+        run: npm run qa:finder-integration:frontend
+      - name: Fetch locked Rust dependencies
+        run: cargo fetch --locked --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc
+      - name: Build isolated portable native executable
+        env:
+          BOGUNON_FINDER_INTEGRATION_QA_SOURCE_SHA: ${{ github.sha }}
+        run: |
+          $env:TAURI_CONFIG = Get-Content src-tauri/tauri.finder-integration-qa.conf.json -Raw
+          cargo build --locked --release --target x86_64-pc-windows-msvc --manifest-path src-tauri/Cargo.toml --features finder-integration-qa
+          git diff --exit-code -- package-lock.json src-tauri/Cargo.lock
+          $exe='src-tauri/target/x86_64-pc-windows-msvc/release/bogunon-desk-finder-integration-qa.exe'
+          if (-not (Test-Path $exe)) { throw 'F-10 executable missing' }
+          Copy-Item $exe "$env:QA_ROOT/evidence/"
+          Copy-Item dist-finder-integration-qa/qa-build.json "$env:QA_ROOT/evidence/"
+          $hash=(Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  bogunon-desk-finder-integration-qa.exe" | Set-Content "$env:QA_ROOT/evidence/SHA256SUMS.txt"
+          "Native build PASS; SHA-256 $hash" >> $env:GITHUB_STEP_SUMMARY
+      - name: Block external traffic and run actual WebView2 flow
+        timeout-minutes: 8
+        run: |
+          $exe=Join-Path $env:QA_ROOT 'evidence/bogunon-desk-finder-integration-qa.exe'
+          $webview=@(Get-ChildItem "${env:ProgramFiles(x86)}/Microsoft/EdgeWebView/Application" -Filter msedgewebview2.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)
+          if (-not $webview.Count) { throw 'WebView2 runtime unavailable' }
+          $rules=@()
+          try {
+            $remote=@('0.0.0.0-126.255.255.255','128.0.0.0-255.255.255.255','::2-ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff')
+            foreach($program in @($exe)+$webview){$name='finder-f10-'+[guid]::NewGuid().ToString('N');$rules+=$name;New-NetFirewallRule -Name $name -DisplayName $name -Direction Outbound -Action Block -Program $program -RemoteAddress $remote -Profile Any -ErrorAction Stop|Out-Null}
+            node scripts/qa/finder-integration-f10-runtime.mjs
+            if($LASTEXITCODE -ne 0){throw 'F-10 WebView2 QA failed'}
+          } finally { foreach($name in $rules){Remove-NetFirewallRule -Name $name -ErrorAction SilentlyContinue} }
+      - name: Preserve portable QA evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: finder-integration-f10-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ env.QA_ROOT }}/evidence/*
+          if-no-files-found: warn
+          retention-days: 3

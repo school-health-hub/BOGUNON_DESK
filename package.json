@@ -20,7 +20,8 @@
     "qa:official-document:fixtures": "node scripts/generate-official-document-qa-fixtures.mjs",
     "qa:official-document:frontend": "node scripts/build-official-document-qa-frontend.mjs",
     "qa:official-document:windows": "node scripts/build-official-document-qa.mjs",
-    "qa:education-video:frontend": "node scripts/build-education-video-qa-frontend.mjs"
+    "qa:education-video:frontend": "node scripts/build-education-video-qa-frontend.mjs",
+    "qa:finder-integration:frontend": "node scripts/build-finder-integration-qa-frontend.mjs"
   },
   "dependencies": {
     "@fontsource/pretendard": "^5.3.0",
