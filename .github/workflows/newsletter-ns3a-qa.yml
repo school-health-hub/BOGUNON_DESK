@@ -1,0 +1,46 @@
+name: Newsletter NS-3A Windows QA
+
+on:
+  push:
+    branches:
+      - feature/newsletter-studio
+    paths:
+      - ".github/workflows/newsletter-ns3a-qa.yml"
+      - "qa/newsletter/**"
+      - "src/newsletter/rendering/**"
+      - "src/newsletter-qa/**"
+      - "vite.newsletter-qa.config.ts"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: newsletter-ns3a-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  renderer:
+    name: Renderer and preview
+    runs-on: windows-2025
+    timeout-minutes: 60
+    steps:
+      - name: Check out tested commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Set up Node.js 22.23.3
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22.23.3"
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Run Newsletter renderer tests
+        run: npm test -- src/newsletter/rendering src/newsletter-qa --maxWorkers=2
+      - name: Run complete Vitest suite
+        run: npm test -- --maxWorkers=2
+      - name: Run TypeScript checks
+        run: npx tsc --noEmit
+      - name: Build production frontend
+        run: npm run build
+      - name: Build isolated Newsletter QA preview
+        run: npx vite build --config vite.newsletter-qa.config.ts
