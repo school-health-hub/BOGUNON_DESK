@@ -1,4 +1,5 @@
-import { isTauri } from "@tauri-apps/api/core"
+import { invoke, isTauri } from "@tauri-apps/api/core"
+import { z } from "zod"
 import { createNewsletterProject } from "../newsletter/project"
 import { BrowserSvgRasterizer } from "../newsletter/output/browserRasterizer"
 import { generateNewsletterOutputs, type NewsletterOutputBundle } from "../newsletter/output/outputEngine"
@@ -21,6 +22,11 @@ type QaState = {
 }
 
 const state: QaState = { target: null, bundle: null, busy: false }
+const qaInfoSchema = z.object({
+  sourceSha: z.string().regex(/^[a-f0-9]{40}$/),
+  identifier: z.literal("kr.sungandi.schoolhealthdesk.newsletterqa"),
+  dataPathIsolated: z.literal(true),
+}).readonly()
 
 function root(): HTMLElement {
   const element = document.querySelector<HTMLElement>("#app")
@@ -140,3 +146,12 @@ function render(): void {
 }
 
 render()
+if (isTauri()) {
+  void invoke<unknown>("newsletter_storage_qa_info").then(
+    (value) => {
+      const info = qaInfoSchema.parse(value)
+      status("Native QA 준비됨", `${info.identifier} · source ${info.sourceSha.slice(0, 12)} · 격리 데이터 경로 확인`)
+    },
+    (error: unknown) => status("Native QA 무결성 확인 실패", error instanceof Error ? error.message : "알 수 없는 QA 무결성 오류"),
+  )
+}

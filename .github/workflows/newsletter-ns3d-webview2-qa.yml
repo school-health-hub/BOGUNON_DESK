@@ -1,0 +1,120 @@
+name: Newsletter NS-3D WebView2 QA portable
+
+on:
+  push:
+    branches:
+      - feature/newsletter-studio
+    paths:
+      - ".github/workflows/newsletter-ns3d-webview2-qa.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "qa/newsletter/storage.html"
+      - "scripts/build-newsletter-storage-qa-frontend.mjs"
+      - "scripts/build-newsletter-storage-qa.mjs"
+      - "scripts/newsletter-storage-qa-*.test.mjs"
+      - "src/newsletter/**"
+      - "src/newsletter-qa/storageQa.ts"
+      - "src/newsletter-qa/storage-qa.css"
+      - "src-tauri/Cargo.toml"
+      - "src-tauri/Cargo.lock"
+      - "src-tauri/build.rs"
+      - "src-tauri/src/lib.rs"
+      - "src-tauri/src/newsletter/**"
+      - "src-tauri/src/newsletter_storage_qa.rs"
+      - "src-tauri/tauri.newsletter-storage-qa.conf.json"
+      - "vite.newsletter-storage-qa.config.mjs"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: newsletter-ns3d-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  portable-qa:
+    name: Isolated WebView2 storage QA portable
+    runs-on: windows-2025
+    timeout-minutes: 120
+    steps:
+      - name: Check out tested commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Verify immutable source
+        shell: pwsh
+        run: |
+          $actual = (git rev-parse HEAD).Trim()
+          if ($actual -cne $env:GITHUB_SHA) { throw "Unexpected source SHA: $actual" }
+          if (git status --short) { throw "QA source checkout is dirty" }
+      - name: Set up Node.js 22.23.3
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22.23.3"
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Set up Rust 1.98.1
+        uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249
+        with:
+          toolchain: "1.98.1"
+          targets: x86_64-pc-windows-msvc
+      - name: Restore Rust build cache
+        uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c
+        with:
+          cache-on-failure: true
+          workspaces: src-tauri
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Run QA flavor contract tests
+        run: npm test -- scripts/newsletter-storage-qa-config.test.mjs scripts/newsletter-storage-qa-workflow.test.mjs src/newsletter/output/storageClient.test.ts --maxWorkers=2
+      - name: Run TypeScript checks
+        run: npx tsc --noEmit
+      - name: Build SHA-bound QA frontend
+        run: npm run qa:newsletter-storage:frontend
+      - name: Run Newsletter native tests
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc newsletter
+      - name: Check isolated Native flavor
+        shell: pwsh
+        run: |
+          $env:TAURI_CONFIG = Get-Content src-tauri/tauri.newsletter-storage-qa.conf.json -Raw
+          $env:NEWSLETTER_QA_SOURCE_SHA = $env:GITHUB_SHA
+          cargo check --locked --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc --features newsletter-storage-qa
+      - name: Build portable QA executable
+        run: npm run qa:newsletter-storage:windows
+      - name: Package portable artifact with provenance
+        shell: pwsh
+        run: |
+          $binary = "src-tauri/target/x86_64-pc-windows-msvc/release/bogunon-desk-newsletter-storage-qa.exe"
+          if (-not (Test-Path -LiteralPath $binary -PathType Leaf)) { throw "Newsletter QA executable missing" }
+          $out = "artifacts/newsletter-storage-qa-portable"
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          Copy-Item -LiteralPath $binary -Destination "$out/bogunon-desk-newsletter-storage-qa.exe"
+          Copy-Item -LiteralPath "dist-newsletter-storage-qa/qa-build.json" -Destination "$out/qa-build.json"
+          $binaryHash = (Get-FileHash -Algorithm SHA256 -LiteralPath "$out/bogunon-desk-newsletter-storage-qa.exe").Hash.ToLowerInvariant()
+          [ordered]@{
+            sourceSha = $env:GITHUB_SHA
+            identifier = "kr.sungandi.schoolhealthdesk.newsletterqa"
+            binaryName = "bogunon-desk-newsletter-storage-qa.exe"
+            binarySha256 = $binaryHash
+            frontendEntrypoint = "storage.html"
+            productionDeployment = $false
+          } | ConvertTo-Json | Set-Content -Encoding utf8 "$out/ARTIFACT-MANIFEST.json"
+          "$binaryHash  bogunon-desk-newsletter-storage-qa.exe" | Set-Content -Encoding ascii "$out/SHA256SUMS.txt"
+          @(
+            "Synthetic Newsletter Storage QA only."
+            "Requires Microsoft Edge WebView2 Runtime."
+            "Verify SHA256SUMS.txt before running."
+            "Use only a disposable QA output folder."
+          ) | Set-Content -Encoding utf8 "$out/README.txt"
+          Compress-Archive -Path "$out/*" -DestinationPath "artifacts/BOGUNON-DESK-Newsletter-Storage-QA-$($env:GITHUB_SHA).zip"
+          $zipHash = (Get-FileHash -Algorithm SHA256 -LiteralPath "artifacts/BOGUNON-DESK-Newsletter-Storage-QA-$($env:GITHUB_SHA).zip").Hash.ToLowerInvariant()
+          "$zipHash  BOGUNON-DESK-Newsletter-Storage-QA-$($env:GITHUB_SHA).zip" | Set-Content -Encoding ascii "artifacts/PORTABLE-ZIP-SHA256.txt"
+      - name: Upload portable QA artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: NEWSLETTER-STORAGE-QA-${{ github.sha }}
+          path: |
+            artifacts/BOGUNON-DESK-Newsletter-Storage-QA-${{ github.sha }}.zip
+            artifacts/PORTABLE-ZIP-SHA256.txt
+          if-no-files-found: error
+          retention-days: 7

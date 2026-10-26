@@ -242,7 +242,12 @@ mod my_finance_qa;
 #[cfg(feature = "my-finance-qa")]
 pub use my_finance_qa::run;
 
-#[cfg(not(feature = "my-finance-qa"))]
+#[cfg(all(not(feature = "my-finance-qa"), feature = "newsletter-storage-qa"))]
+mod newsletter_storage_qa;
+#[cfg(all(not(feature = "my-finance-qa"), feature = "newsletter-storage-qa"))]
+pub use newsletter_storage_qa::run;
+
+#[cfg(not(any(feature = "my-finance-qa", feature = "newsletter-storage-qa")))]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default();

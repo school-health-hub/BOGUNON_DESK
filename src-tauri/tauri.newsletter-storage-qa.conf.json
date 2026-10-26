@@ -1,0 +1,58 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "BOGUNON DESK Newsletter Storage QA",
+  "identifier": "kr.sungandi.schoolhealthdesk.newsletterqa",
+  "mainBinaryName": "bogunon-desk-newsletter-storage-qa",
+  "build": {
+    "beforeBuildCommand": "node scripts/build-newsletter-storage-qa-frontend.mjs",
+    "frontendDist": "../dist-newsletter-storage-qa",
+    "devUrl": null,
+    "beforeDevCommand": null
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "BOGUNON DESK Newsletter Storage QA — SYNTHETIC ONLY",
+        "url": "storage.html",
+        "width": 1180,
+        "height": 820,
+        "minWidth": 980,
+        "minHeight": 700,
+        "center": true
+      }
+    ],
+    "security": {
+      "capabilities": [
+        {
+          "identifier": "newsletter-storage-qa-only",
+          "windows": ["main"],
+          "permissions": ["core:default", "core:window:allow-close"]
+        }
+      ],
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self'",
+        "style-src": "'self'",
+        "style-src-attr": "'unsafe-inline'",
+        "font-src": "'self'",
+        "img-src": "'self' data: blob:",
+        "connect-src": "'self' ipc: http://ipc.localhost",
+        "object-src": "'none'",
+        "frame-src": "'none'",
+        "frame-ancestors": "'none'",
+        "base-uri": "'none'",
+        "form-action": "'none'",
+        "worker-src": "'none'"
+      }
+    }
+  },
+  "plugins": {
+    "updater": null,
+    "deep-link": null
+  },
+  "bundle": {
+    "active": false,
+    "createUpdaterArtifacts": false
+  }
+}

@@ -32,5 +32,6 @@ release-output/
 *.sw?
 
 /dist-my-finance-qa/
+/dist-newsletter-storage-qa/
 /operating-source/
 /artifacts/my-finance-qa*/
