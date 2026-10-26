@@ -1,8 +1,10 @@
 # Finder Windows Live QA executable
 
-## Current status: diagnostics contract v3, no approved QA5 slot
+## Current status: QA5 isolated build prepared, approval and execution absent
 
-QA5 has **not been authorized, run, or marked PASS**. The current source contract is SSE diagnostics version3, but the diagnostics are observation-only and do not create a live-request entitlement. Native metadata and its frontend verifier remain authoritative. The runtime still records the previously approved slot4 policy; there is no active slot for QA5. This document does not authorize an AI request, a retry, or a new attempt slot.
+QA5 has **not been authorized, run, consumed, or marked PASS**. The current source contract is SSE diagnostics version3, but diagnostics are observation-only and do not create a live-request entitlement. QA5 uses identifier `kr.sungandi.schoolhealthdesk.finderliveqa5`, base `eed15c31a27e983a36fea2434fcf26dfbbebf4d1`, its own application-data directory, slot5 receipt names, and a separate portable output directory. The exact approval marker is intentionally absent from the prepared environment. Without it, native code rejects search before reading credentials and the frontend does not reveal the Finder screen. This document does not authorize creation of that marker or an AI request.
+
+QA5 permits at most one search request after a later explicit user approval, with zero automatic retries and zero recommendation-reason requests. A slot5 claim uses create-new semantics before HTTP, so process restart cannot reuse it. The native transport rechecks the approval and claim at dispatch. `chatgpt_generate_text` remains denied. QA1~QA4 receipts under `docs/education-video/handoff-2026-10-23/evidence/runtime/` are hash-checked during the frontend build and are never used as mutable runtime receipts.
 
 Finder policy note: an explicit `response.completed.output: []` is authoritative and is not reconstructed from earlier `response.output_item.done` events. When the final `output` field is absent, the pre-existing completed-item fallback remains available, subject to completed status, assistant role, supported content type, valid Finder JSON, a canonical HTTPS YouTube video URL, and an exact matching search source before any recommendation card can be shown. Diagnostics version3 may describe event structure but never authorizes recovery or recommendation output.
 
@@ -13,7 +15,7 @@ The remaining attempt-slot, diagnostics-v2, build, and execution details describ
 Historical approved SSE checkpoint: df8375a015f1868b27d7741a754e0df772837684 (2026-10-23 KST). Original Finder implementation base: f0981bf965b191ca380d5a97afe9aa61f9a1c3d8.
 The Windows artifact uses this checkpoint plus the minimum QA wrapper commit. SOURCE.json records both baseSha and actual sourceSha and SHA-256. It must not be described as an unmodified SSE checkpoint binary: the QA overlay adds only the separately approved third-attempt controls and matching provenance stamps.
 
-Build: `.github/workflows/finder-live-qa-windows.yml`, existing pinned Windows checkout/Node/Rust/cache actions, exact event SHA, ancestry and QA-only file guards. No production release environment, signing key, service API key, deployment or installer. Build output is a portable executable with identifier `kr.sungandi.schoolhealthdesk.finderliveqa`.
+Build: `.github/workflows/finder-live-qa-windows.yml`, existing pinned Windows checkout/Node/Rust/cache actions, exact event SHA, ancestry and QA-only file guards. No production release environment, signing key, service API key, deployment or installer. QA5 build output is a portable executable with identifier `kr.sungandi.schoolhealthdesk.finderliveqa5`; the earlier QA4 identifier is not reused.
 
 The QA frontend mounts the existing Finder and common ChatGPT/official-document layers, not the full dashboard, updater, Google or Supabase providers. Existing synthetic QA entry remains unchanged. QA metadata verifies frontend/native source, approved base, identifier, isolated library and false external dispatch.
 
@@ -27,11 +29,13 @@ Build once from the final overlay SHA. Both push(workflow path on the feature br
 
 ## Run prerequisites
 
-Download the artifact from the successful SHA-bound Actions run; compare SOURCE.json sourceSha/runId and executable SHA-256 to the run. Run only the separate `bogunon-desk-finder-live-qa.exe`, never an installer or the operating executable path. Preserve the production app and all data. A child-only WebView2 debugging argument may be used for local browser QA if native window automation cannot target the QA window; never change machine/user environment or policy.
+Download the artifact from the successful SHA-bound Actions run; compare SOURCE.json sourceSha/runId and executable SHA-256 to the run. Run only the separate `bogunon-desk-finder-live-qa5.exe`, never an installer or the operating executable path. Preserve the production app and all data. Building this executable does not grant approval to launch it or perform a search. Model availability remains a run-time preflight item for a separately approved execution.
 
-Preflight before any search: native metadata/SHA match, Finder visible, existing connection connected with plan use enabled, account model catalog contains gpt-6.1-sol, search button enabled and invocation path registered. Do not print account identifiers, tokens, headers, cookies or full connection state. If credentials/model/permission cannot be confirmed, stop with zero search requests.
+Pre-approval build verification: native/frontend source SHA, QA5 identifier, preserved receipt hashes, `slotApproved:false`, `slotUsed:false`, and executable SHA-256 must match. Finder UI, credentials, and model catalog are intentionally inaccessible at this stage.
 
-Approved live input: 고등학생 / 마약류 예방교육 / 20분 내외 / 공공기관 우선. Submit once through the existing privacy confirmation. On error stop; do not retry or replace with a different provider. If successful inspect recommendation cards and their original URLs/sources only, then stop. Do not run AI detailed review, draft generation, library save/reload, document submission or external sharing. Do not record the full prompt or raw response; compare the confirmation prompt SHA in memory. After one success or failure stop.
+Only after a separate explicit user approval has been recorded may execution preflight verify that Finder is visible, the existing connection is connected with plan use enabled, the account model catalog contains gpt-6.1-sol, the search button is enabled, and the invocation path is registered. Do not print account identifiers, tokens, headers, cookies or full connection state. If credentials/model/permission cannot be confirmed, stop with zero search requests.
+
+Candidate input for a future separately approved run: 고등학생 / 마약류 예방교육 / 20분 내외 / 공공기관 우선. This line is not execution approval. After separate approval, submit once through the existing privacy confirmation. On error stop; do not retry or replace with a different provider. If successful inspect recommendation cards and their original URLs/sources only, then stop. Do not run AI detailed review, draft generation, library save/reload, document submission or external sharing. Do not record the full prompt or raw response; compare the confirmation prompt SHA in memory. After one success or failure stop.
 
 Local limits: C: about2.9GB and current Perl lacks Locale/Maketext/Simple, so no local fullnative build or package/cache cleanup. Parent automation kernel asset error has no identifiedmissingpath; a freshchildNodeREPL successfully initializedsky and enumeratedwindows. No system/runtime installation changes were made.
 

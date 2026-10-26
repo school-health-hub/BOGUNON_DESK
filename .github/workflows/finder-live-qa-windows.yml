@@ -15,7 +15,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 60
     env:
-      FINDER_BASE_SHA: 419e31e2c9e32c6a36dd6c4982572436fb96669b
+      FINDER_BASE_SHA: eed15c31a27e983a36fea2434fcf26dfbbebf4d1
       BOGUNON_QA_SOURCE_SHA: ${{ github.sha }}
       CARGO_PROFILE_RELEASE_LTO: 'false'
       CARGO_PROFILE_RELEASE_CODEGEN_UNITS: '16'
@@ -31,7 +31,7 @@ jobs:
           if ((git rev-parse HEAD).Trim() -ne $env:BOGUNON_QA_SOURCE_SHA) { throw 'Source mismatch' }
           git merge-base --is-ancestor $env:FINDER_BASE_SHA HEAD
           if ($LASTEXITCODE -ne 0) { throw 'Approved Finder checkpoint missing' }
-          $allowed = '^(\.gitignore|\.github/workflows/finder-live-qa-windows\.yml|scripts/.*finder-live-qa.*|docs/education-video/finder-live-qa.*|qa-finder-live/.*|vite\.finder-live-qa\.config\.ts|src/finder-live-qa/.*|src/chatgpt/(webSearch\.ts|chatgptPlanService\.bundle\.test\.ts|webSearch\.failure\.test\.ts)|src/education-video/AiVideoFinder\.test\.tsx|src-tauri/education-video-harness/lib\.rs|src-tauri/(Cargo\.toml|Cargo\.lock|build\.rs|tauri\.finder-live-qa\.conf\.json|src/lib\.rs|src/finder_live_qa.*|src/finder_live_qa/.*|src/chatgpt/(mod\.rs|live_qa\.rs|plan\.rs|plan/live_qa.*\.rs|plan/(web_search|web_search_parser|web_search_error|web_search_stream|web_search_parser_tests|web_search_stream_tests)\.rs)))$'
+          $allowed = '^(\.gitignore|\.github/workflows/finder-live-qa-windows\.yml|scripts/(build|package)-finder-live-qa\.mjs|docs/education-video/finder-live-qa-windows\.md|vite\.finder-live-qa\.config\.ts|src/finder-live-qa/(main\.tsx|services\.ts|services\.test\.ts)|src-tauri/(build\.rs|tauri\.finder-live-qa\.conf\.json|src/finder_live_qa\.rs|src/chatgpt/plan/live_qa(_policy)?\.rs))$'
           foreach ($file in (git diff --name-only $env:FINDER_BASE_SHA HEAD)) {
             if ($file -notmatch $allowed) { throw "Non-QA source change: $file" }
           }
@@ -67,7 +67,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Package validation failed' }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: FINDER-LIVE-QA-${{ github.sha }}
-          path: artifacts/finder-live-qa/*
+          name: FINDER-LIVE-QA5-${{ github.sha }}
+          path: artifacts/finder-live-qa5/*
           if-no-files-found: error
           retention-days: 7
