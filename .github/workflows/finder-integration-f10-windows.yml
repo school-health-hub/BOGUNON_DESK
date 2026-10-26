@@ -39,6 +39,7 @@ jobs:
         with:
           workspaces: src-tauri -> target
           shared-key: finder-integration-f10-windows
+          cache-on-failure: true
       - name: Install locked frontend dependencies
         run: npm ci --no-audit --no-fund
       - name: Focused integration regressions

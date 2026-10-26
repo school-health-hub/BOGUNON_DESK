@@ -59,6 +59,7 @@ fn main() {
             config["build"]["frontendDist"],
             "../dist-finder-integration-qa"
         );
+        assert_eq!(config["app"]["windows"][0]["devtools"], true);
         assert!(config["app"]["windows"][0]["dataDirectory"].is_null());
         assert!(
             config["plugins"].get("updater").is_none()
