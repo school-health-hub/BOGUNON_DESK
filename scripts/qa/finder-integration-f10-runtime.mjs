@@ -53,6 +53,7 @@ try {
     click('사실정보 확인·수정'); set('확인한 영상 제목','합성 손씻기 교육영상'); set('확인한 제작기관','합성 교육기관'); set('재생시간 분','18'); set('재생시간 초','30'); click('확인한 정보 적용');
     const select=document.querySelector('input[aria-label="후보 1 선택"]');select.click(); click('라이브러리 저장');
     await wait(()=>document.body.textContent.includes('저장된 AI 후보 1개'),'saved'); click('저장된 AI 후보'); click('합성 손씻기 교육영상');
+    await wait(()=>document.body.textContent.includes('저장된 교육 주제·대상을 불러왔습니다.'),'saved candidate reload');
     click('기안 초안으로 연결');
     await wait(()=>document.body.textContent.includes('영상 Finder로 돌아가기')||document.body.textContent.includes('기존 기안 초안을 바꿀까요?'),'handoff transition');
     if(document.body.textContent.includes('기존 기안 초안을 바꿀까요?'))click('영상으로 새 초안 작성');
