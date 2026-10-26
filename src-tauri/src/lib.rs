@@ -40,6 +40,9 @@ mod weather;
 mod work_folders;
 
 
+#[cfg(windows)]
+mod main_restore_ipc;
+
 struct DesktopState {
     close_to_tray: AtomicBool,
     quitting: AtomicBool,

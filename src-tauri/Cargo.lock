@@ -419,6 +419,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "bogunon-main-restore-protocol"
+version = "0.1.0"
+dependencies = [
+ "rand 0.9.5",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.20",
+ "uuid",
+ "windows",
+]
+
+[[package]]
 name = "brotli"
 version = "8.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4398,6 +4410,7 @@ dependencies = [
  "argon2",
  "atomic-write-file",
  "base64 0.22.1",
+ "bogunon-main-restore-protocol",
  "calamine",
  "cfb",
  "csv",
