@@ -63,7 +63,7 @@ try {
     await wait(()=>document.body.textContent.includes('영상 Finder로 돌아가기'),'handoff');
     const rendered=[document.body.textContent,...[...document.querySelectorAll('input,textarea')].map(node=>node.value)].join(' '); if(!rendered.includes('합성 손씻기 교육영상')||!rendered.includes('https://www.youtube.com/watch?v=abcdefghijk'))throw new Error('verified handoff missing');
     click('영상 Finder로 돌아가기'); await wait(()=>document.querySelector('.aiv-finder'),'Finder after handoff'); click('보건 업무로'); await wait(()=>document.querySelector('[data-education-video-launcher]'),'toolbox return');
-    const other=[...document.querySelectorAll('.toolbox-panel__launch')].find(el=>!el.hasAttribute('data-education-video-launcher'));other.click(); await wait(()=>document.body.textContent.includes('다른 도구 이동 상태'),'other tool'); click('업무 도구로 돌아가기'); click('교육영상 Finder'); await wait(()=>document.querySelector('.aiv-finder'),'Finder reentry');
+    const other=[...document.querySelectorAll('.toolbox-panel__launch')].find(el=>!el.hasAttribute('data-education-video-launcher'));other.click(); await wait(()=>document.body.textContent.includes('다른 도구 이동 상태'),'other tool'); click('업무 도구로 돌아가기'); await wait(()=>document.querySelector('[data-education-video-launcher]'),'toolbox after other tool'); click('교육영상 Finder'); await wait(()=>document.querySelector('.aiv-finder'),'Finder reentry');
     const exported=JSON.parse(await window.__FINDER_INTEGRATION_QA__.exportLibrary());
     const entry=exported.entries.find(row=>row.videoId==='abcdefghijk');
     if(exported.version!==2||!entry||entry.candidateRecord.provenance!=='teacher-confirmed')throw new Error('library v2/provenance mismatch');
