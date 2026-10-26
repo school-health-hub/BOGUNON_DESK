@@ -21,7 +21,7 @@ my-finance-qa = []
 official-document-qa = []
 education-video-qa = []
 finder-live-qa = []
-finder-integration-qa = []
+finder-integration-qa = ["tauri/devtools"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
