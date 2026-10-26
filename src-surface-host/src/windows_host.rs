@@ -1,18 +1,23 @@
 use std::{
+    cell::RefCell,
     ffi::OsStr,
     os::windows::ffi::OsStrExt,
     path::{Path, PathBuf},
+    rc::Rc,
     sync::mpsc,
 };
 use thiserror::Error;
 use webview2_com::{
     CoTaskMemPWSTR, CreateCoreWebView2ControllerCompletedHandler,
-    CreateCoreWebView2EnvironmentCompletedHandler,
+    CreateCoreWebView2EnvironmentCompletedHandler, FrameCreatedEventHandler,
     Microsoft::Web::WebView2::Win32::{
-        CreateCoreWebView2EnvironmentWithOptions, ICoreWebView2Controller,
+        CreateCoreWebView2EnvironmentWithOptions, ICoreWebView2, ICoreWebView2Controller,
         ICoreWebView2Environment, ICoreWebView2Environment7, ICoreWebView2EnvironmentOptions,
-        ICoreWebView2_13,
+        ICoreWebView2_13, ICoreWebView2_3, ICoreWebView2_4,
+        COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_DENY_CORS,
     },
+    NavigationCompletedEventHandler, NavigationStartingEventHandler,
+    NewWindowRequestedEventHandler, WebMessageReceivedEventHandler,
 };
 use windows::{
     core::{Interface, PCWSTR, PWSTR},
@@ -37,6 +42,10 @@ pub enum HostError {
     MessageLoop,
     #[error("WebView2 returned a null result")]
     NullResult,
+    #[error("surface bundle is unavailable or outside its canonical directory")]
+    InvalidBundle,
+    #[error("surface renderer session failed: {0}")]
+    Renderer(#[from] crate::renderer_session::RendererSessionError),
 }
 
 pub struct StaGuard(std::marker::PhantomData<std::rc::Rc<()>>);
@@ -249,4 +258,205 @@ pub fn pump_pending_bounded(admitted: impl FnMut() -> bool) -> Result<usize, Hos
 
 fn wide(value: &OsStr) -> Vec<u16> {
     value.encode_wide().chain(std::iter::once(0)).collect()
+}
+
+use crate::{
+    ipc::Generation,
+    lifecycle::Attempt,
+    ownership::Ledger,
+    renderer_session::{
+        HandlerAddFailure, HandlerKind, HandlerRegistry, HandlerToken, RendererSession,
+        SessionOwnership,
+    },
+    surface_connection::{
+        is_admitted_surface_url, surface_entry_url, ConnectionResponse, MainOpener,
+        SurfaceConnection, SURFACE_HOST,
+    },
+};
+
+pub struct NativeHandlerRegistry<M: MainOpener + 'static> {
+    webview: ICoreWebView2,
+    webview4: ICoreWebView2_4,
+    connection: Rc<RefCell<SurfaceConnection<M>>>,
+}
+
+impl<M: MainOpener + 'static> NativeHandlerRegistry<M> {
+    fn new(webview: ICoreWebView2, connection: SurfaceConnection<M>) -> Result<Self, HostError> {
+        Ok(Self {
+            webview4: webview.cast()?,
+            webview,
+            connection: Rc::new(RefCell::new(connection)),
+        })
+    }
+}
+
+impl<M: MainOpener + 'static> HandlerRegistry for NativeHandlerRegistry<M> {
+    type RemoveError = windows::core::Error;
+
+    fn add(&mut self, handler: HandlerKind) -> Result<HandlerToken, HandlerAddFailure> {
+        let mut token = 0_i64;
+        let result = match handler {
+            HandlerKind::NavigationStarting => {
+                let callback = NavigationStartingEventHandler::create(Box::new(|_, args| {
+                    if let Some(args) = args {
+                        let mut uri = PWSTR::null();
+                        // SAFETY: [Category 8 — FFI boundary] `uri` is writable pointer storage and
+                        // WebView2 owns the callback arguments for the duration of this invocation.
+                        unsafe { args.Uri(&mut uri) }?;
+                        let uri = CoTaskMemPWSTR::from(uri).to_string();
+                        let admitted = is_admitted_surface_url(&uri);
+                        // SAFETY: [Category 8 — FFI boundary] the event args remain valid throughout
+                        // this synchronous callback and the boolean is copied by WebView2.
+                        unsafe { args.SetCancel(!admitted) }?;
+                    }
+                    Ok(())
+                }));
+                // SAFETY: [Category 8 — FFI boundary] callback is a reference-counted COM object and
+                // `token` is valid writable storage. Success transfers registration ownership.
+                unsafe { self.webview.add_NavigationStarting(&callback, &mut token) }
+            }
+            HandlerKind::NavigationCompleted => {
+                let callback = NavigationCompletedEventHandler::create(Box::new(|_, args| {
+                    if let Some(args) = args {
+                        let mut success = windows::core::BOOL(0);
+                        // SAFETY: [Category 8 — FFI boundary] `success` is writable storage and args
+                        // is valid for this synchronous WebView2 callback.
+                        unsafe { args.IsSuccess(&mut success) }?;
+                        if !success.as_bool() {
+                            return Err(windows::core::Error::from_win32());
+                        }
+                    }
+                    Ok(())
+                }));
+                // SAFETY: [Category 8 — FFI boundary] same registration ownership contract as above.
+                unsafe { self.webview.add_NavigationCompleted(&callback, &mut token) }
+            }
+            HandlerKind::NewWindowRequested => {
+                let callback = NewWindowRequestedEventHandler::create(Box::new(|_, args| {
+                    if let Some(args) = args {
+                        // SAFETY: [Category 8 — FFI boundary] event args are live for the callback;
+                        // setting handled blocks creation of an untrusted secondary window.
+                        unsafe { args.SetHandled(true) }?;
+                    }
+                    Ok(())
+                }));
+                // SAFETY: [Category 8 — FFI boundary] same registration ownership contract as above.
+                unsafe { self.webview.add_NewWindowRequested(&callback, &mut token) }
+            }
+            HandlerKind::FrameCreated => {
+                let callback = FrameCreatedEventHandler::create(Box::new(|_, _| Ok(())));
+                // SAFETY: [Category 8 — FFI boundary] same registration ownership contract as above.
+                unsafe { self.webview4.add_FrameCreated(&callback, &mut token) }
+            }
+            HandlerKind::WebMessageReceived => {
+                let connection = Rc::clone(&self.connection);
+                let webview = self.webview.clone();
+                let callback = WebMessageReceivedEventHandler::create(Box::new(move |_, args| {
+                    let Some(args) = args else {
+                        return Ok(());
+                    };
+                    let mut source = PWSTR::null();
+                    let mut payload = PWSTR::null();
+                    // SAFETY: [Category 8 — FFI boundary] both values are writable pointer storage;
+                    // WebView2 returns CoTaskMem-owned strings consumed immediately below.
+                    unsafe {
+                        args.Source(&mut source)?;
+                        args.TryGetWebMessageAsString(&mut payload)?;
+                    }
+                    let source = CoTaskMemPWSTR::from(source).to_string();
+                    let payload = CoTaskMemPWSTR::from(payload).to_string();
+                    let response = connection.try_borrow_mut().ok().and_then(|mut connection| {
+                        connection.handle(payload.as_bytes(), &source, true).ok()
+                    });
+                    if let Some(ConnectionResponse::Projection(response)) = response {
+                        let response = wide(OsStr::new(&response));
+                        // SAFETY: [Category 8 — FFI boundary] response is NUL-terminated UTF-16 and
+                        // remains alive for the duration of the synchronous post operation.
+                        unsafe { webview.PostWebMessageAsJson(PCWSTR(response.as_ptr())) }?;
+                    }
+                    Ok(())
+                }));
+                // SAFETY: [Category 8 — FFI boundary] same registration ownership contract as above.
+                unsafe { self.webview.add_WebMessageReceived(&callback, &mut token) }
+            }
+        };
+        result
+            .map(|()| HandlerToken(u64::from_ne_bytes(token.to_ne_bytes())))
+            // WebView2 did not return a successful registration result, but an FFI failure does
+            // not prove that no native callback reference survived. Preserve fail-closed cleanup.
+            .map_err(|_| HandlerAddFailure::Unresolved)
+    }
+
+    fn remove(
+        &mut self,
+        handler: HandlerKind,
+        token: HandlerToken,
+    ) -> Result<(), Self::RemoveError> {
+        let token = i64::from_ne_bytes(token.0.to_ne_bytes());
+        // SAFETY: [Category 8 — FFI boundary] the token was returned by the matching add method on
+        // this exact WebView, and RendererSession guarantees one removal attempt per owned token.
+        unsafe {
+            match handler {
+                HandlerKind::NavigationStarting => self.webview.remove_NavigationStarting(token),
+                HandlerKind::NavigationCompleted => self.webview.remove_NavigationCompleted(token),
+                HandlerKind::NewWindowRequested => self.webview.remove_NewWindowRequested(token),
+                HandlerKind::FrameCreated => self.webview4.remove_FrameCreated(token),
+                HandlerKind::WebMessageReceived => self.webview.remove_WebMessageReceived(token),
+            }
+        }
+    }
+}
+
+pub fn attach_surface_renderer<M: MainOpener + 'static>(
+    controller: &ICoreWebView2Controller,
+    bundle_dir: &Path,
+    generation: Generation,
+    main: M,
+    ledger: &mut Ledger,
+    attempt: Attempt,
+    registration_identity: u64,
+) -> Result<RendererSession<NativeHandlerRegistry<M>>, HostError> {
+    let bundle_dir = bundle_dir
+        .canonicalize()
+        .map_err(|_| HostError::InvalidBundle)?;
+    if !bundle_dir.join("surface.html").is_file() {
+        return Err(HostError::InvalidBundle);
+    }
+    // SAFETY: [Category 8 — FFI boundary] the controller completed successfully and owns a live
+    // CoreWebView2 on the current STA thread.
+    let webview = unsafe { controller.CoreWebView2() }?;
+    let webview3: ICoreWebView2_3 = webview.cast()?;
+    let host = wide(OsStr::new(SURFACE_HOST));
+    let folder = wide(bundle_dir.as_os_str());
+    // SAFETY: [Category 8 — FFI boundary] both paths are NUL-terminated UTF-16 and remain alive for
+    // this call. DENY_CORS prevents mapped content from becoming a cross-origin data surface.
+    unsafe {
+        webview3.SetVirtualHostNameToFolderMapping(
+            PCWSTR(host.as_ptr()),
+            PCWSTR(folder.as_ptr()),
+            COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_DENY_CORS,
+        )
+    }?;
+    let registry =
+        NativeHandlerRegistry::new(webview.clone(), SurfaceConnection::new(generation, main))?;
+    let mut session = RendererSession::begin(
+        registry,
+        ledger,
+        SessionOwnership::new(attempt, registration_identity),
+    )?;
+    for handler in [
+        HandlerKind::NavigationStarting,
+        HandlerKind::NavigationCompleted,
+        HandlerKind::NewWindowRequested,
+        HandlerKind::FrameCreated,
+        HandlerKind::WebMessageReceived,
+    ] {
+        session.register(handler)?;
+    }
+    let entry_url = surface_entry_url(generation);
+    let entry = wide(OsStr::new(&entry_url));
+    // SAFETY: [Category 8 — FFI boundary] entry is an admitted, NUL-terminated fixed origin URL and
+    // remains alive for the synchronous Navigate call.
+    unsafe { webview.Navigate(PCWSTR(entry.as_ptr())) }?;
+    Ok(session)
 }

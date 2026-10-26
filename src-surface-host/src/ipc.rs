@@ -15,6 +15,10 @@ impl Generation {
             Some(Self(value))
         }
     }
+
+    pub const fn get(self) -> u64 {
+        self.0
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -23,6 +23,7 @@ pub mod runtime_guard;
 pub mod runtime_identity;
 #[cfg(windows)]
 pub mod runtime_qa;
+pub mod surface_connection;
 pub mod udf;
 
 #[cfg(windows)]

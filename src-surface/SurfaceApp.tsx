@@ -20,11 +20,12 @@ const widgetMeta = {
 type Props = Readonly<{
   projection: SurfaceProjection;
   storage: SurfaceLayoutStorage;
+  onOpenMain?: (actionId: SurfaceProjection["launchers"][number]["actionId"]) => void;
   initialLayout?: SurfaceLayout;
   initialEditing?: boolean;
 }>;
 
-export function SurfaceApp({ projection, storage, initialLayout = defaultSurfaceLayout, initialEditing = false }: Props) {
+export function SurfaceApp({ projection, storage, onOpenMain, initialLayout = defaultSurfaceLayout, initialEditing = false }: Props) {
   const [editing, setEditing] = useState(initialEditing);
   const [layout, setLayout] = useState<SurfaceLayout>(() => storage.load() ?? initialLayout);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
@@ -75,7 +76,10 @@ export function SurfaceApp({ projection, storage, initialLayout = defaultSurface
             {id === "dday" && <DdaySurfaceWidget items={projection.ddays} />}
             {id === "clock" && <ClockSurfaceWidget now={now} />}
             {id === "weather" && <WeatherSurfaceWidget weather={projection.weather} />}
-            {id === "launcher" && <LauncherSurfaceWidget launchers={projection.launchers} onLaunch={(launcher) => setActivity(`합성 실행 기록 · ${launcher.actionId}`)} />}
+            {id === "launcher" && <LauncherSurfaceWidget launchers={projection.launchers} onLaunch={(launcher) => {
+              onOpenMain?.(launcher.actionId);
+              setActivity(onOpenMain === undefined ? `합성 실행 기록 · ${launcher.actionId}` : `Main 열기 요청 · ${launcher.label}`);
+            }} />}
           </SurfaceFrame></div>;
         })}
       </GridLayout>
