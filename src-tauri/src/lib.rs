@@ -25,6 +25,8 @@ mod chatgpt;
 #[cfg(not(feature = "official-document-qa"))]
 mod desktop_surface;
 #[cfg(not(feature = "official-document-qa"))]
+mod education_video;
+#[cfg(not(feature = "official-document-qa"))]
 mod launcher;
 #[cfg(not(feature = "official-document-qa"))]
 mod meal;
@@ -33,11 +35,11 @@ mod my_finance_backup;
 #[cfg(not(feature = "official-document-qa"))]
 mod my_finance_codec;
 #[cfg(not(feature = "official-document-qa"))]
+mod my_finance_commands;
+#[cfg(not(feature = "official-document-qa"))]
 mod my_finance_snapshot;
 #[cfg(not(feature = "official-document-qa"))]
 mod my_finance_store;
-#[cfg(not(feature = "official-document-qa"))]
-mod my_finance_commands;
 #[cfg(not(feature = "official-document-qa"))]
 mod my_finance_transfer;
 #[cfg(not(feature = "official-document-qa"))]
@@ -276,20 +278,70 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "finder-live-qa")]
+mod finder_live_qa;
+#[cfg(all(
+    feature = "finder-live-qa",
+    not(any(
+        feature = "my-finance-qa",
+        feature = "education-video-qa",
+        feature = "official-document-qa"
+    ))
+))]
+pub use finder_live_qa::run;
+
 #[cfg(feature = "my-finance-qa")]
 mod my_finance_qa;
-#[cfg(all(feature = "my-finance-qa", not(feature = "official-document-qa")))]
+#[cfg(all(
+    feature = "my-finance-qa",
+    not(any(
+        feature = "official-document-qa",
+        feature = "education-video-qa",
+        feature = "finder-live-qa"
+    ))
+))]
 pub use my_finance_qa::run;
+
+#[cfg(feature = "education-video-qa")]
+mod education_video_qa;
+#[cfg(all(
+    feature = "education-video-qa",
+    not(any(
+        feature = "my-finance-qa",
+        feature = "official-document-qa",
+        feature = "finder-live-qa"
+    ))
+))]
+pub use education_video_qa::run;
 
 #[cfg(feature = "official-document-qa")]
 mod official_document_qa;
-#[cfg(all(feature = "official-document-qa", not(feature = "my-finance-qa")))]
+#[cfg(all(
+    feature = "official-document-qa",
+    not(any(
+        feature = "my-finance-qa",
+        feature = "education-video-qa",
+        feature = "finder-live-qa"
+    ))
+))]
 pub use official_document_qa::run;
 
-#[cfg(all(feature = "my-finance-qa", feature = "official-document-qa"))]
+#[cfg(any(
+    all(feature = "my-finance-qa", feature = "official-document-qa"),
+    all(feature = "my-finance-qa", feature = "education-video-qa"),
+    all(feature = "my-finance-qa", feature = "finder-live-qa"),
+    all(feature = "official-document-qa", feature = "education-video-qa"),
+    all(feature = "official-document-qa", feature = "finder-live-qa"),
+    all(feature = "education-video-qa", feature = "finder-live-qa")
+))]
 compile_error!("QA features are mutually exclusive");
 
-#[cfg(not(any(feature = "my-finance-qa", feature = "official-document-qa")))]
+#[cfg(not(any(
+    feature = "my-finance-qa",
+    feature = "official-document-qa",
+    feature = "education-video-qa",
+    feature = "finder-live-qa"
+)))]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default();
@@ -337,6 +389,7 @@ pub fn run() {
             chatgpt::commands::chatgpt_disconnect,
             chatgpt::commands::chatgpt_list_models,
             chatgpt::commands::chatgpt_generate_text,
+            chatgpt::commands::chatgpt_search_web,
             execute_desktop_action,
             open_bogunon_search_result,
             launcher::open_quick_memo_url,
@@ -380,6 +433,14 @@ pub fn run() {
             work_folders::reorder_work_folder_favorites,
             work_folders::open_work_folder_favorite,
             meal::fetch_bogunon_meal,
+            education_video::education_video_library_load,
+            education_video::education_video_library_save,
+            education_video::education_video_library_import,
+            education_video::education_video_library_export,
+            education_video::education_video_library_recover,
+            education_video::education_video_library_metadata_delete,
+            education_video::education_video_library_metadata_refresh,
+            education_video::education_video_search,
             weather::fetch_bogunon_weather
         ])
         .setup(|app| {
@@ -424,7 +485,10 @@ pub fn run() {
                         }
                     });
                 } else {
-                    let dropped_paths = paths.iter().filter_map(|path| path.to_str().map(str::to_owned)).collect::<Vec<_>>();
+                    let dropped_paths = paths
+                        .iter()
+                        .filter_map(|path| path.to_str().map(str::to_owned))
+                        .collect::<Vec<_>>();
                     if !dropped_paths.is_empty() {
                         let _ = window.emit(DESKTOP_FILE_DROP_EVENT, dropped_paths);
                     }

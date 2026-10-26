@@ -32,6 +32,10 @@ release-output/
 *.sw?
 
 /dist-my-finance-qa/
+/dist-education-video-qa/
 /dist-official-document-qa/
 /operating-source/
 /artifacts/my-finance-qa*/
+
+/dist-finder-live-qa/
+/dist-finder-live-qa5/

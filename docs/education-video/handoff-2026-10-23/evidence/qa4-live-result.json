@@ -1,0 +1,135 @@
+{
+  "recordedAt": "2026-10-22T17:29:01.815Z",
+  "sourceSha": "72ae4c7b3122c182895a96c1af8b0da0e6787cbe",
+  "exeSha256": "f5dfc691320074044409883a5624c2536a178e93346f99f383cbc156ed1d67df",
+  "classification": "C",
+  "status": "HTTP_200_SSE_COMPLETED_FINAL_OUTPUT_EMPTY_PARSER_REJECTED",
+  "aiSearchRequestsThisApproval": 1,
+  "cumulativeAiSearchRequests": 4,
+  "automaticRetry": false,
+  "fourthSlotUsed": true,
+  "protectedFilesUnchanged": true,
+  "protectedFileCount": 13,
+  "externalDispatchFlags": {
+    "desktop": false,
+    "proxy": false
+  },
+  "recommendedCards": 0,
+  "evidence": [
+    {
+      "file": "search-4-before-dispatch.json",
+      "sha256": "c19536861d6849111644a707dc9ee19edbf6af84b3fd2f840c4ff484fe067c07",
+      "diagnostic": {
+        "automaticRetry": false,
+        "slot": 4,
+        "stage": "reservedBeforeHttp",
+        "toolChoice": "auto"
+      }
+    },
+    {
+      "file": "search-4-http-response.json",
+      "sha256": "9e74816325215057fe479ba005bd37a2000cb10132f917e8ad7b0f2f21337e65",
+      "diagnostic": {
+        "apiErrorCode": "unknown",
+        "apiErrorParam": "unknown",
+        "apiErrorType": "unknown",
+        "bodyBytes": 38457,
+        "completedItemCounts": {
+          "message": 1,
+          "other": 0,
+          "reasoning": 4,
+          "webSearch": 7
+        },
+        "completedItemEvidence": {
+          "completedSearchCount": 7,
+          "missingUrlCount": 0,
+          "sourceCount": 48,
+          "textBytes": 14,
+          "unsafeUrlCount": 0
+        },
+        "completedSearchCount": 0,
+        "completedStatus": "completed",
+        "eventCounts": {
+          "completed": 1,
+          "error": 0,
+          "failed": 0,
+          "incomplete": 0,
+          "other": 51,
+          "textDelta": 1
+        },
+        "finalOutput": {
+          "count": 0,
+          "kind": "array",
+          "messagePresent": false,
+          "present": true,
+          "sourcePresent": false
+        },
+        "httpAccepted": true,
+        "httpStatus": 200,
+        "isSse": true,
+        "malformedFrames": 0,
+        "missingUrlCount": 0,
+        "outputCounts": {
+          "message": 0,
+          "other": 0,
+          "webSearch": 0
+        },
+        "requestIdPresent": false,
+        "searchParseReason": "conflictingOutput",
+        "sharedStreamAccepted": true,
+        "sourceCount": 0,
+        "streamEventCounts": {
+          "annotationAdded": 0,
+          "completed": 1,
+          "contentPartAdded": 1,
+          "contentPartDone": 1,
+          "created": 1,
+          "error": 0,
+          "failed": 0,
+          "inProgress": 1,
+          "incomplete": 0,
+          "outputItemAdded": 12,
+          "outputItemDone": 12,
+          "reasoningSummaryPartAdded": 0,
+          "reasoningSummaryPartDone": 0,
+          "reasoningSummaryTextDelta": 0,
+          "reasoningSummaryTextDone": 0,
+          "reasoningTextDelta": 0,
+          "reasoningTextDone": 0,
+          "textDelta": 1,
+          "textDone": 1,
+          "unknown": 1,
+          "webSearchCompleted": 7,
+          "webSearchInProgress": 7,
+          "webSearchSearching": 7
+        },
+        "textBytes": 0,
+        "toolLifecycleCounts": {
+          "completed": 7,
+          "inProgress": 7,
+          "searching": 7
+        },
+        "unsafeUrlCount": 0,
+        "utf8": true
+      }
+    },
+    {
+      "file": "search-4-native-result.json",
+      "sha256": "708f195cc0f9d24e0efa88622b06752f99713294d417769bfdb0e07e859e58ca",
+      "diagnostic": {
+        "code": "invalidResponse",
+        "stage": "nativeSearchRejected"
+      }
+    }
+  ],
+  "limitations": [
+    "No original response body, prompt, or token persisted",
+    "14 message bytes do not establish message contents",
+    "No URL/source match validation possible without accepted cards"
+  ],
+  "additionalActions": "STOPPED: no retry, extra AI generation, or code changes",
+  "displayedVideoUrls": 0,
+  "uiError": "ChatGPT 응답을 확인할 수 없습니다.",
+  "submittedAt": "2026-10-22T17:28:03.475Z",
+  "uiObserved": true
+}

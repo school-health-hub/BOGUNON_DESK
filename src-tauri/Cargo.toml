@@ -19,6 +19,8 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 default = []
 my-finance-qa = []
 official-document-qa = []
+education-video-qa = []
+finder-live-qa = []
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

@@ -39,6 +39,7 @@ impl GenerateTextRequest {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) enum ChatGptPlanErrorCode {
+    SearchNotPerformed,
     ReauthenticationRequired,
     PermissionDenied,
     UsageLimitExceeded,
@@ -620,3 +621,8 @@ fn terminal_refresh_error(code: Option<&str>) -> bool {
 #[cfg(test)]
 #[path = "plan/tests.rs"]
 mod tests;
+
+pub(crate) mod web_search;
+
+#[cfg(feature = "finder-live-qa")]
+pub(crate) mod live_qa;

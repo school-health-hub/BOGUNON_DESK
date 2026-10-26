@@ -1,0 +1,98 @@
+{
+  "recordedAt": "2026-10-22T15:16:15.613Z",
+  "sourceSha": "824f85a71a00e27518ffaef8b6ea3e4ac3c7f291",
+  "exeSha256": "25a602594c6e69c0282ea1137d1840661cdf81732b1d3305422f482bf6cdcc65",
+  "additionalSearches": 1,
+  "cumulativeSearches": 2,
+  "automaticRetry": false,
+  "model": "gpt-6.1-sol",
+  "conditions": {
+    "topic": "마약류 예방교육",
+    "target": "고등학생",
+    "minutes": 20,
+    "publicFirst": true
+  },
+  "confirmedPromptBytes": 964,
+  "confirmedPromptSha256": "e806072de6813dbb960686403f4d88f4eef5a682c3f13909d441b14f85b4e802",
+  "ui": {
+    "status": "FAIL",
+    "notice": "ChatGPT 응답을 확인할 수 없습니다.",
+    "candidateCount": 0
+  },
+  "diagnostics": {
+    "search-2-before-dispatch.json": {
+      "automaticRetry": false,
+      "slot": 2,
+      "stage": "reservedBeforeHttp"
+    },
+    "search-2-http-response.json": {
+      "apiErrorCode": "unknown",
+      "apiErrorParam": "unknown",
+      "apiErrorType": "unknown",
+      "bodyBytes": 43491,
+      "completedSearchCount": 0,
+      "completedStatus": "completed",
+      "eventCounts": {
+        "completed": 1,
+        "error": 0,
+        "failed": 0,
+        "incomplete": 0,
+        "other": 51,
+        "textDelta": 1
+      },
+      "httpAccepted": true,
+      "httpStatus": 200,
+      "isSse": true,
+      "malformedFrames": 0,
+      "missingUrlCount": 0,
+      "outputCounts": {
+        "message": 0,
+        "other": 0,
+        "webSearch": 0
+      },
+      "requestIdPresent": false,
+      "sharedStreamAccepted": true,
+      "sourceCount": 0,
+      "textBytes": 0,
+      "unsafeUrlCount": 0,
+      "utf8": true
+    },
+    "search-2-native-result.json": {
+      "code": "invalidResponse",
+      "stage": "nativeSearchRejected"
+    }
+  },
+  "preservation": [
+    {
+      "file": "BOGUNON DESK/school-health-desk.exe",
+      "exists": true,
+      "unchanged": true
+    },
+    {
+      "file": "kr.sungandi.schoolhealthdesk/chatgpt-auth.bin",
+      "exists": true,
+      "unchanged": true
+    },
+    {
+      "file": "kr.sungandi.schoolhealthdesk/chatgpt-registration.bin",
+      "exists": true,
+      "unchanged": true
+    },
+    {
+      "file": "kr.sungandi.schoolhealthdesk/chatgpt-host.json",
+      "exists": true,
+      "unchanged": true
+    },
+    {
+      "file": "kr.sungandi.schoolhealthdesk.finderliveqa/search-attempt.receipt",
+      "exists": true,
+      "unchanged": true
+    }
+  ],
+  "firstAttemptHttpStatus": "UNKNOWN",
+  "furtherAiReviewRequests": 0,
+  "draftRequests": 0,
+  "libraryWrites": 0,
+  "rawResponseStored": false,
+  "limitation": "Structural counts do not identify which of the 51 other SSE events contained metadata or why completed response lacks recognized output."
+}
