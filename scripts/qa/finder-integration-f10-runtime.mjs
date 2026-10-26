@@ -43,6 +43,7 @@ try {
   report.checks.push("isolated identity and AppData");
   const flow = await evaluate(`(async()=>{
     const wait=async(test,label)=>{for(let i=0;i<80;i++){const value=test();if(value)return value;await new Promise(r=>setTimeout(r,100));}throw new Error('timeout:'+label)};
+    const browserErrors=[];window.addEventListener('error',event=>browserErrors.push(String(event.error?.message??event.message??'error')));window.addEventListener('unhandledrejection',event=>browserErrors.push(String(event.reason?.message??event.reason??'rejection')));
     const click=text=>{const node=[...document.querySelectorAll('button,summary')].find(el=>el.textContent.trim().includes(text));if(!node)throw new Error('missing:'+text);node.click();};
     const set=(labelText,value)=>{const label=[...document.querySelectorAll('label')].find(el=>el.textContent.includes(labelText));const node=label?.querySelector('input,textarea,select');if(!node)throw new Error('missing field:'+labelText);const setter=Object.getOwnPropertyDescriptor(Object.getPrototypeOf(node),'value').set;setter.call(node,value);node.dispatchEvent(new Event('input',{bubbles:true}));node.dispatchEvent(new Event('change',{bubbles:true}));};
     click('교육영상 Finder'); await wait(()=>document.querySelector('.aiv-finder'),'Finder');
@@ -56,7 +57,8 @@ try {
     await wait(()=>document.body.textContent.includes('저장된 교육 주제·대상을 불러왔습니다.'),'saved candidate reload');
     await wait(()=>[...document.querySelectorAll('button')].some(node=>node.textContent.trim()==='기안 초안으로 연결'&&!node.disabled),'enabled draft handoff');
     [...document.querySelectorAll('button')].find(node=>node.textContent.trim()==='기안 초안으로 연결'&&!node.disabled).click();
-    await wait(()=>document.body.textContent.includes('영상 Finder로 돌아가기')||document.body.textContent.includes('기존 기안 초안을 바꿀까요?'),'handoff transition');
+    let transitioned=false;for(let i=0;i<80;i++){transitioned=document.body.textContent.includes('영상 Finder로 돌아가기')||document.body.textContent.includes('기존 기안 초안을 바꿀까요?');if(transitioned)break;await new Promise(r=>setTimeout(r,100));}
+    if(!transitioned)throw new Error('handoff transition:'+JSON.stringify({browserErrors,inert:document.querySelector('.aiv-finder')?.parentElement?.hasAttribute('inert')??null}));
     if(document.body.textContent.includes('기존 기안 초안을 바꿀까요?'))click('영상으로 새 초안 작성');
     await wait(()=>document.body.textContent.includes('영상 Finder로 돌아가기'),'handoff');
     const rendered=[document.body.textContent,...[...document.querySelectorAll('input,textarea')].map(node=>node.value)].join(' '); if(!rendered.includes('합성 손씻기 교육영상')||!rendered.includes('https://www.youtube.com/watch?v=abcdefghijk'))throw new Error('verified handoff missing');
