@@ -268,3 +268,6 @@ fn ledger_when_current_is_corrupted_uses_last_known_good() {
 
     assert!(restored.is_some());
 }
+
+#[path = "output_fault_tests.rs"]
+mod fault_tests;

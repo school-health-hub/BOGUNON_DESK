@@ -24,6 +24,43 @@ pub(super) fn save_outputs(
     target_label: &str,
     request: OutputSaveRequest,
 ) -> Result<OutputSaveOutcome, String> {
+    save_outputs_with_io(
+        ledger_root,
+        target,
+        target_label,
+        request,
+        &mut |ledger, operations| ledger.save(operations),
+        &mut |path, bytes| atomic_write(path, bytes),
+    )
+}
+
+#[cfg(test)]
+pub(super) fn save_outputs_with_test_io(
+    ledger_root: &Path,
+    target: &Path,
+    target_label: &str,
+    request: OutputSaveRequest,
+    save_ledger: &mut impl FnMut(&OutputLedger<'_>, Vec<OperationRecord>) -> Result<(), String>,
+    write_output: &mut impl FnMut(&Path, &[u8]) -> Result<(), String>,
+) -> Result<OutputSaveOutcome, String> {
+    save_outputs_with_io(
+        ledger_root,
+        target,
+        target_label,
+        request,
+        save_ledger,
+        write_output,
+    )
+}
+
+fn save_outputs_with_io(
+    ledger_root: &Path,
+    target: &Path,
+    target_label: &str,
+    request: OutputSaveRequest,
+    save_ledger: &mut impl FnMut(&OutputLedger<'_>, Vec<OperationRecord>) -> Result<(), String>,
+    write_output: &mut impl FnMut(&Path, &[u8]) -> Result<(), String>,
+) -> Result<OutputSaveOutcome, String> {
     validate_request(&request)?;
     let canonical_target = safe_target(target)?;
     let ledger = OutputLedger::new(ledger_root);
@@ -59,7 +96,7 @@ pub(super) fn save_outputs(
             .collect(),
     };
     operations.push(record.clone());
-    ledger.save(operations.clone())?;
+    save_ledger(&ledger, operations.clone())?;
 
     for (index, artifact) in request.artifacts.iter().enumerate() {
         match save_artifact(
@@ -68,6 +105,7 @@ pub(super) fn save_outputs(
             &request.operation_id,
             artifact,
             request.collision_policy,
+            write_output,
         ) {
             Ok(status) => record.files[index].status = status,
             Err(reason) => {
@@ -76,7 +114,7 @@ pub(super) fn save_outputs(
             }
         }
         replace_record(&mut operations, &record);
-        if ledger.save(operations.clone()).is_err() {
+        if save_ledger(&ledger, operations.clone()).is_err() {
             record.status = OperationStatus::ReconciliationRequired;
             return Ok(OutputSaveOutcome::from(&record));
         }
@@ -84,7 +122,7 @@ pub(super) fn save_outputs(
 
     record.status = classify(&record.files);
     replace_record(&mut operations, &record);
-    if ledger.save(operations).is_err() {
+    if save_ledger(&ledger, operations).is_err() {
         record.status = OperationStatus::ReconciliationRequired;
     }
     Ok(OutputSaveOutcome::from(&record))
@@ -96,6 +134,7 @@ fn save_artifact(
     operation_id: &str,
     artifact: &OutputArtifactInput,
     collision_policy: CollisionPolicy,
+    write_output: &mut impl FnMut(&Path, &[u8]) -> Result<(), String>,
 ) -> Result<FileStatus, String> {
     let bytes = STANDARD
         .decode(&artifact.bytes_base64)
@@ -118,7 +157,7 @@ fn save_artifact(
             }
         }
     }
-    atomic_write(&destination, &bytes)?;
+    write_output(&destination, &bytes)?;
     if digest_file(&destination)? != artifact.sha256 {
         return Err("저장된 Newsletter 출력 해시가 일치하지 않습니다.".to_owned());
     }

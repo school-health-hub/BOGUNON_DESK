@@ -7,9 +7,11 @@ on:
     paths:
       - ".github/workflows/newsletter-ns3a-qa.yml"
       - "qa/newsletter/**"
+      - "src/newsletter/output/**"
       - "src/newsletter/rendering/**"
       - "src/newsletter-qa/**"
       - "vite.newsletter-qa.config.ts"
+      - "vite.newsletter-storage-qa.config.mjs"
 
 permissions:
   contents: read
@@ -44,3 +46,5 @@ jobs:
         run: npm run build
       - name: Build isolated Newsletter QA preview
         run: npx vite build --config vite.newsletter-qa.config.ts
+      - name: Build isolated Newsletter storage QA preview
+        run: npx vite build --config vite.newsletter-storage-qa.config.mjs
