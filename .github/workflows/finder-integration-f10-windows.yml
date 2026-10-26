@@ -35,6 +35,10 @@ jobs:
         with: { node-version: '22', cache: npm }
       - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249
         with: { toolchain: stable, targets: x86_64-pc-windows-msvc }
+      - uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c
+        with:
+          workspaces: src-tauri -> target
+          shared-key: finder-integration-f10-windows
       - name: Install locked frontend dependencies
         run: npm ci --no-audit --no-fund
       - name: Focused integration regressions
@@ -53,9 +57,9 @@ jobs:
           $env:TAURI_CONFIG = Get-Content src-tauri/tauri.finder-integration-qa.conf.json -Raw
           cargo build --locked --release --target x86_64-pc-windows-msvc --manifest-path src-tauri/Cargo.toml --features finder-integration-qa
           git diff --exit-code -- package-lock.json src-tauri/Cargo.lock
-          $exe='src-tauri/target/x86_64-pc-windows-msvc/release/bogunon-desk-finder-integration-qa.exe'
-          if (-not (Test-Path $exe)) { throw 'F-10 executable missing' }
-          Copy-Item $exe "$env:QA_ROOT/evidence/"
+          $exe='src-tauri/target/x86_64-pc-windows-msvc/release/school-health-desk.exe'
+          if (-not (Test-Path $exe)) { throw 'F-10 Cargo executable missing' }
+          Copy-Item $exe "$env:QA_ROOT/evidence/bogunon-desk-finder-integration-qa.exe"
           Copy-Item dist-finder-integration-qa/qa-build.json "$env:QA_ROOT/evidence/"
           $hash=(Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
           "$hash  bogunon-desk-finder-integration-qa.exe" | Set-Content "$env:QA_ROOT/evidence/SHA256SUMS.txt"
