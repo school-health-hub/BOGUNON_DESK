@@ -30,7 +30,8 @@ export type RenderIssue = { readonly kind: "overflow" | "missing-text" | "orphan
 export type RenderImage = { readonly slotId: string; readonly assetId?: string; readonly frame: Frame; readonly fit: "contain" | "cover" }
 export type RenderPage = {
   readonly pageId: string; readonly width: number; readonly height: number; readonly background: string; readonly templateVersion: number;
-  readonly title: RenderTextBlock; readonly body: RenderTextBlock; readonly lead?: RenderTextBlock; readonly closing?: RenderTextBlock;
+  readonly title: RenderTextBlock; readonly body: RenderTextBlock; readonly badge?: RenderTextBlock; readonly lead?: RenderTextBlock; readonly closing?: RenderTextBlock;
+  readonly topicOverview?: readonly RenderTextBlock[];
   readonly image: RenderImage; readonly accent?: string; readonly listMarkerStyle?: "source" | "number" | "dot" | "check"; readonly structured: boolean
 }
 export type RenderModule = {
@@ -65,6 +66,19 @@ function designRevision(design: NewsletterDesignState, revision: number): Design
 function isV2(snapshot: DesignSnapshot): snapshot is DesignSnapshotV2 { return "designSchemaVersion" in snapshot && snapshot.designSchemaVersion === 2 }
 function isV2Module(module: DesignSnapshot["a4Layout"]["modules"][number]): module is DesignSnapshotV2["a4Layout"]["modules"][number] { return "titleFrame" in module }
 function isV2Card(layout: DesignSnapshot["cardLayouts"][number]): layout is CardDesignLayoutV2 { return "leadFrame" in layout }
+const LIST_PREFIX = /^\s*(?:[-*•‣▪◦]|\d+[.)])\s+/u
+function actionText(actions: readonly string[], style: CardDesignLayoutV2["listMarkerStyle"]): string {
+  if (style === "source") return actions.join("\n")
+  return actions.map((action, index) => {
+    const source = action.replace(LIST_PREFIX, "")
+    const marker = style === "number" ? `${index + 1}.` : style === "check" ? "✓" : "•"
+    return `${marker} ${source}`
+  }).join("\n")
+}
+function expandedBodyFrame(leadFrame: Frame, actionFrame: Frame, hasLead: boolean): Frame {
+  if (hasLead) return actionFrame
+  return { ...actionFrame, y: leadFrame.y, height: actionFrame.y + actionFrame.height - leadFrame.y }
+}
 function verifyAssets(snapshot: DesignSnapshot): void {
   const assets = new Map(snapshot.assetManifest.map((asset) => [asset.id, asset]))
   for (const image of [...snapshot.cardLayouts.map((card) => card.image), ...snapshot.a4Layout.modules.map((module) => module.image)]) {
@@ -95,9 +109,9 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
     const structured = isV2Module(module)
     const content = structureCanonicalText(section.text)
     const titleFrame = structured ? module.titleFrame : { ...module.frame, height: 60 }
-    const bodyFrame = structured ? module.actionListFrame : { x: module.frame.x, y: module.frame.y + 72, width: module.frame.width, height: module.frame.height - 72 }
     const leadText = content.kind === "list" ? content.lead ?? "" : ""
-    const bodyText = content.kind === "list" ? content.actions.join("\n") : content.body
+    const bodyFrame = structured ? expandedBodyFrame(module.leadFrame, module.actionListFrame, leadText.length > 0) : { x: module.frame.x, y: module.frame.y + 72, width: module.frame.width, height: module.frame.height - 72 }
+    const bodyText = content.kind === "list" ? actionText(content.actions, structured ? module.listMarkerStyle : "source") : content.body
     const provenance = { kind: "canonical-section", sectionId: section.id, sourceText: section.text } as const
     return {
       moduleId: module.moduleId, moduleFrame: module.frame, topicId: section.topicId, sectionId: section.id, structured,
@@ -114,14 +128,26 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
     const content = structureCanonicalText(source)
     const structured = isV2Card(layout)
     const leadText = content.kind === "list" ? content.lead ?? "" : ""
-    const bodyText = content.kind === "list" ? content.actions.join("\n") : content.body
+    const bodyText = content.kind === "list" ? actionText(content.actions, structured ? layout.listMarkerStyle : "source") : content.body
     const provenance: TextProvenance = section === undefined ? { kind: "project-title" } : { kind: "canonical-section", sectionId: section.id, sourceText: section.text }
     const title = index === 0 ? project.title : section === undefined ? "" : titles.get(section.topicId) ?? ""
+    const bodyFrame = structured ? expandedBodyFrame(layout.leadFrame, layout.actionListFrame, leadText.length > 0) : layout.bodyFrame
+    const badgeStyle = { ...layout.bodyStyle, fontSize: Math.min(20, layout.bodyStyle.fontSize), fontWeight: 700, lineHeight: 1.2, color: structured ? layout.accent : layout.titleStyle.color, align: "left" as const }
+    const badgeFrame = { x: 88, y: 72, width: 420, height: 36 }
+    const topicOverview = index === 0 && structured ? project.topics.map((topic, topicIndex) => {
+      const column = topicIndex % 2
+      const row = Math.floor(topicIndex / 2)
+      const tile = { x: layout.actionListFrame.x + column * (layout.actionListFrame.width / 2 + 10), y: layout.actionListFrame.y + row * 122, width: layout.actionListFrame.width / 2 - 10, height: 94 }
+      const frame = { x: tile.x + 16, y: tile.y + 14, width: tile.width - 32, height: tile.height - 28 }
+      return block(`${layout.pageId}-topic-${topic.id}`, layout.pageId, topic.title, frame, { ...layout.bodyStyle, fontSize: 25, fontWeight: 700, lineHeight: 1.3, color: layout.titleStyle.color, align: "left" }, { kind: "topic-title", topicId: topic.id }, issues, input.measureText)
+    }) : undefined
     return {
       pageId: layout.pageId, width: 1200, height: 1200, background: layout.background, templateVersion: snapshot.templateVersion, structured,
       title: block(`${layout.pageId}-title`, layout.pageId, title, layout.titleFrame, layout.titleStyle, index === 0 ? { kind: "project-title" } : { kind: "topic-title", topicId: section?.topicId ?? "missing" }, issues, input.measureText),
+      ...(structured ? { badge: block(`${layout.pageId}-badge`, layout.pageId, snapshot.publicationMeta.issueLabel, badgeFrame, badgeStyle, { kind: "publication-meta" }, issues, input.measureText, false) } : {}),
       ...(structured && leadText.length > 0 ? { lead: block(`${layout.pageId}-lead`, layout.pageId, leadText, layout.leadFrame, layout.bodyStyle, provenance, issues, input.measureText, false) } : {}),
-      body: block(`${layout.pageId}-body`, layout.pageId, bodyText, structured ? layout.actionListFrame : layout.bodyFrame, layout.bodyStyle, provenance, issues, input.measureText),
+      body: block(`${layout.pageId}-body`, layout.pageId, bodyText, bodyFrame, layout.bodyStyle, provenance, issues, input.measureText),
+      ...(topicOverview === undefined ? {} : { topicOverview }),
       ...(structured ? { closing: block(`${layout.pageId}-closing`, layout.pageId, "", layout.closingFrame, layout.bodyStyle, provenance, issues, input.measureText, false), accent: layout.accent, listMarkerStyle: layout.listMarkerStyle } : {}),
       image: layout.image,
     }

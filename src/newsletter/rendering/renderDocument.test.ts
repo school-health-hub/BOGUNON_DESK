@@ -3,7 +3,7 @@ import { applyUserEdit } from "../editing"
 import { canonicalJson, semanticHashSync } from "../hash"
 import { createNewsletterProject } from "../project"
 import { createNewsletterDesignState } from "./designSchema"
-import { restoreDesignRevision, updateCardLayout } from "./designState"
+import { restoreDesignRevision, updateCardLayout, upgradeNewsletterDesignStateV2 } from "./designState"
 import { RenderAssetNotApprovedError, compileRenderDocument } from "./renderDocument"
 
 const NOW = "2026-01-01T00:00:00.000Z"
@@ -66,6 +66,19 @@ describe("Newsletter render document", () => {
 
     // When / Then
     expect(() => compileRenderDocument({ project, projectRevision: 1, design, designRevision: 1 })).toThrow(RenderAssetNotApprovedError)
+  })
+
+  it("preserves one to four explicit actions and changes only their presentation markers", async () => {
+    const source = "실천 안내\n1. 물 자주 마시기\n2. 손 씻기\n3. 충분히 자기\n4. 아프면 알리기"
+    const topics = Array.from({ length: 6 }, (_, index) => ({ id: `topic-${index + 1}`, title: `주제 ${index + 1}`, text: index === 0 ? source : `일반 문장 ${index + 1}` }))
+    const project = await createNewsletterProject({ projectId: "project-1", title: "합성 소식지", topics, now: NOW })
+    const v2 = upgradeNewsletterDesignStateV2(createNewsletterDesignState({ projectId: project.projectId, canonicalProjectRevision: 1, now: NOW }), "2026-01-02T00:00:00.000Z")
+    const marked = updateCardLayout(v2, { cardIndex: 1, patch: { listMarkerStyle: "check" }, now: "2026-01-03T00:00:00.000Z" })
+    const document = compileRenderDocument({ project, projectRevision: 1, design: marked, designRevision: 3 })
+
+    expect(document.cards[1]?.lead?.text).toBe("실천 안내")
+    expect(document.cards[1]?.body.text).toBe("✓ 물 자주 마시기\n✓ 손 씻기\n✓ 충분히 자기\n✓ 아프면 알리기")
+    expect(document.cards[1]?.body.provenance).toMatchObject({ kind: "canonical-section", sourceText: source })
   })
 })
 

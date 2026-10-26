@@ -1,22 +1,16 @@
 import { useMemo, useState } from "react"
-import { updateCardLayout, restoreDesignRevision } from "./designState"
-import type { NewsletterDesignState } from "./designSchema"
-import { compileRenderDocument } from "./renderDocument"
 import type { NewsletterProject } from "../schema"
+import { NewsletterDesignControls } from "./NewsletterDesignControls"
+import { restoreDesignRevision, upgradeNewsletterDesignStateV2 } from "./designState"
+import type { NewsletterDesignState, NewsletterDesignStateV2, NewsletterDesignStateV1 } from "./designSchema"
 import { A4Preview, CardPreview } from "./NewsletterPreview"
+import { compileRenderDocument } from "./renderDocument"
 import type { TextMeasurer } from "./typography"
 
-type EditorProps = {
-  readonly project: NewsletterProject
-  readonly initialDesign: NewsletterDesignState
-}
+type EditorProps = { readonly project: NewsletterProject; readonly initialDesign: NewsletterDesignState }
 
-export function NewsletterDesignEditor({ project, initialDesign }: EditorProps) {
-  const [design, setDesign] = useState(initialDesign)
-  const [selectedCard, setSelectedCard] = useState(0)
-  const [mode, setMode] = useState<"a4" | "cards">("a4")
-  const [compare, setCompare] = useState(false)
-  const measureText = useMemo<TextMeasurer>(() => {
+function useTextMeasurer(): TextMeasurer {
+  return useMemo<TextMeasurer>(() => {
     if (typeof CanvasRenderingContext2D === "undefined") return (text, style) => style.fontSize * [...text].length
     const context = document.createElement("canvas").getContext("2d")
     return (text, style) => {
@@ -25,53 +19,49 @@ export function NewsletterDesignEditor({ project, initialDesign }: EditorProps) 
       return context.measureText(text).width
     }
   }, [])
+}
+
+export function NewsletterDesignEditor({ project, initialDesign }: EditorProps) {
+  const [design, setDesign] = useState(initialDesign)
+  const [selectedCard, setSelectedCard] = useState(0)
+  const [selectedModule, setSelectedModule] = useState(0)
+  const [mode, setMode] = useState<"a4" | "cards">("a4")
+  const [compare, setCompare] = useState(false)
+  const [upgradeCandidate, setUpgradeCandidate] = useState<NewsletterDesignStateV2>()
+  const measureText = useTextMeasurer()
   const current = useMemo(() => compileRenderDocument({ project, projectRevision: design.canonicalProjectRevision, design, designRevision: design.designRevision, measureText }), [design, measureText, project])
-  const baseline = useMemo(() => compileRenderDocument({ project, projectRevision: initialDesign.canonicalProjectRevision, design: initialDesign, designRevision: 1, measureText }), [initialDesign, measureText, project])
-  const layout = design.cardLayouts[selectedCard]
-  const card = current.cards[selectedCard]
+  const baseline = useMemo(() => compileRenderDocument({ project, projectRevision: initialDesign.canonicalProjectRevision, design: initialDesign, designRevision: initialDesign.designRevision, measureText }), [initialDesign, measureText, project])
+  const upgradePreview = useMemo(() => upgradeCandidate === undefined ? undefined : compileRenderDocument({ project, projectRevision: upgradeCandidate.canonicalProjectRevision, design: upgradeCandidate, designRevision: upgradeCandidate.designRevision, measureText }), [measureText, project, upgradeCandidate])
+  const card = current.cards[selectedCard] ?? current.cards[0]
+  if (card === undefined) return <main role="alert">카드 레이아웃을 불러올 수 없습니다.</main>
 
-  if (layout === undefined || card === undefined) return <main role="alert">카드 레이아웃을 불러올 수 없습니다.</main>
-
-  const changeCard = (patch: Parameters<typeof updateCardLayout>[1]["patch"]): void => {
-    setDesign((previous) => updateCardLayout(previous, { cardIndex: selectedCard, patch, now: new Date().toISOString() }))
+  const requestUpgrade = (): void => setUpgradeCandidate(upgradeNewsletterDesignStateV2(design as NewsletterDesignStateV1, new Date().toISOString()))
+  const confirmUpgrade = (): void => {
+    if (upgradeCandidate === undefined) return
+    setDesign(upgradeCandidate)
+    setUpgradeCandidate(undefined)
+    setCompare(true)
   }
 
   return <main className="newsletter-studio">
-    <header className="studio-header">
-      <div><span className="eyebrow">NEWSLETTER STUDIO · NS-3A QA</span><h1>보건소식지 디자인 렌더러</h1><p>합성 데이터와 미승인 자산 placeholder만 사용하는 독립 검증 화면입니다.</p></div>
-      <div className="revision-chip">Design revision <strong>{design.designRevision}</strong></div>
-    </header>
-
-    <nav className="mode-tabs" aria-label="미리보기 종류">
-      <button type="button" aria-pressed={mode === "a4"} onClick={() => setMode("a4")}>A4 1장</button>
-      <button type="button" aria-pressed={mode === "cards"} onClick={() => setMode("cards")}>카드뉴스 7장</button>
-      <button type="button" aria-pressed={compare} onClick={() => setCompare((value) => !value)}>변경 전후 비교</button>
-    </nav>
-
+    <header className="studio-header"><div><span className="eyebrow">NEWSLETTER STUDIO · NS-3E</span><h1>보건소식지 디자인 편집기</h1><p>동일한 Scene으로 A4와 카드뉴스를 미리보고 출력합니다.</p></div><div className="revision-summary"><span className="schema-chip">Design V{design.designSchemaVersion}</span><span className="revision-chip">Revision <strong>{design.designRevision}</strong></span></div></header>
+    <nav className="mode-tabs" aria-label="미리보기 종류"><button type="button" aria-pressed={mode === "a4"} onClick={() => setMode("a4")}>A4 1장</button><button type="button" aria-pressed={mode === "cards"} onClick={() => setMode("cards")}>카드뉴스 7장</button><button type="button" aria-pressed={compare} onClick={() => setCompare((value) => !value)}>변경 전후 비교</button></nav>
     <section className="studio-body">
       <aside className="editor-panel" aria-label="디자인 편집기">
-        <h2>디자인 설정</h2>
-        {mode === "cards" && <div className="card-picker" aria-label="카드 선택">{current.cards.map((item, index) => <button type="button" key={item.pageId} aria-pressed={selectedCard === index} onClick={() => setSelectedCard(index)}>{index === 0 ? "표지" : `${index}번`}</button>)}</div>}
-        <label>배경색<input aria-label="배경색" type="color" value={layout.background} onChange={(event) => changeCard({ background: event.target.value })} /></label>
-        <label>제목 글자 크기<input aria-label="제목 글자 크기" type="range" min="28" max="96" value={layout.titleStyle.fontSize} onChange={(event) => changeCard({ titleStyle: { fontSize: Number(event.target.value) } })} /></label>
-        <label>본문 글자 크기<input aria-label="본문 글자 크기" type="range" min="18" max="54" value={layout.bodyStyle.fontSize} onChange={(event) => changeCard({ bodyStyle: { fontSize: Number(event.target.value) } })} /></label>
-        <label>제목 색상<input aria-label="제목 색상" type="color" value={layout.titleStyle.color} onChange={(event) => changeCard({ titleStyle: { color: event.target.value } })} /></label>
-        <label>제목 가로 위치<input aria-label="제목 가로 위치" type="range" min="40" max="300" value={layout.titleFrame.x} onChange={(event) => changeCard({ titleFrame: { x: Number(event.target.value) } })} /></label>
-        <label>본문 정렬<select aria-label="본문 정렬" value={layout.bodyStyle.align} onChange={(event) => changeCard({ bodyStyle: { align: event.target.value === "center" ? "center" : event.target.value === "right" ? "right" : "left" } })}><option value="left">왼쪽</option><option value="center">가운데</option><option value="right">오른쪽</option></select></label>
-        <div className="asset-status"><strong>이미지 슬롯</strong><span>{layout.image.assetId === undefined ? "승인된 자산 없음 · placeholder" : layout.image.assetId}</span></div>
+        <div className="panel-heading"><span>DESIGN SIDECAR</span><h2>디자인 설정</h2></div>
+        {design.designSchemaVersion === 1 ? <section className="upgrade-card"><span className="upgrade-kicker">V2 LAYOUT AVAILABLE</span><h3>겹침 없는 구조형 레이아웃</h3><p>6개 A4 모듈과 7개 카드에 lead·목록·삽화·마무리 프레임을 분리합니다. 원고와 기존 revision은 그대로 보존됩니다.</p><ul><li>Canonical revision {design.canonicalProjectRevision} 변경 없음</li><li>기존 revision {design.revisionHistory.length}개 보존</li><li>확인 후에만 새 revision 생성</li></ul><button type="button" className="primary-action" onClick={requestUpgrade}>V2 디자인 검토</button></section> : <>
+          <section className="selection-block"><span className="control-label">{mode === "a4" ? "편집할 A4 주제" : "편집할 카드"}</span><div className={mode === "a4" ? "module-picker" : "card-picker"} aria-label={mode === "a4" ? "A4 주제 선택" : "카드 선택"}>{(mode === "a4" ? current.a4.modules : current.cards).map((item, index) => <button type="button" key={"moduleId" in item ? item.moduleId : item.pageId} aria-pressed={(mode === "a4" ? selectedModule : selectedCard) === index} onClick={() => mode === "a4" ? setSelectedModule(index) : setSelectedCard(index)}>{mode === "a4" ? `${index + 1}` : index === 0 ? "표지" : `${index}`}</button>)}</div></section>
+          <NewsletterDesignControls design={design} mode={mode} selectedIndex={mode === "a4" ? selectedModule : selectedCard} onChange={setDesign} />
+          <div className="asset-status"><strong>이미지 슬롯</strong><span>승인된 자산 없음 · 중립 placeholder 사용</span></div>
+        </>}
         <label>Revision 복원<select aria-label="Revision 복원" value="" onChange={(event) => { if (event.target.value !== "") setDesign((previous) => restoreDesignRevision(previous, { revision: Number(event.target.value), now: new Date().toISOString() })) }}><option value="">복원할 revision 선택</option>{design.revisionHistory.slice(0, -1).map((entry) => <option key={entry.revision} value={entry.revision}>Revision {entry.revision}</option>)}</select></label>
       </aside>
-
       <section className="preview-panel">
-        <div className={compare ? "preview-grid compare" : "preview-grid"}>
-          {compare && <article><h2>변경 전</h2>{mode === "a4" ? <A4Preview document={baseline} /> : <CardPreview page={baseline.cards[selectedCard] ?? baseline.cards[0]} />}</article>}
-          <article><h2>{compare ? "현재" : mode === "a4" ? "A4 미리보기" : `${selectedCard === 0 ? "표지" : `${selectedCard}번 카드`} 미리보기`}</h2>{mode === "a4" ? <A4Preview document={current} /> : <CardPreview page={card} />}</article>
-        </div>
-        <section className={current.issues.length === 0 ? "validation-panel valid" : "validation-panel invalid"} aria-live="polite">
-          <h2>조판 검증</h2>
-          {current.issues.length === 0 ? <p>overflow와 누락 텍스트가 없습니다.</p> : <ul>{current.issues.map((issue) => <li key={`${issue.pageId}-${issue.blockId}`}>{issue.pageId} · {issue.message}</li>)}</ul>}
-        </section>
+        <div className="preview-toolbar"><div><span className="preview-kicker">LIVE SCENE</span><h2>{mode === "a4" ? "A4 보건소식지" : selectedCard === 0 ? "카드뉴스 표지" : `주제 카드 ${selectedCard}`}</h2></div><span className={current.issues.length === 0 ? "status-pill valid" : "status-pill invalid"}>{current.issues.length === 0 ? "출력 가능" : `${current.issues.length}개 수정 필요`}</span></div>
+        <div className={compare ? "preview-grid compare" : "preview-grid"}>{compare && <article><div className="preview-caption"><span>BEFORE</span><strong>Revision {initialDesign.designRevision}</strong></div>{mode === "a4" ? <A4Preview document={baseline} /> : <CardPreview page={baseline.cards[selectedCard] ?? baseline.cards[0] ?? card} />}</article>}<article><div className="preview-caption"><span>CURRENT</span><strong>Revision {design.designRevision}</strong></div>{mode === "a4" ? <A4Preview document={current} /> : <CardPreview page={card} />}</article></div>
+        <section className={current.issues.length === 0 ? "validation-panel valid" : "validation-panel invalid"} aria-live="polite"><h2>조판 검증</h2>{current.issues.length === 0 ? <p>Scene 충돌, overflow, 누락 텍스트가 없습니다.</p> : <ul>{current.issues.map((issue) => <li key={`${issue.pageId}-${issue.blockId}-${issue.kind}`}><strong>{issue.pageId}</strong> · {issue.message}</li>)}</ul>}</section>
       </section>
     </section>
+    {upgradeCandidate !== undefined && upgradePreview !== undefined && <div className="upgrade-dialog-backdrop" role="presentation"><section className="upgrade-dialog" role="dialog" aria-modal="true" aria-labelledby="upgrade-title"><div className="dialog-copy"><span className="upgrade-kicker">EXPLICIT UPGRADE</span><h2 id="upgrade-title">V2 디자인으로 전환할까요?</h2><p>원고는 바뀌지 않으며 V1 snapshot이 revision history에 남습니다. 아래 비교는 전환 전과 새 구조형 A4입니다.</p></div><div className="upgrade-comparison"><article><span>V1 · 현재</span><A4Preview document={current} /></article><article><span>V2 · 전환 예정</span><A4Preview document={upgradePreview} /></article></div><div className="dialog-actions"><button type="button" onClick={() => setUpgradeCandidate(undefined)}>취소</button><button type="button" className="primary-action" onClick={confirmUpgrade}>V2로 전환</button></div></section></div>}
   </main>
 }

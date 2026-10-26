@@ -2,7 +2,7 @@ import { semanticHashSync } from "../hash"
 import type { Frame, RenderDocument, RenderImage, RenderPage, RenderTextBlock, TextProvenance } from "./renderDocument"
 import type { TextStyle } from "./designSchema"
 
-export const NEWSLETTER_PLACEHOLDER_DATA_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' fill='%23e7ece9'/%3E%3Cpath d='M16 42l10-12 8 8 7-9 9 13z' fill='%2399aaa2'/%3E%3C/svg%3E"
+export const NEWSLETTER_PLACEHOLDER_DATA_URL = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='260' viewBox='0 0 320 260'%3E%3Crect width='320' height='260' rx='28' fill='%23f3eee3'/%3E%3Ccircle cx='251' cy='61' r='34' fill='%23f2cf9f'/%3E%3Cpath d='M64 199c54-16 67-62 91-116 32 44 42 90 101 116' fill='none' stroke='%237ca28d' stroke-width='8' stroke-linecap='round'/%3E%3Cpath d='M151 103c-29-22-55-14-69 11 31 9 53 4 69-11zm8 33c28-23 56-17 72 6-29 12-52 9-72-6z' fill='%23b9d1c1'/%3E%3Cpath d='M36 219h248' stroke='%23d6cdbd' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E"
 
 type SceneBase = { readonly layerId: string; readonly frame: Frame; readonly zOrder: number; readonly clipBounds: Frame; readonly collisionGroup?: string }
 export type TextSceneLayer = SceneBase & { readonly kind: "text"; readonly text: string; readonly lines: readonly string[]; readonly style: TextStyle; readonly provenance: TextProvenance }
@@ -28,11 +28,19 @@ export function buildCardScene(page: RenderPage): NewsletterPageScene {
   const content = `content-${page.pageId}`
   const layers: SceneLayer[] = [
     { kind: "shape", layerId: `${page.pageId}-background`, frame: bounds, zOrder: 0, clipBounds: bounds, fill: page.background },
-    ...(page.accent === undefined ? [] : [{ kind: "shape" as const, layerId: `${page.pageId}-accent`, frame: { x: 60, y: 60, width: 12, height: 1080 }, zOrder: 1, clipBounds: safe, fill: page.accent, radius: 6 }]),
+    ...(page.accent === undefined ? [] : [
+      { kind: "shape" as const, layerId: `${page.pageId}-accent`, frame: { x: 60, y: 60, width: 12, height: 1080 }, zOrder: 1, clipBounds: safe, fill: page.accent, radius: 6 },
+      { kind: "shape" as const, layerId: `${page.pageId}-image-mat`, frame: { x: page.image.frame.x - 12, y: page.image.frame.y - 12, width: page.image.frame.width + 24, height: page.image.frame.height + 24 }, zOrder: 8, clipBounds: safe, fill: "#fffdf8", stroke: page.accent, radius: 26 },
+    ]),
+    ...(page.badge === undefined ? [] : [{ kind: "shape" as const, layerId: `${page.pageId}-badge-surface`, frame: { ...page.badge.frame, x: page.badge.frame.x - 16, width: page.badge.frame.width + 24 }, zOrder: 8, clipBounds: safe, fill: "#fffdf8", stroke: page.accent ?? "#d8e2dc", radius: 18 }]),
     imageLayer(page.pageId, page.image, 10, safe, content),
     textLayer(page.title, 20, safe, content),
+    ...(nonEmpty(page.badge) ? [textLayer(page.badge, 20, safe, content)] : []),
     ...(nonEmpty(page.lead) ? [textLayer(page.lead, 21, safe, content)] : []),
-    textLayer(page.body, 22, safe, content),
+    ...(page.topicOverview === undefined ? [textLayer(page.body, 22, safe, content)] : page.topicOverview.flatMap((topic, index): readonly SceneLayer[] => [
+      { kind: "shape", layerId: `${topic.id}-surface`, frame: { x: topic.frame.x - 16, y: topic.frame.y - 14, width: topic.frame.width + 32, height: topic.frame.height + 28 }, zOrder: 18, clipBounds: safe, fill: index % 2 === 0 ? "#fffdf8" : "#f7f2e8", stroke: page.accent ?? "#d8e2dc", radius: 18 },
+      textLayer(topic, 22, safe, content),
+    ])),
     ...(nonEmpty(page.closing) ? [textLayer(page.closing, 23, safe, content)] : []),
   ]
   return { pageId: page.pageId, width: page.width, height: page.height, templateVersion: page.templateVersion, layers }
@@ -54,7 +62,9 @@ export function buildA4PageScene(page: RenderDocument["a4"]): NewsletterPageScen
     ...page.modules.flatMap((module, index): readonly SceneLayer[] => {
       const group = `a4-module-${index + 1}`
       return [
-        { kind: "shape", layerId: `${module.moduleId}-surface`, frame: module.moduleFrame, zOrder: 2, clipBounds: safe, fill: "#ffffff", stroke: module.accent ?? "#d8e2dc", radius: 18 },
+        { kind: "shape", layerId: `${module.moduleId}-surface`, frame: module.moduleFrame, zOrder: 2, clipBounds: safe, fill: "#fffdf8", stroke: module.accent ?? "#d8e2dc", radius: 18 },
+        ...(module.accent === undefined ? [] : [{ kind: "shape" as const, layerId: `${module.moduleId}-accent`, frame: { x: module.moduleFrame.x, y: module.moduleFrame.y, width: module.moduleFrame.width, height: 8 }, zOrder: 3, clipBounds: module.moduleFrame, fill: module.accent, radius: 4 }]),
+        { kind: "shape", layerId: `${module.moduleId}-image-mat`, frame: { x: module.image.frame.x - 8, y: module.image.frame.y - 8, width: module.image.frame.width + 16, height: module.image.frame.height + 16 }, zOrder: 8, clipBounds: module.moduleFrame, fill: "#f7f2e8", stroke: module.accent ?? "#d8e2dc", radius: 16 },
         imageLayer("a4-page", module.image, 10, module.moduleFrame, group),
         textLayer(module.title, 20, module.moduleFrame, group),
         ...(nonEmpty(module.lead) ? [textLayer(module.lead, 21, module.moduleFrame, group)] : []),
