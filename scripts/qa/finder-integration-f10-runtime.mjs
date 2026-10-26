@@ -26,10 +26,10 @@ try {
   socket = new WebSocket(endpoint);
   await new Promise((ok, fail) => { const timer = setTimeout(() => fail(new Error("CDP connection timeout")), 10_000); socket.addEventListener("open", () => { clearTimeout(timer); ok(); }, { once: true }); socket.addEventListener("error", fail, { once: true }); });
   let sequence = 0;
-  const command = (method, params = {}) => new Promise((ok, fail) => { const id = ++sequence; const listener = event => { const message = JSON.parse(event.data); if (message.id !== id) return; socket.removeEventListener("message", listener); if (message.error || message.result?.exceptionDetails) fail(new Error(`${method} failed`)); else ok(message.result); }; socket.addEventListener("message", listener); socket.send(JSON.stringify({ id, method, params })); setTimeout(() => { socket.removeEventListener("message", listener); fail(new Error(`${method} timeout`)); }, 15_000); });
+  const command = (method, params = {}) => new Promise((ok, fail) => { const id = ++sequence; const listener = event => { const message = JSON.parse(event.data); if (message.id !== id) return; socket.removeEventListener("message", listener); if (message.error || message.result?.exceptionDetails) { const detail = message.error?.message ?? message.result?.exceptionDetails?.exception?.description ?? message.result?.exceptionDetails?.text ?? "unknown"; fail(new Error(`${method} failed: ${detail}`)); } else ok(message.result); }; socket.addEventListener("message", listener); socket.send(JSON.stringify({ id, method, params })); setTimeout(() => { socket.removeEventListener("message", listener); fail(new Error(`${method} timeout`)); }, 15_000); });
   const evaluate = async expression => (await command("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true })).result.value;
   await command("Runtime.enable"); await command("Page.enable");
-  const state = await evaluate(`(async()=>{for(let i=0;i<80&&!document.querySelector('[data-education-video-launcher]');i++)await new Promise(r=>setTimeout(r,250));return {info:await window.__TAURI_INTERNALS__.invoke('finder_integration_qa_info'),ready:!!document.querySelector('[data-education-video-launcher]')}})()`);
+  const state = await evaluate(`(async()=>{for(let i=0;i<80&&!document.querySelector('[data-education-video-launcher]');i++)await new Promise(r=>setTimeout(r,250));return {info:await window.__FINDER_INTEGRATION_QA__.info(),ready:!!document.querySelector('[data-education-video-launcher]')}})()`);
   if (!state.ready || state.info.identifier !== identifier || state.info.sourceSha !== expectedSource || !state.info.integrationsDisabled || resolve(state.info.localData) !== resolve(localData)) throw new Error("F-10 isolation handshake failed");
   report.checks.push("isolated identity and AppData");
   const flow = await evaluate(`(async()=>{
@@ -48,7 +48,7 @@ try {
     const rendered=[document.body.textContent,...[...document.querySelectorAll('input,textarea')].map(node=>node.value)].join(' '); if(!rendered.includes('합성 손씻기 교육영상')||!rendered.includes('https://www.youtube.com/watch?v=abcdefghijk'))throw new Error('verified handoff missing');
     click('영상 Finder로 돌아가기'); click('보건 업무로'); await wait(()=>document.querySelector('[data-education-video-launcher]'),'toolbox return');
     const other=[...document.querySelectorAll('.toolbox-panel__launch')].find(el=>!el.hasAttribute('data-education-video-launcher'));other.click(); await wait(()=>document.body.textContent.includes('다른 도구 이동 상태'),'other tool'); click('업무 도구로 돌아가기'); click('교육영상 Finder'); await wait(()=>document.querySelector('.aiv-finder'),'Finder reentry');
-    const exported=JSON.parse(await window.__TAURI_INTERNALS__.invoke('education_video_library_export'));
+    const exported=JSON.parse(await window.__FINDER_INTEGRATION_QA__.exportLibrary());
     const entry=exported.entries.find(row=>row.videoId==='abcdefghijk');
     if(exported.version!==2||!entry||entry.candidateRecord.provenance!=='teacher-confirmed')throw new Error('library v2/provenance mismatch');
     return {candidateCount:document.querySelectorAll('.aiv-cards article').length,libraryVersion:exported.version,videoId:entry.videoId,provenance:entry.candidateRecord.provenance};
