@@ -1,0 +1,57 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "BOGUNON DESK SURFACE QA",
+  "identifier": "kr.sungandi.schoolhealthdesk.surfaceqa",
+  "mainBinaryName": "bogunon-desk-surface-qa",
+  "build": {
+    "beforeDevCommand": null,
+    "devUrl": null,
+    "beforeBuildCommand": "npm run build:surface:qa-main",
+    "frontendDist": "../dist-surface-qa-main"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "BOGUNON DESK SURFACE QA — SYNTHETIC ONLY",
+        "width": 980,
+        "height": 700,
+        "minWidth": 800,
+        "minHeight": 600,
+        "center": true
+      }
+    ],
+    "security": {
+      "capabilities": [
+        {
+          "identifier": "desktop-surface-qa-main",
+          "description": "Minimal local-only capability for the synthetic Surface QA Main shell.",
+          "windows": ["main"],
+          "permissions": []
+        }
+      ],
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self'",
+        "style-src": "'self' 'unsafe-inline'",
+        "font-src": "'self'",
+        "img-src": "'self' data:",
+        "connect-src": "'self' ipc: http://ipc.localhost",
+        "object-src": "'none'",
+        "frame-src": "'none'",
+        "frame-ancestors": "'none'",
+        "base-uri": "'none'",
+        "form-action": "'none'",
+        "worker-src": "'none'"
+      },
+      "devCsp": null
+    }
+  },
+  "plugins": {
+    "updater": null,
+    "deep-link": null
+  },
+  "bundle": {
+    "active": false
+  }
+}

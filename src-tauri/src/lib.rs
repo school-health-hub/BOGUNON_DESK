@@ -9,6 +9,9 @@ use tauri_plugin_autostart::{MacosLauncher, ManagerExt as AutostartManagerExt};
 #[cfg(all(debug_assertions, windows))]
 use tauri_plugin_deep_link::DeepLinkExt;
 
+#[cfg(all(feature = "my-finance-qa", feature = "desktop-surface-qa"))]
+compile_error!("MY FINANCE QA and Desktop Surface QA features are mutually exclusive");
+
 mod ai;
 mod ai_generation;
 mod auth;
@@ -242,7 +245,12 @@ mod my_finance_qa;
 #[cfg(feature = "my-finance-qa")]
 pub use my_finance_qa::run;
 
-#[cfg(not(feature = "my-finance-qa"))]
+#[cfg(feature = "desktop-surface-qa")]
+mod desktop_surface_qa;
+#[cfg(feature = "desktop-surface-qa")]
+pub use desktop_surface_qa::run;
+
+#[cfg(not(any(feature = "my-finance-qa", feature = "desktop-surface-qa")))]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = main_security::configure(tauri::Builder::default());

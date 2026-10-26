@@ -92,6 +92,24 @@ pub fn launch_qa_surface(app: &AppHandle, state: &SurfaceRuntimeState) -> Result
     if !qa_launch_requested() {
         return Ok(());
     }
+    launch_surface(app, state)
+}
+
+/// Launches the fixed sibling host for the dedicated QA binary.
+///
+/// Unlike the production-only diagnostic hook, the isolated QA entrypoint is
+/// already an explicit authorization boundary and must not mutate process,
+/// user, or machine environment state to opt in.
+#[cfg(windows)]
+pub fn launch_desktop_surface_qa(
+    app: &AppHandle,
+    state: &SurfaceRuntimeState,
+) -> Result<(), String> {
+    launch_surface(app, state)
+}
+
+#[cfg(windows)]
+fn launch_surface(app: &AppHandle, state: &SurfaceRuntimeState) -> Result<(), String> {
     let main_executable = std::env::current_exe().map_err(|error| error.to_string())?;
     let host = fixed_host_path(&main_executable)
         .filter(|path| path.is_file())

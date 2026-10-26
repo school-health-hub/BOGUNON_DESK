@@ -1,0 +1,164 @@
+name: Desktop Surface S-2F-1 portable QA build
+
+on:
+  push:
+    branches:
+      - integration/desktop-surface-s2
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-surface-s2f1-portable-qa-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-portable-qa:
+    if: ${{ github.event_name == 'push' && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/integration/desktop-surface-s2' && github.run_attempt == 1 }}
+    runs-on: windows-2022
+    timeout-minutes: 90
+    env:
+      CI: 'true'
+      CARGO_TERM_COLOR: never
+      BOGUNON_SURFACE_QA_SOURCE_SHA: ${{ github.sha }}
+
+    steps:
+      - name: Check out exact pushed source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Bind checkout provenance before installing dependencies
+        shell: pwsh
+        run: |
+          $checkoutHead = (git rev-parse HEAD).Trim().ToLowerInvariant()
+          if ($checkoutHead -cne $env:GITHUB_SHA.ToLowerInvariant()) { throw 'Checked-out HEAD does not match the pushed source SHA' }
+          if ($env:BOGUNON_SURFACE_QA_SOURCE_SHA.ToLowerInvariant() -cne $checkoutHead) { throw 'QA source binding mismatch' }
+          if ($env:GITHUB_RUN_ATTEMPT -cne '1') { throw 'Only the first run attempt may produce a portable QA artifact' }
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Set up Rust MSVC
+        uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Verify hosted native prerequisites
+        shell: pwsh
+        run: |
+          perl --version
+          if ($LASTEXITCODE -ne 0) { throw 'Perl is required for the vendored OpenSSL build' }
+          nasm -v
+          if ($LASTEXITCODE -ne 0) { throw 'NASM is required for the vendored OpenSSL build' }
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+          $visualStudio = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if ($LASTEXITCODE -ne 0 -or -not $visualStudio) { throw 'MSVC x64 build tools are required' }
+
+      - name: Install locked frontend dependencies
+        run: npm ci --loglevel=error
+
+      - name: Verify QA isolation contracts
+        shell: pwsh
+        run: |
+          node --test scripts/desktop-surface-s2f1-portable-qa-contract.test.mjs
+          node --test scripts/surface-qa-frontend-contract.test.mjs
+          node --test src-tauri/tests/desktop-surface-qa-contract.test.mjs
+          npx vitest run scripts/package-surface-qa-portable.test.mjs
+          git diff --exit-code -- src-tauri/tauri.conf.json
+          if ($LASTEXITCODE -ne 0) { throw 'Production Tauri configuration changed during QA validation' }
+
+      - name: Build synthetic QA Main and Surface frontends
+        run: node scripts/build-surface-qa-frontend.mjs
+
+      - name: Type-check frontend sources
+        run: npx tsc --noEmit
+
+      - name: Verify isolated Tauri configuration
+        shell: pwsh
+        run: |
+          $config = Get-Content -LiteralPath src-tauri/tauri.desktop-surface-qa.conf.json -Raw | ConvertFrom-Json
+          if ($config.identifier -cne 'kr.sungandi.schoolhealthdesk.surfaceqa') { throw 'Unexpected QA identifier' }
+          if ($config.mainBinaryName -cne 'bogunon-desk-surface-qa') { throw 'Unexpected QA binary name' }
+          if ($config.build.frontendDist -cne '../dist-surface-qa-main') { throw 'Unexpected QA frontend path' }
+          if ($config.bundle.active -ne $false) { throw 'Portable QA must not enable installer bundling' }
+          if (@($config.app.security.capabilities).Count -ne 1 -or @($config.app.security.capabilities[0].permissions).Count -ne 0) { throw 'QA Main capabilities must remain empty' }
+          if ($null -ne $config.plugins.updater -or $null -ne $config.plugins.'deep-link') { throw 'Operating integrations must remain disabled' }
+
+      - name: Compile QA Main without running it
+        shell: pwsh
+        run: |
+          $env:TAURI_CONFIG = Get-Content -LiteralPath src-tauri/tauri.desktop-surface-qa.conf.json -Raw
+          cargo check --locked --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc --all-targets --features desktop-surface-qa
+          if ($LASTEXITCODE -ne 0) { throw 'Desktop Surface QA Main check failed' }
+          cargo test --locked --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc --lib --features desktop-surface-qa
+          if ($LASTEXITCODE -ne 0) { throw 'Desktop Surface QA Main library regressions failed' }
+          cargo build --locked --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc --release --features desktop-surface-qa
+          if ($LASTEXITCODE -ne 0) { throw 'Desktop Surface QA Main build failed' }
+
+      - name: Compile Surface Host without running it
+        shell: pwsh
+        run: |
+          cargo test --locked --manifest-path src-surface-host/Cargo.toml --target x86_64-pc-windows-msvc
+          if ($LASTEXITCODE -ne 0) { throw 'Surface Host regressions failed' }
+          cargo build --locked --manifest-path src-surface-host/Cargo.toml --target x86_64-pc-windows-msvc --release
+          if ($LASTEXITCODE -ne 0) { throw 'Surface Host build failed' }
+
+      - name: Assemble and verify portable QA package
+        shell: pwsh
+        run: |
+          $checkoutHead = (git rev-parse HEAD).Trim().ToLowerInvariant()
+          if ($checkoutHead -cne $env:GITHUB_SHA.ToLowerInvariant()) { throw 'Checkout changed before packaging' }
+          git diff --exit-code -- .
+          if ($LASTEXITCODE -ne 0) { throw 'Tracked source changed before packaging' }
+          git diff --cached --exit-code -- .
+          if ($LASTEXITCODE -ne 0) { throw 'Tracked source index changed before packaging' }
+          $staging = Join-Path $env:RUNNER_TEMP 'desktop-surface-s2f1-input'
+          New-Item -ItemType Directory -Path $staging | Out-Null
+          $mainSource = 'src-tauri/target/x86_64-pc-windows-msvc/release/school-health-desk.exe'
+          $hostSource = 'src-surface-host/target/x86_64-pc-windows-msvc/release/bogunon-desktop-surface-host.exe'
+          Copy-Item -LiteralPath $mainSource -Destination (Join-Path $staging 'bogunon-desk-surface-qa.exe')
+          Copy-Item -LiteralPath $hostSource -Destination (Join-Path $staging 'bogunon-desktop-surface-host.exe')
+          $env:ImageOS = 'windows-2022'
+          $env:SURFACE_QA_RUST_VERSION = (rustc --version).Trim()
+          node scripts/package-surface-qa-portable.mjs `
+            --main (Join-Path $staging 'bogunon-desk-surface-qa.exe') `
+            --host (Join-Path $staging 'bogunon-desktop-surface-host.exe') `
+            --bundle dist-surface-preview `
+            --output artifacts/desktop-surface-s2f1-portable-qa `
+            --source-sha $env:GITHUB_SHA `
+            --checkout-head $checkoutHead
+          if ($LASTEXITCODE -ne 0) { throw 'Portable QA packaging failed' }
+          $manifest = Get-Content -LiteralPath artifacts/desktop-surface-s2f1-portable-qa/ARTIFACT-MANIFEST.json -Raw | ConvertFrom-Json
+          if ($manifest.sourceSha -cne $checkoutHead -or $manifest.checkoutHead -cne $checkoutHead) { throw 'Artifact source provenance mismatch' }
+          if ($manifest.identifier -cne 'kr.sungandi.schoolhealthdesk.surfaceqa') { throw 'Artifact identifier mismatch' }
+          if ($manifest.productionDeployment -ne $false -or $manifest.syntheticDataOnly -ne $true -or $manifest.operatingDataAccess -ne $false -or $manifest.externalNetworkAllowed -ne $false) { throw 'Artifact isolation metadata mismatch' }
+          @(
+            '### Desktop Surface S-2F-1'
+            ''
+            '- artifactBuild: PASS'
+            '- actualWindowsWebViewRuntime: NOT_VERIFIED'
+            "- sourceSha: $checkoutHead"
+          ) | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Encoding utf8
+
+      - name: Reject generated state outside the portable allowlist
+        shell: pwsh
+        run: |
+          $root = 'artifacts/desktop-surface-s2f1-portable-qa'
+          $forbidden = @(Get-ChildItem -LiteralPath $root -Recurse -Force | Where-Object {
+            $_.FullName -match '(?i)(?:\\|/)(?:target|udf|profile|appdata|user data|cookies?|credentials?)(?:\\|/|$)' -or $_.Name -match '(?i)(?:\.map$|^\.env)'
+          })
+          if ($forbidden.Count -ne 0) { throw 'Forbidden generated state entered the portable artifact' }
+
+      - name: Upload portable QA package only
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: desktop-surface-s2f1-portable-qa-${{ github.sha }}-${{ github.run_id }}
+          path: artifacts/desktop-surface-s2f1-portable-qa
+          if-no-files-found: error
+          retention-days: 7
