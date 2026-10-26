@@ -54,7 +54,8 @@ try {
     const select=document.querySelector('input[aria-label="후보 1 선택"]');select.click(); click('라이브러리 저장');
     await wait(()=>document.body.textContent.includes('저장된 AI 후보 1개'),'saved'); click('저장된 AI 후보'); click('합성 손씻기 교육영상');
     await wait(()=>document.body.textContent.includes('저장된 교육 주제·대상을 불러왔습니다.'),'saved candidate reload');
-    click('기안 초안으로 연결');
+    await wait(()=>[...document.querySelectorAll('button')].some(node=>node.textContent.trim()==='기안 초안으로 연결'&&!node.disabled),'enabled draft handoff');
+    [...document.querySelectorAll('button')].find(node=>node.textContent.trim()==='기안 초안으로 연결'&&!node.disabled).click();
     await wait(()=>document.body.textContent.includes('영상 Finder로 돌아가기')||document.body.textContent.includes('기존 기안 초안을 바꿀까요?'),'handoff transition');
     if(document.body.textContent.includes('기존 기안 초안을 바꿀까요?'))click('영상으로 새 초안 작성');
     await wait(()=>document.body.textContent.includes('영상 Finder로 돌아가기'),'handoff');
