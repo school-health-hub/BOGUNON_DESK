@@ -31,6 +31,9 @@ test("given completed builds, when packaging begins, then tracked source and ind
 
 test("given the build job, when commands are inspected, then dependencies and both native binaries are locked and exact", () => {
   assert.match(workflow, /npm ci/u);
+  assert.match(workflow, /choco install nasm --version=2\.16\.3 --yes --no-progress --limit-output --source=https:\/\/community\.chocolatey\.org\/api\/v2\//u);
+  assert.match(workflow, /\^NASM version 2\\\.16\\\.03/u);
+  assert.match(workflow, /GITHUB_PATH/u);
   assert.match(workflow, /node scripts\/build-surface-qa-frontend\.mjs/u);
   assert.match(workflow, /cargo check --locked --manifest-path src-tauri\/Cargo\.toml[^\n]*--features desktop-surface-qa/u);
   assert.match(workflow, /cargo build --locked --manifest-path src-tauri\/Cargo\.toml[^\n]*--features desktop-surface-qa/u);
