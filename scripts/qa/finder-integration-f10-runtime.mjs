@@ -53,7 +53,10 @@ try {
     click('사실정보 확인·수정'); set('확인한 영상 제목','합성 손씻기 교육영상'); set('확인한 제작기관','합성 교육기관'); set('재생시간 분','18'); set('재생시간 초','30'); click('확인한 정보 적용');
     const select=document.querySelector('input[aria-label="후보 1 선택"]');select.click(); click('라이브러리 저장');
     await wait(()=>document.body.textContent.includes('저장된 AI 후보 1개'),'saved'); click('저장된 AI 후보'); click('합성 손씻기 교육영상');
-    click('기안 초안으로 연결'); await wait(()=>document.body.textContent.includes('영상 Finder로 돌아가기'),'handoff');
+    click('기안 초안으로 연결');
+    await wait(()=>document.body.textContent.includes('영상 Finder로 돌아가기')||document.body.textContent.includes('기존 기안 초안을 바꿀까요?'),'handoff transition');
+    if(document.body.textContent.includes('기존 기안 초안을 바꿀까요?'))click('영상으로 새 초안 작성');
+    await wait(()=>document.body.textContent.includes('영상 Finder로 돌아가기'),'handoff');
     const rendered=[document.body.textContent,...[...document.querySelectorAll('input,textarea')].map(node=>node.value)].join(' '); if(!rendered.includes('합성 손씻기 교육영상')||!rendered.includes('https://www.youtube.com/watch?v=abcdefghijk'))throw new Error('verified handoff missing');
     click('영상 Finder로 돌아가기'); click('보건 업무로'); await wait(()=>document.querySelector('[data-education-video-launcher]'),'toolbox return');
     const other=[...document.querySelectorAll('.toolbox-panel__launch')].find(el=>!el.hasAttribute('data-education-video-launcher'));other.click(); await wait(()=>document.body.textContent.includes('다른 도구 이동 상태'),'other tool'); click('업무 도구로 돌아가기'); click('교육영상 Finder'); await wait(()=>document.querySelector('.aiv-finder'),'Finder reentry');
