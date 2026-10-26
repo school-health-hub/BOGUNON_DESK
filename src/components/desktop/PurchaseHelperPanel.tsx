@@ -6,6 +6,7 @@ import { isDesktopRuntime } from "../../desktop/actions";
 import { createPurchaseClipboard } from "../../purchase/purchaseClipboard";
 import { calculatePurchaseAmountCheck, getPurchaseOutputReadiness, normalizePurchaseOutputColumns, selectedPurchaseTotal, updatePurchaseItem } from "../../purchase/purchaseDomain";
 import { purchaseRepository } from "../../purchase/purchaseRepository";
+import { filterPurchaseItems, getPurchaseReviewCounts, purchaseReviewFilters, type PurchaseReviewFilter } from "../../purchase/purchaseReview";
 import { createPurchaseDraft } from "../../purchase/purchaseDraft";
 import { createPurchaseSettlement, reconcilePurchaseSettlement } from "../../purchase/purchaseSettlement";
 import { purchaseImportFieldIds, purchaseImportFieldLabels, purchaseOutputColumnIds, purchaseOutputColumnLabels, type PurchaseAnalysisErrorEvent, type PurchaseAnalysisEvent, type PurchaseAnalysisResult, type PurchaseColumnMapping, type PurchaseDraft, type PurchaseDraftTemplate, type PurchaseImportTemplate, type PurchaseItem, type PurchaseMappingCandidate, type PurchaseOutputColumnId, type PurchaseSettlement, type PurchaseSourceSummary } from "../../purchase/types";
@@ -45,6 +46,7 @@ type Props = {
 const numberValue = (value: string): number | null => value.trim() === "" ? null : Number(value.replace(/,/g, ""));
 const signedMoney = (value: number): string => `${value > 0 ? "+" : ""}${value.toLocaleString("ko-KR")}원`;
 const issueLabels: Readonly<Record<string, string>> = { missingName: "품명 필요", invalidQuantity: "수량 확인", invalidUnitPrice: "단가 확인", amountMismatch: "금액 불일치" };
+const reviewFilterLabels: Readonly<Record<PurchaseReviewFilter, string>> = { all: "전체", error: "오류", mismatch: "불일치", needsReview: "확인 필요" };
 const purchaseHelperStateQueue = createPurchaseHelperStateQueue((active, templates) =>
   invoke("set_purchase_helper_active", { active, templates }),
 );
@@ -61,6 +63,7 @@ export function PurchaseHelperPanel({ items, sources, columns, candidates, templ
   const [rememberTemplate, setRememberTemplate] = useState(false);
   const [templateName, setTemplateName] = useState("");
   const [showTemplates, setShowTemplates] = useState(false);
+  const [rowFilter, setRowFilter] = useState<PurchaseReviewFilter>("all");
   const onAnalysisRef = useRef(onAnalysis);
   const onNoticeRef = useRef(onNotice);
   const nativeBridgeRef = useRef<PurchaseHelperNativeBridge | null>(null);
@@ -71,6 +74,10 @@ export function PurchaseHelperPanel({ items, sources, columns, candidates, templ
   const total = useMemo(() => selectedPurchaseTotal(items), [items]);
   const readiness = useMemo(() => getPurchaseOutputReadiness(items), [items]);
   const selectedCount = items.filter((item) => item.selected).length;
+  const reviewCounts = useMemo(() => getPurchaseReviewCounts(items), [items]);
+  const visibleRows = useMemo(() => filterPurchaseItems(items, rowFilter), [items, rowFilter]);
+  const visibleSelectedCount = visibleRows.filter(({ item }) => item.selected).length;
+  const hiddenSelectedCount = selectedCount - visibleSelectedCount;
   const closePanel = async (): Promise<void> => {
     acceptNativeResultsRef.current = false;
     try {
@@ -173,7 +180,7 @@ export function PurchaseHelperPanel({ items, sources, columns, candidates, templ
     try {
       const generation = await nativeBridgeRef.current?.invalidateAnalysis();
       if (generation !== null && generation !== undefined) latestNativeGenerationRef.current = generation;
-      onChange([]); onSourcesChange([]); onCandidatesChange([]); onDraftChange(null); onSettlementChange(null); setActiveView("items");
+      onChange([]); onSourcesChange([]); onCandidatesChange([]); onDraftChange(null); onSettlementChange(null); setActiveView("items"); setRowFilter("all");
     } catch {
       onNotice("진행 중인 파일 분석을 중단하지 못했습니다.");
     } finally {
@@ -225,27 +232,33 @@ export function PurchaseHelperPanel({ items, sources, columns, candidates, templ
           <span>{selectedCount}개 선택 · {total.toLocaleString("ko-KR")}원</span>
         </div>
         <div className="purchase-helper-tabs" role="tablist" aria-label="품의 도우미 단계"><button type="button" role="tab" aria-selected={activeView === "items"} onClick={() => setActiveView("items")}>품목내역</button><button type="button" role="tab" aria-selected={activeView === "draft"} onClick={() => setActiveView("draft")}>품의문 작성</button><button type="button" role="tab" aria-selected={activeView === "settlement"} onClick={() => { if (!readiness.ready) { onNotice("입력 오류와 금액 불일치를 먼저 확인해 주세요."); setActiveView("items"); return; } if (settlement === null) onSettlementChange(createPurchaseSettlement(items)); setActiveView("settlement"); }}>구매결과</button></div>
-        {selectedCount > 0 && !readiness.ready && <div className="purchase-helper-readiness" role="status"><strong>최종 활용 전 확인이 필요합니다.</strong><span>{readiness.blockingCount > 0 && `입력 오류 ${readiness.blockingCount}건`}{readiness.blockingCount > 0 && readiness.unreviewedMismatchCount > 0 && " · "}{readiness.unreviewedMismatchCount > 0 && `금액 불일치 확인 ${readiness.unreviewedMismatchCount}건`}</span><button type="button" onClick={() => setActiveView("items")}>문제 행 확인</button></div>}
+        {selectedCount > 0 && !readiness.ready && <div className="purchase-helper-readiness" role="status"><strong>최종 활용 전 확인이 필요합니다.</strong><span>{readiness.blockingCount > 0 && `입력 오류 ${readiness.blockingCount}건`}{readiness.blockingCount > 0 && readiness.unreviewedMismatchCount > 0 && " · "}{readiness.unreviewedMismatchCount > 0 && `금액 불일치 확인 ${readiness.unreviewedMismatchCount}건`}</span><button type="button" onClick={() => { setActiveView("items"); setRowFilter("needsReview"); }}>문제 행 확인</button></div>}
         {activeView === "items" ? <>
         {showTemplates && <section className="purchase-import-templates"><strong>저장된 열 설정</strong>{templates.length === 0 ? <p>저장된 설정이 없습니다.</p> : templates.map((template) => <div key={template.id}><span><b>{template.name}</b><small>{Object.keys(template.mapping).length}개 열 연결</small></span><button type="button" onClick={() => { if (window.confirm(`'${template.name}' 열 설정을 삭제할까요?`)) onTemplatesChange(templates.filter((entry) => entry.id !== template.id)); }}>삭제</button></div>)}</section>}
         {sources.length > 0 && <div className="purchase-helper-sources" aria-label="가져온 파일"><strong>가져오기 결과</strong>{sources.map((source, index) => <span key={`${source.sourceName}-${index}`} className={`is-${source.status}`}>{source.sourceName} · {source.status === "success" ? `${source.rowCount}개` : source.message}{source.status === "needsMapping" && source.candidateId !== undefined && <button type="button" onClick={() => { if (source.candidateId !== undefined) openMapping(source.candidateId); }}>열 지정</button>}</span>)}</div>}
         <button className={`purchase-helper-dropzone${items.length > 0 ? " is-compact" : ""}`} type="button" onClick={() => void importFiles()} disabled={busy || !nativeReady}><FilePlus2 size={items.length > 0 ? 16 : 22} /><strong>파일을 여기에 놓거나 선택하세요.</strong><span>XLSX · XLS · CSV · 텍스트형 PDF 자동 분석</span><small>스캔 PDF · PNG · JPG OCR은 아직 지원하지 않습니다.</small></button>
+        <section className="purchase-helper-review" aria-label="품목 검토 필터">
+          <div className="purchase-helper-review__filters">
+            {purchaseReviewFilters.map((filter) => <button type="button" key={filter} aria-pressed={rowFilter === filter} onClick={() => setRowFilter(filter)}>{reviewFilterLabels[filter]} <strong>{reviewCounts[filter]}</strong></button>)}
+          </div>
+          <div className="purchase-helper-review__selection"><strong>{items.length}개 중 {selectedCount}개 선택</strong>{hiddenSelectedCount > 0 && <span>현재 화면에 표시되지 않은 선택 품목 {hiddenSelectedCount}개 포함</span>}<small>출력과 일괄 적용은 선택된 전체 품목을 대상으로 합니다.</small></div>
+        </section>
         <div className="purchase-helper-table-wrap">
-          <table className="purchase-helper-table"><thead><tr><th><input type="checkbox" aria-label="전체 선택" checked={items.length > 0 && selectedCount === items.length} onChange={(event) => onChange(items.map((item) => ({ ...item, selected: event.target.checked })))} /></th><th>품명</th><th>규격</th><th>수량</th><th>단가</th><th>금액</th><th>구매처</th><th>비고</th><th>예산항목</th><th aria-label="행 작업" /></tr></thead>
-            <tbody>{items.length === 0 ? <tr><td colSpan={10} className="purchase-helper-empty">파일을 가져오거나 품목을 직접 추가하세요.</td></tr> : items.map((item, index) => <tr key={item.id} className={item.issues.length > 0 ? "has-issue" : ""}>
-              <td><input type="checkbox" aria-label={`${index + 1}행 선택`} checked={item.selected} onChange={(event) => update(item.id, { selected: event.target.checked })} /></td>
-              <td><input aria-label={`${index + 1}행 품명`} value={item.name} onChange={(event) => update(item.id, { name: event.target.value })} />{item.issues.length > 0 && <small title={item.issues.map((issue) => issueLabels[issue]).join(", ")}>{item.issues.map((issue) => issueLabels[issue]).join(" · ")}</small>}</td>
-              <td><input aria-label={`${index + 1}행 규격`} value={item.specification} onChange={(event) => update(item.id, { specification: event.target.value })} /></td>
-              <td><input aria-label={`${index + 1}행 수량`} inputMode="decimal" value={item.quantity ?? ""} onChange={(event) => update(item.id, { quantity: numberValue(event.target.value) })} /></td>
-              <td><input aria-label={`${index + 1}행 단가`} inputMode="decimal" value={item.unitPrice ?? ""} onChange={(event) => update(item.id, { unitPrice: numberValue(event.target.value) })} /></td>
+          <table className="purchase-helper-table"><thead><tr><th><input type="checkbox" aria-label="전체 품목 선택" checked={items.length > 0 && selectedCount === items.length} onChange={(event) => onChange(items.map((item) => ({ ...item, selected: event.target.checked })))} /></th><th>품명</th><th>규격</th><th>수량</th><th>단가</th><th>금액</th><th>구매처</th><th>비고</th><th>예산항목</th><th aria-label="행 작업" /></tr></thead>
+            <tbody>{items.length === 0 ? <tr><td colSpan={10} className="purchase-helper-empty">파일을 가져오거나 품목을 직접 추가하세요.</td></tr> : visibleRows.length === 0 ? <tr><td colSpan={10} className="purchase-helper-empty">현재 필터에 해당하는 품목이 없습니다.</td></tr> : visibleRows.map(({ item, originalIndex }) => <tr key={item.id} className={item.issues.length > 0 ? "has-issue" : ""}>
+              <td><input type="checkbox" aria-label={`${originalIndex + 1}행 선택`} checked={item.selected} onChange={(event) => update(item.id, { selected: event.target.checked })} /></td>
+              <td><input aria-label={`${originalIndex + 1}행 품명`} value={item.name} onChange={(event) => update(item.id, { name: event.target.value })} />{item.issues.length > 0 && <small title={item.issues.map((issue) => issueLabels[issue]).join(", ")}>{item.issues.map((issue) => issueLabels[issue]).join(" · ")}</small>}</td>
+              <td><input aria-label={`${originalIndex + 1}행 규격`} value={item.specification} onChange={(event) => update(item.id, { specification: event.target.value })} /></td>
+              <td><input aria-label={`${originalIndex + 1}행 수량`} inputMode="decimal" value={item.quantity ?? ""} onChange={(event) => update(item.id, { quantity: numberValue(event.target.value) })} /></td>
+              <td><input aria-label={`${originalIndex + 1}행 단가`} inputMode="decimal" value={item.unitPrice ?? ""} onChange={(event) => update(item.id, { unitPrice: numberValue(event.target.value) })} /></td>
               <td className="purchase-helper-amount">{(() => {
                 const amountCheck = calculatePurchaseAmountCheck(item);
-                return <><span>{amountCheck.effectiveAmount?.toLocaleString("ko-KR") ?? "-"}</span>{amountCheck.difference !== null && Math.abs(amountCheck.difference) >= 1 && <><small>원본 {amountCheck.importedAmount?.toLocaleString("ko-KR")}원 · 계산 {amountCheck.computedAmount?.toLocaleString("ko-KR")}원 · 차이 {signedMoney(amountCheck.difference)}</small>{amountCheck.status === "mismatch-reviewed" ? <em>금액 확인됨</em> : <button type="button" aria-label={`${index + 1}행 금액 불일치 확인`} onClick={() => update(item.id, { amountMismatchReviewed: true })}>금액 확인</button>}</>}</>;
+                return <><span>{amountCheck.effectiveAmount?.toLocaleString("ko-KR") ?? "-"}</span>{amountCheck.difference !== null && Math.abs(amountCheck.difference) >= 1 && <><small>원본 {amountCheck.importedAmount?.toLocaleString("ko-KR")}원 · 계산 {amountCheck.computedAmount?.toLocaleString("ko-KR")}원 · 차이 {signedMoney(amountCheck.difference)}</small>{amountCheck.status === "mismatch-reviewed" ? <em>금액 확인됨</em> : <button type="button" aria-label={`${originalIndex + 1}행 금액 불일치 확인`} onClick={() => update(item.id, { amountMismatchReviewed: true })}>금액 확인</button>}</>}</>;
               })()}</td>
-              <td><input aria-label={`${index + 1}행 구매처`} value={item.vendor} onChange={(event) => update(item.id, { vendor: event.target.value })} /></td>
-              <td><input aria-label={`${index + 1}행 비고`} value={item.note} onChange={(event) => update(item.id, { note: event.target.value })} /></td>
-              <td><input aria-label={`${index + 1}행 예산항목`} value={item.budgetItem} onChange={(event) => update(item.id, { budgetItem: event.target.value })} /></td>
-              <td><div className="purchase-helper-row-actions"><button type="button" aria-label={`${index + 1}행 위로 이동`} disabled={index === 0} onClick={() => { const next=[...items]; [next[index-1],next[index]]=[next[index],next[index-1]]; onChange(next); }}><ArrowUp size={13}/></button><button type="button" aria-label={`${index + 1}행 아래로 이동`} disabled={index === items.length - 1} onClick={() => { const next=[...items]; [next[index+1],next[index]]=[next[index],next[index+1]]; onChange(next); }}><ArrowDown size={13}/></button><button type="button" aria-label={`${index + 1}행 삭제`} onClick={() => onChange(items.filter((entry) => entry.id !== item.id))}><Trash2 size={13}/></button></div></td>
+              <td><input aria-label={`${originalIndex + 1}행 구매처`} value={item.vendor} onChange={(event) => update(item.id, { vendor: event.target.value })} /></td>
+              <td><input aria-label={`${originalIndex + 1}행 비고`} value={item.note} onChange={(event) => update(item.id, { note: event.target.value })} /></td>
+              <td><input aria-label={`${originalIndex + 1}행 예산항목`} value={item.budgetItem} onChange={(event) => update(item.id, { budgetItem: event.target.value })} /></td>
+              <td><div className="purchase-helper-row-actions"><button type="button" aria-label={`${originalIndex + 1}행 위로 이동`} disabled={rowFilter !== "all" || originalIndex === 0} onClick={() => { const next=[...items]; [next[originalIndex-1],next[originalIndex]]=[next[originalIndex],next[originalIndex-1]]; onChange(next); }}><ArrowUp size={13}/></button><button type="button" aria-label={`${originalIndex + 1}행 아래로 이동`} disabled={rowFilter !== "all" || originalIndex === items.length - 1} onClick={() => { const next=[...items]; [next[originalIndex+1],next[originalIndex]]=[next[originalIndex],next[originalIndex+1]]; onChange(next); }}><ArrowDown size={13}/></button><button type="button" aria-label={`${originalIndex + 1}행 삭제`} onClick={() => onChange(items.filter((entry) => entry.id !== item.id))}><Trash2 size={13}/></button></div></td>
             </tr>)}</tbody></table>
         </div>
         <section className="purchase-helper-columns"><button type="button" onClick={() => { setColumnDraft(columns); setIsColumnEditorOpen((current) => !current); }}>출력 컬럼 설정</button>{isColumnEditorOpen && <div className="purchase-helper-column-editor"><strong>출력 열</strong>{purchaseOutputColumnIds.map((column) => { const shown = columnDraft.includes(column); return <div className="purchase-helper-column" key={column}><label><input type="checkbox" checked={shown} disabled={column === "name"} onChange={(event) => setColumnDraft(normalizePurchaseOutputColumns(event.target.checked ? [...columnDraft, column] : columnDraft.filter((value) => value !== column)))} />{purchaseOutputColumnLabels[column]}</label>{shown && <span><button type="button" aria-label={`${purchaseOutputColumnLabels[column]} 왼쪽 이동`} onClick={() => moveColumn(column, -1)}>←</button><button type="button" aria-label={`${purchaseOutputColumnLabels[column]} 오른쪽 이동`} onClick={() => moveColumn(column, 1)}>→</button></span>}</div>; })}<button type="button" onClick={() => { onColumnsChange(columnDraft); setIsColumnEditorOpen(false); }}>저장</button></div>}</section>
