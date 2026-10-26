@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, ClipboardCopy, FilePlus2, FileSpreadsheet, Plus, RotateCcw, Settings2, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ClipboardCopy, Expand, FilePlus2, FileSpreadsheet, Plus, RotateCcw, Settings2, Trash2, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -11,6 +11,8 @@ import { createPurchaseDraft } from "../../purchase/purchaseDraft";
 import { createPurchaseSettlement, reconcilePurchaseSettlement } from "../../purchase/purchaseSettlement";
 import { purchaseImportFieldIds, purchaseImportFieldLabels, purchaseOutputColumnIds, purchaseOutputColumnLabels, type PurchaseAnalysisErrorEvent, type PurchaseAnalysisEvent, type PurchaseAnalysisResult, type PurchaseColumnMapping, type PurchaseDraft, type PurchaseDraftTemplate, type PurchaseImportTemplate, type PurchaseItem, type PurchaseMappingCandidate, type PurchaseOutputColumnId, type PurchaseSettlement, type PurchaseSourceSummary } from "../../purchase/types";
 import { PurchaseDraftEditor } from "./PurchaseDraftEditor";
+import { PurchaseEditableInput } from "./PurchaseEditableInput";
+import { PurchaseItemNameDialog } from "./PurchaseItemNameDialog";
 import {
   createPurchaseHelperStateQueue,
   mountPurchaseHelperNativeBridge,
@@ -44,6 +46,9 @@ type Props = {
 };
 
 const numberValue = (value: string): number | null => value.trim() === "" ? null : Number(value.replace(/,/g, ""));
+const formatText = (value: string): string => value;
+const parseText = (value: string): string => value;
+const formatNumber = (value: number | null): string => value === null ? "" : String(value);
 const signedMoney = (value: number): string => `${value > 0 ? "+" : ""}${value.toLocaleString("ko-KR")}원`;
 const issueLabels: Readonly<Record<string, string>> = { missingName: "품명 필요", invalidQuantity: "수량 확인", invalidUnitPrice: "단가 확인", amountMismatch: "금액 불일치" };
 const reviewFilterLabels: Readonly<Record<PurchaseReviewFilter, string>> = { all: "전체", error: "오류", mismatch: "불일치", needsReview: "확인 필요" };
@@ -64,6 +69,8 @@ export function PurchaseHelperPanel({ items, sources, columns, candidates, templ
   const [templateName, setTemplateName] = useState("");
   const [showTemplates, setShowTemplates] = useState(false);
   const [rowFilter, setRowFilter] = useState<PurchaseReviewFilter>("all");
+  const [nameDialogItemId, setNameDialogItemId] = useState<string | null>(null);
+  const nameDialogTriggerRef = useRef<HTMLButtonElement | null>(null);
   const onAnalysisRef = useRef(onAnalysis);
   const onNoticeRef = useRef(onNotice);
   const nativeBridgeRef = useRef<PurchaseHelperNativeBridge | null>(null);
@@ -78,6 +85,13 @@ export function PurchaseHelperPanel({ items, sources, columns, candidates, templ
   const visibleRows = useMemo(() => filterPurchaseItems(items, rowFilter), [items, rowFilter]);
   const visibleSelectedCount = visibleRows.filter(({ item }) => item.selected).length;
   const hiddenSelectedCount = selectedCount - visibleSelectedCount;
+  const nameDialogItem = items.find((item) => item.id === nameDialogItemId);
+  const nameDialogRowNumber = nameDialogItem === undefined ? 0 : items.findIndex((item) => item.id === nameDialogItem.id) + 1;
+  const closeNameDialog = () => {
+    setNameDialogItemId(null);
+    const trigger = nameDialogTriggerRef.current;
+    if (trigger?.isConnected) trigger.focus();
+  };
   const closePanel = async (): Promise<void> => {
     acceptNativeResultsRef.current = false;
     try {
@@ -88,9 +102,12 @@ export function PurchaseHelperPanel({ items, sources, columns, candidates, templ
     }
   };
   useEffect(() => {
-    const close = (event: KeyboardEvent) => { if (event.key === "Escape") { if (mappingCandidateId !== null) setMappingCandidateId(null); else void closePanel(); } };
+    const close = (event: KeyboardEvent) => { if (event.key === "Escape") { if (nameDialogItemId !== null) return; if (mappingCandidateId !== null) setMappingCandidateId(null); else void closePanel(); } };
     window.addEventListener("keydown", close); return () => window.removeEventListener("keydown", close);
-  }, [mappingCandidateId, onClose]);
+  }, [mappingCandidateId, nameDialogItemId, onClose]);
+  useEffect(() => {
+    if (nameDialogItemId !== null && nameDialogItem === undefined) setNameDialogItemId(null);
+  }, [nameDialogItem, nameDialogItemId]);
   useLayoutEffect(() => {
     onAnalysisRef.current = onAnalysis;
     onNoticeRef.current = onNotice;
@@ -247,17 +264,17 @@ export function PurchaseHelperPanel({ items, sources, columns, candidates, templ
           <table className="purchase-helper-table"><thead><tr><th><input type="checkbox" aria-label="전체 품목 선택" checked={items.length > 0 && selectedCount === items.length} onChange={(event) => onChange(items.map((item) => ({ ...item, selected: event.target.checked })))} /></th><th>품명</th><th>규격</th><th>수량</th><th>단가</th><th>금액</th><th>구매처</th><th>비고</th><th>예산항목</th><th aria-label="행 작업" /></tr></thead>
             <tbody>{items.length === 0 ? <tr><td colSpan={10} className="purchase-helper-empty">파일을 가져오거나 품목을 직접 추가하세요.</td></tr> : visibleRows.length === 0 ? <tr><td colSpan={10} className="purchase-helper-empty">현재 필터에 해당하는 품목이 없습니다.</td></tr> : visibleRows.map(({ item, originalIndex }) => <tr key={item.id} className={item.issues.length > 0 ? "has-issue" : ""}>
               <td><input type="checkbox" aria-label={`${originalIndex + 1}행 선택`} checked={item.selected} onChange={(event) => update(item.id, { selected: event.target.checked })} /></td>
-              <td><input aria-label={`${originalIndex + 1}행 품명`} value={item.name} onChange={(event) => update(item.id, { name: event.target.value })} />{item.issues.length > 0 && <small title={item.issues.map((issue) => issueLabels[issue]).join(", ")}>{item.issues.map((issue) => issueLabels[issue]).join(" · ")}</small>}</td>
-              <td><input aria-label={`${originalIndex + 1}행 규격`} value={item.specification} onChange={(event) => update(item.id, { specification: event.target.value })} /></td>
-              <td><input aria-label={`${originalIndex + 1}행 수량`} inputMode="decimal" value={item.quantity ?? ""} onChange={(event) => update(item.id, { quantity: numberValue(event.target.value) })} /></td>
-              <td><input aria-label={`${originalIndex + 1}행 단가`} inputMode="decimal" value={item.unitPrice ?? ""} onChange={(event) => update(item.id, { unitPrice: numberValue(event.target.value) })} /></td>
+              <td><div className="purchase-helper-name-cell"><PurchaseEditableInput ariaLabel={`${originalIndex + 1}행 품명`} value={item.name} format={formatText} parse={parseText} onCommit={(name) => update(item.id, { name })} /><button type="button" aria-label={`${originalIndex + 1}행 품목명 전체 보기 및 수정`} title="품목명 전체 보기 및 수정" onClick={(event) => { nameDialogTriggerRef.current = event.currentTarget; setNameDialogItemId(item.id); }}><Expand size={13} /></button></div>{item.issues.length > 0 && <small title={item.issues.map((issue) => issueLabels[issue]).join(", ")}>{item.issues.map((issue) => issueLabels[issue]).join(" · ")}</small>}</td>
+              <td><PurchaseEditableInput ariaLabel={`${originalIndex + 1}행 규격`} value={item.specification} format={formatText} parse={parseText} onCommit={(specification) => update(item.id, { specification })} /></td>
+              <td><PurchaseEditableInput ariaLabel={`${originalIndex + 1}행 수량`} inputMode="decimal" value={item.quantity} format={formatNumber} parse={numberValue} onCommit={(quantity) => update(item.id, { quantity })} /></td>
+              <td><PurchaseEditableInput ariaLabel={`${originalIndex + 1}행 단가`} inputMode="decimal" value={item.unitPrice} format={formatNumber} parse={numberValue} onCommit={(unitPrice) => update(item.id, { unitPrice })} /></td>
               <td className="purchase-helper-amount">{(() => {
                 const amountCheck = calculatePurchaseAmountCheck(item);
                 return <><span>{amountCheck.effectiveAmount?.toLocaleString("ko-KR") ?? "-"}</span>{amountCheck.difference !== null && Math.abs(amountCheck.difference) >= 1 && <><small>원본 {amountCheck.importedAmount?.toLocaleString("ko-KR")}원 · 계산 {amountCheck.computedAmount?.toLocaleString("ko-KR")}원 · 차이 {signedMoney(amountCheck.difference)}</small>{amountCheck.status === "mismatch-reviewed" ? <em>금액 확인됨</em> : <button type="button" aria-label={`${originalIndex + 1}행 금액 불일치 확인`} onClick={() => update(item.id, { amountMismatchReviewed: true })}>금액 확인</button>}</>}</>;
               })()}</td>
-              <td><input aria-label={`${originalIndex + 1}행 구매처`} value={item.vendor} onChange={(event) => update(item.id, { vendor: event.target.value })} /></td>
-              <td><input aria-label={`${originalIndex + 1}행 비고`} value={item.note} onChange={(event) => update(item.id, { note: event.target.value })} /></td>
-              <td><input aria-label={`${originalIndex + 1}행 예산항목`} value={item.budgetItem} onChange={(event) => update(item.id, { budgetItem: event.target.value })} /></td>
+              <td><PurchaseEditableInput ariaLabel={`${originalIndex + 1}행 구매처`} value={item.vendor} format={formatText} parse={parseText} onCommit={(vendor) => update(item.id, { vendor })} /></td>
+              <td><PurchaseEditableInput ariaLabel={`${originalIndex + 1}행 비고`} value={item.note} format={formatText} parse={parseText} onCommit={(note) => update(item.id, { note })} /></td>
+              <td><PurchaseEditableInput ariaLabel={`${originalIndex + 1}행 예산항목`} value={item.budgetItem} format={formatText} parse={parseText} onCommit={(budgetItem) => update(item.id, { budgetItem })} /></td>
               <td><div className="purchase-helper-row-actions"><button type="button" aria-label={`${originalIndex + 1}행 위로 이동`} disabled={rowFilter !== "all" || originalIndex === 0} onClick={() => { const next=[...items]; [next[originalIndex-1],next[originalIndex]]=[next[originalIndex],next[originalIndex-1]]; onChange(next); }}><ArrowUp size={13}/></button><button type="button" aria-label={`${originalIndex + 1}행 아래로 이동`} disabled={rowFilter !== "all" || originalIndex === items.length - 1} onClick={() => { const next=[...items]; [next[originalIndex+1],next[originalIndex]]=[next[originalIndex],next[originalIndex+1]]; onChange(next); }}><ArrowDown size={13}/></button><button type="button" aria-label={`${originalIndex + 1}행 삭제`} onClick={() => onChange(items.filter((entry) => entry.id !== item.id))}><Trash2 size={13}/></button></div></td>
             </tr>)}</tbody></table>
         </div>
@@ -265,6 +282,7 @@ export function PurchaseHelperPanel({ items, sources, columns, candidates, templ
         <footer className="purchase-helper-panel__footer"><p>파일과 품목내역은 이 작업 중에만 메모리에 유지되며 클라우드에 저장되지 않습니다.</p><div><button type="button" disabled={selectedCount === 0 || busy || !readiness.ready} onClick={() => void copy()}><ClipboardCopy size={15}/> 표 복사</button><button type="button" disabled={selectedCount === 0 || busy || !readiness.ready} onClick={() => void exportRows("csv")}>CSV 저장</button><button type="button" disabled={selectedCount === 0 || busy || !readiness.ready} onClick={() => void exportRows("xlsx")}>XLSX 저장</button><button type="button" disabled={selectedCount === 0 || busy || !readiness.ready} onClick={() => void exportEdufine()}>에듀파인용 Excel</button></div></footer>
         </> : activeView === "draft" ? draft === null ? <section className="purchase-draft-empty"><strong>선택한 품목으로 품의문을 작성합니다.</strong><p>품목을 선택하면 합계·구매처·예산항목을 바탕으로 초안을 만듭니다.</p><button type="button" disabled={selectedCount === 0 || !readiness.ready} onClick={() => onDraftChange(createPurchaseDraft(items))}>품의문 초안 만들기</button></section> : <PurchaseDraftEditor columns={columns} draft={draft} items={items} outputReady={readiness.ready} templates={draftTemplates} onChange={onDraftChange} onNotice={onNotice} onTemplatesChange={onDraftTemplatesChange} /> : settlement === null ? <section className="purchase-draft-empty"><strong>선택한 품목으로 구매결과를 정리합니다.</strong><p>품목을 선택한 뒤 구매결과 탭을 다시 열어 주세요.</p></section> : <PurchaseSettlementEditor items={items} outputReady={readiness.ready} settlement={settlement} onChange={onSettlementChange} onNotice={onNotice} />}
         {mappingCandidate !== null && headerOption !== null && <div className="purchase-mapping-backdrop"><section className="purchase-mapping-dialog" role="dialog" aria-modal="true" aria-labelledby="purchase-mapping-title"><header><div><h3 id="purchase-mapping-title">열 지정</h3><p>원본 파일의 열을 품의 항목에 연결해 주세요.</p></div><button type="button" aria-label="열 지정 닫기" onClick={() => setMappingCandidateId(null)}><X size={17}/></button></header><p className="purchase-mapping-source"><strong>{mappingCandidate.sourceName}</strong> · {mappingCandidate.sheetName}</p>{mappingCandidate.headerOptions.length > 1 && <label>머리글 행<select aria-label="머리글 행 선택" value={headerRow} onChange={(event) => { setHeaderRow(Number(event.target.value)); setMapping({}); }} >{mappingCandidate.headerOptions.map((option) => <option key={option.rowIndex} value={option.rowIndex}>{option.rowIndex + 1}행: {option.headers.filter(Boolean).join(" | ")}</option>)}</select></label>}<div className="purchase-mapping-preview"><table><tbody>{mappingCandidate.rows.slice(headerRow, headerRow + 5).map((row, rowIndex) => <tr key={rowIndex}>{headerOption.headers.map((_, columnIndex) => row[columnIndex] !== undefined && <td key={columnIndex}>{row[columnIndex]}</td>)}</tr>)}</tbody></table></div><div className="purchase-mapping-fields">{purchaseImportFieldIds.map((field) => <label key={field}>{purchaseImportFieldLabels[field]}{field === "name" ? " *" : ""}<select aria-label={`${purchaseImportFieldLabels[field]}에 연결할 원본 열`} value={mapping[field] ?? ""} onChange={(event) => { const value = event.target.value; setMapping((current) => { const next = { ...current }; if (value === "") delete next[field]; else next[field] = Number(value); return next; }); }}><option value="">사용 안 함</option>{headerOption.headers.map((header, index) => <option key={index} value={index} disabled={Object.entries(mapping).some(([other, value]) => other !== field && value === index)}>{header || `열 ${index + 1}`}</option>)}</select></label>)}</div><label className="purchase-mapping-remember"><input type="checkbox" aria-label="이 열 구성을 기억하기" checked={rememberTemplate} onChange={(event) => setRememberTemplate(event.target.checked)}/> 이 열 구성을 기억하기</label>{rememberTemplate && <input aria-label="가져오기 템플릿 이름" maxLength={40} placeholder="예: 학교장터 견적서" value={templateName} onChange={(event) => setTemplateName(event.target.value)}/>}<footer><button type="button" onClick={() => setMappingCandidateId(null)}>취소</button><button type="button" disabled={busy || mapping.name === undefined} onClick={() => void applyMapping()}>적용</button></footer></section></div>}
+        {nameDialogItem !== undefined && <PurchaseItemNameDialog itemName={nameDialogItem.name} rowNumber={nameDialogRowNumber} onCancel={closeNameDialog} onSave={(name) => { update(nameDialogItem.id, { name }); closeNameDialog(); }} />}
       </section>
     </div>
   );

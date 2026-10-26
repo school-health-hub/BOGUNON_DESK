@@ -80,7 +80,9 @@ describe("PurchaseHelperPanel output readiness", () => {
     expect(screen.getByRole("button", { name: "표 복사" }).hasAttribute("disabled")).toBe(false);
     expect(screen.getByRole("button", { name: "에듀파인용 Excel" }).hasAttribute("disabled")).toBe(false);
 
-    fireEvent.change(screen.getByLabelText("1행 수량"), { target: { value: "3" } });
+    const quantityInput = screen.getByLabelText("1행 수량");
+    fireEvent.change(quantityInput, { target: { value: "3" } });
+    fireEvent.keyDown(quantityInput, { key: "Enter" });
     expect(screen.getByText("원본 2,500원 · 계산 3,000원 · 차이 +500원")).toBeTruthy();
     expect(screen.getByRole("button", { name: "표 복사" }).hasAttribute("disabled")).toBe(true);
   });
@@ -140,7 +142,10 @@ describe("PurchaseHelperPanel output readiness", () => {
     const exportRows = vi.spyOn(purchaseRepository, "export").mockResolvedValue(true);
     renderPanel([first, error, second]);
 
-    fireEvent.change(screen.getByLabelText("1행 품명"), { target: { value: "수정한 첫 품목" } });
+    const nameInput = screen.getByLabelText("1행 품명");
+    fireEvent.focus(nameInput);
+    fireEvent.change(nameInput, { target: { value: "수정한 첫 품목" } });
+    fireEvent.blur(nameInput);
     fireEvent.click(screen.getByRole("button", { name: "오류 1" }));
 
     expect(screen.getByText("3개 중 2개 선택")).toBeTruthy();
