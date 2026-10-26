@@ -66,8 +66,9 @@ try {
     const other=[...document.querySelectorAll('.toolbox-panel__launch')].find(el=>!el.hasAttribute('data-education-video-launcher'));other.click(); await wait(()=>document.body.textContent.includes('다른 도구 이동 상태'),'other tool'); click('업무 도구로 돌아가기'); await wait(()=>document.querySelector('[data-education-video-launcher]'),'toolbox after other tool'); click('교육영상 Finder'); await wait(()=>document.querySelector('.aiv-finder'),'Finder reentry');
     const exported=JSON.parse(await window.__FINDER_INTEGRATION_QA__.exportLibrary());
     const entry=exported.entries.find(row=>row.videoId==='abcdefghijk');
-    if(exported.version!==2||!entry||entry.candidateRecord.provenance!=='teacher-confirmed')throw new Error('library v2/provenance mismatch');
-    return {candidateCount:document.querySelectorAll('.aiv-cards article').length,libraryVersion:exported.version,videoId:entry.videoId,provenance:entry.candidateRecord.provenance};
+    const verification=entry?.candidateRecord?.metadataVerification;
+    if(exported.version!==2||!entry||entry.candidateRecord.provenance!=='teacher-supplied'||verification?.title!=='teacher-confirmed'||verification?.publisher!=='teacher-confirmed'||verification?.durationSeconds!=='teacher-confirmed')throw new Error('library v2/provenance or metadata verification mismatch');
+    return {candidateCount:document.querySelectorAll('.aiv-cards article').length,libraryVersion:exported.version,videoId:entry.videoId,provenance:entry.candidateRecord.provenance,metadataVerification:verification};
   })()`);
   report.flow = flow; report.checks.push("Finder direct URL, metadata, save/reload, official document handoff, navigation/reentry");
   const screenshot = await command("Page.captureScreenshot", { format: "png" }); writeFileSync(join(evidence, "finder-integration-f10-desktop.png"), Buffer.from(screenshot.data, "base64"));
