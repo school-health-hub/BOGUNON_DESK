@@ -40,12 +40,12 @@ fn main() {
     let id = config["identifier"].as_str().unwrap_or_default();
     if live_qa {
         assert_eq!(
-            id, "kr.sungandi.schoolhealthdesk.finderliveqa",
+            id, "kr.sungandi.schoolhealthdesk.finderliveqa5",
             "Live QA feature requires isolated config"
         );
-        assert_eq!(config["productName"], "BOGUNON DESK FINDER LIVE QA");
-        assert_eq!(config["mainBinaryName"], "bogunon-desk-finder-live-qa");
-        assert_eq!(config["build"]["frontendDist"], "../dist-finder-live-qa");
+        assert_eq!(config["productName"], "BOGUNON DESK FINDER LIVE QA5");
+        assert_eq!(config["mainBinaryName"], "bogunon-desk-finder-live-qa5");
+        assert_eq!(config["build"]["frontendDist"], "../dist-finder-live-qa5");
         assert!(
             config["plugins"].get("updater").is_none()
                 && config["plugins"].get("deep-link").is_none(),
@@ -53,15 +53,16 @@ fn main() {
         );
         let sha = std::env::var("BOGUNON_QA_SOURCE_SHA").expect("QA source SHA required");
         assert!(sha.len() == 40 && sha.bytes().all(|byte| byte.is_ascii_hexdigit()));
-        println!("cargo:rerun-if-changed=../dist-finder-live-qa/qa-build.json");
+        println!("cargo:rerun-if-changed=../dist-finder-live-qa5/qa-build.json");
         let stamp: Value = serde_json::from_str(
-            &std::fs::read_to_string("../dist-finder-live-qa/qa-build.json")
+            &std::fs::read_to_string("../dist-finder-live-qa5/qa-build.json")
                 .expect("Build Live QA frontend first"),
         )
         .unwrap();
         assert_eq!(stamp["sourceSha"], sha, "Live QA source mismatch");
-        assert_eq!(stamp["baseSha"], "419e31e2c9e32c6a36dd6c4982572436fb96669b");
+        assert_eq!(stamp["baseSha"], "eed15c31a27e983a36fea2434fcf26dfbbebf4d1");
         assert_eq!(stamp["identifier"], id);
+        assert_eq!(stamp["priorEvidenceReceiptsVerified"], true);
         println!("cargo:rustc-env=BOGUNON_QA_SOURCE_SHA={sha}");
     } else if finance_qa {
         println!("cargo:rerun-if-changed=../dist-my-finance-qa/qa-build.json");
@@ -124,6 +125,10 @@ fn main() {
         assert_ne!(
             id, "kr.sungandi.schoolhealthdesk.finderliveqa",
             "Live QA config requires Live QA feature"
+        );
+        assert_ne!(
+            id, "kr.sungandi.schoolhealthdesk.finderliveqa5",
+            "QA5 config requires Live QA feature"
         );
         assert_ne!(
             id, "kr.sungandi.schoolhealthdesk.myfinanceqa",

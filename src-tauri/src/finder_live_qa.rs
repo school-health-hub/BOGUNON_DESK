@@ -12,8 +12,8 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 use tauri::{AppHandle, Manager, State};
-const QA_IDENTIFIER: &str = "kr.sungandi.schoolhealthdesk.finderliveqa";
-const BASE_SHA: &str = "419e31e2c9e32c6a36dd6c4982572436fb96669b";
+const QA_IDENTIFIER: &str = "kr.sungandi.schoolhealthdesk.finderliveqa5";
+const BASE_SHA: &str = "eed15c31a27e983a36fea2434fcf26dfbbebf4d1";
 fn qa_root(app: &AppHandle) -> Result<PathBuf, String> {
     if app.config().identifier != QA_IDENTIFIER {
         return Err("Finder Live QA identifier mismatch".into());
@@ -45,13 +45,10 @@ struct Metadata {
     base_sha: &'static str,
     read_only_auth: bool,
     library_isolated: bool,
-    search_attempts: u8,
-    review_attempts: u8,
-    active_approved_slot: u8,
-    search_slot_one_used: bool,
-    search_slot_two_used: bool,
-    search_slot_three_used: bool,
-    search_slot_four_used: bool,
+    prior_evidence_receipts_verified: bool,
+    prepared_slot: u8,
+    search_slot_five_approved: bool,
+    search_slot_five_used: bool,
     search_tool_choice: &'static str,
     sse_diagnostics_version: u8,
     external_dispatch_enabled: bool,
@@ -65,23 +62,21 @@ fn finder_live_qa_metadata(app: AppHandle) -> Result<Metadata, String> {
         base_sha: BASE_SHA,
         read_only_auth: true,
         library_isolated: true,
-        search_attempts: u8::from(root.join("search-attempt.receipt").exists())
-            + u8::from(root.join("search-attempt-2.receipt").exists())
-            + u8::from(root.join("search-attempt-3.receipt").exists())
-            + u8::from(root.join("search-attempt-4.receipt").exists()),
-        active_approved_slot: 4,
+        prior_evidence_receipts_verified: true,
+        prepared_slot: 5,
+        search_slot_five_approved: plan::live_qa::fifth_approved(&root),
+        search_slot_five_used: root.join("search-attempt-5.receipt").exists(),
         search_tool_choice: "auto",
         sse_diagnostics_version: 3,
-        search_slot_one_used: root.join("search-attempt.receipt").exists(),
-        search_slot_two_used: root.join("search-attempt-2.receipt").exists(),
-        search_slot_three_used: root.join("search-attempt-3.receipt").exists(),
-        search_slot_four_used: root.join("search-attempt-4.receipt").exists(),
-        review_attempts: u8::from(root.join("review-attempt.receipt").exists()),
         external_dispatch_enabled: false,
     })
 }
 #[tauri::command]
 fn chatgpt_get_connection_state(app: AppHandle) -> Result<ChatGptConnectionStateDto, String> {
+    let root = qa_root(&app)?;
+    if !plan::live_qa::fifth_approved(&root) {
+        return Err("QA5 actual search is not approved".into());
+    }
     storage(&app)?.connection_state()
 }
 #[tauri::command]
@@ -89,8 +84,14 @@ async fn chatgpt_list_models(
     app: AppHandle,
     state: State<'_, ChatGptCredentialMutationState>,
 ) -> Result<Vec<ChatGptModelDto>, ChatGptPlanErrorDto> {
-    let storage = storage(&app).map_err(|_| ChatGptPlanErrorDto::storage())?;
     let root = qa_root(&app).map_err(|_| ChatGptPlanErrorDto::storage())?;
+    if !plan::live_qa::fifth_approved(&root) {
+        return Err(ChatGptPlanErrorDto {
+            code: plan::ChatGptPlanErrorCode::PermissionDenied,
+            message: "QA5 실제 검색은 아직 승인되지 않았습니다.",
+        });
+    }
+    let storage = storage(&app).map_err(|_| ChatGptPlanErrorDto::storage())?;
     plan::list_models(
         &storage,
         &plan::live_qa::ReadOnlyTransport::models(&root)?,
@@ -114,8 +115,14 @@ async fn chatgpt_search_web(
             message: "승인된 검색 조건과 일치하지 않습니다.",
         });
     }
-    let storage = storage(&app).map_err(|_| ChatGptPlanErrorDto::storage())?;
     let root = qa_root(&app).map_err(|_| ChatGptPlanErrorDto::storage())?;
+    if !plan::live_qa::fifth_approved(&root) {
+        return Err(ChatGptPlanErrorDto {
+            code: plan::ChatGptPlanErrorCode::PermissionDenied,
+            message: "QA5 실제 검색은 아직 승인되지 않았습니다.",
+        });
+    }
+    let storage = storage(&app).map_err(|_| ChatGptPlanErrorDto::storage())?;
     let result = plan::web_search::search_web(
         &storage,
         &plan::live_qa::ReadOnlyTransport::search(&root)?,
@@ -128,15 +135,15 @@ async fn chatgpt_search_web(
         Ok(_) => serde_json::json!({"stage":"nativeSearchAccepted","code":"success"}),
         Err(error) => serde_json::json!({"stage":"nativeSearchRejected","code":error.code}),
     };
-    if root.join("search-attempt-4.receipt").is_file() {
-        plan::live_qa::diagnostics::write_new(&root.join("search-4-native-result.json"), &code)
+    if root.join("search-attempt-5.receipt").is_file() {
+        plan::live_qa::diagnostics::write_new(&root.join("search-5-native-result.json"), &code)
             .map_err(|_| ChatGptPlanErrorDto::storage())?;
     }
     let result = result?;
     std::fs::OpenOptions::new()
         .write(true)
         .create_new(true)
-        .open(root.join("search-success-4.receipt"))
+        .open(root.join("search-success-5.receipt"))
         .map_err(|_| ChatGptPlanErrorDto::storage())?
         .sync_all()
         .map_err(|_| ChatGptPlanErrorDto::storage())?;
@@ -144,24 +151,15 @@ async fn chatgpt_search_web(
 }
 #[tauri::command]
 async fn chatgpt_generate_text(
-    app: AppHandle,
-    state: State<'_, ChatGptCredentialMutationState>,
-    model: String,
-    prompt: String,
+    _app: AppHandle,
+    _state: State<'_, ChatGptCredentialMutationState>,
+    _model: String,
+    _prompt: String,
 ) -> Result<String, ChatGptPlanErrorDto> {
-    let storage = storage(&app).map_err(|_| ChatGptPlanErrorDto::storage())?;
-    let root = qa_root(&app).map_err(|_| ChatGptPlanErrorDto::storage())?;
-    if !root.join("search-success.receipt").is_file() {
-        return Err(ChatGptPlanErrorDto::storage());
-    }
-    plan::generate_text(
-        &storage,
-        &plan::live_qa::ReadOnlyTransport::review(&root)?,
-        &state,
-        now()?,
-        &GenerateTextRequest::new(model, prompt),
-    )
-    .await
+    Err(ChatGptPlanErrorDto {
+        code: plan::ChatGptPlanErrorCode::PermissionDenied,
+        message: "QA5에서는 추가 AI 추천 이유 요청을 허용하지 않습니다.",
+    })
 }
 pub fn run() {
     let result = tauri::Builder::default()
@@ -184,8 +182,7 @@ pub fn run() {
             education_video::education_video_library_export,
             education_video::education_video_library_recover,
             education_video::education_video_library_metadata_delete,
-            education_video::education_video_library_metadata_refresh,
-            crate::launcher::open_quick_memo_url
+            education_video::education_video_library_metadata_refresh
         ])
         .run(tauri::generate_context!());
     if result.is_err() {

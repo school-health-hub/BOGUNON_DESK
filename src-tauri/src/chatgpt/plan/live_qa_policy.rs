@@ -77,6 +77,24 @@ pub(crate) fn claim_fourth(root: &Path) -> io::Result<()> {
     claim_once(&root.join("search-attempt-4.receipt"))
 }
 
+pub(crate) const QA5_APPROVAL_FILE: &str = "qa5-live-search.approved";
+pub(crate) const QA5_APPROVAL_CONTENT: &[u8] =
+    b"explicit user approval for one Finder QA5 live-search request\n";
+
+pub(crate) fn fifth_approved(root: &Path) -> bool {
+    std::fs::read(root.join(QA5_APPROVAL_FILE)).is_ok_and(|value| value == QA5_APPROVAL_CONTENT)
+}
+
+pub(crate) fn claim_fifth(root: &Path) -> io::Result<()> {
+    if !fifth_approved(root) {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            "explicit QA5 approval required",
+        ));
+    }
+    claim_once(&root.join("search-attempt-5.receipt"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -218,6 +236,28 @@ mod tests {
         for choice in [None, Some("required"), Some("none"), Some("AUTO"), Some("")] {
             assert!(!approved_tool_choice(choice));
         }
+    }
+    #[test]
+    fn fifth_slot_requires_explicit_approval_and_preserves_legacy_receipts() {
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path();
+        let legacy = root.join("search-attempt-4.receipt");
+        std::fs::write(&legacy, b"preserved-slot-four").unwrap();
+        let original = std::fs::read(&legacy).unwrap();
+
+        assert!(claim_fifth(root).is_err());
+        assert!(!root.join("search-attempt-5.receipt").exists());
+        std::fs::write(root.join(QA5_APPROVAL_FILE), b"wrong").unwrap();
+        assert!(claim_fifth(root).is_err());
+        assert!(!root.join("search-attempt-5.receipt").exists());
+
+        std::fs::write(root.join(QA5_APPROVAL_FILE), QA5_APPROVAL_CONTENT).unwrap();
+        claim_fifth(root).unwrap();
+        assert_eq!(std::fs::read(&legacy).unwrap(), original);
+        assert_eq!(
+            claim_fifth(root).unwrap_err().kind(),
+            io::ErrorKind::AlreadyExists
+        );
     }
     #[test]
     fn durable_attempt_cannot_be_reused_after_restart() {
