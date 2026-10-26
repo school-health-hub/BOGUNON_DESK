@@ -28,8 +28,17 @@ try {
   let sequence = 0;
   const command = (method, params = {}) => new Promise((ok, fail) => { const id = ++sequence; const listener = event => { const message = JSON.parse(event.data); if (message.id !== id) return; socket.removeEventListener("message", listener); if (message.error || message.result?.exceptionDetails) { const detail = message.error?.message ?? message.result?.exceptionDetails?.exception?.description ?? message.result?.exceptionDetails?.text ?? "unknown"; fail(new Error(`${method} failed: ${detail}`)); } else ok(message.result); }; socket.addEventListener("message", listener); socket.send(JSON.stringify({ id, method, params })); setTimeout(() => { socket.removeEventListener("message", listener); fail(new Error(`${method} timeout`)); }, 15_000); });
   const evaluate = async expression => (await command("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true })).result.value;
+  const evaluateAfterNavigation = async expression => {
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      try { return await evaluate(expression); }
+      catch (error) {
+        if (!error.message.includes("Execution context was destroyed") || attempt === 19) throw error;
+        await new Promise(resolve => setTimeout(resolve, 250));
+      }
+    }
+  };
   await command("Runtime.enable"); await command("Page.enable");
-  const state = await evaluate(`(async()=>{for(let i=0;i<80&&!document.querySelector('[data-education-video-launcher]');i++)await new Promise(r=>setTimeout(r,250));return {info:await window.__FINDER_INTEGRATION_QA__.info(),ready:!!document.querySelector('[data-education-video-launcher]')}})()`);
+  const state = await evaluateAfterNavigation(`(async()=>{for(let i=0;i<80&&!document.querySelector('[data-education-video-launcher]');i++)await new Promise(r=>setTimeout(r,250));return {info:await window.__FINDER_INTEGRATION_QA__.info(),ready:!!document.querySelector('[data-education-video-launcher]')}})()`);
   if (!state.ready || state.info.identifier !== identifier || state.info.sourceSha !== expectedSource || !state.info.integrationsDisabled || resolve(state.info.localData) !== resolve(localData)) throw new Error("F-10 isolation handshake failed");
   report.checks.push("isolated identity and AppData");
   const flow = await evaluate(`(async()=>{
