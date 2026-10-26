@@ -1,176 +1,143 @@
 import { parseNewsletterProject, type NewsletterProject } from "../schema"
-import { parseNewsletterDesignState, type DesignSnapshot, type NewsletterDesignState, type TextStyle } from "./designSchema"
+import { structureCanonicalText } from "./contentStructure"
+import { parseNewsletterDesignState, type CardDesignLayoutV2, type DesignSnapshot, type DesignSnapshotV2, type NewsletterDesignState, type TextStyle } from "./designSchema"
+import { validateNewsletterDocument } from "./renderScene"
 import { layoutText, type TextMeasurer } from "./typography"
 
 export class RenderRevisionNotFoundError extends Error {
   readonly name = "RenderRevisionNotFoundError"
-  constructor(readonly kind: "project" | "design", readonly revision: number) {
-    super(`${kind} revision not found: ${revision}`)
-  }
+  constructor(readonly kind: "project" | "design", readonly revision: number) { super(`${kind} revision not found: ${revision}`) }
 }
-
 export class RenderContractMismatchError extends Error {
   readonly name = "RenderContractMismatchError"
-  constructor(readonly reason: string) {
-    super(`render contract mismatch: ${reason}`)
-  }
+  constructor(readonly reason: string) { super(`render contract mismatch: ${reason}`) }
 }
-
 export class RenderAssetNotApprovedError extends Error {
   readonly name = "RenderAssetNotApprovedError"
-  constructor(readonly assetId: string) {
-    super(`render asset is not approved: ${assetId}`)
-  }
+  constructor(readonly assetId: string) { super(`render asset is not approved: ${assetId}`) }
 }
 
-export type RenderTextBlock = {
-  readonly id: string
-  readonly text: string
-  readonly lines: readonly string[]
-  readonly frame: { readonly x: number; readonly y: number; readonly width: number; readonly height: number }
-  readonly style: TextStyle
-}
+export type TextProvenance =
+  | { readonly kind: "project-title" }
+  | { readonly kind: "topic-title"; readonly topicId: string }
+  | { readonly kind: "canonical-section"; readonly sectionId: string; readonly sourceText: string }
+  | { readonly kind: "publication-meta" }
+  | { readonly kind: "template-static"; readonly templateVersion: number }
 
-export type RenderIssue = {
-  readonly kind: "overflow" | "missing-text"
-  readonly pageId: string
-  readonly blockId: string
-  readonly message: string
-}
-
+export type Frame = { readonly x: number; readonly y: number; readonly width: number; readonly height: number }
+export type RenderTextBlock = { readonly id: string; readonly text: string; readonly lines: readonly string[]; readonly frame: Frame; readonly style: TextStyle; readonly provenance: TextProvenance }
+export type RenderIssue = { readonly kind: "overflow" | "missing-text" | "orphan-character" | "orphan-particle" | "layout-collision" | "clip-bounds"; readonly pageId: string; readonly blockId: string; readonly message: string }
+export type RenderImage = { readonly slotId: string; readonly assetId?: string; readonly frame: Frame; readonly fit: "contain" | "cover" }
 export type RenderPage = {
-  readonly pageId: string
-  readonly width: number
-  readonly height: number
-  readonly background: string
-  readonly title: RenderTextBlock
-  readonly body: RenderTextBlock
-  readonly image: { readonly slotId: string; readonly assetId?: string; readonly frame: { readonly x: number; readonly y: number; readonly width: number; readonly height: number }; readonly fit: "contain" | "cover" }
+  readonly pageId: string; readonly width: number; readonly height: number; readonly background: string; readonly templateVersion: number;
+  readonly title: RenderTextBlock; readonly body: RenderTextBlock; readonly lead?: RenderTextBlock; readonly closing?: RenderTextBlock;
+  readonly image: RenderImage; readonly accent?: string; readonly listMarkerStyle?: "source" | "number" | "dot" | "check"; readonly structured: boolean
 }
-
+export type RenderModule = {
+  readonly moduleId: string; readonly moduleFrame: Frame; readonly topicId: string; readonly sectionId: string; readonly title: RenderTextBlock;
+  readonly body: RenderTextBlock; readonly lead?: RenderTextBlock; readonly closing?: RenderTextBlock; readonly image: RenderImage;
+  readonly accent?: string; readonly listMarkerStyle?: "source" | "number" | "dot" | "check"; readonly structured: boolean
+}
 export type RenderDocument = {
-  readonly projectId: string
-  readonly projectRevision: number
-  readonly designRevision: number
-  readonly a4: {
-    readonly pageId: "a4-page"
-    readonly width: 1240
-    readonly height: 1754
-    readonly exportWidth: 2480
-    readonly exportHeight: 3508
-    readonly safeMargin: 59
-    readonly background: string
-    readonly title: RenderTextBlock
-    readonly publicationMeta: RenderTextBlock
-    readonly modules: readonly { readonly topicId: string; readonly sectionId: string; readonly title: RenderTextBlock; readonly body: RenderTextBlock; readonly image: RenderPage["image"] }[]
-    readonly footer: RenderTextBlock
-  }
-  readonly cards: readonly RenderPage[]
-  readonly issues: readonly RenderIssue[]
+  readonly projectId: string; readonly projectRevision: number; readonly designRevision: number; readonly templateVersion: number;
+  readonly a4: { readonly pageId: "a4-page"; readonly width: 1240; readonly height: 1754; readonly exportWidth: 2480; readonly exportHeight: 3508; readonly safeMargin: 59; readonly background: string; readonly templateVersion: number; readonly title: RenderTextBlock; readonly publicationMeta: RenderTextBlock; readonly modules: readonly RenderModule[]; readonly footer: RenderTextBlock }
+  readonly cards: readonly RenderPage[]; readonly issues: readonly RenderIssue[]
 }
+type CompileInput = { readonly project: NewsletterProject; readonly projectRevision: number; readonly design: NewsletterDesignState; readonly designRevision: number; readonly measureText?: TextMeasurer }
 
-type CompileInput = {
-  readonly project: NewsletterProject
-  readonly projectRevision: number
-  readonly design: NewsletterDesignState
-  readonly designRevision: number
-  readonly measureText?: TextMeasurer
-}
-
-function block(id: string, pageId: string, text: string, frame: RenderTextBlock["frame"], style: TextStyle, issues: RenderIssue[], measureText?: TextMeasurer): RenderTextBlock {
+function block(id: string, pageId: string, text: string, frame: Frame, style: TextStyle, provenance: TextProvenance, issues: RenderIssue[], measureText?: TextMeasurer, required = true): RenderTextBlock {
   const layout = layoutText(text, style, frame, measureText)
-  if (text.trim().length === 0) issues.push({ kind: "missing-text", pageId, blockId: id, message: "필수 텍스트가 비어 있습니다." })
-  if (layout.overflow) issues.push({ kind: "overflow", pageId, blockId: id, message: `텍스트 높이 ${Math.ceil(layout.requiredHeight)}px가 영역 ${frame.height}px를 초과합니다.` })
-  return { id, text, lines: layout.lines, frame, style }
+  if (required && text.trim().length === 0) issues.push({ kind: "missing-text", pageId, blockId: id, message: "필수 텍스트가 비어 있습니다." })
+  if (text.length > 0 && layout.overflow) issues.push({ kind: "overflow", pageId, blockId: id, message: `텍스트 높이 ${Math.ceil(layout.requiredHeight)}px가 영역 ${frame.height}px를 초과합니다.` })
+  for (const kind of layout.issues) issues.push({ kind, pageId, blockId: id, message: kind === "orphan-character" ? "한 글자 고아 줄이 발생했습니다." : "짧은 조사가 단독 줄에 배치되었습니다." })
+  return { id, text, lines: layout.lines, frame, style, provenance }
 }
-
-function selectedProject(project: NewsletterProject, revision: number): NewsletterProject["revisionHistory"][number] {
+function projectRevision(project: NewsletterProject, revision: number): NewsletterProject["revisionHistory"][number] {
   const source = project.revisionHistory.find((entry) => entry.revision === revision)
   if (source === undefined) throw new RenderRevisionNotFoundError("project", revision)
   return source
 }
-
-function selectedDesign(design: NewsletterDesignState, revision: number): DesignSnapshot {
+function designRevision(design: NewsletterDesignState, revision: number): DesignSnapshot {
   const source = design.revisionHistory.find((entry) => entry.revision === revision)
   if (source === undefined) throw new RenderRevisionNotFoundError("design", revision)
   return source.snapshot
 }
-
+function isV2(snapshot: DesignSnapshot): snapshot is DesignSnapshotV2 { return "designSchemaVersion" in snapshot && snapshot.designSchemaVersion === 2 }
+function isV2Module(module: DesignSnapshot["a4Layout"]["modules"][number]): module is DesignSnapshotV2["a4Layout"]["modules"][number] { return "titleFrame" in module }
+function isV2Card(layout: DesignSnapshot["cardLayouts"][number]): layout is CardDesignLayoutV2 { return "leadFrame" in layout }
 function verifyAssets(snapshot: DesignSnapshot): void {
   const assets = new Map(snapshot.assetManifest.map((asset) => [asset.id, asset]))
-  for (const card of snapshot.cardLayouts) {
-    if (card.image.assetId === undefined) continue
-    const asset = assets.get(card.image.assetId)
-    if (asset?.approvalStatus !== "approved" || asset.localReference === undefined) throw new RenderAssetNotApprovedError(card.image.assetId)
-  }
-  for (const module of snapshot.a4Layout.modules) {
-    if (module.image.assetId === undefined) continue
-    const asset = assets.get(module.image.assetId)
-    if (asset?.approvalStatus !== "approved" || asset.localReference === undefined) throw new RenderAssetNotApprovedError(module.image.assetId)
+  for (const image of [...snapshot.cardLayouts.map((card) => card.image), ...snapshot.a4Layout.modules.map((module) => module.image)]) {
+    if (image.assetId === undefined) continue
+    const asset = assets.get(image.assetId)
+    if (asset?.approvalStatus !== "approved" || asset.localReference === undefined) throw new RenderAssetNotApprovedError(image.assetId)
   }
 }
 
 export function compileRenderDocument(input: CompileInput): RenderDocument {
   const project = parseNewsletterProject(input.project)
   const design = parseNewsletterDesignState(input.design)
-  const projectRevision = selectedProject(project, input.projectRevision)
-  const designSnapshot = selectedDesign(design, input.designRevision)
+  const selectedProject = projectRevision(project, input.projectRevision)
+  const snapshot = designRevision(design, input.designRevision)
   if (project.projectId !== design.projectId) throw new RenderContractMismatchError("project id differs from design sidecar")
-  if (designSnapshot.canonicalProjectRevision !== input.projectRevision) throw new RenderContractMismatchError("design points to another canonical project revision")
-  verifyAssets(designSnapshot)
+  if (snapshot.canonicalProjectRevision !== input.projectRevision) throw new RenderContractMismatchError("design points to another canonical project revision")
+  verifyAssets(snapshot)
   const issues: RenderIssue[] = []
-  const titleByTopic = new Map(project.topics.map((topic) => [topic.id, topic.title]))
-  const effectiveSections = projectRevision.snapshot.sections.map((section) => ({ ...section, text: section.userEdit?.text ?? section.aiGenerated.text }))
-  const a4TitleStyle = { fontFamily: "Pretendard", fontSize: 72, fontWeight: 800, lineHeight: 1.2, color: "#183b4e", align: "center" } as const
-  const a4ModuleTitleStyle = { fontFamily: "Pretendard", fontSize: 30, fontWeight: 800, lineHeight: 1.25, color: "#183b4e", align: "left" } as const
-  const a4BodyStyle = { fontFamily: "Pretendard", fontSize: 21, fontWeight: 500, lineHeight: 1.45, color: "#29434e", align: "left" } as const
-  const a4MetaStyle = { fontFamily: "Pretendard", fontSize: 22, fontWeight: 600, lineHeight: 1.3, color: "#50656f", align: "center" } as const
-  const a4Modules = effectiveSections.map((section, index) => {
-    const module = designSnapshot.a4Layout.modules[index]
+  const titles = new Map(project.topics.map((topic) => [topic.id, topic.title]))
+  const sections = selectedProject.snapshot.sections.map((section) => ({ ...section, text: section.userEdit?.text ?? section.aiGenerated.text }))
+  const titleStyle = { fontFamily: "Pretendard", fontSize: 72, fontWeight: 800, lineHeight: 1.2, color: "#183b4e", align: "center" } as const
+  const moduleTitleStyle = { fontFamily: "Pretendard", fontSize: 30, fontWeight: 800, lineHeight: 1.25, color: "#183b4e", align: "left" } as const
+  const bodyStyle = { fontFamily: "Pretendard", fontSize: 21, fontWeight: 500, lineHeight: 1.45, color: "#29434e", align: "left" } as const
+  const metaStyle = { fontFamily: "Pretendard", fontSize: 22, fontWeight: 600, lineHeight: 1.3, color: "#50656f", align: "center" } as const
+  const a4Modules = sections.map((section, index): RenderModule => {
+    const module = snapshot.a4Layout.modules[index]
     if (module === undefined) throw new RenderContractMismatchError(`A4 module ${index + 1} is missing`)
-    const titleFrame = { ...module.frame, height: 60 }
-    const bodyFrame = { x: module.frame.x, y: module.frame.y + 72, width: module.frame.width, height: module.frame.height - 72 }
+    const structured = isV2Module(module)
+    const content = structureCanonicalText(section.text)
+    const titleFrame = structured ? module.titleFrame : { ...module.frame, height: 60 }
+    const bodyFrame = structured ? module.actionListFrame : { x: module.frame.x, y: module.frame.y + 72, width: module.frame.width, height: module.frame.height - 72 }
+    const leadText = content.kind === "list" ? content.lead ?? "" : ""
+    const bodyText = content.kind === "list" ? content.actions.join("\n") : content.body
+    const provenance = { kind: "canonical-section", sectionId: section.id, sourceText: section.text } as const
     return {
-      topicId: section.topicId,
-      sectionId: section.id,
-      title: block(`a4-title-${section.id}`, "a4-page", titleByTopic.get(section.topicId) ?? "", titleFrame, a4ModuleTitleStyle, issues, input.measureText),
-      body: block(`a4-body-${section.id}`, "a4-page", section.text, bodyFrame, a4BodyStyle, issues, input.measureText),
+      moduleId: module.moduleId, moduleFrame: module.frame, topicId: section.topicId, sectionId: section.id, structured,
+      title: block(`a4-title-${section.id}`, "a4-page", titles.get(section.topicId) ?? "", titleFrame, moduleTitleStyle, { kind: "topic-title", topicId: section.topicId }, issues, input.measureText),
+      ...(structured && leadText.length > 0 ? { lead: block(`a4-lead-${section.id}`, "a4-page", leadText, module.leadFrame, bodyStyle, provenance, issues, input.measureText, false) } : {}),
+      body: block(`a4-body-${section.id}`, "a4-page", bodyText, bodyFrame, bodyStyle, provenance, issues, input.measureText),
+      ...(structured ? { closing: block(`a4-closing-${section.id}`, "a4-page", "", module.closingFrame, bodyStyle, provenance, issues, input.measureText, false), accent: module.accent, listMarkerStyle: module.listMarkerStyle } : {}),
       image: module.image,
     }
   })
-  const cards = designSnapshot.cardLayouts.map((layout, index) => {
-    const section = index === 0 ? undefined : effectiveSections[index - 1]
-    const title = index === 0 ? project.title : section === undefined ? "" : titleByTopic.get(section.topicId) ?? ""
-    const body = index === 0 ? project.topics.map((topic) => topic.title).join(" · ") : section?.text ?? ""
+  const cards = snapshot.cardLayouts.map((layout, index): RenderPage => {
+    const section = index === 0 ? undefined : sections[index - 1]
+    const source = section === undefined ? project.topics.map((topic) => topic.title).join("\n") : section.text
+    const content = structureCanonicalText(source)
+    const structured = isV2Card(layout)
+    const leadText = content.kind === "list" ? content.lead ?? "" : ""
+    const bodyText = content.kind === "list" ? content.actions.join("\n") : content.body
+    const provenance: TextProvenance = section === undefined ? { kind: "project-title" } : { kind: "canonical-section", sectionId: section.id, sourceText: section.text }
+    const title = index === 0 ? project.title : section === undefined ? "" : titles.get(section.topicId) ?? ""
     return {
-      pageId: layout.pageId,
-      width: 1200,
-      height: 1200,
-      background: layout.background,
-      title: block(`${layout.pageId}-title`, layout.pageId, title, layout.titleFrame, layout.titleStyle, issues, input.measureText),
-      body: block(`${layout.pageId}-body`, layout.pageId, body, layout.bodyFrame, layout.bodyStyle, issues, input.measureText),
+      pageId: layout.pageId, width: 1200, height: 1200, background: layout.background, templateVersion: snapshot.templateVersion, structured,
+      title: block(`${layout.pageId}-title`, layout.pageId, title, layout.titleFrame, layout.titleStyle, index === 0 ? { kind: "project-title" } : { kind: "topic-title", topicId: section?.topicId ?? "missing" }, issues, input.measureText),
+      ...(structured && leadText.length > 0 ? { lead: block(`${layout.pageId}-lead`, layout.pageId, leadText, layout.leadFrame, layout.bodyStyle, provenance, issues, input.measureText, false) } : {}),
+      body: block(`${layout.pageId}-body`, layout.pageId, bodyText, structured ? layout.actionListFrame : layout.bodyFrame, layout.bodyStyle, provenance, issues, input.measureText),
+      ...(structured ? { closing: block(`${layout.pageId}-closing`, layout.pageId, "", layout.closingFrame, layout.bodyStyle, provenance, issues, input.measureText, false), accent: layout.accent, listMarkerStyle: layout.listMarkerStyle } : {}),
       image: layout.image,
     }
   })
   const footerStyle = { fontFamily: "Pretendard", fontSize: 18, fontWeight: 500, lineHeight: 1.4, color: "#50656f", align: "center" } as const
-  return {
-    projectId: project.projectId,
-    projectRevision: input.projectRevision,
-    designRevision: input.designRevision,
-    a4: {
-      pageId: "a4-page",
-      width: 1240,
-      height: 1754,
-      exportWidth: 2480,
-      exportHeight: 3508,
-      safeMargin: designSnapshot.a4Layout.safeMargin,
-      background: designSnapshot.a4Layout.background,
-      title: block("a4-main-title", "a4-page", project.title, designSnapshot.a4Layout.headerFrame, a4TitleStyle, issues, input.measureText),
-      publicationMeta: block("a4-publication-meta", "a4-page", `${designSnapshot.publicationMeta.issueLabel} · ${designSnapshot.publicationMeta.schoolName}`, { ...designSnapshot.a4Layout.headerFrame, y: designSnapshot.a4Layout.headerFrame.y + 125, height: 50 }, a4MetaStyle, issues, input.measureText),
+  const a4TitleFrame = isV2(snapshot) ? snapshot.a4Layout.titleFrame : snapshot.a4Layout.headerFrame
+  const metaFrame = isV2(snapshot) ? snapshot.a4Layout.publicationMetaFrame : { ...snapshot.a4Layout.headerFrame, y: snapshot.a4Layout.headerFrame.y + 125, height: 50 }
+  const base: RenderDocument = {
+    projectId: project.projectId, projectRevision: input.projectRevision, designRevision: input.designRevision, templateVersion: snapshot.templateVersion,
+    a4: { pageId: "a4-page", width: 1240, height: 1754, exportWidth: 2480, exportHeight: 3508, safeMargin: snapshot.a4Layout.safeMargin, background: snapshot.a4Layout.background, templateVersion: snapshot.templateVersion,
+      title: block("a4-main-title", "a4-page", project.title, a4TitleFrame, titleStyle, { kind: "project-title" }, issues, input.measureText),
+      publicationMeta: block("a4-publication-meta", "a4-page", `${snapshot.publicationMeta.issueLabel} · ${snapshot.publicationMeta.schoolName}`, metaFrame, metaStyle, { kind: "publication-meta" }, issues, input.measureText),
       modules: a4Modules,
-      footer: block("a4-footer", "a4-page", "학교 보건소식 · 내용과 출처를 최종 확인해 주세요.", designSnapshot.a4Layout.footerFrame, footerStyle, issues, input.measureText),
-    },
-    cards,
-    issues,
+      footer: block("a4-footer", "a4-page", "학교 보건소식 · 내용과 출처를 최종 확인해 주세요.", snapshot.a4Layout.footerFrame, footerStyle, { kind: "template-static", templateVersion: snapshot.templateVersion }, issues, input.measureText),
+    }, cards, issues,
   }
+  const layoutIssues = validateNewsletterDocument(base).map((issue): RenderIssue => ({ kind: issue.kind, pageId: issue.pageId, blockId: issue.layerId, message: issue.message }))
+  return { ...base, issues: [...issues, ...layoutIssues] }
 }

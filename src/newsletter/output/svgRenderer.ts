@@ -1,73 +1,51 @@
-import type { RenderDocument, RenderPage, RenderTextBlock } from "../rendering/renderDocument"
+import { buildA4PageScene, buildCardScene, newsletterPageSceneHash, NEWSLETTER_PLACEHOLDER_DATA_URL, validateNewsletterScene, type ImageSceneLayer, type NewsletterPageScene, type SceneLayer, type ShapeSceneLayer, type TextSceneLayer } from "../rendering/renderScene"
+import type { RenderDocument, RenderPage } from "../rendering/renderDocument"
 
 type A4Page = RenderDocument["a4"]
-type Frame = RenderTextBlock["frame"]
-
 export class SvgAssetMissingError extends Error {
   readonly name = "SvgAssetMissingError"
-  constructor(readonly assetId: string) {
-    super(`resolved asset is missing: ${assetId}`)
+  constructor(readonly assetId: string) { super(`resolved asset is missing: ${assetId}`) }
+}
+function escapeXml(value: string): string { return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&apos;") }
+function textAnchor(layer: TextSceneLayer): { readonly anchor: "start" | "middle" | "end"; readonly x: number } {
+  switch (layer.style.align) {
+    case "left": return { anchor: "start", x: layer.frame.x }
+    case "center": return { anchor: "middle", x: layer.frame.x + layer.frame.width / 2 }
+    case "right": return { anchor: "end", x: layer.frame.x + layer.frame.width }
+  }
+  throw new Error("Unsupported newsletter text alignment")
+}
+function renderText(layer: TextSceneLayer): string {
+  const horizontal = textAnchor(layer)
+  const lineHeight = layer.style.fontSize * layer.style.lineHeight
+  const spans = layer.lines.map((line, index) => `<tspan x="${horizontal.x}" y="${layer.frame.y + layer.style.fontSize + index * lineHeight}">${escapeXml(line)}</tspan>`).join("")
+  return `<text id="${escapeXml(layer.layerId)}" font-family="Pretendard" font-size="${layer.style.fontSize}" font-weight="${layer.style.fontWeight}" fill="${layer.style.color}" text-anchor="${horizontal.anchor}">${spans}</text>`
+}
+function renderImage(pageId: string, layer: ImageSceneLayer, assets: ReadonlyMap<string, string>): string {
+  const clipId = `clip-${pageId}-${layer.slotId}`
+  const source = layer.assetId === undefined ? NEWSLETTER_PLACEHOLDER_DATA_URL : assets.get(layer.assetId)
+  if (source === undefined && layer.assetId !== undefined) throw new SvgAssetMissingError(layer.assetId)
+  const aspect = layer.fit === "cover" ? "xMidYMid slice" : "xMidYMid meet"
+  return `<defs><clipPath id="${clipId}"><rect x="${layer.frame.x}" y="${layer.frame.y}" width="${layer.frame.width}" height="${layer.frame.height}" rx="12"/></clipPath></defs><image id="${escapeXml(layer.layerId)}" href="${escapeXml(source ?? NEWSLETTER_PLACEHOLDER_DATA_URL)}" x="${layer.frame.x}" y="${layer.frame.y}" width="${layer.frame.width}" height="${layer.frame.height}" preserveAspectRatio="${aspect}" clip-path="url(#${clipId})"/>`
+}
+function renderShape(layer: ShapeSceneLayer): string {
+  const stroke = layer.stroke === undefined ? "" : ` stroke="${layer.stroke}"`
+  return `<rect id="${escapeXml(layer.layerId)}" x="${layer.frame.x}" y="${layer.frame.y}" width="${layer.frame.width}" height="${layer.frame.height}" rx="${layer.radius ?? 0}" fill="${layer.fill}"${stroke}/>`
+}
+function renderLayer(pageId: string, layer: SceneLayer, assets: ReadonlyMap<string, string>): string {
+  switch (layer.kind) {
+    case "shape": return renderShape(layer)
+    case "image": return renderImage(pageId, layer, assets)
+    case "text": return renderText(layer)
   }
 }
-
-function escapeXml(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;")
+export function renderNewsletterSceneSvg(scene: NewsletterPageScene, assets: ReadonlyMap<string, string>): string {
+  const layers = [...scene.layers].sort((left, right) => left.zOrder - right.zOrder || left.layerId.localeCompare(right.layerId)).map((layer) => renderLayer(scene.pageId, layer, assets)).join("")
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${scene.width} ${scene.height}" width="${scene.width}" height="${scene.height}" data-template-version="${scene.templateVersion}" data-scene-hash="${newsletterPageSceneHash(scene)}">${layers}</svg>`
 }
-
-function textAnchor(block: RenderTextBlock): { readonly anchor: "start" | "middle" | "end"; readonly x: number } {
-  switch (block.style.align) {
-    case "left":
-      return { anchor: "start", x: block.frame.x }
-    case "center":
-      return { anchor: "middle", x: block.frame.x + block.frame.width / 2 }
-    case "right":
-      return { anchor: "end", x: block.frame.x + block.frame.width }
-  }
-}
-
-function renderText(block: RenderTextBlock): string {
-  const horizontal = textAnchor(block)
-  const lineHeight = block.style.fontSize * block.style.lineHeight
-  const spans = block.lines.map((line, index) => `<tspan x="${horizontal.x}" y="${block.frame.y + block.style.fontSize + index * lineHeight}">${escapeXml(line)}</tspan>`).join("")
-  return `<text id="${escapeXml(block.id)}" font-family="Pretendard" font-size="${block.style.fontSize}" font-weight="${block.style.fontWeight}" fill="${block.style.color}" text-anchor="${horizontal.anchor}">${spans}</text>`
-}
-
-function placeholderDataUrl(): string {
-  return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' fill='%23e7ece9'/%3E%3Cpath d='M16 42l10-12 8 8 7-9 9 13z' fill='%2399aaa2'/%3E%3C/svg%3E"
-}
-
-function renderImage(pageId: string, image: RenderPage["image"], assets: ReadonlyMap<string, string>): string {
-  const clipId = `clip-${pageId}-${image.slotId}`
-  const source = image.assetId === undefined ? placeholderDataUrl() : assets.get(image.assetId)
-  if (source === undefined && image.assetId !== undefined) throw new SvgAssetMissingError(image.assetId)
-  const frame = image.frame
-  const aspect = image.fit === "cover" ? "xMidYMid slice" : "xMidYMid meet"
-  return `<defs><clipPath id="${clipId}"><rect x="${frame.x}" y="${frame.y}" width="${frame.width}" height="${frame.height}" rx="12"/></clipPath></defs><image href="${escapeXml(source ?? placeholderDataUrl())}" x="${frame.x}" y="${frame.y}" width="${frame.width}" height="${frame.height}" preserveAspectRatio="${aspect}" clip-path="url(#${clipId})"/>`
-}
-
-function frameInside(frame: Frame, margin: number, width: number, height: number): boolean {
-  return frame.x >= margin && frame.y >= margin && frame.x + frame.width <= width - margin && frame.y + frame.height <= height - margin
-}
-
 export function validateA4SafeArea(page: A4Page): readonly string[] {
-  const frames: readonly { readonly id: string; readonly frame: Frame }[] = [
-    { id: page.title.id, frame: page.title.frame },
-    { id: page.publicationMeta.id, frame: page.publicationMeta.frame },
-    { id: page.footer.id, frame: page.footer.frame },
-    ...page.modules.flatMap((module) => [
-      { id: module.title.id, frame: module.title.frame },
-      { id: module.body.id, frame: module.body.frame },
-      { id: module.image.slotId, frame: module.image.frame },
-    ]),
-  ]
-  return frames.filter(({ frame }) => !frameInside(frame, page.safeMargin, page.width, page.height)).map(({ id }) => id)
+  const scene = buildA4PageScene(page)
+  return validateNewsletterScene({ projectId: "validation", projectRevision: 1, designRevision: 1, pages: [scene] }).filter((issue) => issue.kind === "clip-bounds").map((issue) => issue.layerId)
 }
-
-export function renderCardSvg(page: RenderPage, assets: ReadonlyMap<string, string>): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${page.width} ${page.height}" width="${page.width}" height="${page.height}"><rect width="100%" height="100%" fill="${page.background}"/>${renderImage(page.pageId, page.image, assets)}${renderText(page.title)}${renderText(page.body)}</svg>`
-}
-
-export function renderA4Svg(page: A4Page, assets: ReadonlyMap<string, string>): string {
-  const modules = page.modules.map((module) => `<g id="${escapeXml(module.sectionId)}"><rect x="${module.title.frame.x - 12}" y="${module.title.frame.y - 12}" width="${module.body.frame.width + 24}" height="${module.body.frame.y + module.body.frame.height - module.title.frame.y + 24}" rx="18" fill="#ffffff" stroke="#d8e2dc"/>${renderImage(page.pageId, module.image, assets)}${renderText(module.title)}${renderText(module.body)}</g>`).join("")
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${page.width} ${page.height}" width="${page.width}" height="${page.height}"><rect width="100%" height="100%" fill="${page.background}"/>${renderText(page.title)}${renderText(page.publicationMeta)}${modules}${renderText(page.footer)}</svg>`
-}
+export function renderCardSvg(page: RenderPage, assets: ReadonlyMap<string, string>): string { return renderNewsletterSceneSvg(buildCardScene(page), assets) }
+export function renderA4Svg(page: A4Page, assets: ReadonlyMap<string, string>): string { return renderNewsletterSceneSvg(buildA4PageScene(page), assets) }
