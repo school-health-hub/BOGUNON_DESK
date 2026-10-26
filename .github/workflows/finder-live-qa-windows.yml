@@ -58,7 +58,10 @@ jobs:
       - name: Build isolated portable executable only
         shell: pwsh
         run: |
-          node node_modules/@tauri-apps/cli/tauri.js build --target x86_64-pc-windows-msvc --features finder-live-qa --config src-tauri/tauri.finder-live-qa.conf.json --no-bundle
+          node scripts/build-finder-live-qa-frontend.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Finder QA frontend build failed' }
+          $env:TAURI_CONFIG = (Get-Content src-tauri/tauri.finder-live-qa.conf.json -Raw)
+          cargo build --manifest-path src-tauri/Cargo.toml --release --target x86_64-pc-windows-msvc --features finder-live-qa --locked
           if ($LASTEXITCODE -ne 0) { throw 'Finder QA build failed' }
       - name: Bind executable to source and hash
         shell: pwsh
