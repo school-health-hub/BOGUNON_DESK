@@ -1,5 +1,6 @@
 import type { RasterizeRequest, SvgRasterizer } from "./outputEngine"
 import pretendardFontDataUrl from "../rendering/fonts/PretendardVariable.woff2?inline"
+import pretendardFontUrl from "../rendering/fonts/PretendardVariable.woff2?url"
 
 export class NewsletterFontUnavailableError extends Error {
   readonly name = "NewsletterFontUnavailableError"
@@ -36,7 +37,8 @@ export class BrowserSvgRasterizer implements SvgRasterizer {
 
   async ensureFontReady(): Promise<void> {
     if (!this.fontReady) {
-      const face = new FontFace("Pretendard", `url(${pretendardFontDataUrl})`, { weight: "100 900" })
+      const sameOriginFontUrl = new URL(pretendardFontUrl, window.location.href).href
+      const face = new FontFace("Pretendard", `url("${sameOriginFontUrl}")`, { weight: "100 900" })
       await face.load()
       document.fonts.add(face)
       await document.fonts.ready

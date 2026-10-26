@@ -19,6 +19,11 @@ it("isolates the Newsletter Storage QA identity, frontend, and native plugins", 
   expect(qa.app.windows[0].url).toBe("storage.html")
   expect(qa.plugins).toEqual({ updater: null, "deep-link": null })
   expect(JSON.stringify(qa.app.security.csp)).not.toMatch(/https:|supabase|bogunon\.vercel/u)
+  expect(qa.app.security.csp["font-src"]).toBe("'self'")
+
+  const rasterizer = await read("src/newsletter/output/browserRasterizer.ts")
+  expect(rasterizer).toContain('PretendardVariable.woff2?url')
+  expect(rasterizer).toContain("new URL(pretendardFontUrl, window.location.href).href")
 
   const native = await read("src-tauri/src/newsletter_storage_qa.rs")
   expect(native).toContain("newsletter_output_pick_target")
