@@ -2,6 +2,7 @@ use crate::main_restore::{
     Admission, Capability, ProtocolError, RestoreBinding, RestoreResponse, MAX_REQUEST_BYTES,
 };
 use rand::RngCore;
+use serde::{Deserialize, Serialize};
 use std::ffi::{c_void, OsStr};
 use std::mem::size_of;
 use std::os::windows::ffi::OsStrExt;
@@ -28,8 +29,9 @@ use windows::Win32::System::Pipes::{
 use windows::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
 
 const TIMEOUT_MS: u32 = 3_000;
+pub const MAX_GRANT_BYTES: usize = 1_024;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
 pub enum TransportError {
     #[error("Main restore endpoint is unavailable")]
     Unavailable,
@@ -39,6 +41,8 @@ pub enum TransportError {
     InvalidResponse,
     #[error("Main restore sequence is exhausted")]
     SequenceExhausted,
+    #[error("Main restore grant is invalid")]
+    InvalidGrant,
 }
 
 struct OwnedHandle(HANDLE);
@@ -69,6 +73,43 @@ impl SurfaceRestoreGrant {
     pub fn into_parts(self) -> (String, RestoreBinding) {
         (self.endpoint, self.binding)
     }
+
+    pub fn to_memory_bytes(&self) -> Result<Vec<u8>, TransportError> {
+        serde_json::to_vec(&GrantWire {
+            endpoint: &self.endpoint,
+            binding: &self.binding,
+        })
+        .map_err(|_| TransportError::InvalidGrant)
+    }
+
+    pub fn from_memory_bytes(payload: &[u8]) -> Result<Self, TransportError> {
+        if payload.len() > MAX_GRANT_BYTES {
+            return Err(TransportError::InvalidGrant);
+        }
+        let wire: OwnedGrantWire =
+            serde_json::from_slice(payload).map_err(|_| TransportError::InvalidGrant)?;
+        if wire.endpoint.is_empty() || !wire.endpoint.starts_with(r"\\.\pipe\bogunon-main-restore-")
+        {
+            return Err(TransportError::InvalidGrant);
+        }
+        Ok(Self {
+            endpoint: wire.endpoint,
+            binding: wire.binding,
+        })
+    }
+}
+
+#[derive(Serialize)]
+struct GrantWire<'a> {
+    endpoint: &'a str,
+    binding: &'a RestoreBinding,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OwnedGrantWire {
+    endpoint: String,
+    binding: RestoreBinding,
 }
 
 pub struct PipeClient {
@@ -301,10 +342,45 @@ fn wide(value: &str) -> Vec<u16> {
 
 #[cfg(test)]
 mod tests {
+    use super::{SurfaceRestoreGrant, TransportError};
+    use crate::main_restore::{Capability, RestoreBinding};
+
     #[test]
     fn sid_dacl_has_no_world_or_anonymous_ace() {
         let value = format!("D:P(A;;GA;;;{})", "S-1-5-21-1-2-3-1001");
         assert!(!value.contains("WD"));
         assert!(!value.contains("AN"));
+    }
+
+    #[test]
+    fn grant_memory_transfer_accepts_only_the_fixed_pipe_namespace() {
+        let binding = RestoreBinding::new(7, 11, 101, Capability::from_bytes([0x5a; 32]))
+            .unwrap_or_else(|| panic!("valid binding"));
+        let grant = SurfaceRestoreGrant {
+            endpoint: r"\\.\pipe\bogunon-main-restore-test".to_owned(),
+            binding,
+        };
+        let bytes = grant
+            .to_memory_bytes()
+            .unwrap_or_else(|error| panic!("grant must encode: {error}"));
+        let decoded = SurfaceRestoreGrant::from_memory_bytes(&bytes)
+            .unwrap_or_else(|error| panic!("grant must decode: {error}"));
+        assert!(decoded
+            .endpoint
+            .starts_with(r"\\.\pipe\bogunon-main-restore-"));
+
+        let wrong = bytes
+            .windows(b"bogunon-main-restore".len())
+            .position(|part| part == b"bogunon-main-restore")
+            .map(|offset| {
+                let mut changed = bytes.clone();
+                changed[offset] = b'x';
+                changed
+            })
+            .unwrap_or_default();
+        assert_eq!(
+            SurfaceRestoreGrant::from_memory_bytes(&wrong).err(),
+            Some(TransportError::InvalidGrant)
+        );
     }
 }

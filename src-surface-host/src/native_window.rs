@@ -6,9 +6,9 @@ use windows::{
         Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, WPARAM},
         System::LibraryLoader::GetModuleHandleW,
         UI::WindowsAndMessaging::{
-            CreateWindowExW, DefWindowProcW, DestroyWindow, RegisterClassW, UnregisterClassW,
-            CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, WINDOW_EX_STYLE, WINDOW_STYLE, WNDCLASSW,
-            WS_OVERLAPPEDWINDOW,
+            CreateWindowExW, DefWindowProcW, DestroyWindow, RegisterClassW, ShowWindow,
+            UnregisterClassW, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, SW_SHOW, WINDOW_EX_STYLE,
+            WINDOW_STYLE, WNDCLASSW, WS_OVERLAPPEDWINDOW,
         },
     },
 };
@@ -127,6 +127,13 @@ impl OwnedWindow {
 
     pub fn hwnd(&self) -> HWND {
         self.hwnd
+    }
+
+    pub fn show(&self) -> Result<()> {
+        // SAFETY: [Category 8 — FFI boundary] this !Send wrapper owns a live HWND on the
+        // creator STA thread, and neither call retains borrowed Rust memory.
+        let _ = unsafe { ShowWindow(self.hwnd, SW_SHOW) };
+        Ok(())
     }
 }
 

@@ -42,6 +42,8 @@ mod work_folders;
 
 #[cfg(windows)]
 mod main_restore_ipc;
+#[cfg(windows)]
+mod surface_runtime;
 
 struct DesktopState {
     close_to_tray: AtomicBool,
@@ -250,6 +252,8 @@ pub fn run() {
     }));
     #[cfg(desktop)]
     let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    #[cfg(windows)]
+    let builder = builder.manage(surface_runtime::SurfaceRuntimeState::inactive());
 
     builder
         .manage(DesktopState::default())
@@ -337,6 +341,12 @@ pub fn run() {
             #[cfg(all(debug_assertions, windows))]
             app.deep_link().register_all()?;
             create_tray(app.handle())?;
+            #[cfg(windows)]
+            {
+                let state = app.state::<surface_runtime::SurfaceRuntimeState>();
+                surface_runtime::launch_qa_surface(app.handle(), &state)
+                    .map_err(|error| std::io::Error::other(error))?;
+            }
             let state = app.state::<launcher::WorkPortalAutoOpenState>();
             let _ = launcher::schedule_work_portal_auto_open(app.handle(), &state);
             Ok(())

@@ -7,6 +7,8 @@ pub mod diagnostic;
 pub mod ipc;
 pub mod lifecycle;
 #[cfg(windows)]
+pub mod live_surface;
+#[cfg(windows)]
 pub mod main_restore;
 #[cfg(windows)]
 pub mod native_window;

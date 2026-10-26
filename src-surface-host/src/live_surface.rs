@@ -1,0 +1,318 @@
+use std::{
+    cell::Cell,
+    ffi::OsStr,
+    fs::{create_dir_all, remove_dir_all},
+    path::{Path, PathBuf},
+    rc::Rc,
+    thread,
+    time::{Duration, Instant},
+};
+
+use bogunon_main_restore_protocol::windows_transport::SurfaceRestoreGrant;
+use thiserror::Error;
+use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2Controller;
+
+use crate::{
+    browser_exit::BrowserExitSubscription,
+    cleanup::{self, BrowserExitEvidence, CleanupUnknown, RuntimeIdentity},
+    ipc::Generation,
+    lifecycle::Attempt,
+    main_restore::NamedPipeMainOpener,
+    native_window::OwnedWindow,
+    ownership::{Ledger, OwnershipError, Resource},
+    renderer_session::SessionCleanup,
+    runtime_identity::directory_identity,
+    surface_connection::MainOpener,
+    udf::{self, DirectoryObservation},
+    windows_host::{
+        attach_surface_renderer, observe_runtime, pump_pending, ControllerRequest,
+        EnvironmentRequest, HostError, RuntimeBinding, StaGuard,
+    },
+};
+
+const CREATION_TIMEOUT: Duration = Duration::from_secs(30);
+const INTERACTION_TIMEOUT: Duration = Duration::from_secs(300);
+
+#[derive(Debug, Error)]
+pub enum LiveSurfaceError {
+    #[error("Surface runtime grant is invalid")]
+    InvalidGrant,
+    #[error("Surface runtime path is invalid")]
+    InvalidPath,
+    #[error("Surface runtime WebView2 override is not trusted")]
+    OverrideUntrusted,
+    #[error("Surface runtime operation timed out")]
+    Timeout,
+    #[error("Surface runtime native host failed: {0}")]
+    Host(#[from] HostError),
+    #[error("Surface runtime ownership failed: {0}")]
+    Ownership(#[from] OwnershipError),
+    #[error("Surface runtime cleanup is unverified: {0:?}")]
+    Cleanup(CleanupUnknown),
+    #[error("Surface Main restore channel failed")]
+    MainRestore,
+    #[error("Surface temporary storage cleanup failed")]
+    TemporaryCleanup,
+}
+
+struct TrackedMainOpener {
+    inner: NamedPipeMainOpener,
+    opened: Rc<Cell<bool>>,
+}
+
+impl MainOpener for TrackedMainOpener {
+    type Error = bogunon_main_restore_protocol::windows_transport::TransportError;
+
+    fn open_existing_main(&self) -> Result<(), Self::Error> {
+        self.inner.open_existing_main()?;
+        self.opened.set(true);
+        Ok(())
+    }
+}
+
+pub fn run(grant: SurfaceRestoreGrant) -> Result<(), LiveSurfaceError> {
+    reject_webview_overrides()?;
+    let (endpoint, binding) = grant.into_parts();
+    let generation_value = binding.generation;
+    let generation = Generation::new(generation_value).ok_or(LiveSurfaceError::InvalidGrant)?;
+    let attempt =
+        Attempt::new(generation_value, binding.attempt).ok_or(LiveSurfaceError::InvalidGrant)?;
+    let runtime_binding = RuntimeBinding {
+        generation: generation_value,
+        attempt: binding.attempt,
+    };
+    let executable = std::env::current_exe().map_err(|_| LiveSurfaceError::InvalidPath)?;
+    let bundle_dir = sibling_bundle(&executable).ok_or(LiveSurfaceError::InvalidPath)?;
+    let udf_root = qa_udf(generation_value)?;
+    create_dir_all(&udf_root).map_err(|_| LiveSurfaceError::InvalidPath)?;
+    let requested = observe_directory(&udf_root)?;
+
+    let mut ledger = Ledger::new(attempt);
+    ledger.acquire(attempt, Resource::Host, 1)?;
+    let sta = StaGuard::initialize()?;
+    let window = OwnedWindow::create_hidden().map_err(HostError::Com)?;
+    ledger.acquire(attempt, Resource::Window, 2)?;
+    let environment = wait_for(CREATION_TIMEOUT, || {
+        EnvironmentRequest::begin(&sta, &udf_root, runtime_binding)
+    })?;
+    ledger.acquire(attempt, Resource::Environment, 3)?;
+    let browser_exit =
+        BrowserExitSubscription::subscribe(&environment.environment, runtime_binding)?;
+    ledger.acquire(attempt, Resource::EventToken, 4)?;
+    let controller = wait_controller(
+        CREATION_TIMEOUT,
+        &environment.environment,
+        window.hwnd(),
+        runtime_binding,
+    )?;
+    ledger.acquire(attempt, Resource::Controller, 5)?;
+    let observation = observe_runtime(&environment.environment, &controller.controller)?;
+    ledger.acquire(attempt, Resource::WebView, 6)?;
+    let effective = observe_directory(&observation.effective_udf)?;
+    udf::verify_effective(&requested, &effective, &observation.profile_path)
+        .map_err(|_| LiveSurfaceError::InvalidPath)?;
+    let launch = crate::runtime_qa::RuntimeLaunchAuthority::new();
+    let runtime = RuntimeIdentity::bind(
+        &mut ledger,
+        &launch,
+        attempt,
+        generation_value,
+        observation.browser_process_id,
+        effective.identity,
+    )?;
+
+    let opened = Rc::new(Cell::new(false));
+    let opener = TrackedMainOpener {
+        inner: NamedPipeMainOpener::new(OsStr::new(&endpoint), binding)
+            .map_err(|_| LiveSurfaceError::MainRestore)?,
+        opened: Rc::clone(&opened),
+    };
+    let mut renderer = attach_surface_renderer(
+        &controller.controller,
+        &bundle_dir,
+        generation,
+        opener,
+        &mut ledger,
+        attempt,
+        7,
+    )?;
+    // SAFETY: [Category 8 — FFI boundary] the controller is live on this STA and the
+    // boolean is copied synchronously by WebView2.
+    unsafe { controller.controller.SetIsVisible(true) }.map_err(HostError::Com)?;
+    window.show().map_err(HostError::Com)?;
+    wait_until(INTERACTION_TIMEOUT, || opened.get())?;
+
+    if renderer.cleanup().map_err(HostError::Renderer)? != SessionCleanup::Released {
+        return Err(LiveSurfaceError::Cleanup(
+            CleanupUnknown::ResourceReleaseIncomplete,
+        ));
+    }
+    drop(renderer);
+    close_controller(&controller.controller)?;
+    drop(controller);
+    ledger.release(attempt, Resource::WebView, 6)?;
+    ledger.release(attempt, Resource::Controller, 5)?;
+    window.destroy().map_err(HostError::Com)?;
+    ledger.release(attempt, Resource::Window, 2)?;
+    let exit = wait_observation(CREATION_TIMEOUT, &browser_exit)?;
+    if exit.binding != runtime_binding || exit.browser_process_id != observation.browser_process_id
+    {
+        return Err(LiveSurfaceError::Cleanup(
+            CleanupUnknown::BrowserProcessMismatch,
+        ));
+    }
+    browser_exit.unsubscribe()?;
+    ledger.release(attempt, Resource::EventToken, 4)?;
+    drop(environment);
+    ledger.release(attempt, Resource::Environment, 3)?;
+    drop(sta);
+    ledger.release(attempt, Resource::Host, 1)?;
+    let evidence = BrowserExitEvidence {
+        attempt,
+        environment: generation_value,
+        browser_process_id: exit.browser_process_id,
+        normal_exit: exit.normal,
+    };
+    cleanup::evaluate(false, &ledger, &runtime, Some(&evidence))
+        .map_err(LiveSurfaceError::Cleanup)?;
+    remove_qa_udf(&udf_root)?;
+    Ok(())
+}
+
+fn wait_for(
+    timeout: Duration,
+    begin: impl FnOnce() -> Result<EnvironmentRequest, HostError>,
+) -> Result<crate::windows_host::BoundEnvironment, LiveSurfaceError> {
+    let request = begin()?;
+    wait_poll(timeout, || request.try_complete())
+}
+
+fn wait_controller(
+    timeout: Duration,
+    environment: &webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2Environment,
+    hwnd: windows::Win32::Foundation::HWND,
+    binding: RuntimeBinding,
+) -> Result<crate::windows_host::BoundController, LiveSurfaceError> {
+    let request = ControllerRequest::begin(environment, hwnd, binding)?;
+    wait_poll(timeout, || request.try_complete())
+}
+
+fn wait_observation(
+    timeout: Duration,
+    subscription: &BrowserExitSubscription,
+) -> Result<crate::browser_exit::BrowserExitObservation, LiveSurfaceError> {
+    wait_poll(timeout, || subscription.try_observe())
+}
+
+fn wait_poll<T>(
+    timeout: Duration,
+    mut poll: impl FnMut() -> Result<Option<T>, HostError>,
+) -> Result<T, LiveSurfaceError> {
+    let deadline = Instant::now() + timeout;
+    loop {
+        if let Some(value) = poll()? {
+            return Ok(value);
+        }
+        if Instant::now() >= deadline {
+            return Err(LiveSurfaceError::Timeout);
+        }
+        let _ = pump_pending()?;
+        thread::sleep(Duration::from_millis(10));
+    }
+}
+
+fn wait_until(timeout: Duration, done: impl Fn() -> bool) -> Result<(), LiveSurfaceError> {
+    let deadline = Instant::now() + timeout;
+    while !done() {
+        if Instant::now() >= deadline {
+            return Err(LiveSurfaceError::Timeout);
+        }
+        let _ = pump_pending()?;
+        thread::sleep(Duration::from_millis(10));
+    }
+    Ok(())
+}
+
+fn close_controller(controller: &ICoreWebView2Controller) -> Result<(), LiveSurfaceError> {
+    // SAFETY: [Category 8 — FFI boundary] the controller is live on its creator STA and
+    // this is the only explicit Close call in the live Surface success path.
+    unsafe { controller.Close() }.map_err(HostError::Com)?;
+    Ok(())
+}
+
+fn sibling_bundle(executable: &Path) -> Option<PathBuf> {
+    executable.parent().map(|parent| parent.join("surface"))
+}
+
+fn qa_udf(generation: u64) -> Result<PathBuf, LiveSurfaceError> {
+    let root = std::env::temp_dir();
+    if !root.is_absolute() {
+        return Err(LiveSurfaceError::InvalidPath);
+    }
+    Ok(root.join(format!(
+        "bogunon-desktop-surface-qa-{}-{generation}",
+        std::process::id()
+    )))
+}
+
+fn observe_directory(path: &Path) -> Result<DirectoryObservation, LiveSurfaceError> {
+    let path = path
+        .canonicalize()
+        .map_err(|_| LiveSurfaceError::InvalidPath)?;
+    let identity = directory_identity(&path).map_err(|_| LiveSurfaceError::InvalidPath)?;
+    Ok(DirectoryObservation { path, identity })
+}
+
+fn reject_webview_overrides() -> Result<(), LiveSurfaceError> {
+    if has_override(|name| std::env::var_os(name).is_some()) {
+        Err(LiveSurfaceError::OverrideUntrusted)
+    } else {
+        Ok(())
+    }
+}
+
+fn has_override(mut present: impl FnMut(&str) -> bool) -> bool {
+    const NAMES: [&str; 4] = [
+        "WEBVIEW2_USER_DATA_FOLDER",
+        "WEBVIEW2_BROWSER_EXECUTABLE_FOLDER",
+        "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
+        "WEBVIEW2_RELEASE_CHANNEL_PREFERENCE",
+    ];
+    NAMES.iter().any(|name| present(name))
+}
+
+fn remove_qa_udf(path: &Path) -> Result<(), LiveSurfaceError> {
+    let root = std::env::temp_dir()
+        .canonicalize()
+        .map_err(|_| LiveSurfaceError::TemporaryCleanup)?;
+    let target = path
+        .canonicalize()
+        .map_err(|_| LiveSurfaceError::TemporaryCleanup)?;
+    let name_ok = target
+        .file_name()
+        .and_then(OsStr::to_str)
+        .is_some_and(|name| name.starts_with("bogunon-desktop-surface-qa-"));
+    if !name_ok || !target.starts_with(&root) || target == root {
+        return Err(LiveSurfaceError::TemporaryCleanup);
+    }
+    remove_dir_all(target).map_err(|_| LiveSurfaceError::TemporaryCleanup)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn bundle_path_is_fixed_beside_the_surface_host() {
+        assert_eq!(
+            sibling_bundle(Path::new(r"C:\qa\bogunon-desktop-surface-host.exe")),
+            Some(PathBuf::from(r"C:\qa\surface"))
+        );
+    }
+
+    #[test]
+    fn override_guard_is_fail_closed() {
+        assert!(!has_override(|_| false));
+        assert!(has_override(|name| name == "WEBVIEW2_USER_DATA_FOLDER"));
+    }
+}

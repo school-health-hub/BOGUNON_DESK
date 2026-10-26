@@ -28,7 +28,7 @@ pub(crate) struct RuntimeLaunchAuthority {
 }
 
 impl RuntimeLaunchAuthority {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             claimed: Cell::new(false),
             identity: Rc::new(()),

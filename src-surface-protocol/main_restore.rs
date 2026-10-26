@@ -5,7 +5,7 @@ pub const PROTOCOL_VERSION: u16 = 1;
 pub const MAX_REQUEST_BYTES: usize = 512;
 pub const CAPABILITY_BYTES: usize = 32;
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Capability([u8; CAPABILITY_BYTES]);
 
 impl Capability {
@@ -43,7 +43,7 @@ impl std::fmt::Debug for Capability {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RestoreBinding {
     pub generation: u64,
     pub attempt: u64,
@@ -83,6 +83,23 @@ impl RestoreBinding {
             capability: &self.capability.encode(),
         })
         .map_err(|_| ProtocolError::InvalidMessage)
+    }
+
+    /// Serializes the one-shot grant for an inherited in-memory channel.
+    ///
+    /// The returned bytes contain the capability and must never be logged or
+    /// persisted. Callers must transfer them only through the child process's
+    /// inherited stdin and then drop the buffer.
+    pub fn to_memory_bytes(&self) -> Result<Vec<u8>, ProtocolError> {
+        serde_json::to_vec(self).map_err(|_| ProtocolError::InvalidMessage)
+    }
+
+    /// Parses a grant received through the inherited in-memory channel.
+    pub fn from_memory_bytes(payload: &[u8]) -> Result<Self, ProtocolError> {
+        if payload.len() > MAX_REQUEST_BYTES {
+            return Err(ProtocolError::InvalidMessage);
+        }
+        serde_json::from_slice(payload).map_err(|_| ProtocolError::InvalidMessage)
     }
 }
 
@@ -327,5 +344,18 @@ mod tests {
             format!("{:?}", Capability::from_bytes([1; 32])),
             "Capability([REDACTED])"
         );
+    }
+
+    #[test]
+    fn restore_binding_memory_transfer_round_trips_without_debug_disclosure() {
+        let binding = binding();
+        let encoded = binding
+            .to_memory_bytes()
+            .unwrap_or_else(|error| panic!("binding must encode: {error}"));
+        let decoded = RestoreBinding::from_memory_bytes(&encoded)
+            .unwrap_or_else(|error| panic!("binding must decode: {error}"));
+
+        assert_eq!(decoded, binding);
+        assert!(!format!("{decoded:?}").contains(&binding.capability.encode()));
     }
 }
