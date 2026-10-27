@@ -8,6 +8,15 @@ pub(super) fn matches_origin(url: &Url, expected: &Url) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(feature = "desktop-surface-qa")]
+    #[test]
+    fn portable_qa_uses_embedded_origin_mode_without_a_dev_server() {
+        // Given the feature used by direct Cargo portable QA builds.
+        // When the linked Tauri feature graph selects the origin mode.
+        // Then a missing devUrl cannot make every local-origin check fail.
+        assert!(!tauri::is_dev());
+    }
+
     #[test]
     fn exact_origin_accepts_local_routes() {
         // Given the effective development origin.
@@ -30,6 +39,7 @@ mod tests {
             "https://tauri.localhost",
             "file:///index.html",
             "data:text/html,hello",
+            "about:blank",
             "http://evil/?tauri.localhost",
         ] {
             // Then each candidate is rejected.

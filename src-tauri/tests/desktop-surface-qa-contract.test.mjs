@@ -38,7 +38,7 @@ test("native QA entrypoint has an explicit minimal boundary", () => {
   const build = read("build.rs");
   const runtime = read("src/surface_runtime.rs");
 
-  assert.match(cargo, /^desktop-surface-qa = \[\]$/m);
+  assert.ok(cargo.includes('desktop-surface-qa = ["tauri/custom-protocol"]'));
   assert.match(entrypoint, /launch_desktop_surface_qa/);
   assert.doesNotMatch(
     entrypoint,
