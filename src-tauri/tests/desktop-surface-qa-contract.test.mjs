@@ -51,3 +51,19 @@ test("native QA entrypoint has an explicit minimal boundary", () => {
   assert.match(runtime, /pub fn launch_qa_surface[\s\S]*qa_launch_requested/);
   assert.doesNotMatch(entrypoint, /set_var|remove_var|BOGUNON_DESKTOP_SURFACE_QA/);
 });
+
+test("QA Main startup failures are diagnosed without panic-abort", () => {
+  const entrypoint = read("src/desktop_surface_qa.rs");
+  const lib = read("src/lib.rs");
+  const diagnostic = read("src/qa_main_startup_diagnostic.rs");
+  const runtime = read("src/surface_runtime.rs");
+
+  assert.doesNotMatch(entrypoint, /\.expect\("error while running isolated Desktop Surface QA"\)/);
+  assert.match(entrypoint, /QaMainStartupDiagnostic/);
+  assert.match(entrypoint, /process::exit/);
+  assert.match(lib, /mod qa_main_startup_diagnostic/);
+  assert.match(diagnostic, /bogunon-desktop-surface-qa-main-diagnostic\.json/);
+  assert.match(diagnostic, /HostExitedBeforeGrant/);
+  assert.match(runtime, /classify_child_before_grant/);
+  assert.match(runtime, /HostExitedBeforeGrant/);
+});

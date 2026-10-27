@@ -176,6 +176,7 @@ export async function createPortablePackage(options) {
     'Verify SHA256SUMS.txt before use and run only after the isolation gate passes.',
     'Do not copy an operating profile, AppData, UDF, credentials, cookies, or school data into this folder.',
     'After the single approved run, inspect %TEMP%\\bogunon-desktop-surface-qa-diagnostic.json.',
+    'Also inspect %TEMP%\\bogunon-desktop-surface-qa-main-diagnostic.json for fixed QA Main startup stage/failure codes.',
     'The diagnostic contains fixed stage/status codes only; absence means the host did not start or diagnostics could not be written.',
     'Do not automatically retry a failed run.',
     '',
