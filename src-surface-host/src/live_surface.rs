@@ -15,6 +15,9 @@ use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2Controller;
 use crate::{
     browser_exit::BrowserExitSubscription,
     cleanup::{self, BrowserExitEvidence, CleanupUnknown, RuntimeIdentity},
+    diagnostic::{
+        CleanupStatus, DiagnosticWriteError, FailureCode, QaRuntimeDiagnostic, RuntimeStage,
+    },
     ipc::Generation,
     lifecycle::Attempt,
     main_restore::NamedPipeMainOpener,
@@ -53,6 +56,33 @@ pub enum LiveSurfaceError {
     MainRestore,
     #[error("Surface temporary storage cleanup failed")]
     TemporaryCleanup,
+    #[error("Surface QA diagnostic failed: {0}")]
+    Diagnostic(#[from] DiagnosticWriteError),
+}
+
+impl LiveSurfaceError {
+    pub const fn failure_code(&self) -> FailureCode {
+        match self {
+            Self::InvalidGrant => FailureCode::InvalidGrant,
+            Self::InvalidPath => FailureCode::InvalidPath,
+            Self::OverrideUntrusted => FailureCode::RuntimeAdmissionRejected,
+            Self::Timeout => FailureCode::Timeout,
+            Self::Host(_) => FailureCode::NativeHostFailed,
+            Self::Ownership(_) => FailureCode::OwnershipFailed,
+            Self::Cleanup(_) => FailureCode::CleanupUnverified,
+            Self::MainRestore => FailureCode::MainRestoreFailed,
+            Self::TemporaryCleanup => FailureCode::TemporaryCleanupFailed,
+            Self::Diagnostic(_) => FailureCode::DiagnosticWriteFailed,
+        }
+    }
+
+    pub const fn cleanup_status(&self) -> CleanupStatus {
+        match self {
+            Self::Cleanup(_) => CleanupStatus::Unknown,
+            Self::TemporaryCleanup => CleanupStatus::Receipt,
+            _ => CleanupStatus::NotEvaluated,
+        }
+    }
 }
 
 struct TrackedMainOpener {
@@ -70,8 +100,13 @@ impl MainOpener for TrackedMainOpener {
     }
 }
 
-pub fn run(grant: SurfaceRestoreGrant) -> Result<(), LiveSurfaceError> {
+pub fn run(
+    grant: SurfaceRestoreGrant,
+    diagnostic: &mut QaRuntimeDiagnostic,
+) -> Result<(), LiveSurfaceError> {
+    diagnostic.begin(RuntimeStage::RuntimeAdmission)?;
     reject_webview_overrides()?;
+    diagnostic.complete(RuntimeStage::RuntimeAdmission)?;
     let (endpoint, binding) = grant.into_parts();
     let generation_value = binding.generation;
     let generation = Generation::new(generation_value).ok_or(LiveSurfaceError::InvalidGrant)?;
@@ -81,24 +116,35 @@ pub fn run(grant: SurfaceRestoreGrant) -> Result<(), LiveSurfaceError> {
         generation: generation_value,
         attempt: binding.attempt,
     };
+    diagnostic.begin(RuntimeStage::BundleValidation)?;
     let executable = std::env::current_exe().map_err(|_| LiveSurfaceError::InvalidPath)?;
     let bundle_dir = sibling_bundle(&executable).ok_or(LiveSurfaceError::InvalidPath)?;
+    diagnostic.complete(RuntimeStage::BundleValidation)?;
+    diagnostic.begin(RuntimeStage::UdfCreation)?;
     let udf_root = qa_udf(generation_value)?;
     create_dir_all(&udf_root).map_err(|_| LiveSurfaceError::InvalidPath)?;
     let requested = observe_directory(&udf_root)?;
+    diagnostic.complete(RuntimeStage::UdfCreation)?;
 
     let mut ledger = Ledger::new(attempt);
     ledger.acquire(attempt, Resource::Host, 1)?;
     let sta = StaGuard::initialize()?;
+    diagnostic.begin(RuntimeStage::WindowCreation)?;
     let window = OwnedWindow::create_hidden().map_err(HostError::Com)?;
     ledger.acquire(attempt, Resource::Window, 2)?;
+    diagnostic.complete(RuntimeStage::WindowCreation)?;
+    diagnostic.begin(RuntimeStage::EnvironmentCreation)?;
     let environment = wait_for(CREATION_TIMEOUT, || {
         EnvironmentRequest::begin(&sta, &udf_root, runtime_binding)
     })?;
     ledger.acquire(attempt, Resource::Environment, 3)?;
+    diagnostic.complete(RuntimeStage::EnvironmentCreation)?;
+    diagnostic.begin(RuntimeStage::BrowserExitSubscription)?;
     let browser_exit =
         BrowserExitSubscription::subscribe(&environment.environment, runtime_binding)?;
     ledger.acquire(attempt, Resource::EventToken, 4)?;
+    diagnostic.complete(RuntimeStage::BrowserExitSubscription)?;
+    diagnostic.begin(RuntimeStage::ControllerCreation)?;
     let controller = wait_controller(
         CREATION_TIMEOUT,
         &environment.environment,
@@ -106,6 +152,8 @@ pub fn run(grant: SurfaceRestoreGrant) -> Result<(), LiveSurfaceError> {
         runtime_binding,
     )?;
     ledger.acquire(attempt, Resource::Controller, 5)?;
+    diagnostic.complete(RuntimeStage::ControllerCreation)?;
+    diagnostic.begin(RuntimeStage::UdfVerification)?;
     let observation = observe_runtime(&environment.environment, &controller.controller)?;
     ledger.acquire(attempt, Resource::WebView, 6)?;
     let effective = observe_directory(&observation.effective_udf)?;
@@ -120,13 +168,16 @@ pub fn run(grant: SurfaceRestoreGrant) -> Result<(), LiveSurfaceError> {
         observation.browser_process_id,
         effective.identity,
     )?;
+    diagnostic.complete(RuntimeStage::UdfVerification)?;
 
+    diagnostic.begin(RuntimeStage::MainRestoreReady)?;
     let opened = Rc::new(Cell::new(false));
     let opener = TrackedMainOpener {
         inner: NamedPipeMainOpener::new(OsStr::new(&endpoint), binding)
             .map_err(|_| LiveSurfaceError::MainRestore)?,
         opened: Rc::clone(&opened),
     };
+    diagnostic.complete(RuntimeStage::MainRestoreReady)?;
     let mut renderer = attach_surface_renderer(
         &controller.controller,
         &bundle_dir,
@@ -134,26 +185,37 @@ pub fn run(grant: SurfaceRestoreGrant) -> Result<(), LiveSurfaceError> {
         opener,
         &mut ledger,
         attempt,
-        7,
+        diagnostic,
     )?;
+    diagnostic.begin(RuntimeStage::WindowDisplay)?;
     // SAFETY: [Category 8 — FFI boundary] the controller is live on this STA and the
     // boolean is copied synchronously by WebView2.
     unsafe { controller.controller.SetIsVisible(true) }.map_err(HostError::Com)?;
     window.show().map_err(HostError::Com)?;
+    diagnostic.complete(RuntimeStage::WindowDisplay)?;
+    diagnostic.begin(RuntimeStage::MainRestoreRequest)?;
     wait_until(INTERACTION_TIMEOUT, || opened.get())?;
+    diagnostic.complete(RuntimeStage::MainRestoreRequest)?;
 
+    diagnostic.begin(RuntimeStage::RendererSessionCleanup)?;
     if renderer.cleanup().map_err(HostError::Renderer)? != SessionCleanup::Released {
         return Err(LiveSurfaceError::Cleanup(
             CleanupUnknown::ResourceReleaseIncomplete,
         ));
     }
     drop(renderer);
+    diagnostic.complete(RuntimeStage::RendererSessionCleanup)?;
+    diagnostic.begin(RuntimeStage::ControllerClose)?;
     close_controller(&controller.controller)?;
     drop(controller);
     ledger.release(attempt, Resource::WebView, 6)?;
     ledger.release(attempt, Resource::Controller, 5)?;
+    diagnostic.complete(RuntimeStage::ControllerClose)?;
+    diagnostic.begin(RuntimeStage::WindowDestroy)?;
     window.destroy().map_err(HostError::Com)?;
     ledger.release(attempt, Resource::Window, 2)?;
+    diagnostic.complete(RuntimeStage::WindowDestroy)?;
+    diagnostic.begin(RuntimeStage::BrowserExitObservation)?;
     let exit = wait_observation(CREATION_TIMEOUT, &browser_exit)?;
     if exit.binding != runtime_binding || exit.browser_process_id != observation.browser_process_id
     {
@@ -161,8 +223,11 @@ pub fn run(grant: SurfaceRestoreGrant) -> Result<(), LiveSurfaceError> {
             CleanupUnknown::BrowserProcessMismatch,
         ));
     }
+    diagnostic.complete(RuntimeStage::BrowserExitObservation)?;
+    diagnostic.begin(RuntimeStage::BrowserExitUnsubscribe)?;
     browser_exit.unsubscribe()?;
     ledger.release(attempt, Resource::EventToken, 4)?;
+    diagnostic.complete(RuntimeStage::BrowserExitUnsubscribe)?;
     drop(environment);
     ledger.release(attempt, Resource::Environment, 3)?;
     drop(sta);
@@ -173,9 +238,13 @@ pub fn run(grant: SurfaceRestoreGrant) -> Result<(), LiveSurfaceError> {
         browser_process_id: exit.browser_process_id,
         normal_exit: exit.normal,
     };
+    diagnostic.begin(RuntimeStage::CleanupEvaluation)?;
     cleanup::evaluate(false, &ledger, &runtime, Some(&evidence))
         .map_err(LiveSurfaceError::Cleanup)?;
+    diagnostic.complete(RuntimeStage::CleanupEvaluation)?;
+    diagnostic.begin(RuntimeStage::UdfRemoval)?;
     remove_qa_udf(&udf_root)?;
+    diagnostic.complete(RuntimeStage::UdfRemoval)?;
     Ok(())
 }
 
@@ -314,5 +383,23 @@ mod tests {
     fn override_guard_is_fail_closed() {
         assert!(!has_override(|_| false));
         assert!(has_override(|name| name == "WEBVIEW2_USER_DATA_FOLDER"));
+    }
+
+    #[test]
+    fn failure_classification_never_promotes_unverified_cleanup() {
+        let cleanup = LiveSurfaceError::Cleanup(CleanupUnknown::ResourceReleaseIncomplete);
+        assert_eq!(cleanup.failure_code(), FailureCode::CleanupUnverified);
+        assert_eq!(cleanup.cleanup_status(), CleanupStatus::Unknown);
+
+        let pre_cleanup = LiveSurfaceError::Timeout;
+        assert_eq!(pre_cleanup.failure_code(), FailureCode::Timeout);
+        assert_eq!(pre_cleanup.cleanup_status(), CleanupStatus::NotEvaluated);
+
+        let after_receipt = LiveSurfaceError::TemporaryCleanup;
+        assert_eq!(
+            after_receipt.failure_code(),
+            FailureCode::TemporaryCleanupFailed
+        );
+        assert_eq!(after_receipt.cleanup_status(), CleanupStatus::Receipt);
     }
 }

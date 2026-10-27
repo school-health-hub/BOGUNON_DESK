@@ -46,6 +46,8 @@ pub enum HostError {
     InvalidBundle,
     #[error("surface renderer session failed: {0}")]
     Renderer(#[from] crate::renderer_session::RendererSessionError),
+    #[error("QA runtime diagnostic failed: {0}")]
+    Diagnostic(#[from] crate::diagnostic::DiagnosticWriteError),
 }
 
 pub struct StaGuard(std::marker::PhantomData<std::rc::Rc<()>>);
@@ -414,7 +416,7 @@ pub fn attach_surface_renderer<M: MainOpener + 'static>(
     main: M,
     ledger: &mut Ledger,
     attempt: Attempt,
-    registration_identity: u64,
+    diagnostic: &mut crate::diagnostic::QaRuntimeDiagnostic,
 ) -> Result<RendererSession<NativeHandlerRegistry<M>>, HostError> {
     let bundle_dir = bundle_dir
         .canonicalize()
@@ -428,6 +430,7 @@ pub fn attach_surface_renderer<M: MainOpener + 'static>(
     let webview3: ICoreWebView2_3 = webview.cast()?;
     let host = wide(OsStr::new(SURFACE_HOST));
     let folder = wide(bundle_dir.as_os_str());
+    diagnostic.begin(crate::diagnostic::RuntimeStage::VirtualHostMapping)?;
     // SAFETY: [Category 8 — FFI boundary] both paths are NUL-terminated UTF-16 and remain alive for
     // this call. DENY_CORS prevents mapped content from becoming a cross-origin data surface.
     unsafe {
@@ -437,13 +440,11 @@ pub fn attach_surface_renderer<M: MainOpener + 'static>(
             COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_DENY_CORS,
         )
     }?;
+    diagnostic.complete(crate::diagnostic::RuntimeStage::VirtualHostMapping)?;
+    diagnostic.begin(crate::diagnostic::RuntimeStage::RendererSessionRegistration)?;
     let registry =
         NativeHandlerRegistry::new(webview.clone(), SurfaceConnection::new(generation, main))?;
-    let mut session = RendererSession::begin(
-        registry,
-        ledger,
-        SessionOwnership::new(attempt, registration_identity),
-    )?;
+    let mut session = RendererSession::begin(registry, ledger, SessionOwnership::new(attempt, 7))?;
     for handler in [
         HandlerKind::NavigationStarting,
         HandlerKind::NavigationCompleted,
@@ -453,10 +454,13 @@ pub fn attach_surface_renderer<M: MainOpener + 'static>(
     ] {
         session.register(handler)?;
     }
+    diagnostic.complete(crate::diagnostic::RuntimeStage::RendererSessionRegistration)?;
+    diagnostic.begin(crate::diagnostic::RuntimeStage::HtmlNavigation)?;
     let entry_url = surface_entry_url(generation);
     let entry = wide(OsStr::new(&entry_url));
     // SAFETY: [Category 8 — FFI boundary] entry is an admitted, NUL-terminated fixed origin URL and
     // remains alive for the synchronous Navigate call.
     unsafe { webview.Navigate(PCWSTR(entry.as_ptr())) }?;
+    diagnostic.complete(crate::diagnostic::RuntimeStage::HtmlNavigation)?;
     Ok(session)
 }

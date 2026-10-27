@@ -74,6 +74,9 @@ describe('Surface QA portable package', () => {
       expect(file.bytes).toBe(bytes.length);
     }
     await expect(verifyPortablePackage(test.output)).resolves.toEqual(result.manifest);
+    const readme = await fs.readFile(path.join(test.output, 'README.txt'), 'utf8');
+    expect(readme).toContain('%TEMP%\\bogunon-desktop-surface-qa-diagnostic.json');
+    expect(readme).toContain('Do not automatically retry');
   });
 
   it('records source and supplied runner provenance without environment dumps', async () => {
