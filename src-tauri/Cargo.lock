@@ -4440,6 +4440,7 @@ dependencies = [
  "tempfile",
  "tokio",
  "uuid",
+ "webview2-com",
  "windows",
  "windows-dpapi",
  "zeroize",

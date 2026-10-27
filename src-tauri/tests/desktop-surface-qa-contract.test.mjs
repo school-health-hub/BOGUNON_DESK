@@ -18,6 +18,7 @@ test("desktop Surface QA flavor is isolated and has no production integrations",
   assert.equal(qa.build.frontendDist, "../dist-surface-qa-main");
   assert.equal(qa.app.windows.length, 1);
   assert.equal(qa.app.windows[0].label, "main");
+  assert.equal(qa.app.windows[0].create, false);
   assert.match(qa.app.windows[0].title, /SYNTHETIC ONLY/);
   assert.deepEqual(qa.plugins, { updater: null, "deep-link": null });
   assert.equal(qa.bundle.active, false);
@@ -38,8 +39,8 @@ test("native QA entrypoint has an explicit minimal boundary", () => {
   const build = read("build.rs");
   const runtime = read("src/surface_runtime.rs");
 
-  assert.ok(cargo.includes('desktop-surface-qa = ["tauri/custom-protocol"]'));
-  assert.match(entrypoint, /launch_desktop_surface_qa/);
+  assert.ok(cargo.includes('desktop-surface-qa = ["tauri/custom-protocol", "dep:webview2-com"]'));
+  assert.match(entrypoint, /navigation::begin/);
   assert.doesNotMatch(
     entrypoint,
     /tauri_plugin_(?:updater|deep_link|autostart|store|dialog|opener|single_instance)/,
@@ -72,7 +73,7 @@ test("QA Main startup failures are diagnosed without panic-abort", () => {
   assert.match(entrypoint, /LifetimeOriginMismatch/);
   assert.match(entrypoint, /LifetimeResourceRegistrationFailed/);
   assert.match(entrypoint, /SecurityEventsInstallFailed/);
-  assert.match(entrypoint, /app\.handle\(\)\.exit\(7\)/);
+  assert.match(read("src/qa_main_navigation.rs"), /app\.exit\(7\)/);
   assert.doesNotMatch(entrypoint, /main_security::install\(app\.handle\(\)\)\.map_err/);
 });
 
@@ -84,5 +85,26 @@ test("QA origin diagnostics observe the admission read without changing security
   assert.ok(lifetime.includes("origin_reading(&current_url, allowed)"));
   assert.ok(diagnostic.includes("main_origin_state: Option<MainOriginState>"));
   assert.ok(lifetime.indexOf("origin_reading(&current_url, allowed)") < lifetime.indexOf("if !allowed {"));
-  assert.ok(entrypoint.indexOf("main_security::install_observed") < entrypoint.indexOf("surface_runtime::launch_desktop_surface_qa"));
+  const continuation = read("src/qa_main_navigation_continue.rs");
+  assert.ok(continuation.includes("main_security::install_after_caller_observed"));
+  assert.ok(continuation.includes("gate.claim(Instant::now(), identity_ok, origin_ok)"));
+});
+
+test("QA initial navigation is subscribed once before the first app navigation", () => {
+  const bootstrap = read("src/qa_main_navigation.rs");
+  const native = read("src/qa_main_navigation_native.rs");
+  const continuation = read("src/qa_main_navigation_continue.rs");
+  assert.ok(bootstrap.indexOf("native::attach(") < bootstrap.indexOf("main.navigate(url)"));
+  assert.equal((bootstrap.match(/main\.navigate\(/g) ?? []).length, 1);
+  assert.ok(bootstrap.includes("wait_timeout(gate, remaining)"));
+  assert.ok(native.includes("args.IsSuccess(&mut success)"));
+  assert.ok(native.includes("args.NavigationId(&mut id)"));
+  assert.ok(native.includes("remove_NavigationStarting"));
+  assert.ok(native.includes("remove_NavigationCompleted"));
+  assert.ok(continuation.includes("native::detach_completed"));
+  assert.ok(continuation.indexOf("prepare(main, bootstrap)") < continuation.indexOf("gate.finish()"));
+  assert.ok(continuation.indexOf("gate.finish()") < continuation.indexOf("surface_runtime::launch_desktop_surface_qa"));
+  for (const code of [bootstrap, native, continuation]) {
+    assert.doesNotMatch(code, /thread::sleep|sleep\(|\.reload\(|\.eval\(/);
+  }
 });

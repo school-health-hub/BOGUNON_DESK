@@ -13,6 +13,7 @@
     "windows": [
       {
         "label": "main",
+        "create": false,
         "title": "BOGUNON DESK SURFACE QA — SYNTHETIC ONLY",
         "width": 980,
         "height": 700,

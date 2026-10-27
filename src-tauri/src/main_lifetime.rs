@@ -46,7 +46,7 @@ fn record_origin<R: Runtime>(
 }
 #[path = "main_lifetime_origin.rs"]
 mod origin;
-fn local<R: Runtime>(app: &AppHandle<R>, url: &Url) -> bool {
+pub(crate) fn local<R: Runtime>(app: &AppHandle<R>, url: &Url) -> bool {
     if tauri::is_dev() {
         return app
             .config()

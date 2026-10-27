@@ -86,6 +86,14 @@ fn install_steps(
     observe(InstallProgress::Started(InstallStage::Caller));
     caller().map_err(|()| InstallError::Caller)?;
     observe(InstallProgress::Completed(InstallStage::Caller));
+    install_tail_steps(observe, lifetime, events)
+}
+
+fn install_tail_steps(
+    observe: &mut impl FnMut(InstallProgress),
+    lifetime: impl FnOnce() -> Result<(), main_lifetime::InstallError>,
+    events: impl FnOnce() -> Result<(), ()>,
+) -> Result<(), InstallError> {
     observe(InstallProgress::Started(InstallStage::Lifetime));
     lifetime().map_err(InstallError::Lifetime)?;
     observe(InstallProgress::Completed(InstallStage::Lifetime));
@@ -93,6 +101,35 @@ fn install_steps(
     events().map_err(|()| InstallError::Events)?;
     observe(InstallProgress::Completed(InstallStage::Events));
     Ok(())
+}
+
+#[cfg(all(windows, feature = "desktop-surface-qa"))]
+pub(crate) fn install_caller_observed(
+    app: &AppHandle,
+    mut observe: impl FnMut(InstallProgress),
+) -> Result<(), InstallError> {
+    observe(InstallProgress::Started(InstallStage::Caller));
+    app.state::<MainCallerGuard>()
+        .install(app)
+        .map_err(|_| InstallError::Caller)?;
+    observe(InstallProgress::Completed(InstallStage::Caller));
+    Ok(())
+}
+
+#[cfg(all(windows, feature = "desktop-surface-qa"))]
+pub(crate) fn install_after_caller_observed(
+    app: &AppHandle,
+    mut observe: impl FnMut(InstallProgress),
+) -> Result<(), InstallError> {
+    let main = app.get_webview_window("main").ok_or(InstallError::Caller)?;
+    if !crate::main_caller::is_registered_main(main.as_ref()) {
+        return Err(InstallError::Caller);
+    }
+    install_tail_steps(
+        &mut observe,
+        || main_lifetime::install(app),
+        || app.state::<MainEvents>().install(app).map_err(|_| ()),
+    )
 }
 
 #[cfg(test)]

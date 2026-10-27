@@ -19,7 +19,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 default = []
 my-finance-qa = []
 # Direct Cargo QA builds embed assets and must use Tauri's production origin mode.
-desktop-surface-qa = ["tauri/custom-protocol"]
+desktop-surface-qa = ["tauri/custom-protocol", "dep:webview2-com"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
@@ -62,6 +62,7 @@ rusqlite = { version = "0.37", features = ["bundled-sqlcipher-vendored-openssl"]
 tempfile = "3"
 
 [target.'cfg(windows)'.dependencies]
+webview2-com = { version = "=0.38.2", optional = true }
 windows = { version = "0.61", features = [
   "Win32_Foundation",
   "Win32_Graphics_Gdi",

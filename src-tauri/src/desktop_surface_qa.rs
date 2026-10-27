@@ -5,7 +5,10 @@
 //! the fixed sibling Surface Host for the current process lifetime.
 
 #[cfg(windows)]
-use crate::surface_runtime::{self, SurfaceRuntimeState};
+use crate::surface_runtime::SurfaceRuntimeState;
+#[cfg(windows)]
+#[path = "qa_main_navigation.rs"]
+mod navigation;
 #[cfg(windows)]
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -92,29 +95,30 @@ pub fn run() {
     let result = builder
         .setup(move |app| {
             #[cfg(windows)]
-            if let Err(error) = crate::main_security::install_observed(app.handle(), |progress| {
-                let result = match progress {
-                    crate::main_security::InstallProgress::Started(stage) => {
-                        setup_diagnostic.begin(security_stage(stage))
-                    }
-                    crate::main_security::InstallProgress::Completed(stage) => {
-                        setup_diagnostic.complete(security_stage(stage))
-                    }
-                };
-                let _ = result;
-            }) {
-                let _ = setup_diagnostic.fail(security_failure(error), ChildStatus::NotStarted);
-                setup_failed_in_callback.store(true, Ordering::SeqCst);
-                app.handle().exit(7);
-                return Ok(());
-            }
-            #[cfg(windows)]
-            {
-                let state = app.state::<SurfaceRuntimeState>();
-                surface_runtime::launch_desktop_surface_qa(app.handle(), &state, &setup_diagnostic)
-                    .map_err(std::io::Error::other)?;
+            if let Err(failure) = navigation::begin(
+                app.handle(),
+                setup_diagnostic.clone(),
+                Arc::clone(&setup_failed_in_callback),
+            ) {
+                navigation::fail_setup(
+                    app.handle(),
+                    &setup_diagnostic,
+                    &setup_failed_in_callback,
+                    failure,
+                );
             }
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            #[cfg(windows)]
+            if window.label() == "main"
+                && matches!(
+                    event,
+                    tauri::WindowEvent::CloseRequested { .. } | tauri::WindowEvent::Destroyed
+                )
+            {
+                navigation::cancel_pending(window);
+            }
         })
         .run(tauri::generate_context!());
 

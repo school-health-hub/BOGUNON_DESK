@@ -1,6 +1,50 @@
-use super::{install_steps, InstallError, InstallProgress, InstallStage};
+use super::{install_steps, install_tail_steps, InstallError, InstallProgress, InstallStage};
 use crate::main_lifetime;
 use std::cell::RefCell;
+
+#[test]
+fn given_navigation_is_ready_when_security_tail_runs_then_host_follows_only_successful_lifetime_and_events(
+) {
+    // Given each possible tail failure and the real shared tail installer.
+    for failed in [
+        None,
+        Some(InstallStage::Lifetime),
+        Some(InstallStage::Events),
+    ] {
+        let operations = RefCell::new(Vec::new());
+        // When the deferred security tail is continued.
+        let result = install_tail_steps(
+            &mut |_| {},
+            || {
+                operations.borrow_mut().push("lifetime");
+                if failed == Some(InstallStage::Lifetime) {
+                    Err(main_lifetime::InstallError::OriginMismatch)
+                } else {
+                    Ok(())
+                }
+            },
+            || {
+                operations.borrow_mut().push("events");
+                if failed == Some(InstallStage::Events) {
+                    Err(())
+                } else {
+                    Ok(())
+                }
+            },
+        );
+        if result.is_ok() {
+            operations.borrow_mut().push("host");
+        }
+        // Then no failure can reach the Host continuation.
+        let expected = match failed {
+            None => vec!["lifetime", "events", "host"],
+            Some(InstallStage::Lifetime) => vec!["lifetime"],
+            Some(InstallStage::Events) => vec!["lifetime", "events"],
+            Some(InstallStage::Caller) => unreachable!(),
+        };
+        assert_eq!(operations.into_inner(), expected);
+    }
+}
 
 #[test]
 fn given_each_security_step_succeeds_when_installed_then_order_is_fixed() {
