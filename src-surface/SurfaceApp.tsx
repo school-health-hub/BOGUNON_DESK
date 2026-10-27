@@ -23,9 +23,10 @@ type Props = Readonly<{
   onOpenMain?: (actionId: SurfaceProjection["launchers"][number]["actionId"]) => void;
   initialLayout?: SurfaceLayout;
   initialEditing?: boolean;
+  isBrowserPreview?: boolean;
 }>;
 
-export function SurfaceApp({ projection, storage, onOpenMain, initialLayout = defaultSurfaceLayout, initialEditing = false }: Props) {
+export function SurfaceApp({ projection, storage, onOpenMain, initialLayout = defaultSurfaceLayout, initialEditing = false, isBrowserPreview = true }: Props) {
   const [editing, setEditing] = useState(initialEditing);
   const [layout, setLayout] = useState<SurfaceLayout>(() => storage.load() ?? initialLayout);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
@@ -49,15 +50,15 @@ export function SurfaceApp({ projection, storage, onOpenMain, initialLayout = de
   const onGridChange = (next: Layout) => { if (editing) setLayout((current) => applyGridLayout(current, next)); };
   const hide = (id: SurfaceWidgetId) => setLayout((current) => setWidgetVisibility(current, id, false));
   const restoreDefault = () => { setLayout(defaultSurfaceLayout); setActivity("기본 합성 배치를 복원했습니다."); };
-  return <main className={`surface-preview${editing ? " is-editing" : ""}`}>
-    <header className="surface-toolbar">
-      <div className="surface-toolbar__identity"><span><Sparkles size={17} /></span><div><strong>Desktop Surface</strong><small>민트·아이보리 6개 위젯 · 합성 데이터 전용</small></div></div>
+  return <main className={`surface-preview${editing ? " is-editing" : ""}${isBrowserPreview ? " is-browser-preview" : ""}`}>
+    {isBrowserPreview && <header className="surface-toolbar">
+      <div className="surface-toolbar__identity"><span><Sparkles size={17} /></span><div><strong>Desktop Surface 미리보기</strong><small>브라우저 검토 화면 · 합성 데이터 전용</small></div></div>
       <div className="surface-toolbar__status" role="status">{activity}</div>
       <div className="surface-toolbar__actions">
         {editing && <button type="button" className="surface-button is-secondary" onClick={restoreDefault}><RotateCcw size={15} /> 기본 배치</button>}
         <button type="button" className="surface-button" aria-pressed={editing} onClick={() => setEditing((current) => !current)}><Settings2 size={15} /> {editing ? "편집 완료" : "위젯 편집"}</button>
       </div>
-    </header>
+    </header>}
     {editing && <aside className="surface-editor" aria-label="숨긴 위젯 관리">
       <span>카드 상단을 끌어 이동하고, 오른쪽 아래에서 크기를 조절하세요.</span>
       {hidden.map(({ id }) => <button type="button" key={id} onClick={() => setLayout((current) => setWidgetVisibility(current, id, true))}>+ {widgetMeta[id].title}</button>)}

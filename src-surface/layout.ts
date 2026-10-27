@@ -33,12 +33,12 @@ export const calculateGridMetrics = (layout: SurfaceLayout, viewportHeight: numb
 export const defaultSurfaceLayout: SurfaceLayout = {
   version: SURFACE_LAYOUT_VERSION,
   widgets: [
-    { id: "calendar", x: 0, y: 0, width: 7, height: 7, visible: true },
-    { id: "clock", x: 7, y: 0, width: 3, height: 2, visible: true },
-    { id: "weather", x: 10, y: 0, width: 2, height: 2, visible: true },
-    { id: "tasks", x: 7, y: 2, width: 5, height: 3, visible: true },
-    { id: "dday", x: 7, y: 5, width: 2, height: 2, visible: true },
-    { id: "launcher", x: 9, y: 5, width: 3, height: 2, visible: true },
+    { id: "calendar", x: 0, y: 0, width: 6, height: 6, visible: true },
+    { id: "clock", x: 6, y: 0, width: 3, height: 2, visible: true },
+    { id: "weather", x: 9, y: 0, width: 3, height: 2, visible: true },
+    { id: "tasks", x: 6, y: 2, width: 6, height: 3, visible: true },
+    { id: "dday", x: 6, y: 5, width: 2, height: 2, visible: true },
+    { id: "launcher", x: 8, y: 5, width: 4, height: 2, visible: true },
   ],
 };
 

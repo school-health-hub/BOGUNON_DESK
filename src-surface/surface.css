@@ -1,21 +1,31 @@
 :root {
   font-family: "Pretendard", "Noto Sans KR", system-ui, sans-serif;
-  color: #263b48;
+  color: #243247;
   background: #f7f9f5;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  --surface-ivory: #f7f9f5;
-  --surface-mint: #e5f4ef;
-  --surface-teal: #177f71;
-  --surface-teal-hover: #10665c;
-  --surface-ink: #263b48;
-  --surface-secondary: #526476;
-  --surface-muted: #627585;
-  --surface-border: #dce6e4;
+  --dashboard-ivory: #f7f9f5;
+  --dashboard-mint: #e5f4ef;
+  --dashboard-accent-soft: #eaf6f2;
+  --dashboard-teal: #147d70;
+  --dashboard-teal-hover: #10665c;
+  --dashboard-ink: #243247;
+  --dashboard-secondary: #526476;
+  --dashboard-muted: #627585;
+  --dashboard-border: #dce6e4;
+  --surface-ivory: var(--dashboard-ivory);
+  --surface-mint: var(--dashboard-mint);
+  --surface-accent-soft: var(--dashboard-accent-soft);
+  --surface-teal: var(--dashboard-teal);
+  --surface-teal-hover: var(--dashboard-teal-hover);
+  --surface-ink: var(--dashboard-ink);
+  --surface-secondary: var(--dashboard-secondary);
+  --surface-muted: var(--dashboard-muted);
+  --surface-border: var(--dashboard-border);
   --surface-white: #ffffff;
   --surface-error: #a5443c;
-  --surface-shadow: 0 8px 26px rgba(38, 59, 72, 0.1);
-  --surface-shadow-raised: 0 18px 42px rgba(38, 59, 72, 0.15);
+  --surface-shadow: 0 7px 20px rgba(36, 50, 71, 0.1);
+  --surface-shadow-raised: 0 16px 38px rgba(36, 50, 71, 0.16);
   --surface-radius: 16px;
   --surface-control-radius: 8px;
 }
@@ -44,11 +54,10 @@ button:focus-visible { outline: 2px solid var(--surface-teal); outline-offset: 2
   gap: 16px;
   padding: 10px 12px 10px 16px;
   margin-bottom: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.84);
+  border: 1px dashed rgba(82, 100, 118, 0.38);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.76);
-  box-shadow: 0 10px 26px rgba(38, 59, 72, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(18px) saturate(135%);
+  background: rgba(247, 249, 245, 0.9);
+  box-shadow: inset 3px 0 0 var(--surface-teal);
 }
 
 .surface-toolbar__identity, .surface-toolbar__actions, .surface-card__title, .surface-card__tools,
@@ -91,7 +100,7 @@ button:focus-visible { outline: 2px solid var(--surface-teal); outline-offset: 2
   border-radius: 12px;
   color: var(--surface-secondary);
   background: rgba(229, 244, 239, 0.82);
-  font-size: 12px;
+  font-size: 13px;
 }
 .surface-editor > span { margin-right: auto; }
 .surface-editor button { min-height: 28px; padding: 0 9px; color: var(--surface-teal); background: var(--surface-white); border-color: rgba(23, 127, 113, 0.22); }
@@ -103,21 +112,21 @@ button:focus-visible { outline: 2px solid var(--surface-teal); outline-offset: 2
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--surface-border);
   border-radius: var(--surface-radius);
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(247, 251, 250, 0.88));
-  box-shadow: var(--surface-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(18px) saturate(135%);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.99), rgba(247, 251, 250, 0.96));
+  box-shadow: var(--surface-shadow), inset 0 1px 0 var(--surface-white);
+  backdrop-filter: blur(14px) saturate(125%);
 }
-.surface-card--information { background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(229, 244, 239, 0.86)); }
-.surface-card--utility { background: linear-gradient(145deg, rgba(249, 253, 251, 0.96), rgba(220, 239, 234, 0.88)); }
+.surface-card--information { border-color: rgba(20, 125, 112, 0.22); background: linear-gradient(145deg, var(--surface-white), var(--surface-accent-soft)); }
+.surface-card--utility { border-color: rgba(20, 125, 112, 0.3); background: linear-gradient(145deg, var(--surface-white), var(--surface-mint)); }
 .is-editing .surface-card { border-color: rgba(23, 127, 113, 0.36); box-shadow: var(--surface-shadow-raised); }
 .surface-card__header { min-height: 42px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px 8px; border-bottom: 1px solid rgba(220, 230, 228, 0.74); }
 .is-editing .surface-card__header { cursor: grab; }
 .is-editing .surface-card__header:active { cursor: grabbing; }
 .surface-card__title { min-width: 0; gap: 7px; color: var(--surface-ink); }
 .surface-card__title svg { color: var(--surface-teal); flex: none; }
-.surface-card__title strong { overflow: hidden; font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.surface-card__title strong { overflow: hidden; font-size: 14px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .surface-card__tools { gap: 4px; color: var(--surface-muted); }
 .surface-icon-button { width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 7px; background: transparent; cursor: pointer; }
 .surface-icon-button:hover { color: var(--surface-teal); background: var(--surface-mint); }
@@ -128,61 +137,61 @@ button:focus-visible { outline: 2px solid var(--surface-teal); outline-offset: 2
 .surface-calendar__toolbar { display: grid; grid-template-columns: 30px auto 30px 1fr; align-items: center; gap: 5px; }
 .surface-calendar__toolbar button { width: 30px; height: 28px; display: grid; place-items: center; border: 1px solid var(--surface-border); border-radius: 7px; background: var(--surface-white); cursor: pointer; }
 .surface-calendar__toolbar button:hover { color: var(--surface-teal); background: var(--surface-mint); }
-.surface-calendar__toolbar strong { min-width: 104px; text-align: center; font-size: 13px; }
+.surface-calendar__toolbar strong { min-width: 104px; text-align: center; font-size: 14px; }
 .surface-calendar__toolbar .surface-calendar__today { width: auto; justify-self: end; padding: 0 9px; color: var(--surface-teal); }
-.surface-calendar__legend { display: flex; gap: 12px; color: var(--surface-muted); font-size: 11px; }
+.surface-calendar__legend { display: flex; gap: 12px; color: var(--surface-muted); font-size: 12px; }
 .surface-calendar__legend span::before { width: 6px; height: 6px; display: inline-block; margin-right: 4px; border-radius: 2px; background: var(--kind-color); content: ""; }
 [data-kind="education"] { --kind-color: #4d63ad; --kind-bg: #e8edff; }
 [data-kind="checkup"] { --kind-color: #16856f; --kind-bg: #dff4ee; }
 [data-kind="event"] { --kind-color: #a86618; --kind-bg: #fff1dc; }
 [data-kind="report"] { --kind-color: #72519c; --kind-bg: #f1e9fb; }
 .surface-calendar__grid { min-height: 0; flex: 1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: 20px repeat(5, minmax(42px, 1fr)); gap: 4px; }
-.surface-calendar__weekday { align-self: center; color: var(--surface-muted); text-align: center; font-size: 11px; font-weight: 600; }
+.surface-calendar__weekday { align-self: center; color: var(--surface-muted); text-align: center; font-size: 12px; font-weight: 600; }
 .surface-calendar__cell { min-width: 0; position: relative; display: flex; flex-direction: column; align-items: stretch; gap: 4px; padding: 5px; border: 1px solid transparent; border-radius: 8px; text-align: left; background: rgba(247, 249, 245, 0.72); cursor: pointer; }
 .surface-calendar__cell:hover { border-color: var(--surface-border); background: var(--surface-white); }
 .surface-calendar__cell.is-empty { cursor: default; opacity: 0.35; }
 .surface-calendar__cell.is-today .surface-calendar__date { color: var(--surface-white); background: var(--surface-teal); }
 .surface-calendar__cell.is-selected { border-color: var(--surface-teal); }
-.surface-calendar__date { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 7px; font-size: 12px; font-variant-numeric: tabular-nums; }
-.surface-calendar__event { overflow: hidden; padding: 2px 4px; border-radius: 4px; color: var(--kind-color); background: var(--kind-bg); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.surface-calendar__more { color: var(--surface-muted); font-size: 10px; }
-.surface-calendar__selection { gap: 5px; color: var(--surface-teal); font-size: 11px; }
+.surface-calendar__date { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 7px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.surface-calendar__event { overflow: hidden; padding: 2px 4px; border-radius: 4px; color: var(--kind-color); background: var(--kind-bg); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.surface-calendar__more { color: var(--surface-muted); font-size: 12px; }
+.surface-calendar__selection { gap: 5px; color: var(--surface-teal); font-size: 12px; }
 
-.surface-task-list { display: grid; gap: 5px; padding: 0; margin: 0; list-style: none; }
-.surface-task-list li { display: grid; grid-template-columns: 24px minmax(0, 1fr); align-items: center; gap: 8px; min-height: 42px; padding: 6px 8px; border-radius: 9px; background: rgba(247, 249, 245, 0.72); }
-.surface-task-list li.is-complete { opacity: 0.62; }
-.surface-task-list li.is-complete strong { text-decoration: line-through; }
+.surface-task-list { display: grid; gap: 7px; padding: 0; margin: 0; list-style: none; }
+.surface-task-list li { display: grid; grid-template-columns: 26px minmax(0, 1fr); align-items: center; gap: 10px; min-height: 48px; padding: 8px 10px; border: 1px solid rgba(220, 230, 228, 0.8); border-radius: 10px; background: rgba(255, 255, 255, 0.76); }
+.surface-task-list li.is-complete { background: rgba(234, 246, 242, 0.7); }
+.surface-task-list li.is-complete strong { color: var(--surface-secondary); text-decoration: line-through; text-decoration-color: var(--surface-muted); }
 .surface-task-list__check { width: 22px; height: 22px; display: grid; place-items: center; color: var(--surface-teal); border-radius: 7px; background: var(--surface-mint); }
 .surface-task-list__copy { min-width: 0; display: grid; gap: 1px; }
-.surface-task-list__copy strong { overflow: hidden; font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.surface-task-list__copy small { color: var(--surface-muted); font-size: 10px; }
+.surface-task-list__copy strong { overflow: hidden; font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.surface-task-list__copy small { color: var(--surface-muted); font-size: 12px; }
 
 .surface-clock { height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 3px; }
-.surface-clock__brand { gap: 5px; color: var(--surface-teal); font-size: 10px; font-weight: 600; letter-spacing: 0.04em; }
+.surface-clock__brand { gap: 5px; color: var(--surface-teal); font-size: 12px; font-weight: 600; letter-spacing: 0.04em; }
 .surface-clock > strong { color: var(--surface-ink); font-size: clamp(24px, 2.3vw, 34px); font-variant-numeric: tabular-nums; letter-spacing: -0.04em; line-height: 1.1; }
-.surface-clock > span:last-child { color: var(--surface-secondary); font-size: 12px; }
+.surface-clock > span:last-child { color: var(--surface-secondary); font-size: 13px; }
 
 .surface-weather { height: 100%; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto auto; align-content: center; column-gap: 8px; }
 .surface-weather > svg { grid-row: 1 / 4; align-self: center; color: var(--surface-teal); }
 .surface-weather strong { font-size: 24px; font-variant-numeric: tabular-nums; line-height: 1.05; }
-.surface-weather span { color: var(--surface-secondary); font-size: 11px; }
-.surface-weather small { color: var(--surface-muted); font-size: 9px; }
-.surface-state, .surface-empty, .surface-error { margin: 0; color: var(--surface-muted); font-size: 11px; line-height: 1.5; }
+.surface-weather span { color: var(--surface-secondary); font-size: 13px; }
+.surface-weather small { color: var(--surface-muted); font-size: 12px; }
+.surface-state, .surface-empty, .surface-error { margin: 0; color: var(--surface-muted); font-size: 13px; line-height: 1.5; }
 .surface-error { color: var(--surface-error); }
 .surface-state { display: grid; gap: 8px; }
 .surface-skeleton { width: 70%; height: 12px; border-radius: 6px; background: var(--surface-mint); }
 
 .surface-dday-list { display: grid; gap: 5px; padding: 0; margin: 0; list-style: none; }
 .surface-dday-list li { min-width: 0; display: grid; grid-template-columns: 45px minmax(0, 1fr); align-items: center; gap: 7px; }
-.surface-dday-list strong { color: var(--surface-teal); font-size: 12px; font-variant-numeric: tabular-nums; }
-.surface-dday-list span { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.surface-dday-list strong { color: var(--surface-teal); font-size: 13px; font-variant-numeric: tabular-nums; }
+.surface-dday-list span { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
 
 .surface-launchers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
 .surface-launchers button { min-width: 0; min-height: 42px; display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; gap: 7px; padding: 5px 7px; border: 1px solid rgba(23, 127, 113, 0.14); border-radius: 9px; text-align: left; background: rgba(255, 255, 255, 0.68); cursor: pointer; transition: transform 150ms ease, background 150ms ease; }
 .surface-launchers button:hover { background: var(--surface-white); transform: translateY(-1px); }
 .surface-launchers button > span { width: 28px; height: 28px; display: grid; place-items: center; color: var(--surface-teal); border-radius: 8px; background: var(--surface-mint); }
-.surface-launchers button strong { overflow: hidden; font-size: 10px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.surface-launchers p { grid-column: 1 / -1; gap: 4px; margin: 0; color: var(--surface-muted); font-size: 9px; }
+.surface-launchers button strong { overflow: hidden; font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.surface-launchers p { grid-column: 1 / -1; gap: 4px; margin: 0; color: var(--surface-muted); font-size: 12px; }
 
 @media (max-width: 1400px) {
   .surface-preview { padding: 16px 20px 24px; }
@@ -195,6 +204,11 @@ button:focus-visible { outline: 2px solid var(--surface-teal); outline-offset: 2
   .surface-preview { padding-top: 12px; }
   .surface-toolbar { min-height: 52px; margin-bottom: 8px; }
   .surface-canvas, .surface-grid { min-height: 650px; }
+  .surface-task-list { gap: 5px; }
+  .surface-task-list li { min-height: 44px; padding-block: 6px; }
+  .surface-launchers { gap: 4px; }
+  .surface-launchers button { min-height: 36px; padding-block: 3px; }
+  .surface-launchers p { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

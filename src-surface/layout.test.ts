@@ -1,12 +1,17 @@
 // @vitest-environment jsdom
 
 import { describe, expect, it } from "vitest";
-import { applyGridLayout, calculateGridMetrics, createSessionStorageAdapter, defaultSurfaceLayout, editedSurfaceLayout, parseSurfaceLayout, setWidgetVisibility, SURFACE_PREVIEW_STORAGE_KEY } from "./layout";
+import { applyGridLayout, calculateGridMetrics, createSessionStorageAdapter, defaultSurfaceLayout, editedSurfaceLayout, parseSurfaceLayout, setWidgetVisibility, SURFACE_PREVIEW_STORAGE_KEY, toGridLayout } from "./layout";
 
 describe("surface layout", () => {
   it("fits the default and editing layouts inside the available viewport height", () => {
     expect(calculateGridMetrics(defaultSurfaceLayout, 768, false)).toEqual({ rows: 7, rowHeight: 82, pixelHeight: 646 });
     expect(calculateGridMetrics(editedSurfaceLayout, 900, true)).toEqual({ rows: 9, rowHeight: 69, pixelHeight: 717 });
+  });
+
+  it("starts with a compact calendar while keeping every widget resizable", () => {
+    expect(defaultSurfaceLayout.widgets.find(({ id }) => id === "calendar")).toMatchObject({ width: 6, height: 6 });
+    expect(toGridLayout(defaultSurfaceLayout).find(({ i }) => i === "calendar")).toMatchObject({ minW: 2, minH: 2, maxW: 12, maxH: 8 });
   });
 
   it("keeps every default widget inside the twelve-column boundary", () => {

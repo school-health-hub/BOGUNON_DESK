@@ -29,6 +29,7 @@ function SurfaceRoot() {
   const editingPreview = new URLSearchParams(window.location.search).get("preview") === "editing";
   return <SurfaceApp projection={projection} storage={createSessionStorageAdapter(window.sessionStorage)}
     onOpenMain={nativeBridge === null ? undefined : (actionId) => { nativeBridge.openMain(actionId); }}
+    isBrowserPreview={nativeBridge === null}
     initialEditing={editingPreview} initialLayout={editingPreview ? editedSurfaceLayout : undefined} />;
 }
 
