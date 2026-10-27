@@ -67,7 +67,10 @@ test("QA Main startup failures are diagnosed without panic-abort", () => {
   assert.match(runtime, /classify_child_before_grant/);
   assert.match(runtime, /HostExitedBeforeGrant/);
   assert.match(entrypoint, /SecurityCallerInstallFailed/);
-  assert.match(entrypoint, /SecurityLifetimeInstallFailed/);
+  assert.match(entrypoint, /InstallError::Lifetime\(error\)/);
+  assert.match(entrypoint, /LifetimeStateMissing/);
+  assert.match(entrypoint, /LifetimeOriginMismatch/);
+  assert.match(entrypoint, /LifetimeResourceRegistrationFailed/);
   assert.match(entrypoint, /SecurityEventsInstallFailed/);
   assert.match(entrypoint, /app\.handle\(\)\.exit\(7\)/);
   assert.doesNotMatch(entrypoint, /main_security::install\(app\.handle\(\)\)\.map_err/);

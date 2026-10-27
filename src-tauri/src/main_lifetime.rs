@@ -3,6 +3,19 @@ use tauri::{AppHandle, Manager, Resource, ResourceId, Runtime, Url, Webview, Win
 #[path = "main_lifetime_state.rs"]
 mod state;
 use state::{Generation, Lifetime};
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum InstallError {
+    StateMissing,
+    MainConfigMissing,
+    AppUrlInvalid,
+    MainWebviewMissing,
+    WebviewUrlUnavailable,
+    OriginMismatch,
+    StateUnavailable,
+    AlreadyInstalled,
+    ResourceRegistrationFailed,
+}
 struct Identity;
 impl Resource for Identity {}
 struct Registration {
@@ -68,26 +81,36 @@ impl MainLifetime {
         })
     }
 }
-pub(crate) fn install<R: Runtime>(app: &AppHandle<R>) -> Result<(), String> {
-    let registry = app.try_state::<MainLifetime>().ok_or(UNAVAILABLE)?;
+pub(crate) fn install<R: Runtime>(app: &AppHandle<R>) -> Result<(), InstallError> {
+    let registry = app
+        .try_state::<MainLifetime>()
+        .ok_or(InstallError::StateMissing)?;
     let config = app
         .config()
         .app
         .windows
         .iter()
         .find(|window| window.label == "main")
-        .ok_or(UNAVAILABLE)?;
+        .ok_or(InstallError::MainConfigMissing)?;
     if !matches!(&config.url, tauri::WebviewUrl::App(_)) {
-        return Err(UNAVAILABLE.into());
+        return Err(InstallError::AppUrlInvalid);
     }
-    let main = app.get_webview_window("main").ok_or(UNAVAILABLE)?;
+    let main = app
+        .get_webview_window("main")
+        .ok_or(InstallError::MainWebviewMissing)?;
     let view: &Webview<R> = main.as_ref();
-    if !view.url().is_ok_and(|url| local(app, &url)) {
-        return Err(UNAVAILABLE.into());
+    let current_url = view
+        .url()
+        .map_err(|_| InstallError::WebviewUrlUnavailable)?;
+    if !local(app, &current_url) {
+        return Err(InstallError::OriginMismatch);
     }
-    let mut state = registry.state.lock().map_err(|_| UNAVAILABLE)?;
+    let mut state = registry
+        .state
+        .lock()
+        .map_err(|_| InstallError::StateUnavailable)?;
     if registry.registration.get().is_some() || state.is_some() {
-        return Err(UNAVAILABLE.into());
+        return Err(InstallError::AlreadyInstalled);
     }
     let webview = Arc::new(Identity);
     let window = Arc::new(Identity);
@@ -101,7 +124,7 @@ pub(crate) fn install<R: Runtime>(app: &AppHandle<R>) -> Result<(), String> {
             view_id,
             window_id,
         })
-        .map_err(|_| UNAVAILABLE)?;
+        .map_err(|_| InstallError::ResourceRegistrationFailed)?;
     *state = Some(Lifetime::new());
     Ok(())
 }

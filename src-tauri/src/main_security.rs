@@ -19,7 +19,7 @@ pub(crate) enum InstallProgress {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum InstallError {
     Caller,
-    Lifetime,
+    Lifetime(main_lifetime::InstallError),
     Events,
 }
 
@@ -27,7 +27,7 @@ impl fmt::Display for InstallError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(match self {
             Self::Caller => "Main caller security installation failed",
-            Self::Lifetime => "Main lifetime security installation failed",
+            Self::Lifetime(_) => "Main lifetime security installation failed",
             Self::Events => "Main event security installation failed",
         })
     }
@@ -72,7 +72,7 @@ pub(crate) fn install_observed(
     install_steps(
         &mut observe,
         || app.state::<MainCallerGuard>().install(app).map_err(|_| ()),
-        || main_lifetime::install(app).map_err(|_| ()),
+        || main_lifetime::install(app),
         || app.state::<MainEvents>().install(app).map_err(|_| ()),
     )
 }
@@ -80,14 +80,14 @@ pub(crate) fn install_observed(
 fn install_steps(
     observe: &mut impl FnMut(InstallProgress),
     caller: impl FnOnce() -> Result<(), ()>,
-    lifetime: impl FnOnce() -> Result<(), ()>,
+    lifetime: impl FnOnce() -> Result<(), main_lifetime::InstallError>,
     events: impl FnOnce() -> Result<(), ()>,
 ) -> Result<(), InstallError> {
     observe(InstallProgress::Started(InstallStage::Caller));
     caller().map_err(|()| InstallError::Caller)?;
     observe(InstallProgress::Completed(InstallStage::Caller));
     observe(InstallProgress::Started(InstallStage::Lifetime));
-    lifetime().map_err(|()| InstallError::Lifetime)?;
+    lifetime().map_err(InstallError::Lifetime)?;
     observe(InstallProgress::Completed(InstallStage::Lifetime));
     observe(InstallProgress::Started(InstallStage::Events));
     events().map_err(|()| InstallError::Events)?;

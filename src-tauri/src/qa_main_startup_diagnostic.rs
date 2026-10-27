@@ -28,7 +28,15 @@ pub(crate) enum MainStartupStage {
 #[serde(rename_all = "snake_case")]
 pub(crate) enum MainStartupFailure {
     SecurityCallerInstallFailed,
-    SecurityLifetimeInstallFailed,
+    LifetimeStateMissing,
+    LifetimeMainConfigMissing,
+    LifetimeAppUrlInvalid,
+    LifetimeMainWebviewMissing,
+    LifetimeWebviewUrlUnavailable,
+    LifetimeOriginMismatch,
+    LifetimeStateUnavailable,
+    LifetimeAlreadyInstalled,
+    LifetimeResourceRegistrationFailed,
     SecurityEventsInstallFailed,
     HostUnavailable,
     HostSpawnFailed,

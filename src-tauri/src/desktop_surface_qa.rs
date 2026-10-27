@@ -34,9 +34,35 @@ fn security_failure(error: crate::main_security::InstallError) -> MainStartupFai
         crate::main_security::InstallError::Caller => {
             MainStartupFailure::SecurityCallerInstallFailed
         }
-        crate::main_security::InstallError::Lifetime => {
-            MainStartupFailure::SecurityLifetimeInstallFailed
-        }
+        crate::main_security::InstallError::Lifetime(error) => match error {
+            crate::main_lifetime::InstallError::StateMissing => {
+                MainStartupFailure::LifetimeStateMissing
+            }
+            crate::main_lifetime::InstallError::MainConfigMissing => {
+                MainStartupFailure::LifetimeMainConfigMissing
+            }
+            crate::main_lifetime::InstallError::AppUrlInvalid => {
+                MainStartupFailure::LifetimeAppUrlInvalid
+            }
+            crate::main_lifetime::InstallError::MainWebviewMissing => {
+                MainStartupFailure::LifetimeMainWebviewMissing
+            }
+            crate::main_lifetime::InstallError::WebviewUrlUnavailable => {
+                MainStartupFailure::LifetimeWebviewUrlUnavailable
+            }
+            crate::main_lifetime::InstallError::OriginMismatch => {
+                MainStartupFailure::LifetimeOriginMismatch
+            }
+            crate::main_lifetime::InstallError::StateUnavailable => {
+                MainStartupFailure::LifetimeStateUnavailable
+            }
+            crate::main_lifetime::InstallError::AlreadyInstalled => {
+                MainStartupFailure::LifetimeAlreadyInstalled
+            }
+            crate::main_lifetime::InstallError::ResourceRegistrationFailed => {
+                MainStartupFailure::LifetimeResourceRegistrationFailed
+            }
+        },
         crate::main_security::InstallError::Events => {
             MainStartupFailure::SecurityEventsInstallFailed
         }

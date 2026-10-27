@@ -61,9 +61,9 @@ fn given_each_security_failure_when_recorded_then_the_exact_substage_is_preserve
         ),
         (
             MainStartupStage::SecurityLifetimeInstall,
-            MainStartupFailure::SecurityLifetimeInstallFailed,
+            MainStartupFailure::LifetimeOriginMismatch,
             "security_lifetime_install",
-            "security_lifetime_install_failed",
+            "lifetime_origin_mismatch",
         ),
         (
             MainStartupStage::SecurityEventsInstall,
@@ -85,6 +85,73 @@ fn given_each_security_failure_when_recorded_then_the_exact_substage_is_preserve
         assert_eq!(value["failureCode"], expected_failure);
         assert_eq!(value["childStatus"], "not_started");
         assert_eq!(value["outcome"], "failed");
+        fs::remove_file(path).unwrap();
+    }
+}
+
+#[test]
+fn given_each_lifetime_precondition_failure_when_recorded_then_only_a_fixed_code_is_persisted() {
+    for (failure, expected) in [
+        (
+            MainStartupFailure::LifetimeStateMissing,
+            "lifetime_state_missing",
+        ),
+        (
+            MainStartupFailure::LifetimeMainConfigMissing,
+            "lifetime_main_config_missing",
+        ),
+        (
+            MainStartupFailure::LifetimeAppUrlInvalid,
+            "lifetime_app_url_invalid",
+        ),
+        (
+            MainStartupFailure::LifetimeMainWebviewMissing,
+            "lifetime_main_webview_missing",
+        ),
+        (
+            MainStartupFailure::LifetimeWebviewUrlUnavailable,
+            "lifetime_webview_url_unavailable",
+        ),
+        (
+            MainStartupFailure::LifetimeOriginMismatch,
+            "lifetime_origin_mismatch",
+        ),
+        (
+            MainStartupFailure::LifetimeStateUnavailable,
+            "lifetime_state_unavailable",
+        ),
+        (
+            MainStartupFailure::LifetimeAlreadyInstalled,
+            "lifetime_already_installed",
+        ),
+        (
+            MainStartupFailure::LifetimeResourceRegistrationFailed,
+            "lifetime_resource_registration_failed",
+        ),
+    ] {
+        let path = std::env::temp_dir().join(format!("bogunon-s2h10-{expected}.json"));
+        let _ = fs::remove_file(&path);
+        let diagnostic = QaMainStartupDiagnostic::start_at(path.clone()).unwrap();
+
+        diagnostic
+            .begin(MainStartupStage::SecurityLifetimeInstall)
+            .unwrap();
+        diagnostic.fail(failure, ChildStatus::NotStarted).unwrap();
+
+        let raw = fs::read_to_string(&path).unwrap();
+        let value: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(value["failureCode"], expected);
+        assert_eq!(value["outcome"], "failed");
+        for forbidden in [
+            "http://",
+            "https://",
+            "C:\\\\Users",
+            "capability",
+            "token",
+            "S-1-",
+        ] {
+            assert!(!raw.contains(forbidden));
+        }
         fs::remove_file(path).unwrap();
     }
 }

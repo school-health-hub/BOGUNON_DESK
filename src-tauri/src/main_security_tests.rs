@@ -1,4 +1,5 @@
 use super::{install_steps, InstallError, InstallProgress, InstallStage};
+use crate::main_lifetime;
 use std::cell::RefCell;
 
 #[test]
@@ -36,7 +37,7 @@ fn given_a_security_step_fails_when_installed_then_later_steps_are_not_started()
         ),
         (
             InstallStage::Lifetime,
-            InstallError::Lifetime,
+            InstallError::Lifetime(main_lifetime::InstallError::OriginMismatch),
             vec![
                 InstallProgress::Started(InstallStage::Caller),
                 InstallProgress::Completed(InstallStage::Caller),
@@ -57,20 +58,26 @@ fn given_a_security_step_fails_when_installed_then_later_steps_are_not_started()
     ] {
         let observed = RefCell::new(Vec::new());
         let step = RefCell::new(0_u8);
-        let fail = |stage: InstallStage, counter: &RefCell<u8>| {
-            *counter.borrow_mut() += 1;
-            if stage == failed_stage {
-                Err(())
-            } else {
-                Ok(())
-            }
-        };
-
         let result = install_steps(
             &mut |stage| observed.borrow_mut().push(stage),
-            || fail(InstallStage::Caller, &step),
-            || fail(InstallStage::Lifetime, &step),
-            || fail(InstallStage::Events, &step),
+            || {
+                *step.borrow_mut() += 1;
+                (failed_stage != InstallStage::Caller)
+                    .then_some(())
+                    .ok_or(())
+            },
+            || {
+                *step.borrow_mut() += 1;
+                (failed_stage != InstallStage::Lifetime)
+                    .then_some(())
+                    .ok_or(main_lifetime::InstallError::OriginMismatch)
+            },
+            || {
+                *step.borrow_mut() += 1;
+                (failed_stage != InstallStage::Events)
+                    .then_some(())
+                    .ok_or(())
+            },
         );
 
         let expected_calls = match failed_stage {
