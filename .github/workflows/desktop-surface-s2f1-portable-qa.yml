@@ -52,8 +52,18 @@ jobs:
       - name: Install pinned NASM for vendored OpenSSL
         shell: pwsh
         run: |
-          choco install nasm --version=2.16.3 --yes --no-progress --limit-output --source=https://community.chocolatey.org/api/v2/
-          if ($LASTEXITCODE -ne 0) { throw 'Pinned NASM installation failed' }
+          $installed = $false
+          foreach ($attempt in 1..3) {
+            choco install nasm --version=2.16.3 --yes --no-progress --limit-output --source=https://community.chocolatey.org/api/v2/
+            if ($LASTEXITCODE -eq 0) {
+              $installed = $true
+              break
+            }
+            if ($attempt -lt 3) {
+              Start-Sleep -Seconds (10 * $attempt)
+            }
+          }
+          if (-not $installed) { throw 'Pinned NASM installation failed after 3 attempts' }
           $nasmDirectory = Join-Path $env:ProgramFiles 'NASM'
           $nasmExecutable = Join-Path $nasmDirectory 'nasm.exe'
           if (-not (Test-Path -LiteralPath $nasmExecutable -PathType Leaf)) { throw 'Pinned NASM executable was not installed at the expected path' }

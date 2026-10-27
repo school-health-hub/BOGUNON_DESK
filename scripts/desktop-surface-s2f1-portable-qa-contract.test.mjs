@@ -42,6 +42,14 @@ test("given the build job, when commands are inspected, then dependencies and bo
   assert.match(workflow, /bogunon-desktop-surface-host\.exe/u);
 });
 
+test("given a transient package feed failure, when NASM provisioning runs, then retries are bounded without changing the pinned dependency", () => {
+  assert.match(workflow, /foreach \(\$attempt in 1\.\.3\)/u);
+  assert.match(workflow, /if \(\$attempt -lt 3\)/u);
+  assert.match(workflow, /Start-Sleep -Seconds \(10 \* \$attempt\)/u);
+  assert.match(workflow, /Pinned NASM installation failed after 3 attempts/u);
+  assert.doesNotMatch(workflow, /choco install nasm[^\n]*(?:--force|--ignore-checksums|--allow-unofficial)/u);
+});
+
 test("given the QA flavor, when isolation guards run, then production integrations and operating data remain outside the package", () => {
   assert.match(workflow, /kr\.sungandi\.schoolhealthdesk\.surfaceqa/u);
   assert.match(workflow, /tauri\.desktop-surface-qa\.conf\.json/u);
