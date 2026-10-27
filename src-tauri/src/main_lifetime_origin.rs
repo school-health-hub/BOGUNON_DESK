@@ -27,6 +27,21 @@ mod tests {
         assert!(matches_origin(&actual, &expected));
     }
     #[test]
+    fn embedded_origin_requires_the_exact_selected_scheme() {
+        // Given either configured embedded origin.
+        for scheme in ["http", "https"] {
+            let expected = Url::parse(&format!("{scheme}://tauri.localhost")).unwrap();
+            // When a local route on the exact origin is checked.
+            let actual = Url::parse(&format!("{scheme}://tauri.localhost/index.html?q=1")).unwrap();
+            // Then it is allowed; a foreign authority is not.
+            assert!(matches_origin(&actual, &expected));
+            assert!(!matches_origin(
+                &Url::parse("http://localhost:1420").unwrap(),
+                &expected
+            ));
+        }
+    }
+    #[test]
     fn foreign_authorities_and_schemes_are_rejected() {
         // Given a production origin.
         let expected = Url::parse("http://tauri.localhost").unwrap();

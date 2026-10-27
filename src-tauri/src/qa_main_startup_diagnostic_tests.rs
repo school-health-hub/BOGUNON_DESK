@@ -7,6 +7,60 @@ use crate::{
 use std::fs;
 
 #[test]
+fn given_origin_observations_when_recorded_then_first_classification_and_fixed_fields_are_preserved(
+) {
+    use crate::qa_main_startup_diagnostic::MainOriginState;
+    // Given a QA diagnostic with no URL or process data input fields.
+    let path = std::env::temp_dir().join("bogunon-s2h15-origin-diagnostic-contract.json");
+    let diagnostic = QaMainStartupDiagnostic::start_at(path.clone()).unwrap();
+    // When the exact installation reading is recorded before failure.
+    diagnostic
+        .observe_origin(MainOriginState::InitialNavigationPending)
+        .unwrap();
+    diagnostic
+        .observe_origin(MainOriginState::ExpectedOrigin)
+        .unwrap();
+    diagnostic
+        .fail(
+            MainStartupFailure::LifetimeOriginMismatch,
+            ChildStatus::NotStarted,
+        )
+        .unwrap();
+    // Then later observations cannot replace the first classification.
+    let value: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+    assert_eq!(value["mainOriginState"], "initial_navigation_pending");
+    assert_eq!(value["embeddedAppMode"], !tauri::is_dev());
+    assert_eq!(
+        value["sourceSha"],
+        serde_json::json!(option_env!("BOGUNON_SURFACE_QA_SOURCE_SHA"))
+    );
+    let mut keys = value
+        .as_object()
+        .unwrap()
+        .keys()
+        .map(String::as_str)
+        .collect::<Vec<_>>();
+    keys.sort_unstable();
+    assert_eq!(
+        keys,
+        [
+            "childStatus",
+            "completedStages",
+            "containsSensitiveData",
+            "currentStage",
+            "embeddedAppMode",
+            "failureCode",
+            "mainOriginState",
+            "outcome",
+            "schema",
+            "sourceSha"
+        ]
+    );
+    fs::remove_file(path).unwrap();
+}
+
+#[test]
 fn given_fixed_stages_when_startup_fails_then_first_failure_is_preserved_without_sensitive_data() {
     let path = std::env::temp_dir().join("bogunon-s2h5-main-diagnostic-contract.json");
     let _ = fs::remove_file(&path);

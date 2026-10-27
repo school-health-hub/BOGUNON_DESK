@@ -7,6 +7,10 @@ use std::{
 
 const FILE_NAME: &str = "bogunon-desktop-surface-qa-main-diagnostic.json";
 
+#[path = "qa_main_origin_diagnostic.rs"]
+mod origin;
+pub(crate) use origin::{origin_reading, MainOriginState};
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub(crate) enum MainStartupStage {
@@ -67,6 +71,9 @@ struct Record {
     outcome: &'static str,
     failure_code: Option<MainStartupFailure>,
     child_status: ChildStatus,
+    main_origin_state: Option<MainOriginState>,
+    embedded_app_mode: bool,
+    source_sha: Option<&'static str>,
     contains_sensitive_data: bool,
 }
 
@@ -91,6 +98,9 @@ impl QaMainStartupDiagnostic {
                 outcome: "running",
                 failure_code: None,
                 child_status: ChildStatus::NotStarted,
+                main_origin_state: None,
+                embedded_app_mode: !tauri::is_dev(),
+                source_sha: option_env!("BOGUNON_SURFACE_QA_SOURCE_SHA"),
                 contains_sensitive_data: false,
             })),
         };
@@ -102,6 +112,14 @@ impl QaMainStartupDiagnostic {
         self.update(|record| {
             if record.failure_code.is_none() {
                 record.current_stage = stage;
+            }
+        })
+    }
+
+    pub(crate) fn observe_origin(&self, state: MainOriginState) -> io::Result<()> {
+        self.update(|record| {
+            if record.main_origin_state.is_none() {
+                record.main_origin_state = Some(state);
             }
         })
     }

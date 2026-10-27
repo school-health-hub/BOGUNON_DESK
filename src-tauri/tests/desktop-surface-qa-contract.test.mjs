@@ -75,3 +75,14 @@ test("QA Main startup failures are diagnosed without panic-abort", () => {
   assert.match(entrypoint, /app\.handle\(\)\.exit\(7\)/);
   assert.doesNotMatch(entrypoint, /main_security::install\(app\.handle\(\)\)\.map_err/);
 });
+
+test("QA origin diagnostics observe the admission read without changing security ordering", () => {
+  const lifetime = read("src/main_lifetime.rs");
+  const entrypoint = read("src/desktop_surface_qa.rs");
+  const diagnostic = read("src/qa_main_startup_diagnostic.rs");
+  assert.ok(entrypoint.includes("builder.manage(diagnostic.clone())"));
+  assert.ok(lifetime.includes("origin_reading(&current_url, allowed)"));
+  assert.ok(diagnostic.includes("main_origin_state: Option<MainOriginState>"));
+  assert.ok(lifetime.indexOf("origin_reading(&current_url, allowed)") < lifetime.indexOf("if !allowed {"));
+  assert.ok(entrypoint.indexOf("main_security::install_observed") < entrypoint.indexOf("surface_runtime::launch_desktop_surface_qa"));
+});

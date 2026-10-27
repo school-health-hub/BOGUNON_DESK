@@ -79,6 +79,8 @@ pub fn run() {
     let _ = diagnostic.complete(MainStartupStage::MainEntry);
     let builder = crate::main_security::configure(tauri::Builder::default());
     #[cfg(windows)]
+    let builder = builder.manage(diagnostic.clone());
+    #[cfg(windows)]
     let builder = builder.manage(SurfaceRuntimeState::inactive());
 
     #[cfg(windows)]

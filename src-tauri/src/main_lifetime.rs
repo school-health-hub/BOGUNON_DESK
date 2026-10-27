@@ -2,6 +2,8 @@ use std::sync::{Arc, Mutex, OnceLock};
 use tauri::{AppHandle, Manager, Resource, ResourceId, Runtime, Url, Webview, Window};
 #[path = "main_lifetime_state.rs"]
 mod state;
+#[cfg(all(windows, feature = "desktop-surface-qa"))]
+use crate::qa_main_startup_diagnostic::{origin_reading, MainOriginState, QaMainStartupDiagnostic};
 use state::{Generation, Lifetime};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -32,6 +34,16 @@ pub(crate) struct MainLifetime {
 #[derive(Clone)]
 pub(crate) struct Lease(Generation);
 const UNAVAILABLE: &str = "Main lifetime unavailable";
+#[cfg(all(windows, feature = "desktop-surface-qa"))]
+fn record_origin<R: Runtime>(
+    app: &AppHandle<R>,
+    state: MainOriginState,
+) -> Result<(), InstallError> {
+    app.try_state::<QaMainStartupDiagnostic>()
+        .ok_or(InstallError::StateMissing)?
+        .observe_origin(state)
+        .map_err(|_| InstallError::StateUnavailable)
+}
 #[path = "main_lifetime_origin.rs"]
 mod origin;
 fn local<R: Runtime>(app: &AppHandle<R>, url: &Url) -> bool {
@@ -95,14 +107,29 @@ pub(crate) fn install<R: Runtime>(app: &AppHandle<R>) -> Result<(), InstallError
     if !matches!(&config.url, tauri::WebviewUrl::App(_)) {
         return Err(InstallError::AppUrlInvalid);
     }
-    let main = app
-        .get_webview_window("main")
-        .ok_or(InstallError::MainWebviewMissing)?;
+    let main = app.get_webview_window("main");
+    #[cfg(all(windows, feature = "desktop-surface-qa"))]
+    if main.is_none() {
+        record_origin(app, MainOriginState::MainWebviewMissing)?;
+    }
+    let main = main.ok_or(InstallError::MainWebviewMissing)?;
     let view: &Webview<R> = main.as_ref();
-    let current_url = view
-        .url()
-        .map_err(|_| InstallError::WebviewUrlUnavailable)?;
-    if !local(app, &current_url) {
+    let current_url = view.url();
+    #[cfg(all(windows, feature = "desktop-surface-qa"))]
+    if let Err(error) = &current_url {
+        record_origin(
+            app,
+            match error {
+                tauri::Error::InvalidUrl(_) => MainOriginState::UrlParseFailed,
+                _ => MainOriginState::UrlUnavailable,
+            },
+        )?;
+    }
+    let current_url = current_url.map_err(|_| InstallError::WebviewUrlUnavailable)?;
+    let allowed = local(app, &current_url);
+    #[cfg(all(windows, feature = "desktop-surface-qa"))]
+    record_origin(app, origin_reading(&current_url, allowed))?;
+    if !allowed {
         return Err(InstallError::OriginMismatch);
     }
     let mut state = registry
