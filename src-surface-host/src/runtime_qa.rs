@@ -175,7 +175,7 @@ fn run_with_fault(
         path: std::fs::canonicalize(&observation.effective_udf)?,
         identity: directory_identity(&observation.effective_udf)?,
     };
-    udf::verify_effective(&requested, &effective, &observation.profile_path)?;
+    udf::verify_effective_on_disk(&requested, &effective, &observation.profile_path)?;
     write_json(
         &case.diagnostics.join("udf-observation.json"),
         &UdfEvidence {

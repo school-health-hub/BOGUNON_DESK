@@ -1,7 +1,7 @@
 use std::{
     cell::Cell,
     ffi::OsStr,
-    fs::{create_dir_all, remove_dir_all},
+    fs::{create_dir, remove_dir_all},
     path::{Path, PathBuf},
     rc::Rc,
     thread,
@@ -36,12 +36,21 @@ use crate::{
 const CREATION_TIMEOUT: Duration = Duration::from_secs(30);
 const INTERACTION_TIMEOUT: Duration = Duration::from_secs(300);
 
+#[path = "live_surface_cleanup.rs"]
+mod rejected_cleanup;
+
 #[derive(Debug, Error)]
 pub enum LiveSurfaceError {
     #[error("Surface runtime grant is invalid")]
     InvalidGrant,
     #[error("Surface runtime path is invalid")]
     InvalidPath,
+    #[error("Surface UDF validation failed; local release complete={local_release_complete}")]
+    Udf {
+        source: udf::UdfError,
+        cleanup: CleanupStatus,
+        local_release_complete: bool,
+    },
     #[error("Surface runtime WebView2 override is not trusted")]
     OverrideUntrusted,
     #[error("Surface runtime operation timed out")]
@@ -65,6 +74,17 @@ impl LiveSurfaceError {
         match self {
             Self::InvalidGrant => FailureCode::InvalidGrant,
             Self::InvalidPath => FailureCode::InvalidPath,
+            Self::Udf { source, .. } => match source {
+                udf::UdfError::InvalidPath => FailureCode::UdfInvalidPath,
+                udf::UdfError::ObservationFailed => FailureCode::UdfObservationFailed,
+                udf::UdfError::EffectiveMismatch | udf::UdfError::SharedIdentity => {
+                    FailureCode::UdfEffectiveMismatch
+                }
+                udf::UdfError::ProfileOutsideUdf => FailureCode::UdfProfileOutside,
+                udf::UdfError::Overlap | udf::UdfError::OverrideUntrusted => {
+                    FailureCode::RuntimeAdmissionRejected
+                }
+            },
             Self::OverrideUntrusted => FailureCode::RuntimeAdmissionRejected,
             Self::Timeout => FailureCode::Timeout,
             Self::Host(_) => FailureCode::NativeHostFailed,
@@ -80,6 +100,7 @@ impl LiveSurfaceError {
         match self {
             Self::Cleanup(_) => CleanupStatus::Unknown,
             Self::TemporaryCleanup => CleanupStatus::Receipt,
+            Self::Udf { cleanup, .. } => *cleanup,
             _ => CleanupStatus::NotEvaluated,
         }
     }
@@ -122,8 +143,8 @@ pub fn run(
     diagnostic.complete(RuntimeStage::BundleValidation)?;
     diagnostic.begin(RuntimeStage::UdfCreation)?;
     let udf_root = qa_udf(generation_value)?;
-    create_dir_all(&udf_root).map_err(|_| LiveSurfaceError::InvalidPath)?;
-    let requested = observe_directory(&udf_root)?;
+    // A pre-existing directory is never adopted as this attempt's owned QA storage.
+    let requested = create_owned_qa_udf(&udf_root)?;
     diagnostic.complete(RuntimeStage::UdfCreation)?;
 
     let mut ledger = Ledger::new(attempt);
@@ -154,11 +175,42 @@ pub fn run(
     ledger.acquire(attempt, Resource::Controller, 5)?;
     diagnostic.complete(RuntimeStage::ControllerCreation)?;
     diagnostic.begin(RuntimeStage::UdfVerification)?;
-    let observation = observe_runtime(&environment.environment, &controller.controller)?;
     ledger.acquire(attempt, Resource::WebView, 6)?;
-    let effective = observe_directory(&observation.effective_udf)?;
-    udf::verify_effective(&requested, &effective, &observation.profile_path)
-        .map_err(|_| LiveSurfaceError::InvalidPath)?;
+    let observed = observe_runtime(&environment.environment, &controller.controller);
+    let expected_browser = observed.as_ref().ok().map(|value| value.browser_process_id);
+    let verified = observed
+        .map_err(|_| udf::UdfError::ObservationFailed)
+        .and_then(|observation| {
+            let effective = observe_directory(&observation.effective_udf)
+                .map_err(|_| udf::UdfError::ObservationFailed)?;
+            udf::verify_effective_on_disk(&requested, &effective, &observation.profile_path)?;
+            Ok((observation, effective))
+        });
+    let (observation, effective) = match verified {
+        Ok(verified) => verified,
+        Err(source) => {
+            // Keep the first failed stage/code. A rejected storage identity cannot
+            // authorize a cleanup receipt or deletion, even after local releases.
+            let local_release_complete = rejected_cleanup::release_rejected(
+                rejected_cleanup::RejectedResources {
+                    controller,
+                    window,
+                    subscription: browser_exit,
+                    environment,
+                    sta,
+                },
+                &mut ledger,
+                attempt,
+                runtime_binding,
+                expected_browser,
+            );
+            return Err(LiveSurfaceError::Udf {
+                source,
+                cleanup: CleanupStatus::Unknown,
+                local_release_complete,
+            });
+        }
+    };
     let launch = crate::runtime_qa::RuntimeLaunchAuthority::new();
     let runtime = RuntimeIdentity::bind(
         &mut ledger,
@@ -243,7 +295,7 @@ pub fn run(
         .map_err(LiveSurfaceError::Cleanup)?;
     diagnostic.complete(RuntimeStage::CleanupEvaluation)?;
     diagnostic.begin(RuntimeStage::UdfRemoval)?;
-    remove_qa_udf(&udf_root)?;
+    remove_qa_udf(&udf_root, &requested)?;
     diagnostic.complete(RuntimeStage::UdfRemoval)?;
     Ok(())
 }
@@ -332,6 +384,11 @@ fn observe_directory(path: &Path) -> Result<DirectoryObservation, LiveSurfaceErr
     Ok(DirectoryObservation { path, identity })
 }
 
+fn create_owned_qa_udf(path: &Path) -> Result<DirectoryObservation, LiveSurfaceError> {
+    create_dir(path).map_err(|_| LiveSurfaceError::InvalidPath)?;
+    observe_directory(path)
+}
+
 fn reject_webview_overrides() -> Result<(), LiveSurfaceError> {
     if has_override(|name| std::env::var_os(name).is_some()) {
         Err(LiveSurfaceError::OverrideUntrusted)
@@ -350,7 +407,8 @@ fn has_override(mut present: impl FnMut(&str) -> bool) -> bool {
     NAMES.iter().any(|name| present(name))
 }
 
-fn remove_qa_udf(path: &Path) -> Result<(), LiveSurfaceError> {
+fn remove_qa_udf(path: &Path, owned: &DirectoryObservation) -> Result<(), LiveSurfaceError> {
+    rejected_cleanup::verify_removal_root(path, owned)?;
     let root = std::env::temp_dir()
         .canonicalize()
         .map_err(|_| LiveSurfaceError::TemporaryCleanup)?;
@@ -361,7 +419,7 @@ fn remove_qa_udf(path: &Path) -> Result<(), LiveSurfaceError> {
         .file_name()
         .and_then(OsStr::to_str)
         .is_some_and(|name| name.starts_with("bogunon-desktop-surface-qa-"));
-    if !name_ok || !target.starts_with(&root) || target == root {
+    if !name_ok || target.parent() != Some(root.as_path()) || target != owned.path {
         return Err(LiveSurfaceError::TemporaryCleanup);
     }
     remove_dir_all(target).map_err(|_| LiveSurfaceError::TemporaryCleanup)

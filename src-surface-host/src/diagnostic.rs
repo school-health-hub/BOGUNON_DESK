@@ -63,6 +63,10 @@ pub enum FailureCode {
     InvalidGrant,
     RuntimeAdmissionRejected,
     InvalidPath,
+    UdfInvalidPath,
+    UdfEffectiveMismatch,
+    UdfProfileOutside,
+    UdfObservationFailed,
     NativeHostFailed,
     Timeout,
     OwnershipFailed,
@@ -177,6 +181,23 @@ impl QaRuntimeDiagnostic {
 mod tests {
     use super::*;
     use std::fs;
+
+    #[test]
+    fn udf_failure_subreasons_are_fixed_codes_without_path_payloads() {
+        // Given the complete new UDF rejection classifications.
+        let cases = [
+            (FailureCode::UdfInvalidPath, "udf_invalid_path"),
+            (FailureCode::UdfEffectiveMismatch, "udf_effective_mismatch"),
+            (FailureCode::UdfProfileOutside, "udf_profile_outside"),
+            (FailureCode::UdfObservationFailed, "udf_observation_failed"),
+        ];
+        // When serialized, each diagnostic is a fixed enum code.
+        for (code, expected) in cases {
+            let value = serde_json::to_value(code).unwrap();
+            // Then neither a path nor a raw API error is representable.
+            assert_eq!(value, expected);
+        }
+    }
 
     #[test]
     fn diagnostic_never_claims_runtime_verification() {

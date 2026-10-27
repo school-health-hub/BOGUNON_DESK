@@ -27,6 +27,31 @@ pub enum UdfError {
     ProfileOutsideUdf,
     #[error("a WebView2 override is present or cannot be observed")]
     OverrideUntrusted,
+    #[error("directory observation could not be resolved")]
+    ObservationFailed,
+}
+
+/// Verify paths returned by WebView2 against filesystem observations.
+pub fn verify_effective_on_disk(
+    requested: &DirectoryObservation,
+    effective: &DirectoryObservation,
+    profile: &Path,
+) -> Result<(), UdfError> {
+    validate_path(&requested.path)?;
+    validate_path(&effective.path)?;
+    validate_path(profile)?;
+    if key(&requested.path) != key(&effective.path) || requested.identity != effective.identity {
+        return Err(UdfError::EffectiveMismatch);
+    }
+    // Resolve aliases and reparse targets through the same filesystem boundary as
+    // the UDF observations. In particular, Windows canonical paths use \\?\ syntax.
+    let profile = profile
+        .canonicalize()
+        .map_err(|_| UdfError::ObservationFailed)?;
+    if !profile.is_dir() {
+        return Err(UdfError::ObservationFailed);
+    }
+    verify_effective(requested, effective, &profile)
 }
 
 pub fn preflight(
@@ -55,6 +80,8 @@ pub fn verify_effective(
     effective: &DirectoryObservation,
     profile: &Path,
 ) -> Result<(), UdfError> {
+    validate_path(&requested.path)?;
+    validate_path(&effective.path)?;
     validate_path(profile)?;
     if key(&requested.path) != key(&effective.path) || requested.identity != effective.identity {
         return Err(UdfError::EffectiveMismatch);
@@ -79,6 +106,10 @@ fn validate_path(path: &Path) -> Result<(), UdfError> {
 fn key(path: &Path) -> PathBuf {
     PathBuf::from(path.to_string_lossy().to_lowercase())
 }
+
+#[cfg(all(test, windows))]
+#[path = "udf_path_tests.rs"]
+mod path_tests;
 
 #[cfg(test)]
 mod tests {
