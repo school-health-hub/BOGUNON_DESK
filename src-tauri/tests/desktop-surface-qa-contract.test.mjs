@@ -69,6 +69,6 @@ test("QA Main startup failures are diagnosed without panic-abort", () => {
   assert.match(entrypoint, /SecurityCallerInstallFailed/);
   assert.match(entrypoint, /SecurityLifetimeInstallFailed/);
   assert.match(entrypoint, /SecurityEventsInstallFailed/);
-  assert.match(entrypoint, /app\.exit\(7\)/);
+  assert.match(entrypoint, /app\.handle\(\)\.exit\(7\)/);
   assert.doesNotMatch(entrypoint, /main_security::install\(app\.handle\(\)\)\.map_err/);
 });

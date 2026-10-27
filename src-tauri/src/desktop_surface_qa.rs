@@ -77,7 +77,7 @@ pub fn run() {
             }) {
                 let _ = setup_diagnostic.fail(security_failure(error), ChildStatus::NotStarted);
                 setup_failed_in_callback.store(true, Ordering::SeqCst);
-                app.exit(7);
+                app.handle().exit(7);
                 return Ok(());
             }
             #[cfg(windows)]
