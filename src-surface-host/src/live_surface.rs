@@ -23,6 +23,7 @@ use crate::{
     main_restore::NamedPipeMainOpener,
     native_window::OwnedWindow,
     ownership::{Ledger, OwnershipError, Resource},
+    renderer_runtime::RendererSignal,
     renderer_session::SessionCleanup,
     runtime_identity::directory_identity,
     surface_connection::MainOpener,
@@ -55,6 +56,10 @@ pub enum LiveSurfaceError {
     OverrideUntrusted,
     #[error("Surface runtime operation timed out")]
     Timeout,
+    #[error("Surface renderer navigation failed")]
+    NavigationFailed,
+    #[error("Surface renderer did not become ready")]
+    RendererReadyTimeout,
     #[error("Surface runtime native host failed: {0}")]
     Host(#[from] HostError),
     #[error("Surface runtime ownership failed: {0}")]
@@ -87,6 +92,8 @@ impl LiveSurfaceError {
             },
             Self::OverrideUntrusted => FailureCode::RuntimeAdmissionRejected,
             Self::Timeout => FailureCode::Timeout,
+            Self::NavigationFailed => FailureCode::NavigationFailed,
+            Self::RendererReadyTimeout => FailureCode::RendererReadyTimeout,
             Self::Host(_) => FailureCode::NativeHostFailed,
             Self::Ownership(_) => FailureCode::OwnershipFailed,
             Self::Cleanup(_) => FailureCode::CleanupUnverified,
@@ -239,18 +246,17 @@ pub fn run(
         attempt,
         diagnostic,
     )?;
+    wait_renderer_ready(CREATION_TIMEOUT, &renderer.runtime, diagnostic)?;
     diagnostic.begin(RuntimeStage::WindowDisplay)?;
     // SAFETY: [Category 8 — FFI boundary] the controller is live on this STA and the
     // boolean is copied synchronously by WebView2.
     unsafe { controller.controller.SetIsVisible(true) }.map_err(HostError::Com)?;
     window.show().map_err(HostError::Com)?;
     diagnostic.complete(RuntimeStage::WindowDisplay)?;
-    diagnostic.begin(RuntimeStage::MainRestoreRequest)?;
-    wait_until(INTERACTION_TIMEOUT, || opened.get())?;
-    diagnostic.complete(RuntimeStage::MainRestoreRequest)?;
+    wait_for_interaction(INTERACTION_TIMEOUT, &window, || opened.get(), diagnostic)?;
 
     diagnostic.begin(RuntimeStage::RendererSessionCleanup)?;
-    if renderer.cleanup().map_err(HostError::Renderer)? != SessionCleanup::Released {
+    if renderer.session.cleanup().map_err(HostError::Renderer)? != SessionCleanup::Released {
         return Err(LiveSurfaceError::Cleanup(
             CleanupUnknown::ResourceReleaseIncomplete,
         ));
@@ -342,16 +348,58 @@ fn wait_poll<T>(
     }
 }
 
-fn wait_until(timeout: Duration, done: impl Fn() -> bool) -> Result<(), LiveSurfaceError> {
+fn wait_renderer_ready(
+    timeout: Duration,
+    state: &crate::renderer_runtime::RendererRuntimeState,
+    diagnostic: &mut QaRuntimeDiagnostic,
+) -> Result<(), LiveSurfaceError> {
     let deadline = Instant::now() + timeout;
-    while !done() {
+    loop {
+        match state.signal() {
+            RendererSignal::WaitingForNavigation => {}
+            RendererSignal::NavigationFailed => return Err(LiveSurfaceError::NavigationFailed),
+            RendererSignal::WaitingForReady => {
+                diagnostic.complete(RuntimeStage::HtmlNavigation)?;
+                diagnostic.begin(RuntimeStage::RendererReady)?;
+            }
+            RendererSignal::Ready => {
+                diagnostic.complete(RuntimeStage::HtmlNavigation)?;
+                diagnostic.complete(RuntimeStage::RendererReady)?;
+                return Ok(());
+            }
+        }
+        if Instant::now() >= deadline {
+            return Err(LiveSurfaceError::RendererReadyTimeout);
+        }
+        let _ = pump_pending()?;
+        thread::sleep(Duration::from_millis(10));
+    }
+}
+
+fn wait_for_interaction(
+    timeout: Duration,
+    window: &OwnedWindow,
+    opened: impl Fn() -> bool,
+    diagnostic: &mut QaRuntimeDiagnostic,
+) -> Result<(), LiveSurfaceError> {
+    diagnostic.begin(RuntimeStage::MainRestoreRequest)?;
+    let deadline = Instant::now() + timeout;
+    loop {
+        if opened() {
+            diagnostic.complete(RuntimeStage::MainRestoreRequest)?;
+            return Ok(());
+        }
+        if window.close_requested() {
+            diagnostic.begin(RuntimeStage::WindowCloseRequest)?;
+            diagnostic.complete(RuntimeStage::WindowCloseRequest)?;
+            return Ok(());
+        }
         if Instant::now() >= deadline {
             return Err(LiveSurfaceError::Timeout);
         }
         let _ = pump_pending()?;
         thread::sleep(Duration::from_millis(10));
     }
-    Ok(())
 }
 
 fn close_controller(controller: &ICoreWebView2Controller) -> Result<(), LiveSurfaceError> {

@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, rc::Rc};
+use std::{cell::Cell, marker::PhantomData, rc::Rc};
 
 use windows::{
     core::{w, Error, Result},
@@ -8,17 +8,45 @@ use windows::{
         UI::WindowsAndMessaging::{
             CreateWindowExW, DefWindowProcW, DestroyWindow, RegisterClassW, ShowWindow,
             UnregisterClassW, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, SW_SHOW, WINDOW_EX_STYLE,
-            WINDOW_STYLE, WNDCLASSW, WS_OVERLAPPEDWINDOW,
+            WINDOW_STYLE, WM_CLOSE, WNDCLASSW, WS_OVERLAPPEDWINDOW,
         },
     },
 };
 
 const CLASS_NAME: windows::core::PCWSTR = w!("BogunonDesktopSurfaceHost");
 
+thread_local! {
+    static CLOSE_REQUESTED: Cell<bool> = const { Cell::new(false) };
+}
+
+pub struct WindowCloseState;
+
+impl WindowCloseState {
+    pub fn new() -> Self {
+        CLOSE_REQUESTED.set(false);
+        Self
+    }
+
+    pub fn request() {
+        CLOSE_REQUESTED.set(true);
+    }
+
+    pub fn is_requested(&self) -> bool {
+        CLOSE_REQUESTED.get()
+    }
+}
+
+impl Default for WindowCloseState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct OwnedWindow {
     hwnd: HWND,
     instance: HINSTANCE,
     release: NativeReleaseState,
+    close: WindowCloseState,
     _creator_thread: PhantomData<Rc<()>>,
 }
 
@@ -104,6 +132,7 @@ impl OwnedWindow {
             hwnd,
             instance,
             release: NativeReleaseState::owned(),
+            close: WindowCloseState::new(),
             _creator_thread: PhantomData,
         })
     }
@@ -135,6 +164,10 @@ impl OwnedWindow {
         let _ = unsafe { ShowWindow(self.hwnd, SW_SHOW) };
         Ok(())
     }
+
+    pub fn close_requested(&self) -> bool {
+        self.close.is_requested()
+    }
 }
 
 impl Drop for OwnedWindow {
@@ -161,6 +194,10 @@ unsafe extern "system" fn window_proc(
     wparam: WPARAM,
     lparam: LPARAM,
 ) -> LRESULT {
+    if message == WM_CLOSE {
+        WindowCloseState::request();
+        return LRESULT(0);
+    }
     // SAFETY: all messages are forwarded unchanged to the system default procedure.
     unsafe { DefWindowProcW(hwnd, message, wparam, lparam) }
 }
@@ -219,5 +256,15 @@ mod tests {
         assert_eq!(calls.get(), 2);
         assert!(!state.window_owned());
         assert!(!state.class_owned());
+    }
+
+    #[test]
+    fn close_request_is_latched_until_owned_cleanup_runs() {
+        let state = super::WindowCloseState::new();
+        assert!(!state.is_requested());
+        super::WindowCloseState::request();
+        assert!(state.is_requested());
+        super::WindowCloseState::request();
+        assert!(state.is_requested());
     }
 }

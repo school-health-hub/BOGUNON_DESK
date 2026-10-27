@@ -44,6 +44,7 @@ pub enum ConnectionError {
 pub enum ConnectionResponse {
     MainOpened,
     Projection(String),
+    RendererReady,
 }
 
 pub struct SurfaceConnection<M: MainOpener> {
@@ -76,6 +77,7 @@ impl<M: MainOpener> SurfaceConnection<M> {
             RequestKind::RefreshProjection => {
                 synthetic_projection_envelope().map(ConnectionResponse::Projection)
             }
+            RequestKind::RendererReady => Ok(ConnectionResponse::RendererReady),
         }
     }
 
@@ -177,6 +179,23 @@ mod tests {
             connection.handle(&request("OpenMain", 2), SURFACE_ORIGIN, true),
             Err(ConnectionError::Ipc(IpcError::MainRetired))
         ));
+    }
+
+    #[test]
+    fn renderer_ready_is_admitted_once_without_opening_main() {
+        let Some(generation) = Generation::new(7) else {
+            panic!("test generation must be nonzero")
+        };
+        let mut connection = SurfaceConnection::new(generation, Main(Cell::new(0)));
+        assert_eq!(
+            connection.handle(&request("RendererReady", 1), SURFACE_ORIGIN, true),
+            Ok(ConnectionResponse::RendererReady)
+        );
+        assert_eq!(
+            connection.handle(&request("RendererReady", 2), SURFACE_ORIGIN, true),
+            Err(ConnectionError::Ipc(IpcError::RendererAlreadyReady))
+        );
+        assert_eq!(connection.main.0.get(), 0);
     }
 
     #[test]

@@ -15,15 +15,18 @@ describe("surface native bridge", () => {
     }
   });
 
-  it("sends only the existing two-field command contract plus binding values", () => {
+  it("sends the two commands and one renderer lifecycle signal with binding values", () => {
     const postMessage = vi.fn();
     const bridge = createSurfaceNativeBridge({ postMessage, addEventListener: vi.fn(), removeEventListener: vi.fn() }, 7);
     expect(bridge.openMain("official-document")).toBe(true);
     expect(bridge.openMain("unknown")).toBe(false);
     bridge.requestProjection();
+    expect(bridge.notifyRendererReady()).toBe(true);
+    expect(bridge.notifyRendererReady()).toBe(false);
     expect(postMessage.mock.calls.map(([value]) => JSON.parse(value as string))).toEqual([
       { generation: 7, sequence: 1, command: "OpenMain" },
       { generation: 7, sequence: 2, command: "RefreshProjection" },
+      { generation: 7, sequence: 3, command: "RendererReady" },
     ]);
   });
 

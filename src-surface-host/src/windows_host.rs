@@ -266,6 +266,7 @@ use crate::{
     ipc::Generation,
     lifecycle::Attempt,
     ownership::Ledger,
+    renderer_runtime::{NavigationResult, RendererRuntimeState},
     renderer_session::{
         HandlerAddFailure, HandlerKind, HandlerRegistry, HandlerToken, RendererSession,
         SessionOwnership,
@@ -280,14 +281,20 @@ pub struct NativeHandlerRegistry<M: MainOpener + 'static> {
     webview: ICoreWebView2,
     webview4: ICoreWebView2_4,
     connection: Rc<RefCell<SurfaceConnection<M>>>,
+    runtime: Rc<RendererRuntimeState>,
 }
 
 impl<M: MainOpener + 'static> NativeHandlerRegistry<M> {
-    fn new(webview: ICoreWebView2, connection: SurfaceConnection<M>) -> Result<Self, HostError> {
+    fn new(
+        webview: ICoreWebView2,
+        connection: SurfaceConnection<M>,
+        runtime: Rc<RendererRuntimeState>,
+    ) -> Result<Self, HostError> {
         Ok(Self {
             webview4: webview.cast()?,
             webview,
             connection: Rc::new(RefCell::new(connection)),
+            runtime,
         })
     }
 }
@@ -318,16 +325,29 @@ impl<M: MainOpener + 'static> HandlerRegistry for NativeHandlerRegistry<M> {
                 unsafe { self.webview.add_NavigationStarting(&callback, &mut token) }
             }
             HandlerKind::NavigationCompleted => {
-                let callback = NavigationCompletedEventHandler::create(Box::new(|_, args| {
+                let runtime = Rc::clone(&self.runtime);
+                let webview = self.webview.clone();
+                let callback = NavigationCompletedEventHandler::create(Box::new(move |_, args| {
+                    let mut completed = false;
                     if let Some(args) = args {
                         let mut success = windows::core::BOOL(0);
                         // SAFETY: [Category 8 — FFI boundary] `success` is writable storage and args
                         // is valid for this synchronous WebView2 callback.
                         unsafe { args.IsSuccess(&mut success) }?;
-                        if !success.as_bool() {
-                            return Err(windows::core::Error::from_win32());
+                        if success.as_bool() {
+                            let mut source = PWSTR::null();
+                            // SAFETY: [Category 8 — FFI boundary] `source` is writable pointer
+                            // storage and the captured WebView remains registered for this callback.
+                            unsafe { webview.Source(&mut source) }?;
+                            completed =
+                                is_admitted_surface_url(&CoTaskMemPWSTR::from(source).to_string());
                         }
                     }
+                    runtime.finish_navigation(if completed {
+                        NavigationResult::Succeeded
+                    } else {
+                        NavigationResult::Failed
+                    });
                     Ok(())
                 }));
                 // SAFETY: [Category 8 — FFI boundary] same registration ownership contract as above.
@@ -352,6 +372,7 @@ impl<M: MainOpener + 'static> HandlerRegistry for NativeHandlerRegistry<M> {
             }
             HandlerKind::WebMessageReceived => {
                 let connection = Rc::clone(&self.connection);
+                let runtime = Rc::clone(&self.runtime);
                 let webview = self.webview.clone();
                 let callback = WebMessageReceivedEventHandler::create(Box::new(move |_, args| {
                     let Some(args) = args else {
@@ -370,11 +391,17 @@ impl<M: MainOpener + 'static> HandlerRegistry for NativeHandlerRegistry<M> {
                     let response = connection.try_borrow_mut().ok().and_then(|mut connection| {
                         connection.handle(payload.as_bytes(), &source, true).ok()
                     });
-                    if let Some(ConnectionResponse::Projection(response)) = response {
-                        let response = wide(OsStr::new(&response));
-                        // SAFETY: [Category 8 — FFI boundary] response is NUL-terminated UTF-16 and
-                        // remains alive for the duration of the synchronous post operation.
-                        unsafe { webview.PostWebMessageAsJson(PCWSTR(response.as_ptr())) }?;
+                    match response {
+                        Some(ConnectionResponse::Projection(response)) => {
+                            let response = wide(OsStr::new(&response));
+                            // SAFETY: [Category 8 — FFI boundary] response is NUL-terminated UTF-16
+                            // and remains alive for this synchronous post operation.
+                            unsafe { webview.PostWebMessageAsJson(PCWSTR(response.as_ptr())) }?;
+                        }
+                        Some(ConnectionResponse::RendererReady) => {
+                            let _ = runtime.mark_ready();
+                        }
+                        _ => {}
                     }
                     Ok(())
                 }));
@@ -409,6 +436,11 @@ impl<M: MainOpener + 'static> HandlerRegistry for NativeHandlerRegistry<M> {
     }
 }
 
+pub struct AttachedRenderer<M: MainOpener + 'static> {
+    pub session: RendererSession<NativeHandlerRegistry<M>>,
+    pub runtime: Rc<RendererRuntimeState>,
+}
+
 pub fn attach_surface_renderer<M: MainOpener + 'static>(
     controller: &ICoreWebView2Controller,
     bundle_dir: &Path,
@@ -417,7 +449,7 @@ pub fn attach_surface_renderer<M: MainOpener + 'static>(
     ledger: &mut Ledger,
     attempt: Attempt,
     diagnostic: &mut crate::diagnostic::QaRuntimeDiagnostic,
-) -> Result<RendererSession<NativeHandlerRegistry<M>>, HostError> {
+) -> Result<AttachedRenderer<M>, HostError> {
     let bundle_dir = bundle_dir
         .canonicalize()
         .map_err(|_| HostError::InvalidBundle)?;
@@ -442,8 +474,12 @@ pub fn attach_surface_renderer<M: MainOpener + 'static>(
     }?;
     diagnostic.complete(crate::diagnostic::RuntimeStage::VirtualHostMapping)?;
     diagnostic.begin(crate::diagnostic::RuntimeStage::RendererSessionRegistration)?;
-    let registry =
-        NativeHandlerRegistry::new(webview.clone(), SurfaceConnection::new(generation, main))?;
+    let runtime = Rc::new(RendererRuntimeState::new());
+    let registry = NativeHandlerRegistry::new(
+        webview.clone(),
+        SurfaceConnection::new(generation, main),
+        Rc::clone(&runtime),
+    )?;
     let mut session = RendererSession::begin(registry, ledger, SessionOwnership::new(attempt, 7))?;
     for handler in [
         HandlerKind::NavigationStarting,
@@ -461,6 +497,5 @@ pub fn attach_surface_renderer<M: MainOpener + 'static>(
     // SAFETY: [Category 8 — FFI boundary] entry is an admitted, NUL-terminated fixed origin URL and
     // remains alive for the synchronous Navigate call.
     unsafe { webview.Navigate(PCWSTR(entry.as_ptr())) }?;
-    diagnostic.complete(crate::diagnostic::RuntimeStage::HtmlNavigation)?;
-    Ok(session)
+    Ok(AttachedRenderer { session, runtime })
 }

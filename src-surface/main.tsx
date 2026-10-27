@@ -13,8 +13,9 @@ import type { SurfaceProjection } from "./projection";
 import { createSurfaceNativeBridge, getWebViewTransport, parseSurfaceGeneration } from "./nativeBridge";
 import "./surface.css";
 
-function SurfaceRoot() {
+export function SurfaceRoot() {
   const [projection, setProjection] = useState<SurfaceProjection>(syntheticSurfaceProjection);
+  const [nativeProjectionApplied, setNativeProjectionApplied] = useState(false);
   const nativeBridge = useMemo(() => {
     const webview = getWebViewTransport(window);
     const generation = parseSurfaceGeneration(window.location.search);
@@ -22,10 +23,16 @@ function SurfaceRoot() {
   }, []);
   useEffect(() => {
     if (nativeBridge === null) return undefined;
-    const unsubscribe = nativeBridge.subscribe(setProjection);
+    const unsubscribe = nativeBridge.subscribe((nextProjection) => {
+      setProjection(nextProjection);
+      setNativeProjectionApplied(true);
+    });
     nativeBridge.requestProjection();
     return unsubscribe;
   }, [nativeBridge]);
+  useEffect(() => {
+    if (nativeBridge !== null && nativeProjectionApplied) nativeBridge.notifyRendererReady();
+  }, [nativeBridge, nativeProjectionApplied, projection]);
   const editingPreview = new URLSearchParams(window.location.search).get("preview") === "editing";
   return <SurfaceApp projection={projection} storage={createSessionStorageAdapter(window.sessionStorage)}
     onOpenMain={nativeBridge === null ? undefined : (actionId) => { nativeBridge.openMain(actionId); }}
@@ -33,7 +40,7 @@ function SurfaceRoot() {
     initialEditing={editingPreview} initialLayout={editingPreview ? editedSurfaceLayout : undefined} />;
 }
 
-const root = document.getElementById("surface-root");
+const root = typeof document === "undefined" ? null : document.getElementById("surface-root");
 if (root !== null) {
   createRoot(root).render(<StrictMode><SurfaceRoot /></StrictMode>);
 }

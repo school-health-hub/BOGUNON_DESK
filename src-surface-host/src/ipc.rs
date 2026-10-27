@@ -38,6 +38,7 @@ impl Sequence {
 pub enum RequestKind {
     OpenMain,
     RefreshProjection,
+    RendererReady,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -63,6 +64,8 @@ pub enum IpcError {
     StaleSequence,
     #[error("the main application is retired")]
     MainRetired,
+    #[error("renderer readiness was already accepted")]
+    RendererAlreadyReady,
 }
 
 #[derive(Deserialize)]
@@ -90,6 +93,7 @@ pub fn parse_request(payload: &[u8], source: &str, top_level: bool) -> Result<Re
     let kind = match wire.command {
         "OpenMain" => RequestKind::OpenMain,
         "RefreshProjection" => RequestKind::RefreshProjection,
+        "RendererReady" => RequestKind::RendererReady,
         _ => return Err(IpcError::InvalidSchema),
     };
     Ok(Request {
@@ -103,6 +107,7 @@ pub struct Admission {
     generation: Generation,
     last_sequence: u64,
     main_active: bool,
+    renderer_ready: bool,
 }
 
 impl Admission {
@@ -111,6 +116,7 @@ impl Admission {
             generation,
             last_sequence: 0,
             main_active: true,
+            renderer_ready: false,
         }
     }
 
@@ -124,7 +130,13 @@ impl Admission {
         if request.sequence.0 <= self.last_sequence {
             return Err(IpcError::StaleSequence);
         }
+        if request.kind == RequestKind::RendererReady && self.renderer_ready {
+            return Err(IpcError::RendererAlreadyReady);
+        }
         self.last_sequence = request.sequence.0;
+        if request.kind == RequestKind::RendererReady {
+            self.renderer_ready = true;
+        }
         Ok(request.kind)
     }
 
@@ -155,6 +167,25 @@ mod tests {
             parse_request(&request("ReadFinance", 1, 1), SURFACE_ORIGIN, true),
             Err(IpcError::InvalidSchema)
         );
+    }
+
+    #[test]
+    fn renderer_ready_uses_the_same_origin_generation_and_sequence_boundary() {
+        let ready = request("RendererReady", 7, 1);
+        let parsed = parse_request(&ready, SURFACE_ORIGIN, true).unwrap();
+        assert_eq!(parsed.kind, RequestKind::RendererReady);
+
+        let generation = Generation::new(7).unwrap();
+        let mut admission = Admission::new(generation);
+        assert_eq!(admission.admit(parsed), Ok(RequestKind::RendererReady));
+        let duplicate =
+            parse_request(&request("RendererReady", 7, 2), SURFACE_ORIGIN, true).unwrap();
+        assert_eq!(
+            admission.admit(duplicate),
+            Err(IpcError::RendererAlreadyReady)
+        );
+        let stale = parse_request(&request("RendererReady", 6, 3), SURFACE_ORIGIN, true).unwrap();
+        assert_eq!(admission.admit(stale), Err(IpcError::StaleGeneration));
     }
 
     #[test]

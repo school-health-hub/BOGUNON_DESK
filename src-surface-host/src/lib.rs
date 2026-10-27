@@ -16,6 +16,9 @@ pub mod ownership;
 #[cfg(test)]
 mod ownership_tests;
 pub mod renderer;
+pub mod renderer_runtime;
+#[cfg(test)]
+mod renderer_runtime_tests;
 pub mod renderer_session;
 #[cfg(test)]
 mod renderer_session_test_support;
