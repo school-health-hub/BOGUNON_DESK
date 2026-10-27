@@ -11,7 +11,9 @@ const FILE_NAME: &str = "bogunon-desktop-surface-qa-main-diagnostic.json";
 #[serde(rename_all = "snake_case")]
 pub(crate) enum MainStartupStage {
     MainEntry,
-    SecurityInstall,
+    SecurityCallerInstall,
+    SecurityLifetimeInstall,
+    SecurityEventsInstall,
     HostPath,
     HostSpawn,
     PipeServer,
@@ -25,7 +27,9 @@ pub(crate) enum MainStartupStage {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub(crate) enum MainStartupFailure {
-    SecurityInstallFailed,
+    SecurityCallerInstallFailed,
+    SecurityLifetimeInstallFailed,
+    SecurityEventsInstallFailed,
     HostUnavailable,
     HostSpawnFailed,
     PipeServerFailed,

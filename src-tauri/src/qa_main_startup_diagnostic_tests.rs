@@ -49,3 +49,42 @@ fn given_child_exit_before_grant_when_classified_then_startup_stays_failed_close
         ChildBeforeGrant::Running
     );
 }
+
+#[test]
+fn given_each_security_failure_when_recorded_then_the_exact_substage_is_preserved() {
+    for (stage, failure, expected_stage, expected_failure) in [
+        (
+            MainStartupStage::SecurityCallerInstall,
+            MainStartupFailure::SecurityCallerInstallFailed,
+            "security_caller_install",
+            "security_caller_install_failed",
+        ),
+        (
+            MainStartupStage::SecurityLifetimeInstall,
+            MainStartupFailure::SecurityLifetimeInstallFailed,
+            "security_lifetime_install",
+            "security_lifetime_install_failed",
+        ),
+        (
+            MainStartupStage::SecurityEventsInstall,
+            MainStartupFailure::SecurityEventsInstallFailed,
+            "security_events_install",
+            "security_events_install_failed",
+        ),
+    ] {
+        let path = std::env::temp_dir().join(format!("bogunon-s2h8-{expected_stage}.json"));
+        let _ = fs::remove_file(&path);
+        let diagnostic = QaMainStartupDiagnostic::start_at(path.clone()).unwrap();
+
+        diagnostic.begin(stage).unwrap();
+        diagnostic.fail(failure, ChildStatus::NotStarted).unwrap();
+
+        let value: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(value["currentStage"], expected_stage);
+        assert_eq!(value["failureCode"], expected_failure);
+        assert_eq!(value["childStatus"], "not_started");
+        assert_eq!(value["outcome"], "failed");
+        fs::remove_file(path).unwrap();
+    }
+}
