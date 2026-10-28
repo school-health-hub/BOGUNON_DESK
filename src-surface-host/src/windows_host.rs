@@ -9,7 +9,8 @@ use std::{
 use thiserror::Error;
 use webview2_com::{
     CoTaskMemPWSTR, CreateCoreWebView2ControllerCompletedHandler,
-    CreateCoreWebView2EnvironmentCompletedHandler, FrameCreatedEventHandler,
+    CreateCoreWebView2EnvironmentCompletedHandler, ExecuteScriptCompletedHandler,
+    FrameCreatedEventHandler,
     Microsoft::Web::WebView2::Win32::{
         CreateCoreWebView2EnvironmentWithOptions, ICoreWebView2, ICoreWebView2Controller,
         ICoreWebView2Environment, ICoreWebView2Environment7, ICoreWebView2EnvironmentOptions,
@@ -266,7 +267,9 @@ use crate::{
     ipc::Generation,
     lifecycle::Attempt,
     ownership::Ledger,
-    renderer_runtime::{NavigationResult, RendererMessageFailure, RendererRuntimeState},
+    renderer_runtime::{
+        NavigationResult, RendererMessageFailure, RendererObservation, RendererRuntimeState,
+    },
     renderer_session::{
         HandlerAddFailure, HandlerKind, HandlerRegistry, HandlerToken, RendererSession,
         SessionOwnership,
@@ -344,6 +347,9 @@ impl<M: MainOpener + 'static> HandlerRegistry for NativeHandlerRegistry<M> {
                             unsafe { webview.Source(&mut source) }?;
                             completed =
                                 is_admitted_surface_url(&CoTaskMemPWSTR::from(source).to_string());
+                            if completed {
+                                runtime.observe(RendererObservation::HtmlDocumentLoaded);
+                            }
                         }
                     }
                     runtime.finish_navigation(if completed {
@@ -379,6 +385,7 @@ impl<M: MainOpener + 'static> HandlerRegistry for NativeHandlerRegistry<M> {
                 let webview = self.webview.clone();
                 let generation = self.generation;
                 let callback = WebMessageReceivedEventHandler::create(Box::new(move |_, args| {
+                    runtime.observe(RendererObservation::WebMessageReceived);
                     let Some(args) = args else {
                         return Ok(());
                     };
@@ -416,15 +423,20 @@ impl<M: MainOpener + 'static> HandlerRegistry for NativeHandlerRegistry<M> {
                             None
                         }
                     };
+                    if response.is_some() {
+                        runtime.observe(RendererObservation::MessageContractAccepted);
+                    }
                     match response {
                         Some(ConnectionResponse::Projection(response)) => {
                             let response = wide(OsStr::new(&response));
                             // SAFETY: [Category 8 — FFI boundary] response is NUL-terminated UTF-16
                             // and remains alive for this synchronous post operation.
                             unsafe { webview.PostWebMessageAsJson(PCWSTR(response.as_ptr())) }?;
+                            runtime.observe(RendererObservation::ProjectionResponseSent);
                         }
                         Some(ConnectionResponse::RendererReady) => {
                             let _ = runtime.mark_ready();
+                            runtime.observe(RendererObservation::RendererReadyAccepted);
                         }
                         _ => {}
                     }
@@ -464,6 +476,39 @@ impl<M: MainOpener + 'static> HandlerRegistry for NativeHandlerRegistry<M> {
 pub struct AttachedRenderer<M: MainOpener + 'static> {
     pub session: RendererSession<NativeHandlerRegistry<M>>,
     pub runtime: Rc<RendererRuntimeState>,
+    webview: ICoreWebView2,
+}
+
+impl<M: MainOpener + 'static> AttachedRenderer<M> {
+    pub fn probe_script_stage(&self) -> Result<(), HostError> {
+        if !self.runtime.begin_script_probe() {
+            return Ok(());
+        }
+        let runtime = Rc::clone(&self.runtime);
+        let callback =
+            ExecuteScriptCompletedHandler::create(Box::new(move |error_code, result| {
+                if error_code.is_ok() {
+                    runtime.finish_script_probe(Some(&result));
+                } else {
+                    runtime.finish_script_probe(None);
+                }
+                error_code
+            }));
+        let script = wide(OsStr::new(
+            "(() => { const root = document.getElementById('surface-root'); return root === null ? 'root_missing' : (root.dataset.runtimeStage || 'html_document_loaded'); })()",
+        ));
+        // SAFETY: [Category 8 — FFI boundary] the fixed read-only script and callback remain valid
+        // for this asynchronous WebView2 request; the callback records only allowlisted stage codes.
+        if let Err(error) = unsafe {
+            self.webview
+                .ExecuteScript(PCWSTR(script.as_ptr()), &callback)
+        } {
+            self.runtime.cancel_script_probe();
+            self.runtime.observe(RendererObservation::ScriptProbeFailed);
+            return Err(HostError::Com(error));
+        }
+        Ok(())
+    }
 }
 
 pub fn attach_surface_renderer<M: MainOpener + 'static>(
@@ -523,5 +568,9 @@ pub fn attach_surface_renderer<M: MainOpener + 'static>(
     // SAFETY: [Category 8 — FFI boundary] entry is an admitted, NUL-terminated fixed origin URL and
     // remains alive for the synchronous Navigate call.
     unsafe { webview.Navigate(PCWSTR(entry.as_ptr())) }?;
-    Ok(AttachedRenderer { session, runtime })
+    Ok(AttachedRenderer {
+        session,
+        runtime,
+        webview,
+    })
 }

@@ -29,8 +29,8 @@ use crate::{
     surface_connection::MainOpener,
     udf::{self, DirectoryObservation},
     windows_host::{
-        attach_surface_renderer, observe_runtime, pump_pending, ControllerRequest,
-        EnvironmentRequest, HostError, RuntimeBinding, StaGuard,
+        attach_surface_renderer, observe_runtime, pump_pending, AttachedRenderer,
+        ControllerRequest, EnvironmentRequest, HostError, RuntimeBinding, StaGuard,
     },
 };
 
@@ -253,7 +253,7 @@ pub fn run(
         attempt,
         diagnostic,
     )?;
-    wait_renderer_ready(CREATION_TIMEOUT, &renderer.runtime, diagnostic)?;
+    wait_renderer_ready(CREATION_TIMEOUT, &renderer, diagnostic)?;
     diagnostic.begin(RuntimeStage::WindowDisplay)?;
     // SAFETY: [Category 8 — FFI boundary] the controller is live on this STA and the
     // boolean is copied synchronously by WebView2.
@@ -355,29 +355,39 @@ fn wait_poll<T>(
     }
 }
 
-fn wait_renderer_ready(
+fn wait_renderer_ready<M: MainOpener + 'static>(
     timeout: Duration,
-    state: &crate::renderer_runtime::RendererRuntimeState,
+    renderer: &AttachedRenderer<M>,
     diagnostic: &mut QaRuntimeDiagnostic,
 ) -> Result<(), LiveSurfaceError> {
     let deadline = Instant::now() + timeout;
     loop {
-        match state.signal() {
+        match renderer.runtime.signal() {
             RendererSignal::WaitingForNavigation => {}
-            RendererSignal::NavigationFailed => return Err(LiveSurfaceError::NavigationFailed),
+            RendererSignal::NavigationFailed => {
+                diagnostic.record_renderer_observations(&renderer.runtime.observations())?;
+                return Err(LiveSurfaceError::NavigationFailed);
+            }
             RendererSignal::MessageRejected(failure) => {
+                diagnostic.record_renderer_observations(&renderer.runtime.observations())?;
                 return Err(LiveSurfaceError::RendererMessageRejected(failure));
             }
             RendererSignal::WaitingForReady => {
                 diagnostic.complete(RuntimeStage::HtmlNavigation)?;
                 diagnostic.begin(RuntimeStage::RendererReady)?;
+                if let Err(error) = renderer.probe_script_stage() {
+                    diagnostic.record_renderer_observations(&renderer.runtime.observations())?;
+                    return Err(error.into());
+                }
             }
             RendererSignal::Ready => {
+                diagnostic.record_renderer_observations(&renderer.runtime.observations())?;
                 diagnostic.complete(RuntimeStage::HtmlNavigation)?;
                 diagnostic.complete(RuntimeStage::RendererReady)?;
                 return Ok(());
             }
         }
+        diagnostic.record_renderer_observations(&renderer.runtime.observations())?;
         if Instant::now() >= deadline {
             return Err(LiveSurfaceError::RendererReadyTimeout);
         }

@@ -1,8 +1,23 @@
+// @vitest-environment jsdom
+
 import { describe, expect, it, vi } from "vitest";
-import { createSurfaceNativeBridge, isApprovedSurfaceActionId, parseSurfaceGeneration } from "./nativeBridge";
+import {
+  createSurfaceNativeBridge,
+  isApprovedSurfaceActionId,
+  markRendererRuntimeStage,
+  parseSurfaceGeneration,
+} from "./nativeBridge";
 import { syntheticSurfaceProjection } from "./projection";
 
 describe("surface native bridge", () => {
+  it("records only a fixed renderer runtime stage on the root element", () => {
+    document.body.innerHTML = '<div id="surface-root" data-runtime-stage="html_document_loaded"></div>';
+    expect(markRendererRuntimeStage(document, "script_started")).toBe(true);
+    expect(document.getElementById("surface-root")?.dataset.runtimeStage).toBe("script_started");
+    document.body.innerHTML = "";
+    expect(markRendererRuntimeStage(document, "react_mount_complete")).toBe(false);
+  });
+
   it("accepts only the four existing quick-launch action identifiers", () => {
     for (const id of ["official-document", "purchase-helper", "record-helper", "home"]) expect(isApprovedSurfaceActionId(id)).toBe(true);
     expect(isApprovedSurfaceActionId("finance")).toBe(false);

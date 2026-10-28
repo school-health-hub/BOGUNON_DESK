@@ -3,6 +3,8 @@ use std::{fs::File, io::Write, path::PathBuf};
 use serde::Serialize;
 use thiserror::Error;
 
+use crate::renderer_runtime::RendererObservation;
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Diagnostic<'a> {
@@ -105,6 +107,7 @@ struct QaRuntimeRecord {
     schema: u8,
     current_stage: RuntimeStage,
     completed_stages: Vec<RuntimeStage>,
+    renderer_observations: Vec<RendererObservation>,
     outcome: RuntimeOutcome,
     failure_code: Option<FailureCode>,
     cleanup_status: CleanupStatus,
@@ -135,6 +138,7 @@ impl QaRuntimeDiagnostic {
                 schema: 1,
                 current_stage: RuntimeStage::HostStarted,
                 completed_stages: Vec::new(),
+                renderer_observations: Vec::new(),
                 outcome: RuntimeOutcome::Running,
                 failure_code: None,
                 cleanup_status: CleanupStatus::NotEvaluated,
@@ -168,6 +172,23 @@ impl QaRuntimeDiagnostic {
         self.record.failure_code = Some(code);
         self.record.cleanup_status = cleanup_status;
         self.persist()
+    }
+
+    pub fn record_renderer_observations(
+        &mut self,
+        observations: &[RendererObservation],
+    ) -> Result<(), DiagnosticWriteError> {
+        let mut changed = false;
+        for observation in observations {
+            if !self.record.renderer_observations.contains(observation) {
+                self.record.renderer_observations.push(*observation);
+                changed = true;
+            }
+        }
+        if changed {
+            self.persist()?;
+        }
+        Ok(())
     }
 
     pub fn succeed(&mut self) -> Result<(), DiagnosticWriteError> {
@@ -247,6 +268,7 @@ mod tests {
         assert_eq!(value["outcome"], "failed");
         assert_eq!(value["failureCode"], "invalid_grant");
         assert_eq!(value["cleanupStatus"], "not_evaluated");
+        assert_eq!(value["rendererObservations"], serde_json::json!([]));
         for forbidden_value in [
             "S-1-5-21-private",
             "secret-capability",
@@ -256,6 +278,31 @@ mod tests {
         ] {
             assert!(!raw.contains(forbidden_value));
         }
+        fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn qa_runtime_diagnostic_records_only_allowlisted_renderer_observations() {
+        let path = std::env::temp_dir().join("bogunon-s2h26-renderer-observations.json");
+        let _ = fs::remove_file(&path);
+        let mut diagnostic = QaRuntimeDiagnostic::start_at(path.clone()).unwrap();
+        diagnostic
+            .record_renderer_observations(&[
+                RendererObservation::HtmlDocumentLoaded,
+                RendererObservation::ProjectionRequestAttempted,
+                RendererObservation::WebMessageReceived,
+            ])
+            .unwrap();
+
+        let value: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+        assert_eq!(
+            value["rendererObservations"],
+            serde_json::json!([
+                "html_document_loaded",
+                "projection_request_attempted",
+                "web_message_received"
+            ])
+        );
         fs::remove_file(path).unwrap();
     }
 

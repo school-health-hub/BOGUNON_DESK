@@ -17,6 +17,25 @@ export type SurfaceNativeBridge = Readonly<{
   subscribe: (listener: (projection: SurfaceProjection) => void) => () => void;
 }>;
 
+export const rendererRuntimeStages = [
+  "html_document_loaded",
+  "script_started",
+  "react_mount_complete",
+  "bridge_initialized",
+  "bridge_unavailable",
+  "projection_request_attempted",
+  "projection_applied",
+  "ready_post_attempted",
+] as const;
+export type RendererRuntimeStage = (typeof rendererRuntimeStages)[number];
+
+export function markRendererRuntimeStage(document: Document, stage: RendererRuntimeStage): boolean {
+  const root = document.getElementById("surface-root");
+  if (root === null) return false;
+  root.dataset.runtimeStage = stage;
+  return true;
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
 const isString = (value: unknown): value is string => typeof value === "string";
 const isNullableString = (value: unknown): value is string | null => value === null || isString(value);

@@ -10,8 +10,15 @@ import { SurfaceApp } from "./SurfaceApp";
 import { createSessionStorageAdapter, editedSurfaceLayout } from "./layout";
 import { syntheticSurfaceProjection } from "./projection";
 import type { SurfaceProjection } from "./projection";
-import { createSurfaceNativeBridge, getWebViewTransport, parseSurfaceGeneration } from "./nativeBridge";
+import {
+  createSurfaceNativeBridge,
+  getWebViewTransport,
+  markRendererRuntimeStage,
+  parseSurfaceGeneration,
+} from "./nativeBridge";
 import "./surface.css";
+
+if (typeof document !== "undefined") markRendererRuntimeStage(document, "script_started");
 
 export function SurfaceRoot() {
   const [projection, setProjection] = useState<SurfaceProjection>(syntheticSurfaceProjection);
@@ -22,16 +29,28 @@ export function SurfaceRoot() {
     return webview === null || generation === null ? null : createSurfaceNativeBridge(webview, generation);
   }, []);
   useEffect(() => {
-    if (nativeBridge === null) return undefined;
+    markRendererRuntimeStage(document, "react_mount_complete");
+  }, []);
+  useEffect(() => {
+    if (nativeBridge === null) {
+      markRendererRuntimeStage(document, "bridge_unavailable");
+      return undefined;
+    }
+    markRendererRuntimeStage(document, "bridge_initialized");
     const unsubscribe = nativeBridge.subscribe((nextProjection) => {
       setProjection(nextProjection);
       setNativeProjectionApplied(true);
+      markRendererRuntimeStage(document, "projection_applied");
     });
+    markRendererRuntimeStage(document, "projection_request_attempted");
     nativeBridge.requestProjection();
     return unsubscribe;
   }, [nativeBridge]);
   useEffect(() => {
-    if (nativeBridge !== null && nativeProjectionApplied) nativeBridge.notifyRendererReady();
+    if (nativeBridge !== null && nativeProjectionApplied) {
+      markRendererRuntimeStage(document, "ready_post_attempted");
+      nativeBridge.notifyRendererReady();
+    }
   }, [nativeBridge, nativeProjectionApplied, projection]);
   const editingPreview = new URLSearchParams(window.location.search).get("preview") === "editing";
   return <SurfaceApp projection={projection} storage={createSessionStorageAdapter(window.sessionStorage)}

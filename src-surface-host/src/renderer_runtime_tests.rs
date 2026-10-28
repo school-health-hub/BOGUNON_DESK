@@ -1,5 +1,6 @@
 use crate::renderer_runtime::{
-    NavigationResult, RendererMessageFailure, RendererRuntimeState, RendererSignal,
+    NavigationResult, RendererMessageFailure, RendererObservation, RendererRuntimeState,
+    RendererSignal,
 };
 
 #[test]
@@ -36,5 +37,40 @@ fn rejected_web_message_is_reported_instead_of_becoming_a_ready_timeout() {
     assert_eq!(
         state.signal(),
         RendererSignal::MessageRejected(RendererMessageFailure::Source)
+    );
+}
+
+#[test]
+fn script_probe_records_only_fixed_stage_codes_and_never_raw_values() {
+    let state = RendererRuntimeState::new();
+    assert!(state.begin_script_probe());
+    assert!(!state.begin_script_probe());
+    state.finish_script_probe(Some("\"projection_request_attempted\""));
+    assert_eq!(
+        state.observations(),
+        vec![RendererObservation::ProjectionRequestAttempted]
+    );
+
+    assert!(state.begin_script_probe());
+    state.finish_script_probe(Some("\"sensitive-or-unknown-value\""));
+    assert_eq!(
+        state.observations(),
+        vec![
+            RendererObservation::ProjectionRequestAttempted,
+            RendererObservation::ScriptProbeUnknown,
+        ]
+    );
+}
+
+#[test]
+fn failed_script_probe_is_observed_and_can_be_retried() {
+    let state = RendererRuntimeState::new();
+    assert!(state.begin_script_probe());
+    state.cancel_script_probe();
+    assert!(state.begin_script_probe());
+    state.finish_script_probe(None);
+    assert_eq!(
+        state.observations(),
+        vec![RendererObservation::ScriptProbeFailed]
     );
 }

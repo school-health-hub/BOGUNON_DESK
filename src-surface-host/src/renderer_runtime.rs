@@ -1,4 +1,6 @@
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
+
+use serde::Serialize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NavigationResult {
@@ -23,10 +25,32 @@ pub enum RendererSignal {
     MessageRejected(RendererMessageFailure),
 }
 
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum RendererObservation {
+    HtmlDocumentLoaded,
+    ScriptStarted,
+    ReactMountComplete,
+    BridgeInitialized,
+    BridgeUnavailable,
+    ProjectionRequestAttempted,
+    WebMessageReceived,
+    MessageContractAccepted,
+    ProjectionResponseSent,
+    ProjectionApplied,
+    ReadyPostAttempted,
+    RendererReadyAccepted,
+    RootMissing,
+    ScriptProbeFailed,
+    ScriptProbeUnknown,
+}
+
 pub struct RendererRuntimeState {
     navigation: Cell<NavigationResult>,
     ready: Cell<bool>,
     message_failure: Cell<Option<RendererMessageFailure>>,
+    script_probe_in_flight: Cell<bool>,
+    observations: RefCell<Vec<RendererObservation>>,
 }
 
 impl RendererRuntimeState {
@@ -35,6 +59,8 @@ impl RendererRuntimeState {
             navigation: Cell::new(NavigationResult::Pending),
             ready: Cell::new(false),
             message_failure: Cell::new(None),
+            script_probe_in_flight: Cell::new(false),
+            observations: RefCell::new(Vec::new()),
         }
     }
 
@@ -49,6 +75,51 @@ impl RendererRuntimeState {
             return false;
         }
         true
+    }
+
+    pub fn observe(&self, observation: RendererObservation) {
+        let mut observations = self.observations.borrow_mut();
+        if !observations.contains(&observation) {
+            observations.push(observation);
+        }
+    }
+
+    pub fn observations(&self) -> Vec<RendererObservation> {
+        self.observations.borrow().clone()
+    }
+
+    pub fn begin_script_probe(&self) -> bool {
+        !self.script_probe_in_flight.replace(true)
+    }
+
+    pub fn cancel_script_probe(&self) {
+        self.script_probe_in_flight.set(false);
+    }
+
+    pub fn finish_script_probe(&self, result: Option<&str>) {
+        self.script_probe_in_flight.set(false);
+        let observation = result
+            .and_then(|value| serde_json::from_str::<String>(value).ok())
+            .and_then(|value| match value.as_str() {
+                "html_document_loaded" => Some(RendererObservation::HtmlDocumentLoaded),
+                "script_started" => Some(RendererObservation::ScriptStarted),
+                "react_mount_complete" => Some(RendererObservation::ReactMountComplete),
+                "bridge_initialized" => Some(RendererObservation::BridgeInitialized),
+                "bridge_unavailable" => Some(RendererObservation::BridgeUnavailable),
+                "projection_request_attempted" => {
+                    Some(RendererObservation::ProjectionRequestAttempted)
+                }
+                "projection_applied" => Some(RendererObservation::ProjectionApplied),
+                "ready_post_attempted" => Some(RendererObservation::ReadyPostAttempted),
+                "root_missing" => Some(RendererObservation::RootMissing),
+                _ => None,
+            })
+            .unwrap_or(if result.is_some() {
+                RendererObservation::ScriptProbeUnknown
+            } else {
+                RendererObservation::ScriptProbeFailed
+            });
+        self.observe(observation);
     }
 
     pub fn reject_message(&self, failure: RendererMessageFailure) {
