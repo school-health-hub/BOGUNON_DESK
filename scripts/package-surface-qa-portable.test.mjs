@@ -27,7 +27,11 @@ async function fixture() {
   await fs.mkdir(path.join(bundle, 'assets'), { recursive: true });
   await fs.writeFile(path.join(input, BINARY_NAMES.main), 'synthetic main executable');
   await fs.writeFile(path.join(input, BINARY_NAMES.host), 'synthetic host executable');
-  await fs.writeFile(path.join(bundle, 'surface.html'), '<main>SYNTHETIC QA</main>');
+  await fs.writeFile(path.join(bundle, 'surface.html'), [
+    '<main>SYNTHETIC QA</main>',
+    '<script type="module" src="./assets/surface.js"></script>',
+    '<link rel="stylesheet" href="./assets/surface.css">',
+  ].join('\n'));
   await fs.writeFile(path.join(bundle, 'assets', 'surface.js'), 'console.log("synthetic")');
   await fs.writeFile(path.join(bundle, 'assets', 'surface.css'), ':root { color: teal; }');
   return {
@@ -78,6 +82,18 @@ describe('Surface QA portable package', () => {
     expect(readme).toContain('%TEMP%\\bogunon-desktop-surface-qa-diagnostic.json');
     expect(readme).toContain('%TEMP%\\bogunon-desktop-surface-qa-main-diagnostic.json');
     expect(readme).toContain('Do not automatically retry');
+  });
+
+  it.each([
+    ['root-absolute JavaScript asset', '<script type="module" src="/assets/surface.js"></script>'],
+    ['cross-origin JavaScript asset', '<script type="module" crossorigin src="./assets/surface.js"></script>'],
+    ['root-absolute CSS asset', '<link rel="stylesheet" href="/assets/surface.css">'],
+    ['cross-origin CSS asset', '<link rel="stylesheet" crossorigin href="./assets/surface.css">'],
+  ])('rejects %s references that are incompatible with deny-CORS virtual hosting', async (_label, tag) => {
+    const test = await fixture();
+    await fs.writeFile(path.join(test.options.surfaceBundle, 'surface.html'), `<main>SYNTHETIC QA</main>\n${tag}`);
+
+    await expect(createPortablePackage(test.options)).rejects.toThrow(/surface html|cross-origin/iu);
   });
 
   it('records source and supplied runner provenance without environment dumps', async () => {

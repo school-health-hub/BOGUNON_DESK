@@ -85,6 +85,19 @@ function inspectTextContent(bytes, relativePath) {
   }
 }
 
+function validateSurfaceHtml(bytes) {
+  const html = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  requireValue(!/\bcrossorigin\b/iu.test(html), 'Surface HTML must not request cross-origin local assets');
+  requireValue(
+    /<script\b[^>]*\btype=["']module["'][^>]*\bsrc=["']\.\/assets\/[^"']+\.js["'][^>]*><\/script>/iu.test(html),
+    'Surface HTML requires one relative module asset',
+  );
+  requireValue(
+    /<link\b[^>]*\brel=["']stylesheet["'][^>]*\bhref=["']\.\/assets\/[^"']+\.css["'][^>]*>/iu.test(html),
+    'Surface HTML requires one relative stylesheet asset',
+  );
+}
+
 async function listBundleFiles(root, current = root) {
   const stat = await fs.lstat(current);
   requireValue(stat.isDirectory() && !stat.isSymbolicLink(), `Expected bundle directory: ${current}`);
@@ -126,7 +139,9 @@ async function payload(options) {
   const main = await readRegularFile(options.mainExecutable, MAX_EXECUTABLE_BYTES);
   const host = await readRegularFile(options.hostExecutable, MAX_EXECUTABLE_BYTES);
   const bundleFiles = await listBundleFiles(options.surfaceBundle);
-  requireValue(bundleFiles.some(file => file.relative === 'surface.html'), 'Surface bundle surface.html is required');
+  const surfaceHtml = bundleFiles.find(file => file.relative === 'surface.html');
+  requireValue(surfaceHtml !== undefined, 'Surface bundle surface.html is required');
+  validateSurfaceHtml(await readRegularFile(surfaceHtml.absolute, MAX_BUNDLE_FILE_BYTES));
   const files = [
     { path: BINARY_NAMES.main, bytes: main },
     { path: BINARY_NAMES.host, bytes: host },
