@@ -1,0 +1,2 @@
+case=s2h35-session-moved-canonical-repeat mode=SessionMovedCanonical signal=Timeout observations=[HtmlResponseReceived, HtmlResponseSucceeded, HtmlMimeExpected, HtmlDocumentLoaded]
+case=s2h35-session-moved-canonical-repeat session_cleanup=Ok(Released)

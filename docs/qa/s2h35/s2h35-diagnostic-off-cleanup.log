@@ -1,0 +1,2 @@
+case=s2h35-diagnostic-off-cleanup host=bogunon-surface.localhost signal=timeout observations=[HtmlResponseReceived, HtmlResponseSucceeded, HtmlMimeExpected, HtmlDocumentLoaded, ModuleLoadError]
+case=s2h35-diagnostic-off-cleanup session_cleanup=Ok(Released)

@@ -1,0 +1,2 @@
+case=s2h35-session-moved-raw mode=SessionMoved signal=Ready observations=[HtmlResponseReceived, HtmlResponseSucceeded, HtmlMimeExpected, CssResponseReceived, CssResponseSucceeded, CssMimeExpected, JavaScriptResponseReceived, JavaScriptResponseSucceeded, JavaScriptMimeExpected, HtmlDocumentLoaded, WebMessageReceived, MessageContractAccepted, ProjectionResponseSent, RendererReadyAccepted]
+case=s2h35-session-moved-raw session_cleanup=Ok(Released)
