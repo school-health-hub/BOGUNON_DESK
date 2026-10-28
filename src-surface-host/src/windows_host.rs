@@ -266,14 +266,14 @@ use crate::{
     ipc::Generation,
     lifecycle::Attempt,
     ownership::Ledger,
-    renderer_runtime::{NavigationResult, RendererRuntimeState},
+    renderer_runtime::{NavigationResult, RendererMessageFailure, RendererRuntimeState},
     renderer_session::{
         HandlerAddFailure, HandlerKind, HandlerRegistry, HandlerToken, RendererSession,
         SessionOwnership,
     },
     surface_connection::{
-        is_admitted_surface_url, surface_entry_url, ConnectionResponse, MainOpener,
-        SurfaceConnection, SURFACE_HOST,
+        admitted_web_message_origin, is_admitted_surface_url, surface_entry_url,
+        ConnectionResponse, MainOpener, SurfaceConnection, SURFACE_HOST,
     },
 };
 
@@ -282,6 +282,7 @@ pub struct NativeHandlerRegistry<M: MainOpener + 'static> {
     webview4: ICoreWebView2_4,
     connection: Rc<RefCell<SurfaceConnection<M>>>,
     runtime: Rc<RendererRuntimeState>,
+    generation: Generation,
 }
 
 impl<M: MainOpener + 'static> NativeHandlerRegistry<M> {
@@ -289,12 +290,14 @@ impl<M: MainOpener + 'static> NativeHandlerRegistry<M> {
         webview: ICoreWebView2,
         connection: SurfaceConnection<M>,
         runtime: Rc<RendererRuntimeState>,
+        generation: Generation,
     ) -> Result<Self, HostError> {
         Ok(Self {
             webview4: webview.cast()?,
             webview,
             connection: Rc::new(RefCell::new(connection)),
             runtime,
+            generation,
         })
     }
 }
@@ -374,6 +377,7 @@ impl<M: MainOpener + 'static> HandlerRegistry for NativeHandlerRegistry<M> {
                 let connection = Rc::clone(&self.connection);
                 let runtime = Rc::clone(&self.runtime);
                 let webview = self.webview.clone();
+                let generation = self.generation;
                 let callback = WebMessageReceivedEventHandler::create(Box::new(move |_, args| {
                     let Some(args) = args else {
                         return Ok(());
@@ -384,13 +388,34 @@ impl<M: MainOpener + 'static> HandlerRegistry for NativeHandlerRegistry<M> {
                     // WebView2 returns CoTaskMem-owned strings consumed immediately below.
                     unsafe {
                         args.Source(&mut source)?;
-                        args.TryGetWebMessageAsString(&mut payload)?;
                     }
                     let source = CoTaskMemPWSTR::from(source).to_string();
+                    let Some(origin) = admitted_web_message_origin(&source, generation) else {
+                        runtime.reject_message(RendererMessageFailure::Source);
+                        return Ok(());
+                    };
+                    // SAFETY: [Category 8 — FFI boundary] `payload` is writable pointer storage;
+                    // WebView2 returns CoTaskMem text only for a JavaScript string message.
+                    if unsafe { args.TryGetWebMessageAsString(&mut payload) }.is_err() {
+                        runtime.reject_message(RendererMessageFailure::Payload);
+                        return Ok(());
+                    }
                     let payload = CoTaskMemPWSTR::from(payload).to_string();
-                    let response = connection.try_borrow_mut().ok().and_then(|mut connection| {
-                        connection.handle(payload.as_bytes(), &source, true).ok()
-                    });
+                    let response = match connection.try_borrow_mut() {
+                        Ok(mut connection) => {
+                            match connection.handle(payload.as_bytes(), origin, true) {
+                                Ok(response) => Some(response),
+                                Err(_) => {
+                                    runtime.reject_message(RendererMessageFailure::Contract);
+                                    None
+                                }
+                            }
+                        }
+                        Err(_) => {
+                            runtime.reject_message(RendererMessageFailure::Contract);
+                            None
+                        }
+                    };
                     match response {
                         Some(ConnectionResponse::Projection(response)) => {
                             let response = wide(OsStr::new(&response));
@@ -479,6 +504,7 @@ pub fn attach_surface_renderer<M: MainOpener + 'static>(
         webview.clone(),
         SurfaceConnection::new(generation, main),
         Rc::clone(&runtime),
+        generation,
     )?;
     let mut session = RendererSession::begin(registry, ledger, SessionOwnership::new(attempt, 7))?;
     for handler in [

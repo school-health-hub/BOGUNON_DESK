@@ -23,7 +23,7 @@ use crate::{
     main_restore::NamedPipeMainOpener,
     native_window::OwnedWindow,
     ownership::{Ledger, OwnershipError, Resource},
-    renderer_runtime::RendererSignal,
+    renderer_runtime::{RendererMessageFailure, RendererSignal},
     renderer_session::SessionCleanup,
     runtime_identity::directory_identity,
     surface_connection::MainOpener,
@@ -60,6 +60,8 @@ pub enum LiveSurfaceError {
     NavigationFailed,
     #[error("Surface renderer did not become ready")]
     RendererReadyTimeout,
+    #[error("Surface renderer message was rejected: {0:?}")]
+    RendererMessageRejected(RendererMessageFailure),
     #[error("Surface runtime native host failed: {0}")]
     Host(#[from] HostError),
     #[error("Surface runtime ownership failed: {0}")]
@@ -94,6 +96,11 @@ impl LiveSurfaceError {
             Self::Timeout => FailureCode::Timeout,
             Self::NavigationFailed => FailureCode::NavigationFailed,
             Self::RendererReadyTimeout => FailureCode::RendererReadyTimeout,
+            Self::RendererMessageRejected(failure) => match failure {
+                RendererMessageFailure::Source => FailureCode::RendererMessageSourceRejected,
+                RendererMessageFailure::Payload => FailureCode::RendererMessagePayloadRejected,
+                RendererMessageFailure::Contract => FailureCode::RendererMessageContractRejected,
+            },
             Self::Host(_) => FailureCode::NativeHostFailed,
             Self::Ownership(_) => FailureCode::OwnershipFailed,
             Self::Cleanup(_) => FailureCode::CleanupUnverified,
@@ -358,6 +365,9 @@ fn wait_renderer_ready(
         match state.signal() {
             RendererSignal::WaitingForNavigation => {}
             RendererSignal::NavigationFailed => return Err(LiveSurfaceError::NavigationFailed),
+            RendererSignal::MessageRejected(failure) => {
+                return Err(LiveSurfaceError::RendererMessageRejected(failure));
+            }
             RendererSignal::WaitingForReady => {
                 diagnostic.complete(RuntimeStage::HtmlNavigation)?;
                 diagnostic.begin(RuntimeStage::RendererReady)?;

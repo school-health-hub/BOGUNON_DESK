@@ -23,6 +23,13 @@ pub fn is_admitted_surface_url(uri: &str) -> bool {
         || uri.starts_with(&format!("https://{SURFACE_HOST}/assets/"))
 }
 
+pub fn admitted_web_message_origin(
+    document_uri: &str,
+    generation: Generation,
+) -> Option<&'static str> {
+    (document_uri == surface_entry_url(generation)).then_some(crate::ipc::SURFACE_ORIGIN)
+}
+
 pub trait MainOpener {
     type Error;
     /// Requests display of an already-running, admitted Main instance.
@@ -214,5 +221,35 @@ mod tests {
         assert!(!is_admitted_surface_url(
             "https://example.test/surface.html?generation=19"
         ));
+    }
+
+    #[test]
+    fn admits_web_messages_from_the_bound_surface_document_uri() {
+        let Some(generation) = Generation::new(19) else {
+            panic!("test generation must be nonzero")
+        };
+        let Some(other_generation) = Generation::new(20) else {
+            panic!("test generation must be nonzero")
+        };
+
+        assert_eq!(
+            admitted_web_message_origin(&surface_entry_url(generation), generation),
+            Some(SURFACE_ORIGIN)
+        );
+        assert_eq!(
+            admitted_web_message_origin(SURFACE_ORIGIN, generation),
+            None
+        );
+        assert_eq!(
+            admitted_web_message_origin(&surface_entry_url(other_generation), generation),
+            None
+        );
+        assert_eq!(
+            admitted_web_message_origin(
+                "https://bogunon-surface.localhost/assets/surface.js",
+                generation,
+            ),
+            None
+        );
     }
 }

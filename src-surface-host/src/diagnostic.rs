@@ -72,6 +72,9 @@ pub enum FailureCode {
     NativeHostFailed,
     NavigationFailed,
     RendererReadyTimeout,
+    RendererMessageSourceRejected,
+    RendererMessagePayloadRejected,
+    RendererMessageContractRejected,
     Timeout,
     OwnershipFailed,
     MainRestoreFailed,
@@ -187,13 +190,25 @@ mod tests {
     use std::fs;
 
     #[test]
-    fn udf_failure_subreasons_are_fixed_codes_without_path_payloads() {
-        // Given the complete new UDF rejection classifications.
+    fn runtime_failure_subreasons_are_fixed_codes_without_sensitive_payloads() {
+        // Given the fixed runtime rejection classifications.
         let cases = [
             (FailureCode::UdfInvalidPath, "udf_invalid_path"),
             (FailureCode::UdfEffectiveMismatch, "udf_effective_mismatch"),
             (FailureCode::UdfProfileOutside, "udf_profile_outside"),
             (FailureCode::UdfObservationFailed, "udf_observation_failed"),
+            (
+                FailureCode::RendererMessageSourceRejected,
+                "renderer_message_source_rejected",
+            ),
+            (
+                FailureCode::RendererMessagePayloadRejected,
+                "renderer_message_payload_rejected",
+            ),
+            (
+                FailureCode::RendererMessageContractRejected,
+                "renderer_message_contract_rejected",
+            ),
         ];
         // When serialized, each diagnostic is a fixed enum code.
         for (code, expected) in cases {
