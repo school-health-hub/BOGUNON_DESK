@@ -32,6 +32,10 @@ use windows::{
     },
 };
 
+mod mapping_path;
+
+use mapping_path::resolve_surface_bundle_mapping;
+
 #[derive(Debug, Error)]
 pub enum HostError {
     #[error("COM STA initialization failed: {0}")]
@@ -46,6 +50,8 @@ pub enum HostError {
     NullResult,
     #[error("surface bundle is unavailable or outside its canonical directory")]
     InvalidBundle,
+    #[error("surface bundle path cannot be mapped by WebView2")]
+    InvalidMappingPath,
     #[error("surface renderer session failed: {0}")]
     Renderer(#[from] crate::renderer_session::RendererSessionError),
     #[error("QA runtime diagnostic failed: {0}")]
@@ -589,18 +595,13 @@ pub fn attach_surface_renderer<M: MainOpener + 'static>(
     attempt: Attempt,
     diagnostic: &mut crate::diagnostic::QaRuntimeDiagnostic,
 ) -> Result<AttachedRenderer<M>, HostError> {
-    let bundle_dir = bundle_dir
-        .canonicalize()
-        .map_err(|_| HostError::InvalidBundle)?;
-    if !bundle_dir.join("surface.html").is_file() {
-        return Err(HostError::InvalidBundle);
-    }
+    let mapping_dir = resolve_surface_bundle_mapping(bundle_dir)?;
     // SAFETY: [Category 8 — FFI boundary] the controller completed successfully and owns a live
     // CoreWebView2 on the current STA thread.
     let webview = unsafe { controller.CoreWebView2() }?;
     let webview3: ICoreWebView2_3 = webview.cast()?;
     let host = wide(OsStr::new(SURFACE_HOST));
-    let folder = wide(bundle_dir.as_os_str());
+    let folder = wide(mapping_dir.as_os_str());
     diagnostic.begin(crate::diagnostic::RuntimeStage::VirtualHostMapping)?;
     // SAFETY: [Category 8 — FFI boundary] both paths are NUL-terminated UTF-16 and remain alive for
     // this call. DENY_CORS prevents mapped content from becoming a cross-origin data surface.
