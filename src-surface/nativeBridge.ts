@@ -19,6 +19,10 @@ export type SurfaceNativeBridge = Readonly<{
 
 export const rendererRuntimeStages = [
   "html_document_loaded",
+  "diagnostic_bootstrap_started",
+  "module_load_error",
+  "csp_blocked",
+  "javascript_error",
   "script_started",
   "react_mount_complete",
   "bridge_initialized",

@@ -24,6 +24,7 @@ pub mod renderer_session;
 mod renderer_session_test_support;
 #[cfg(test)]
 mod renderer_session_tests;
+pub mod resource_diagnostic;
 pub mod runtime_evidence;
 pub mod runtime_guard;
 #[cfg(windows)]

@@ -2,6 +2,8 @@ use std::cell::{Cell, RefCell};
 
 use serde::Serialize;
 
+use crate::resource_diagnostic::{HttpStatusClass, MimeClass, SurfaceAssetKind};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NavigationResult {
     Pending,
@@ -43,6 +45,29 @@ pub enum RendererObservation {
     RootMissing,
     ScriptProbeFailed,
     ScriptProbeUnknown,
+    DiagnosticBootstrapStarted,
+    ModuleLoadError,
+    ContentSecurityPolicyBlocked,
+    JavaScriptError,
+    HtmlResponseReceived,
+    HtmlResponseSucceeded,
+    HtmlResponseFailed,
+    HtmlMimeExpected,
+    HtmlMimeMismatch,
+    HtmlMimeMissing,
+    JavaScriptResponseReceived,
+    JavaScriptResponseSucceeded,
+    JavaScriptResponseFailed,
+    JavaScriptMimeExpected,
+    JavaScriptMimeMismatch,
+    JavaScriptMimeMissing,
+    CssResponseReceived,
+    CssResponseSucceeded,
+    CssResponseFailed,
+    CssMimeExpected,
+    CssMimeMismatch,
+    CssMimeMissing,
+    AssetResponseInspectionFailed,
 }
 
 pub struct RendererRuntimeState {
@@ -88,6 +113,59 @@ impl RendererRuntimeState {
         self.observations.borrow().clone()
     }
 
+    pub fn observe_asset_response(
+        &self,
+        asset: SurfaceAssetKind,
+        status: HttpStatusClass,
+        mime: MimeClass,
+    ) {
+        let received = match asset {
+            SurfaceAssetKind::Html => RendererObservation::HtmlResponseReceived,
+            SurfaceAssetKind::JavaScript => RendererObservation::JavaScriptResponseReceived,
+            SurfaceAssetKind::Css => RendererObservation::CssResponseReceived,
+        };
+        let status = match (asset, status) {
+            (SurfaceAssetKind::Html, HttpStatusClass::Success) => {
+                RendererObservation::HtmlResponseSucceeded
+            }
+            (SurfaceAssetKind::Html, HttpStatusClass::Failure) => {
+                RendererObservation::HtmlResponseFailed
+            }
+            (SurfaceAssetKind::JavaScript, HttpStatusClass::Success) => {
+                RendererObservation::JavaScriptResponseSucceeded
+            }
+            (SurfaceAssetKind::JavaScript, HttpStatusClass::Failure) => {
+                RendererObservation::JavaScriptResponseFailed
+            }
+            (SurfaceAssetKind::Css, HttpStatusClass::Success) => {
+                RendererObservation::CssResponseSucceeded
+            }
+            (SurfaceAssetKind::Css, HttpStatusClass::Failure) => {
+                RendererObservation::CssResponseFailed
+            }
+        };
+        let mime = match (asset, mime) {
+            (SurfaceAssetKind::Html, MimeClass::Expected) => RendererObservation::HtmlMimeExpected,
+            (SurfaceAssetKind::Html, MimeClass::Mismatch) => RendererObservation::HtmlMimeMismatch,
+            (SurfaceAssetKind::Html, MimeClass::Missing) => RendererObservation::HtmlMimeMissing,
+            (SurfaceAssetKind::JavaScript, MimeClass::Expected) => {
+                RendererObservation::JavaScriptMimeExpected
+            }
+            (SurfaceAssetKind::JavaScript, MimeClass::Mismatch) => {
+                RendererObservation::JavaScriptMimeMismatch
+            }
+            (SurfaceAssetKind::JavaScript, MimeClass::Missing) => {
+                RendererObservation::JavaScriptMimeMissing
+            }
+            (SurfaceAssetKind::Css, MimeClass::Expected) => RendererObservation::CssMimeExpected,
+            (SurfaceAssetKind::Css, MimeClass::Mismatch) => RendererObservation::CssMimeMismatch,
+            (SurfaceAssetKind::Css, MimeClass::Missing) => RendererObservation::CssMimeMissing,
+        };
+        self.observe(received);
+        self.observe(status);
+        self.observe(mime);
+    }
+
     pub fn begin_script_probe(&self) -> bool {
         !self.script_probe_in_flight.replace(true)
     }
@@ -112,6 +190,12 @@ impl RendererRuntimeState {
                 "projection_applied" => Some(RendererObservation::ProjectionApplied),
                 "ready_post_attempted" => Some(RendererObservation::ReadyPostAttempted),
                 "root_missing" => Some(RendererObservation::RootMissing),
+                "diagnostic_bootstrap_started" => {
+                    Some(RendererObservation::DiagnosticBootstrapStarted)
+                }
+                "module_load_error" => Some(RendererObservation::ModuleLoadError),
+                "csp_blocked" => Some(RendererObservation::ContentSecurityPolicyBlocked),
+                "javascript_error" => Some(RendererObservation::JavaScriptError),
                 _ => None,
             })
             .unwrap_or(if result.is_some() {

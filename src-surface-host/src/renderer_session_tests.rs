@@ -111,6 +111,7 @@ fn cleanup_uses_actual_reverse_registration_order() {
         HandlerKind::FrameCreated,
         HandlerKind::NavigationStarting,
         HandlerKind::WebMessageReceived,
+        HandlerKind::WebResourceResponseReceived,
     ];
     register(&mut session, &order);
     assert_eq!(
@@ -122,6 +123,7 @@ fn cleanup_uses_actual_reverse_registration_order() {
     assert_eq!(
         session.registry().removes,
         [
+            HandlerKind::WebResourceResponseReceived,
             HandlerKind::WebMessageReceived,
             HandlerKind::NavigationStarting,
             HandlerKind::FrameCreated
@@ -134,7 +136,7 @@ fn every_remove_position_failure_remains_unresolved() {
     for failed in [
         HandlerKind::NavigationStarting,
         HandlerKind::NewWindowRequested,
-        HandlerKind::WebMessageReceived,
+        HandlerKind::WebResourceResponseReceived,
     ] {
         let registry = FakeRegistry {
             remove_failure: Some(failed),

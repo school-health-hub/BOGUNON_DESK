@@ -147,13 +147,14 @@ pub(crate) fn fixture(registry: FakeRegistry) -> (RendererSession<FakeRegistry>,
     (session, ledger)
 }
 
-pub(crate) fn handlers() -> [HandlerKind; 5] {
+pub(crate) fn handlers() -> [HandlerKind; 6] {
     [
         HandlerKind::NavigationStarting,
         HandlerKind::NavigationCompleted,
         HandlerKind::NewWindowRequested,
         HandlerKind::FrameCreated,
         HandlerKind::WebMessageReceived,
+        HandlerKind::WebResourceResponseReceived,
     ]
 }
 

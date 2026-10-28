@@ -8,6 +8,24 @@
   </head>
   <body>
     <div id="surface-root" data-runtime-stage="html_document_loaded"></div>
+    <script>
+      (() => {
+        const root = document.getElementById("surface-root");
+        if (root === null) return;
+        root.dataset.runtimeStage = "diagnostic_bootstrap_started";
+        window.addEventListener("securitypolicyviolation", () => {
+          root.dataset.runtimeStage = "csp_blocked";
+        });
+        window.addEventListener("error", (event) => {
+          root.dataset.runtimeStage = event.target instanceof HTMLScriptElement
+            ? "module_load_error"
+            : "javascript_error";
+        }, true);
+        window.addEventListener("unhandledrejection", () => {
+          root.dataset.runtimeStage = "javascript_error";
+        });
+      })();
+    </script>
     <script type="module" src="/src-surface/main.tsx"></script>
   </body>
 </html>

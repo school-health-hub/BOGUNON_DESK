@@ -6,6 +6,7 @@ import {
   isApprovedSurfaceActionId,
   markRendererRuntimeStage,
   parseSurfaceGeneration,
+  rendererRuntimeStages,
 } from "./nativeBridge";
 import { syntheticSurfaceProjection } from "./projection";
 
@@ -16,6 +17,15 @@ describe("surface native bridge", () => {
     expect(document.getElementById("surface-root")?.dataset.runtimeStage).toBe("script_started");
     document.body.innerHTML = "";
     expect(markRendererRuntimeStage(document, "react_mount_complete")).toBe(false);
+  });
+
+  it("keeps module diagnostics fixed and non-sensitive", () => {
+    expect(rendererRuntimeStages).toEqual(expect.arrayContaining([
+      "diagnostic_bootstrap_started",
+      "module_load_error",
+      "csp_blocked",
+      "javascript_error",
+    ]));
   });
 
   it("accepts only the four existing quick-launch action identifiers", () => {

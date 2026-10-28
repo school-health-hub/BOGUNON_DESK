@@ -14,11 +14,12 @@ use webview2_com::{
     Microsoft::Web::WebView2::Win32::{
         CreateCoreWebView2EnvironmentWithOptions, ICoreWebView2, ICoreWebView2Controller,
         ICoreWebView2Environment, ICoreWebView2Environment7, ICoreWebView2EnvironmentOptions,
-        ICoreWebView2_13, ICoreWebView2_3, ICoreWebView2_4,
+        ICoreWebView2_13, ICoreWebView2_2, ICoreWebView2_3, ICoreWebView2_4,
         COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_DENY_CORS,
     },
     NavigationCompletedEventHandler, NavigationStartingEventHandler,
     NewWindowRequestedEventHandler, WebMessageReceivedEventHandler,
+    WebResourceResponseReceivedEventHandler,
 };
 use windows::{
     core::{Interface, PCWSTR, PWSTR},
@@ -274,6 +275,7 @@ use crate::{
         HandlerAddFailure, HandlerKind, HandlerRegistry, HandlerToken, RendererSession,
         SessionOwnership,
     },
+    resource_diagnostic::{classify_http_status, classify_mime, classify_surface_asset},
     surface_connection::{
         admitted_web_message_origin, is_admitted_surface_url, surface_entry_url,
         ConnectionResponse, MainOpener, SurfaceConnection, SURFACE_HOST,
@@ -282,6 +284,7 @@ use crate::{
 
 pub struct NativeHandlerRegistry<M: MainOpener + 'static> {
     webview: ICoreWebView2,
+    webview2: ICoreWebView2_2,
     webview4: ICoreWebView2_4,
     connection: Rc<RefCell<SurfaceConnection<M>>>,
     runtime: Rc<RendererRuntimeState>,
@@ -296,6 +299,7 @@ impl<M: MainOpener + 'static> NativeHandlerRegistry<M> {
         generation: Generation,
     ) -> Result<Self, HostError> {
         Ok(Self {
+            webview2: webview.cast()?,
             webview4: webview.cast()?,
             webview,
             connection: Rc::new(RefCell::new(connection)),
@@ -445,6 +449,68 @@ impl<M: MainOpener + 'static> HandlerRegistry for NativeHandlerRegistry<M> {
                 // SAFETY: [Category 8 — FFI boundary] same registration ownership contract as above.
                 unsafe { self.webview.add_WebMessageReceived(&callback, &mut token) }
             }
+            HandlerKind::WebResourceResponseReceived => {
+                let runtime = Rc::clone(&self.runtime);
+                let callback =
+                    WebResourceResponseReceivedEventHandler::create(Box::new(move |_, args| {
+                        let Some(args) = args else {
+                            runtime.observe(RendererObservation::AssetResponseInspectionFailed);
+                            return Ok(());
+                        };
+                        let inspected = (|| -> windows::core::Result<()> {
+                            // SAFETY: [Category 8 — FFI boundary] callback arguments remain valid
+                            // for this invocation and return reference-counted COM interfaces.
+                            let request = unsafe { args.Request()? };
+                            let mut uri = PWSTR::null();
+                            // SAFETY: [Category 8 — FFI boundary] `uri` is writable pointer storage;
+                            // the returned string is classified immediately and never persisted.
+                            unsafe { request.Uri(&mut uri)? };
+                            let uri = CoTaskMemPWSTR::from(uri).to_string();
+                            let Some(asset) = classify_surface_asset(&uri) else {
+                                return Ok(());
+                            };
+                            // SAFETY: [Category 8 — FFI boundary] response and headers are owned COM
+                            // views valid for this callback; only status and Content-Type are read.
+                            let response = unsafe { args.Response()? };
+                            let mut status = 0_i32;
+                            // SAFETY: [Category 8 — FFI boundary] `status` is writable storage and
+                            // the response view remains live for this synchronous callback.
+                            unsafe { response.StatusCode(&mut status)? };
+                            // SAFETY: [Category 8 — FFI boundary] the response view is live and
+                            // returns a reference-counted headers interface.
+                            let headers = unsafe { response.Headers()? };
+                            let header_name = wide(OsStr::new("Content-Type"));
+                            let mut header_value = PWSTR::null();
+                            // SAFETY: [Category 8 — FFI boundary] the fixed header name is
+                            // NUL-terminated and `header_value` is writable pointer storage.
+                            let content_type = if unsafe {
+                                headers.GetHeader(PCWSTR(header_name.as_ptr()), &mut header_value)
+                            }
+                            .is_ok()
+                            {
+                                Some(CoTaskMemPWSTR::from(header_value).to_string())
+                            } else {
+                                None
+                            };
+                            runtime.observe_asset_response(
+                                asset,
+                                classify_http_status(status),
+                                classify_mime(asset, content_type.as_deref()),
+                            );
+                            Ok(())
+                        })();
+                        if inspected.is_err() {
+                            runtime.observe(RendererObservation::AssetResponseInspectionFailed);
+                        }
+                        Ok(())
+                    }));
+                // SAFETY: [Category 8 — FFI boundary] callback is reference-counted and token is
+                // writable storage. RendererSession owns the token until verified removal.
+                unsafe {
+                    self.webview2
+                        .add_WebResourceResponseReceived(&callback, &mut token)
+                }
+            }
         };
         result
             .map(|()| HandlerToken(u64::from_ne_bytes(token.to_ne_bytes())))
@@ -468,6 +534,9 @@ impl<M: MainOpener + 'static> HandlerRegistry for NativeHandlerRegistry<M> {
                 HandlerKind::NewWindowRequested => self.webview.remove_NewWindowRequested(token),
                 HandlerKind::FrameCreated => self.webview4.remove_FrameCreated(token),
                 HandlerKind::WebMessageReceived => self.webview.remove_WebMessageReceived(token),
+                HandlerKind::WebResourceResponseReceived => {
+                    self.webview2.remove_WebResourceResponseReceived(token)
+                }
             }
         }
     }
@@ -557,6 +626,7 @@ pub fn attach_surface_renderer<M: MainOpener + 'static>(
         HandlerKind::NavigationCompleted,
         HandlerKind::NewWindowRequested,
         HandlerKind::FrameCreated,
+        HandlerKind::WebResourceResponseReceived,
         HandlerKind::WebMessageReceived,
     ] {
         session.register(handler)?;

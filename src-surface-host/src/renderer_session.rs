@@ -17,9 +17,10 @@ pub enum HandlerKind {
     NewWindowRequested,
     FrameCreated,
     WebMessageReceived,
+    WebResourceResponseReceived,
 }
 
-const HANDLER_COUNT: usize = 5;
+const HANDLER_COUNT: usize = 6;
 
 const fn handler_index(handler: HandlerKind) -> usize {
     match handler {
@@ -28,6 +29,7 @@ const fn handler_index(handler: HandlerKind) -> usize {
         HandlerKind::NewWindowRequested => 2,
         HandlerKind::FrameCreated => 3,
         HandlerKind::WebMessageReceived => 4,
+        HandlerKind::WebResourceResponseReceived => 5,
     }
 }
 
