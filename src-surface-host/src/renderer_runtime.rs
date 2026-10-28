@@ -35,7 +35,7 @@ impl RendererRuntimeState {
     }
 
     pub fn mark_ready(&self) -> bool {
-        if self.navigation.get() != NavigationResult::Succeeded || self.ready.replace(true) {
+        if self.ready.replace(true) {
             return false;
         }
         true
