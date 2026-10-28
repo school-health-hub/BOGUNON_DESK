@@ -19,6 +19,15 @@ const GRID_MARGIN = 12;
 const GRID_ROW_HEIGHT = 88;
 const MIN_GRID_ROW_HEIGHT = 52;
 
+const widgetMinimums: Readonly<Record<SurfaceWidgetId, Readonly<{ width: number; height: number }>>> = {
+  calendar: { width: 5, height: 5 },
+  tasks: { width: 4, height: 3 },
+  dday: { width: 2, height: 2 },
+  clock: { width: 3, height: 2 },
+  weather: { width: 3, height: 2 },
+  launcher: { width: 4, height: 2 },
+};
+
 export type SurfaceGridMetrics = Readonly<{ rows: number; rowHeight: number; pixelHeight: number }>;
 
 export const calculateGridMetrics = (layout: SurfaceLayout, viewportHeight: number, editing: boolean): SurfaceGridMetrics => {
@@ -81,9 +90,10 @@ export const parseSurfaceLayout = (value: unknown): SurfaceLayout | null => {
   return { version: SURFACE_LAYOUT_VERSION, widgets };
 };
 
-export const toGridLayout = (layout: SurfaceLayout): Layout => layout.widgets.filter(({ visible }) => visible).map((widget) => ({
-  i: widget.id, x: widget.x, y: widget.y, w: widget.width, h: widget.height, minW: 2, minH: 2, maxW: 12, maxH: 8,
-}));
+export const toGridLayout = (layout: SurfaceLayout): Layout => layout.widgets.filter(({ visible }) => visible).map((widget) => {
+  const minimum = widgetMinimums[widget.id];
+  return { i: widget.id, x: widget.x, y: widget.y, w: widget.width, h: widget.height, minW: minimum.width, minH: minimum.height, maxW: 12, maxH: 8 };
+});
 export const applyGridLayout = (current: SurfaceLayout, next: Layout): SurfaceLayout => ({
   version: SURFACE_LAYOUT_VERSION,
   widgets: current.widgets.map((widget) => {

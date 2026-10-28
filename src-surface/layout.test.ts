@@ -11,7 +11,9 @@ describe("surface layout", () => {
 
   it("starts with a compact calendar while keeping every widget resizable", () => {
     expect(defaultSurfaceLayout.widgets.find(({ id }) => id === "calendar")).toMatchObject({ width: 6, height: 6 });
-    expect(toGridLayout(defaultSurfaceLayout).find(({ i }) => i === "calendar")).toMatchObject({ minW: 2, minH: 2, maxW: 12, maxH: 8 });
+    expect(toGridLayout(defaultSurfaceLayout).find(({ i }) => i === "calendar")).toMatchObject({ minW: 5, minH: 5, maxW: 12, maxH: 8 });
+    expect(toGridLayout(defaultSurfaceLayout).find(({ i }) => i === "launcher")).toMatchObject({ minW: 4, minH: 2 });
+    expect(toGridLayout(defaultSurfaceLayout).find(({ i }) => i === "tasks")).toMatchObject({ minW: 4, minH: 3 });
   });
 
   it("keeps every default widget inside the twelve-column boundary", () => {

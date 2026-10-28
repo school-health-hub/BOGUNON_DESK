@@ -1,4 +1,4 @@
-import { CalendarRange, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarRange, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 import { useMemo, useState } from "react";
 import { calendarCells, toLocalDateKey } from "../date";
 import type { SurfaceCalendarEvent } from "../projection";
@@ -14,6 +14,7 @@ type Props = Readonly<{
 export function CalendarSurfaceWidget({ events, now, onSyntheticAction }: Props) {
   const [visibleMonth, setVisibleMonth] = useState(() => new Date(now.getFullYear(), now.getMonth(), 1));
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<SurfaceCalendarEvent | null>(null);
   const cells = useMemo(() => calendarCells(visibleMonth.getFullYear(), visibleMonth.getMonth()), [visibleMonth]);
   const changeMonth = (offset: number) => setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1));
   return <div className="surface-calendar">
@@ -34,14 +35,22 @@ export function CalendarSurfaceWidget({ events, now, onSyntheticAction }: Props)
         const dateKey = toLocalDateKey(date);
         const dayEvents = events.filter((event) => event.date === dateKey);
         const isToday = dateKey === toLocalDateKey(now);
-        return <button type="button" key={dateKey} className={`surface-calendar__cell${isToday ? " is-today" : ""}${selectedDate === dateKey ? " is-selected" : ""}`}
-          aria-label={`${dateKey} 합성 일정 ${dayEvents.length}개`} onClick={() => { setSelectedDate(dateKey); onSyntheticAction(`합성 날짜 선택 · ${dateKey}`); }}>
-          <span className="surface-calendar__date">{day}</span>
-          {dayEvents.slice(0, 1).map((event) => <span className="surface-calendar__event" data-kind={event.kind} key={`${event.date}-${event.label}`} title={event.label}>{event.label}</span>)}
+        return <div key={dateKey} className={`surface-calendar__cell${isToday ? " is-today" : ""}${selectedDate === dateKey ? " is-selected" : ""}`}>
+          <button type="button" className="surface-calendar__date-target" aria-label={`${dateKey} 합성 일정 ${dayEvents.length}개`}
+            onClick={() => { setSelectedDate(dateKey); setSelectedEvent(null); onSyntheticAction(`합성 날짜 선택 · ${dateKey}`); }}>
+            <span className="surface-calendar__date">{day}</span>
+          </button>
+          {dayEvents.slice(0, 1).map((event) => <button type="button" className="surface-calendar__event" data-kind={event.kind}
+            key={`${event.date}-${event.label}`} title={event.label} aria-label={`${event.label} 일정 선택`}
+            onClick={() => { setSelectedDate(dateKey); setSelectedEvent(event); onSyntheticAction(`합성 일정 선택 · ${event.label}`); }}>{event.label}</button>)}
           {dayEvents.length > 1 && <span className="surface-calendar__more">+{dayEvents.length - 1}</span>}
-        </button>;
+        </div>;
       })}
     </div>
-    {selectedDate !== null && <p className="surface-calendar__selection"><CalendarRange size={13} /> {selectedDate} · 합성 선택 상태</p>}
+    {selectedDate !== null && <div className="surface-calendar__selection" role="status">
+      <CalendarRange size={13} />
+      <span><strong>{selectedEvent?.label ?? selectedDate}</strong><small>{selectedEvent === null ? "합성 날짜 선택 상태" : "Main 연결 시 해당 일정으로 이동합니다."}</small></span>
+      {selectedEvent !== null && <ExternalLink size={13} aria-hidden="true" />}
+    </div>}
   </div>;
 }
