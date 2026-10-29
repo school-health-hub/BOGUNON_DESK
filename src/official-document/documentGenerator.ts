@@ -40,13 +40,18 @@ const optionalLine = (label: string, value: string): string | null => {
 const splitAttachments = (value: string): readonly string[] =>
   value.split(/[,;\n]/).map((item) => item.trim()).filter((item) => item !== "");
 
+const formatAttachment = (item: string): string =>
+  /\s[1-9]\d*\s*(?:부|매|장|통|권|개|건)\.?$/u.test(item)
+    ? item.endsWith(".") ? item : `${item}.`
+    : `${item} 1부.`;
+
 const appendTerminalEnd = (value: string): string => `${value.trimEnd()}  끝.`;
 const hasStandaloneTerminalEnd = (value: string): boolean => /(?:^|\n)\s*끝\.\s*$/u.test(value);
 
 const formatAttachmentList = (attachments: readonly string[]): string =>
   attachments.length === 0
     ? "붙임\n1. [확인 필요] 1부.\n끝."
-    : `붙임\n${attachments.map((item, index) => `${index + 1}. ${item} 1부.`).join("\n")}\n끝.`;
+    : `붙임\n${attachments.map((item, index) => `${index + 1}. ${formatAttachment(item)}`).join("\n")}\n끝.`;
 
 export const createEmptyOfficialDocumentInput = (): OfficialDocumentInput => ({
   purpose: officialDocumentPurposes[0],
@@ -101,7 +106,7 @@ const buildBody = (input: OfficialDocumentInput): string => {
     optionalLine("자. 특이사항", input.notes),
   ].filter((line): line is string => line !== null);
   const attachments = splitAttachments(input.attachments);
-  const attachmentText = attachments.map((item) => `${item} 1부.`).join("\n");
+  const attachmentText = attachments.map(formatAttachment).join("\n");
   const purposeLine = hasMainContentBlock
     ? `2. 주요 내용\n${mainContentBlock.split("\n").map((line) => `  ${line}`).join("\n")}`
     : `2. ${purpose}을(를) 위해 다음과 같이 ${purposeEndings[input.purpose]}`;
@@ -162,7 +167,7 @@ const buildReferenceBody = (input: OfficialDocumentInput, templateBody: string, 
     ["특이사항", input.notes],
   ].reduce((body, [label, value]) => fillLabeledPlaceholder(body, label, value), templateBody.trim());
   const rendered = renderNamedReferencePlaceholders(contextual, input);
-  const attachmentText = attachments.map((item) => `${item} 1부.`).join("\n");
+  const attachmentText = attachments.map(formatAttachment).join("\n");
   if (/^붙임\s/m.test(templateBody)) {
     if (splitAttachments(input.attachments).length > 0) {
       const attachmentStart = Math.max(rendered.lastIndexOf("\n붙임") + 1, 0);

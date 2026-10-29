@@ -14,7 +14,7 @@ describe("OfficialDocumentOutput quality scenarios", () => {
     const draft = generateOfficialDocumentDraft({
       ...createEmptyOfficialDocumentInput(),
       mainContent: "    첫째 일반 문장입니다.\n\n    둘째 일반 문장입니다.",
-      attachments: "합성 확인표",
+      attachments: "합성 확인표 2부, 합성 참고자료 1매.",
     });
     const onCopy = vi.fn();
 
@@ -33,6 +33,8 @@ describe("OfficialDocumentOutput quality scenarios", () => {
     const bodyText = view.getByRole("region", { name: "공문 본문" }).textContent;
     expect(bodyText).toContain("2. 주요 내용\n      첫째 일반 문장입니다.\n  \n      둘째 일반 문장입니다.");
     expect(bodyText).not.toContain("입니다.을(를)");
+    expect(bodyText).toContain("붙임  합성 확인표 2부.\n합성 참고자료 1매.  끝.");
+    expect(bodyText?.match(/끝\./gu)).toHaveLength(1);
     expect(bodyText).toBe(draft.body);
     expect(onCopy.mock.calls).toEqual([
       ["제목", draft.title], ["본문", bodyText], ["전체", composeOfficialDocumentDraft(draft)],
