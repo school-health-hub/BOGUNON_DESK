@@ -48,6 +48,8 @@ mod main_restore_ipc;
 #[cfg(windows)]
 mod surface_runtime;
 #[cfg(all(windows, feature = "desktop-surface-qa"))]
+mod qa_edit_commands;
+#[cfg(all(windows, feature = "desktop-surface-qa"))]
 mod qa_main_startup_diagnostic;
 #[cfg(all(test, windows, feature = "desktop-surface-qa"))]
 mod qa_main_startup_diagnostic_tests;

@@ -27,8 +27,13 @@
         {
           "identifier": "desktop-surface-qa-main",
           "description": "Minimal local-only capability for the synthetic Surface QA Main shell.",
-          "windows": ["main"],
-          "permissions": []
+          "windows": [],
+          "webviews": ["main"],
+          "permissions": [
+            "allow-begin-desktop-surface-edit",
+            "allow-complete-desktop-surface-edit",
+            "allow-cancel-desktop-surface-edit"
+          ]
         }
       ],
       "csp": {

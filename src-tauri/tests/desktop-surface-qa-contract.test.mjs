@@ -30,7 +30,13 @@ test("desktop Surface QA flavor is isolated and has no production integrations",
 
   const capabilities = qa.app.security.capabilities;
   assert.equal(capabilities.length, 1);
-  assert.deepEqual(capabilities[0].permissions, []);
+  assert.deepEqual(capabilities[0].windows, []);
+  assert.deepEqual(capabilities[0].webviews, ["main"]);
+  assert.deepEqual(capabilities[0].permissions, [
+    "allow-begin-desktop-surface-edit",
+    "allow-complete-desktop-surface-edit",
+    "allow-cancel-desktop-surface-edit",
+  ]);
 });
 
 test("native QA entrypoint has an explicit minimal boundary", () => {
@@ -48,7 +54,7 @@ test("native QA entrypoint has an explicit minimal boundary", () => {
   assert.doesNotMatch(entrypoint, /supabase|oauth|my_finance/i);
   const handler = entrypoint.match(/invoke_handler\(tauri::generate_handler!\[([\s\S]*?)\]\)/);
   assert.ok(handler, "QA edit command handler is missing");
-  const commands = [...handler[1].matchAll(/main_commands::([a-z_]+)/g)].map((match) => match[1]);
+  const commands = [...handler[1].matchAll(/qa_edit_commands::([a-z_]+)/g)].map((match) => match[1]);
   assert.deepEqual(commands, [
     "begin_desktop_surface_edit",
     "complete_desktop_surface_edit",

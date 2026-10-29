@@ -2,6 +2,7 @@ import { CheckCircle2, FlaskConical, MonitorUp, ShieldCheck } from "lucide-react
 import { useState } from "react";
 
 import { sendQaEditCommand, type QaEditCommand } from "./editCommands";
+import { classifyEditFailure } from "./editFailure";
 
 type Props = Readonly<{ sourceSha: string }>;
 
@@ -23,8 +24,8 @@ export function SurfaceQaMain({ sourceSha }: Props) {
       await sendQaEditCommand(command);
       setEditing(command === "begin");
       setResult(command === "begin" ? "편집 모드 시작됨" : command === "complete" ? "편집 완료됨" : "편집 취소됨");
-    } catch {
-      setResult("명령을 처리하지 못했습니다");
+    } catch (error: unknown) {
+      setResult(`편집 명령 실패: ${classifyEditFailure(error)}`);
     } finally {
       setBusy(false);
     }

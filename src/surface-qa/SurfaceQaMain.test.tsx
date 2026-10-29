@@ -9,6 +9,21 @@ vi.mock("./editCommands", () => ({ sendQaEditCommand: commands.send }));
 describe("SurfaceQaMain", () => {
   beforeEach(() => commands.send.mockReset().mockResolvedValue(undefined));
 
+  it.each([
+    ["Command begin_desktop_surface_edit not allowed by ACL", "acl_denied"],
+    ["caller_denied", "caller_denied"],
+    ["runtime_inactive", "runtime_inactive"],
+    ["frame_write_failed", "frame_write_failed"],
+    ["private-path-and-credential", "unknown"],
+  ])("shows only a safe classification for rejected edit requests", async (error, code) => {
+    commands.send.mockRejectedValueOnce(error);
+    render(<SurfaceQaMain sourceSha="NOT_BUILT" />);
+    fireEvent.click(screen.getByRole("button", { name: "편집 시작" }));
+    expect(await screen.findByText(`편집 명령 실패: ${code}`)).toBeTruthy();
+    expect(screen.queryByText("private-path-and-credential")).toBeNull();
+    expect(screen.getByRole("button", { name: "편집 시작" })).toBeTruthy();
+  });
+
   it("labels the shell as synthetic-only and exposes source provenance", () => {
     render(<SurfaceQaMain sourceSha="9941e91076e1d6ef352c001cca233de0b60b9b21" />);
 

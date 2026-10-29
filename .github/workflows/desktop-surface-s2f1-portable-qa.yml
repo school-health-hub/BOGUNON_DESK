@@ -89,9 +89,17 @@ jobs:
         shell: pwsh
         run: |
           node --test scripts/desktop-surface-s2f1-portable-qa-contract.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Portable workflow contracts failed' }
           node --test scripts/surface-qa-frontend-contract.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'QA frontend boundary failed' }
           node --test src-tauri/tests/desktop-surface-qa-contract.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'QA native contracts failed' }
           npx vitest run scripts/package-surface-qa-portable.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Portable packaging tests failed' }
+          npx vitest run --config vitest.surface-qa.config.ts
+          if ($LASTEXITCODE -ne 0) { throw 'QA edit UI contracts failed' }
+          npx vitest run --config vitest.surface.config.ts
+          if ($LASTEXITCODE -ne 0) { throw 'Surface renderer regressions failed' }
           git diff --exit-code -- src-tauri/tauri.conf.json
           if ($LASTEXITCODE -ne 0) { throw 'Production Tauri configuration changed during QA validation' }
 
@@ -109,7 +117,10 @@ jobs:
           if ($config.mainBinaryName -cne 'bogunon-desk-surface-qa') { throw 'Unexpected QA binary name' }
           if ($config.build.frontendDist -cne '../dist-surface-qa-main') { throw 'Unexpected QA frontend path' }
           if ($config.bundle.active -ne $false) { throw 'Portable QA must not enable installer bundling' }
-          if (@($config.app.security.capabilities).Count -ne 1 -or @($config.app.security.capabilities[0].permissions).Count -ne 0) { throw 'QA Main capabilities must remain empty' }
+          $cap = $config.app.security.capabilities[0]
+          if (@($config.app.security.capabilities).Count -ne 1 -or @($cap.windows).Count -ne 0 -or (@($cap.webviews) -join ',') -cne 'main') { throw 'QA ACL must target only the Main WebView' }
+          $expected = @('allow-begin-desktop-surface-edit','allow-complete-desktop-surface-edit','allow-cancel-desktop-surface-edit')
+          if ((@($cap.permissions) -join ',') -cne ($expected -join ',')) { throw 'QA Main must allow exactly the three edit commands' }
           if ($null -ne $config.plugins.updater -or $null -ne $config.plugins.'deep-link') { throw 'Operating integrations must remain disabled' }
 
       - name: Compile QA Main without running it
@@ -120,12 +131,16 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Desktop Surface QA Main check failed' }
           cargo test --locked --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc --lib --features desktop-surface-qa
           if ($LASTEXITCODE -ne 0) { throw 'Desktop Surface QA Main library regressions failed' }
+          cargo test --locked --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc --lib --features desktop-surface-qa generated_qa_context_grants_only_three_edits_to_main_webview -- --exact desktop_surface_qa::acl_tests::generated_qa_context_grants_only_three_edits_to_main_webview --nocapture
+          if ($LASTEXITCODE -ne 0) { throw 'Generated effective QA ACL verification failed' }
           cargo build --locked --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc --release --features desktop-surface-qa
           if ($LASTEXITCODE -ne 0) { throw 'Desktop Surface QA Main build failed' }
 
       - name: Compile Surface Host without running it
         shell: pwsh
         run: |
+          cargo test --locked --manifest-path src-surface-protocol/Cargo.toml --target x86_64-pc-windows-msvc
+          if ($LASTEXITCODE -ne 0) { throw 'Surface protocol security regressions failed' }
           cargo test --locked --manifest-path src-surface-host/Cargo.toml --target x86_64-pc-windows-msvc
           if ($LASTEXITCODE -ne 0) { throw 'Surface Host regressions failed' }
           cargo build --locked --manifest-path src-surface-host/Cargo.toml --target x86_64-pc-windows-msvc --release

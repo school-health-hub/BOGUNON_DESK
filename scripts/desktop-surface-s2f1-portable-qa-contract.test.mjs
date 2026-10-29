@@ -75,3 +75,10 @@ test("given this artifact workflow, when its scope is classified, then it never 
   assert.match(workflow, /actualWindowsWebViewRuntime[^\n]*NOT_VERIFIED/u);
   assert.doesNotMatch(workflow, /Start-Process|cargo run|\.\\bogunon-desk-surface-qa\.exe|\.\\bogunon-desktop-surface-host\.exe/u);
 });
+
+test("QA artifact requires actual generated ACL and sanitized edit regressions", () => {
+  assert.match(workflow, /generated_qa_context_grants_only_three_edits_to_main_webview/u);
+  assert.match(workflow, /vitest run --config vitest\.surface-qa\.config\.ts/u);
+  assert.match(workflow, /Generated effective QA ACL verification failed/u);
+  assert.doesNotMatch(workflow, /QA Main capabilities must remain empty/u);
+});

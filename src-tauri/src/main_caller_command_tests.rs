@@ -1,6 +1,18 @@
 use super::{dispatch, dispatch_async, Identity, Observed, Pinned};
 use std::{cell::Cell, sync::Arc};
 
+#[cfg(all(windows, feature = "desktop-surface-qa"))]
+#[test]
+fn qa_edit_commands_reject_non_main_and_replaced_identities_without_effects() {
+    for command in [
+        "begin_desktop_surface_edit",
+        "complete_desktop_surface_edit",
+        "cancel_desktop_surface_edit",
+    ] {
+        check_command(command, include_str!("qa_edit_commands.rs"));
+    }
+}
+
 fn check_command(name: &str, source: &str) {
     let definition = source
         .split("#[tauri::command]")

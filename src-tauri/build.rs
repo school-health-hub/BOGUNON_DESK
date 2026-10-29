@@ -115,7 +115,11 @@ fn main() {
         );
     }
     let manifest = if surface_qa {
-        tauri_build::AppManifest::new()
+        tauri_build::AppManifest::new().commands(&[
+            "begin_desktop_surface_edit",
+            "complete_desktop_surface_edit",
+            "cancel_desktop_surface_edit",
+        ])
     } else {
         tauri_build::AppManifest::new().commands(main_command_manifest::APP_COMMANDS)
     };

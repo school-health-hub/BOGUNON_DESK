@@ -123,6 +123,35 @@ impl SurfaceRuntimeState {
         runtime.control.send(command)
     }
 
+    #[cfg(feature = "desktop-surface-qa")]
+    pub(crate) fn send_qa_edit(
+        &self,
+        command: EditCommand,
+    ) -> Result<(), crate::qa_edit_commands::Failure> {
+        use crate::qa_edit_commands::{write_control, Failure};
+        let mut slot = self.runtime.lock().map_err(|_| Failure::Unknown)?;
+        let runtime = slot.as_mut().ok_or(Failure::RuntimeInactive)?;
+        if runtime
+            .child
+            .try_wait()
+            .map_err(|_| Failure::Unknown)?
+            .is_some()
+        {
+            return Err(Failure::RuntimeInactive);
+        }
+        let control = &mut runtime.control;
+        let payload = control
+            .binding
+            .request(control.next_sequence, command)
+            .map_err(|_| Failure::Unknown)?;
+        write_control(&mut control.input, &payload)?;
+        control.next_sequence = control
+            .next_sequence
+            .checked_add(1)
+            .ok_or(Failure::Unknown)?;
+        Ok(())
+    }
+
     fn stop(&self) {
         let Ok(mut slot) = self.runtime.lock() else {
             return;

@@ -4,6 +4,10 @@
 //! production plugins. Its native responsibility is to own the QA window,
 //! launch the fixed sibling Surface Host, and drive the edit lifecycle.
 
+#[cfg(all(test, windows))]
+#[path = "qa_edit_acl_tests.rs"]
+mod acl_tests;
+
 #[cfg(windows)]
 use crate::surface_runtime::SurfaceRuntimeState;
 #[cfg(windows)]
@@ -85,10 +89,11 @@ pub fn run() {
     let builder = builder.manage(diagnostic.clone());
     #[cfg(windows)]
     let builder = builder.manage(SurfaceRuntimeState::inactive());
+    #[cfg(windows)]
     let builder = builder.invoke_handler(tauri::generate_handler![
-        crate::desktop_surface::main_commands::begin_desktop_surface_edit,
-        crate::desktop_surface::main_commands::complete_desktop_surface_edit,
-        crate::desktop_surface::main_commands::cancel_desktop_surface_edit,
+        crate::qa_edit_commands::begin_desktop_surface_edit,
+        crate::qa_edit_commands::complete_desktop_surface_edit,
+        crate::qa_edit_commands::cancel_desktop_surface_edit,
     ]);
 
     #[cfg(windows)]
