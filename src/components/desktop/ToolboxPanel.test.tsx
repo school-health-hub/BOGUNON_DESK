@@ -24,4 +24,19 @@ describe("ToolboxPanel", () => {
     expect(markup).toContain('aria-busy="false"');
     expect(markup).not.toContain(' disabled=""');
   });
+
+  it("shows the link-first Finder with the approved product name", () => {
+    const markup = renderToStaticMarkup(
+      <ToolboxPanel
+        isLoading={false}
+        onClose={() => undefined}
+        onExecute={() => undefined}
+        onOpenEducationVideo={() => undefined}
+      />,
+    );
+
+    expect(markup).toContain("교육영상 Finder");
+    expect(markup).toContain("YouTube 링크 확인·저장과 공문 초안 연결");
+    expect(markup).not.toContain("AI 교육영상 Finder · Mock");
+  });
 });

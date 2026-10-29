@@ -55,6 +55,25 @@ pub(crate) async fn chatgpt_generate_text(
     .await
 }
 
+#[tauri::command]
+pub(crate) async fn chatgpt_search_web(
+    app: AppHandle,
+    state: State<'_, ChatGptCredentialMutationState>,
+    model: String,
+    prompt: String,
+) -> Result<plan::web_search::WebSearchResult, ChatGptPlanErrorDto> {
+    let storage = storage_for_app(&app).map_err(|_| ChatGptPlanErrorDto::storage())?;
+    let client = plan::ReqwestPlanTransport::new()?;
+    plan::web_search::search_web(
+        &storage,
+        &client,
+        &state,
+        unix_timestamp().map_err(|_| ChatGptPlanErrorDto::clock())?,
+        &GenerateTextRequest::new(model, prompt),
+    )
+    .await
+}
+
 impl ChatGptAuthState {
     fn begin_attempt(&self) -> Result<ActiveAttempt<'_>, ChatGptLifecycleError> {
         self.active
