@@ -1,0 +1,54 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "BOGUNON DESK FINDER HOME QA",
+  "identifier": "kr.sungandi.schoolhealthdesk.finderhomeqa",
+  "mainBinaryName": "bogunon-desk-finder-home-qa",
+  "build": {
+    "beforeBuildCommand": null,
+    "beforeDevCommand": null,
+    "devUrl": null,
+    "frontendDist": "E:/BOGUNON_DEV/qa-output/finder-home-qa-20261029-hf3/dist"
+  },
+  "app": {
+    "windows": [],
+    "security": {
+      "capabilities": [{
+        "identifier": "finder-home-qa-local-only",
+        "windows": ["finder-home-qa"],
+        "permissions": []
+      }],
+      "csp": {
+        "default-src": "'none'",
+        "script-src": "'self'",
+        "style-src": "'self'",
+        "style-src-attr": "'unsafe-inline'",
+        "font-src": "'self'",
+        "img-src": "'self' data:",
+        "connect-src": "ipc: http://ipc.localhost",
+        "object-src": "'none'",
+        "frame-src": "'none'",
+        "frame-ancestors": "'none'",
+        "base-uri": "'none'",
+        "form-action": "'none'",
+        "worker-src": "'none'"
+      },
+      "devCsp": {
+        "default-src": "'none'",
+        "script-src": "'self'",
+        "style-src": "'self'",
+        "style-src-attr": "'unsafe-inline'",
+        "font-src": "'self'",
+        "img-src": "'self' data:",
+        "connect-src": "ipc: http://ipc.localhost",
+        "object-src": "'none'",
+        "frame-src": "'none'",
+        "frame-ancestors": "'none'",
+        "base-uri": "'none'",
+        "form-action": "'none'",
+        "worker-src": "'none'"
+      }
+    }
+  },
+  "plugins": {"updater": null, "deep-link": null},
+  "bundle": {"active": false, "createUpdaterArtifacts": false}
+}

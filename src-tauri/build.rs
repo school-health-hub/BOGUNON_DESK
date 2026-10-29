@@ -1,4 +1,5 @@
 use serde_json::Value;
+mod finder_home_qa_build;
 fn merge(target: &mut Value, patch: Value) {
     if let Value::Object(patch) = patch {
         if !target.is_object() {
@@ -29,12 +30,19 @@ fn main() {
     }
     let finance_qa = std::env::var_os("CARGO_FEATURE_MY_FINANCE_QA").is_some();
     let official_document_qa = std::env::var_os("CARGO_FEATURE_OFFICIAL_DOCUMENT_QA").is_some();
+    let finder_home_qa = std::env::var_os("CARGO_FEATURE_FINDER_HOME_QA").is_some();
     assert!(
-        !(finance_qa && official_document_qa),
+        !(finance_qa && official_document_qa
+            || finder_home_qa && (finance_qa || official_document_qa)),
         "QA features are mutually exclusive"
     );
     let id = config["identifier"].as_str().unwrap_or_default();
-    if finance_qa {
+    if finder_home_qa {
+        if let Err(error) = finder_home_qa_build::validate(&config) {
+            eprintln!("Finder HOME QA build refused: {error}");
+            std::process::exit(1);
+        }
+    } else if finance_qa {
         println!("cargo:rerun-if-changed=../dist-my-finance-qa/qa-build.json");
         assert_eq!(
             id, "kr.sungandi.schoolhealthdesk.myfinanceqa",
@@ -118,6 +126,10 @@ fn main() {
         }
         println!("cargo:rustc-env=BOGUNON_OFFICIAL_DOCUMENT_QA_SOURCE_SHA={sha}");
     } else {
+        assert_ne!(
+            id, "kr.sungandi.schoolhealthdesk.finderhomeqa",
+            "Finder QA config requires Finder QA feature"
+        );
         assert_ne!(
             id, "kr.sungandi.schoolhealthdesk.myfinanceqa",
             "QA config requires QA feature"

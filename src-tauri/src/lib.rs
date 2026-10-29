@@ -280,18 +280,48 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
 
 #[cfg(feature = "my-finance-qa")]
 mod my_finance_qa;
-#[cfg(all(feature = "my-finance-qa", not(feature = "official-document-qa")))]
+#[cfg(all(
+    feature = "my-finance-qa",
+    not(any(feature = "official-document-qa", feature = "finder-home-qa"))
+))]
 pub use my_finance_qa::run;
 
 #[cfg(feature = "official-document-qa")]
 mod official_document_qa;
-#[cfg(all(feature = "official-document-qa", not(feature = "my-finance-qa")))]
+#[cfg(all(
+    feature = "official-document-qa",
+    not(any(feature = "my-finance-qa", feature = "finder-home-qa"))
+))]
 pub use official_document_qa::run;
 
-#[cfg(all(feature = "my-finance-qa", feature = "official-document-qa"))]
+#[cfg(feature = "finder-home-qa")]
+mod finder_home_qa;
+#[cfg(feature = "finder-home-qa")]
+mod finder_home_qa_library;
+#[cfg(feature = "finder-home-qa")]
+mod finder_home_qa_paths;
+#[cfg(feature = "finder-home-qa")]
+mod finder_home_qa_synthetic;
+#[cfg(all(
+    feature = "finder-home-qa",
+    not(any(feature = "my-finance-qa", feature = "official-document-qa"))
+))]
+pub use finder_home_qa::run;
+
+#[cfg(any(
+    all(feature = "my-finance-qa", feature = "official-document-qa"),
+    all(
+        feature = "finder-home-qa",
+        any(feature = "my-finance-qa", feature = "official-document-qa")
+    )
+))]
 compile_error!("QA features are mutually exclusive");
 
-#[cfg(not(any(feature = "my-finance-qa", feature = "official-document-qa")))]
+#[cfg(not(any(
+    feature = "my-finance-qa",
+    feature = "official-document-qa",
+    feature = "finder-home-qa"
+)))]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default();
