@@ -4,6 +4,14 @@ import { describe, expect, it } from "vitest";
 import { applyGridLayout, calculateGridMetrics, createSessionStorageAdapter, defaultSurfaceLayout, editedSurfaceLayout, parseSurfaceLayout, setWidgetVisibility, SURFACE_PREVIEW_STORAGE_KEY, toGridLayout } from "./layout";
 
 describe("surface layout", () => {
+  it("restores a hidden widget below an occupied former position without moving existing widgets", () => {
+    const hidden = defaultSurfaceLayout.widgets.reduce((layout, widget) =>
+      widget.id === "calendar" ? layout : setWidgetVisibility(layout, widget.id, false), defaultSurfaceLayout);
+    const resized = applyGridLayout(hidden, [{ i: "calendar", x: 0, y: 0, w: 12, h: 8 }]);
+    const restored = setWidgetVisibility(resized, "clock", true);
+    expect(restored.widgets.find(({ id }) => id === "clock")).toMatchObject({ y: 8, visible: true });
+    expect(restored.widgets.find(({ id }) => id === "calendar")).toEqual(resized.widgets.find(({ id }) => id === "calendar"));
+  });
   it("fits the default and editing layouts inside the available viewport height", () => {
     expect(calculateGridMetrics(defaultSurfaceLayout, 768, false)).toEqual({ rows: 7, rowHeight: 82, pixelHeight: 646 });
     expect(calculateGridMetrics(editedSurfaceLayout, 900, true)).toEqual({ rows: 9, rowHeight: 69, pixelHeight: 717 });

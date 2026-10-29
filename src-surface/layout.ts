@@ -101,10 +101,20 @@ export const applyGridLayout = (current: SurfaceLayout, next: Layout): SurfaceLa
     return changed === undefined ? widget : { ...widget, x: changed.x, y: changed.y, width: changed.w, height: changed.h };
   }),
 });
-export const setWidgetVisibility = (current: SurfaceLayout, id: SurfaceWidgetId, visible: boolean): SurfaceLayout => ({
-  version: SURFACE_LAYOUT_VERSION,
-  widgets: current.widgets.map((widget) => widget.id === id ? { ...widget, visible } : widget),
-});
+export const setWidgetVisibility = (current: SurfaceLayout, id: SurfaceWidgetId, visible: boolean): SurfaceLayout => {
+  const restored = current.widgets.find((widget) => widget.id === id);
+  const occupied = current.widgets.filter((widget) => widget.visible && widget.id !== id);
+  const collides = restored !== undefined && occupied.some((widget) =>
+    restored.x < widget.x + widget.width && restored.x + restored.width > widget.x
+    && restored.y < widget.y + widget.height && restored.y + restored.height > widget.y);
+  const restoreBelow = visible && restored !== undefined && !restored.visible && collides;
+  const bottom = Math.max(0, ...occupied.map((widget) => widget.y + widget.height));
+  return {
+    version: SURFACE_LAYOUT_VERSION,
+    widgets: current.widgets.map((widget) => widget.id === id
+      ? { ...widget, visible, y: restoreBelow ? bottom : widget.y } : widget),
+  };
+};
 export const createSessionStorageAdapter = (storage: Storage): SurfaceLayoutStorage => ({
   load: () => {
     const raw = storage.getItem(SURFACE_PREVIEW_STORAGE_KEY);
