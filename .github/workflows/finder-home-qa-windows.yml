@@ -1,0 +1,82 @@
+name: Finder HOME isolated Windows QA build
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Exact reviewed Finder source commit (40 lowercase hexadecimal characters)
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: finder-home-qa-windows
+  cancel-in-progress: false
+jobs:
+  build:
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/codex/home-restore-finder-1' && github.run_attempt == 1
+    runs-on: windows-2022
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CI: 'true'
+      FINDER_QA_EXPECTED_SOURCE_SHA: ${{ inputs.source_sha }}
+      FINDER_QA_WORKFLOW_SHA: ${{ github.workflow_sha }}
+      CARGO_BUILD_JOBS: '1'
+      CARGO_TERM_COLOR: never
+    steps:
+      - name: Validate literal SHA before checkout
+        run: |
+          if ($env:FINDER_QA_EXPECTED_SOURCE_SHA -cnotmatch '^[a-f0-9]{40}$') { throw 'Invalid source SHA' }
+          if ($env:FINDER_QA_EXPECTED_SOURCE_SHA -cne $env:GITHUB_SHA) { throw 'Dispatch branch must be at reviewed source SHA' }
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+      - name: Bind source and isolated build paths
+        run: |
+          if ((git rev-parse HEAD).Trim() -cne $env:FINDER_QA_EXPECTED_SOURCE_SHA) { throw 'Checkout SHA mismatch' }
+          if (git status --porcelain) { throw 'Dirty checkout' }
+          $root = Join-Path $env:RUNNER_TEMP "finder-home-qa-ci-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          "BOGUNON_FINDER_HOME_QA_OUTPUT_ROOT=$root" >> $env:GITHUB_ENV
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.23.3'
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249
+        with:
+          toolchain: '1.98.1'
+          targets: x86_64-pc-windows-msvc
+      - name: Verify hosted native tools without installing replacements
+        run: |
+          perl -MLocale::Maketext::Simple -e 'print "Perl module OK\n"'
+          if ($LASTEXITCODE -ne 0) { throw 'Compatible Perl unavailable' }
+          nasm -v
+          if ($LASTEXITCODE -ne 0) { throw 'NASM unavailable; stop without fallback installation' }
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+          $vs = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (-not $vs) { throw 'MSVC unavailable' }
+      - name: Install locked frontend dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Offline contracts and types
+        run: |
+          node --test scripts/finder-home-qa-paths.test.mjs scripts/finder-home-qa-portability.test.mjs scripts/finder-home-qa-boundary.test.mjs scripts/finder-home-qa-ci.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Contracts failed' }
+          node scripts/verify-finder-home-qa.mjs unit
+          if ($LASTEXITCODE -ne 0) { throw 'QA tests failed' }
+          node scripts/verify-finder-home-qa.mjs types
+          if ($LASTEXITCODE -ne 0) { throw 'TypeScript failed' }
+      - name: Download locked Rust dependencies only
+        run: cargo fetch --locked --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc
+      - name: Build isolated portable EXE without executing it
+        run: node scripts/build-finder-home-qa-ci.mjs
+      - name: Upload only executable and provenance
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: finder-home-qa-${{ inputs.source_sha }}-${{ github.run_id }}
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            ${{ env.BOGUNON_FINDER_HOME_QA_OUTPUT_ROOT }}/artifact/bogunon-desk-finder-home-qa.exe
+            ${{ env.BOGUNON_FINDER_HOME_QA_OUTPUT_ROOT }}/artifact/SOURCE_SHA.txt
+            ${{ env.BOGUNON_FINDER_HOME_QA_OUTPUT_ROOT }}/artifact/ARTIFACT-MANIFEST.json

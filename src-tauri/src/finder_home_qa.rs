@@ -6,13 +6,8 @@ use std::{fs, path::Path, sync::Mutex};
 use tauri::{webview::NewWindowResponse, Manager, WebviewUrl, WebviewWindowBuilder};
 
 fn paths() -> Result<QaPaths, &'static str> {
-    let project = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .ok_or(PATH_ERROR)?;
-    QaPaths::new(
-        Path::new(env!("BOGUNON_FINDER_HOME_QA_OUTPUT_ROOT")),
-        project,
-    )
+    let root = std::env::var("BOGUNON_FINDER_HOME_QA_RUNTIME_ROOT").map_err(|_| PATH_ERROR)?;
+    QaPaths::new(Path::new(&root), env!("BOGUNON_FINDER_HOME_QA_SOURCE_SHA"))
 }
 
 #[tauri::command]

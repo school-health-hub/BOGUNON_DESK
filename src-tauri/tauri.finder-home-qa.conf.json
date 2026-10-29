@@ -7,7 +7,7 @@
     "beforeBuildCommand": null,
     "beforeDevCommand": null,
     "devUrl": null,
-    "frontendDist": "E:/BOGUNON_DEV/qa-output/finder-home-qa-20261029-hf3/dist"
+    "frontendDist": "../dist-finder-home-qa-unprepared"
   },
   "app": {
     "windows": [],

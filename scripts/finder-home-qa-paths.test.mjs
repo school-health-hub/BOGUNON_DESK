@@ -11,7 +11,8 @@ test('no missing root, C: fallback, UNC, traversal, shared target or sibling QA 
   }
 });
 test('all child output paths and process-only environment stay on dedicated E root', () => {
-  const paths = finderHomeQaPaths('E:/BOGUNON_DEV/qa-output/finder-home-qa-path-test');
+  const paths = finderHomeQaPaths(process.env.GITHUB_ACTIONS === 'true'
+    ? `${process.env.RUNNER_TEMP}/finder-home-qa-path-test` : 'E:/BOGUNON_DEV/qa-output/finder-home-qa-path-test');
   const before = process.env.CARGO_TARGET_DIR;
   const env = finderHomeQaEnvironment(paths);
   for (const path of Object.values(paths)) assert.ok(path.replaceAll('\\', '/').startsWith(paths.root));

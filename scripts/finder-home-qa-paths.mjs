@@ -6,26 +6,34 @@ export const identifier = 'kr.sungandi.schoolhealthdesk.finderhomeqa';
 export const projectRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 export const rootVariable = 'BOGUNON_FINDER_HOME_QA_OUTPUT_ROOT';
 
-export function validateOutputRoot(value) {
-  if (typeof value !== 'string' || !/^E:[\\/]/i.test(value) || value.includes('..') || value.includes('\0')) {
-    throw new Error('Finder QA requires an explicit absolute E: output path; no fallback.');
+export function validateOutputRoot(value, env = process.env) {
+  if (typeof value !== 'string' || !/^[A-Z]:[\\/]/i.test(value) || value.includes('..') || value.includes('\0') || value.slice(2).includes(':')) {
+    throw new Error('Finder QA requires an explicit isolated absolute output path; no fallback.');
   }
   const normalized = win32.normalize(value);
-  const parent = 'E:\\BOGUNON_DEV\\qa-output\\';
-  if (!normalized.toLowerCase().startsWith(parent.toLowerCase()) ||
-      !/^finder-home-qa-[a-z0-9-]+$/i.test(normalized.slice(parent.length))) {
-    throw new Error('Finder QA output must be a dedicated direct child of E:/BOGUNON_DEV/qa-output.');
+  const name = win32.basename(normalized);
+  const parent = win32.dirname(normalized).toLowerCase();
+  const home = /^[de]:\\bogunon_dev\\qa-output$/.test(parent);
+  const hosted = env.GITHUB_ACTIONS === 'true' && env.CI === 'true' && typeof env.RUNNER_TEMP === 'string'
+    && parent === win32.normalize(env.RUNNER_TEMP).toLowerCase();
+  if ((!home && !hosted) || !/^finder-home-qa-[a-z0-9][a-z0-9-]{0,79}$/i.test(name)
+      || /-(?:con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(name)) {
+    throw new Error('Finder QA requires a direct child of the dedicated D/E QA parent or hosted build temp.');
   }
   return normalized.replaceAll('\\', '/');
 }
 
 export function rejectLinkedAncestors(path) {
   for (let cursor = resolve(path); ; cursor = resolve(cursor, '..')) {
-    if (existsSync(cursor)) {
-      if (lstatSync(cursor).isSymbolicLink() || realpathSync.native(cursor).toLowerCase() !== cursor.toLowerCase()) {
+    let metadata;
+    try { metadata = lstatSync(cursor); } catch (error) {
+      if (!(error instanceof Error) || !('code' in error) || error.code !== 'ENOENT') throw error;
+    }
+    if (metadata) {
+      if (metadata.isSymbolicLink() || realpathSync.native(cursor).toLowerCase() !== cursor.toLowerCase()) {
         throw new Error('Finder QA paths must not contain links or redirected directories.');
       }
-      if (!lstatSync(cursor).isDirectory()) throw new Error('Finder QA path is not a directory.');
+      if (!metadata.isDirectory()) throw new Error('Finder QA path is not a directory.');
     }
     const parent = resolve(cursor, '..');
     if (parent === cursor) break;
@@ -34,7 +42,7 @@ export function rejectLinkedAncestors(path) {
 
 export function finderHomeQaPaths(value = process.env[rootVariable]) {
   const root = validateOutputRoot(value);
-  if (!existsSync('E:/')) throw new Error('E: is unavailable; Finder QA stopped.');
+  if (!existsSync(win32.parse(root).root)) throw new Error('QA drive unavailable; no fallback.');
   rejectLinkedAncestors(root);
   return Object.freeze({ root, dist: join(root, 'dist'), cache: join(root, 'cache'),
     temp: join(root, 'temp'), logs: join(root, 'logs'), target: join(root, 'target'),

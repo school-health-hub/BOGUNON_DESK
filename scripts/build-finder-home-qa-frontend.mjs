@@ -23,6 +23,6 @@ for (const file of readdirSync(join(paths.dist, 'assets'))) {
   inert ||= source.includes('격리 QA에서는 인증·AI·모델 조회·외부 연결을 사용할 수 없습니다.');
 }
 if (!inert || !existsSync(join(paths.dist, 'index.html'))) throw new Error('Finder QA isolation boundary missing.');
-const stamp = { sourceSha, sourceDirty, identifier, externalConnections: false, frontendDist: paths.dist.replaceAll('\\', '/'), projectRoot: projectRoot.replaceAll('\\', '/') };
+const stamp = { sourceSha, sourceDirty, identifier, externalConnections: false };
 writeFileSync(join(paths.dist, 'qa-build.json'), `${JSON.stringify(stamp, null, 2)}\n`, { flag: 'wx' });
 console.log(JSON.stringify({ ...stamp, nativeBuild: 'NOT RUN', appExecution: 'NOT RUN' }, null, 2));

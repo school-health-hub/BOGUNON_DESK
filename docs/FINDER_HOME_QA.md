@@ -1,5 +1,8 @@
 # Finder HOME isolated QA (HOME-FINDER-3)
 
+> HOME-FINDER-5B supersedes the historical HOME-FINDER-3 reproduction/path
+> instructions below. See the current portable build/runtime contract at the end.
+
 ## Scope and boundary
 
 This is an offline-only QA entry, not the production Dashboard or a live search client.
@@ -182,3 +185,126 @@ Only source/config/tests and this note belong in the local checkpoint. Evidence,
 frontend artifacts, owner marker, QA library/UDF, dependency junction, credentials
 and caches are not committed or uploaded. No push is performed in this stage.
 Receiving-PC restoration and native runtime acceptance are not claimed by this note.
+
+## Current contract: HOME-FINDER-5B portable CI preparation
+
+Status: implemented and offline checked only. No push, hosted workflow run,
+Native compilation/link, EXE generation or application launch is authorized here.
+The HOME-FINDER-4 partial target, evidence and existing operating data are preserved.
+
+### Build paths and source identity
+
+`BOGUNON_FINDER_HOME_QA_OUTPUT_ROOT` is build-only. A local build/verification root
+must be a direct `finder-home-qa-<run-id>` child of D:/BOGUNON_DEV/qa-output or
+E:/BOGUNON_DEV/qa-output. A GitHub-hosted build additionally permits a direct child
+of RUNNER_TEMP only with CI=true and GITHUB_ACTIONS=true. Links/reparse ancestors,
+UNC, traversal, ADS and nonowned build roots are rejected. Build marker
+`.finder-home-qa-owner.json` still binds the local build workspace; it is never
+distributed as runtime state. No C: local fallback exists.
+
+The native build accepts only a manifest-relative frontend directory resolving to
+the validated build dist. Windows drive-letter URLs are rejected. The embedded
+frontend stamp contains SHA, identifier, dirty flag and externalConnections=false;
+it contains no build workspace/output paths. Native runtime no longer uses
+CARGO_MANIFEST_DIR or a compiled output-root environment variable.
+
+### Runtime preparation (do not launch without separate approval)
+
+The EXE requires an explicit process-only `BOGUNON_FINDER_HOME_QA_RUNTIME_ROOT`.
+Only direct D:/BOGUNON_DEV/qa-output/finder-home-qa-<name> or E: equivalents are
+accepted, independent of the EXE location and build PC. AppData, arbitrary paths,
+runner temp, symlinks, junctions, reparse ancestors and traversal are rejected.
+No automatic production fallback, operating authentication access or network path
+is provided. Seven existing library commands plus QA metadata remain the entire IPC
+allowlist. Plugins, provider contexts, URL opening and production startup stay absent.
+
+After verifying the downloaded EXE hash and manifest, a later approved preparation
+may use the following (the script prepares ownership only; it does not launch):
+
+```powershell
+$env:BOGUNON_FINDER_HOME_QA_RUNTIME_ROOT = 'E:/BOGUNON_DEV/qa-output/finder-home-qa-<source-short-sha>-manual-1'
+node scripts/prepare-finder-home-qa-runtime.mjs <full-executable-source-sha>
+```
+
+The Native entry can also create its own marker on first separately approved launch.
+An existing empty root may be claimed; a nonempty unowned root is refused.
+`.finder-home-qa-runtime-owner.json` is schema 2 and binds identifier, exact source
+SHA and purpose `offline-finder-runtime`. It is created exclusively and flushed;
+malformed, oversized, linked, owner-mismatched or source-mismatched markers fail
+closed. No marker repair, deletion or adoption is automatic.
+
+Library: `<runtime-root>/data/kr.sungandi.schoolhealthdesk.finderhomeqa/education-video/library.json`.
+WebView2 UDF: `<runtime-root>/webview`. They never use the operating profile.
+Same-SHA relaunch may reuse the same explicit root and recover synthetic library
+backups. A different Source SHA requires a fresh root. Old HF3/HF4 evidence, owner
+markers, libraries and UDFs are not overwritten, copied or migrated automatically.
+If synthetic notes must move between versions, separately approve a bounded JSON
+export/import through the existing synthetic-only library validation; do not copy
+an old directory/UDF or credentials wholesale. Concurrent launches sharing a root
+are not approved or verified; use one instance per runtime root.
+
+### GitHub Actions design and registration blocker
+
+New workflow: `.github/workflows/finder-home-qa-windows.yml`, manual dispatch only,
+windows-2022, Node 22.23.3, Rust 1.98.1, x86_64-pc-windows-msvc. Actions are pinned.
+Source SHA is mandatory, exactly matches the dispatch branch HEAD and checkout,
+and the branch is codex/home-restore-finder-1. Permissions are contents:read only;
+checkout does not persist credentials, no secrets or Production environment is used.
+No updater, installer, release publishing, signing, GUI/runtime step or provider call.
+The workflow refuses reruns (attempt must be 1); a new run needs separate approval.
+
+On the disposable runner only: npm ci uses the unchanged package-lock; cargo fetch
+--locked downloads locked dependencies, then cargo build --locked --offline uses
+one job and the finder-home-qa/custom-protocol feature. The debug portable EXE is
+packaged under the QA filename. Node/Rust downloads and registry access are build
+prerequisites, not application service calls. No local installation occurs in 5B.
+Perl Locale::Maketext::Simple, NASM and MSVC are checked; missing tools fail closed
+without fallback installs. No Cargo target cache is shared with another feature.
+
+Artifact allowlist is exactly EXE, SOURCE_SHA.txt and ARTIFACT-MANIFEST.json;
+retention is 7 days. Manifest records source SHA, identifier, run identity, EXE size
+and SHA-256, synthetic-only and no-execution status. No evidence logs, databases,
+UDF, credentials, target or cache are uploaded. CI compilation is not GUI acceptance.
+
+Existing Surface workflows are feature/source-bound (latest portable uses push),
+and the official-document workflow has different identity/feature plus native
+execution steps. Neither is safely reusable unchanged. Registered workflow names
+alone do not establish a generic dispatcher. No verified compliant main-free
+dispatch path was found. GitHub documents workflow_dispatch default-branch presence:
+https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow
+
+If required, a later approval may add ONLY the same-path registration stub on main:
+workflow_dispatch with source_sha input, permissions:{}, and a permanently false
+job. That stub performs no checkout/build/deployment. The actual reviewed workflow
+stays on the Finder branch. Main modification, branch push and Actions execution
+each remain unapproved in 5B. Do not repurpose another workflow or enable push/PR
+triggers to evade this restriction. Failure never falls back to local Native build.
+
+### Offline verification and limits
+
+Use a fresh E: build root, then the existing verification script's unit/types/
+regression-focus tasks and frontend builder. Node contract command:
+`node --test scripts/finder-home-qa-paths.test.mjs scripts/finder-home-qa-portability.test.mjs scripts/finder-home-qa-boundary.test.mjs scripts/finder-home-qa-ci.test.mjs`.
+Portability fixtures are synthetic, created under unique dedicated QA roots and
+retained (including junction-rejection fixtures); no prior evidence is erased.
+Rustfmt parses/checks touched Rust. A standalone rustc --emit metadata check of
+the build guard plus runtime path module, using existing cached serde_json rlib,
+passed without code generation/link or an EXE. This is not a full Tauri type check;
+Native link/runtime acceptance is NOT RUN. Unused-item warnings are expected in
+the build-only harness because runtime methods are not invoked there.
+Working-source frontend stamps intentionally report sourceDirty=true. A later CI
+build must use the final clean checkpoint SHA, not the earlier development bundle.
+
+Evidence for this stage: E:/BOGUNON_DEV/qa-output/finder-home-qa-20261029-hf5b/logs.
+These are local-only, not uploaded or included in Git. No complete installed secret
+scanner was found; staged and working files receive best-effort pattern scans and
+diff review. This is not a complete personal-data/secrets detection guarantee.
+
+HOME-FINDER-5B results: Node contracts 13 PASS, dedicated QA Vitest 13 PASS,
+focused existing Finder search regressions 5 PASS, TypeScript PASS, frontend build
+and production-transport exclusion PASS, rustfmt PASS, standalone Rust metadata
+PASS, structured YAML parse/manual-trigger check PASS using already installed
+js-yaml (read-only; no installation), diff-check and scoped patterns PASS.
+Independent goal, code, security, QA and context review lanes passed after fixing
+a Windows path-prefix case mismatch and completing this current-contract note.
+Full Native build/EXE/Actions/GUI/push are all NOT RUN. No actual AI request occurred.

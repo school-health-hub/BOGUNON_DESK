@@ -7,7 +7,11 @@ const staged = process.argv.includes('--staged');
 const paths = [...new Set((staged ? git(['diff', '--cached', '--name-only', '-z']) :
   git(['diff', '--name-only', '-z']) + git(['ls-files', '--others', '--exclude-standard', '-z']))
   .split('\0').filter(Boolean))];
-const exact = new Set(['docs/FINDER_HOME_QA.md', 'vite.finder-home-qa.config.mjs',
+const exact = new Set(['.github/workflows/finder-home-qa-windows.yml',
+  'scripts/build-finder-home-qa-ci.mjs', 'scripts/finder-home-qa-ci.test.mjs',
+  'scripts/finder-home-qa-portability.test.mjs',
+  'scripts/prepare-finder-home-qa-runtime.mjs',
+  'docs/FINDER_HOME_QA.md', 'vite.finder-home-qa.config.mjs',
   'vitest.finder-home-regression.config.mjs', 'src-tauri/Cargo.toml', 'src-tauri/build.rs',
   'src-tauri/src/lib.rs', 'src-tauri/src/education_video/mod.rs',
   'src-tauri/tauri.finder-home-qa.conf.json', 'src-tauri/finder_home_qa_build.rs',

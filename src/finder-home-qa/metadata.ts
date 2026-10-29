@@ -15,7 +15,9 @@ export function parseFinderQaMetadata(value: unknown, sourceSha: string): Finder
   const local = value.localData.replace(/\\/g, '/');
   const webview = value.webviewData.replace(/\\/g, '/');
   const suffix = `/data/${FINDER_QA_IDENTIFIER}/education-video`;
-  if (!/^E:\//i.test(local) || !local.endsWith(suffix) || webview !== `${local.slice(0, -suffix.length)}/webview`) return null;
+  const root = local.slice(0, -suffix.length);
+  if (!/^[DE]:\/BOGUNON_DEV\/qa-output\/finder-home-qa-[a-z0-9][a-z0-9-]{0,79}$/i.test(root)
+    || !local.endsWith(suffix) || webview !== `${root}/webview`) return null;
   return { identifier: value.identifier, sourceSha: value.sourceSha, localData: value.localData, webviewData: value.webviewData,
     networkEnabled: false, authEnabled: false, externalConnections: false, syntheticOnly: true };
 }

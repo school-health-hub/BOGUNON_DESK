@@ -9,8 +9,8 @@ import { getSupabaseClient } from './inertSupabase';
 const sha = '25e5a5c021ad1bc0d6e53699ae646dc9f71bd51e';
 const metadata = {
   identifier: FINDER_QA_IDENTIFIER, sourceSha: sha,
-  localData: `E:/BOGUNON_DEV/qa-output/example/data/${FINDER_QA_IDENTIFIER}/education-video`,
-  webviewData: 'E:/BOGUNON_DEV/qa-output/example/webview', networkEnabled: false,
+  localData: `E:/BOGUNON_DEV/qa-output/finder-home-qa-example/data/${FINDER_QA_IDENTIFIER}/education-video`,
+  webviewData: 'E:/BOGUNON_DEV/qa-output/finder-home-qa-example/webview', networkEnabled: false,
   authEnabled: false, externalConnections: false, syntheticOnly: true,
 };
 
