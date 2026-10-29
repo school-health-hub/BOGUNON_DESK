@@ -1,5 +1,5 @@
-name: INT-5C-3 final Windows frontend QA
-run-name: INT-5C-3 pinned frontend QA / 32d40c1 / ${{ github.run_id }}
+name: INT-5C-4 final Windows frontend QA
+run-name: INT-5C-4 pinned frontend QA / 32d40c1 / ${{ github.run_id }}
 
 on:
   workflow_dispatch:
@@ -15,7 +15,7 @@ jobs:
   frontend:
     if: github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/codex/int5c3-windows-qa' && github.run_attempt == 1
     runs-on: windows-2022
-    timeout-minutes: 45
+    timeout-minutes: 60
     defaults:
       run:
         shell: pwsh
@@ -32,6 +32,12 @@ jobs:
           ref: 32d40c1769b587f917416f17bc588d7e62d7084f
           path: source
           persist-credentials: false
+      - name: Checkout immutable QA controller
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          path: controller
+          persist-credentials: false
       - name: Set up compatible Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
@@ -43,6 +49,7 @@ jobs:
           if ($LASTEXITCODE -ne 0 -or $head -cne $env:QA_SOURCE_SHA) { throw 'Pinned product SHA mismatch' }
           $status = git status --porcelain
           if ($LASTEXITCODE -ne 0 -or $status) { throw 'Product checkout is not clean' }
+          if ((git -C ../controller rev-parse HEAD).Trim() -cne $env:GITHUB_SHA) { throw 'QA controller SHA mismatch' }
           $package = Get-Content package.json -Raw | ConvertFrom-Json
           if ($package.scripts.test -cne 'vitest run' -or $package.scripts.build -cne 'tsc && vite build') { throw 'Unexpected package scripts' }
           $unexpectedEnv = @(Get-ChildItem -Force -File .env* | Where-Object Name -ne '.env.example')
@@ -60,7 +67,7 @@ jobs:
           [ordered]@{
             productSha=$head; workflowDefinitionSha=$env:QA_WORKFLOW_SHA; dispatchSha=$env:GITHUB_SHA
             dispatchRef=$env:GITHUB_REF; runId=$env:GITHUB_RUN_ID; attempt=$env:GITHUB_RUN_ATTEMPT
-            lockSha256=$lock; nodeOptions=$env:NODE_OPTIONS; visualQa='NOT RUN'; nativeDpi='NOT RUN'
+            lockSha256=$lock; nodeOptions=$env:NODE_OPTIONS; visualQa='SEE visual-summary.json; no automated design approval'; nativeDpi='NOT RUN'
           } | ConvertTo-Json | Set-Content "$root/evidence/provenance.json"
           $node = (node --version).Trim()
           $npm = (npm --version).Trim()
@@ -123,21 +130,37 @@ jobs:
           }) | ConvertTo-Json | Set-Content "$env:QA_ROOT/evidence/build-manifest.json"
           git diff --exit-code
           if ($LASTEXITCODE -ne 0) { throw 'Tracked product files changed during QA' }
+      - name: Install locked isolated browser tools
+        working-directory: controller/scripts/qa/int5c4/tools
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'Browser tools install failed' }
+          "PLAYWRIGHT_BROWSERS_PATH=$env:RUNNER_TEMP/int5c4-browser" >> $env:GITHUB_ENV
+      - name: Install isolated Chromium
+        working-directory: controller/scripts/qa/int5c4/tools
+        run: |
+          node node_modules/playwright-core/cli.js install chromium
+          if ($LASTEXITCODE -ne 0) { throw 'Browser installation failed; no retry' }
+      - name: Real product browser module evidence
+        timeout-minutes: 12
+        run: |
+          . "$env:QA_ROOT/invoke-qa.ps1"
+          Invoke-QaCommand -Name 'visual' -Tool 'node.exe' -Arguments @('../controller/scripts/qa/int5c4/capture.mjs')
       - name: Summarize frontend gates and evidence hashes
         if: always()
         run: |
           $root = Join-Path $env:RUNNER_TEMP "int5c3-module-ui-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
           $evidence = Join-Path $root 'evidence'
           if (-not (Test-Path -LiteralPath $evidence)) { exit 0 }
-          $results = @('npm-ci','typescript','focused','vitest','build') | ForEach-Object {
+          $results = @('npm-ci','typescript','focused','vitest','build','visual') | ForEach-Object {
             $file = Join-Path $evidence "$_.json"
             if (Test-Path -LiteralPath $file) { Get-Content -LiteralPath $file -Raw | ConvertFrom-Json }
             else { [ordered]@{stage=$_; status='NOT RUN'} }
           }
-          [ordered]@{productSha=$env:QA_SOURCE_SHA; stages=@($results); visualQa='NOT RUN'; nativeDpi='NOT RUN'} | ConvertTo-Json -Depth 8 | Set-Content "$evidence/summary.json"
+          [ordered]@{productSha=$env:QA_SOURCE_SHA; stages=@($results); visualQa='SEE visual-summary.json; no automated design approval'; nativeDpi='NOT RUN'} | ConvertTo-Json -Depth 8 | Set-Content "$evidence/summary.json"
           git status --porcelain | Set-Content "$evidence/source-status.txt"
           @(Get-ChildItem -LiteralPath $evidence -File | ForEach-Object { "$( (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash )  $($_.Name)" }) | Set-Content "$evidence/SHA256SUMS.txt"
-          "## INT-5C-3 frontend validation only" >> $env:GITHUB_STEP_SUMMARY
+          "## INT-5C-4 frontend validation only" >> $env:GITHUB_STEP_SUMMARY
           "Product source: $env:QA_SOURCE_SHA. Workflow definition: $env:QA_WORKFLOW_SHA." >> $env:GITHUB_STEP_SUMMARY
           "Visual design QA and Native/DPI: NOT RUN. See stage exit codes in the evidence artifact." >> $env:GITHUB_STEP_SUMMARY
       - name: Upload narrow QA evidence only
