@@ -1,0 +1,145 @@
+name: INT-5B final Windows frontend QA
+run-name: INT-5B pinned frontend QA / d6b44aa / ${{ github.run_id }}
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: int5b-final-windows-d6b44aa
+  cancel-in-progress: false
+
+jobs:
+  frontend:
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/codex/int5b-final-windows-qa' && github.run_attempt == 1
+    runs-on: windows-2022
+    timeout-minutes: 35
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: source
+    env:
+      CI: 'true'
+      QA_SOURCE_SHA: d6b44aaeea1f0c027ade05ef34070bb888a66ece
+      QA_WORKFLOW_SHA: ${{ github.workflow_sha }}
+      NODE_OPTIONS: --max-old-space-size=2048
+    steps:
+      - name: Checkout immutable product source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: d6b44aaeea1f0c027ade05ef34070bb888a66ece
+          path: source
+          persist-credentials: false
+      - name: Set up compatible Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.23.3'
+      - name: Verify source and initialize isolated evidence
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $head = (git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $head -cne $env:QA_SOURCE_SHA) { throw 'Pinned product SHA mismatch' }
+          $status = git status --porcelain
+          if ($LASTEXITCODE -ne 0 -or $status) { throw 'Product checkout is not clean' }
+          $package = Get-Content package.json -Raw | ConvertFrom-Json
+          if ($package.scripts.test -cne 'vitest run' -or $package.scripts.build -cne 'tsc && vite build') { throw 'Unexpected package scripts' }
+          $unexpectedEnv = @(Get-ChildItem -Force -File .env* | Where-Object Name -ne '.env.example')
+          if ($unexpectedEnv.Count) { throw 'Unexpected environment file in product source' }
+          $root = Join-Path $env:RUNNER_TEMP "int5b-dashboard-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          if (Test-Path -LiteralPath $root) { throw 'Refusing to reuse a QA directory' }
+          New-Item -ItemType Directory -Path "$root/evidence","$root/npm-cache","$root/temp" | Out-Null
+          "QA_ROOT=$root" >> $env:GITHUB_ENV
+          "npm_config_cache=$root/npm-cache" >> $env:GITHUB_ENV
+          "npm_config_audit=false" >> $env:GITHUB_ENV
+          "npm_config_fund=false" >> $env:GITHUB_ENV
+          "TEMP=$root/temp" >> $env:GITHUB_ENV
+          "TMP=$root/temp" >> $env:GITHUB_ENV
+          $lock = (Get-FileHash package-lock.json -Algorithm SHA256).Hash
+          [ordered]@{
+            productSha=$head; workflowDefinitionSha=$env:QA_WORKFLOW_SHA; dispatchSha=$env:GITHUB_SHA
+            dispatchRef=$env:GITHUB_REF; runId=$env:GITHUB_RUN_ID; attempt=$env:GITHUB_RUN_ATTEMPT
+            lockSha256=$lock; nodeOptions=$env:NODE_OPTIONS; visualQa='NOT RUN'; nativeDpi='NOT RUN'
+          } | ConvertTo-Json | Set-Content "$root/evidence/provenance.json"
+          $node = (node --version).Trim()
+          $npm = (npm --version).Trim()
+          if ($node -cne 'v22.23.3' -or $npm -notmatch '^10\.') { throw 'Unexpected Node/npm compatibility version' }
+          [ordered]@{node=$node; npm=$npm; priorNpm='10.9.9'} | ConvertTo-Json | Set-Content "$root/evidence/versions.json"
+          @'
+          function Invoke-QaCommand {
+            param([string]$Name, [string]$Tool, [string[]]$Arguments)
+            $ErrorActionPreference = 'Stop'
+            $provenance = Get-Content "$env:QA_ROOT/evidence/provenance.json" -Raw | ConvertFrom-Json
+            if ((git rev-parse HEAD).Trim() -cne $env:QA_SOURCE_SHA) { throw 'Product source changed before stage' }
+            $before = Get-CimInstance Win32_OperatingSystem | Select-Object FreePhysicalMemory,TotalVisibleMemorySize
+            $watch = [Diagnostics.Stopwatch]::StartNew()
+            $code = -1
+            try {
+              & $Tool @Arguments 2>&1 | Tee-Object "$env:QA_ROOT/evidence/$Name.log"
+              $code = $LASTEXITCODE
+            } finally {
+              $watch.Stop()
+              $lockUnchanged = (Get-FileHash package-lock.json -Algorithm SHA256).Hash -ceq $provenance.lockSha256
+              [ordered]@{
+                stage=$Name; tool=$Tool; arguments=$Arguments; exitCode=$code; seconds=$watch.Elapsed.TotalSeconds
+                lockUnchanged=$lockUnchanged; memoryBefore=$before
+                memoryAfter=(Get-CimInstance Win32_OperatingSystem | Select-Object FreePhysicalMemory,TotalVisibleMemorySize)
+              } | ConvertTo-Json -Depth 5 | Set-Content "$env:QA_ROOT/evidence/$Name.json"
+            }
+            if (-not $lockUnchanged) { throw 'Lockfile changed' }
+            if ($code -ne 0) { throw "QA stage failed: $Name (exit $code); no retry" }
+          }
+          '@ | Set-Content "$root/invoke-qa.ps1"
+      - name: Install locked dependencies
+        timeout-minutes: 8
+        run: |
+          . "$env:QA_ROOT/invoke-qa.ps1"
+          Invoke-QaCommand -Name 'npm-ci' -Tool 'npm.cmd' -Arguments @('ci','--no-audit','--no-fund')
+      - name: TypeScript
+        timeout-minutes: 5
+        run: |
+          . "$env:QA_ROOT/invoke-qa.ps1"
+          Invoke-QaCommand -Name 'typescript' -Tool 'node.exe' -Arguments @('node_modules/typescript/bin/tsc','--noEmit')
+      - name: Full Vitest serial regression
+        timeout-minutes: 15
+        run: |
+          . "$env:QA_ROOT/invoke-qa.ps1"
+          Invoke-QaCommand -Name 'vitest' -Tool 'npm.cmd' -Arguments @('test','--','--maxWorkers=1','--no-file-parallelism','--no-cache','--reporter=default','--reporter=json',"--outputFile=$env:QA_ROOT/evidence/vitest-results.json")
+      - name: Production frontend build
+        timeout-minutes: 7
+        run: |
+          . "$env:QA_ROOT/invoke-qa.ps1"
+          Invoke-QaCommand -Name 'build' -Tool 'npm.cmd' -Arguments @('run','build')
+          if (-not (Test-Path -LiteralPath 'dist/index.html' -PathType Leaf)) { throw 'Production frontend output missing' }
+          $dist = (Resolve-Path dist).Path
+          @(Get-ChildItem dist -Recurse -File | ForEach-Object {
+            [ordered]@{path=$_.FullName.Substring($dist.Length + 1); bytes=$_.Length; sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash}
+          }) | ConvertTo-Json | Set-Content "$env:QA_ROOT/evidence/build-manifest.json"
+          git diff --exit-code
+          if ($LASTEXITCODE -ne 0) { throw 'Tracked product files changed during QA' }
+      - name: Summarize frontend gates and evidence hashes
+        if: always()
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP "int5b-dashboard-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          $evidence = Join-Path $root 'evidence'
+          if (-not (Test-Path -LiteralPath $evidence)) { exit 0 }
+          $results = @('npm-ci','typescript','vitest','build') | ForEach-Object {
+            $file = Join-Path $evidence "$_.json"
+            if (Test-Path -LiteralPath $file) { Get-Content -LiteralPath $file -Raw | ConvertFrom-Json }
+            else { [ordered]@{stage=$_; status='NOT RUN'} }
+          }
+          [ordered]@{productSha=$env:QA_SOURCE_SHA; stages=@($results); visualQa='NOT RUN'; nativeDpi='NOT RUN'} | ConvertTo-Json -Depth 8 | Set-Content "$evidence/summary.json"
+          git status --porcelain | Set-Content "$evidence/source-status.txt"
+          @(Get-ChildItem -LiteralPath $evidence -File | ForEach-Object { "$( (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash )  $($_.Name)" }) | Set-Content "$evidence/SHA256SUMS.txt"
+          "## INT-5B frontend validation only" >> $env:GITHUB_STEP_SUMMARY
+          "Product source: $env:QA_SOURCE_SHA. Workflow definition: $env:QA_WORKFLOW_SHA." >> $env:GITHUB_STEP_SUMMARY
+          "Visual design QA and Native/DPI: NOT RUN. See stage exit codes in the evidence artifact." >> $env:GITHUB_STEP_SUMMARY
+      - name: Upload narrow QA evidence only
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: int5b-dashboard-frontend-d6b44aa-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/int5b-dashboard-${{ github.run_id }}-${{ github.run_attempt }}/evidence/
+          if-no-files-found: warn
+          retention-days: 7
