@@ -34,7 +34,11 @@ describe("OfficialDocumentOutput quality scenarios", () => {
     // Then: visible document regions and emitted copy payloads use the same draft strings.
     expect(view.getByRole("heading", { level: 3 }).textContent).toBe(draft.title);
     expect(view.getByRole("region", { name: "공문 본문" }).textContent).toBe(draft.body);
-    expect(view.getByRole("region", { name: "붙임" }).textContent).toBe(draft.attachments);
+    const paperText = view.getByRole("article").textContent ?? "";
+    expect(paperText.match(/끝\./gu)).toHaveLength(1);
+    for (const attachment of scenario.expectedAttachments.filter((item) => item !== "[확인 필요]")) {
+      expect(paperText.split(attachment)).toHaveLength(2);
+    }
     expect(onCopy.mock.calls).toEqual([
       ["제목", draft.title],
       ["본문", draft.body],

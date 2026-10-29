@@ -40,6 +40,9 @@ const optionalLine = (label: string, value: string): string | null => {
 const splitAttachments = (value: string): readonly string[] =>
   value.split(/[,;\n]/).map((item) => item.trim()).filter((item) => item !== "");
 
+const appendTerminalEnd = (value: string): string => `${value.trimEnd()}  끝.`;
+const hasStandaloneTerminalEnd = (value: string): boolean => /(?:^|\n)\s*끝\.\s*$/u.test(value);
+
 const formatAttachmentList = (attachments: readonly string[]): string =>
   attachments.length === 0
     ? "붙임\n1. [확인 필요] 1부.\n끝."
@@ -94,23 +97,22 @@ const buildBody = (input: OfficialDocumentInput): string => {
     optionalLine("자. 특이사항", input.notes),
   ].filter((line): line is string => line !== null);
   const attachments = splitAttachments(input.attachments);
-  const attachmentText = attachments.length === 0
-    ? "[붙임 자료 입력 필요] 1부."
-    : attachments.map((item) => `${item} 1부.`).join("\n");
+  const attachmentText = attachments.map((item) => `${item} 1부.`).join("\n");
   const purposeLine = hasStructuredMainContent
     ? `2. 주요 내용\n${purpose.split("\n").map((line) => `  ${line}`).join("\n")}`
     : `2. ${purpose}을(를) 위해 다음과 같이 ${purposeEndings[input.purpose]}`;
   const detailSection = hasStructuredMainContent && details.length === 0
     ? []
     : ["", details.length === 0 ? "가. 세부 내용: [입력 필요]" : details.join("\n")];
-  return [
+  const content = [
     `1. 관련: ${valueOrNeed(input.relatedDocument)}`,
     "",
     purposeLine,
     ...detailSection,
-    "",
-    `붙임  ${attachmentText}  끝.`,
-  ].join("\n");
+  ].join("\n").trimEnd();
+  return attachments.length === 0
+    ? appendTerminalEnd(content)
+    : `${content}\n\n붙임  ${attachmentText}  끝.`;
 };
 
 const referencePlaceholderValues = (input: OfficialDocumentInput): Readonly<Record<string, string>> => ({
@@ -137,7 +139,7 @@ const renderNamedReferencePlaceholders = (text: string, input: OfficialDocumentI
   });
 };
 
-const buildReferenceBody = (input: OfficialDocumentInput, templateBody: string): string => {
+const buildReferenceBody = (input: OfficialDocumentInput, templateBody: string, attachments: readonly string[]): string => {
   const fillLabeledPlaceholder = (body: string, label: string, value: string): string => body.replace(
     new RegExp(`((?:${label})\\s*:\\s*)\\[입력 필요\\]`, "g"),
     (_match, prefix: string) => `${prefix}${value.trim() || "[입력 필요]"}`,
@@ -155,8 +157,18 @@ const buildReferenceBody = (input: OfficialDocumentInput, templateBody: string):
     ["특이사항", input.notes],
   ].reduce((body, [label, value]) => fillLabeledPlaceholder(body, label, value), templateBody.trim());
   const rendered = renderNamedReferencePlaceholders(contextual, input);
-  const attachmentText = splitAttachments(input.attachments).map((item) => `${item} 1부.`).join("\n") || "[붙임 자료 입력 필요] 1부.";
-  return /^붙임\s/m.test(rendered) ? rendered : `${rendered}\n\n붙임  ${attachmentText}  끝.`;
+  const attachmentText = attachments.map((item) => `${item} 1부.`).join("\n");
+  if (/^붙임\s/m.test(templateBody)) {
+    if (splitAttachments(input.attachments).length > 0) {
+      const attachmentStart = Math.max(rendered.lastIndexOf("\n붙임") + 1, 0);
+      return `${rendered.slice(0, attachmentStart).trimEnd()}\n\n붙임  ${attachmentText}  끝.`;
+    }
+    return templateBody.trimEnd().endsWith("끝.") ? rendered.trimEnd() : appendTerminalEnd(rendered);
+  }
+  if (attachmentText !== "") {
+    return `${rendered}\n\n붙임  ${attachmentText}  끝.`;
+  }
+  return hasStandaloneTerminalEnd(templateBody) ? rendered.trimEnd() : appendTerminalEnd(rendered);
 };
 
 export const generateOfficialDocumentDraft = (
@@ -166,14 +178,17 @@ export const generateOfficialDocumentDraft = (
   const template = findOfficialDocumentTemplate(input.workArea);
   const title = buildTitle(input);
   const attachments = splitAttachments(input.attachments);
+  const resolvedAttachments = attachments.length > 0 ? attachments : splitAttachments(reference?.attachmentExample ?? "");
   const messenger = applyOfficialDocumentTemplate(template.messengerBody, {
     ...input,
     workName: clean(input.workName) || template.label,
   });
   const draft: OfficialDocumentDraft = {
     title,
-    body: reference?.templateBody.trim() ? buildReferenceBody(input, reference.templateBody) : buildBody(input),
-    attachments: formatAttachmentList(attachments.length > 0 ? attachments : splitAttachments(reference?.attachmentExample ?? "")),
+    body: reference?.templateBody.trim()
+      ? buildReferenceBody(input, reference.templateBody, resolvedAttachments)
+      : buildBody(input),
+    attachments: formatAttachmentList(resolvedAttachments),
     messenger: reference?.messengerExample.trim()
       ? renderNamedReferencePlaceholders(reference.messengerExample, input)
       : `제목: ${title} 안내\n\n${messenger}`,
@@ -190,9 +205,6 @@ export const composeOfficialDocumentDraft = (draft: OfficialDocumentDraft): stri
   "",
   "기안문 본문",
   draft.body,
-  "",
-  "붙임 목록",
-  draft.attachments,
   "",
   "교직원 메신저 안내문",
   draft.messenger,

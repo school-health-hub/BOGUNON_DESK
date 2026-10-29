@@ -9,12 +9,18 @@ import { OfficialDocumentOutput } from "./OfficialDocumentOutput";
 
 describe("OfficialDocumentOutput", () => {
   afterEach(cleanup);
-  it.each(["계획서, 안내문", ""])("renders the generated attachment block once without changing copied data (%s)", (attachments) => {
+  it.each(["계획서, 안내문", ""])("renders one canonical body without changing copied data (%s)", (attachments) => {
     const draft = generateOfficialDocumentDraft({ ...createEmptyOfficialDocumentInput(), attachments });
     const onCopy = vi.fn();
     const view = render(<OfficialDocumentOutput aiResponse="" aiStatus="idle" draft={draft} localSummary={null} mode="create" onCopy={onCopy} onSendSummaryToQuickAdd={vi.fn()} prompt="" />);
-    const attachmentBlock = view.getByRole("region", { name: "붙임" });
-    expect(attachmentBlock.textContent).toBe(draft.attachments);
+    expect(view.getByRole("region", { name: "공문 본문" }).textContent).toBe(draft.body);
+    expect(view.queryByRole("region", { name: "붙임" })).toBeNull();
+    const paperText = view.getByRole("article").textContent ?? "";
+    expect(paperText.match(/끝\./gu)).toHaveLength(1);
+    if (attachments !== "") {
+      expect(paperText.split("계획서")).toHaveLength(2);
+      expect(paperText.split("안내문")).toHaveLength(2);
+    }
     fireEvent.click(view.getByRole("button", { name: "전체 복사" }));
     expect(onCopy).toHaveBeenCalledWith("전체", composeOfficialDocumentDraft(draft));
     view.unmount();
