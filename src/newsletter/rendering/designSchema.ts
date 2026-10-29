@@ -30,6 +30,7 @@ const assetSchema = z.object({
   mediaType: z.enum(["image/png", "image/jpeg", "image/webp"]),
   approvalStatus: z.enum(["approved", "reference-only", "rejected"]),
   originalName: z.string().trim().min(1),
+  exportApproval: z.enum(["pending", "approved"]).optional(),
   localReference: z.string().regex(/^asset:[a-f0-9]{64}$/).optional(),
   registry: z.object({
     classification: z.enum(["USER_CREATED", "AI_GENERATED", "OFFICIAL_REFERENCE", "LICENSED_EXTERNAL"]),

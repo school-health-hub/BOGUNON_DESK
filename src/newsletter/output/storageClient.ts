@@ -38,6 +38,10 @@ export class NewsletterNativeOutputUnavailableError extends Error {
   constructor() { super("Newsletter 출력 저장은 Windows 앱에서 사용할 수 있습니다.") }
 }
 
+export class NewsletterQaOutputSaveBlockedError extends Error {
+  readonly name = "NewsletterQaOutputSaveBlockedError"
+  constructor() { super("QA-only output requires print approval before normal saving") }
+}
 function requireNative(): void {
   if (!isTauri()) throw new NewsletterNativeOutputUnavailableError()
 }
@@ -72,6 +76,7 @@ export async function saveNewsletterOutput(
   selection: OutputSelection,
   collisionPolicy: "deny" | "replace",
 ): Promise<OutputSaveOutcome> {
+  if (bundle.manifest.reviewOnly === true) throw new NewsletterQaOutputSaveBlockedError()
   requireNative()
   const artifacts = selectedArtifacts(bundle, selection)
   const result = await invoke<unknown>("newsletter_output_save", {

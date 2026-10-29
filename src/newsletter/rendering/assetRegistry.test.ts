@@ -77,3 +77,17 @@ describe("Newsletter asset registry", () => {
     })).toThrow(/reference must match/i)
   })
 })
+
+it("retains independent print approval through registry and manifest", () => {
+  const registry = registerNewsletterAsset(createAssetRegistry(), {
+    assetId: "print-pending", sha256: SHA, origin: "user", classification: "USER_CREATED",
+    purpose: "mascot", approvalStatus: "approved", exportApproval: "pending",
+    usageScope: "newsletter-output", originalReference: `asset:${SHA}`,
+    mediaType: "image/png", originalName: "mascot.png", now: NOW,
+  })
+  expect(registry.assets[0]?.exportApproval).toBe("pending")
+  expect(toDesignAssetManifest(registry)[0]?.exportApproval).toBe("pending")
+  const revised = reviseNewsletterAsset(registry, { assetId: "print-pending", approvalStatus: "approved", usageScope: "newsletter-output", exportApproval: "approved", now: NOW })
+  expect(revised.assets[0]?.exportApproval).toBe("approved")
+  expect(revised.assets[0]?.history[1]?.exportApproval).toBe("approved")
+})

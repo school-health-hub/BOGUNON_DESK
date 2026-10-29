@@ -11,6 +11,7 @@ const historyEntrySchema = z.object({
   changedAt: z.iso.datetime(),
   approvalStatus: approvalStatusSchema,
   usageScope: usageScopeSchema,
+  exportApproval: z.enum(["pending", "approved"]).optional(),
 }).readonly()
 const assetRecordSchema = z.object({
   assetId: assetIdSchema,
@@ -20,6 +21,7 @@ const assetRecordSchema = z.object({
   purpose: z.enum(["mascot", "illustration", "decoration", "reference"]),
   approvalStatus: approvalStatusSchema,
   usageScope: usageScopeSchema,
+  exportApproval: z.enum(["pending", "approved"]).optional(),
   originalReference: safeReferenceSchema,
   mediaType: z.enum(["image/png", "image/jpeg", "image/webp"]),
   originalName: z.string().trim().min(1),
@@ -27,7 +29,7 @@ const assetRecordSchema = z.object({
 }).readonly().superRefine((asset, context) => {
   if (asset.history.some((entry, index) => entry.revision !== index + 1)) context.addIssue({ code: "custom", message: "asset history revisions must be contiguous" })
   const latest = asset.history[asset.history.length - 1]
-  if (latest?.approvalStatus !== asset.approvalStatus || latest.usageScope !== asset.usageScope) context.addIssue({ code: "custom", message: "asset history must end at the current approval state" })
+  if (latest?.approvalStatus !== asset.approvalStatus || latest.usageScope !== asset.usageScope || latest.exportApproval !== asset.exportApproval) context.addIssue({ code: "custom", message: "asset history must end at the current approval state" })
   if (asset.classification === "OFFICIAL_REFERENCE" && asset.approvalStatus === "approved") context.addIssue({ code: "custom", message: "official references cannot become output assets" })
   if (asset.originalReference !== `asset:${asset.sha256}`) context.addIssue({ code: "custom", message: "asset reference must match its sha256" })
 })
@@ -53,11 +55,11 @@ export function parseAssetRegistry(input: unknown): NewsletterAssetRegistry { re
 export function registerNewsletterAsset(registry: NewsletterAssetRegistry, input: RegisterNewsletterAssetInput): NewsletterAssetRegistry {
   return registrySchema.parse({
     ...registry,
-    assets: [...registry.assets, { assetId: input.assetId, sha256: input.sha256, origin: input.origin, classification: input.classification, purpose: input.purpose, approvalStatus: input.approvalStatus, usageScope: input.usageScope, originalReference: input.originalReference, mediaType: input.mediaType, originalName: input.originalName, history: [{ revision: 1, changedAt: input.now, approvalStatus: input.approvalStatus, usageScope: input.usageScope }] }],
+    assets: [...registry.assets, { assetId: input.assetId, sha256: input.sha256, origin: input.origin, classification: input.classification, purpose: input.purpose, approvalStatus: input.approvalStatus, usageScope: input.usageScope, ...(input.exportApproval === undefined ? {} : { exportApproval: input.exportApproval }), originalReference: input.originalReference, mediaType: input.mediaType, originalName: input.originalName, history: [{ revision: 1, changedAt: input.now, approvalStatus: input.approvalStatus, usageScope: input.usageScope, ...(input.exportApproval === undefined ? {} : { exportApproval: input.exportApproval }) }] }],
   })
 }
 
-export function reviseNewsletterAsset(registry: NewsletterAssetRegistry, input: { readonly assetId: string; readonly approvalStatus: NewsletterAssetRecord["approvalStatus"]; readonly usageScope: NewsletterAssetRecord["usageScope"]; readonly now: string }): NewsletterAssetRegistry {
+export function reviseNewsletterAsset(registry: NewsletterAssetRegistry, input: { readonly assetId: string; readonly approvalStatus: NewsletterAssetRecord["approvalStatus"]; readonly usageScope: NewsletterAssetRecord["usageScope"]; readonly exportApproval?: "pending" | "approved"; readonly now: string }): NewsletterAssetRegistry {
   const target = registry.assets.find((asset) => asset.assetId === input.assetId)
   if (target === undefined) throw new NewsletterAssetNotFoundError(input.assetId)
   return registrySchema.parse({
@@ -66,7 +68,8 @@ export function reviseNewsletterAsset(registry: NewsletterAssetRegistry, input: 
       ...asset,
       approvalStatus: input.approvalStatus,
       usageScope: input.usageScope,
-      history: [...asset.history, { revision: asset.history.length + 1, changedAt: input.now, approvalStatus: input.approvalStatus, usageScope: input.usageScope }],
+      ...(input.exportApproval === undefined ? {} : { exportApproval: input.exportApproval }),
+      history: [...asset.history, { revision: asset.history.length + 1, changedAt: input.now, approvalStatus: input.approvalStatus, usageScope: input.usageScope, ...((input.exportApproval ?? asset.exportApproval) === undefined ? {} : { exportApproval: input.exportApproval ?? asset.exportApproval }) }],
     } : asset),
   })
 }
@@ -74,6 +77,7 @@ export function reviseNewsletterAsset(registry: NewsletterAssetRegistry, input: 
 export function toDesignAssetManifest(registry: NewsletterAssetRegistry): DesignSnapshotV2["assetManifest"] {
   return registry.assets.flatMap((asset) => asset.approvalStatus === "approved" && asset.usageScope === "newsletter-output" && asset.classification !== "OFFICIAL_REFERENCE" && asset.purpose !== "reference" ? [{
     id: asset.assetId,
+    ...(asset.exportApproval === undefined ? {} : { exportApproval: asset.exportApproval }),
     sha256: asset.sha256,
     mediaType: asset.mediaType,
     approvalStatus: "approved" as const,

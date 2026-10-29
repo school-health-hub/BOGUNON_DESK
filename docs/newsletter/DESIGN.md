@@ -131,7 +131,26 @@ Accent colors identify modules and cards; they do not replace readable navy body
 
 ## 9. Accepted debt
 
-- Real approved illustrations and the 수달쌤 asset remain pending provenance and license approval.
+- Topic illustrations remain pending separate production and approval. The user-approved 수달쌤 기본형 v1 is bundled only for Newsletter rendering; print/export approval remains pending actual output review.
 - A4 1장과 표지 1장 + 주제 카드 6장(총 7장) 계약은 이미지 자산 교체와 무관하게 고정한다.
 - Physical school-printer inspection remains a manual gate.
 - V1 layouts with historical overlap are readable but export-blocked until the user explicitly upgrades or repairs them.
+
+## NS-3E-3B-6 approved mascot
+
+- `otter-primary-v1`: USER_CREATED / mascot, 1254×1254 RGBA; SHA-256 `fd90b63e8d78ee53eb796c130315ac71d4c5a2a8b4af92e8e03cefdccc3ce302`.
+- The approved binary is bundled once and explicitly attached to eight existing independent mascot frames (A4, cover, six topic cards) with `contain`. Existing V1/V2 files are not silently changed.
+- `approvalStatus: approved` authorizes design/product rendering. Optional `exportApproval: pending` separately blocks publication output. Legacy records without this field preserve their existing behavior.
+- Explicit QA output verifies the same approval, reference, and binary SHA as Preview, bypasses only the pending output review, and marks its manifest `reviewOnly`. Native publication saving rejects review-only bundles.
+- Preview and SVG output share `resolveDesignAssets`; PDF embeds the generated PNG pages. Missing or rejected assets are blocked rather than substituted. Unassigned topic illustrations retain QA placeholders.
+- Enlargement warnings use the contained image size at the actual output scale; upsampling does not create new detail. Physical printer approval remains separate.
+
+## NS-3E-3B WIP checkpoint (2026-10-29)
+
+- Implementation is preserved as WIP, not final design or print approval. One approved PNG is reused by eight mascot frames; A4 1 page and cards 7 pages remain unchanged.
+- Existing validation records: Vitest 208 files / 1,297 tests PASS (`npm test -- --maxWorkers=2 --testTimeout=30000`), `npx tsc --noEmit` PASS, and `npm run build` PASS. These checks were not unnecessarily rerun for this checkpoint.
+- Native validation is **BLOCKED**: `cargo test --manifest-path src-tauri/Cargo.toml newsletter -j 2` failed in the `openssl-sys v0.9.117` custom build (`expando.c`, exit 101), before Newsletter Native tests executed. Root cause is unconfirmed; no Native dependency change is included.
+- Final newsletter design remains incomplete: seasonal QA placeholders overlap the topic heading region, and the cover retains its separate illustration placeholder behind the mascot. Actual print/export approval remains `pending`.
+- QA evidence, raw build logs, and September masters remain outside Git. This checkpoint preserves code and the explicitly approved mascot only; it is not a complete cross-PC evidence handoff.
+- NS-3E-3C preparation: six topic illustrations, with selectable female students, male students, mixed students, or props/actions without students. Female/male base characters may be managed as separate reusable assets. Official health information informs the content; illustrations will be newly generated AI assets. No student illustration generation or selection UI is implemented in this checkpoint.
+- Security review: no dedicated secret scanner was available; staged text received best-effort credential/identifier scans and manual review, and the approved PNG was visually reviewed. No secret or personal data was found; this does not replace a dedicated scanner.

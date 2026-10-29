@@ -71,3 +71,15 @@ describe("Newsletter native output storage client", () => {
     expect(result.status).toBe("succeeded")
   })
 })
+
+it("blocks review-only QA artifacts before invoking native storage", async () => {
+  // Given
+  const original = bundle()
+  const review = {...original,manifest:{...original.manifest,reviewOnly:true as const}}
+  mocks.invoke.mockClear()
+  // When
+  const result = saveNewsletterOutput({token:"550e8400-e29b-41d4-a716-446655440000",label:"QA"},review,"a4-png","deny")
+  // Then
+  await expect(result).rejects.toThrow(/QA-only/)
+  expect(mocks.invoke).not.toHaveBeenCalled()
+})

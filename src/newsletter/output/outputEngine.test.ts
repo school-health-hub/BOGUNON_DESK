@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest"
 import { updateCardLayout, upgradeNewsletterDesignStateV2 } from "../rendering/designState"
-import { createNewsletterDesignState, type NewsletterDesignStateV2 } from "../rendering/designSchema"
+import { createNewsletterDesignState, parseNewsletterDesignStateV2, type NewsletterDesignStateV2 } from "../rendering/designSchema"
 import { createNewsletterProject } from "../project"
 import { NewsletterOutputBlockedError, generateNewsletterOutputs, readPngDimensions, type PdfComposer, type SvgRasterizer } from "./outputEngine"
+import { attachApprovedMascot } from "../rendering/bundledMascot"
 import type { PdfImagePage } from "./pdfComposer"
 
 const NOW = "2026-01-01T00:00:00.000Z"
@@ -142,4 +143,86 @@ describe("Newsletter output engine", () => {
     expect(rasterizer.ensureFontReady).not.toHaveBeenCalled()
     expect(composer.compose).not.toHaveBeenCalled()
   })
+})
+
+describe("mascot output approval", () => {
+  it("blocks print-pending mascot in publication before rasterizing", async () => {
+    // Given
+    const project = await createNewsletterProject({projectId:"mascot-output",title:"보건소식",now:NOW})
+    const design = attachApprovedMascot(safeDesign(project.projectId),NOW)
+    const rasterizer = testRasterizer()
+    // When
+    const result = generateNewsletterOutputs({project,projectRevision:1,design,designRevision:design.designRevision,createdAt:NOW,rasterizer,pdfComposer:testPdfComposer()})
+    // Then
+    await expect(result).rejects.toThrow(/print approval pending/)
+    expect(rasterizer.ensureFontReady).not.toHaveBeenCalled()
+  })
+  it("marks QA output and embeds the same verified PNG in every scene", async () => {
+    // Given
+    const project = await createNewsletterProject({projectId:"mascot-output",title:"보건소식",now:NOW})
+    const design = attachApprovedMascot(safeDesign(project.projectId),NOW)
+    const svgs:string[] = []
+    const rasterizer:SvgRasterizer = {ensureFontReady:async()=>undefined,rasterize:async({svg,width,height})=>{svgs.push(svg);return syntheticPng(width,height,svg)}}
+    // When
+    const result = await generateNewsletterOutputs({project,projectRevision:1,design,designRevision:design.designRevision,createdAt:NOW,rasterizer,pdfComposer:testPdfComposer(),purpose:"qa"})
+    // Then
+    expect(result.manifest.reviewOnly).toBe(true)
+    expect(svgs).toHaveLength(8)
+    expect(svgs.every(svg=>svg.includes("data:image/png;base64,"))).toBe(true)
+  })
+})
+
+it("does not let QA mode bypass rejected asset approval", async () => {
+  // Given
+  const project = await createNewsletterProject({projectId:"mascot-rejected",title:"보건소식",now:NOW})
+  const approved = attachApprovedMascot(safeDesign(project.projectId),NOW)
+  const assetManifest = approved.assetManifest.map(asset=>({...asset,approvalStatus:"rejected" as const}))
+  const design = parseNewsletterDesignStateV2({...approved,assetManifest,revisionHistory:approved.revisionHistory.map(entry=>entry.revision===approved.designRevision?{...entry,snapshot:{...entry.snapshot,assetManifest}}:entry)})
+  const rasterizer = testRasterizer()
+  // When
+  const result = generateNewsletterOutputs({project,projectRevision:1,design,designRevision:design.designRevision,createdAt:NOW,rasterizer,pdfComposer:testPdfComposer(),purpose:"qa"})
+  // Then
+  await expect(result).rejects.toMatchObject({name:"RenderAssetNotApprovedError"})
+  expect(rasterizer.ensureFontReady).not.toHaveBeenCalled()
+})
+
+it.each([undefined,"approved"] as const)("blocks imported mascot publication when exportApproval is %s",async(exportApproval)=>{
+  // Given
+  const project=await createNewsletterProject({projectId:"imported-mascot",title:"보건소식",now:NOW})
+  const original=attachApprovedMascot(safeDesign(project.projectId),NOW)
+  const assetManifest=original.assetManifest.map(({exportApproval: omitted,...asset})=>({...asset,...(exportApproval===undefined?{}:{exportApproval})}))
+  const design=parseNewsletterDesignStateV2({...original,assetManifest,revisionHistory:original.revisionHistory.map(entry=>entry.revision===original.designRevision?{...entry,snapshot:{...entry.snapshot,assetManifest}}:entry)})
+  const rasterizer=testRasterizer()
+  // When
+  const output=generateNewsletterOutputs({project,projectRevision:1,design,designRevision:design.designRevision,createdAt:NOW,rasterizer,pdfComposer:testPdfComposer()})
+  // Then
+  await expect(output).rejects.toThrow(/print approval pending/)
+  expect(rasterizer.ensureFontReady).not.toHaveBeenCalled()
+})
+
+it("blocks the trusted mascot hash imported under an alias before resolver access",async()=>{
+  // Given
+  const project=await createNewsletterProject({projectId:"aliased-mascot",title:"보건소식",now:NOW})
+  const original=attachApprovedMascot(safeDesign(project.projectId),NOW)
+  const imported=parseNewsletterDesignStateV2(JSON.parse(JSON.stringify(original).split('"otter-primary-v1"').join('"imported-otter"').split('"exportApproval":"pending"').join('"exportApproval":"approved"')))
+  const resolve=vi.fn(async()=>new Uint8Array())
+  // When
+  const output=generateNewsletterOutputs({project,projectRevision:1,design:imported,designRevision:imported.designRevision,createdAt:NOW,rasterizer:testRasterizer(),pdfComposer:testPdfComposer(),assetResolver:{resolve}})
+  // Then
+  await expect(output).rejects.toThrow(/print approval pending/)
+  expect(resolve).not.toHaveBeenCalled()
+})
+
+it.each([undefined,"approved"] as const)("allows reviewed QA generation when imported exportApproval is %s",async(exportApproval)=>{
+  // Given
+  const project=await createNewsletterProject({projectId:"qa-imported-mascot",title:"보건소식",now:NOW})
+  const original=attachApprovedMascot(safeDesign(project.projectId),NOW)
+  const assetManifest=original.assetManifest.map(({exportApproval: omitted,...asset})=>({...asset,...(exportApproval===undefined?{}:{exportApproval})}))
+  const design=parseNewsletterDesignStateV2({...original,assetManifest,revisionHistory:original.revisionHistory.map(entry=>entry.revision===original.designRevision?{...entry,snapshot:{...entry.snapshot,assetManifest}}:entry)})
+  const rasterizer:SvgRasterizer={ensureFontReady:async()=>undefined,rasterize:async({width,height})=>syntheticPng(width,height,"qa")}
+  // When
+  const output=await generateNewsletterOutputs({project,projectRevision:1,design,designRevision:design.designRevision,createdAt:NOW,rasterizer,pdfComposer:testPdfComposer(),purpose:"qa"})
+  // Then
+  expect(output.manifest.reviewOnly).toBe(true)
+  expect(output.cardPngs).toHaveLength(7)
 })

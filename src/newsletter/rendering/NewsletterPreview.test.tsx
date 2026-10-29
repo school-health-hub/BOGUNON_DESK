@@ -2,15 +2,37 @@
 import { cleanup, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it } from "vitest"
 import { createNewsletterProject } from "../project"
-import { renderA4Svg } from "../output/svgRenderer"
+import { renderA4Svg, renderCardSvg } from "../output/svgRenderer"
 import { createNewsletterDesignState } from "./designSchema"
 import { upgradeNewsletterDesignStateV2 } from "./designState"
-import { A4Preview } from "./NewsletterPreview"
+import { A4Preview, CardPreview } from "./NewsletterPreview"
 import { compileRenderDocument } from "./renderDocument"
+import { attachApprovedMascot, OTTER_ASSET_ID } from "./bundledMascot"
+import { resolveDesignAssets } from "./assetResolution"
 
 afterEach(cleanup)
 
 describe("Newsletter preview scene binding", () => {
+  it("renders the same registered source in preview and export", async () => {
+    // Given
+    const now = "2026-10-29T00:00:00.000Z"
+    const project = await createNewsletterProject({ projectId: "project-1", title: "보건소식", now })
+    const design = attachApprovedMascot(upgradeNewsletterDesignStateV2(createNewsletterDesignState({ projectId: project.projectId, canonicalProjectRevision: 1, now }), now), now)
+    const document = compileRenderDocument({ project, projectRevision: 1, design, designRevision: design.designRevision })
+    const assets = await resolveDesignAssets(design, design.designRevision)
+    const source = assets.get(OTTER_ASSET_ID)
+    if (source === undefined) throw new Error("approved PNG source missing")
+    // When
+    const view = render(<A4Preview document={document} assets={assets} />)
+    // Then
+    expect([...view.container.querySelectorAll("image")].some((image) => image.getAttribute("href") === source)).toBe(true)
+    expect(renderA4Svg(document.a4, assets)).toContain(source)
+    for (const page of document.cards) {
+      const cardView = render(<CardPreview page={page} assets={assets} />)
+      expect([...cardView.container.querySelectorAll("image")].some((image) => image.getAttribute("href") === source)).toBe(true)
+      expect(renderCardSvg(page, assets)).toContain(source)
+    }
+  })
   it("uses the exact page scene hash emitted by export SVG", async () => {
     const now = "2026-01-01T00:00:00.000Z"
     const project = await createNewsletterProject({ projectId: "project-1", title: "합성 보건소식", now })
