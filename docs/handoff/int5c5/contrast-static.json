@@ -1,0 +1,11 @@
+{
+  "beforeComputedSource": "INT5C4 actual DOM, all4viewports",
+  "beforeForeground": "#617187",
+  "background": "#eef3f9",
+  "beforeContrast": 4.460370414981981,
+  "afterForeground": "#34445d",
+  "afterContrast": 8.833525799976249,
+  "afterMethod": "static WCAG sRGB calculation, not new browser computed style",
+  "target": 5.0,
+  "targetMetStatic": true
+}
