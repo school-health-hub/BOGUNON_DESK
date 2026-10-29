@@ -255,7 +255,8 @@ describe("official document deterministic generator", () => {
     const body = generateOfficialDocumentDraft({ ...createEmptyOfficialDocumentInput(), mainContent }).body;
 
     // Then: the explicit newline and its four user spaces remain unchanged.
-    expect(body).toContain("첫째 일반 문장입니다.\n    둘째 일반 문장입니다.을(를)");
+    expect(body).toContain("2. 주요 내용\n  첫째 일반 문장입니다.\n      둘째 일반 문장입니다.");
+    expect(body).not.toContain("입니다.을(를)");
   });
 
   it.each(["1. 사전 준비", "가. 사전 준비", "1) 사전 준비", "가) 사전 준비"])(

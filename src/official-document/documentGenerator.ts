@@ -85,6 +85,10 @@ const buildBody = (input: OfficialDocumentInput): string => {
   const template = findOfficialDocumentTemplate(input.workArea);
   const purpose = clean(input.mainContent) || template.purpose;
   const hasStructuredMainContent = structuredListStart.test(purpose);
+  const hasOrdinaryMultilineContent = !hasStructuredMainContent
+    && clean(input.mainContent) !== "" && input.mainContent.includes("\n");
+  const hasMainContentBlock = hasStructuredMainContent || hasOrdinaryMultilineContent;
+  const mainContentBlock = hasStructuredMainContent ? purpose : input.mainContent;
   const details = [
     optionalLine("가. 대상", input.target),
     optionalLine("나. 일시", input.dateTime),
@@ -93,15 +97,15 @@ const buildBody = (input: OfficialDocumentInput): string => {
     optionalLine("마. 기관명", input.organization),
     optionalLine("바. 인원", input.peopleCount),
     optionalLine("사. 비용 또는 예산", input.budget),
-    hasStructuredMainContent ? null : optionalLine("아. 주요 내용", input.mainContent),
+    hasMainContentBlock ? null : optionalLine("아. 주요 내용", input.mainContent),
     optionalLine("자. 특이사항", input.notes),
   ].filter((line): line is string => line !== null);
   const attachments = splitAttachments(input.attachments);
   const attachmentText = attachments.map((item) => `${item} 1부.`).join("\n");
-  const purposeLine = hasStructuredMainContent
-    ? `2. 주요 내용\n${purpose.split("\n").map((line) => `  ${line}`).join("\n")}`
+  const purposeLine = hasMainContentBlock
+    ? `2. 주요 내용\n${mainContentBlock.split("\n").map((line) => `  ${line}`).join("\n")}`
     : `2. ${purpose}을(를) 위해 다음과 같이 ${purposeEndings[input.purpose]}`;
-  const detailSection = hasStructuredMainContent && details.length === 0
+  const detailSection = hasMainContentBlock && details.length === 0
     ? []
     : ["", details.length === 0 ? "가. 세부 내용: [입력 필요]" : details.join("\n")];
   const content = [
@@ -109,10 +113,11 @@ const buildBody = (input: OfficialDocumentInput): string => {
     "",
     purposeLine,
     ...detailSection,
-  ].join("\n").trimEnd();
+  ].join("\n");
+  const bodyContent = hasOrdinaryMultilineContent ? content : content.trimEnd();
   return attachments.length === 0
-    ? appendTerminalEnd(content)
-    : `${content}\n\n붙임  ${attachmentText}  끝.`;
+    ? hasOrdinaryMultilineContent ? `${bodyContent}  끝.` : appendTerminalEnd(bodyContent)
+    : `${bodyContent}\n\n붙임  ${attachmentText}  끝.`;
 };
 
 const referencePlaceholderValues = (input: OfficialDocumentInput): Readonly<Record<string, string>> => ({

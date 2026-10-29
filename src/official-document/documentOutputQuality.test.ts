@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { copyOfficialDocumentText } from "./clipboard";
-import { composeOfficialDocumentDraft, generateOfficialDocumentDraft } from "./documentGenerator";
+import { composeOfficialDocumentDraft, createEmptyOfficialDocumentInput, generateOfficialDocumentDraft } from "./documentGenerator";
 import { officialDocumentDraftQualityScenarios, officialDocumentReferenceQualityFixture, officialDocumentRevisionSummaryQualityFixture } from "./documentOutputQuality.fixtures";
 import { buildRevisionPrompt, buildSummaryPrompt } from "./promptBuilder";
 import { extractOfficialDocumentSummary, formatOfficialDocumentSummary } from "./summaryExtractor";
@@ -173,19 +173,55 @@ describe("official document output quality contracts", () => {
   });
 });
 
-describe("official document output known issues", () => {
-  it("[KNOWN ISSUE] reproduces the ordinary multiline grammar suffix defect", () => {
-    // Given: two ordinary user-authored lines that do not start with list markers.
-    const input = {
-      ...officialDocumentDraftQualityScenarios[0].input,
-      mainContent: "첫째 일반 문장입니다.\n둘째 일반 문장입니다.",
-      attachments: "",
-    };
+describe("ordinary multiline output quality contracts", () => {
+  it.each([
+    ["two sentences", "첫째 일반 문장입니다.\n둘째 일반 문장입니다."],
+    ["three sentences", "첫째 일반 문장입니다.\n둘째 일반 문장입니다.\n셋째 일반 문장입니다."],
+    ["blank line", "첫째 일반 문장입니다.\n\n둘째 일반 문장입니다."],
+    ["leading whitespace", "    첫째 일반 문장입니다.\n    둘째 일반 문장입니다."],
+    ["Korean particles", "학생 건강을 확인합니다.\n안내 자료를 전달합니다."],
+    ["leading newline", "\n첫째 일반 문장입니다."],
+    ["trailing newline", "첫째 일반 문장입니다.\n"],
+  ])("preserves ordinary multiline text without a purpose suffix: %s", (_label, mainContent) => {
+    // Given: ordinary synthetic sentences with user-owned line breaks and spaces.
+    const input = { ...officialDocumentDraftQualityScenarios[0].input, mainContent, attachments: "합성 안내문" };
+    // When: the production generator creates a draft and complete copy.
+    const draft = generateOfficialDocumentDraft(input);
+    const fullCopy = composeOfficialDocumentDraft(draft);
+    // Then: sentences appear once, retaining user whitespace and document boundaries.
+    const block = mainContent.split("\n").map((line) => "  " + line).join("\n");
+    expect(draft.body).toContain("2. 주요 내용\n" + block);
+    expect(draft.body).not.toContain("을(를) 위해");
+    expect(draft.body).not.toContain("아. 주요 내용:");
+    for (const sentence of mainContent.split("\n").map((line) => line.trim()).filter(Boolean)) {
+      expect(draft.body.split(sentence)).toHaveLength(2);
+    }
+    expect(draft.title).toBe(generateOfficialDocumentDraft({ ...input, mainContent: "" }).title);
+    expect(draft.body.match(/합성 안내문 1부\./gu)).toHaveLength(1);
+    expect(fullCopy).toContain(draft.body);
+    expect(fullCopy.match(/끝\./gu)).toHaveLength(1);
+  });
 
-    // When: the current production generator creates the body.
+  it("retains the existing single-line purpose construction", () => {
+    // Given: a single-line purpose previously receiving the purpose particle.
+    const input = { ...officialDocumentDraftQualityScenarios[0].input, mainContent: "학생 건강 확인" };
+    // When: the normal draft is generated.
     const body = generateOfficialDocumentDraft(input).body;
+    // Then: the established single-line construction is unchanged.
+    expect(body).toContain("2. 학생 건강 확인을(를) 위해 다음과 같이 시행하고자 합니다.");
+  });
 
-    // Then: the exact known defect remains visible until a separately approved fix changes it.
-    expect(body).toContain("첫째 일반 문장입니다.\n둘째 일반 문장입니다.을(를) 위해");
+  it.each(["", "합성 확인표"])("retains trailing user whitespace before the document boundary: %s", (attachments) => {
+    // Given: no optional detail fields can mask trimming of the user-owned block.
+    const input = {
+      ...createEmptyOfficialDocumentInput(),
+      mainContent: "첫째 일반 문장입니다.\n둘째 일반 문장입니다.  \n",
+      attachments,
+    };
+    // When: the draft is generated with or without an attachment boundary.
+    const body = generateOfficialDocumentDraft(input).body;
+    // Then: user trailing spaces and the explicit final newline precede the generated boundary.
+    expect(body).toContain("2. 주요 내용\n  첫째 일반 문장입니다.\n  둘째 일반 문장입니다.  \n  ");
+    expect(body.match(/끝\./gu)).toHaveLength(1);
   });
 });
