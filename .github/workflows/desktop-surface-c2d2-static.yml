@@ -1,0 +1,56 @@
+name: Desktop Surface C-2D-2 Windows static contracts
+on:
+  workflow_dispatch:
+    inputs:
+      expected_source_sha:
+        description: Exact reviewed contract source SHA (b37c24740d3fbc436806d20d8411cdadf140e33f)
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: desktop-surface-c2d2-static
+  cancel-in-progress: false
+jobs:
+  contracts:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/main' && github.run_attempt == 1 && inputs.expected_source_sha == 'b37c24740d3fbc436806d20d8411cdadf140e33f' }}
+    runs-on: windows-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      EXPECTED_SOURCE_SHA: ${{ inputs.expected_source_sha }}
+      STATIC_CONTROLLER_SHA: ${{ github.sha }}
+      STATIC_WORKFLOW_SHA: ${{ github.workflow_sha }}
+      STATIC_WORKFLOW_REF: ${{ github.workflow_ref }}
+    steps:
+      - name: Validate one-shot static controller identity
+        run: |
+          if ($env:GITHUB_REPOSITORY -cne 'school-health-hub/BOGUNON_DESK' -or $env:GITHUB_EVENT_NAME -cne 'workflow_dispatch') { throw 'repository or event denied' }
+          if ($env:GITHUB_REF -cne 'refs/heads/main' -or $env:GITHUB_RUN_ATTEMPT -cne '1' -or $env:RUNNER_OS -cne 'Windows') { throw 'ref attempt or runner denied' }
+          if ($env:EXPECTED_SOURCE_SHA -cne 'b37c24740d3fbc436806d20d8411cdadf140e33f') { throw 'source denied' }
+          if ($env:STATIC_CONTROLLER_SHA -cnotmatch '^[a-f0-9]{40}$' -or $env:STATIC_WORKFLOW_SHA -cne $env:STATIC_CONTROLLER_SHA) { throw 'controller identity denied' }
+          if ($env:STATIC_WORKFLOW_REF -cne 'school-health-hub/BOGUNON_DESK/.github/workflows/desktop-surface-c2d2-static.yml@refs/heads/main') { throw 'workflow identity denied' }
+      - name: Checkout immutable contract source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: b37c24740d3fbc436806d20d8411cdadf140e33f
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Verify checked-out source identity and clean state
+        run: |
+          $head = git rev-parse HEAD
+          if ($LASTEXITCODE -ne 0 -or $head -cne $env:EXPECTED_SOURCE_SHA) { throw 'checkout identity denied' }
+          $changes = git status --porcelain --untracked-files=all
+          if ($LASTEXITCODE -ne 0 -or $changes) { throw 'checkout is not clean' }
+          Write-Output ('Static controller={0}; contract source={1}; run={2}; attempt={3}' -f $env:STATIC_CONTROLLER_SHA, $head, $env:GITHUB_RUN_ID, $env:GITHUB_RUN_ATTEMPT)
+      - name: Set up Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Run Node and PowerShell contract tests only
+        timeout-minutes: 3
+        run: |
+          node --test scripts/desktop-surface-c2d2.contract.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'static contract tests failed' }
