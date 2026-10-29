@@ -1,8 +1,8 @@
 //! Isolated Main shell for the synthetic Desktop Surface portable QA flavor.
 //!
-//! This entrypoint intentionally registers no Tauri commands or production
-//! plugins. Its only native responsibility is to own the QA window and launch
-//! the fixed sibling Surface Host for the current process lifetime.
+//! This entrypoint registers only the three fixed Surface edit commands and no
+//! production plugins. Its native responsibility is to own the QA window,
+//! launch the fixed sibling Surface Host, and drive the edit lifecycle.
 
 #[cfg(windows)]
 use crate::surface_runtime::SurfaceRuntimeState;
@@ -85,6 +85,11 @@ pub fn run() {
     let builder = builder.manage(diagnostic.clone());
     #[cfg(windows)]
     let builder = builder.manage(SurfaceRuntimeState::inactive());
+    let builder = builder.invoke_handler(tauri::generate_handler![
+        crate::desktop_surface::main_commands::begin_desktop_surface_edit,
+        crate::desktop_surface::main_commands::complete_desktop_surface_edit,
+        crate::desktop_surface::main_commands::cancel_desktop_surface_edit,
+    ]);
 
     #[cfg(windows)]
     let setup_diagnostic = diagnostic.clone();

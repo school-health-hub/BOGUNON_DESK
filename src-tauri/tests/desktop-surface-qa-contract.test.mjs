@@ -45,7 +45,15 @@ test("native QA entrypoint has an explicit minimal boundary", () => {
     entrypoint,
     /tauri_plugin_(?:updater|deep_link|autostart|store|dialog|opener|single_instance)/,
   );
-  assert.doesNotMatch(entrypoint, /invoke_handler|supabase|oauth|my_finance/i);
+  assert.doesNotMatch(entrypoint, /supabase|oauth|my_finance/i);
+  const handler = entrypoint.match(/invoke_handler\(tauri::generate_handler!\[([\s\S]*?)\]\)/);
+  assert.ok(handler, "QA edit command handler is missing");
+  const commands = [...handler[1].matchAll(/main_commands::([a-z_]+)/g)].map((match) => match[1]);
+  assert.deepEqual(commands, [
+    "begin_desktop_surface_edit",
+    "complete_desktop_surface_edit",
+    "cancel_desktop_surface_edit",
+  ]);
   assert.match(build, /CARGO_FEATURE_DESKTOP_SURFACE_QA/);
   assert.match(build, /AppManifest::new\(\)/);
   assert.match(runtime, /pub fn launch_desktop_surface_qa/);
