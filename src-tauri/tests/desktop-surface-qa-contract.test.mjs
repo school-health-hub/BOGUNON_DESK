@@ -5,6 +5,16 @@ import { test } from "node:test";
 const root = new URL("../", import.meta.url);
 const read = (path) => readFileSync(new URL(path, root), "utf8");
 
+test("QA and production edit adapters are mutually exclusive without widening error visibility", () => {
+  const operating = read("src/main_commands/desktop_surface.rs");
+  for (const command of ["begin", "complete", "cancel"]) {
+    assert.match(operating, new RegExp(String.raw`#\[cfg\(not\(feature = "desktop-surface-qa"\)\)\]\s*#\[tauri::command\]\s*pub\(crate\) fn ${command}_desktop_surface_edit`));
+  }
+  const qa = read("src/qa_edit_commands.rs");
+  assert.doesNotMatch(qa, /CommandError::caller\(/u);
+  assert.match(qa, /CommandError::Caller\s*\{\s*caller_guard:/u);
+});
+
 test("production Tauri identity remains unchanged", () => {
   const production = JSON.parse(read("tauri.conf.json"));
   assert.equal(production.identifier, "kr.sungandi.schoolhealthdesk");

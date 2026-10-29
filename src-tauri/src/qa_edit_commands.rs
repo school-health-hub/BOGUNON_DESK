@@ -63,9 +63,9 @@ mod tests {
     #[test]
     fn guard_failure_is_sanitized() {
         assert_eq!(
-            classify(crate::main_caller::CommandError::caller(
-                crate::main_caller::Error::IdentityMismatch
-            )),
+            classify(crate::main_caller::CommandError::Caller {
+                caller_guard: crate::main_caller::Error::IdentityMismatch,
+            }),
             Failure::CallerDenied
         );
     }

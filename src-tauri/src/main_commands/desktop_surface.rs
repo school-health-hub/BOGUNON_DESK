@@ -1,6 +1,8 @@
 //! Main-only IPC adapters. Business functions remain trusted backend paths.
 use super::*;
+#[cfg(not(feature = "desktop-surface-qa"))]
 use crate::surface_runtime::SurfaceRuntimeState;
+#[cfg(not(feature = "desktop-surface-qa"))]
 use bogunon_main_restore_protocol::edit_control::EditCommand;
 #[tauri::command]
 pub(crate) fn get_desktop_surface_probe(
@@ -12,6 +14,7 @@ pub(crate) fn get_desktop_surface_probe(
     })
 }
 
+#[cfg(not(feature = "desktop-surface-qa"))]
 #[tauri::command]
 pub(crate) fn begin_desktop_surface_edit(
     caller: tauri::Webview,
@@ -20,6 +23,7 @@ pub(crate) fn begin_desktop_surface_edit(
     crate::main_caller::run(&caller, || runtime.send_edit(EditCommand::Begin))
 }
 
+#[cfg(not(feature = "desktop-surface-qa"))]
 #[tauri::command]
 pub(crate) fn complete_desktop_surface_edit(
     caller: tauri::Webview,
@@ -28,6 +32,7 @@ pub(crate) fn complete_desktop_surface_edit(
     crate::main_caller::run(&caller, || runtime.send_edit(EditCommand::Complete))
 }
 
+#[cfg(not(feature = "desktop-surface-qa"))]
 #[tauri::command]
 pub(crate) fn cancel_desktop_surface_edit(
     caller: tauri::Webview,
