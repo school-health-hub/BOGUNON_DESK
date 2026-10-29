@@ -4,6 +4,7 @@
 pub mod browser_exit;
 pub mod cleanup;
 pub mod diagnostic;
+pub mod edit_control;
 pub mod ipc;
 pub mod lifecycle;
 #[cfg(windows)]

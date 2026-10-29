@@ -46,6 +46,11 @@ const renderDeviceSettings = (state: DesktopUpdaterState) => renderToStaticMarku
     onManualUpdateCheck={vi.fn()}
     onMoveWorkFolder={vi.fn()}
     onOpenOnboarding={vi.fn()}
+    surfaceEditMode="idle"
+    surfaceEditBusy={false}
+    onBeginSurfaceEdit={vi.fn()}
+    onCompleteSurfaceEdit={vi.fn()}
+    onCancelSurfaceEdit={vi.fn()}
     onOpenWorkFolder={vi.fn()}
     onOpenWorkPortal={vi.fn()}
     onRenameWorkFolder={vi.fn()}

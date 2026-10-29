@@ -16,6 +16,7 @@ import type { SchoolInfoState } from "../../school-info/types";
 import type { WorkFolderFavorite } from "../../work-folders/types";
 import type { DesktopUpdaterState } from "../../updater/updaterTypes";
 import { ChatGptAccountSettings } from "./ChatGptAccountSettings";
+import { SurfaceEditSettings, type SurfaceEditMode } from "./SurfaceEditSettings";
 
 type AccountSectionProps = {
   readonly authStatus: AuthStatus;
@@ -344,6 +345,11 @@ export function AiSettingsSection(props: AiSettingsSectionProps) {
 }
 
 type DeviceSectionProps = {
+  readonly surfaceEditMode: SurfaceEditMode;
+  readonly surfaceEditBusy: boolean;
+  readonly onBeginSurfaceEdit: () => void;
+  readonly onCompleteSurfaceEdit: () => void;
+  readonly onCancelSurfaceEdit: () => void;
   readonly appVersion: string | null;
   readonly autostart: boolean;
   readonly deviceSettings: DeviceSettings;
@@ -411,6 +417,8 @@ export function DeviceSettingsSection(props: DeviceSectionProps) {
         <div><strong>Windows 시작 시 실행</strong><span>로그인하면 BOGUNON DESK를 자동으로 실행합니다.</span></div>
         <input type="checkbox" checked={props.autostart} disabled={props.isLoadingAutostart} onChange={(event) => props.onAutostartChange(event.currentTarget.checked)} />
       </label>
+      <SurfaceEditSettings mode={props.surfaceEditMode} busy={props.surfaceEditBusy}
+        onBegin={props.onBeginSurfaceEdit} onComplete={props.onCompleteSurfaceEdit} onCancel={props.onCancelSurfaceEdit} />
       <label className="desktop-setting-row">
         <div><strong>창을 닫을 때 트레이로 최소화</strong><span>종료는 트레이 메뉴에서 할 수 있습니다.</span></div>
         <input type="checkbox" checked={props.deviceSettings.closeToTray} onChange={(event) => props.onCloseToTrayChange(event.currentTarget.checked)} />

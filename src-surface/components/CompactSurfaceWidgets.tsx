@@ -48,9 +48,9 @@ const launcherIcon = (launcher: SurfaceLauncher): LucideIcon => {
   return LayoutDashboard;
 };
 
-export function LauncherSurfaceWidget({ launchers, onLaunch }: Readonly<{ launchers: readonly SurfaceLauncher[]; onLaunch: (launcher: SurfaceLauncher) => void }>) {
+export function LauncherSurfaceWidget({ launchers, onLaunch, disabled = false }: Readonly<{ launchers: readonly SurfaceLauncher[]; onLaunch: (launcher: SurfaceLauncher) => void; disabled?: boolean }>) {
   return <div className="surface-launchers">{launchers.map((launcher) => {
     const Icon = launcherIcon(launcher);
-    return <button type="button" key={launcher.actionId} onClick={() => onLaunch(launcher)}><span><Icon size={17} /></span><strong>{launcher.label}</strong></button>;
+    return <button type="button" key={launcher.actionId} disabled={disabled} onClick={() => onLaunch(launcher)}><span><Icon size={17} /></span><strong>{launcher.label}</strong></button>;
   })}<p><Gauge size={13} /> 실제 앱은 실행하지 않습니다.</p></div>;
 }

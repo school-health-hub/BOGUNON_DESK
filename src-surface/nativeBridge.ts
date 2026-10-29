@@ -2,6 +2,9 @@ import type { SurfaceProjection } from "./projection";
 
 export const approvedSurfaceActionIds = ["official-document", "purchase-helper", "record-helper", "home"] as const;
 export type ApprovedSurfaceActionId = (typeof approvedSurfaceActionIds)[number];
+export const surfaceEditCommands = ["BeginEdit", "CompleteEdit", "CancelEdit"] as const;
+export type SurfaceEditCommandName = (typeof surfaceEditCommands)[number];
+export type SurfaceEditControl = Readonly<{ sequence: number; command: SurfaceEditCommandName }>;
 
 type WebViewMessageEvent = Readonly<{ data: unknown }>;
 type WebViewTransport = Readonly<{
@@ -15,6 +18,7 @@ export type SurfaceNativeBridge = Readonly<{
   openMain: (actionId: string) => boolean;
   notifyRendererReady: () => boolean;
   subscribe: (listener: (projection: SurfaceProjection) => void) => () => void;
+  subscribeEditControls: (listener: (control: SurfaceEditControl) => void) => () => void;
 }>;
 
 export const rendererRuntimeStages = [
@@ -43,6 +47,8 @@ export function markRendererRuntimeStage(document: Document, stage: RendererRunt
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
 const isString = (value: unknown): value is string => typeof value === "string";
 const isNullableString = (value: unknown): value is string | null => value === null || isString(value);
+const isSurfaceEditCommand = (value: unknown): value is SurfaceEditCommandName =>
+  typeof value === "string" && surfaceEditCommands.some((candidate) => candidate === value);
 
 function isSurfaceProjection(value: unknown): value is SurfaceProjection {
   if (!isRecord(value) || value.kind !== "synthetic-preview" || !isString(value.generatedAt)) return false;
@@ -100,6 +106,19 @@ export function createSurfaceNativeBridge(webview: WebViewTransport, generation:
         if (!isRecord(event.data) || event.data.kind !== "SurfaceProjection") return;
         const projection = event.data.projection;
         if (isSurfaceProjection(projection)) listener(projection);
+      };
+      webview.addEventListener("message", handler);
+      return () => webview.removeEventListener("message", handler);
+    },
+    subscribeEditControls: (listener) => {
+      let lastSequence = 0;
+      const handler = (event: WebViewMessageEvent) => {
+        if (!isRecord(event.data) || event.data.kind !== "SurfaceEditControl"
+          || event.data.generation !== generation || typeof event.data.sequence !== "number"
+          || !Number.isSafeInteger(event.data.sequence) || event.data.sequence <= lastSequence
+          || !isSurfaceEditCommand(event.data.command)) return;
+        lastSequence = event.data.sequence;
+        listener({ sequence: event.data.sequence, command: event.data.command });
       };
       webview.addEventListener("message", handler);
       return () => webview.removeEventListener("message", handler);

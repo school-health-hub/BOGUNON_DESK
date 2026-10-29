@@ -1,10 +1,15 @@
 #[cfg(windows)]
 use crate::main_restore_ipc::MainRestoreServer;
 #[cfg(windows)]
+use bogunon_main_restore_protocol::{
+    edit_control::{EditBinding, EditCommand, EditControlError, MAX_EDIT_MESSAGE_BYTES},
+    memory_channel::write_frame,
+    windows_transport::MAX_GRANT_BYTES,
+};
+#[cfg(windows)]
 use std::{
-    io::Write,
     path::{Path, PathBuf},
-    process::{Child, Command, Stdio},
+    process::{Child, ChildStdin, Command, Stdio},
     sync::Mutex,
 };
 #[cfg(windows)]
@@ -36,41 +41,99 @@ const QA_GATE: &str = "BOGUNON_DESKTOP_SURFACE_QA";
 
 #[cfg(windows)]
 pub struct SurfaceRuntimeState {
-    child: Mutex<Option<Child>>,
+    runtime: Mutex<Option<SurfaceRuntime>>,
+}
+
+#[cfg(windows)]
+struct SurfaceRuntime {
+    child: Child,
+    control: SurfaceControlWriter,
+}
+
+#[cfg(windows)]
+struct SurfaceControlWriter {
+    input: ChildStdin,
+    binding: EditBinding,
+    next_sequence: u64,
+}
+
+#[cfg(windows)]
+impl SurfaceControlWriter {
+    const fn new(input: ChildStdin, binding: EditBinding) -> Self {
+        Self {
+            input,
+            binding,
+            next_sequence: 1,
+        }
+    }
+
+    fn send(&mut self, command: EditCommand) -> Result<(), String> {
+        let payload = self
+            .binding
+            .request(self.next_sequence, command)
+            .map_err(|error| error.to_string())?;
+        write_frame(&mut self.input, &payload, MAX_EDIT_MESSAGE_BYTES)
+            .map_err(|error| error.to_string())?;
+        self.next_sequence = self
+            .next_sequence
+            .checked_add(1)
+            .ok_or_else(|| EditControlError::InvalidSequence.to_string())?;
+        Ok(())
+    }
 }
 
 #[cfg(windows)]
 impl SurfaceRuntimeState {
     pub const fn inactive() -> Self {
         Self {
-            child: Mutex::new(None),
+            runtime: Mutex::new(None),
         }
     }
 
-    fn replace(&self, child: Child) -> Result<(), (String, Child)> {
-        let Ok(mut slot) = self.child.lock() else {
+    fn replace(&self, runtime: SurfaceRuntime) -> Result<(), (String, SurfaceRuntime)> {
+        let Ok(mut slot) = self.runtime.lock() else {
             return Err((
                 "Surface Host process state is unavailable".to_owned(),
-                child,
+                runtime,
             ));
         };
         if slot.is_some() {
-            return Err(("Surface Host is already active".to_owned(), child));
+            return Err(("Surface Host is already active".to_owned(), runtime));
         }
-        *slot = Some(child);
+        *slot = Some(runtime);
         Ok(())
     }
 
+    pub fn send_edit(&self, command: EditCommand) -> Result<(), String> {
+        let mut slot = self
+            .runtime
+            .lock()
+            .map_err(|_| "Surface Host process state is unavailable".to_owned())?;
+        let runtime = slot
+            .as_mut()
+            .ok_or_else(|| "Surface Host is not active".to_owned())?;
+        if runtime
+            .child
+            .try_wait()
+            .map_err(|error| error.to_string())?
+            .is_some()
+        {
+            return Err("Surface Host is not active".to_owned());
+        }
+        runtime.control.send(command)
+    }
+
     fn stop(&self) {
-        let Ok(mut slot) = self.child.lock() else {
+        let Ok(mut slot) = self.runtime.lock() else {
             return;
         };
-        let Some(mut child) = slot.take() else {
+        let Some(mut runtime) = slot.take() else {
             return;
         };
-        if child.try_wait().ok().flatten().is_none() {
-            let _ = child.kill();
-            let _ = child.wait();
+        drop(runtime.control);
+        if runtime.child.try_wait().ok().flatten().is_none() {
+            let _ = runtime.child.kill();
+            let _ = runtime.child.wait();
         }
     }
 }
@@ -78,15 +141,15 @@ impl SurfaceRuntimeState {
 #[cfg(windows)]
 impl Drop for SurfaceRuntimeState {
     fn drop(&mut self) {
-        let Ok(slot) = self.child.get_mut() else {
+        let Ok(slot) = self.runtime.get_mut() else {
             return;
         };
-        let Some(child) = slot.as_mut() else {
+        let Some(runtime) = slot.as_mut() else {
             return;
         };
-        if child.try_wait().ok().flatten().is_none() {
-            let _ = child.kill();
-            let _ = child.wait();
+        if runtime.child.try_wait().ok().flatten().is_none() {
+            let _ = runtime.child.kill();
+            let _ = runtime.child.wait();
         }
     }
 }
@@ -191,13 +254,14 @@ fn launch_surface_with_diagnostic(
         }
     };
     let _ = diagnostic.complete(MainStartupStage::GrantReceive);
+    let edit_binding = grant.edit_binding();
     let mut grant = grant.to_memory_bytes().map_err(|error| error.to_string())?;
     let _ = diagnostic.begin(MainStartupStage::GrantWrite);
     let mut stdin = child
         .stdin
         .take()
         .ok_or_else(|| "Surface Host inherited channel is unavailable".to_owned())?;
-    if let Err(error) = stdin.write_all(&grant) {
+    if let Err(error) = write_frame(&mut stdin, &grant, MAX_GRANT_BYTES) {
         grant.fill(0);
         let _ = diagnostic.fail(MainStartupFailure::GrantWriteFailed, ChildStatus::Unknown);
         server.retire();
@@ -205,16 +269,19 @@ fn launch_surface_with_diagnostic(
         return Err(error.to_string());
     }
     grant.fill(0);
-    drop(stdin);
     let _ = diagnostic.complete(MainStartupStage::GrantWrite);
     let _ = diagnostic.begin(MainStartupStage::ChildRegistration);
-    if let Err((error, mut child)) = state.replace(child) {
+    let runtime = SurfaceRuntime {
+        child,
+        control: SurfaceControlWriter::new(stdin, edit_binding),
+    };
+    if let Err((error, mut runtime)) = state.replace(runtime) {
         let _ = diagnostic.fail(
             MainStartupFailure::ChildRegistrationFailed,
             ChildStatus::Unknown,
         );
         server.retire();
-        terminate_child(&mut child);
+        terminate_child(&mut runtime.child);
         return Err(error);
     }
     let _ = diagnostic.complete(MainStartupStage::ChildRegistration);
@@ -255,14 +322,15 @@ fn launch_surface(app: &AppHandle, state: &SurfaceRuntimeState) -> Result<(), St
         })?;
     let prepared = (|| {
         let grant = server.receive_grant()?;
+        let edit_binding = grant.edit_binding();
         let grant = grant.to_memory_bytes().map_err(|error| error.to_string())?;
         let stdin = child
             .stdin
             .take()
             .ok_or_else(|| "Surface Host inherited channel is unavailable".to_owned())?;
-        Ok::<_, String>((grant, stdin))
+        Ok::<_, String>((grant, stdin, edit_binding))
     })();
-    let (mut grant, mut stdin) = match prepared {
+    let (mut grant, mut stdin, edit_binding) = match prepared {
         Ok(prepared) => prepared,
         Err(error) => {
             server.retire();
@@ -270,17 +338,20 @@ fn launch_surface(app: &AppHandle, state: &SurfaceRuntimeState) -> Result<(), St
             return Err(error);
         }
     };
-    if let Err(error) = stdin.write_all(&grant) {
+    if let Err(error) = write_frame(&mut stdin, &grant, MAX_GRANT_BYTES) {
         grant.fill(0);
         server.retire();
         terminate_child(&mut child);
         return Err(error.to_string());
     }
     grant.fill(0);
-    drop(stdin);
-    if let Err((error, mut child)) = state.replace(child) {
+    let runtime = SurfaceRuntime {
+        child,
+        control: SurfaceControlWriter::new(stdin, edit_binding),
+    };
+    if let Err((error, mut runtime)) = state.replace(runtime) {
         server.retire();
-        terminate_child(&mut child);
+        terminate_child(&mut runtime.child);
         return Err(error);
     }
     server.serve().map_err(|error| {

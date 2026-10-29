@@ -1,5 +1,5 @@
 import { CalendarRange, CheckSquare2, Clock3, Flag, LayoutGrid, RotateCcw, Settings2, Sparkles, SunMedium } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GridLayout, type Layout } from "react-grid-layout";
 import { CalendarSurfaceWidget } from "./components/CalendarSurfaceWidget";
 import { ClockSurfaceWidget, DdaySurfaceWidget, LauncherSurfaceWidget, WeatherSurfaceWidget } from "./components/CompactSurfaceWidgets";
@@ -7,6 +7,7 @@ import { SurfaceFrame } from "./components/SurfaceFrame";
 import { TaskSurfaceWidget } from "./components/TaskSurfaceWidget";
 import { applyGridLayout, calculateGridMetrics, defaultSurfaceLayout, setWidgetVisibility, toGridLayout, type SurfaceLayout, type SurfaceLayoutStorage } from "./layout";
 import type { SurfaceProjection, SurfaceWidgetId } from "./projection";
+import type { SurfaceEditControl } from "./nativeBridge";
 
 const widgetMeta = {
   calendar: { title: "월간 일정", icon: <CalendarRange size={16} />, tone: "work" },
@@ -24,11 +25,14 @@ type Props = Readonly<{
   initialLayout?: SurfaceLayout;
   initialEditing?: boolean;
   isBrowserPreview?: boolean;
+  nativeEditCommand?: SurfaceEditControl | null;
 }>;
 
-export function SurfaceApp({ projection, storage, onOpenMain, initialLayout = defaultSurfaceLayout, initialEditing = false, isBrowserPreview = true }: Props) {
+export function SurfaceApp({ projection, storage, onOpenMain, initialLayout = defaultSurfaceLayout, initialEditing = false, isBrowserPreview = true, nativeEditCommand = null }: Props) {
   const [editing, setEditing] = useState(initialEditing);
   const [layout, setLayout] = useState<SurfaceLayout>(() => storage.load() ?? initialLayout);
+  const editBaseline = useRef<SurfaceLayout | null>(initialEditing ? layout : null);
+  const lastEditControlSequence = useRef(0);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [viewportHeight, setViewportHeight] = useState(() => window.innerHeight);
   const [now, setNow] = useState(() => new Date(projection.generatedAt));
@@ -42,7 +46,40 @@ export function SurfaceApp({ projection, storage, onOpenMain, initialLayout = de
     const timer = window.setInterval(() => setNow((current) => new Date(current.getTime() + 1_000)), 1_000);
     return () => window.clearInterval(timer);
   }, []);
-  useEffect(() => storage.save(layout), [layout, storage]);
+  useEffect(() => {
+    if (!editing) storage.save(layout);
+  }, [editing, layout, storage]);
+  const beginEditing = useCallback(() => {
+    setEditing((current) => {
+      if (!current) editBaseline.current = layout;
+      return true;
+    });
+  }, [layout]);
+  const completeEditing = useCallback(() => {
+    editBaseline.current = null;
+    setEditing(false);
+  }, []);
+  const cancelEditing = useCallback(() => {
+    const baseline = editBaseline.current;
+    if (baseline !== null) setLayout(baseline);
+    editBaseline.current = null;
+    setEditing(false);
+  }, []);
+  useEffect(() => {
+    if (nativeEditCommand === null || nativeEditCommand.sequence <= lastEditControlSequence.current) return;
+    lastEditControlSequence.current = nativeEditCommand.sequence;
+    switch (nativeEditCommand.command) {
+      case "BeginEdit": beginEditing(); break;
+      case "CompleteEdit": completeEditing(); break;
+      case "CancelEdit": cancelEditing(); break;
+    }
+  }, [beginEditing, cancelEditing, completeEditing, nativeEditCommand]);
+  useEffect(() => {
+    if (!editing) return undefined;
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") cancelEditing(); };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [cancelEditing, editing]);
   const gridLayout = useMemo(() => toGridLayout(layout), [layout]);
   const gridMetrics = useMemo(() => calculateGridMetrics(layout, viewportHeight, editing), [editing, layout, viewportHeight]);
   const gridWidth = Math.max(800, viewportWidth - 48);
@@ -51,12 +88,13 @@ export function SurfaceApp({ projection, storage, onOpenMain, initialLayout = de
   const hide = (id: SurfaceWidgetId) => setLayout((current) => setWidgetVisibility(current, id, false));
   const restoreDefault = () => { setLayout(defaultSurfaceLayout); setActivity("기본 합성 배치를 복원했습니다."); };
   return <main className={`surface-preview${editing ? " is-editing" : ""}${isBrowserPreview ? " is-browser-preview" : ""}`}>
-    {isBrowserPreview && <header className="surface-toolbar">
-      <div className="surface-toolbar__identity"><span><Sparkles size={17} /></span><div><strong>Desktop Surface 미리보기</strong><small>브라우저 검토 화면 · 합성 데이터 전용</small></div></div>
+    {(isBrowserPreview || editing) && <header className="surface-toolbar">
+      <div className="surface-toolbar__identity"><span><Sparkles size={17} /></span><div><strong>{editing && !isBrowserPreview ? "Surface 편집 중" : "Desktop Surface 미리보기"}</strong><small>{editing ? "완료하거나 Escape로 취소하세요." : "브라우저 검토 화면 · 합성 데이터 전용"}</small></div></div>
       <div className="surface-toolbar__status" role="status">{activity}</div>
       <div className="surface-toolbar__actions">
         {editing && <button type="button" className="surface-button is-secondary" onClick={restoreDefault}><RotateCcw size={15} /> 기본 배치</button>}
-        <button type="button" className="surface-button" aria-pressed={editing} onClick={() => setEditing((current) => !current)}><Settings2 size={15} /> {editing ? "편집 완료" : "위젯 편집"}</button>
+        {editing && <button type="button" className="surface-button is-secondary" onClick={cancelEditing}>편집 취소</button>}
+        <button type="button" className="surface-button" aria-pressed={editing} onClick={editing ? completeEditing : beginEditing}><Settings2 size={15} /> {editing ? "편집 완료" : "위젯 편집"}</button>
       </div>
     </header>}
     {editing && <aside className="surface-editor" aria-label="숨긴 위젯 관리">
@@ -77,7 +115,7 @@ export function SurfaceApp({ projection, storage, onOpenMain, initialLayout = de
             {id === "dday" && <DdaySurfaceWidget items={projection.ddays} />}
             {id === "clock" && <ClockSurfaceWidget now={now} />}
             {id === "weather" && <WeatherSurfaceWidget weather={projection.weather} />}
-            {id === "launcher" && <LauncherSurfaceWidget launchers={projection.launchers} onLaunch={(launcher) => {
+            {id === "launcher" && <LauncherSurfaceWidget launchers={projection.launchers} disabled={editing} onLaunch={(launcher) => {
               onOpenMain?.(launcher.actionId);
               setActivity(onOpenMain === undefined ? `합성 실행 기록 · ${launcher.actionId}` : `Main 열기 요청 · ${launcher.label}`);
             }} />}

@@ -2,6 +2,18 @@ import { invoke, isTauri } from "@tauri-apps/api/core";
 import type { AccountLauncherLinks } from "../settings/types";
 import type { BogunonSearchResultTarget, ConfigurableUrlActionId, DesktopActionId, DesktopActionOutcome, LauncherSettings, WorkPortalAutoOpenDelay } from "./types";
 
+export const desktopSurfaceEditCommands = ["begin", "complete", "cancel"] as const;
+export type DesktopSurfaceEditCommand = (typeof desktopSurfaceEditCommands)[number];
+
+export const sendDesktopSurfaceEdit = async (command: DesktopSurfaceEditCommand): Promise<void> => {
+  if (!isDesktopRuntime()) throw new Error("Surface 편집은 Tauri 앱에서 사용할 수 있습니다.");
+  switch (command) {
+    case "begin": await invoke("begin_desktop_surface_edit"); return;
+    case "complete": await invoke("complete_desktop_surface_edit"); return;
+    case "cancel": await invoke("cancel_desktop_surface_edit"); return;
+  }
+};
+
 export const isDesktopRuntime = (): boolean => isTauri();
 
 export const executeNativeDesktopAction = async (

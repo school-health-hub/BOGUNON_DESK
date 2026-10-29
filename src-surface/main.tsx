@@ -10,6 +10,7 @@ import { SurfaceApp } from "./SurfaceApp";
 import { createSessionStorageAdapter, editedSurfaceLayout } from "./layout";
 import { syntheticSurfaceProjection } from "./projection";
 import type { SurfaceProjection } from "./projection";
+import type { SurfaceEditControl } from "./nativeBridge";
 import {
   createSurfaceNativeBridge,
   getWebViewTransport,
@@ -23,6 +24,7 @@ if (typeof document !== "undefined") markRendererRuntimeStage(document, "script_
 export function SurfaceRoot() {
   const [projection, setProjection] = useState<SurfaceProjection>(syntheticSurfaceProjection);
   const [nativeProjectionApplied, setNativeProjectionApplied] = useState(false);
+  const [nativeEditCommand, setNativeEditCommand] = useState<SurfaceEditControl | null>(null);
   const nativeBridge = useMemo(() => {
     const webview = getWebViewTransport(window);
     const generation = parseSurfaceGeneration(window.location.search);
@@ -46,6 +48,7 @@ export function SurfaceRoot() {
     nativeBridge.requestProjection();
     return unsubscribe;
   }, [nativeBridge]);
+  useEffect(() => nativeBridge?.subscribeEditControls(setNativeEditCommand), [nativeBridge]);
   useEffect(() => {
     if (nativeBridge !== null && nativeProjectionApplied) {
       markRendererRuntimeStage(document, "ready_post_attempted");
@@ -56,6 +59,7 @@ export function SurfaceRoot() {
   return <SurfaceApp projection={projection} storage={createSessionStorageAdapter(window.sessionStorage)}
     onOpenMain={nativeBridge === null ? undefined : (actionId) => { nativeBridge.openMain(actionId); }}
     isBrowserPreview={nativeBridge === null}
+    nativeEditCommand={nativeEditCommand}
     initialEditing={editingPreview} initialLayout={editingPreview ? editedSurfaceLayout : undefined} />;
 }
 

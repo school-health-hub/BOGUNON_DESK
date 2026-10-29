@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { SurfaceApp } from "./SurfaceApp";
 import { defaultSurfaceLayout, type SurfaceLayout, type SurfaceLayoutStorage } from "./layout";
 import { syntheticSurfaceProjection } from "./projection";
@@ -43,5 +43,43 @@ describe("SurfaceApp", () => {
     fireEvent.click(screen.getByRole("button", { name: /기본 배치/ }));
     expect(storage.saved()).toEqual(defaultSurfaceLayout);
     expect(screen.getByRole("article", { name: "D-Day" })).toBeTruthy();
+  });
+
+  it("commits native edits for the current session", () => {
+    const storage = createMemoryStorage();
+    const { rerender } = render(<SurfaceApp projection={syntheticSurfaceProjection} storage={storage} nativeEditCommand={null} isBrowserPreview={false} />);
+    rerender(<SurfaceApp projection={syntheticSurfaceProjection} storage={storage} nativeEditCommand={{ sequence: 1, command: "BeginEdit" }} isBrowserPreview={false} />);
+    expect(screen.getByText("Surface 편집 중")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "날씨 숨기기" }));
+    expect(storage.saved()).toEqual(defaultSurfaceLayout);
+    rerender(<SurfaceApp projection={syntheticSurfaceProjection} storage={storage} nativeEditCommand={{ sequence: 2, command: "CompleteEdit" }} isBrowserPreview={false} />);
+    expect(screen.queryByText("Surface 편집 중")).toBeNull();
+    expect(storage.saved()?.widgets.find(({ id }) => id === "weather")?.visible).toBe(false);
+  });
+
+  it("restores the exact pre-edit layout on native cancel and Escape", () => {
+    const storage = createMemoryStorage();
+    const { rerender } = render(<SurfaceApp projection={syntheticSurfaceProjection} storage={storage} nativeEditCommand={null} isBrowserPreview={false} />);
+    rerender(<SurfaceApp projection={syntheticSurfaceProjection} storage={storage} nativeEditCommand={{ sequence: 1, command: "BeginEdit" }} isBrowserPreview={false} />);
+    fireEvent.click(screen.getByRole("button", { name: "D-Day 숨기기" }));
+    rerender(<SurfaceApp projection={syntheticSurfaceProjection} storage={storage} nativeEditCommand={{ sequence: 2, command: "CancelEdit" }} isBrowserPreview={false} />);
+    expect(storage.saved()).toEqual(defaultSurfaceLayout);
+    expect(screen.getByRole("article", { name: "D-Day" })).toBeTruthy();
+
+    rerender(<SurfaceApp projection={syntheticSurfaceProjection} storage={storage} nativeEditCommand={{ sequence: 3, command: "BeginEdit" }} isBrowserPreview={false} />);
+    fireEvent.click(screen.getByRole("button", { name: "날씨 숨기기" }));
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(storage.saved()).toEqual(defaultSurfaceLayout);
+    expect(screen.getByRole("article", { name: "날씨" })).toBeTruthy();
+  });
+
+  it("suppresses Quick Launcher while editing", () => {
+    const onOpenMain = vi.fn();
+    render(<SurfaceApp projection={syntheticSurfaceProjection} storage={createMemoryStorage()} onOpenMain={onOpenMain}
+      nativeEditCommand={{ sequence: 1, command: "BeginEdit" }} isBrowserPreview={false} />);
+    const launcher = screen.getByRole("button", { name: /공문 작업실/ });
+    expect(launcher).toHaveProperty("disabled", true);
+    fireEvent.click(launcher);
+    expect(onOpenMain).not.toHaveBeenCalled();
   });
 });

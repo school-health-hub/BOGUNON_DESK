@@ -70,4 +70,24 @@ describe("surface native bridge", () => {
     expect(received).toHaveBeenCalledOnce();
     expect(received).toHaveBeenCalledWith(syntheticSurfaceProjection);
   });
+
+  it("accepts only ordered native edit controls for its generation", () => {
+    let listener: ((event: Readonly<{ data: unknown }>) => void) | undefined;
+    const received = vi.fn();
+    const bridge = createSurfaceNativeBridge({
+      postMessage: vi.fn(),
+      addEventListener: (_type, next) => { listener = next; },
+      removeEventListener: vi.fn(),
+    }, 7);
+    bridge.subscribeEditControls(received);
+    listener?.({ data: { kind: "SurfaceEditControl", generation: 7, sequence: 1, command: "BeginEdit" } });
+    listener?.({ data: { kind: "SurfaceEditControl", generation: 7, sequence: 1, command: "CompleteEdit" } });
+    listener?.({ data: { kind: "SurfaceEditControl", generation: 6, sequence: 2, command: "CancelEdit" } });
+    listener?.({ data: { kind: "SurfaceEditControl", generation: 7, sequence: 2, command: "RunCommand" } });
+    listener?.({ data: { kind: "SurfaceEditControl", generation: 7, sequence: 2, command: "CancelEdit" } });
+    expect(received.mock.calls.map(([value]) => value)).toEqual([
+      { sequence: 1, command: "BeginEdit" },
+      { sequence: 2, command: "CancelEdit" },
+    ]);
+  });
 });

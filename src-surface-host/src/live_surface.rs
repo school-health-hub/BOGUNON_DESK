@@ -4,10 +4,12 @@ use std::{
     fs::{create_dir, remove_dir_all},
     path::{Path, PathBuf},
     rc::Rc,
+    sync::mpsc::{Receiver, TryRecvError},
     thread,
     time::{Duration, Instant},
 };
 
+use crate::edit_control::EditControlResult;
 use bogunon_main_restore_protocol::windows_transport::SurfaceRestoreGrant;
 use thiserror::Error;
 use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2Controller;
@@ -71,6 +73,8 @@ pub enum LiveSurfaceError {
     Cleanup(CleanupUnknown),
     #[error("Surface Main restore channel failed")]
     MainRestore,
+    #[error("Surface edit control was rejected")]
+    EditControl,
     #[error("Surface temporary storage cleanup failed")]
     TemporaryCleanup,
     #[error("Surface QA diagnostic failed: {0}")]
@@ -106,6 +110,7 @@ impl LiveSurfaceError {
             Self::Ownership(_) => FailureCode::OwnershipFailed,
             Self::Cleanup(_) => FailureCode::CleanupUnverified,
             Self::MainRestore => FailureCode::MainRestoreFailed,
+            Self::EditControl => FailureCode::RendererMessageContractRejected,
             Self::TemporaryCleanup => FailureCode::TemporaryCleanupFailed,
             Self::Diagnostic(_) => FailureCode::DiagnosticWriteFailed,
         }
@@ -138,6 +143,7 @@ impl MainOpener for TrackedMainOpener {
 
 pub fn run(
     grant: SurfaceRestoreGrant,
+    edit_controls: Receiver<EditControlResult>,
     diagnostic: &mut QaRuntimeDiagnostic,
 ) -> Result<(), LiveSurfaceError> {
     diagnostic.begin(RuntimeStage::RuntimeAdmission)?;
@@ -294,6 +300,8 @@ pub fn run(
             controller: &controller.controller,
             diagnostic,
         },
+        &renderer,
+        &edit_controls,
         || opened.get(),
     )?;
 
@@ -440,6 +448,8 @@ struct InteractionContext<'a> {
 fn wait_for_interaction(
     timeout: Duration,
     context: InteractionContext<'_>,
+    renderer: &AttachedRenderer<TrackedMainOpener>,
+    edit_controls: &Receiver<EditControlResult>,
     opened: impl Fn() -> bool,
 ) -> Result<(), LiveSurfaceError> {
     context.diagnostic.begin(RuntimeStage::MainRestoreRequest)?;
@@ -460,6 +470,11 @@ fn wait_for_interaction(
         }
         if Instant::now() >= deadline {
             return Err(LiveSurfaceError::Timeout);
+        }
+        match edit_controls.try_recv() {
+            Ok(Ok(control)) => renderer.send_edit_control(control)?,
+            Ok(Err(_)) => return Err(LiveSurfaceError::EditControl),
+            Err(TryRecvError::Empty | TryRecvError::Disconnected) => {}
         }
         let _ = pump_pending()?;
         if context.window.take_resize_requested() {

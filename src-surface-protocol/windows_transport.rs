@@ -70,6 +70,10 @@ impl std::fmt::Debug for SurfaceRestoreGrant {
     }
 }
 impl SurfaceRestoreGrant {
+    pub fn edit_binding(&self) -> crate::edit_control::EditBinding {
+        self.binding.edit_binding()
+    }
+
     pub fn into_parts(self) -> (String, RestoreBinding) {
         (self.endpoint, self.binding)
     }

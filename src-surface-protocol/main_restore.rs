@@ -22,7 +22,7 @@ impl Capability {
         result
     }
 
-    fn matches_encoded(&self, candidate: &str) -> bool {
+    pub(crate) fn matches_encoded(&self, candidate: &str) -> bool {
         let expected = self.encode();
         if expected.len() != candidate.len() {
             return false;
@@ -52,6 +52,14 @@ pub struct RestoreBinding {
 }
 
 impl RestoreBinding {
+    pub fn edit_binding(&self) -> crate::edit_control::EditBinding {
+        crate::edit_control::EditBinding::from_restore(self)
+    }
+
+    pub(crate) fn capability_for_edit(&self) -> Capability {
+        self.capability.clone()
+    }
+
     pub const fn new(
         generation: u64,
         attempt: u64,

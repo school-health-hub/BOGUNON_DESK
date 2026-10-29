@@ -35,6 +35,11 @@ const renderDeviceSettings = (overrides: Partial<Parameters<typeof DeviceSetting
     updaterState={idleUpdaterState}
     onManualUpdateCheck={vi.fn()}
     onOpenOnboarding={vi.fn()}
+    surfaceEditMode="idle"
+    surfaceEditBusy={false}
+    onBeginSurfaceEdit={vi.fn()}
+    onCompleteSurfaceEdit={vi.fn()}
+    onCancelSurfaceEdit={vi.fn()}
     {...overrides}
   />);
 

@@ -206,6 +206,18 @@ command_case!(
     get_desktop_surface_probe,
     "main_commands/desktop_surface.rs"
 );
+command_case!(
+    begin_desktop_surface_edit,
+    "main_commands/desktop_surface.rs"
+);
+command_case!(
+    complete_desktop_surface_edit,
+    "main_commands/desktop_surface.rs"
+);
+command_case!(
+    cancel_desktop_surface_edit,
+    "main_commands/desktop_surface.rs"
+);
 command_case!(get_notification_settings, "main_commands/notifications.rs");
 command_case!(
     set_workspace_notifications_enabled,

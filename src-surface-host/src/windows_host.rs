@@ -287,6 +287,7 @@ use crate::{
         ConnectionResponse, MainOpener, SurfaceConnection, SURFACE_HOST,
     },
 };
+use bogunon_main_restore_protocol::edit_control::AdmittedEditCommand;
 
 pub struct NativeHandlerRegistry<M: MainOpener + 'static> {
     webview: ICoreWebView2,
@@ -552,9 +553,25 @@ pub struct AttachedRenderer<M: MainOpener + 'static> {
     pub session: RendererSession<NativeHandlerRegistry<M>>,
     pub runtime: Rc<RendererRuntimeState>,
     webview: ICoreWebView2,
+    generation: Generation,
 }
 
 impl<M: MainOpener + 'static> AttachedRenderer<M> {
+    pub fn send_edit_control(&self, control: AdmittedEditCommand) -> Result<(), HostError> {
+        let payload = serde_json::json!({
+            "kind": "SurfaceEditControl",
+            "generation": self.generation.get(),
+            "sequence": control.sequence,
+            "command": control.command.wire_name(),
+        })
+        .to_string();
+        let payload = wide(OsStr::new(&payload));
+        // SAFETY: [Category 8 — FFI boundary] payload is a NUL-terminated UTF-16 JSON value
+        // containing only fixed edit-control fields and remains alive for the synchronous call.
+        unsafe { self.webview.PostWebMessageAsJson(PCWSTR(payload.as_ptr())) }?;
+        Ok(())
+    }
+
     pub fn probe_script_stage(&self) -> Result<(), HostError> {
         if !self.runtime.begin_script_probe() {
             return Ok(());
@@ -643,5 +660,6 @@ pub fn attach_surface_renderer<M: MainOpener + 'static>(
         session,
         runtime,
         webview,
+        generation,
     })
 }

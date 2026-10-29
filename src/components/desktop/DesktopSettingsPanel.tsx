@@ -5,7 +5,7 @@ import { useAiConnection } from "../../ai/AiConnectionContext";
 import { useAuth } from "../../auth/AuthContext";
 import { PRODUCT_NAME } from "../../branding";
 import { useChatGptConnection } from "../../chatgpt/ChatGptConnectionContext";
-import { executeNativeDesktopAction, getDesktopErrorMessage } from "../../desktop/actions";
+import { executeNativeDesktopAction, getDesktopErrorMessage, sendDesktopSurfaceEdit, type DesktopSurfaceEditCommand } from "../../desktop/actions";
 import type { ConfigurableUrlActionId } from "../../desktop/types";
 import type { WorkPortalAutoOpenDelay } from "../../desktop/types";
 import { emptyAccountLauncherLinks } from "../../settings/accountSettings";
@@ -33,6 +33,7 @@ import {
   DeviceSettingsSection,
   ScreenSettingsSection,
 } from "./SettingsCenterSections";
+import type { SurfaceEditMode } from "./SurfaceEditSettings";
 
 type DesktopSettingsPanelProps = {
   readonly initialSectionId?: SettingsSectionId;
@@ -75,6 +76,8 @@ export function DesktopSettingsPanel({
   const [editingUrl, setEditingUrl] = useState<ConfigurableUrlActionId | null>(null);
   const [urlDraft, setUrlDraft] = useState("");
   const [isSavingLauncher, setIsSavingLauncher] = useState(false);
+  const [surfaceEditMode, setSurfaceEditMode] = useState<SurfaceEditMode>("idle");
+  const [surfaceEditBusy, setSurfaceEditBusy] = useState(false);
   const [isEditingWorkPortal, setIsEditingWorkPortal] = useState(false);
   const [workPortalDraft, setWorkPortalDraft] = useState("");
   const [activeSection, setActiveSection] = useState<SettingsSectionId>(
@@ -162,6 +165,19 @@ export function DesktopSettingsPanel({
       onNotice(getDesktopErrorMessage(error));
     } finally {
       setIsLoadingAutostart(false);
+    }
+  };
+
+  const updateSurfaceEdit = async (command: DesktopSurfaceEditCommand): Promise<void> => {
+    setSurfaceEditBusy(true);
+    try {
+      await sendDesktopSurfaceEdit(command);
+      setSurfaceEditMode(command === "begin" ? "editing" : "idle");
+      onNotice(command === "begin" ? "Surface 편집을 시작했습니다." : command === "complete" ? "현재 세션 배치를 확정했습니다." : "Surface 편집을 취소했습니다.");
+    } catch (error: unknown) {
+      onNotice(getDesktopErrorMessage(error));
+    } finally {
+      setSurfaceEditBusy(false);
     }
   };
 
@@ -441,6 +457,11 @@ export function DesktopSettingsPanel({
 
           {activeSection === "device" && (
             <DeviceSettingsSection
+              surfaceEditMode={surfaceEditMode}
+              surfaceEditBusy={surfaceEditBusy}
+              onBeginSurfaceEdit={() => void updateSurfaceEdit("begin")}
+              onCompleteSurfaceEdit={() => void updateSurfaceEdit("complete")}
+              onCancelSurfaceEdit={() => void updateSurfaceEdit("cancel")}
               autostart={autostart}
               deviceSettings={deviceSettings}
               isLoadingAutostart={isLoadingAutostart}
