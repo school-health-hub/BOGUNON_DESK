@@ -28,6 +28,7 @@ use crate::{
     runtime_identity::directory_identity,
     surface_connection::MainOpener,
     udf::{self, DirectoryObservation},
+    window_geometry::{self, GeometryStage},
     windows_host::{
         attach_surface_renderer, observe_runtime, pump_pending, AttachedRenderer,
         ControllerRequest, EnvironmentRequest, HostError, RuntimeBinding, StaGuard,
@@ -187,6 +188,17 @@ pub fn run(
         runtime_binding,
     )?;
     ledger.acquire(attempt, Resource::Controller, 5)?;
+    diagnostic.record_window_geometry(window_geometry::observe(
+        window.hwnd(),
+        &controller.controller,
+        GeometryStage::ControllerCreated,
+    )?)?;
+    window_geometry::synchronize(window.hwnd(), &controller.controller)?;
+    diagnostic.record_window_geometry(window_geometry::observe(
+        window.hwnd(),
+        &controller.controller,
+        GeometryStage::BoundsSynchronized,
+    )?)?;
     diagnostic.complete(RuntimeStage::ControllerCreation)?;
     diagnostic.begin(RuntimeStage::UdfVerification)?;
     ledger.acquire(attempt, Resource::WebView, 6)?;
@@ -254,13 +266,36 @@ pub fn run(
         diagnostic,
     )?;
     wait_renderer_ready(CREATION_TIMEOUT, &renderer, diagnostic)?;
+    diagnostic.record_window_geometry(window_geometry::observe(
+        window.hwnd(),
+        &controller.controller,
+        GeometryStage::RendererReady,
+    )?)?;
     diagnostic.begin(RuntimeStage::WindowDisplay)?;
     // SAFETY: [Category 8 — FFI boundary] the controller is live on this STA and the
     // boolean is copied synchronously by WebView2.
     unsafe { controller.controller.SetIsVisible(true) }.map_err(HostError::Com)?;
+    diagnostic.record_window_geometry(window_geometry::observe(
+        window.hwnd(),
+        &controller.controller,
+        GeometryStage::ControllerVisible,
+    )?)?;
     window.show().map_err(HostError::Com)?;
+    diagnostic.record_window_geometry(window_geometry::observe(
+        window.hwnd(),
+        &controller.controller,
+        GeometryStage::WindowVisible,
+    )?)?;
     diagnostic.complete(RuntimeStage::WindowDisplay)?;
-    wait_for_interaction(INTERACTION_TIMEOUT, &window, || opened.get(), diagnostic)?;
+    wait_for_interaction(
+        INTERACTION_TIMEOUT,
+        InteractionContext {
+            window: &window,
+            controller: &controller.controller,
+            diagnostic,
+        },
+        || opened.get(),
+    )?;
 
     diagnostic.begin(RuntimeStage::RendererSessionCleanup)?;
     if renderer.session.cleanup().map_err(HostError::Renderer)? != SessionCleanup::Released {
@@ -396,28 +431,47 @@ fn wait_renderer_ready<M: MainOpener + 'static>(
     }
 }
 
+struct InteractionContext<'a> {
+    window: &'a OwnedWindow,
+    controller: &'a ICoreWebView2Controller,
+    diagnostic: &'a mut QaRuntimeDiagnostic,
+}
+
 fn wait_for_interaction(
     timeout: Duration,
-    window: &OwnedWindow,
+    context: InteractionContext<'_>,
     opened: impl Fn() -> bool,
-    diagnostic: &mut QaRuntimeDiagnostic,
 ) -> Result<(), LiveSurfaceError> {
-    diagnostic.begin(RuntimeStage::MainRestoreRequest)?;
+    context.diagnostic.begin(RuntimeStage::MainRestoreRequest)?;
     let deadline = Instant::now() + timeout;
     loop {
         if opened() {
-            diagnostic.complete(RuntimeStage::MainRestoreRequest)?;
+            context
+                .diagnostic
+                .complete(RuntimeStage::MainRestoreRequest)?;
             return Ok(());
         }
-        if window.close_requested() {
-            diagnostic.begin(RuntimeStage::WindowCloseRequest)?;
-            diagnostic.complete(RuntimeStage::WindowCloseRequest)?;
+        if context.window.close_requested() {
+            context.diagnostic.begin(RuntimeStage::WindowCloseRequest)?;
+            context
+                .diagnostic
+                .complete(RuntimeStage::WindowCloseRequest)?;
             return Ok(());
         }
         if Instant::now() >= deadline {
             return Err(LiveSurfaceError::Timeout);
         }
         let _ = pump_pending()?;
+        if context.window.take_resize_requested() {
+            window_geometry::synchronize(context.window.hwnd(), context.controller)?;
+            context
+                .diagnostic
+                .record_window_geometry(window_geometry::observe(
+                    context.window.hwnd(),
+                    context.controller,
+                    GeometryStage::WindowResized,
+                )?)?;
+        }
         thread::sleep(Duration::from_millis(10));
     }
 }

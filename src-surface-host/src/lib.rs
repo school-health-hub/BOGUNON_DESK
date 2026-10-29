@@ -35,6 +35,8 @@ pub mod surface_connection;
 pub mod udf;
 
 #[cfg(windows)]
+mod window_geometry;
+#[cfg(windows)]
 pub mod windows_host;
 
 pub const RUNTIME_VERIFICATION: &str = "NOT_VERIFIED";

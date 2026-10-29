@@ -4,6 +4,8 @@ use serde::Serialize;
 use thiserror::Error;
 
 use crate::renderer_runtime::RendererObservation;
+#[cfg(windows)]
+use crate::window_geometry::WindowGeometryObservation;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -108,6 +110,8 @@ struct QaRuntimeRecord {
     current_stage: RuntimeStage,
     completed_stages: Vec<RuntimeStage>,
     renderer_observations: Vec<RendererObservation>,
+    #[cfg(windows)]
+    window_geometry_observations: Vec<WindowGeometryObservation>,
     outcome: RuntimeOutcome,
     failure_code: Option<FailureCode>,
     cleanup_status: CleanupStatus,
@@ -139,6 +143,8 @@ impl QaRuntimeDiagnostic {
                 current_stage: RuntimeStage::HostStarted,
                 completed_stages: Vec::new(),
                 renderer_observations: Vec::new(),
+                #[cfg(windows)]
+                window_geometry_observations: Vec::new(),
                 outcome: RuntimeOutcome::Running,
                 failure_code: None,
                 cleanup_status: CleanupStatus::NotEvaluated,
@@ -189,6 +195,15 @@ impl QaRuntimeDiagnostic {
             self.persist()?;
         }
         Ok(())
+    }
+
+    #[cfg(windows)]
+    pub(crate) fn record_window_geometry(
+        &mut self,
+        observation: WindowGeometryObservation,
+    ) -> Result<(), DiagnosticWriteError> {
+        self.record.window_geometry_observations.push(observation);
+        self.persist()
     }
 
     pub fn succeed(&mut self) -> Result<(), DiagnosticWriteError> {
@@ -321,5 +336,41 @@ mod tests {
         assert_eq!(value["cleanupStatus"], "unknown");
         assert_ne!(value["outcome"], "success");
         fs::remove_file(path).unwrap();
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn qa_runtime_diagnostic_records_fixed_window_geometry_values(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        use crate::window_geometry::{ControllerBounds, GeometryStage, WindowGeometryObservation};
+
+        let path = std::env::temp_dir().join("bogunon-s2h40-window-geometry.json");
+        let _ = fs::remove_file(&path);
+        let mut diagnostic = QaRuntimeDiagnostic::start_at(path.clone())?;
+        diagnostic.record_window_geometry(WindowGeometryObservation {
+            stage: GeometryStage::ControllerCreated,
+            hwnd_client_width: 784,
+            hwnd_client_height: 561,
+            controller_bounds: ControllerBounds {
+                left: 0,
+                top: 0,
+                width: 0,
+                height: 0,
+            },
+            controller_is_visible: false,
+            hwnd_is_visible: false,
+        })?;
+
+        let value: serde_json::Value = serde_json::from_slice(&fs::read(&path)?)?;
+        let observation = &value["windowGeometryObservations"][0];
+        assert_eq!(observation["stage"], "controller_created");
+        assert_eq!(observation["hwndClientWidth"], 784);
+        assert_eq!(observation["hwndClientHeight"], 561);
+        assert_eq!(observation["controllerBounds"]["width"], 0);
+        assert_eq!(observation["controllerBounds"]["height"], 0);
+        assert_eq!(observation["controllerIsVisible"], false);
+        assert_eq!(observation["hwndIsVisible"], false);
+        fs::remove_file(path)?;
+        Ok(())
     }
 }
