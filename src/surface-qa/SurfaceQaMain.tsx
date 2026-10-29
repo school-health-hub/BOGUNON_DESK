@@ -1,4 +1,7 @@
 import { CheckCircle2, FlaskConical, MonitorUp, ShieldCheck } from "lucide-react";
+import { useState } from "react";
+
+import { sendQaEditCommand, type QaEditCommand } from "./editCommands";
 
 type Props = Readonly<{ sourceSha: string }>;
 
@@ -9,6 +12,24 @@ const qaChecks = [
 ] as const;
 
 export function SurfaceQaMain({ sourceSha }: Props) {
+  const [editing, setEditing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState("편집 명령 대기 중");
+
+  const send = async (command: QaEditCommand) => {
+    setBusy(true);
+    setResult("명령 전송 중");
+    try {
+      await sendQaEditCommand(command);
+      setEditing(command === "begin");
+      setResult(command === "begin" ? "편집 모드 시작됨" : command === "complete" ? "편집 완료됨" : "편집 취소됨");
+    } catch {
+      setResult("명령을 처리하지 못했습니다");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <main className="surface-qa-shell">
       <section className="surface-qa-sheet" aria-labelledby="surface-qa-title">
@@ -27,6 +48,24 @@ export function SurfaceQaMain({ sourceSha }: Props) {
             </li>
           ))}
         </ul>
+        <section className="surface-qa-edit" aria-labelledby="surface-qa-edit-title">
+          <div>
+            <p className="surface-qa-edit-label">NATIVE EDIT CONTROL</p>
+            <h2 id="surface-qa-edit-title">위젯 편집 검증</h2>
+            <p>세션 범위의 고정 명령만 Main → Host → Renderer 경로로 전달합니다.</p>
+          </div>
+          <div className="surface-qa-edit-actions">
+            {!editing ? (
+              <button type="button" disabled={busy} onClick={() => void send("begin")}>편집 시작</button>
+            ) : (
+              <>
+                <button type="button" disabled={busy} onClick={() => void send("complete")}>편집 완료</button>
+                <button className="surface-qa-secondary" type="button" disabled={busy} onClick={() => void send("cancel")}>편집 취소</button>
+              </>
+            )}
+          </div>
+          <output aria-live="polite">{result}</output>
+        </section>
         <footer>
           <span>Source</span>
           <code>{sourceSha.slice(0, 12)}</code>

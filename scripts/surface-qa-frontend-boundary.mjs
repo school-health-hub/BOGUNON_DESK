@@ -9,7 +9,6 @@ const SOURCE_MARKERS = [
   "@tauri-apps/plugin-updater",
   "@tauri-apps/plugin-deep-link",
   "downloadAndInstall",
-  "invoke(",
   "fetch(",
   "WebSocket",
   "EventSource",
@@ -25,6 +24,24 @@ const BUILD_MARKERS = [
   "access_token",
 ];
 const TEXT_EXTENSIONS = new Set([".css", ".html", ".js", ".json", ".map", ".mjs"]);
+const ALLOWED_INVOKE_COMMANDS = new Set([
+  "begin_desktop_surface_edit",
+  "complete_desktop_surface_edit",
+  "cancel_desktop_surface_edit",
+]);
+
+function assertQaInvokeBoundary(source) {
+  const invokeCalls = [...source.matchAll(/\binvoke\s*\(/gu)];
+  const literalCalls = [...source.matchAll(/\binvoke\s*\(\s*["']([^"']+)["']/gu)];
+  if (invokeCalls.length !== literalCalls.length) {
+    throw new Error("Dynamic QA invoke command is forbidden");
+  }
+  for (const match of literalCalls) {
+    if (!ALLOWED_INVOKE_COMMANDS.has(match[1])) {
+      throw new Error(`Forbidden QA invoke command: ${match[1]}`);
+    }
+  }
+}
 
 export function assertQaSourceBoundary(source) {
   for (const marker of SOURCE_MARKERS) {
@@ -33,6 +50,7 @@ export function assertQaSourceBoundary(source) {
   if (/\bfrom\s+["']\.\.\//u.test(source) || /\bimport\s*\(\s*["']\.\.\//u.test(source)) {
     throw new Error("Operating frontend import is forbidden in the QA shell");
   }
+  assertQaInvokeBoundary(source);
 }
 
 async function textFiles(root) {

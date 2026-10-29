@@ -20,6 +20,11 @@ test("QA source boundary accepts the isolated shell and rejects operating import
     () => assertQaSourceBoundary('import { supabase } from "../lib/supabaseClient";'),
     /forbidden QA source marker/i,
   );
+  assert.doesNotThrow(() => assertQaSourceBoundary('invoke("begin_desktop_surface_edit")'));
+  assert.doesNotThrow(() => assertQaSourceBoundary('invoke("complete_desktop_surface_edit")'));
+  assert.doesNotThrow(() => assertQaSourceBoundary('invoke("cancel_desktop_surface_edit")'));
+  assert.throws(() => assertQaSourceBoundary('invoke("execute_desktop_action")'), /forbidden qa invoke command/i);
+  assert.throws(() => assertQaSourceBoundary("invoke(command)"), /dynamic qa invoke command/i);
 });
 
 test("built output scanner rejects production services and updater code", async () => {

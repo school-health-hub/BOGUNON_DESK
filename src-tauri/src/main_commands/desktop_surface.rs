@@ -12,20 +12,12 @@ pub(crate) fn get_desktop_surface_probe(
     })
 }
 
-fn send_edit_control(
-    caller: tauri::Webview,
-    runtime: State<'_, SurfaceRuntimeState>,
-    command: EditCommand,
-) -> Result<(), crate::main_caller::CommandError<String>> {
-    crate::main_caller::run(&caller, || runtime.send_edit(command))
-}
-
 #[tauri::command]
 pub(crate) fn begin_desktop_surface_edit(
     caller: tauri::Webview,
     runtime: State<'_, SurfaceRuntimeState>,
 ) -> Result<(), crate::main_caller::CommandError<String>> {
-    send_edit_control(caller, runtime, EditCommand::Begin)
+    crate::main_caller::run(&caller, || runtime.send_edit(EditCommand::Begin))
 }
 
 #[tauri::command]
@@ -33,7 +25,7 @@ pub(crate) fn complete_desktop_surface_edit(
     caller: tauri::Webview,
     runtime: State<'_, SurfaceRuntimeState>,
 ) -> Result<(), crate::main_caller::CommandError<String>> {
-    send_edit_control(caller, runtime, EditCommand::Complete)
+    crate::main_caller::run(&caller, || runtime.send_edit(EditCommand::Complete))
 }
 
 #[tauri::command]
@@ -41,5 +33,5 @@ pub(crate) fn cancel_desktop_surface_edit(
     caller: tauri::Webview,
     runtime: State<'_, SurfaceRuntimeState>,
 ) -> Result<(), crate::main_caller::CommandError<String>> {
-    send_edit_control(caller, runtime, EditCommand::Cancel)
+    crate::main_caller::run(&caller, || runtime.send_edit(EditCommand::Cancel))
 }

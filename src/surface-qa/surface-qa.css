@@ -52,6 +52,15 @@ header > p:last-child { margin: 12px 0 0; color: #526476; font-size: 14px; word-
 .surface-qa-checks strong { font-size: 14px; }
 .surface-qa-checks small { margin-top: 4px; color: #627585; font-size: 12px; word-break: keep-all; }
 .surface-qa-ready { color: #177f71; }
+.surface-qa-edit { display: grid; gap: 16px; margin: 0 0 28px; padding: 18px; border: 1px solid #cfe5df; border-radius: 12px; background: #f3faf7; }
+.surface-qa-edit-label { margin: 0 0 6px; color: #177f71; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; }
+.surface-qa-edit h2 { margin: 0; color: #263b48; font-size: 18px; }
+.surface-qa-edit > div > p:last-child { margin: 8px 0 0; color: #526476; font-size: 13px; }
+.surface-qa-edit-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.surface-qa-edit button { min-height: 40px; padding: 0 16px; border: 1px solid #177f71; border-radius: 9px; color: #fff; background: #177f71; font-weight: 700; cursor: pointer; }
+.surface-qa-edit button:disabled { cursor: wait; opacity: 0.6; }
+.surface-qa-edit .surface-qa-secondary { color: #10665c; background: #fff; }
+.surface-qa-edit output { min-height: 20px; color: #526476; font-size: 12px; }
 footer { display: flex; align-items: center; justify-content: space-between; padding-top: 16px; border-top: 1px solid #dce6e4; color: #627585; font-size: 12px; }
 code { color: #263b48; font-variant-numeric: tabular-nums; }
 
