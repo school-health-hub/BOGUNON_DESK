@@ -39,6 +39,7 @@ use crate::{
 
 const CREATION_TIMEOUT: Duration = Duration::from_secs(30);
 const INTERACTION_TIMEOUT: Duration = Duration::from_secs(300);
+const CLEANUP_TIMEOUT: Duration = Duration::from_secs(30);
 
 #[path = "live_surface_cleanup.rs"]
 mod rejected_cleanup;
@@ -59,6 +60,11 @@ pub enum LiveSurfaceError {
     OverrideUntrusted,
     #[error("Surface runtime operation timed out")]
     Timeout,
+    #[error("Surface interaction ended with {failure:?}; cleanup={cleanup:?}")]
+    AfterInteraction {
+        failure: FailureCode,
+        cleanup: CleanupStatus,
+    },
     #[error("Surface renderer navigation failed")]
     NavigationFailed,
     #[error("Surface renderer did not become ready")]
@@ -99,6 +105,7 @@ impl LiveSurfaceError {
             },
             Self::OverrideUntrusted => FailureCode::RuntimeAdmissionRejected,
             Self::Timeout => FailureCode::Timeout,
+            Self::AfterInteraction { failure, .. } => *failure,
             Self::NavigationFailed => FailureCode::NavigationFailed,
             Self::RendererReadyTimeout => FailureCode::RendererReadyTimeout,
             Self::RendererMessageRejected(failure) => match failure {
@@ -121,6 +128,7 @@ impl LiveSurfaceError {
             Self::Cleanup(_) => CleanupStatus::Unknown,
             Self::TemporaryCleanup => CleanupStatus::Receipt,
             Self::Udf { cleanup, .. } => *cleanup,
+            Self::AfterInteraction { cleanup, .. } => *cleanup,
             _ => CleanupStatus::NotEvaluated,
         }
     }
@@ -293,7 +301,7 @@ pub fn run(
         GeometryStage::WindowVisible,
     )?)?;
     diagnostic.complete(RuntimeStage::WindowDisplay)?;
-    wait_for_interaction(
+    let interaction = wait_for_interaction(
         INTERACTION_TIMEOUT,
         InteractionContext {
             window: &window,
@@ -303,57 +311,140 @@ pub fn run(
         &renderer,
         &edit_controls,
         || opened.get(),
-    )?;
+    );
+    let timed_out = matches!(interaction, Err(LiveSurfaceError::Timeout));
+    finish_interaction(interaction, || {
+        // Cooperative budget: callback polling is bounded; synchronous COM/diagnostic
+        // calls cannot be preempted here. External termination cannot prove cleanup.
+        let cleanup_deadline = Instant::now() + CLEANUP_TIMEOUT;
+        let mut diagnostic_failed = false;
+        let mut record =
+            |result| record_cleanup_diagnostic(result, timed_out, &mut diagnostic_failed);
+        if timed_out {
+            // Persist failure before attempting release; an interrupted cleanup is never PASS.
+            record(diagnostic.fail(FailureCode::Timeout, CleanupStatus::Unknown))?;
+        }
 
-    diagnostic.begin(RuntimeStage::RendererSessionCleanup)?;
-    if renderer.session.cleanup().map_err(HostError::Renderer)? != SessionCleanup::Released {
-        return Err(LiveSurfaceError::Cleanup(
+        record(diagnostic.begin(RuntimeStage::RendererSessionCleanup))?;
+        cleanup_remaining(cleanup_deadline)?;
+        if renderer.session.cleanup().map_err(HostError::Renderer)? != SessionCleanup::Released {
+            return Err(LiveSurfaceError::Cleanup(
+                CleanupUnknown::ResourceReleaseIncomplete,
+            ));
+        }
+        drop(renderer);
+        record(diagnostic.complete(RuntimeStage::RendererSessionCleanup))?;
+        record(diagnostic.begin(RuntimeStage::ControllerClose))?;
+        cleanup_remaining(cleanup_deadline)?;
+        close_controller(&controller.controller)?;
+        drop(controller);
+        ledger.release(attempt, Resource::WebView, 6)?;
+        ledger.release(attempt, Resource::Controller, 5)?;
+        record(diagnostic.complete(RuntimeStage::ControllerClose))?;
+        record(diagnostic.begin(RuntimeStage::WindowDestroy))?;
+        cleanup_remaining(cleanup_deadline)?;
+        window.destroy().map_err(HostError::Com)?;
+        ledger.release(attempt, Resource::Window, 2)?;
+        record(diagnostic.complete(RuntimeStage::WindowDestroy))?;
+        record(diagnostic.begin(RuntimeStage::BrowserExitObservation))?;
+        let exit = wait_observation(cleanup_remaining(cleanup_deadline)?, &browser_exit)?;
+        if exit.binding != runtime_binding
+            || exit.browser_process_id != observation.browser_process_id
+        {
+            return Err(LiveSurfaceError::Cleanup(
+                CleanupUnknown::BrowserProcessMismatch,
+            ));
+        }
+        record(diagnostic.complete(RuntimeStage::BrowserExitObservation))?;
+        record(diagnostic.begin(RuntimeStage::BrowserExitUnsubscribe))?;
+        cleanup_remaining(cleanup_deadline)?;
+        browser_exit.unsubscribe()?;
+        ledger.release(attempt, Resource::EventToken, 4)?;
+        record(diagnostic.complete(RuntimeStage::BrowserExitUnsubscribe))?;
+        drop(environment);
+        ledger.release(attempt, Resource::Environment, 3)?;
+        drop(sta);
+        ledger.release(attempt, Resource::Host, 1)?;
+        let evidence = BrowserExitEvidence {
+            attempt,
+            environment: generation_value,
+            browser_process_id: exit.browser_process_id,
+            normal_exit: exit.normal,
+        };
+        record(diagnostic.begin(RuntimeStage::CleanupEvaluation))?;
+        cleanup_remaining(cleanup_deadline)?;
+        cleanup::evaluate(false, &ledger, &runtime, Some(&evidence))
+            .map_err(LiveSurfaceError::Cleanup)?;
+        record(diagnostic.complete(RuntimeStage::CleanupEvaluation))?;
+        // Preserve this timed-out run's UDF for inspection; never recursively delete
+        // on the timeout path. A resource receipt does not assert directory removal.
+        if timed_out {
+            return if diagnostic_failed {
+                Err(LiveSurfaceError::Diagnostic(DiagnosticWriteError::Io))
+            } else {
+                Ok(())
+            };
+        }
+        record(diagnostic.begin(RuntimeStage::UdfRemoval))?;
+        cleanup_remaining(cleanup_deadline).map_err(|_| LiveSurfaceError::TemporaryCleanup)?;
+        remove_qa_udf(&udf_root, &requested)?;
+        record(diagnostic.complete(RuntimeStage::UdfRemoval))?;
+        Ok(())
+    })
+}
+
+fn record_cleanup_diagnostic(
+    result: Result<(), DiagnosticWriteError>,
+    timed_out: bool,
+    failed: &mut bool,
+) -> Result<(), LiveSurfaceError> {
+    match result {
+        Ok(()) => Ok(()),
+        Err(_) if timed_out => {
+            *failed = true;
+            Ok(())
+        }
+        Err(error) => Err(LiveSurfaceError::Diagnostic(error)),
+    }
+}
+
+fn cleanup_remaining(deadline: Instant) -> Result<Duration, LiveSurfaceError> {
+    deadline
+        .checked_duration_since(Instant::now())
+        .filter(|remaining| !remaining.is_zero())
+        .ok_or(LiveSurfaceError::Cleanup(
             CleanupUnknown::ResourceReleaseIncomplete,
-        ));
-    }
-    drop(renderer);
-    diagnostic.complete(RuntimeStage::RendererSessionCleanup)?;
-    diagnostic.begin(RuntimeStage::ControllerClose)?;
-    close_controller(&controller.controller)?;
-    drop(controller);
-    ledger.release(attempt, Resource::WebView, 6)?;
-    ledger.release(attempt, Resource::Controller, 5)?;
-    diagnostic.complete(RuntimeStage::ControllerClose)?;
-    diagnostic.begin(RuntimeStage::WindowDestroy)?;
-    window.destroy().map_err(HostError::Com)?;
-    ledger.release(attempt, Resource::Window, 2)?;
-    diagnostic.complete(RuntimeStage::WindowDestroy)?;
-    diagnostic.begin(RuntimeStage::BrowserExitObservation)?;
-    let exit = wait_observation(CREATION_TIMEOUT, &browser_exit)?;
-    if exit.binding != runtime_binding || exit.browser_process_id != observation.browser_process_id
-    {
-        return Err(LiveSurfaceError::Cleanup(
-            CleanupUnknown::BrowserProcessMismatch,
-        ));
-    }
-    diagnostic.complete(RuntimeStage::BrowserExitObservation)?;
-    diagnostic.begin(RuntimeStage::BrowserExitUnsubscribe)?;
-    browser_exit.unsubscribe()?;
-    ledger.release(attempt, Resource::EventToken, 4)?;
-    diagnostic.complete(RuntimeStage::BrowserExitUnsubscribe)?;
-    drop(environment);
-    ledger.release(attempt, Resource::Environment, 3)?;
-    drop(sta);
-    ledger.release(attempt, Resource::Host, 1)?;
-    let evidence = BrowserExitEvidence {
-        attempt,
-        environment: generation_value,
-        browser_process_id: exit.browser_process_id,
-        normal_exit: exit.normal,
+        ))
+}
+
+fn finish_interaction(
+    interaction: Result<(), LiveSurfaceError>,
+    cleanup: impl FnOnce() -> Result<(), LiveSurfaceError>,
+) -> Result<(), LiveSurfaceError> {
+    let timed_out = match interaction {
+        Ok(()) => false,
+        Err(LiveSurfaceError::Timeout) => true,
+        Err(error) => return Err(error),
     };
-    diagnostic.begin(RuntimeStage::CleanupEvaluation)?;
-    cleanup::evaluate(false, &ledger, &runtime, Some(&evidence))
-        .map_err(LiveSurfaceError::Cleanup)?;
-    diagnostic.complete(RuntimeStage::CleanupEvaluation)?;
-    diagnostic.begin(RuntimeStage::UdfRemoval)?;
-    remove_qa_udf(&udf_root, &requested)?;
-    diagnostic.complete(RuntimeStage::UdfRemoval)?;
-    Ok(())
+    let result = cleanup();
+    match result {
+        Ok(()) if !timed_out => Ok(()),
+        Ok(()) => Err(LiveSurfaceError::AfterInteraction {
+            failure: FailureCode::Timeout,
+            cleanup: CleanupStatus::Receipt,
+        }),
+        Err(error) => Err(LiveSurfaceError::AfterInteraction {
+            failure: if timed_out {
+                FailureCode::Timeout
+            } else {
+                error.failure_code()
+            },
+            cleanup: match error.cleanup_status() {
+                CleanupStatus::Receipt => CleanupStatus::Receipt,
+                CleanupStatus::Unknown | CleanupStatus::NotEvaluated => CleanupStatus::Unknown,
+            },
+        }),
+    }
 }
 
 fn wait_for(
@@ -596,5 +687,79 @@ mod tests {
             FailureCode::TemporaryCleanupFailed
         );
         assert_eq!(after_receipt.cleanup_status(), CleanupStatus::Receipt);
+    }
+
+    #[test]
+    fn interaction_timeout_runs_cleanup_without_becoming_success() {
+        let called = Cell::new(false);
+        let result = finish_interaction(Err(LiveSurfaceError::Timeout), || {
+            called.set(true);
+            Ok(())
+        });
+        assert!(called.get());
+        let Err(error) = result else {
+            panic!("timeout must remain failure")
+        };
+        assert_eq!(error.failure_code(), FailureCode::Timeout);
+        assert_eq!(error.cleanup_status(), CleanupStatus::Receipt);
+    }
+
+    #[test]
+    fn interaction_timeout_with_incomplete_cleanup_is_unknown() {
+        let result = finish_interaction(Err(LiveSurfaceError::Timeout), || {
+            Err(LiveSurfaceError::Cleanup(
+                CleanupUnknown::ResourceReleaseIncomplete,
+            ))
+        });
+        let Err(error) = result else {
+            panic!("incomplete cleanup must fail")
+        };
+        assert_eq!(error.failure_code(), FailureCode::Timeout);
+        assert_eq!(error.cleanup_status(), CleanupStatus::Unknown);
+    }
+
+    #[test]
+    fn normal_interaction_requires_successful_cleanup() {
+        assert!(finish_interaction(Ok(()), || Ok(())).is_ok());
+        let Err(error) = finish_interaction(Ok(()), || Err(LiveSurfaceError::Timeout)) else {
+            panic!("cleanup timeout must fail")
+        };
+        assert_eq!(error.cleanup_status(), CleanupStatus::Unknown);
+    }
+
+    #[test]
+    fn storage_removal_failure_keeps_timeout_and_actual_receipt_separate() {
+        let Err(error) = finish_interaction(Err(LiveSurfaceError::Timeout), || {
+            Err(LiveSurfaceError::TemporaryCleanup)
+        }) else {
+            panic!("timeout must remain failure")
+        };
+        assert_eq!(error.failure_code(), FailureCode::Timeout);
+        assert_eq!(error.cleanup_status(), CleanupStatus::Receipt);
+    }
+
+    #[test]
+    fn cleanup_budget_exhaustion_never_waits_again() {
+        assert!(cleanup_remaining(Instant::now() - Duration::from_millis(1)).is_err());
+    }
+
+    #[test]
+    fn timeout_diagnostic_io_failure_does_not_block_resource_release() {
+        let mut failed = false;
+        assert!(
+            record_cleanup_diagnostic(Err(DiagnosticWriteError::Io), true, &mut failed).is_ok()
+        );
+        assert!(failed);
+        let released = Cell::new(false);
+        let result = finish_interaction(Err(LiveSurfaceError::Timeout), || {
+            released.set(true);
+            Err(LiveSurfaceError::Diagnostic(DiagnosticWriteError::Io))
+        });
+        assert!(released.get());
+        let Err(error) = result else {
+            panic!("diagnostic loss must never pass")
+        };
+        assert_eq!(error.failure_code(), FailureCode::Timeout);
+        assert_eq!(error.cleanup_status(), CleanupStatus::Unknown);
     }
 }

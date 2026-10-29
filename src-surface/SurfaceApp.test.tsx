@@ -70,7 +70,9 @@ describe("SurfaceApp", () => {
     expect(calendar.style.height).not.toEqual(height);
     fireEvent.keyDown(window, { key: "Escape" });
     expect(storage.saved()).toEqual(defaultSurfaceLayout);
-    expect(calendar.style.transform).toEqual(before);
+    const restored = document.querySelector('[data-surface-widget="calendar"]');
+    if (!(restored instanceof HTMLElement)) throw new Error("restored calendar missing");
+    expect(restored.style.transform).toEqual(before);
     offsetParent.mockRestore();
   });
   it("reports native editing transitions including Escape and completion", () => {

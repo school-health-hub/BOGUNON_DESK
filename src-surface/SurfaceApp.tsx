@@ -1,12 +1,12 @@
 import { CalendarRange, CheckSquare2, Clock3, Flag, LayoutGrid, RotateCcw, Settings2, Sparkles, SunMedium } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { GridLayout, noCompactor, type Layout } from "react-grid-layout";
+import { GridLayout, noCompactor, type EventCallback, type Layout } from "react-grid-layout";
 import { CalendarSurfaceWidget } from "./components/CalendarSurfaceWidget";
 import { ClockSurfaceWidget, DdaySurfaceWidget, LauncherSurfaceWidget, WeatherSurfaceWidget } from "./components/CompactSurfaceWidgets";
 import { SurfaceFrame } from "./components/SurfaceFrame";
 import { TaskSurfaceWidget } from "./components/TaskSurfaceWidget";
 import { applyGridLayout, calculateGridMetrics, defaultSurfaceLayout, setWidgetVisibility, toGridLayout, type SurfaceLayout, type SurfaceLayoutStorage } from "./layout";
-import type { SurfaceProjection, SurfaceWidgetId } from "./projection";
+import { surfaceWidgetIds, type SurfaceProjection, type SurfaceWidgetId } from "./projection";
 import type { SurfaceEditControl } from "./nativeBridge";
 
 const widgetMeta = {
@@ -18,6 +18,13 @@ const widgetMeta = {
   launcher: { title: "빠른 실행", icon: <LayoutGrid size={16} />, tone: "utility" },
 } as const;
 const freePlacement = { ...noCompactor, preventCollision: true };
+type GridSize = Readonly<{ w: number; h: number }>;
+type ResizeObservation = Readonly<{
+  code: "resize_pointer_started" | "resize_pointer_ended" | "resize_pointer_cancelled" | "resize_started" | "resize_stopped";
+  widget: SurfaceWidgetId;
+  before: GridSize;
+  after: GridSize;
+}>;
 
 type Props = Readonly<{
   projection: SurfaceProjection;
@@ -32,6 +39,12 @@ type Props = Readonly<{
 
 export function SurfaceApp({ projection, storage, onOpenMain, initialLayout = defaultSurfaceLayout, initialEditing = false, isBrowserPreview = true, nativeEditCommand = null, onEditingChanged }: Props) {
   const [editing, setEditing] = useState(initialEditing);
+  const editingAdmission = useRef(initialEditing);
+  const gridGeneration = useRef(0);
+  const [gridEpoch, setGridEpoch] = useState(0);
+  const [resizeObservations, setResizeObservations] = useState<readonly ResizeObservation[]>([]);
+  const resizePointer = useRef<ResizeObservation | null>(null);
+  const resizeStart = useRef<ResizeObservation | null>(null);
   const [layout, setLayout] = useState<SurfaceLayout>(() => storage.load() ?? initialLayout);
   const editBaseline = useRef<SurfaceLayout | null>(initialEditing ? layout : null);
   const lastEditControlSequence = useRef(0);
@@ -52,6 +65,7 @@ export function SurfaceApp({ projection, storage, onOpenMain, initialLayout = de
     if (!editing) storage.save(layout);
   }, [editing, layout, storage]);
   const beginEditing = useCallback(() => {
+    editingAdmission.current = true;
     setEditing((current) => {
       if (!current) editBaseline.current = layout;
       return true;
@@ -59,17 +73,40 @@ export function SurfaceApp({ projection, storage, onOpenMain, initialLayout = de
     onEditingChanged?.(true);
   }, [layout, onEditingChanged]);
   const completeEditing = useCallback(() => {
+    editingAdmission.current = false;
     editBaseline.current = null;
     setEditing(false);
     onEditingChanged?.(false);
   }, [onEditingChanged]);
   const cancelEditing = useCallback(() => {
+    // RGL owns transient drag/resize state and ignores layout props while a drag
+    // is active. A new React identity disposes its listeners and draft state.
+    editingAdmission.current = false;
     const baseline = editBaseline.current;
     if (baseline !== null) setLayout(baseline);
     editBaseline.current = null;
+    resizePointer.current = null;
+    resizeStart.current = null;
+    gridGeneration.current += 1;
+    setGridEpoch(gridGeneration.current);
     setEditing(false);
     onEditingChanged?.(false);
   }, [onEditingChanged]);
+  const observeResize = useCallback((observation: ResizeObservation) => {
+    setResizeObservations((current) => [...current.slice(-7), observation]);
+  }, []);
+  useEffect(() => {
+    if (!editing) return undefined;
+    const ended = (event: PointerEvent) => {
+      const pointer = resizePointer.current;
+      if (pointer === null) return;
+      resizePointer.current = null;
+      observeResize({ ...pointer, code: event.type === "pointercancel" ? "resize_pointer_cancelled" : "resize_pointer_ended" });
+    };
+    window.addEventListener("pointerup", ended, { passive: true });
+    window.addEventListener("pointercancel", ended, { passive: true });
+    return () => { window.removeEventListener("pointerup", ended); window.removeEventListener("pointercancel", ended); };
+  }, [editing, observeResize]);
   useEffect(() => {
     if (nativeEditCommand === null || nativeEditCommand.sequence <= lastEditControlSequence.current) return;
     lastEditControlSequence.current = nativeEditCommand.sequence;
@@ -90,7 +127,19 @@ export function SurfaceApp({ projection, storage, onOpenMain, initialLayout = de
   const editRowHeight = calculateGridMetrics(editBaseline.current ?? layout, viewportHeight, editing).rowHeight;
   const gridWidth = Math.max(800, viewportWidth - 48);
   const hidden = layout.widgets.filter(({ visible }) => !visible);
-  const onGridChange = (next: Layout) => { if (editing) setLayout((current) => applyGridLayout(current, next)); };
+  const onGridChange = (next: Layout) => {
+    if (editingAdmission.current && gridGeneration.current === gridEpoch) setLayout((current) => applyGridLayout(current, next));
+  };
+  const recordResize = (code: "resize_started" | "resize_stopped"): EventCallback => (_next, oldItem, item) => {
+    if (!editingAdmission.current || gridGeneration.current !== gridEpoch || item === null) return;
+    const widget = surfaceWidgetIds.find((id) => id === item.i);
+    if (widget === undefined) return;
+    const before = code === "resize_stopped" && resizeStart.current?.widget === widget
+      ? resizeStart.current.before : { w: oldItem?.w ?? item.w, h: oldItem?.h ?? item.h };
+    const observation = { code, widget, before, after: { w: item.w, h: item.h } };
+    resizeStart.current = code === "resize_started" ? observation : null;
+    observeResize(observation);
+  };
   const hide = (id: SurfaceWidgetId) => setLayout((current) => setWidgetVisibility(current, id, false));
   const restoreDefault = () => { setLayout(defaultSurfaceLayout); setActivity("기본 합성 배치를 복원했습니다."); };
   return <main className={`surface-preview${editing ? " is-editing" : ""}${isBrowserPreview ? " is-browser-preview" : ""}`}>
@@ -107,12 +156,22 @@ export function SurfaceApp({ projection, storage, onOpenMain, initialLayout = de
       <span>카드 상단을 끌어 이동하고, 오른쪽 아래에서 크기를 조절하세요.</span>
       {hidden.map(({ id }) => <button type="button" key={id} onClick={() => setLayout((current) => setWidgetVisibility(current, id, true))}>+ {widgetMeta[id].title}</button>)}
     </aside>}
-    <section className="surface-canvas" aria-label="Desktop Surface 위젯 미리보기" style={{ minHeight: editing ? editRowHeight * gridMetrics.rows + 12 * (gridMetrics.rows - 1) : gridMetrics.pixelHeight }}>
-      <GridLayout className="surface-grid" width={gridWidth} layout={gridLayout} autoSize={false} compactor={freePlacement}
+    <section className="surface-canvas" aria-label="Desktop Surface 위젯 미리보기" style={{ minHeight: editing ? editRowHeight * gridMetrics.rows + 12 * (gridMetrics.rows - 1) : gridMetrics.pixelHeight }}
+      onPointerDownCapture={(event) => {
+        const target = event.target;
+        if (!editingAdmission.current || !(target instanceof Element) || target.closest(".react-resizable-handle") === null) return;
+        const widget = surfaceWidgetIds.find((id) => id === target.closest("[data-surface-widget]")?.getAttribute("data-surface-widget"));
+        const size = layout.widgets.find(({ id }) => id === widget);
+        if (widget === undefined || size === undefined) return;
+        const observation: ResizeObservation = { code: "resize_pointer_started", widget, before: { w: size.width, h: size.height }, after: { w: size.width, h: size.height } };
+        resizePointer.current = observation;
+        observeResize(observation);
+      }}>
+      <GridLayout key={gridEpoch} className="surface-grid" width={gridWidth} layout={gridLayout} autoSize={false} compactor={freePlacement}
         dragConfig={{ enabled: editing, handle: ".surface-drag-handle", cancel: "button" }}
         resizeConfig={{ enabled: editing, handles: ["se"] }}
         gridConfig={{ cols: 12, rowHeight: editing ? editRowHeight : gridMetrics.rowHeight, margin: [12, 12], containerPadding: null }}
-        onLayoutChange={onGridChange}>
+        onResizeStart={recordResize("resize_started")} onResizeStop={recordResize("resize_stopped")} onLayoutChange={onGridChange}>
         {layout.widgets.filter(({ visible }) => visible).map(({ id }) => {
           const meta = widgetMeta[id];
           return <div key={id} data-surface-widget={id}><SurfaceFrame title={meta.title} icon={meta.icon} editing={editing} tone={meta.tone} onHide={() => hide(id)}>
@@ -129,5 +188,6 @@ export function SurfaceApp({ projection, storage, onOpenMain, initialLayout = de
         })}
       </GridLayout>
     </section>
+    <output className="surface-state" aria-label="Resize 입력 진단">{resizeObservations.map((entry) => JSON.stringify(entry)).join("\n")}</output>
   </main>;
 }
