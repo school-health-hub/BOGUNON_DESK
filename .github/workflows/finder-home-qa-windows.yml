@@ -1,0 +1,15 @@
+name: Finder HOME isolated Windows QA build
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Exact reviewed Finder source commit (40 lowercase hexadecimal characters)
+        required: true
+        type: string
+permissions: {}
+jobs:
+  registration-only:
+    if: ${{ false }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Registration only; select the reviewed Finder branch."
