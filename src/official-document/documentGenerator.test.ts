@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createEmptyOfficialDocumentInput, generateOfficialDocumentDraft } from "./documentGenerator";
+import { composeOfficialDocumentDraft, createEmptyOfficialDocumentInput, generateOfficialDocumentDraft } from "./documentGenerator";
 
 const completeInput = {
   ...createEmptyOfficialDocumentInput(),
@@ -66,6 +66,199 @@ describe("official document deterministic generator", () => {
     expect(result.attachments).not.toContain("검진 일정표");
   });
 
+  it("ends an attachment-free body after its final content without fabricating an attachment", () => {
+    // Given: a synthetic document with no attachment input.
+    const input = {
+      ...createEmptyOfficialDocumentInput(),
+      mainContent: "합성 본문 마지막 내용",
+    };
+
+    // When: the deterministic generator creates the body.
+    const body = generateOfficialDocumentDraft(input).body;
+
+    // Then: the canonical body has no placeholder attachment and owns one terminal marker.
+    expect(body).not.toContain("붙임");
+    expect(body).not.toContain("[붙임 자료 입력 필요]");
+    expect(body.match(/끝\./gu)).toHaveLength(1);
+    expect(body.endsWith("끝.")).toBe(true);
+  });
+
+  it.each([
+    ["one", "합성 붙임", ["합성 붙임"]],
+    ["many", "합성 붙임 A, 합성 붙임 B", ["합성 붙임 A", "합성 붙임 B"]],
+  ] as const)("includes %s attachment input once in the canonical body", (_label, attachments, expectedItems) => {
+    // Given: one or more synthetic attachment names.
+    const input = { ...createEmptyOfficialDocumentInput(), mainContent: "합성 본문", attachments };
+
+    // When: the deterministic generator creates the body.
+    const body = generateOfficialDocumentDraft(input).body;
+
+    // Then: every attachment occurs once and the body has one terminal marker.
+    for (const item of expectedItems) {
+      expect(body.match(new RegExp(item, "gu"))).toHaveLength(1);
+    }
+    expect(body.match(/끝\./gu)).toHaveLength(1);
+  });
+
+  it.each([
+    ["attachment and end", "1. 합성 참고 본문\n붙임  합성 참고 서식 1부.  끝."],
+    ["attachment without end", "1. 합성 참고 본문\n붙임  합성 참고 서식 1부."],
+    ["multiline attachments and end", "1. 합성 참고 본문\n붙임\n1. 합성 참고 서식 1부.\n2. 합성 참고 목록 1부.  끝."],
+  ] as const)("normalizes a reference template with %s to one terminal marker", (_label, templateBody) => {
+    // Given: a reference template that owns an attachment block.
+    const reference = {
+      templateBody,
+      attachmentExample: "",
+      messengerExample: "",
+      checklist: "",
+      tableCopyText: "",
+      tableCopyGuide: "",
+    };
+
+    // When: the reference-based draft is generated.
+    const body = generateOfficialDocumentDraft(createEmptyOfficialDocumentInput(), reference).body;
+
+    // Then: the reference attachment remains once and the completed body ends once.
+    expect(body.match(/합성 참고 서식/gu)).toHaveLength(1);
+    expect(body.match(/끝\./gu)).toHaveLength(1);
+    expect(body.endsWith("끝.")).toBe(true);
+  });
+
+  it("does not treat ordinary user prose ending in 끝. as the generator-owned terminal marker", () => {
+    // Given: a reference body whose ordinary sentence happens to end with the word 끝.
+    const reference = {
+      templateBody: "1. 합성 참고 본문\n2. 업무 설명은 끝.",
+      attachmentExample: "",
+      messengerExample: "",
+      checklist: "",
+      tableCopyText: "",
+      tableCopyGuide: "",
+    };
+
+    // When: the reference-based draft is generated without attachments.
+    const body = generateOfficialDocumentDraft(createEmptyOfficialDocumentInput(), reference).body;
+
+    // Then: the user's sentence remains and a distinct generator boundary is appended.
+    expect(body).toBe("1. 합성 참고 본문\n2. 업무 설명은 끝.  끝.");
+  });
+
+  it("does not treat a user placeholder value ending with a standalone 끝. as the template boundary", () => {
+    // Given: user content ending in a standalone end phrase fills a reference placeholder.
+    const reference = {
+      templateBody: "1. 합성 참고 본문\n2. 주요 내용: [주요 내용]",
+      attachmentExample: "",
+      messengerExample: "",
+      checklist: "",
+      tableCopyText: "",
+      tableCopyGuide: "",
+    };
+    const input = {
+      ...createEmptyOfficialDocumentInput(),
+      mainContent: "합성 사용자 설명\n끝.",
+    };
+
+    // When: the placeholder is rendered into the reference body.
+    const body = generateOfficialDocumentDraft(input, reference).body;
+
+    // Then: user text remains and the generator appends its own distinct terminal boundary.
+    expect(body).toBe("1. 합성 참고 본문\n2. 주요 내용: 합성 사용자 설명\n끝.  끝.");
+  });
+
+  it("ends a reference body without attachments after its content", () => {
+    // Given: a reference template and no attachment input or example.
+    const reference = {
+      templateBody: "1. 합성 참고 본문",
+      attachmentExample: "",
+      messengerExample: "",
+      checklist: "",
+      tableCopyText: "",
+      tableCopyGuide: "",
+    };
+
+    // When: the reference-based draft is generated.
+    const body = generateOfficialDocumentDraft(createEmptyOfficialDocumentInput(), reference).body;
+
+    // Then: no placeholder attachment is fabricated and one terminal marker is appended.
+    expect(body).toBe("1. 합성 참고 본문  끝.");
+  });
+
+  it("places reference attachment examples once in the canonical body", () => {
+    // Given: a reference whose attachment examples are the only attachment source.
+    const reference = {
+      templateBody: "1. 합성 참고 본문",
+      attachmentExample: "합성 참고 서식, 합성 참고 목록",
+      messengerExample: "",
+      checklist: "",
+      tableCopyText: "",
+      tableCopyGuide: "",
+    };
+
+    // When: the reference-based draft is generated without user attachment input.
+    const draft = generateOfficialDocumentDraft(createEmptyOfficialDocumentInput(), reference);
+
+    // Then: fallback attachments are part of the canonical body exactly once.
+    expect(draft.body.match(/합성 참고 서식/gu)).toHaveLength(1);
+    expect(draft.body.match(/합성 참고 목록/gu)).toHaveLength(1);
+    expect(draft.body.match(/끝\./gu)).toHaveLength(1);
+  });
+
+  it("replaces stale reference attachments with user-confirmed attachments", () => {
+    // Given: a reference template with a stale attachment and an explicit user attachment.
+    const reference = {
+      templateBody: "1. 합성 참고 본문\n\n붙임  오래된 참고 붙임 1부.  끝.",
+      attachmentExample: "오래된 참고 예시",
+      messengerExample: "",
+      checklist: "",
+      tableCopyText: "",
+      tableCopyGuide: "",
+    };
+    const input = {
+      ...createEmptyOfficialDocumentInput(),
+      attachments: "사용자 확정 붙임",
+    };
+
+    // When: the user-confirmed input is applied to the reference draft.
+    const draft = generateOfficialDocumentDraft(input, reference);
+    const fullCopy = composeOfficialDocumentDraft(draft);
+
+    // Then: the stale template data is gone and the confirmed attachment is canonical once.
+    expect(draft.body).not.toContain("오래된 참고 붙임");
+    expect(draft.body).not.toContain("오래된 참고 예시");
+    expect(draft.body.match(/사용자 확정 붙임/gu)).toHaveLength(1);
+    expect(draft.body.match(/끝\./gu)).toHaveLength(1);
+    expect(fullCopy.match(/사용자 확정 붙임/gu)).toHaveLength(1);
+    expect(fullCopy.match(/끝\./gu)).toHaveLength(1);
+  });
+
+  it("preserves a user-authored non-terminal end phrase and appends the generator boundary", () => {
+    // Given: user prose containing an end phrase that is not the document boundary.
+    const input = {
+      ...createEmptyOfficialDocumentInput(),
+      mainContent: "이 문장의 표현은 끝. 다음 설명은 계속됩니다.",
+    };
+
+    // When: the body is generated.
+    const body = generateOfficialDocumentDraft(input).body;
+
+    // Then: user prose is retained and a separate terminal marker completes the body.
+    expect(body).toContain("이 문장의 표현은 끝. 다음 설명은 계속됩니다.");
+    expect(body.match(/이 문장의 표현은 끝\. 다음 설명은 계속됩니다\./gu)).toHaveLength(2);
+    expect(body.match(/끝\.\s*$/gu)).toHaveLength(1);
+    expect(body.endsWith("끝.")).toBe(true);
+  });
+
+  it("preserves explicit internal newlines and post-newline indentation", () => {
+    // Given: ordinary prose with a user-authored newline and indentation.
+    const mainContent = "첫째 일반 문장입니다.\n    둘째 일반 문장입니다.";
+
+    // When: the body is generated.
+    const body = generateOfficialDocumentDraft({ ...createEmptyOfficialDocumentInput(), mainContent }).body;
+
+    // Then: the explicit newline and its four user spaces remain unchanged.
+    expect(body).toContain("2. 주요 내용\n  첫째 일반 문장입니다.\n      둘째 일반 문장입니다.");
+    expect(body).not.toContain("입니다.을(를)");
+  });
+
   it.each(["1. 사전 준비", "가. 사전 준비", "1) 사전 준비", "가) 사전 준비"])(
     "preserves an existing list marker in main content: %s",
     (mainContent) => {
@@ -76,7 +269,8 @@ describe("official document deterministic generator", () => {
       const body = generateOfficialDocumentDraft(input).body;
 
       // Then: the user marker remains intact without a generated top-level prefix.
-      expect(body).toContain(`\n\n2. 주요 내용\n  ${mainContent}\n\n`);
+      expect(body).toContain(`\n\n2. 주요 내용\n  ${mainContent}`);
+      expect(body.endsWith(`${mainContent}  끝.`)).toBe(true);
       expect(body).not.toContain(`2. ${mainContent}`);
       expect(body).not.toContain("세부 내용: [입력 필요]");
       expect(body.match(new RegExp(mainContent.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gu"))).toHaveLength(1);

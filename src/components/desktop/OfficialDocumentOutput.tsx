@@ -75,7 +75,6 @@ export function OfficialDocumentOutput({ aiResponse, aiStatus, draft, mode, loca
           <article className="official-document-paper">
             <header><span>공문 제목</span><h3>{draft.title}</h3></header>
             <section aria-label="공문 본문"><pre>{draft.body}</pre></section>
-            <section className="official-document-paper__attachments" aria-label="붙임"><pre>{draft.attachments}</pre></section>
           </article>
           <div className="official-document-appendix" aria-label="공문 부록">
             <header><strong>공문 부록</strong><span>업무 전달과 기안 전 확인에 활용하세요.</span></header>

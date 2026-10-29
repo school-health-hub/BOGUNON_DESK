@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { copyOfficialDocumentText } from "./clipboard";
-import { composeOfficialDocumentDraft, generateOfficialDocumentDraft } from "./documentGenerator";
+import { composeOfficialDocumentDraft, createEmptyOfficialDocumentInput, generateOfficialDocumentDraft } from "./documentGenerator";
 import { officialDocumentDraftQualityScenarios, officialDocumentReferenceQualityFixture, officialDocumentRevisionSummaryQualityFixture } from "./documentOutputQuality.fixtures";
 import { buildRevisionPrompt, buildSummaryPrompt } from "./promptBuilder";
 import { extractOfficialDocumentSummary, formatOfficialDocumentSummary } from "./summaryExtractor";
@@ -20,21 +20,6 @@ const attachmentItems = (attachments: string): readonly string[] => bodyLines(at
 
 const standardNumberingScenarios = officialDocumentDraftQualityScenarios
   .filter(({ id }) => id !== "pre-numbered-body");
-
-const fullCopyEndingStatus = (() => {
-  const draft = generateOfficialDocumentDraft(officialDocumentDraftQualityScenarios[0].input);
-  const endingCount = composeOfficialDocumentDraft(draft).match(/끝\./gu)?.length ?? 0;
-  return endingCount === 1 ? "PASS" : endingCount === 2 ? "REVIEW" : "FAIL";
-})();
-
-const multilineIndentationStatus = (() => {
-  const scenario = officialDocumentDraftQualityScenarios.find(({ id }) => id === "long-multiline-korean");
-  if (scenario === undefined) return "FAIL";
-  const draft = generateOfficialDocumentDraft(scenario.input);
-  const hasPreservedBreak = draft.body.includes("긴 한국어 문장입니다.\n둘째 줄은 줄바꿈 이후에도");
-  const hasIndentedContinuation = draft.body.includes("긴 한국어 문장입니다.\n  둘째 줄은 줄바꿈 이후에도");
-  return !hasPreservedBreak ? "FAIL" : hasIndentedContinuation ? "PASS" : "REVIEW";
-})();
 
 describe("official document output quality contracts", () => {
   it.each(officialDocumentDraftQualityScenarios)("preserves title and user text: $label", (scenario) => {
@@ -144,25 +129,99 @@ describe("official document output quality contracts", () => {
     expect(draft.body).toContain("가. 대상: 합성 적용 대상");
     expect(draft.body).toContain("나. 인원: 합성 인원 25명");
     expect(draft.attachments).toContain("1. 합성 참고 서식 1부.\n2. 합성 확인표 1부.");
+    expect(draft.body.match(/합성 참고 서식/gu)).toHaveLength(1);
+    expect(draft.body.match(/합성 확인표/gu)).toHaveLength(1);
     expect(draft.messenger).toBe("합성 적용 대상에게 합성 참고자료 적용 내용을 안내합니다.");
     expect(draft.checklist).toContain("□ 합성 참고자료의 일반 문장만 사용했는지 확인");
     expect(draft.tableText).toBe("구분\t인원\n합성 대상\t합성 인원 25명");
     expect(fullCopy).toContain("표 복사용 본문\n구분\t인원\n합성 대상\t합성 인원 25명");
+    expect(fullCopy.match(/합성 참고 서식/gu)).toHaveLength(1);
+    expect(fullCopy.match(/합성 확인표/gu)).toHaveLength(1);
+    expect(fullCopy.match(/끝\./gu)).toHaveLength(1);
+  });
+
+  it.each(officialDocumentDraftQualityScenarios)("keeps one canonical attachment representation and terminal marker in full copy: $label", (scenario) => {
+    // Given: a synthetic production draft with no user-authored end phrase.
+    const draft = generateOfficialDocumentDraft(scenario.input);
+
+    // When: the complete copy payload is assembled.
+    const fullCopy = composeOfficialDocumentDraft(draft);
+
+    // Then: the canonical body is not followed by a duplicate auxiliary attachment section.
+    expect(fullCopy.match(/끝\./gu)).toHaveLength(1);
+    expect(fullCopy.match(/^붙임 목록$/gmu)).toEqual(null);
+    for (const attachment of scenario.expectedAttachments.filter((item) => item !== "[확인 필요]")) {
+      expect(fullCopy.split(attachment)).toHaveLength(2);
+    }
+  });
+
+  it("preserves list markers and post-newline user indentation", () => {
+    // Given: user-owned structured content with four spaces on a continuation line.
+    const scenario = officialDocumentDraftQualityScenarios.find(({ id }) => id === "pre-numbered-body");
+    expect(scenario).toBeDefined();
+    if (scenario === undefined) return;
+    const input = {
+      ...scenario.input,
+      mainContent: "1. 사전 준비\n    세부 준비\n가. 당일 운영\n1) 확인 항목\n가) 마무리",
+    };
+
+    // When: the production generator creates the draft.
+    const body = generateOfficialDocumentDraft(input).body;
+
+    // Then: markers, line order, and user indentation remain present without viewport-derived breaks.
+    expect(body).toContain("  1. 사전 준비\n      세부 준비\n  가. 당일 운영\n  1) 확인 항목\n  가) 마무리");
   });
 });
 
-describe("official document output policy review markers", () => {
-  it(`[${fullCopyEndingStatus}] records repeated body and standalone attachment endings rather than an automatic failure`, () => {
-    // Given: the current full-copy ending-marker classification.
-    // When: the production output is evaluated by the policy boundary.
-    // Then: one marker passes, the current two-section duplication is reviewable, and other counts fail.
-    expect(fullCopyEndingStatus).not.toBe("FAIL");
+describe("ordinary multiline output quality contracts", () => {
+  it.each([
+    ["two sentences", "첫째 일반 문장입니다.\n둘째 일반 문장입니다."],
+    ["three sentences", "첫째 일반 문장입니다.\n둘째 일반 문장입니다.\n셋째 일반 문장입니다."],
+    ["blank line", "첫째 일반 문장입니다.\n\n둘째 일반 문장입니다."],
+    ["leading whitespace", "    첫째 일반 문장입니다.\n    둘째 일반 문장입니다."],
+    ["Korean particles", "학생 건강을 확인합니다.\n안내 자료를 전달합니다."],
+    ["leading newline", "\n첫째 일반 문장입니다."],
+    ["trailing newline", "첫째 일반 문장입니다.\n"],
+  ])("preserves ordinary multiline text without a purpose suffix: %s", (_label, mainContent) => {
+    // Given: ordinary synthetic sentences with user-owned line breaks and spaces.
+    const input = { ...officialDocumentDraftQualityScenarios[0].input, mainContent, attachments: "합성 안내문" };
+    // When: the production generator creates a draft and complete copy.
+    const draft = generateOfficialDocumentDraft(input);
+    const fullCopy = composeOfficialDocumentDraft(draft);
+    // Then: sentences appear once, retaining user whitespace and document boundaries.
+    const block = mainContent.split("\n").map((line) => "  " + line).join("\n");
+    expect(draft.body).toContain("2. 주요 내용\n" + block);
+    expect(draft.body).not.toContain("을(를) 위해");
+    expect(draft.body).not.toContain("아. 주요 내용:");
+    for (const sentence of mainContent.split("\n").map((line) => line.trim()).filter(Boolean)) {
+      expect(draft.body.split(sentence)).toHaveLength(2);
+    }
+    expect(draft.title).toBe(generateOfficialDocumentDraft({ ...input, mainContent: "" }).title);
+    expect(draft.body.match(/합성 안내문 1부\./gu)).toHaveLength(1);
+    expect(fullCopy).toContain(draft.body);
+    expect(fullCopy.match(/끝\./gu)).toHaveLength(1);
   });
 
-  it(`[${multilineIndentationStatus}] records multiline continuation indentation while preserving user line breaks`, () => {
-    // Given: the current multiline indentation classification.
-    // When: the production output is evaluated by the policy boundary.
-    // Then: lost line breaks fail, while preserved unindented continuations remain reviewable.
-    expect(multilineIndentationStatus).not.toBe("FAIL");
+  it("retains the existing single-line purpose construction", () => {
+    // Given: a single-line purpose previously receiving the purpose particle.
+    const input = { ...officialDocumentDraftQualityScenarios[0].input, mainContent: "학생 건강 확인" };
+    // When: the normal draft is generated.
+    const body = generateOfficialDocumentDraft(input).body;
+    // Then: the established single-line construction is unchanged.
+    expect(body).toContain("2. 학생 건강 확인을(를) 위해 다음과 같이 시행하고자 합니다.");
+  });
+
+  it.each(["", "합성 확인표"])("retains trailing user whitespace before the document boundary: %s", (attachments) => {
+    // Given: no optional detail fields can mask trimming of the user-owned block.
+    const input = {
+      ...createEmptyOfficialDocumentInput(),
+      mainContent: "첫째 일반 문장입니다.\n둘째 일반 문장입니다.  \n",
+      attachments,
+    };
+    // When: the draft is generated with or without an attachment boundary.
+    const body = generateOfficialDocumentDraft(input).body;
+    // Then: user trailing spaces and the explicit final newline precede the generated boundary.
+    expect(body).toContain("2. 주요 내용\n  첫째 일반 문장입니다.\n  둘째 일반 문장입니다.  \n  ");
+    expect(body.match(/끝\./gu)).toHaveLength(1);
   });
 });
