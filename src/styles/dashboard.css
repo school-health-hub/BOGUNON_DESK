@@ -1304,6 +1304,11 @@
   -webkit-backdrop-filter: blur(18px) saturate(120%);
 }
 
+/* Keep view-mode actions in their own top lane without changing saved grid geometry. */
+.workspace-shell.is-view-mode .desktop-workspace-layout {
+  padding-top: 24px;
+}
+
 .workspace-shell.is-view-mode .workspace-view-actions .toolbar-button {
   min-width: 32px;
   min-height: 32px;
