@@ -58,6 +58,11 @@
   --desktop-widget-utility-bg: var(--desktop-glass-bg);
 }
 .workspace-shell .workspace-dashboard .panel__title { color: var(--dashboard-ink); }
+/* Only the measured settings/toolbox secondary copy needs stronger contrast. */
+.workspace-shell .desktop-settings :is(.desktop-settings__nav small, .desktop-settings__section-heading span, .desktop-setting-row span, .desktop-sync-status small, .desktop-school-info.is-status > span),
+.workspace-shell .desktop-settings__nav button:not(.is-active) strong,
+.workspace-shell .desktop-settings > footer,
+.workspace-shell .toolbox-panel__launch small { color: #526476; }
 .workspace-shell .dock {
   --desktop-dock-bg: linear-gradient(145deg, rgb(255 255 255 / 91%), rgb(229 244 239 / 94%));
 }
@@ -158,6 +163,11 @@
 .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .summary-card { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
 .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .summary-stats { align-self: center; align-items: start; grid-template-columns: 2fr 1fr 2fr; margin-top: 0; }
 .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .summary-stats > div { display: grid; align-items: start; align-content: start; gap: var(--space-2); }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .summary-stats__today { grid-column: auto; margin-bottom: 0; }
+/* The signed-out placeholder shares the heading row instead of squeezing stats upward. */
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .summary-card__heading { grid-row: 1; }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .summary-stats { grid-row: 2; }
+.workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .summary-card > .workspace-connection-placeholder { grid-area: 1 / 1; min-height: 0; margin: 0; justify-self: end; align-self: center; }
 .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .summary-stats strong { font-size: var(--text-2xl); line-height: var(--leading-heading); }
 .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .summary-stats__dday { max-width: none; }
 .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .summary-stats__dday strong { font-size: var(--text-md); white-space: normal; overflow-wrap: anywhere; }
