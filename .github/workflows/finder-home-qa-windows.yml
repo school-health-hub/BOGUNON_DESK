@@ -47,7 +47,38 @@ jobs:
         with:
           toolchain: '1.98.1'
           targets: x86_64-pc-windows-msvc
-      - name: Verify hosted native tools without installing replacements
+      - name: Prepare verified NASM 2.16.03
+        run: |
+          if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_OS -ne 'Windows') { throw 'Hosted Windows CI only' }
+          $archiveHash = '3ee4782247bcb874378d02f7eab4e294a84d3d15f3f6ee2de2f47a46aa7226e6'
+          $exeHash = 'a93276636266516421cc9b422f47476c21f7a2949f1ae251556b2f1d33a3be04'
+          $found = Get-Command nasm.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+          $candidates = @()
+          if ($found) { $candidates += $found.Source }
+          $candidates += Join-Path $env:ProgramFiles 'NASM/nasm.exe'
+          $nasm = $null
+          foreach ($candidate in $candidates) {
+            if ((Test-Path -LiteralPath $candidate -PathType Leaf) -and (Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash.ToLowerInvariant() -ceq $exeHash) {
+              $nasm = $candidate
+              break
+            }
+          }
+          if (-not $nasm) {
+            $root = Join-Path $env:RUNNER_TEMP "finder-home-qa-nasm-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+            if (Test-Path -LiteralPath $root) { throw 'NASM staging already exists; no overwrite' }
+            New-Item -ItemType Directory -Path $root -ErrorAction Stop | Out-Null
+            $archive = Join-Path $root 'nasm-2.16.03-win64.zip'
+            Invoke-WebRequest -Uri 'https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/win64/nasm-2.16.03-win64.zip' -MaximumRedirection 0 -TimeoutSec 60 -OutFile $archive
+            if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant() -cne $archiveHash) { throw 'NASM archive checksum mismatch' }
+            Expand-Archive -LiteralPath $archive -DestinationPath $root -ErrorAction Stop
+            $nasm = Join-Path $root 'nasm-2.16.03/nasm.exe'
+          }
+          if ((Get-FileHash -LiteralPath $nasm -Algorithm SHA256).Hash.ToLowerInvariant() -cne $exeHash) { throw 'NASM executable checksum mismatch' }
+          $version = (& $nasm -v).Trim()
+          if ($LASTEXITCODE -ne 0 -or $version -cnotmatch '^NASM version 2\.16\.03(?:\s|$)') { throw 'Unexpected NASM version' }
+          Split-Path -Parent $nasm | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          Write-Output 'Verified NASM 2.16.03 for this disposable CI job only'
+      - name: Verify hosted native tools
         run: |
           perl -MLocale::Maketext::Simple -e 'print "Perl module OK\n"'
           if ($LASTEXITCODE -ne 0) { throw 'Compatible Perl unavailable' }

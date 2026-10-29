@@ -258,8 +258,10 @@ On the disposable runner only: npm ci uses the unchanged package-lock; cargo fet
 one job and the finder-home-qa/custom-protocol feature. The debug portable EXE is
 packaged under the QA filename. Node/Rust downloads and registry access are build
 prerequisites, not application service calls. No local installation occurs in 5B.
-Perl Locale::Maketext::Simple, NASM and MSVC are checked; missing tools fail closed
-without fallback installs. No Cargo target cache is shared with another feature.
+Perl Locale::Maketext::Simple and MSVC remain required; missing tools fail closed.
+HOME-FINDER-5I below supersedes the original NASM prerequisite rule with verified
+portable NASM provisioning on the disposable runner only. No local installation
+or shared Cargo target cache is introduced.
 
 Artifact allowlist is exactly EXE, SOURCE_SHA.txt and ARTIFACT-MANIFEST.json;
 retention is 7 days. Manifest records source SHA, identifier, run identity, EXE size
@@ -308,3 +310,42 @@ js-yaml (read-only; no installation), diff-check and scoped patterns PASS.
 Independent goal, code, security, QA and context review lanes passed after fixing
 a Windows path-prefix case mismatch and completing this current-contract note.
 Full Native build/EXE/Actions/GUI/push are all NOT RUN. No actual AI request occurred.
+
+## HOME-FINDER-5I: pinned NASM preparation
+
+Run 40899919707 on source 7fc68e68fc928e0e630a86f9e47ed3592296e97c failed
+before dependency install/tests/Native compilation: Perl module passed but PowerShell
+could not resolve `nasm`. The failed image reports win22/20261025.346. No inventory
+of files outside PATH was recorded, so absence from PATH does not prove NASM was
+entirely uninstalled. The current runner-images Windows2022-Readme does not list
+NASM or a guaranteed NASM path. No failed run is retried in this stage.
+
+The workflow now checks an application found on PATH and the conventional
+ProgramFiles/NASM/nasm.exe candidate, reusing only the exact pinned executable
+SHA-256. A different/missing candidate is never executed or overwritten. Otherwise
+it downloads the portable 2.16.03 ZIP from the NASM official HTTPS endpoint with
+redirects disabled; both archive and EXE hashes must match before `nasm -v` runs.
+Its version must be 2.16.03. Only GITHUB_PATH for the disposable job is updated;
+no installer, system PATH, registry, production environment or local tool changes.
+Perl and MSVC checks, Source SHA/branch checks, artifact allowlist and app nonexecution
+remain unchanged. The new source_sha must equal the new branch HEAD; the prior
+7fc68e68 checkpoint remains an ancestor, not rewritten.
+
+Provenance checked without executing a downloaded tool:
+
+- Official archive: https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/win64/nasm-2.16.03-win64.zip
+- ZIP size: 513543 bytes; SHA-256 `3ee4782247bcb874378d02f7eab4e294a84d3d15f3f6ee2de2f47a46aa7226e6`.
+- Entry nasm-2.16.03/nasm.exe SHA-256 `a93276636266516421cc9b422f47476c21f7a2949f1ae251556b2f1d33a3be04`.
+- Independent KDE archive https://files.kde.org/craft/3rdparty/nasm/2.16.03/nasm-2.16.03-win64.zip matched the official archive hash.
+- These are locally computed hashes of the official bytes, corroborated by KDE;
+  they are not claimed to be a vendor-published checksum/signature.
+- Runner reference: https://github.com/actions/runner-images/blob/main/images/windows/Windows2022-Readme.md
+
+Offline checks cover existing verified tool reuse, absent-tool portable selection,
+bad archive and bad EXE rejection using synthetic in-memory PowerShell probes.
+The version/executable invocation is excluded from those mock tests. YAML and
+PowerShell AST parsing, workflow/SHA contracts and diff/pattern checks are performed.
+No Actions dispatch/rerun, NASM execution, local Native build or QA EXE launch occurs
+in 5I. Hosted provisioning and compilation remain unverified until a separately
+approved single run at the new checkpoint. Download failure, hash/version mismatch
+or missing Perl/MSVC fails closed; no mirror fallback or automatic rerun exists.
