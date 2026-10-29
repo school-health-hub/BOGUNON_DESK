@@ -1,0 +1,115 @@
+name: INT-5B Dashboard hybrid Windows visual evidence
+run-name: INT-5B visual evidence / 3d2694c / ${{ github.run_id }}
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: int5b-visual-windows-3d2694c
+  cancel-in-progress: false
+
+jobs:
+  visual:
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/codex/int5b-visual-windows-qa' && github.run_attempt == 1
+    runs-on: windows-2022
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CI: 'true'
+      NODE_OPTIONS: --max-old-space-size=2048
+    steps:
+      - name: Checkout immutable product
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 3d2694cc5755cb758e97a7d861b6ae847224f6e7
+          path: source
+          persist-credentials: false
+      - name: Checkout dispatch-pinned QA controller
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          path: controller
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up compatible Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.23.3'
+      - name: Verify provenance and isolate all runtime output
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $expected = '3d2694cc5755cb758e97a7d861b6ae847224f6e7'
+          $actual = (git -C source rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $actual -cne $expected) { throw 'Product SHA mismatch' }
+          $controller = (git -C controller rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $controller -cne $env:GITHUB_SHA) { throw 'Controller SHA mismatch' }
+          $sourceStatus = git -C source status --porcelain
+          if ($LASTEXITCODE -ne 0 -or $sourceStatus) { throw 'Dirty/unreadable product checkout' }
+          $controllerStatus = git -C controller status --porcelain
+          if ($LASTEXITCODE -ne 0 -or $controllerStatus) { throw 'Dirty/unreadable controller checkout' }
+          $changed = @(git -C controller diff --name-only $expected HEAD)
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot verify controller QA-only diff' }
+          foreach ($name in $changed) {
+            if ($name -cne '.github/workflows/int5b-dashboard-hybrid-visual-windows-qa.yml' -and -not $name.StartsWith('scripts/qa/int5b-visual/')) { throw 'Controller contains non-QA changes' }
+          }
+          $unexpectedEnv = @(Get-ChildItem source/.env* -Force -File | Where-Object Name -ne '.env.example')
+          if ($unexpectedEnv.Count) { throw 'Unexpected product environment file' }
+          $package = Get-Content source/package.json -Raw | ConvertFrom-Json
+          if ($package.scripts.build -cne 'tsc && vite build') { throw 'Unexpected build script' }
+          $root = Join-Path $env:RUNNER_TEMP "int5b-visual-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          if (Test-Path $root) { throw 'Refusing QA directory reuse' }
+          New-Item -ItemType Directory "$root/evidence","$root/npm-cache","$root/temp","$root/browsers" | Out-Null
+          "QA_ROOT=$root" >> $env:GITHUB_ENV
+          "npm_config_cache=$root/npm-cache" >> $env:GITHUB_ENV
+          "TEMP=$root/temp" >> $env:GITHUB_ENV
+          "TMP=$root/temp" >> $env:GITHUB_ENV
+          "PLAYWRIGHT_BROWSERS_PATH=$root/browsers" >> $env:GITHUB_ENV
+          $nodeVersion = (node --version).Trim()
+          $npmVersion = (npm --version).Trim()
+          if ($nodeVersion -cne 'v22.23.3' -or $npmVersion -notmatch '^10\.') { throw 'Node/npm mismatch' }
+          [ordered]@{
+            productSha=$actual; controllerSha=$env:GITHUB_SHA; workflowSha='${{ github.workflow_sha }}'
+            ref=$env:GITHUB_REF; runId=$env:GITHUB_RUN_ID; attempt=$env:GITHUB_RUN_ATTEMPT
+            priorCiRun='40908748291'; priorTests='1556 PASS / 0 FAIL (not repeated)'
+            productLockSha256=(Get-FileHash source/package-lock.json).Hash
+            toolsLockSha256=(Get-FileHash controller/scripts/qa/int5b-visual/tools/package-lock.json).Hash
+            node=$nodeVersion; npm=$npmVersion; runner='windows-2022'; dpr=1; windowsDpi='NOT RUN'
+            fixture='2026-10-29T09:30:00+09:00 / ko-KR / Asia/Seoul / signed-out default widgets / synthetic memo'
+          } | ConvertTo-Json | Set-Content "$root/evidence/provenance.json"
+      - name: Install pinned product dependencies
+        timeout-minutes: 6
+        run: ./controller/scripts/qa/int5b-visual/run-stage.ps1 product-install
+      - name: Rebuild exact production source (no regression rerun)
+        timeout-minutes: 5
+        run: ./controller/scripts/qa/int5b-visual/run-stage.ps1 build
+      - name: Install isolated locked browser tooling
+        timeout-minutes: 3
+        run: ./controller/scripts/qa/int5b-visual/run-stage.ps1 tools-install
+      - name: Install pinned Playwright Chromium
+        timeout-minutes: 5
+        run: ./controller/scripts/qa/int5b-visual/run-stage.ps1 browser-install
+      - name: Capture real DOM matrix and evidence
+        timeout-minutes: 8
+        run: ./controller/scripts/qa/int5b-visual/run-stage.ps1 capture
+      - name: Finalize evidence inventory
+        if: always()
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $evidence = Join-Path $env:RUNNER_TEMP "int5b-visual-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT/evidence"
+          if (-not (Test-Path $evidence)) { exit 0 }
+          @(Get-ChildItem $evidence -File | Where-Object Name -ne 'SHA256SUMS.txt' | ForEach-Object { "$((Get-FileHash -LiteralPath $_.FullName).Hash)  $($_.Name)" }) | Set-Content "$evidence/SHA256SUMS.txt"
+          '## Capture evidence only; visual approval requires independent image/DOM review' >> $env:GITHUB_STEP_SUMMARY
+          'Product: 3d2694cc5755cb758e97a7d861b6ae847224f6e7. Native/DPI: NOT RUN. See artifacts for actual capture completeness.' >> $env:GITHUB_STEP_SUMMARY
+      - name: Upload only synthetic QA evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: int5b-visual-3d2694c-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/int5b-visual-${{ github.run_id }}-${{ github.run_attempt }}/evidence/
+          if-no-files-found: warn
+          retention-days: 7
