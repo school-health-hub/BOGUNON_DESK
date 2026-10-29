@@ -47,6 +47,8 @@ mod work_folders;
 mod main_restore_ipc;
 #[cfg(windows)]
 mod surface_runtime;
+#[cfg(windows)]
+mod surface_edit_feedback;
 #[cfg(all(windows, feature = "desktop-surface-qa"))]
 mod qa_edit_commands;
 #[cfg(all(windows, feature = "desktop-surface-qa"))]

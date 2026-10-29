@@ -445,6 +445,18 @@ impl<M: MainOpener + 'static> HandlerRegistry for NativeHandlerRegistry<M> {
                             unsafe { webview.PostWebMessageAsJson(PCWSTR(response.as_ptr())) }?;
                             runtime.observe(RendererObservation::ProjectionResponseSent);
                         }
+                        Some(ConnectionResponse::Editing(editing)) => {
+                            // Dedicated inherited stdout pipe to the owning Main; no paths or secrets.
+                            if bogunon_main_restore_protocol::memory_channel::write_frame(
+                                &mut std::io::stdout().lock(),
+                                if editing { b"editing" } else { b"idle" },
+                                7,
+                            )
+                            .is_err()
+                            {
+                                runtime.reject_message(RendererMessageFailure::Contract);
+                            }
+                        }
                         Some(ConnectionResponse::RendererReady) => {
                             let _ = runtime.mark_ready();
                             runtime.observe(RendererObservation::RendererReadyAccepted);

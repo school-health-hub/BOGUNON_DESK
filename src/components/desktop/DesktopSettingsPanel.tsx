@@ -168,12 +168,15 @@ export function DesktopSettingsPanel({
     }
   };
 
+  const receiveSurfaceState = useCallback((state: "idle" | "editing" | "closed") => {
+    setSurfaceEditMode(state === "editing" ? "editing" : "idle");
+  }, []);
+
   const updateSurfaceEdit = async (command: DesktopSurfaceEditCommand): Promise<void> => {
     setSurfaceEditBusy(true);
     try {
-      await sendDesktopSurfaceEdit(command);
-      setSurfaceEditMode(command === "begin" ? "editing" : "idle");
-      onNotice(command === "begin" ? "Surface 편집을 시작했습니다." : command === "complete" ? "현재 세션 배치를 확정했습니다." : "Surface 편집을 취소했습니다.");
+      await sendDesktopSurfaceEdit(command, receiveSurfaceState);
+      onNotice(command === "begin" ? "Surface 편집 시작을 요청했습니다." : command === "complete" ? "현재 세션 배치 확정을 요청했습니다." : "Surface 편집 취소를 요청했습니다.");
     } catch (error: unknown) {
       onNotice(getDesktopErrorMessage(error));
     } finally {

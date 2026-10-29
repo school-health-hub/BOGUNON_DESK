@@ -14,6 +14,7 @@ type WebViewTransport = Readonly<{
 }>;
 
 export type SurfaceNativeBridge = Readonly<{
+  reportEditing: (editing: boolean) => void;
   requestProjection: () => void;
   openMain: (actionId: string) => boolean;
   notifyRendererReady: () => boolean;
@@ -82,13 +83,14 @@ export function parseSurfaceGeneration(search: string): number | null {
 export function createSurfaceNativeBridge(webview: WebViewTransport, generation: number): SurfaceNativeBridge {
   let sequence = 0;
   let rendererReadySent = false;
-  const nextRequest = (command: "OpenMain" | "RefreshProjection" | "RendererReady") => JSON.stringify({
+  const nextRequest = (command: "OpenMain" | "RefreshProjection" | "RendererReady" | "EditStarted" | "EditStopped") => JSON.stringify({
     generation,
     sequence: ++sequence,
     command,
   });
 
   return {
+    reportEditing: (editing) => webview.postMessage(nextRequest(editing ? "EditStarted" : "EditStopped")),
     requestProjection: () => webview.postMessage(nextRequest("RefreshProjection")),
     notifyRendererReady: () => {
       if (rendererReadySent) return false;

@@ -52,6 +52,7 @@ pub enum ConnectionResponse {
     MainOpened,
     Projection(String),
     RendererReady,
+    Editing(bool),
 }
 
 pub struct SurfaceConnection<M: MainOpener> {
@@ -85,6 +86,8 @@ impl<M: MainOpener> SurfaceConnection<M> {
                 synthetic_projection_envelope().map(ConnectionResponse::Projection)
             }
             RequestKind::RendererReady => Ok(ConnectionResponse::RendererReady),
+            RequestKind::EditStarted => Ok(ConnectionResponse::Editing(true)),
+            RequestKind::EditStopped => Ok(ConnectionResponse::Editing(false)),
         }
     }
 
@@ -138,6 +141,43 @@ mod tests {
 
     fn request(command: &str, sequence: u64) -> Vec<u8> {
         format!(r#"{{"generation":7,"sequence":{sequence},"command":"{command}"}}"#).into_bytes()
+    }
+
+    #[test]
+    fn edit_status_preserves_ready_origin_generation_sequence_and_retirement_boundaries() {
+        let generation = Generation::new(7).unwrap_or_else(|| panic!("fixture generation"));
+        let mut connection = SurfaceConnection::new(generation, Main(Cell::new(0)));
+        assert!(connection
+            .handle(&request("EditStarted", 1), SURFACE_ORIGIN, true)
+            .is_err());
+        assert_eq!(
+            connection.handle(&request("RendererReady", 1), SURFACE_ORIGIN, true),
+            Ok(ConnectionResponse::RendererReady)
+        );
+        for command in ["EditStarted", "EditStopped"] {
+            assert!(connection
+                .handle(&request(command, 2), "https://invalid.test", true)
+                .is_err());
+            assert!(connection
+                .handle(&request(command, 2), SURFACE_ORIGIN, false)
+                .is_err());
+        }
+        assert_eq!(
+            connection.handle(&request("EditStarted", 2), SURFACE_ORIGIN, true),
+            Ok(ConnectionResponse::Editing(true))
+        );
+        assert!(connection
+            .handle(&request("EditStopped", 2), SURFACE_ORIGIN, true)
+            .is_err());
+        assert_eq!(
+            connection.handle(&request("EditStopped", 3), SURFACE_ORIGIN, true),
+            Ok(ConnectionResponse::Editing(false))
+        );
+        assert_eq!(connection.main.0.get(), 0);
+        connection.retire_main();
+        assert!(connection
+            .handle(&request("EditStarted", 4), SURFACE_ORIGIN, true)
+            .is_err());
     }
 
     #[test]

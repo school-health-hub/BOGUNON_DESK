@@ -4,7 +4,7 @@ import "@fontsource/pretendard/600.css";
 import "@fontsource/pretendard/700.css";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
-import { StrictMode, useEffect, useMemo, useState } from "react";
+import { StrictMode, useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { SurfaceApp } from "./SurfaceApp";
 import { createSessionStorageAdapter, editedSurfaceLayout } from "./layout";
@@ -55,11 +55,12 @@ export function SurfaceRoot() {
       nativeBridge.notifyRendererReady();
     }
   }, [nativeBridge, nativeProjectionApplied, projection]);
+  const reportEditing = useCallback((editing: boolean) => nativeBridge?.reportEditing(editing), [nativeBridge]);
   const editingPreview = new URLSearchParams(window.location.search).get("preview") === "editing";
   return <SurfaceApp projection={projection} storage={createSessionStorageAdapter(window.sessionStorage)}
     onOpenMain={nativeBridge === null ? undefined : (actionId) => { nativeBridge.openMain(actionId); }}
     isBrowserPreview={nativeBridge === null}
-    nativeEditCommand={nativeEditCommand}
+    nativeEditCommand={nativeEditCommand} onEditingChanged={reportEditing}
     initialEditing={editingPreview} initialLayout={editingPreview ? editedSurfaceLayout : undefined} />;
 }
 

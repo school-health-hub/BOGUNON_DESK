@@ -19,8 +19,14 @@ pub(crate) fn get_desktop_surface_probe(
 pub(crate) fn begin_desktop_surface_edit(
     caller: tauri::Webview,
     runtime: State<'_, SurfaceRuntimeState>,
+    on_state: Option<tauri::ipc::Channel<crate::surface_edit_feedback::EditState>>,
 ) -> Result<(), crate::main_caller::CommandError<String>> {
-    crate::main_caller::run(&caller, || runtime.send_edit(EditCommand::Begin))
+    crate::main_caller::run(&caller, || {
+        if let Some(channel) = on_state {
+            runtime.watch_edit(caller.clone(), channel)?;
+        }
+        runtime.send_edit(EditCommand::Begin)
+    })
 }
 
 #[cfg(not(feature = "desktop-surface-qa"))]

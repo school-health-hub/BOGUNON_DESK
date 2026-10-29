@@ -39,6 +39,8 @@ pub enum RequestKind {
     OpenMain,
     RefreshProjection,
     RendererReady,
+    EditStarted,
+    EditStopped,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -94,6 +96,8 @@ pub fn parse_request(payload: &[u8], source: &str, top_level: bool) -> Result<Re
         "OpenMain" => RequestKind::OpenMain,
         "RefreshProjection" => RequestKind::RefreshProjection,
         "RendererReady" => RequestKind::RendererReady,
+        "EditStarted" => RequestKind::EditStarted,
+        "EditStopped" => RequestKind::EditStopped,
         _ => return Err(IpcError::InvalidSchema),
     };
     Ok(Request {
@@ -132,6 +136,13 @@ impl Admission {
         }
         if request.kind == RequestKind::RendererReady && self.renderer_ready {
             return Err(IpcError::RendererAlreadyReady);
+        }
+        if matches!(
+            request.kind,
+            RequestKind::EditStarted | RequestKind::EditStopped
+        ) && !self.renderer_ready
+        {
+            return Err(IpcError::InvalidSchema);
         }
         self.last_sequence = request.sequence.0;
         if request.kind == RequestKind::RendererReady {

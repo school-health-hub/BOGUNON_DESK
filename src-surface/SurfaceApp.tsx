@@ -1,6 +1,6 @@
 import { CalendarRange, CheckSquare2, Clock3, Flag, LayoutGrid, RotateCcw, Settings2, Sparkles, SunMedium } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { GridLayout, type Layout } from "react-grid-layout";
+import { GridLayout, noCompactor, type Layout } from "react-grid-layout";
 import { CalendarSurfaceWidget } from "./components/CalendarSurfaceWidget";
 import { ClockSurfaceWidget, DdaySurfaceWidget, LauncherSurfaceWidget, WeatherSurfaceWidget } from "./components/CompactSurfaceWidgets";
 import { SurfaceFrame } from "./components/SurfaceFrame";
@@ -17,6 +17,7 @@ const widgetMeta = {
   weather: { title: "날씨", icon: <SunMedium size={16} />, tone: "information" },
   launcher: { title: "빠른 실행", icon: <LayoutGrid size={16} />, tone: "utility" },
 } as const;
+const freePlacement = { ...noCompactor, preventCollision: true };
 
 type Props = Readonly<{
   projection: SurfaceProjection;
@@ -25,10 +26,11 @@ type Props = Readonly<{
   initialLayout?: SurfaceLayout;
   initialEditing?: boolean;
   isBrowserPreview?: boolean;
+  onEditingChanged?: (editing: boolean) => void;
   nativeEditCommand?: SurfaceEditControl | null;
 }>;
 
-export function SurfaceApp({ projection, storage, onOpenMain, initialLayout = defaultSurfaceLayout, initialEditing = false, isBrowserPreview = true, nativeEditCommand = null }: Props) {
+export function SurfaceApp({ projection, storage, onOpenMain, initialLayout = defaultSurfaceLayout, initialEditing = false, isBrowserPreview = true, nativeEditCommand = null, onEditingChanged }: Props) {
   const [editing, setEditing] = useState(initialEditing);
   const [layout, setLayout] = useState<SurfaceLayout>(() => storage.load() ?? initialLayout);
   const editBaseline = useRef<SurfaceLayout | null>(initialEditing ? layout : null);
@@ -54,17 +56,20 @@ export function SurfaceApp({ projection, storage, onOpenMain, initialLayout = de
       if (!current) editBaseline.current = layout;
       return true;
     });
-  }, [layout]);
+    onEditingChanged?.(true);
+  }, [layout, onEditingChanged]);
   const completeEditing = useCallback(() => {
     editBaseline.current = null;
     setEditing(false);
-  }, []);
+    onEditingChanged?.(false);
+  }, [onEditingChanged]);
   const cancelEditing = useCallback(() => {
     const baseline = editBaseline.current;
     if (baseline !== null) setLayout(baseline);
     editBaseline.current = null;
     setEditing(false);
-  }, []);
+    onEditingChanged?.(false);
+  }, [onEditingChanged]);
   useEffect(() => {
     if (nativeEditCommand === null || nativeEditCommand.sequence <= lastEditControlSequence.current) return;
     lastEditControlSequence.current = nativeEditCommand.sequence;
@@ -82,6 +87,7 @@ export function SurfaceApp({ projection, storage, onOpenMain, initialLayout = de
   }, [cancelEditing, editing]);
   const gridLayout = useMemo(() => toGridLayout(layout), [layout]);
   const gridMetrics = useMemo(() => calculateGridMetrics(layout, viewportHeight, editing), [editing, layout, viewportHeight]);
+  const editRowHeight = calculateGridMetrics(editBaseline.current ?? layout, viewportHeight, editing).rowHeight;
   const gridWidth = Math.max(800, viewportWidth - 48);
   const hidden = layout.widgets.filter(({ visible }) => !visible);
   const onGridChange = (next: Layout) => { if (editing) setLayout((current) => applyGridLayout(current, next)); };
@@ -101,11 +107,11 @@ export function SurfaceApp({ projection, storage, onOpenMain, initialLayout = de
       <span>카드 상단을 끌어 이동하고, 오른쪽 아래에서 크기를 조절하세요.</span>
       {hidden.map(({ id }) => <button type="button" key={id} onClick={() => setLayout((current) => setWidgetVisibility(current, id, true))}>+ {widgetMeta[id].title}</button>)}
     </aside>}
-    <section className="surface-canvas" aria-label="Desktop Surface 위젯 미리보기" style={{ minHeight: gridMetrics.pixelHeight }}>
-      <GridLayout className="surface-grid" width={gridWidth} layout={gridLayout} autoSize={false}
+    <section className="surface-canvas" aria-label="Desktop Surface 위젯 미리보기" style={{ minHeight: editing ? editRowHeight * gridMetrics.rows + 12 * (gridMetrics.rows - 1) : gridMetrics.pixelHeight }}>
+      <GridLayout className="surface-grid" width={gridWidth} layout={gridLayout} autoSize={false} compactor={freePlacement}
         dragConfig={{ enabled: editing, handle: ".surface-drag-handle", cancel: "button" }}
         resizeConfig={{ enabled: editing, handles: ["se"] }}
-        gridConfig={{ cols: 12, rowHeight: gridMetrics.rowHeight, margin: [12, 12], containerPadding: null, maxRows: gridMetrics.rows }}
+        gridConfig={{ cols: 12, rowHeight: editing ? editRowHeight : gridMetrics.rowHeight, margin: [12, 12], containerPadding: null }}
         onLayoutChange={onGridChange}>
         {layout.widgets.filter(({ visible }) => visible).map(({ id }) => {
           const meta = widgetMeta[id];

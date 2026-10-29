@@ -48,6 +48,7 @@ pub struct SurfaceRuntimeState {
 struct SurfaceRuntime {
     child: Child,
     control: SurfaceControlWriter,
+    feedback: crate::surface_edit_feedback::SharedFeedback,
 }
 
 #[cfg(windows)]
@@ -102,6 +103,19 @@ impl SurfaceRuntimeState {
         }
         *slot = Some(runtime);
         Ok(())
+    }
+
+    pub(crate) fn watch_edit(
+        &self,
+        caller: tauri::Webview,
+        channel: tauri::ipc::Channel<crate::surface_edit_feedback::EditState>,
+    ) -> Result<(), String> {
+        let slot = self
+            .runtime
+            .lock()
+            .map_err(|_| "Surface state unavailable")?;
+        let runtime = slot.as_ref().ok_or("Surface Host is not active")?;
+        crate::surface_edit_feedback::subscribe(&runtime.feedback, caller, channel)
     }
 
     pub fn send_edit(&self, command: EditCommand) -> Result<(), String> {
@@ -159,6 +173,7 @@ impl SurfaceRuntimeState {
         let Some(mut runtime) = slot.take() else {
             return;
         };
+        crate::surface_edit_feedback::retire(&runtime.feedback);
         drop(runtime.control);
         if runtime.child.try_wait().ok().flatten().is_none() {
             let _ = runtime.child.kill();
@@ -176,6 +191,7 @@ impl Drop for SurfaceRuntimeState {
         let Some(runtime) = slot.as_mut() else {
             return;
         };
+        crate::surface_edit_feedback::retire(&runtime.feedback);
         if runtime.child.try_wait().ok().flatten().is_none() {
             let _ = runtime.child.kill();
             let _ = runtime.child.wait();
@@ -241,7 +257,7 @@ fn launch_surface_with_diagnostic(
     let mut child = Command::new(host)
         .arg("--qa-live")
         .stdin(Stdio::piped())
-        .stdout(Stdio::null())
+        .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .spawn()
         .map_err(|error| {
@@ -300,9 +316,15 @@ fn launch_surface_with_diagnostic(
     grant.fill(0);
     let _ = diagnostic.complete(MainStartupStage::GrantWrite);
     let _ = diagnostic.begin(MainStartupStage::ChildRegistration);
+    let Some(output) = child.stdout.take() else {
+        server.retire();
+        terminate_child(&mut child);
+        return Err("Surface state channel unavailable".to_owned());
+    };
     let runtime = SurfaceRuntime {
-        child,
+        feedback: crate::surface_edit_feedback::start(output),
         control: SurfaceControlWriter::new(stdin, edit_binding),
+        child,
     };
     if let Err((error, mut runtime)) = state.replace(runtime) {
         let _ = diagnostic.fail(
@@ -336,7 +358,7 @@ fn launch_surface(app: &AppHandle, state: &SurfaceRuntimeState) -> Result<(), St
     let mut child = Command::new(host)
         .arg("--qa-live")
         .stdin(Stdio::piped())
-        .stdout(Stdio::null())
+        .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .spawn()
         .map_err(|error| error.to_string())?;
@@ -374,9 +396,15 @@ fn launch_surface(app: &AppHandle, state: &SurfaceRuntimeState) -> Result<(), St
         return Err(error.to_string());
     }
     grant.fill(0);
+    let Some(output) = child.stdout.take() else {
+        server.retire();
+        terminate_child(&mut child);
+        return Err("Surface state channel unavailable".to_owned());
+    };
     let runtime = SurfaceRuntime {
-        child,
+        feedback: crate::surface_edit_feedback::start(output),
         control: SurfaceControlWriter::new(stdin, edit_binding),
+        child,
     };
     if let Err((error, mut runtime)) = state.replace(runtime) {
         server.retire();
