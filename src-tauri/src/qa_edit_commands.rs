@@ -24,12 +24,12 @@ fn classify(error: crate::main_caller::CommandError<Failure>) -> Failure {
 pub(crate) fn begin_desktop_surface_edit(
     caller: tauri::Webview,
     runtime: State<'_, SurfaceRuntimeState>,
-    on_state: Option<tauri::ipc::Channel<crate::surface_edit_feedback::EditState>>,
+    on_state: Option<tauri::ipc::JavaScriptChannelId>,
 ) -> Result<(), Failure> {
     crate::main_caller::run(&caller, || {
         if let Some(channel) = on_state {
             runtime
-                .watch_edit(caller.clone(), channel)
+                .watch_edit(caller.clone(), channel.channel_on(caller.clone()))
                 .map_err(|_| Failure::RuntimeInactive)?;
         }
         runtime.send_qa_edit(EditCommand::Begin)

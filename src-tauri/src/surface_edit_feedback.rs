@@ -138,6 +138,15 @@ pub(crate) fn subscribe(
 mod tests {
     use super::*;
     #[test]
+    fn optional_channel_id_uses_the_locked_tauri_deserializer() {
+        use tauri::ipc::JavaScriptChannelId;
+        assert!(serde_json::from_str::<Option<JavaScriptChannelId>>(r#""__CHANNEL__:42""#).is_ok());
+        assert!(serde_json::from_str::<Option<JavaScriptChannelId>>("null").is_ok());
+        for invalid in [r#""42""#, r#""__CHANNEL__:invalid""#, "42", "{}"] {
+            assert!(serde_json::from_str::<Option<JavaScriptChannelId>>(invalid).is_err());
+        }
+    }
+    #[test]
     fn reader_closes_after_eof_malformed_oversized_or_truncated_frames() {
         use bogunon_main_restore_protocol::memory_channel::write_frame;
         let mut valid = Vec::new();

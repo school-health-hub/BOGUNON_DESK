@@ -5,6 +5,15 @@ import { test } from "node:test";
 const root = new URL("../", import.meta.url);
 const read = (path) => readFileSync(new URL(path, root), "utf8");
 
+test("optional feedback uses Tauri's deserializable channel ID and binds only after Guard admission", () => {
+  for (const file of ["src/qa_edit_commands.rs", "src/main_commands/desktop_surface.rs"]) {
+    const source = read(file);
+    assert.doesNotMatch(source, /Option<tauri::ipc::Channel</);
+    assert.match(source, /on_state: Option<tauri::ipc::JavaScriptChannelId>/);
+    assert.match(source, /main_caller::run\(&caller, \|\| \{[\s\S]*?channel\.channel_on\(caller\.clone\(\)\)/);
+  }
+});
+
 test("QA and production edit adapters are mutually exclusive without widening error visibility", () => {
   const operating = read("src/main_commands/desktop_surface.rs");
   for (const command of ["begin", "complete", "cancel"]) {

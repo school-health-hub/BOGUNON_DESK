@@ -19,11 +19,11 @@ pub(crate) fn get_desktop_surface_probe(
 pub(crate) fn begin_desktop_surface_edit(
     caller: tauri::Webview,
     runtime: State<'_, SurfaceRuntimeState>,
-    on_state: Option<tauri::ipc::Channel<crate::surface_edit_feedback::EditState>>,
+    on_state: Option<tauri::ipc::JavaScriptChannelId>,
 ) -> Result<(), crate::main_caller::CommandError<String>> {
     crate::main_caller::run(&caller, || {
         if let Some(channel) = on_state {
-            runtime.watch_edit(caller.clone(), channel)?;
+            runtime.watch_edit(caller.clone(), channel.channel_on(caller.clone()))?;
         }
         runtime.send_edit(EditCommand::Begin)
     })
