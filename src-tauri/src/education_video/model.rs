@@ -1,0 +1,269 @@
+use super::{registry, timestamps};
+use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
+pub const MAX_BYTES: usize = 2 * 1024 * 1024;
+pub const MAX_ITEMS: usize = 1000;
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+pub enum VideoSource {
+    #[serde(rename = "synthetic-mock")]
+    SyntheticMock,
+    #[serde(rename = "live")]
+    Live,
+}
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TeacherData {
+    pub education_title: String,
+    pub target: String,
+    pub schedule: String,
+    pub instructions: String,
+    pub message: String,
+    pub notes: String,
+}
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ProviderMetadata {
+    pub title: String,
+    pub channel_id: String,
+    pub channel_title: String,
+    pub duration_seconds: Option<u32>,
+    pub url: String,
+    pub source: VideoSource,
+    pub official: bool,
+    pub official_evidence: Option<String>,
+    pub synthetic: bool,
+    pub fetched_at: String,
+    pub expires_at: String,
+}
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LibraryEntry {
+    pub video_id: String,
+    pub teacher: TeacherData,
+    pub provider: Option<ProviderMetadata>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ai: Option<super::ai_metadata::AiMetadata>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub candidate_record: Option<CandidateRecord>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub recommendation_reason: Option<RecommendationReason>,
+}
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CandidateRecord {
+    pub provenance: super::ai_metadata::CandidateProvenance,
+    pub title: Option<String>,
+    pub publisher: Option<String>,
+    pub duration_seconds: Option<u32>,
+    pub metadata_verification: super::ai_metadata::MetadataVerification,
+    pub saved_at: String,
+}
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(tag = "status", rename_all = "kebab-case", deny_unknown_fields)]
+pub enum RecommendationReason {
+    AiGenerated { text: String },
+    TeacherEdited { text: String },
+    Deleted,
+}
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct Library {
+    pub version: u8,
+    pub entries: Vec<LibraryEntry>,
+}
+impl Default for Library {
+    fn default() -> Self {
+        Self {
+            version: 2,
+            entries: Vec::new(),
+        }
+    }
+}
+#[derive(Debug, Serialize)]
+pub struct LoadResult {
+    pub library: Library,
+    pub recovered: bool,
+}
+#[derive(Debug, PartialEq, Eq)]
+pub enum LibraryError {
+    Invalid,
+    Io,
+    Corrupt,
+    Busy,
+}
+impl std::fmt::Display for LibraryError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::Invalid => "영상 라이브러리 형식이나 입력값을 확인해 주세요.",
+            Self::Io => "영상 라이브러리를 저장하지 못했습니다. 기존 데이터는 유지됩니다.",
+            Self::Corrupt => {
+                "영상 라이브러리와 백업을 읽을 수 없습니다. 원본 파일을 보존해 주세요."
+            }
+            Self::Busy => "영상 라이브러리가 사용 중입니다. 다시 시도해 주세요.",
+        })
+    }
+}
+impl std::error::Error for LibraryError {}
+pub fn valid_text(value: &str, max: usize) -> bool {
+    value.chars().count() <= max && !value.contains('\0')
+}
+pub fn valid_video_id(value: &str) -> bool {
+    value.len() == 11
+        && value
+            .bytes()
+            .all(|c| c.is_ascii_alphanumeric() || c == b'_' || c == b'-')
+}
+pub fn valid_url(value: &str, id: &str) -> bool {
+    valid_video_id(id) && value == format!("https://www.youtube.com/watch?v={id}")
+}
+impl ProviderMetadata {
+    pub fn validate(&self, video_id: &str) -> Result<(), LibraryError> {
+        let fetched = timestamps::parse_iso(&self.fetched_at)?;
+        let expires = timestamps::parse_iso(&self.expires_at)?;
+        let now = timestamps::now_ms()?;
+        if fetched > now + 300000 || expires > now + timestamps::MAX_TTL_MS + 300000 {
+            return Err(LibraryError::Invalid);
+        }
+        let source_consistent = match self.source {
+            VideoSource::SyntheticMock => self.synthetic,
+            VideoSource::Live => !self.synthetic,
+        };
+        let official_consistent = registry::valid_claim(
+            &self.channel_id,
+            self.official,
+            self.official_evidence.as_deref(),
+            self.synthetic,
+        );
+        if expires <= fetched
+            || expires - fetched > timestamps::MAX_TTL_MS
+            || !source_consistent
+            || !official_consistent
+            || !valid_url(&self.url, video_id)
+            || self.title.trim().is_empty()
+            || !valid_text(&self.title, 300)
+            || self.channel_id.trim().is_empty()
+            || !valid_text(&self.channel_id, 200)
+            || self.channel_title.trim().is_empty()
+            || !valid_text(&self.channel_title, 200)
+            || self.duration_seconds.is_some_and(|s| s == 0 || s > 86400)
+        {
+            return Err(LibraryError::Invalid);
+        }
+        Ok(())
+    }
+}
+impl LibraryEntry {
+    pub fn validate(&self) -> Result<(), LibraryError> {
+        if !valid_video_id(&self.video_id)
+            || [
+                &self.teacher.education_title,
+                &self.teacher.target,
+                &self.teacher.schedule,
+                &self.teacher.instructions,
+                &self.teacher.message,
+                &self.teacher.notes,
+            ]
+            .iter()
+            .any(|s| !valid_text(s, 20000))
+        {
+            return Err(LibraryError::Invalid);
+        }
+        if let Some(ai) = &self.ai {
+            ai.validate(&self.video_id)?;
+        }
+        if let Some(record) = &self.candidate_record {
+            use super::ai_metadata::FactVerificationStatus::{TeacherConfirmed, Unverified};
+            let saved = timestamps::parse_iso(&record.saved_at)?;
+            let title_ok = match (&record.title, record.metadata_verification.title) {
+                (Some(value), TeacherConfirmed) => {
+                    !value.trim().is_empty() && valid_text(value, 500)
+                }
+                (None, Unverified) => true,
+                _ => false,
+            };
+            let publisher_ok = match (&record.publisher, record.metadata_verification.publisher) {
+                (Some(value), TeacherConfirmed) => {
+                    !value.trim().is_empty() && valid_text(value, 500)
+                }
+                (None, Unverified) => true,
+                _ => false,
+            };
+            let duration_ok = match (
+                record.duration_seconds,
+                record.metadata_verification.duration_seconds,
+            ) {
+                (Some(value), TeacherConfirmed) => value > 0 && value <= 86400,
+                (None, Unverified) => true,
+                _ => false,
+            };
+            if saved > timestamps::now_ms()? + 300000 || !title_ok || !publisher_ok || !duration_ok
+            {
+                return Err(LibraryError::Invalid);
+            }
+            if let Some(ai) = &self.ai {
+                let consistent = record.provenance == ai.provenance
+                    && record.metadata_verification == ai.metadata_verification
+                    && record.title.as_ref().is_none_or(|value| value == &ai.title)
+                    && record
+                        .publisher
+                        .as_ref()
+                        .is_none_or(|value| Some(value) == ai.publisher.as_ref())
+                    && record
+                        .duration_seconds
+                        .is_none_or(|value| Some(value) == ai.duration_seconds);
+                if !consistent {
+                    return Err(LibraryError::Invalid);
+                }
+            }
+        }
+        if let Some(provider) = &self.provider {
+            provider.validate(&self.video_id)?;
+        }
+        if let Some(reason) = &self.recommendation_reason {
+            match reason {
+                RecommendationReason::AiGenerated { text }
+                | RecommendationReason::TeacherEdited { text }
+                    if text.trim().is_empty() || text.trim() != text || !valid_text(text, 600) =>
+                {
+                    return Err(LibraryError::Invalid)
+                }
+                _ => {}
+            }
+        }
+        Ok(())
+    }
+    pub fn expire(&mut self, now: i64) -> Result<bool, LibraryError> {
+        let expired = match &self.provider {
+            Some(provider) => timestamps::parse_iso(&provider.expires_at)? <= now,
+            None => false,
+        };
+        if expired {
+            self.provider = None;
+        }
+        let ai_expired = match &self.ai {
+            Some(ai) => ai.expired(now)?,
+            None => false,
+        };
+        if ai_expired {
+            self.ai = None;
+        }
+        Ok(expired || ai_expired)
+    }
+}
+pub fn parse(json: &str) -> Result<Library, LibraryError> {
+    if json.len() > MAX_BYTES {
+        return Err(LibraryError::Invalid);
+    }
+    let library: Library = serde_json::from_str(json).map_err(|_| LibraryError::Invalid)?;
+    if library.version != 2 || library.entries.len() > MAX_ITEMS {
+        return Err(LibraryError::Invalid);
+    }
+    let mut ids = HashSet::new();
+    for entry in &library.entries {
+        entry.validate()?;
+        if !ids.insert(&entry.video_id) {
+            return Err(LibraryError::Invalid);
+        }
+    }
+    Ok(library)
+}

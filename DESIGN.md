@@ -464,3 +464,15 @@ two lines. D-Day uses readable rows. All use existing spacing/type/color tokens.
 Signed-out desktop widgets show a quiet dash with an accessible waiting label; the
 shared banner is the only account instruction. Standalone/error/loading guidance
 remains. Dock active marker, accessible name, hover and keyboard tooltip stay intact.
+
+## 교육영상 Finder
+
+- Follow the existing Pretendard muted mint/navy work-sheet language and shared CSS tokens for text, border, surface and accent.
+- The primary workflow is link based: enter conditions, open a confirmed YouTube search handoff, paste selected links, confirm facts, save, and hand verified information to the official document workspace.
+- The primary action is `YouTube에서 영상 찾기`; `찾은 영상 링크 붙여넣기` remains adjacent and usable without an AI connection. Live AI web search is not exposed in the ordinary UI.
+- Optional AI recommendation reasons retain the existing outbound-content confirmation gate. They never replace URL, video ID, provenance, or teacher-confirmed metadata.
+- Candidate rows show provenance and independent title, publisher, and duration verification states. Unverified facts are displayed as `확인 필요` and are not handed to document drafting as facts.
+- Inputs and buttons maintain 40px targets, visible keyboard focus, named fields, status live regions, wrapped action rows, and Korean `word-break: keep-all` with overflow fallback.
+- The desktop work area uses a narrow conditions column and a wider results column; below 1050px it becomes one column, and below 560px header, account, and condition controls stack with 16px inset.
+- Library v2 keeps teacher text, confirmed candidate records, recommendation-reason state, and expiring provider evidence separate. Legacy v1/v2 reads remain supported without fabricating confirmation history.
+- Synthetic QA surfaces remain separately identified and must never be represented as live search verification. No remote thumbnails or decorative animation are introduced.

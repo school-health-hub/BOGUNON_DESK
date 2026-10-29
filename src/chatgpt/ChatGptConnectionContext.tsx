@@ -1,3 +1,4 @@
+import { supportedWebSearchModel, type WebSearchResult } from "./webSearch";
 import {
   createContext,
   type ReactNode,
@@ -33,6 +34,8 @@ type ChatGptConnectionContextValue = {
   readonly setSelectedModel: (model: string) => void;
   readonly refreshModels: () => Promise<void>;
   readonly generateText: (prompt: string) => Promise<string>;
+  readonly searchWeb: (prompt: string) => Promise<WebSearchResult>;
+  readonly supportsWebSearch: boolean;
 };
 
 const ChatGptConnectionContext = createContext<ChatGptConnectionContextValue | null>(null);
@@ -134,6 +137,17 @@ export function ChatGptConnectionProvider({
     );
   }, [planService, selectedModel, service, state.planUsageEnabled, state.status]);
 
+  const supportsWebSearch = state.status === "connected" && state.planUsageEnabled
+    && selectedModel !== null && models.some((model) => model.slug === selectedModel)
+    && supportedWebSearchModel(selectedModel) && planService.searchWeb !== undefined;
+  const searchWeb = useCallback(async (prompt: string): Promise<WebSearchResult> => {
+    const operation = planService.searchWeb;
+    if (!supportsWebSearch || selectedModel === null || operation === undefined) {
+      throw new Error("현재 연결과 모델에서는 웹 검색을 사용할 수 없습니다.");
+    }
+    return runChatGptPlanOperation(() => operation(selectedModel, prompt), service, () => setModels([]));
+  }, [planService, selectedModel, service, supportsWebSearch]);
+
   const value = useMemo<ChatGptConnectionContextValue>(() => ({
     state,
     refresh: service.refresh,
@@ -146,7 +160,9 @@ export function ChatGptConnectionProvider({
     setSelectedModel,
     refreshModels,
     generateText,
-  }), [generateText, models, modelsError, modelsLoading, refreshModels, selectedModel, service, setSelectedModel, state]);
+    searchWeb,
+    supportsWebSearch,
+  }), [searchWeb, supportsWebSearch, generateText, models, modelsError, modelsLoading, refreshModels, selectedModel, service, setSelectedModel, state]);
 
   return (
     <ChatGptConnectionContext.Provider value={value}>

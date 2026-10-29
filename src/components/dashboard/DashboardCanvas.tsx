@@ -65,7 +65,7 @@ import { extractOfficialDocumentPath } from "../../official-document/officialDoc
 import { useOfficialDocumentSession } from "../../official-document/OfficialDocumentSessionContext";
 import { extractRecordHelperPaths, type RecordHelperImportBatch } from "../../record-helper/reportImportService";
 
-export function DashboardCanvas({ onOpenFinance, suspended = false }: { readonly onOpenFinance?: () => void; readonly suspended?: boolean } = {}) {
+export function DashboardCanvas({ onOpenFinance, onOpenEducationVideo, suspended = false }: { readonly onOpenFinance?: () => void; readonly onOpenEducationVideo?: () => void; readonly suspended?: boolean } = {}) {
   const auth = useAuth();
   const onboarding = useOnboarding();
   const updater = useDesktopUpdater();
@@ -483,6 +483,7 @@ export function DashboardCanvas({ onOpenFinance, suspended = false }: { readonly
           isLoading={toolbox.isLauncherSettingsLoading}
           onClose={toolbox.closeToolbox}
           onExecute={runToolboxItem}
+          onOpenEducationVideo={onOpenEducationVideo}
         />
       )}
       {isDesktopSettingsOpen && (

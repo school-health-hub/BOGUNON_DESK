@@ -25,6 +25,8 @@ mod chatgpt;
 #[cfg(not(feature = "official-document-qa"))]
 mod desktop_surface;
 #[cfg(not(feature = "official-document-qa"))]
+mod education_video;
+#[cfg(not(feature = "official-document-qa"))]
 mod launcher;
 #[cfg(not(feature = "official-document-qa"))]
 mod meal;
@@ -337,6 +339,7 @@ pub fn run() {
             chatgpt::commands::chatgpt_disconnect,
             chatgpt::commands::chatgpt_list_models,
             chatgpt::commands::chatgpt_generate_text,
+            chatgpt::commands::chatgpt_search_web,
             execute_desktop_action,
             open_bogunon_search_result,
             launcher::open_quick_memo_url,
@@ -380,6 +383,14 @@ pub fn run() {
             work_folders::reorder_work_folder_favorites,
             work_folders::open_work_folder_favorite,
             meal::fetch_bogunon_meal,
+            education_video::education_video_library_load,
+            education_video::education_video_library_save,
+            education_video::education_video_library_import,
+            education_video::education_video_library_export,
+            education_video::education_video_library_recover,
+            education_video::education_video_library_metadata_delete,
+            education_video::education_video_library_metadata_refresh,
+            education_video::education_video_search,
             weather::fetch_bogunon_weather
         ])
         .setup(|app| {
