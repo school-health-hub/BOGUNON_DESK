@@ -2,14 +2,16 @@ import { semanticHashSync } from "../hash"
 import type { Frame, RenderDocument, RenderImage, RenderPage, RenderTextBlock, TextProvenance } from "./renderDocument"
 import type { TextStyle } from "./designSchema"
 import { newsletterPlaceholderDataUrl, placeholderKindForSlot, type NewsletterPlaceholderKind } from "./placeholders"
+import { buildEditorialCardScene, seasonalSceneLayers } from "./editorialScene"
 
 export const NEWSLETTER_PLACEHOLDER_DATA_URL = newsletterPlaceholderDataUrl("generic")
 
 type SceneBase = { readonly layerId: string; readonly frame: Frame; readonly zOrder: number; readonly clipBounds: Frame; readonly collisionGroup?: string }
 export type TextSceneLayer = SceneBase & { readonly kind: "text"; readonly text: string; readonly lines: readonly string[]; readonly style: TextStyle; readonly provenance: TextProvenance }
-export type ImageSceneLayer = SceneBase & { readonly kind: "image"; readonly slotId: string; readonly assetId?: string; readonly fit: "contain" | "cover"; readonly placeholderKind: NewsletterPlaceholderKind }
+export type ImageSceneLayer = SceneBase & { readonly edgePolicy?: "rounded" | "none" | "soft"; readonly kind: "image"; readonly slotId: string; readonly assetId?: string; readonly fit: "contain" | "cover"; readonly placeholderKind: NewsletterPlaceholderKind }
 export type ShapeSceneLayer = SceneBase & { readonly kind: "shape"; readonly fill: string; readonly stroke?: string; readonly radius?: number }
-export type SceneLayer = TextSceneLayer | ImageSceneLayer | ShapeSceneLayer
+export type PathSceneLayer = SceneBase & { readonly kind: "path"; readonly path: string; readonly fill: string; readonly stroke: string; readonly strokeWidth: number }
+export type SceneLayer = TextSceneLayer | ImageSceneLayer | ShapeSceneLayer | PathSceneLayer
 export type NewsletterPageScene = { readonly pageId: string; readonly width: number; readonly height: number; readonly templateVersion: number; readonly layers: readonly SceneLayer[] }
 export type NewsletterScene = { readonly projectId: string; readonly projectRevision: number; readonly designRevision: number; readonly pages: readonly NewsletterPageScene[] }
 export type SceneValidationIssue = { readonly kind: "layout-collision" | "clip-bounds"; readonly pageId: string; readonly layerId: string; readonly message: string }
@@ -19,11 +21,12 @@ function textLayer(block: RenderTextBlock, zOrder: number, clipBounds: Frame, co
   return { kind: "text", layerId: block.id, frame: block.frame, zOrder, clipBounds, collisionGroup, text: block.text, lines: block.lines, style: block.style, provenance: block.provenance }
 }
 function imageLayer(pageId: string, image: RenderImage, zOrder: number, clipBounds: Frame, collisionGroup?: string): ImageSceneLayer {
-  return { kind: "image", layerId: `${pageId}-${image.slotId}`, frame: image.frame, zOrder, clipBounds, ...(collisionGroup === undefined ? {} : { collisionGroup }), slotId: image.slotId, ...(image.assetId === undefined ? {} : { assetId: image.assetId }), fit: image.fit, placeholderKind: placeholderKindForSlot(image.slotId) }
+  return { kind: "image", layerId: `${pageId}-${image.slotId}`, frame: image.frame, zOrder, clipBounds, ...(collisionGroup === undefined ? {} : { collisionGroup }), slotId: image.slotId, ...(image.assetId === undefined ? {} : { assetId: image.assetId }), ...(image.edgePolicy === undefined ? {} : { edgePolicy: image.edgePolicy }), fit: image.fit, placeholderKind: placeholderKindForSlot(image.slotId) }
 }
 function nonEmpty(block: RenderTextBlock | undefined): block is RenderTextBlock { return block !== undefined && block.text.length > 0 }
 
 export function buildCardScene(page: RenderPage): NewsletterPageScene {
+  if (page.editorial !== undefined) return buildEditorialCardScene(page)
   const bounds = pageBounds(page.width, page.height)
   const safe = { x: 60, y: 60, width: page.width - 120, height: page.height - 120 }
   const content = `content-${page.pageId}`
@@ -68,7 +71,7 @@ export function buildA4PageScene(page: RenderDocument["a4"]): NewsletterPageScen
       return [
         { kind: "shape", layerId: `${module.moduleId}-surface`, frame: module.moduleFrame, zOrder: 2, clipBounds: safe, fill: "#fffdf8", stroke: module.accent ?? "#d8e2dc", radius: 18 },
         ...(module.accent === undefined ? [] : [{ kind: "shape" as const, layerId: `${module.moduleId}-accent`, frame: { x: module.moduleFrame.x, y: module.moduleFrame.y, width: module.moduleFrame.width, height: 8 }, zOrder: 3, clipBounds: module.moduleFrame, fill: module.accent, radius: 4 }]),
-        { kind: "shape", layerId: `${module.moduleId}-image-mat`, frame: { x: module.image.frame.x - 8, y: module.image.frame.y - 8, width: module.image.frame.width + 16, height: module.image.frame.height + 16 }, zOrder: 8, clipBounds: module.moduleFrame, fill: "#f7f2e8", stroke: module.accent ?? "#d8e2dc", radius: 16 },
+        ...(module.image.edgePolicy === undefined || module.image.edgePolicy === "rounded" ? [{ kind: "shape" as const, layerId: `${module.moduleId}-image-mat`, frame: { x: module.image.frame.x - 8, y: module.image.frame.y - 8, width: module.image.frame.width + 16, height: module.image.frame.height + 16 }, zOrder: 8, clipBounds: module.moduleFrame, fill: "#f7f2e8", stroke: module.accent ?? "#d8e2dc", radius: 16 }] : []),
         imageLayer("a4-page", module.image, 10, module.moduleFrame, group),
         ...(module.number === undefined ? [] : [
           { kind: "shape" as const, layerId: `${module.moduleId}-number-badge`, frame: { x: module.moduleFrame.x + 10, y: module.moduleFrame.y + 10, width: 44, height: 44 }, zOrder: 19, clipBounds: module.moduleFrame, fill: module.accent ?? "#4f9178", radius: 22 },
@@ -77,19 +80,20 @@ export function buildA4PageScene(page: RenderDocument["a4"]): NewsletterPageScen
         textLayer(module.title, 20, module.moduleFrame, group),
         ...(nonEmpty(module.lead) ? [textLayer(module.lead, 21, module.moduleFrame, group)] : []),
         textLayer(module.body, 22, module.moduleFrame, group),
+        ...(page.editorialLayout === true && nonEmpty(module.closing) ? [{ kind: "shape" as const, layerId: `${module.moduleId}-closing-banner`, frame: { x: module.closing.frame.x - 6, y: module.closing.frame.y - 4, width: module.closing.frame.width + 12, height: module.closing.frame.height + 4 }, zOrder: 18, clipBounds: module.moduleFrame, fill: "#EDF5EF", radius: 14 }] : []),
         ...(nonEmpty(module.closing) ? [textLayer(module.closing, 23, module.moduleFrame, group)] : []),
       ]
     }),
     textLayer(page.footer, 30, safe, "a4-footer"),
     ...(page.utility === undefined ? [] : [
-      { kind: "shape" as const, layerId: "a4-utility-surface", frame: page.utility.frame, zOrder: 18, clipBounds: safe, fill: "#edf6ef", stroke: "#4f9178", radius: 18 },
+      { kind: "shape" as const, layerId: "a4-utility-surface", frame: page.editorialLayout === true ? { x: page.utility.frame.x - 16, y: page.utility.frame.y - 16, width: page.utility.frame.width + 32, height: page.utility.frame.height + 32 } : page.utility.frame, zOrder: 18, clipBounds: safe, fill: "#edf6ef", stroke: "#4f9178", radius: 18 },
       textLayer(page.utility, 20, safe, "a4-utility"),
     ]),
     ...(page.closing === undefined ? [] : [
-      { kind: "shape" as const, layerId: "a4-closing-surface", frame: page.closing.frame, zOrder: 18, clipBounds: safe, fill: "#fff3df", stroke: "#d98251", radius: 18 },
+      { kind: "shape" as const, layerId: "a4-closing-surface", frame: page.editorialLayout === true ? { x: page.closing.frame.x - 16, y: page.closing.frame.y - 16, width: page.closing.frame.width + 32, height: page.closing.frame.height + 32 } : page.closing.frame, zOrder: 18, clipBounds: safe, fill: "#fff3df", stroke: "#d98251", radius: 18 },
       textLayer(page.closing, 20, safe, "a4-closing"),
     ]),
-    ...(page.seasonalDecoration === undefined ? [] : [imageLayer("a4-page", page.seasonalDecoration, 6, safe)]),
+    ...(page.editorialSeason === undefined ? page.seasonalDecoration === undefined ? [] : [imageLayer("a4-page", page.seasonalDecoration, 6, safe)] : [...seasonalSceneLayers("a4-editorial", page.editorialSeason, 80, 80), ...(page.seasonalDecoration?.assetId === undefined ? [] : [imageLayer("a4-page", page.seasonalDecoration, 6, safe)])]),
     ...(page.mascot === undefined ? [] : [imageLayer("a4-page", page.mascot, 26, safe)]),
   ]
   return { pageId: page.pageId, width: page.width, height: page.height, templateVersion: page.templateVersion, layers }

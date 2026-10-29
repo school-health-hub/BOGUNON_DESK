@@ -17,10 +17,14 @@ function Layer({ layer, pageId, instanceId, assets }: { readonly layer: SceneLay
   switch (layer.kind) {
     case "shape":
       return <rect id={layer.layerId} x={layer.frame.x} y={layer.frame.y} width={layer.frame.width} height={layer.frame.height} rx={layer.radius ?? 0} fill={layer.fill} stroke={layer.stroke} />
+    case "path": return <path id={layer.layerId} d={layer.path} transform={`translate(${layer.frame.x} ${layer.frame.y}) scale(${layer.frame.width / 24} ${layer.frame.height / 24})`} fill={layer.fill} stroke={layer.stroke} strokeWidth={layer.strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
     case "image": {
       const clipId = `preview-clip-${instanceId}-${pageId}-${layer.slotId}`
       const source = layer.assetId === undefined ? newsletterPlaceholderDataUrl(layer.placeholderKind) : assets.get(layer.assetId)
       if (source === undefined && layer.assetId !== undefined) throw new SvgAssetMissingError(layer.assetId)
+      const picture = <image href={source} x={layer.frame.x} y={layer.frame.y} width={layer.frame.width} height={layer.frame.height} preserveAspectRatio={layer.fit === "cover" ? "xMidYMid slice" : "xMidYMid meet"} />
+      if (layer.edgePolicy === "none") return <g id={layer.layerId}>{picture}</g>
+      if (layer.edgePolicy === "soft") return <g id={layer.layerId}><defs><radialGradient id={`${clipId}-fade`}><stop offset="65%" stopColor="white" /><stop offset="100%" stopColor="black" /></radialGradient><mask id={`${clipId}-soft`} maskUnits="userSpaceOnUse" x={layer.frame.x} y={layer.frame.y} width={layer.frame.width} height={layer.frame.height}><rect x={layer.frame.x} y={layer.frame.y} width={layer.frame.width} height={layer.frame.height} fill={`url(#${clipId}-fade)`} /></mask></defs><g mask={`url(#${clipId}-soft)`}>{picture}</g></g>
       return <g id={layer.layerId} data-placeholder-kind={layer.placeholderKind}><defs><clipPath id={clipId}><rect x={layer.frame.x} y={layer.frame.y} width={layer.frame.width} height={layer.frame.height} rx="12" /></clipPath></defs><image href={source} x={layer.frame.x} y={layer.frame.y} width={layer.frame.width} height={layer.frame.height} preserveAspectRatio={layer.fit === "cover" ? "xMidYMid slice" : "xMidYMid meet"} clipPath={`url(#${clipId})`} /></g>
     }
     case "text": {

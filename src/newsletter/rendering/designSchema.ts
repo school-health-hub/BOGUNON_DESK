@@ -7,7 +7,7 @@ const isoDateSchema = z.iso.datetime()
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/)
 const frameSchema = z.object({ x: z.number().nonnegative(), y: z.number().nonnegative(), width: z.number().positive(), height: z.number().positive() }).readonly()
 const textStyleSchema = z.object({ fontFamily: z.literal("Pretendard"), fontSize: z.number().positive(), fontWeight: z.number().int().min(100).max(900), lineHeight: z.number().min(1).max(2), color: colorSchema, align: z.enum(["left", "center", "right"]) }).readonly()
-const imageLayerSchema = z.object({ slotId: idSchema, assetId: idSchema.optional(), frame: frameSchema, fit: z.enum(["contain", "cover"]) }).readonly()
+const imageLayerSchema = z.object({ slotId: idSchema, assetId: idSchema.optional(), frame: frameSchema, edgePolicy: z.enum(["rounded", "none", "soft"]).optional(), fit: z.enum(["contain", "cover"]) }).readonly()
 
 const cardLayoutV1Object = z.object({ pageId: idSchema, background: colorSchema, titleFrame: frameSchema, bodyFrame: frameSchema, titleStyle: textStyleSchema, bodyStyle: textStyleSchema, image: imageLayerSchema })
 const cardLayoutV1Schema = cardLayoutV1Object.readonly()
@@ -18,9 +18,10 @@ const a4LayoutV1Schema = a4LayoutV1Object.readonly()
 
 const listMarkerStyleSchema = z.enum(["source", "number", "dot", "check"])
 const structuredFrames = { leadFrame: frameSchema, actionListFrame: frameSchema, closingFrame: frameSchema } as const
-const a4BrandSchema = z.object({ mascot: imageLayerSchema, seasonalDecoration: imageLayerSchema, utilityFrame: frameSchema, closingFrame: frameSchema }).readonly()
+const a4BrandSchema = z.object({ mascot: imageLayerSchema, seasonalDecoration: imageLayerSchema, utilityFrame: frameSchema, closingFrame: frameSchema, editorialLayout: z.literal(true).optional(), compositionPreset: z.literal("september-master").optional(), utilityText: z.string().max(1000).optional(), closingText: z.string().max(1000).optional(), sourceText: z.string().max(1500).optional() }).readonly()
 const cardBrandSchema = z.object({ mascot: imageLayerSchema, seasonalDecoration: imageLayerSchema.optional(), previewTopicCount: z.literal(4).optional() }).readonly()
-const cardLayoutV2Schema = cardLayoutV1Object.extend({ ...structuredFrames, accent: colorSchema, listMarkerStyle: listMarkerStyleSchema, imageTextColumnRatio: z.number().min(0.25).max(0.75), coverLayout: z.enum(["feature-right", "feature-center", "topics-grid"]), brand: cardBrandSchema.optional() }).readonly()
+const editorialSchema = z.object({ compositionPreset: z.enum(["september-master", "illustrated-ab"]).optional(), layoutType: z.enum(["A", "B", "C", "D"]), studentComposition: z.enum(["female", "male", "mixed", "objects"]), season: z.enum(["spring", "summer", "autumn", "winter", "none"]), moduleImages: z.array(imageLayerSchema).length(4).readonly().optional(), slogan: z.string().max(160).optional(), closing: z.string().max(200).optional() }).readonly()
+const cardLayoutV2Schema = cardLayoutV1Object.extend({ ...structuredFrames, accent: colorSchema, listMarkerStyle: listMarkerStyleSchema, imageTextColumnRatio: z.number().min(0.25).max(0.75), coverLayout: z.enum(["feature-right", "feature-center", "topics-grid"]), brand: cardBrandSchema.optional(), editorial: editorialSchema.optional() }).readonly()
 const a4ModuleV2Schema = a4ModuleV1Object.extend({ titleFrame: frameSchema, ...structuredFrames, accent: colorSchema, listMarkerStyle: listMarkerStyleSchema, imageTextColumnRatio: z.number().min(0.25).max(0.75) }).readonly()
 const a4LayoutV2Schema = a4LayoutV1Object.omit({ headerFrame: true, modules: true }).extend({ titleFrame: frameSchema, publicationMetaFrame: frameSchema, modules: z.array(a4ModuleV2Schema).length(6).readonly(), brand: a4BrandSchema.optional() }).readonly()
 
@@ -43,7 +44,7 @@ const assetSchema = z.object({
 const publicationMetaSchema = z.object({ schoolName: z.string().trim().min(1), issueLabel: z.string().trim().min(1) }).readonly()
 const snapshotBase = { canonicalProjectRevision: z.number().int().positive(), templateId: idSchema, templateVersion: z.number().int().positive(), publicationMeta: publicationMetaSchema, assetManifest: z.array(assetSchema).readonly() } as const
 const designSnapshotV1Schema = z.object({ ...snapshotBase, a4Layout: a4LayoutV1Schema, cardLayouts: z.array(cardLayoutV1Schema).length(7).readonly() }).readonly()
-const designSnapshotV2Schema = z.object({ designSchemaVersion: z.literal(2), ...snapshotBase, a4Layout: a4LayoutV2Schema, cardLayouts: z.array(cardLayoutV2Schema).length(7).readonly() }).readonly()
+const designSnapshotV2Schema = z.object({ designSchemaVersion: z.literal(2), ...snapshotBase, a4Layout: a4LayoutV2Schema, cardLayouts: z.array(cardLayoutV2Schema).length(7).readonly() }).readonly().superRefine((snapshot, context) => validateEditorialPages(snapshot, message => context.addIssue({ code: "custom", message })))
 
 const revisionBase = { revision: z.number().int().positive(), createdAt: isoDateSchema, changedPageIds: z.array(idSchema).readonly(), restoredFromRevision: z.number().int().positive().optional() } as const
 const designRevisionV1Schema = z.object({ ...revisionBase, snapshot: designSnapshotV1Schema }).readonly()
@@ -54,6 +55,11 @@ const designRevisionV2Schema = z.discriminatedUnion("snapshotVersion", [
 
 type CommonDesign = { readonly designRevision: number; readonly cardLayouts: readonly { readonly pageId: string }[]; readonly assetManifest: readonly { readonly id: string }[] }
 type CommonRevision = { readonly revision: number; readonly restoredFromRevision?: number }
+function validateEditorialPages(design: { readonly cardLayouts: readonly { readonly editorial?: { readonly layoutType: string } }[] }, issue: (message: string) => void): void {
+  design.cardLayouts.forEach((card, index) => {
+    if (card.editorial !== undefined && (index === 0) !== (card.editorial.layoutType === "A")) issue("TYPE A is available only on the cover; topic cards require TYPE B, C, or D")
+  })
+}
 function validateCommon(design: CommonDesign, revisions: readonly CommonRevision[], issue: (message: string) => void): void {
   const pageIds = design.cardLayouts.map((card) => card.pageId)
   const revisionNumbers = revisions.map((entry) => entry.revision)
@@ -76,6 +82,7 @@ const newsletterDesignStateV1Schema = z.object({ designSchemaVersion: z.literal(
 const newsletterDesignStateV2Schema = z.object({ designSchemaVersion: z.literal(2), projectId: idSchema, designRevision: z.number().int().positive(), ...snapshotBase, a4Layout: a4LayoutV2Schema, cardLayouts: z.array(cardLayoutV2Schema).length(7).readonly(), revisionHistory: z.array(designRevisionV2Schema).min(2).readonly() }).readonly().superRefine((design, context) => {
   const issue = (message: string): void => context.addIssue({ code: "custom", message })
   validateCommon(design, design.revisionHistory, issue)
+  validateEditorialPages(design, issue)
   const current = { designSchemaVersion: 2 as const, canonicalProjectRevision: design.canonicalProjectRevision, templateId: design.templateId, templateVersion: design.templateVersion, publicationMeta: design.publicationMeta, a4Layout: design.a4Layout, cardLayouts: design.cardLayouts, assetManifest: design.assetManifest }
   const finalEntry = design.revisionHistory[design.revisionHistory.length - 1]
   if (finalEntry?.snapshotVersion !== 2 || canonicalJson(finalEntry.snapshot) !== canonicalJson(current)) issue("final V2 design snapshot must equal current design")

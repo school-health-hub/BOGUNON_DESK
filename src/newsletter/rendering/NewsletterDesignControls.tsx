@@ -1,10 +1,14 @@
+import { AssetChoice } from "./NewsletterEditorialControls"
 import {
   applyA4ImageTextRatio,
+  applyEditorialA4Layout,
   applyA4LayoutVariant,
   applyCardImageTextRatio,
   applyCardLayoutVariant,
   applyCoverLayout,
   updateA4ModuleLayout,
+  updateA4MascotFrame,
+  updateA4EditorialCopy,
   updateCardLayout,
 } from "./designState"
 import type { NewsletterDesignStateV2 } from "./designSchema"
@@ -25,7 +29,7 @@ const now = (): string => new Date().toISOString()
 function FrameEditor({ frame, onChange }: { readonly frame: Frame; readonly onChange: (patch: Partial<Frame>) => void }) {
   const fields = [["x", "가로"], ["y", "세로"], ["width", "너비"], ["height", "높이"]] as const
   return <div className="frame-grid">
-    {fields.map(([key, label]) => <label key={key}>{label}<input type="number" min="0" aria-label={`프레임 ${label}`} value={Math.round(frame[key])} onChange={(event) => onChange({ [key]: Number(event.target.value) })} /></label>)}
+    {fields.map(([key, label]) => <label key={key}>{label}<input type="number" min={key === "width" || key === "height" ? 1 : 0} aria-label={`프레임 ${label}`} value={Math.round(frame[key])} onChange={(event) => onChange({ [key]: Math.max(key === "width" || key === "height" ? 1 : 0, Number(event.target.value)) })} /></label>)}
   </div>
 }
 
@@ -57,6 +61,13 @@ export function NewsletterDesignControls({ design, mode, selectedIndex, onChange
       onChange(updateA4ModuleLayout(design, { moduleIndex: selectedIndex, now: now(), patch: key === undefined ? { image: { frame: patch } } : { [key]: patch } }))
     }
     return <div className="control-stack">
+      <button type="button" onClick={() => onChange(applyEditorialA4Layout(design, { now: now() }))}>A4 공식 편집형 적용</button>
+      <AssetChoice label="A4 주제 삽화" value={module.image.assetId} design={design} onChange={(assetId) => onChange(updateA4ModuleLayout(design, { moduleIndex: selectedIndex, now: now(), patch: { image: { assetId } } }))} />
+      {design.a4Layout.brand !== undefined && <fieldset className="frame-editor"><legend>A4 수달쌤 위치·크기</legend><FrameEditor frame={design.a4Layout.brand.mascot.frame} onChange={(mascotFrame) => onChange(updateA4MascotFrame(design, { mascotFrame, now: now() }))} /></fieldset>}
+      {design.a4Layout.brand !== undefined && <fieldset className="control-stack"><legend>A4 하단 원고</legend>
+        {([["utilityText", "A4 보건실 안내 문구"], ["closingText", "A4 마무리 문구"], ["sourceText", "A4 출처 표기"]] as const).map(([key, label]) => <label key={key}>{label}<textarea aria-label={label} rows={key === "utilityText" ? 4 : 2} value={design.a4Layout.brand?.[key] ?? ""} onChange={(event) => onChange(updateA4EditorialCopy(design, { patch: { [key]: event.target.value }, now: now() }))} /></label>)}
+        <small>확인한 학교 안내와 출처를 직접 입력해 주세요. 주제별 마무리 문구는 각 카드 원고에서 함께 수정할 수 있습니다.</small>
+      </fieldset>}
       <LayoutFields ratio={module.imageTextColumnRatio} accent={module.accent} marker={module.listMarkerStyle} onAccent={(accent) => onChange(updateA4ModuleLayout(design, { moduleIndex: selectedIndex, now: now(), patch: { accent } }))} onMarker={(listMarkerStyle) => onChange(updateA4ModuleLayout(design, { moduleIndex: selectedIndex, now: now(), patch: { listMarkerStyle } }))} onVariant={(variant) => onChange(applyA4LayoutVariant(design, { moduleIndex: selectedIndex, variant, now: now() }))} onRatio={(ratio) => onChange(applyA4ImageTextRatio(design, { moduleIndex: selectedIndex, ratio, now: now() }))} />
       <FrameFields frameKind={frameKind} frame={frame} onKind={setFrameKind} onChange={updateFrame} />
     </div>

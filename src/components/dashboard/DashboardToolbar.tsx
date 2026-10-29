@@ -3,6 +3,7 @@ import type { DashboardEditorPanel } from "./useDesktopNavigation";
 
 type DashboardToolbarProps = {
   readonly onOpenFinance?: () => void;
+  readonly onOpenNewsletter?: () => void;
   readonly activePanel: DashboardEditorPanel;
   readonly isEditing: boolean;
   readonly onOpenPanel: (panel: DashboardEditorPanel) => void;
@@ -13,6 +14,7 @@ type DashboardToolbarProps = {
 
 export function DashboardToolbar({
   onOpenFinance,
+  onOpenNewsletter,
   activePanel,
   isEditing,
   onOpenPanel,
@@ -24,6 +26,7 @@ export function DashboardToolbar({
     return (
       <div className="workspace-view-actions" aria-label="업무판 빠른 작업">
         {onOpenFinance && <button className="toolbar-button" type="button" data-finance-launcher aria-label="MY FINANCE 개인 수입 관리" onClick={onOpenFinance}><Wallet size={16} /> <span>MY FINANCE</span></button>}
+        {onOpenNewsletter && <button className="toolbar-button" type="button" data-newsletter-launcher title="보건소식지 제작소" onClick={onOpenNewsletter}><LayoutTemplate size={16} /> <span>보건소식지 제작소</span></button>}
         <button className="toolbar-button workspace-quick-add-button" type="button" aria-label="빠른 추가" title="빠른 추가" onClick={onOpenQuickAdd}>
           <Plus size={16} /> <span>빠른 추가</span>
         </button>

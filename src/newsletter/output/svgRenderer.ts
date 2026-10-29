@@ -27,6 +27,9 @@ function renderImage(pageId: string, layer: ImageSceneLayer, assets: ReadonlyMap
   const source = layer.assetId === undefined ? newsletterPlaceholderDataUrl(layer.placeholderKind) : assets.get(layer.assetId)
   if (source === undefined && layer.assetId !== undefined) throw new SvgAssetMissingError(layer.assetId)
   const aspect = layer.fit === "cover" ? "xMidYMid slice" : "xMidYMid meet"
+  const image = `<image id="${escapeXml(layer.layerId)}" href="${escapeXml(source ?? newsletterPlaceholderDataUrl("generic"))}" x="${layer.frame.x}" y="${layer.frame.y}" width="${layer.frame.width}" height="${layer.frame.height}" preserveAspectRatio="${aspect}"`
+  if (layer.edgePolicy === "none") return `${image}/>`
+  if (layer.edgePolicy === "soft") return `<defs><radialGradient id="${clipId}-fade"><stop offset="65%" stop-color="white"/><stop offset="100%" stop-color="black"/></radialGradient><mask id="${clipId}-soft" maskUnits="userSpaceOnUse" x="${layer.frame.x}" y="${layer.frame.y}" width="${layer.frame.width}" height="${layer.frame.height}"><rect x="${layer.frame.x}" y="${layer.frame.y}" width="${layer.frame.width}" height="${layer.frame.height}" fill="url(#${clipId}-fade)"/></mask></defs>${image} mask="url(#${clipId}-soft)"/>`
   return `<defs><clipPath id="${clipId}"><rect x="${layer.frame.x}" y="${layer.frame.y}" width="${layer.frame.width}" height="${layer.frame.height}" rx="12"/></clipPath></defs><image id="${escapeXml(layer.layerId)}" href="${escapeXml(source ?? newsletterPlaceholderDataUrl("generic"))}" x="${layer.frame.x}" y="${layer.frame.y}" width="${layer.frame.width}" height="${layer.frame.height}" preserveAspectRatio="${aspect}" clip-path="url(#${clipId})"/>`
 }
 function renderShape(layer: ShapeSceneLayer): string {
@@ -36,6 +39,7 @@ function renderShape(layer: ShapeSceneLayer): string {
 function renderLayer(pageId: string, layer: SceneLayer, assets: ReadonlyMap<string, string>): string {
   switch (layer.kind) {
     case "shape": return renderShape(layer)
+    case "path": return `<path id="${escapeXml(layer.layerId)}" d="${escapeXml(layer.path)}" transform="translate(${layer.frame.x} ${layer.frame.y}) scale(${layer.frame.width / 24} ${layer.frame.height / 24})" fill="${escapeXml(layer.fill)}" stroke="${escapeXml(layer.stroke)}" stroke-width="${layer.strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`
     case "image": return renderImage(pageId, layer, assets)
     case "text": return renderText(layer)
   }

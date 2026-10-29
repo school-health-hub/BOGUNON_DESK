@@ -13,6 +13,24 @@ import { resolveDesignAssets } from "./assetResolution"
 afterEach(cleanup)
 
 describe("Newsletter preview scene binding", () => {
+  it.each(["none", "soft"] as const)("shares image edge policy %s between preview and SVG", async (edgePolicy) => {
+    // Given
+    const now = "2026-10-30T00:00:00.000Z"
+    const project = await createNewsletterProject({ projectId: "edge-test", title: "보건소식", now })
+    const design = createNewsletterDesignState({ projectId: project.projectId, canonicalProjectRevision: 1, now })
+    const original = compileRenderDocument({ project, projectRevision: 1, design, designRevision: 1 }).cards[0]
+    if (original === undefined) throw new Error("missing cover")
+    const page = { ...original, image: { ...original.image, edgePolicy } }
+    // When
+    const view = render(<CardPreview page={page} />)
+    const svg = renderCardSvg(page, new Map())
+    // Then
+    expect(view.container.querySelectorAll("clipPath")).toHaveLength(0)
+    expect(svg).not.toContain("<clipPath")
+    expect(view.container.querySelectorAll("mask")).toHaveLength(edgePolicy === "soft" ? 1 : 0)
+    expect(svg.includes("<mask")).toBe(edgePolicy === "soft")
+    expect(view.container.querySelector("svg")?.getAttribute("data-scene-hash")).toBe(/data-scene-hash="([a-f0-9]{64})"/u.exec(svg)?.[1])
+  })
   it("renders the same registered source in preview and export", async () => {
     // Given
     const now = "2026-10-29T00:00:00.000Z"

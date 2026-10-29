@@ -47,6 +47,21 @@ function wordSegments(text: string): Segments {
   if (segmented !== undefined) return { values: segmented, implementation: "intl-word" }
   return { values: text.match(/\s+|[^\s]+/gu) ?? [], implementation: "fallback" }
 }
+const ACTION_PHRASES = /손 씻기|손과 목|다른 사람의|따뜻하게 하기|마시지 않기|대지 않기|먹지 않기|누르지 않기|떼어 놓기|몸 움직이기|받은 뒤/gu
+function actionSegments(text: string): Segments {
+  const values: string[] = []
+  let offset = 0
+  let implementation: Segments["implementation"] = "fallback"
+  for (const match of text.matchAll(ACTION_PHRASES)) {
+    const before = wordSegments(text.slice(offset, match.index))
+    values.push(...before.values, match[0])
+    if (before.implementation === "intl-word") implementation = "intl-word"
+    offset = match.index + match[0].length
+  }
+  const after = wordSegments(text.slice(offset))
+  if (after.implementation === "intl-word") implementation = "intl-word"
+  return { values: [...values, ...after.values], implementation }
+}
 
 function splitLongToken(token: string, style: TextStyle, width: number, measure: TextMeasurer): readonly string[] {
   const chunks: string[] = []
@@ -58,8 +73,8 @@ function splitLongToken(token: string, style: TextStyle, width: number, measure:
   return chunks
 }
 
-function wrapParagraph(text: string, style: TextStyle, width: number, measure: TextMeasurer): { readonly lines: readonly string[]; readonly implementation: TextLayout["segmenter"] } {
-  const segmented = wordSegments(text)
+function wrapParagraph(text: string, style: TextStyle, width: number, measure: TextMeasurer, policy?: "newsletter-actions"): { readonly lines: readonly string[]; readonly implementation: TextLayout["segmenter"] } {
+  const segmented = policy === "newsletter-actions" ? actionSegments(text) : wordSegments(text)
   const lines: string[] = []
   let line = ""
   for (const segment of segmented.values) {
@@ -86,11 +101,11 @@ function lineIssues(lines: readonly string[]): readonly TextLayoutIssue[] {
   return [...issues]
 }
 
-export function layoutText(text: string, style: TextStyle, box: TextBox, measure: TextMeasurer = estimatedTextWidth): TextLayout {
+export function layoutText(text: string, style: TextStyle, box: TextBox, measure: TextMeasurer = estimatedTextWidth, policy?: "newsletter-actions"): TextLayout {
   const lines: string[] = []
   let implementation: TextLayout["segmenter"] = "fallback"
   for (const paragraph of text.split("\n")) {
-    const wrapped = wrapParagraph(paragraph, style, box.width, measure)
+    const wrapped = wrapParagraph(paragraph, style, box.width, measure, policy)
     lines.push(...wrapped.lines)
     if (wrapped.implementation === "intl-word") implementation = "intl-word"
   }

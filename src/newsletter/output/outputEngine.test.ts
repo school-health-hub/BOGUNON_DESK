@@ -1,3 +1,6 @@
+import { compileRenderDocument } from "../rendering/renderDocument"
+import { buildNewsletterScene, newsletterPageSceneHash } from "../rendering/renderScene"
+import type { TextMeasurer } from "../rendering/typography"
 import { describe, expect, it, vi } from "vitest"
 import { updateCardLayout, upgradeNewsletterDesignStateV2 } from "../rendering/designState"
 import { createNewsletterDesignState, parseNewsletterDesignStateV2, type NewsletterDesignStateV2 } from "../rendering/designSchema"
@@ -225,4 +228,19 @@ it.each([undefined,"approved"] as const)("allows reviewed QA generation when imp
   // Then
   expect(output.manifest.reviewOnly).toBe(true)
   expect(output.cardPngs).toHaveLength(7)
+})
+
+it("uses the editor's font measurements to export exactly the same eight Scene hashes", async () => {
+  // Given
+  const project = await createNewsletterProject({ projectId: "same-scene", title: "11월 보건소식", now: NOW })
+  const design = safeDesign(project.projectId)
+  const measureText: TextMeasurer = (text, style) => [...text].length * style.fontSize * 0.4
+  const input = { project, projectRevision: 1, design, designRevision: design.designRevision, measureText }
+  const preview = buildNewsletterScene(compileRenderDocument(input))
+  // When
+  const bundle = await generateNewsletterOutputs({ ...input, createdAt: NOW, rasterizer: testRasterizer(), pdfComposer: testPdfComposer() })
+  // Then
+  const exports = [bundle.a4Png, ...bundle.cardPngs].map((artifact) => new TextDecoder().decode(artifact.bytes.slice(24)))
+  expect(exports).toHaveLength(8)
+  for (const [index, page] of preview.pages.entries()) expect(exports[index]).toContain(`data-scene-hash="${newsletterPageSceneHash(page)}"`)
 })

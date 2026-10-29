@@ -20,6 +20,7 @@ export function referencedDesignAssets(design: NewsletterDesignState, revision: 
   const ids = new Set<string>()
   for (const card of snapshot.cardLayouts) {
     if (card.image.assetId !== undefined) ids.add(card.image.assetId)
+    if ("editorial" in card) for (const image of card.editorial?.moduleImages ?? []) if (image.assetId !== undefined) ids.add(image.assetId)
     if ("brand" in card && card.brand !== undefined) {
       if (card.brand.mascot.assetId !== undefined) ids.add(card.brand.mascot.assetId)
       if (card.brand.seasonalDecoration?.assetId !== undefined) ids.add(card.brand.seasonalDecoration.assetId)

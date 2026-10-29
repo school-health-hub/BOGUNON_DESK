@@ -106,3 +106,22 @@ button[aria-pressed="true"], .primary-action { color: #fff; border-color: #326a5
 }
 
 @media (prefers-reduced-motion: reduce) { button { transition: none; } }
+
+.newsletter-studio .editor-panel input:not([type]),
+.newsletter-studio .editor-panel textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #b9c9bf;
+  border-radius: 8px;
+  padding: 9px 10px;
+  color: var(--newsletter-body);
+  background: #fff;
+  font: inherit;
+  line-height: 1.6;
+}
+.newsletter-studio .editor-panel textarea { resize: vertical; min-height: 160px; word-break: keep-all; }
+.newsletter-studio .editor-panel fieldset.control-stack { min-width: 0; margin: 0; padding: 16px 12px; border: 1px solid #cfdbd1; border-radius: 12px; }
+.newsletter-studio .editor-panel fieldset.control-stack > legend { padding: 0 6px; color: #175d3a; font-size: 13px; font-weight: 750; }
+.newsletter-studio .editor-panel small { color: #48605b; line-height: 1.6; font-size: 11px; font-weight: 500; }
+.newsletter-studio .editor-panel p[role="status"] { margin: 0; color: #795317; font-size: 12px; line-height: 1.6; }

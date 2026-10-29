@@ -1,3 +1,4 @@
+import type { TextMeasurer } from "../rendering/typography"
 import { assetExportPending, resolveDesignAssets, referencedDesignAssets } from "../rendering/assetResolution"
 export { NewsletterAssetResolutionError } from "../rendering/assetResolution"
 export type { NewsletterAssetResolver } from "../rendering/assetResolution"
@@ -66,6 +67,7 @@ type GenerateOutputInput = {
   readonly design: NewsletterDesignState
   readonly designRevision: number
   readonly createdAt: string
+  readonly measureText?: TextMeasurer
   readonly rasterizer: SvgRasterizer
   readonly pdfComposer: PdfComposer
   readonly assetResolver?: NewsletterAssetResolver

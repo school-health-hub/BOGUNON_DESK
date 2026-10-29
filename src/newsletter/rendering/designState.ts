@@ -11,6 +11,9 @@ import {
   type TextStyle,
 } from "./designSchema"
 import { a4ModuleRatio, a4ModuleVariant, cardRatio, cardVariant, coverLayoutFrames, NEWSLETTER_ACCENTS, type NewsletterLayoutVariant } from "./layoutVariants"
+import { legacyEditorialCard } from "./editorialHistory"
+export { applyEditorialLayout, applyEditorialA4Layout, updateA4MascotFrame, updateA4EditorialCopy } from "./editorialState"
+import type { Frame } from "./renderDocument"
 
 export class DesignCardNotFoundError extends Error {
   readonly name = "DesignCardNotFoundError"
@@ -25,6 +28,8 @@ export class DesignV2RequiredError extends Error {
   constructor() { super("Newsletter DesignState V2 is required for structured layout editing") }
 }
 export type CardLayoutPatch = {
+  readonly editorial?: CardDesignLayoutV2["editorial"] | null
+  readonly brand?: { readonly mascot?: { readonly frame?: Partial<Frame>; readonly fit?: "contain" | "cover" }; readonly seasonalDecoration?: { readonly assetId?: string; readonly frame?: Partial<Frame>; readonly fit?: "contain" | "cover" } }
   readonly background?: string
   readonly accent?: string
   readonly listMarkerStyle?: CardDesignLayoutV2["listMarkerStyle"]
@@ -37,7 +42,7 @@ export type CardLayoutPatch = {
   readonly leadFrame?: Partial<CardDesignLayoutV2["leadFrame"]>
   readonly actionListFrame?: Partial<CardDesignLayoutV2["actionListFrame"]>
   readonly closingFrame?: Partial<CardDesignLayoutV2["closingFrame"]>
-  readonly image?: { readonly frame?: Partial<CardDesignLayoutV2["image"]["frame"]>; readonly fit?: CardDesignLayoutV2["image"]["fit"] }
+  readonly image?: { readonly edgePolicy?: "rounded" | "none" | "soft"; readonly assetId?: string; readonly frame?: Partial<CardDesignLayoutV2["image"]["frame"]>; readonly fit?: CardDesignLayoutV2["image"]["fit"] }
 }
 export type A4ModuleLayoutPatch = {
   readonly accent?: string
@@ -47,7 +52,7 @@ export type A4ModuleLayoutPatch = {
   readonly leadFrame?: Partial<NewsletterDesignStateV2["a4Layout"]["modules"][number]["leadFrame"]>
   readonly actionListFrame?: Partial<NewsletterDesignStateV2["a4Layout"]["modules"][number]["actionListFrame"]>
   readonly closingFrame?: Partial<NewsletterDesignStateV2["a4Layout"]["modules"][number]["closingFrame"]>
-  readonly image?: { readonly frame?: Partial<NewsletterDesignStateV2["a4Layout"]["modules"][number]["image"]["frame"]>; readonly fit?: NewsletterDesignStateV2["a4Layout"]["modules"][number]["image"]["fit"] }
+  readonly image?: { readonly assetId?: string; readonly frame?: Partial<NewsletterDesignStateV2["a4Layout"]["modules"][number]["image"]["frame"]>; readonly fit?: NewsletterDesignStateV2["a4Layout"]["modules"][number]["image"]["fit"] }
 }
 type UpdateCardInput = { readonly cardIndex: number; readonly patch: CardLayoutPatch; readonly now: string }
 
@@ -59,8 +64,9 @@ function snapshotV2(design: NewsletterDesignStateV2, cardLayouts: readonly CardD
 }
 
 export function updateCardLayout(design: NewsletterDesignState, input: UpdateCardInput): NewsletterDesignState {
-  const target = design.cardLayouts[input.cardIndex]
-  if (target === undefined) throw new DesignCardNotFoundError(input.cardIndex)
+  const selected = design.cardLayouts[input.cardIndex]
+  if (selected === undefined) throw new DesignCardNotFoundError(input.cardIndex)
+  const target = design.designSchemaVersion === 2 && input.patch.editorial === null ? legacyEditorialCard(design, input.cardIndex, topicCard(selected, input.cardIndex)) : selected
   const updated = { ...target, ...(input.patch.background === undefined ? {} : { background: input.patch.background }), titleFrame: { ...target.titleFrame, ...input.patch.titleFrame }, bodyFrame: { ...target.bodyFrame, ...input.patch.bodyFrame }, titleStyle: { ...target.titleStyle, ...input.patch.titleStyle }, bodyStyle: { ...target.bodyStyle, ...input.patch.bodyStyle } }
   if (design.designSchemaVersion === 1) {
     const cards = design.cardLayouts.map((card, index) => index === input.cardIndex ? updated : card)
@@ -76,6 +82,8 @@ export function updateCardLayout(design: NewsletterDesignState, input: UpdateCar
     ...(input.patch.listMarkerStyle === undefined ? {} : { listMarkerStyle: input.patch.listMarkerStyle }),
     ...(input.patch.imageTextColumnRatio === undefined ? {} : { imageTextColumnRatio: input.patch.imageTextColumnRatio }),
     ...(input.patch.coverLayout === undefined ? {} : { coverLayout: input.patch.coverLayout }),
+    ...(input.patch.editorial === undefined ? {} : { editorial: input.patch.editorial ?? undefined }),
+    ...(structured.brand === undefined ? {} : { brand: { ...structured.brand, mascot: { ...structured.brand.mascot, ...input.patch.brand?.mascot, frame: { ...structured.brand.mascot.frame, ...input.patch.brand?.mascot?.frame } }, ...(structured.brand.seasonalDecoration === undefined ? {} : { seasonalDecoration: { ...structured.brand.seasonalDecoration, ...input.patch.brand?.seasonalDecoration, frame: { ...structured.brand.seasonalDecoration.frame, ...input.patch.brand?.seasonalDecoration?.frame } } }) } }),
     leadFrame: { ...structured.leadFrame, ...input.patch.leadFrame },
     actionListFrame: { ...structured.actionListFrame, ...input.patch.actionListFrame },
     closingFrame: { ...structured.closingFrame, ...input.patch.closingFrame },
