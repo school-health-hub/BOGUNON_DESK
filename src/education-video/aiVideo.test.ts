@@ -1,9 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { buildVideoSearchPrompt, canonicalVideoUrl, candidateDraftInput, parseVideoSearchResult } from './aiVideo';
+import { generateOfficialDocumentDraft } from '../official-document/documentGenerator';
 const url = 'https://www.youtube.com/watch?v=abcdefghijk';
 const item = { url, description: '공개 소개 요약', relevance: '교육 관련', reason: '교사 확인 필요' };
 const result = (videos: unknown[], sources = [{ url, title: '출처의 제목' }]) => ({ text: JSON.stringify({ videos }), sources, checkedAt: '2026-10-22T00:00:00Z' });
 describe('source backed education video search', () => {
+  it('includes selected video details once in the editable document body', () => {
+    // Given a source-backed candidate and the existing document generator.
+    const candidate = parseVideoSearchResult(result([item])).candidates[0];
+    const input = candidateDraftInput(candidate, { topic: '합성 교육', target: '고등학생', minutes: 20, publicFirst: true });
+    // When the shared Finder handoff becomes a local draft.
+    const body = generateOfficialDocumentDraft(input).body;
+    // Then the URL appears once, without being interpolated into a purpose sentence.
+    expect(body.split(url)).toHaveLength(2);
+    expect(body).not.toContain(`${url}을(를)`);
+    expect(input.mainContent).toContain(url);
+  });
   it('uses actual structured source title and leaves unverified metadata unknown', () => {
     const { candidates } = parseVideoSearchResult(result([{ ...item, title: 'invented', publisher: 'invented', durationSeconds: 100 }]));
     expect(candidates).toHaveLength(1); expect(candidates[0].title).toBe('출처의 제목');
@@ -39,6 +51,10 @@ describe('source backed education video search', () => {
     expect(confirmed.mainContent).toContain('확인된 영상 제목: 교사 확인 제목');
     expect(confirmed.mainContent).toContain('교사 확인 재생시간: 10분 15초');
     expect(confirmed.mainContent).toContain('교사 승인 추천 이유: 교사 최종 이유');
+    const body = generateOfficialDocumentDraft(confirmed).body;
+    expect(body.split(url)).toHaveLength(2);
+    expect(body.split('확인된 영상 제목: 교사 확인 제목')).toHaveLength(2);
+    expect(body).not.toContain('아. 주요 내용');
     const blocked = candidateDraftInput(base, conditions, { status: 'deleted' });
     expect(blocked.organization).toBe('');
     expect(blocked.mainContent).not.toContain(base.title);

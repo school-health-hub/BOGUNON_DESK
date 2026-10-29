@@ -106,5 +106,5 @@ export function candidateDraftInput(candidate: AiVideoCandidate, conditions: Sea
   if (reason) lines.push(`교사 승인 추천 이유: ${reason}`);
   return { purpose: '계획 기안', workArea: '학생 보건교육 계획', schoolYear: '', schoolName: '', relatedDocument: '',
     workName: conditions.topic, target: conditions.target, dateTime: '', place: '', method: '교육영상 활용', organization: candidate.metadataVerification.publisher === 'teacher-confirmed' ? candidate.publisher ?? '' : '',
-    peopleCount: '', budget: '', mainContent: lines.join('\n'), attachments: '', notes: '확인된 사실정보와 영상 URL만 전달했습니다. 교육 적합성과 영상 내용을 교사가 확인한 뒤 기안을 확정하세요.' };
+    peopleCount: '', budget: '', mainContent: lines.map((line, index) => `${index + 1}. ${line}`).join('\n'), attachments: '', notes: '확인된 사실정보와 영상 URL만 전달했습니다. 교육 적합성과 영상 내용을 교사가 확인한 뒤 기안을 확정하세요.' };
 }

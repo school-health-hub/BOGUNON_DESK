@@ -1,2 +1,9 @@
 .finder-home-qa-shell { min-height: 100vh; background: var(--workspace-bg); color: var(--text-primary); }
 .finder-home-qa-banner details { overflow-wrap: anywhere; }
+.qa-library-tools { display: grid; gap: 18px; min-width: 0; }
+.qa-library-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.qa-library-entry { display: grid; gap: 12px; min-width: 0; padding: 18px; border: 1px solid var(--border, #dce3e6); border-radius: 8px; background: var(--aiv-paper, #fff); }
+.qa-library-entry > button { justify-self: start; }
+.qa-library-transfer { display: grid; gap: 12px; border-top: 1px solid var(--border, #dce3e6); padding-top: 18px; }
+.qa-library-tools textarea { min-height: 96px; overflow-wrap: anywhere; }
+@media (max-width: 700px) { .qa-library-actions > button { flex: 1 1 180px; } }

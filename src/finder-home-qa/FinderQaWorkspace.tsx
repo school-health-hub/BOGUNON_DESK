@@ -56,7 +56,7 @@ export function FinderQaWorkspace() {
         onSave={async (candidate, conditions, reason) => loaded(await saveAiCandidate(libraryRepository, candidate,
           { educationTitle: conditions.topic, target: conditions.target, schedule: '', instructions: '' }, reason))}
         onDraft={input => {
-          if (!input.mainContent.split('\n').includes(syntheticCandidate.url)) { setNotice('격리 QA에서는 QAoffline01 합성 후보만 기안에 사용할 수 있습니다.'); return; }
+          if (!input.mainContent.split('\n').some(line => line.replace(/^\d+\.\s/u, '') === syntheticCandidate.url)) { setNotice('격리 QA에서는 QAoffline01 합성 후보만 기안에 사용할 수 있습니다.'); return; }
           const empty = createEmptyOfficialDocumentInput();
           const existing = session.state.draft !== null || fields.some(field => session.state.createInput[field] !== empty[field])
             || session.state.outputs.create.aiResponse !== '' || session.state.outputs.create.prompt !== '';

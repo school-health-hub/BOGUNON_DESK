@@ -1,5 +1,12 @@
 # BOGUNON DESK Integrated Work Desk 디자인 시스템
 
+## Finder library usability — HOME-FINDER-5N
+
+- 기존 Finder의 muted mint/navy, border, 8px radius, 40px 이상 버튼과 focus-visible 규칙을 재사용한다. 신규 테마나 운영 Dashboard 변경은 없다.
+- 운영 LibraryPanel과 QA LibraryTools는 LibraryEntrySummary로 제목·비활성 URL 텍스트·대상을 공유한다. 긴 제목과 URL은 줄바꿈하며 외부 링크를 만들지 않는다.
+- QA 관리 영역은 상단 작업 버튼, 항목별 제목/URL/메모/저장, JSON 교환 영역을 분리한다. 버튼 행은 wrap하고 textarea는 가용 폭을 사용한다.
+- Native GUI 시각 재검증은 별도 승인 후 실시한다. 정적·컴포넌트 테스트를 실제 화면 PASS로 간주하지 않는다.
+
 ## Desktop Surface Mode
 
 - 9B-1은 Windows `Progman` / `WorkerW` topology를 읽기만 하는 capability probe다. 앱 창의 parent, style, z-order, taskbar, decorations를 변경하지 않으며 desktop mode의 기본 상태는 일반 창이다.
