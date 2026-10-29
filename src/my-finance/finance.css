@@ -3,6 +3,7 @@
 .finance-screen button,.finance-screen input,.finance-screen select,.finance-screen textarea { font:inherit; }
 .finance-screen button { display:inline-flex; align-items:center; justify-content:center; gap:7px; border:1px solid #d9e1e9; border-radius:11px; padding:10px 14px; background:white; color:#34445d; font-weight:600; cursor:pointer; }
 .finance-screen button:hover:not(:disabled) { background:#eef3f9; border-color:#9dacc1; }
+.finance-screen :is(.finance-area-tabs,.finance-phase2-tabs) button:not(.is-active):hover:not(:disabled) { color:#34445d; }
 .finance-screen button:disabled { opacity:.48; cursor:default; }
 .finance-screen button.finance-primary { background:#263b5c; border-color:#263b5c; color:white; }
 .finance-screen button.finance-primary:hover:not(:disabled) { background:#344e73; }
