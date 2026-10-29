@@ -38,7 +38,7 @@ try{
     const bytes=await page.screenshot({animations:'disabled'});await fs.writeFile(path.join(out,file),bytes);
     await json(file+'.dom.json',dom);captures.push({file,state:name,viewport:vp,productSha,rendered:true,sha256:crypto.createHash('sha256').update(bytes).digest('hex'),browser:browser.version(),dpr:1,nativeDpi:'NOT RUN'});
     await json('captures.json',captures);
-    assertions.push({state:name,viewport:vp,pageFits:dom.page.scrollWidth<=dom.page.clientWidth,financeContrast:dom.finance.filter(x=>x.contrast!==null).every(x=>x.contrast>=4.5),helperNoOrphan:dom.helpers.every(x=>!x.orphanEnding),purchaseFitEstimate:dom.purchase?.fitEstimate??null});
+    assertions.push({state:name,viewport:vp,pageFits:dom.page.scrollWidth<=dom.page.clientWidth,financeContrast:dom.finance.length>0&&dom.finance.every(x=>x.contrast!==null)?dom.finance.every(x=>x.contrast>=4.5):null,financeNodeCount:dom.finance.length,helperNoOrphan:dom.helpers.length>0?dom.helpers.every(x=>!x.orphanEnding):null,helperHeuristic:'whole-line ending only: 니다./다./요.; manual CJK review required',purchaseFitEstimate:dom.purchase?.fitEstimate??null});
     return dom;
   }
   for(const vp of [{width:980,height:700},{width:1280,height:720},{width:1366,height:768},{width:1440,height:900}]){
