@@ -48,13 +48,13 @@ pub fn run() {
     let result = tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             finder_home_qa_metadata,
-            library::education_video_library_load,
-            library::education_video_library_save,
-            library::education_video_library_import,
-            library::education_video_library_export,
-            library::education_video_library_recover,
-            library::education_video_library_metadata_delete,
-            library::education_video_library_metadata_refresh
+            library::finder_home_qa_library_load,
+            library::finder_home_qa_library_save,
+            library::finder_home_qa_library_import,
+            library::finder_home_qa_library_export,
+            library::finder_home_qa_library_recover,
+            library::finder_home_qa_library_metadata_delete,
+            library::finder_home_qa_library_metadata_refresh
         ])
         .setup(|app| {
             let paths = paths()?;

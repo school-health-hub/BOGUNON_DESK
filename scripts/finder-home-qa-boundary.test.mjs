@@ -39,7 +39,7 @@ test('native QA registers only local library and metadata, with no production bo
   assert.ok(handler);
   const commands = handler.split(',').map(command => command.trim()).filter(Boolean);
   assert.equal(commands.length, 8);
-  assert.ok(commands.every(command => /^(finder_home_qa_metadata|library::education_video_library_(load|save|import|export|recover|metadata_delete|metadata_refresh))$/.test(command)));
+  assert.ok(commands.every(command => /^(finder_home_qa_metadata|library::finder_home_qa_library_(load|save|import|export|recover|metadata_delete|metadata_refresh))$/.test(command)));
   assert.doesNotMatch(source, /\.plugin\(|AppData|app_local_data_dir|open_url|authService|reqwest/);
   assert.match(source, /\.data_directory\(paths\.directory\("webview"\)\)/);
   assert.match(source, /on_navigation\(local_navigation\)/);
@@ -50,4 +50,25 @@ test('Finder real dispatch stays disabled and source feature isolates production
   assert.match(read('src-tauri/src/lib.rs'), /feature = "finder-home-qa"/);
   assert.match(read('src-tauri/build.rs'), /finder_home_qa_build::validate/);
   assert.match(read('src-tauri/finder_home_qa_build.rs'), /CARGO_TARGET_DIR/);
+});
+
+test('QA Rust symbols have unique macro names while all seven public IPC strings stay unchanged', () => {
+  const qa = read('src-tauri/src/finder_home_qa_library.rs');
+  const production = read('src-tauri/src/education_video/commands.rs');
+  const handler = read('src-tauri/src/finder_home_qa.rs');
+  const ipc = read('src/finder-home-qa/qaIpc.ts');
+  const suffixes = ['load', 'save', 'import', 'export', 'recover', 'metadata_delete', 'metadata_refresh'];
+  for (const suffix of suffixes) {
+    const external = `education_video_library_${suffix}`;
+    const internal = `finder_home_qa_library_${suffix}`;
+    assert.match(qa, new RegExp(`#\\[tauri::command\\(rename = "${external}"\\)\\]\\s+pub fn ${internal}\\(`));
+    assert.match(handler, new RegExp(`library::${internal}\\b`));
+    assert.ok(ipc.includes(`'${external}'`));
+    assert.match(production, new RegExp(`#\\[tauri::command\\]\\s+pub fn ${external}\\(`));
+  }
+  const names = source => [...source.matchAll(/pub (?:async )?fn (\w+)\(/g)].map(match => match[1]);
+  assert.deepEqual(names(qa).filter(name => names(production).includes(name)), []);
+  assert.doesNotMatch(qa, /#\[cfg|macro_export|app_local_data_dir/);
+  assert.match(qa, /paths\.verify\(\)/);
+  assert.match(qa, /operation\(&paths\.library\(\)\)/);
 });

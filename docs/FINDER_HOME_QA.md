@@ -349,3 +349,66 @@ No Actions dispatch/rerun, NASM execution, local Native build or QA EXE launch o
 in 5I. Hosted provisioning and compilation remain unverified until a separately
 approved single run at the new checkpoint. Download failure, hash/version mismatch
 or missing Perl/MSVC fails closed; no mirror fallback or automatic rerun exists.
+
+## HOME-FINDER-5K: command macro namespace separation
+
+Run 40902184951 (source a433eb708b5c087a4ed8f37f01085a4cd7479d8e) passed
+NASM/Perl/MSVC, locked dependency preparation, contracts, QA/type checks and frontend
+build, then failed with exactly 14 E0428 compiler diagnostics before linking.
+The original compiler log identifies education_video/commands.rs as the earlier
+definition and finder_home_qa_library.rs as the redefinition. Neither module was
+included twice: each declares the same seven public function identifiers.
+
+The locked tauri-macros 2.6.3 command/wrapper.rs marks both public and restricted
+visibility functions' two helper macros with macro_export (crate-root namespace).
+Thus module separation alone and changing pub to pub(crate) do not resolve this.
+The normal commands remain compiled in QA because their shared model/store module
+is reused. No cfg gate or production command removal is used to hide the conflict.
+
+Only QA function identifiers and their generate_handler paths change. Each QA
+attribute now explicitly uses `#[tauri::command(rename = "education_video_library_<suffix>")]`
+on `finder_home_qa_library_<suffix>`. The same locked wrapper source derives helper
+macro identifiers from the Rust function identifier, and command_name_value from
+the rename string. Its handler.rs resolves the name macro through the registered
+function path, so the external IPC string remains unchanged. No manual helper
+macro re-export, custom macro registration or unsupported alias mechanism is added.
+
+For each suffix below there are TWO logged errors, mapped one-to-one:
+
+| Suffix | Original conflicting macros | New QA-only macro names |
+| --- | --- | --- |
+| load | __cmd__education_video_library_load; __tauri_command_name_education_video_library_load | __cmd__finder_home_qa_library_load; __tauri_command_name_finder_home_qa_library_load |
+| save | __cmd__education_video_library_save; __tauri_command_name_education_video_library_save | __cmd__finder_home_qa_library_save; __tauri_command_name_finder_home_qa_library_save |
+| import | __cmd__education_video_library_import; __tauri_command_name_education_video_library_import | __cmd__finder_home_qa_library_import; __tauri_command_name_finder_home_qa_library_import |
+| export | __cmd__education_video_library_export; __tauri_command_name_education_video_library_export | __cmd__finder_home_qa_library_export; __tauri_command_name_finder_home_qa_library_export |
+| recover | __cmd__education_video_library_recover; __tauri_command_name_education_video_library_recover | __cmd__finder_home_qa_library_recover; __tauri_command_name_finder_home_qa_library_recover |
+| metadata_delete | __cmd__education_video_library_metadata_delete; __tauri_command_name_education_video_library_metadata_delete | __cmd__finder_home_qa_library_metadata_delete; __tauri_command_name_finder_home_qa_library_metadata_delete |
+| metadata_refresh | __cmd__education_video_library_metadata_refresh; __tauri_command_name_education_video_library_metadata_refresh | __cmd__finder_home_qa_library_metadata_refresh; __tauri_command_name_finder_home_qa_library_metadata_refresh |
+
+Production commands retain their names, signatures, AppData behavior and production
+handler unchanged. QA parameters, return types and bodies are byte-equivalent after
+reversing only the approved identifiers/attributes (line endings normalized).
+Frontend qaIpc.ts, library calls, metadata command, QA path/ownership validation,
+synthetic admission, eight-command allowlist and no-network boundaries are unchanged.
+
+The regression contract starts RED on the old QA names and GREEN after the fix. It
+checks all seven aliases, all seven QA handler paths, unchanged production names,
+frontend IPC strings, disjoint Rust identifiers and retained storage validation.
+This is source-contract verification, NOT native macro-expansion or compilation.
+Cached compiled tauri-macros host DLL is unavailable in the existing Finder target;
+no full Native compilation or tool installation is attempted merely to obtain it.
+Actual Windows compile/link, macro expansion in the whole app and runtime IPC remain
+NOT RUN and require a separately approved CI run at the next checkpoint SHA.
+
+Local-only evidence: E:/BOGUNON_DEV/qa-output/finder-home-qa-20261030-hf5k/logs.
+macro-mapping.json is a sanitized derived mapping from all 14 errors, not the full
+original log; original GitHub job 123547204401 remains the source. No evidence is
+committed/uploaded. No Actions dispatch/rerun, QA EXE execution, provider request,
+main modification, production change or other-worktree change occurs in 5K.
+
+Offline results: contract tests 16 PASS; dedicated QA tests 13 PASS; existing Finder
+focused regressions 5 PASS; TypeScript PASS; touched Rust rustfmt PASS; diff and
+best-effort secret/PII pattern inspection PASS. Independent code/security/goal/QA/
+context source reviews are separate from Native validation. No full secret scanner
+is installed. Hosted Native compile/link and actual IPC remain NOT RUN; do not
+declare the E0428 fix compiler-verified until a separately approved CI run passes.
