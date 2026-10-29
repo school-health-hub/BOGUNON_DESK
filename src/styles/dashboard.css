@@ -65,7 +65,7 @@
 .workspace-shell.is-view-mode .react-grid-item[data-widget-type="clock"] .date-card__eyebrow { gap: 4px; font-size: 10px; line-height: 1.15; white-space: nowrap; }
 .workspace-shell.is-view-mode .react-grid-item[data-widget-type="clock"] .date-card__eyebrow svg { width: 12px; height: 12px; }
 .workspace-shell.is-view-mode .react-grid-item[data-widget-type="clock"] .date-card__body { justify-content: flex-start; padding-top: 7px; }
-.workspace-shell.is-view-mode .react-grid-item[data-widget-type="clock"] .date-card__date { overflow: visible; font-size: 12px; line-height: 1.25; text-overflow: clip; white-space: nowrap; }
+.workspace-shell.is-view-mode .react-grid-item[data-widget-type="clock"] .date-card__date { overflow: hidden; font-size: 12px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
 .workspace-shell.is-view-mode .react-grid-item[data-widget-type="clock"] .date-card__time { gap: 4px; margin-top: 0; font-size: 17px; line-height: 1.1; }
 .workspace-shell.is-view-mode .react-grid-item[data-widget-type="clock"] .date-card__time svg { width: 13px; height: 13px; }
 .workspace-shell.is-view-mode .react-grid-item[data-widget-type="weather"] .weather-panel { padding: 9px 126px 9px 11px; }

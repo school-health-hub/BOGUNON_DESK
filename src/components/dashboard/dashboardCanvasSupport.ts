@@ -62,6 +62,11 @@ export const calculateDashboardGridMetrics = (
 export const resolveDashboardGridWidth = (measuredWidth: number | null): number | null =>
   measuredWidth === null ? null : Math.max(measuredWidth, 320);
 
+export const resolveObservedElementWidth = (
+  currentWidth: number | null,
+  observedWidth: number,
+): number | null => observedWidth > 0 ? observedWidth : currentWidth;
+
 export const useElementWidth = () => {
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState<number | null>(null);
@@ -69,9 +74,11 @@ export const useElementWidth = () => {
   useLayoutEffect(() => {
     const element = ref.current;
     if (element === null) return undefined;
-    setWidth(element.getBoundingClientRect().width);
+    setWidth((current) => resolveObservedElementWidth(current, element.getBoundingClientRect().width));
     const resizeObserver = new ResizeObserver(([entry]) => {
-      if (entry !== undefined) setWidth(entry.contentRect.width);
+      if (entry !== undefined) {
+        setWidth((current) => resolveObservedElementWidth(current, entry.contentRect.width));
+      }
     });
     resizeObserver.observe(element);
     return () => resizeObserver.disconnect();

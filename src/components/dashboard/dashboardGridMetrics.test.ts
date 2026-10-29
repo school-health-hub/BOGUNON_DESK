@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createDashboardLayout, defaultAppearance, defaultWidgetLayouts } from "../../dashboard/layouts";
 import { hideWidget, mergeGridLayout, restoreWidget, toGridLayout } from "../../dashboard/layoutTransforms";
-import { calculateDashboardGridMetrics, DESKTOP_WORKSPACE_VERTICAL_RESERVATION, getWorkspaceModeClassName, RESET_DASHBOARD_CONFIRMATION, resetDashboardLayout, resolveDashboardGridWidth } from "./dashboardCanvasSupport";
+import { calculateDashboardGridMetrics, DESKTOP_WORKSPACE_VERTICAL_RESERVATION, getWorkspaceModeClassName, RESET_DASHBOARD_CONFIRMATION, resetDashboardLayout, resolveDashboardGridWidth, resolveObservedElementWidth } from "./dashboardCanvasSupport";
 
 describe("workspace visual mode", () => {
   it("derives the shell mode class from the existing editing state", () => {
@@ -32,6 +32,12 @@ describe("dashboard grid metrics", () => {
     expect(resolveDashboardGridWidth(null)).toBeNull();
     expect(resolveDashboardGridWidth(1414)).toBe(1414);
     expect(resolveDashboardGridWidth(280)).toBe(320);
+  });
+
+  it("keeps the last usable grid width while the dashboard is temporarily hidden", () => {
+    expect(resolveObservedElementWidth(null, 0)).toBeNull();
+    expect(resolveObservedElementWidth(1404, 0)).toBe(1404);
+    expect(resolveObservedElementWidth(1404, 1323)).toBe(1323);
   });
 
   it("fills the available height for a 9-row layout", () => {
