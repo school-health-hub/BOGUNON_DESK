@@ -1,6 +1,40 @@
 import { describe, expect, it } from "vitest";
 import { composeOfficialDocumentDraft, createEmptyOfficialDocumentInput, generateOfficialDocumentDraft } from "./documentGenerator";
 
+describe("attachment quantities", () => {
+  it.each([
+    ["확인표", "확인표 1부."],
+    ["확인표 1부.", "확인표 1부."],
+    ["운영계획서 2부", "운영계획서 2부."],
+    ["참고자료 1매", "참고자료 1매."],
+    ["제2부 운영계획", "제2부 운영계획 1부."],
+    ["1매 크기 참고자료", "1매 크기 참고자료 1부."],
+  ])("formats %s without duplicating a terminal quantity", (attachments, expected) => {
+    const input = { ...createEmptyOfficialDocumentInput(), attachments };
+    const draft = generateOfficialDocumentDraft(input);
+    expect(draft.body).toContain(`붙임  ${expected}  끝.`);
+    expect(draft.attachments).toBe(`붙임\n1. ${expected}\n끝.`);
+  });
+
+  it("keeps mixed attachment order and multiline content", () => {
+    const input = { ...createEmptyOfficialDocumentInput(), attachments: "확인표, 운영계획서 2부;참고자료 1매.", mainContent: "첫째 일반 문장입니다.\n둘째 일반 문장입니다." };
+    const draft = generateOfficialDocumentDraft(input);
+    expect(draft.body).toContain("붙임  확인표 1부.\n운영계획서 2부.\n참고자료 1매.  끝.");
+    expect(draft.body).toContain("첫째 일반 문장입니다.\n  둘째 일반 문장입니다.");
+    expect(draft.body.match(/끝\./gu)).toHaveLength(1);
+  });
+
+  it.each([false, true])("preserves quantities from the selected source (user override: %s)", (override) => {
+    const reference = { templateBody: "1. 합성 본문", attachmentExample: "참고 확인표 2부", messengerExample: "", checklist: "", tableCopyText: "", tableCopyGuide: "" };
+    const input = { ...createEmptyOfficialDocumentInput(), attachments: override ? "사용자 확인표 1매." : "" };
+    const draft = generateOfficialDocumentDraft(input, reference);
+    const expected = override ? "사용자 확인표 1매." : "참고 확인표 2부.";
+    expect(draft.body).toBe(`1. 합성 본문\n\n붙임  ${expected}  끝.`);
+    expect(draft.attachments).toBe(`붙임\n1. ${expected}\n끝.`);
+    expect(composeOfficialDocumentDraft(draft).split(expected)).toHaveLength(2);
+  });
+});
+
 const completeInput = {
   ...createEmptyOfficialDocumentInput(),
   purpose: "계획 기안" as const,
