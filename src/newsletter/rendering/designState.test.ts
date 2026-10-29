@@ -41,7 +41,7 @@ describe("Newsletter design revision compatibility", () => {
     expect(moduleChanged.canonicalProjectRevision).toBe(7)
     expect(moduleChanged.designRevision).toBe(4)
     expect(canonicalJson(moduleChanged.cardLayouts.slice(1))).toBe(untouchedCards)
-    expect(moduleChanged.a4Layout.modules[2]?.imageTextColumnRatio).toBe(0.27)
+    expect(moduleChanged.a4Layout.modules[2]?.imageTextColumnRatio).toBe(0.3)
     expect(moduleChanged.revisionHistory[3]?.changedPageIds).toEqual(["a4-page"])
   })
 

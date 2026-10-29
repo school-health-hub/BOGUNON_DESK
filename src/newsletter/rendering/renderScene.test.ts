@@ -26,8 +26,12 @@ describe("Newsletter common render scene", () => {
     const scene = buildNewsletterScene(document)
 
     expect(scene.pages).toHaveLength(8)
-    expect(scene.pages[1]?.layers.filter((layer) => layer.layerId.includes("-topic-") && layer.kind === "text")).toHaveLength(6)
+    expect(scene.pages[1]?.layers.filter((layer) => layer.layerId.includes("-topic-") && layer.kind === "text")).toHaveLength(4)
     expect(scene.pages[1]?.layers.some((layer) => layer.layerId === "card-cover-badge")).toBe(true)
+    expect(scene.pages[0]?.layers.some((layer) => layer.layerId === "a4-page-a4-header-mascot")).toBe(true)
+    expect(scene.pages[1]?.layers.some((layer) => layer.layerId === "card-cover-cover-mascot")).toBe(true)
+    expect(scene.pages[2]?.layers.some((layer) => layer.layerId === "card-topic-1-topic-mascot-1")).toBe(true)
+    expect(new Set(scene.pages[0]?.layers.filter((layer) => layer.kind === "image").map((layer) => layer.placeholderKind))).toEqual(new Set(["mascot", "seasonal", "topic-1", "topic-2", "topic-3", "topic-4", "topic-5", "topic-6"]))
     expect(scene.pages[0]?.layers.some((layer) => layer.kind === "text" && layer.provenance.kind === "canonical-section")).toBe(true)
     expect(validateNewsletterScene(scene)).toEqual([])
     expect(document.issues).toEqual([])

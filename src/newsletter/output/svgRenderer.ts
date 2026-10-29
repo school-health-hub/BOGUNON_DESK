@@ -1,5 +1,6 @@
-import { buildA4PageScene, buildCardScene, newsletterPageSceneHash, NEWSLETTER_PLACEHOLDER_DATA_URL, validateNewsletterScene, type ImageSceneLayer, type NewsletterPageScene, type SceneLayer, type ShapeSceneLayer, type TextSceneLayer } from "../rendering/renderScene"
+import { buildA4PageScene, buildCardScene, newsletterPageSceneHash, validateNewsletterScene, type ImageSceneLayer, type NewsletterPageScene, type SceneLayer, type ShapeSceneLayer, type TextSceneLayer } from "../rendering/renderScene"
 import type { RenderDocument, RenderPage } from "../rendering/renderDocument"
+import { newsletterPlaceholderDataUrl } from "../rendering/placeholders"
 
 type A4Page = RenderDocument["a4"]
 export class SvgAssetMissingError extends Error {
@@ -23,10 +24,10 @@ function renderText(layer: TextSceneLayer): string {
 }
 function renderImage(pageId: string, layer: ImageSceneLayer, assets: ReadonlyMap<string, string>): string {
   const clipId = `clip-${pageId}-${layer.slotId}`
-  const source = layer.assetId === undefined ? NEWSLETTER_PLACEHOLDER_DATA_URL : assets.get(layer.assetId)
+  const source = layer.assetId === undefined ? newsletterPlaceholderDataUrl(layer.placeholderKind) : assets.get(layer.assetId)
   if (source === undefined && layer.assetId !== undefined) throw new SvgAssetMissingError(layer.assetId)
   const aspect = layer.fit === "cover" ? "xMidYMid slice" : "xMidYMid meet"
-  return `<defs><clipPath id="${clipId}"><rect x="${layer.frame.x}" y="${layer.frame.y}" width="${layer.frame.width}" height="${layer.frame.height}" rx="12"/></clipPath></defs><image id="${escapeXml(layer.layerId)}" href="${escapeXml(source ?? NEWSLETTER_PLACEHOLDER_DATA_URL)}" x="${layer.frame.x}" y="${layer.frame.y}" width="${layer.frame.width}" height="${layer.frame.height}" preserveAspectRatio="${aspect}" clip-path="url(#${clipId})"/>`
+  return `<defs><clipPath id="${clipId}"><rect x="${layer.frame.x}" y="${layer.frame.y}" width="${layer.frame.width}" height="${layer.frame.height}" rx="12"/></clipPath></defs><image id="${escapeXml(layer.layerId)}" href="${escapeXml(source ?? newsletterPlaceholderDataUrl("generic"))}" x="${layer.frame.x}" y="${layer.frame.y}" width="${layer.frame.width}" height="${layer.frame.height}" preserveAspectRatio="${aspect}" clip-path="url(#${clipId})"/>`
 }
 function renderShape(layer: ShapeSceneLayer): string {
   const stroke = layer.stroke === undefined ? "" : ` stroke="${layer.stroke}"`

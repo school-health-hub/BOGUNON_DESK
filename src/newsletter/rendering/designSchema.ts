@@ -18,11 +18,27 @@ const a4LayoutV1Schema = a4LayoutV1Object.readonly()
 
 const listMarkerStyleSchema = z.enum(["source", "number", "dot", "check"])
 const structuredFrames = { leadFrame: frameSchema, actionListFrame: frameSchema, closingFrame: frameSchema } as const
-const cardLayoutV2Schema = cardLayoutV1Object.extend({ ...structuredFrames, accent: colorSchema, listMarkerStyle: listMarkerStyleSchema, imageTextColumnRatio: z.number().min(0.25).max(0.75), coverLayout: z.enum(["feature-right", "feature-center", "topics-grid"]) }).readonly()
+const a4BrandSchema = z.object({ mascot: imageLayerSchema, seasonalDecoration: imageLayerSchema, utilityFrame: frameSchema, closingFrame: frameSchema }).readonly()
+const cardBrandSchema = z.object({ mascot: imageLayerSchema, seasonalDecoration: imageLayerSchema.optional(), previewTopicCount: z.literal(4).optional() }).readonly()
+const cardLayoutV2Schema = cardLayoutV1Object.extend({ ...structuredFrames, accent: colorSchema, listMarkerStyle: listMarkerStyleSchema, imageTextColumnRatio: z.number().min(0.25).max(0.75), coverLayout: z.enum(["feature-right", "feature-center", "topics-grid"]), brand: cardBrandSchema.optional() }).readonly()
 const a4ModuleV2Schema = a4ModuleV1Object.extend({ titleFrame: frameSchema, ...structuredFrames, accent: colorSchema, listMarkerStyle: listMarkerStyleSchema, imageTextColumnRatio: z.number().min(0.25).max(0.75) }).readonly()
-const a4LayoutV2Schema = a4LayoutV1Object.omit({ headerFrame: true, modules: true }).extend({ titleFrame: frameSchema, publicationMetaFrame: frameSchema, modules: z.array(a4ModuleV2Schema).length(6).readonly() }).readonly()
+const a4LayoutV2Schema = a4LayoutV1Object.omit({ headerFrame: true, modules: true }).extend({ titleFrame: frameSchema, publicationMetaFrame: frameSchema, modules: z.array(a4ModuleV2Schema).length(6).readonly(), brand: a4BrandSchema.optional() }).readonly()
 
-const assetSchema = z.object({ id: idSchema, sha256: sha256Schema, mediaType: z.enum(["image/png", "image/jpeg", "image/webp"]), approvalStatus: z.enum(["approved", "reference-only", "rejected"]), originalName: z.string().trim().min(1), localReference: z.string().regex(/^asset:[a-f0-9]{64}$/).optional() }).readonly()
+const assetSchema = z.object({
+  id: idSchema,
+  sha256: sha256Schema,
+  mediaType: z.enum(["image/png", "image/jpeg", "image/webp"]),
+  approvalStatus: z.enum(["approved", "reference-only", "rejected"]),
+  originalName: z.string().trim().min(1),
+  localReference: z.string().regex(/^asset:[a-f0-9]{64}$/).optional(),
+  registry: z.object({
+    classification: z.enum(["USER_CREATED", "AI_GENERATED", "OFFICIAL_REFERENCE", "LICENSED_EXTERNAL"]),
+    purpose: z.enum(["mascot", "illustration", "decoration", "reference"]),
+    usageScope: z.enum(["layout-comparison-only", "qa-only", "newsletter-output"]),
+  }).readonly().optional(),
+}).readonly().superRefine((asset, context) => {
+  if (asset.localReference !== undefined && asset.localReference !== `asset:${asset.sha256}`) context.addIssue({ code: "custom", message: "asset reference must match its sha256" })
+})
 const publicationMetaSchema = z.object({ schoolName: z.string().trim().min(1), issueLabel: z.string().trim().min(1) }).readonly()
 const snapshotBase = { canonicalProjectRevision: z.number().int().positive(), templateId: idSchema, templateVersion: z.number().int().positive(), publicationMeta: publicationMetaSchema, assetManifest: z.array(assetSchema).readonly() } as const
 const designSnapshotV1Schema = z.object({ ...snapshotBase, a4Layout: a4LayoutV1Schema, cardLayouts: z.array(cardLayoutV1Schema).length(7).readonly() }).readonly()

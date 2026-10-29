@@ -154,10 +154,18 @@ function topicCard(card: CardDesignLayoutV1, index: number): CardDesignLayoutV2 
     listMarkerStyle: "source",
     imageTextColumnRatio: cover ? 0.36 : 0.42,
     coverLayout: cover ? "topics-grid" : "feature-right",
+    brand: cover ? {
+      mascot: { slotId: "cover-mascot", frame: { x: 710, y: 170, width: 418, height: 570 }, fit: "contain" },
+      seasonalDecoration: { slotId: "cover-seasonal-decoration", frame: { x: 860, y: 64, width: 268, height: 130 }, fit: "contain" },
+      previewTopicCount: 4,
+    } : {
+      mascot: { slotId: `topic-mascot-${index}`, frame: { x: 920, y: 820, width: 208, height: 270 }, fit: "contain" },
+      seasonalDecoration: { slotId: `topic-seasonal-decoration-${index}`, frame: { x: 72, y: 64, width: 220, height: 120 }, fit: "contain" },
+    },
   }
   const preset = cardVariant(index, "balanced")
   const coverPreset = coverLayoutFrames(base.coverLayout)
-  return { ...base, titleFrame: cover ? coverPreset.titleFrame : base.titleFrame, actionListFrame: cover ? coverPreset.topicsFrame : preset.actionListFrame, leadFrame: preset.leadFrame, closingFrame: preset.closingFrame, imageTextColumnRatio: preset.imageTextColumnRatio, image: { ...base.image, frame: cover ? coverPreset.imageFrame : preset.imageFrame } }
+  return { ...base, titleFrame: cover ? coverPreset.titleFrame : base.titleFrame, actionListFrame: cover ? coverPreset.topicsFrame : preset.actionListFrame, leadFrame: preset.leadFrame, closingFrame: preset.closingFrame, imageTextColumnRatio: preset.imageTextColumnRatio, image: { ...base.image, frame: cover ? { x: 790, y: 548, width: 300, height: 170 } : preset.imageFrame } }
 }
 
 function upgradeSnapshotV2(source: DesignSnapshotV1): DesignSnapshotV2 {
@@ -171,7 +179,19 @@ function upgradeSnapshotV2(source: DesignSnapshotV1): DesignSnapshotV2 {
     templateId: source.templateId,
     templateVersion: source.templateVersion + 1,
     publicationMeta: source.publicationMeta,
-    a4Layout: { ...source.a4Layout, titleFrame: { x: 59, y: 59, width: 1122, height: 110 }, publicationMetaFrame: { x: 59, y: 185, width: 1122, height: 48 }, modules },
+    a4Layout: {
+      ...source.a4Layout,
+      titleFrame: { x: 210, y: 76, width: 650, height: 104 },
+      publicationMetaFrame: { x: 210, y: 198, width: 650, height: 44 },
+      footerFrame: { x: 59, y: 1608, width: 1122, height: 68 },
+      modules,
+      brand: {
+        mascot: { slotId: "a4-header-mascot", frame: { x: 890, y: 60, width: 250, height: 228 }, fit: "contain" },
+        seasonalDecoration: { slotId: "a4-seasonal-decoration", frame: { x: 60, y: 60, width: 190, height: 136 }, fit: "contain" },
+        utilityFrame: { x: 59, y: 1524, width: 548, height: 60 },
+        closingFrame: { x: 625, y: 1524, width: 556, height: 60 },
+      },
+    },
     cardLayouts: source.cardLayouts.map(topicCard),
     assetManifest: source.assetManifest,
   }

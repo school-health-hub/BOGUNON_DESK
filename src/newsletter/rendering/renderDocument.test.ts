@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { applyUserEdit } from "../editing"
 import { canonicalJson, semanticHashSync } from "../hash"
 import { createNewsletterProject } from "../project"
-import { createNewsletterDesignState } from "./designSchema"
+import { createNewsletterDesignState, parseNewsletterDesignState } from "./designSchema"
 import { restoreDesignRevision, updateCardLayout, upgradeNewsletterDesignStateV2 } from "./designState"
 import { RenderAssetNotApprovedError, compileRenderDocument } from "./renderDocument"
 
@@ -66,6 +66,21 @@ describe("Newsletter render document", () => {
 
     // When / Then
     expect(() => compileRenderDocument({ project, projectRevision: 1, design, designRevision: 1 })).toThrow(RenderAssetNotApprovedError)
+  })
+
+  it("requires V2 output assets to carry an output-approved registry binding", async () => {
+    const project = await createNewsletterProject({ projectId: "project-1", title: "합성 소식지", now: NOW })
+    const v2 = upgradeNewsletterDesignStateV2(createNewsletterDesignState({ projectId: project.projectId, canonicalProjectRevision: 1, now: NOW }), "2026-01-02T00:00:00.000Z")
+    const firstCard = v2.cardLayouts[0]
+    const latest = v2.revisionHistory[1]
+    if (firstCard === undefined || latest === undefined) throw new Error("test fixture is incomplete")
+    const manifestAsset = { id: "otter-teacher", sha256: "a".repeat(64), mediaType: "image/png" as const, approvalStatus: "approved" as const, originalName: "otter.png", localReference: `asset:${"a".repeat(64)}`, registry: { classification: "USER_CREATED" as const, purpose: "mascot" as const, usageScope: "newsletter-output" as const } }
+    const cardLayouts = [{ ...firstCard, image: { ...firstCard.image, assetId: manifestAsset.id } }, ...v2.cardLayouts.slice(1)]
+    const approved = parseNewsletterDesignState({ ...v2, assetManifest: [manifestAsset], cardLayouts, revisionHistory: [v2.revisionHistory[0]!, { ...latest, snapshot: { ...latest.snapshot, assetManifest: [manifestAsset], cardLayouts } }] })
+
+    expect(() => compileRenderDocument({ project, projectRevision: 1, design: approved, designRevision: 2 })).not.toThrow()
+    const unbound = parseNewsletterDesignState({ ...approved, assetManifest: [{ ...manifestAsset, registry: undefined }], revisionHistory: [approved.revisionHistory[0], { ...approved.revisionHistory[1]!, snapshot: { ...approved.revisionHistory[1]!.snapshot, assetManifest: [{ ...manifestAsset, registry: undefined }] } }] })
+    expect(() => compileRenderDocument({ project, projectRevision: 1, design: unbound, designRevision: 2 })).toThrow(RenderAssetNotApprovedError)
   })
 
   it("preserves one to four explicit actions and changes only their presentation markers", async () => {

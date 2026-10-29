@@ -23,4 +23,19 @@ describe("Newsletter preview scene binding", () => {
 
     expect(previewHash).toBe(exportHash)
   })
+
+  it("namespaces image clip paths when before and current previews share a page id", async () => {
+    // Given
+    const now = "2026-01-01T00:00:00.000Z"
+    const project = await createNewsletterProject({ projectId: "project-1", title: "합성 보건소식", now })
+    const design = upgradeNewsletterDesignStateV2(createNewsletterDesignState({ projectId: project.projectId, canonicalProjectRevision: 1, now }), "2026-01-02T00:00:00.000Z")
+    const document = compileRenderDocument({ project, projectRevision: 1, design, designRevision: 2 })
+
+    // When
+    const view = render(<><A4Preview document={document} /><A4Preview document={document} /></>)
+    const clipIds = [...view.container.querySelectorAll("clipPath")].map((clip) => clip.id)
+
+    // Then
+    expect(new Set(clipIds).size).toBe(clipIds.length)
+  })
 })

@@ -32,16 +32,16 @@ export type RenderPage = {
   readonly pageId: string; readonly width: number; readonly height: number; readonly background: string; readonly templateVersion: number;
   readonly title: RenderTextBlock; readonly body: RenderTextBlock; readonly badge?: RenderTextBlock; readonly lead?: RenderTextBlock; readonly closing?: RenderTextBlock;
   readonly topicOverview?: readonly RenderTextBlock[];
-  readonly image: RenderImage; readonly accent?: string; readonly listMarkerStyle?: "source" | "number" | "dot" | "check"; readonly structured: boolean
+  readonly image: RenderImage; readonly mascot?: RenderImage; readonly seasonalDecoration?: RenderImage; readonly accent?: string; readonly listMarkerStyle?: "source" | "number" | "dot" | "check"; readonly structured: boolean
 }
 export type RenderModule = {
-  readonly moduleId: string; readonly moduleFrame: Frame; readonly topicId: string; readonly sectionId: string; readonly title: RenderTextBlock;
+  readonly moduleId: string; readonly moduleFrame: Frame; readonly topicId: string; readonly sectionId: string; readonly number?: RenderTextBlock; readonly title: RenderTextBlock;
   readonly body: RenderTextBlock; readonly lead?: RenderTextBlock; readonly closing?: RenderTextBlock; readonly image: RenderImage;
   readonly accent?: string; readonly listMarkerStyle?: "source" | "number" | "dot" | "check"; readonly structured: boolean
 }
 export type RenderDocument = {
   readonly projectId: string; readonly projectRevision: number; readonly designRevision: number; readonly templateVersion: number;
-  readonly a4: { readonly pageId: "a4-page"; readonly width: 1240; readonly height: 1754; readonly exportWidth: 2480; readonly exportHeight: 3508; readonly safeMargin: 59; readonly background: string; readonly templateVersion: number; readonly title: RenderTextBlock; readonly publicationMeta: RenderTextBlock; readonly modules: readonly RenderModule[]; readonly footer: RenderTextBlock }
+  readonly a4: { readonly pageId: "a4-page"; readonly width: 1240; readonly height: 1754; readonly exportWidth: 2480; readonly exportHeight: 3508; readonly safeMargin: 59; readonly background: string; readonly templateVersion: number; readonly title: RenderTextBlock; readonly publicationMeta: RenderTextBlock; readonly modules: readonly RenderModule[]; readonly mascot?: RenderImage; readonly seasonalDecoration?: RenderImage; readonly utility?: RenderTextBlock; readonly closing?: RenderTextBlock; readonly footer: RenderTextBlock }
   readonly cards: readonly RenderPage[]; readonly issues: readonly RenderIssue[]
 }
 type CompileInput = { readonly project: NewsletterProject; readonly projectRevision: number; readonly design: NewsletterDesignState; readonly designRevision: number; readonly measureText?: TextMeasurer }
@@ -81,10 +81,16 @@ function expandedBodyFrame(leadFrame: Frame, actionFrame: Frame, hasLead: boolea
 }
 function verifyAssets(snapshot: DesignSnapshot): void {
   const assets = new Map(snapshot.assetManifest.map((asset) => [asset.id, asset]))
-  for (const image of [...snapshot.cardLayouts.map((card) => card.image), ...snapshot.a4Layout.modules.map((module) => module.image)]) {
+  const brandImages = isV2(snapshot) ? [
+    ...(snapshot.a4Layout.brand === undefined ? [] : [snapshot.a4Layout.brand.mascot, snapshot.a4Layout.brand.seasonalDecoration]),
+    ...snapshot.cardLayouts.flatMap((card) => card.brand === undefined ? [] : [card.brand.mascot, ...(card.brand.seasonalDecoration === undefined ? [] : [card.brand.seasonalDecoration])]),
+  ] : []
+  for (const image of [...snapshot.cardLayouts.map((card) => card.image), ...snapshot.a4Layout.modules.map((module) => module.image), ...brandImages]) {
     if (image.assetId === undefined) continue
     const asset = assets.get(image.assetId)
-    if (asset?.approvalStatus !== "approved" || asset.localReference === undefined) throw new RenderAssetNotApprovedError(image.assetId)
+    const registry = asset?.registry
+    const registryApproved = !isV2(snapshot) || (registry?.classification !== "OFFICIAL_REFERENCE" && registry?.purpose !== "reference" && registry?.usageScope === "newsletter-output")
+    if (asset?.approvalStatus !== "approved" || asset.localReference !== `asset:${asset.sha256}` || !registryApproved) throw new RenderAssetNotApprovedError(image.assetId)
   }
 }
 
@@ -103,6 +109,7 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
   const moduleTitleStyle = { fontFamily: "Pretendard", fontSize: 30, fontWeight: 800, lineHeight: 1.25, color: "#183b4e", align: "left" } as const
   const bodyStyle = { fontFamily: "Pretendard", fontSize: 21, fontWeight: 500, lineHeight: 1.45, color: "#29434e", align: "left" } as const
   const metaStyle = { fontFamily: "Pretendard", fontSize: 22, fontWeight: 600, lineHeight: 1.3, color: "#50656f", align: "center" } as const
+  const numberStyle = { fontFamily: "Pretendard", fontSize: 24, fontWeight: 800, lineHeight: 1.2, color: "#ffffff", align: "center" } as const
   const a4Modules = sections.map((section, index): RenderModule => {
     const module = snapshot.a4Layout.modules[index]
     if (module === undefined) throw new RenderContractMismatchError(`A4 module ${index + 1} is missing`)
@@ -115,6 +122,7 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
     const provenance = { kind: "canonical-section", sectionId: section.id, sourceText: section.text } as const
     return {
       moduleId: module.moduleId, moduleFrame: module.frame, topicId: section.topicId, sectionId: section.id, structured,
+      ...(structured ? { number: block(`a4-number-${section.id}`, "a4-page", String(index + 1).padStart(2, "0"), { x: module.frame.x + 12, y: module.frame.y + 12, width: 40, height: 36 }, numberStyle, { kind: "template-static", templateVersion: snapshot.templateVersion }, issues, input.measureText) } : {}),
       title: block(`a4-title-${section.id}`, "a4-page", titles.get(section.topicId) ?? "", titleFrame, moduleTitleStyle, { kind: "topic-title", topicId: section.topicId }, issues, input.measureText),
       ...(structured && leadText.length > 0 ? { lead: block(`a4-lead-${section.id}`, "a4-page", leadText, module.leadFrame, bodyStyle, provenance, issues, input.measureText, false) } : {}),
       body: block(`a4-body-${section.id}`, "a4-page", bodyText, bodyFrame, bodyStyle, provenance, issues, input.measureText),
@@ -134,10 +142,15 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
     const bodyFrame = structured ? expandedBodyFrame(layout.leadFrame, layout.actionListFrame, leadText.length > 0) : layout.bodyFrame
     const badgeStyle = { ...layout.bodyStyle, fontSize: Math.min(20, layout.bodyStyle.fontSize), fontWeight: 700, lineHeight: 1.2, color: structured ? layout.accent : layout.titleStyle.color, align: "left" as const }
     const badgeFrame = { x: 88, y: 72, width: 420, height: 36 }
-    const topicOverview = index === 0 && structured ? project.topics.map((topic, topicIndex) => {
-      const column = topicIndex % 2
-      const row = Math.floor(topicIndex / 2)
-      const tile = { x: layout.actionListFrame.x + column * (layout.actionListFrame.width / 2 + 10), y: layout.actionListFrame.y + row * 122, width: layout.actionListFrame.width / 2 - 10, height: 94 }
+    const previewCount = structured ? layout.brand?.previewTopicCount ?? 6 : 6
+    const topicOverview = index === 0 && structured ? project.topics.slice(0, previewCount).map((topic, topicIndex) => {
+      const columns = previewCount === 4 ? 4 : 2
+      const column = topicIndex % columns
+      const row = Math.floor(topicIndex / columns)
+      const gap = 12
+      const tileWidth = (layout.actionListFrame.width - gap * (columns - 1)) / columns
+      const tileHeight = previewCount === 4 ? layout.actionListFrame.height : 94
+      const tile = { x: layout.actionListFrame.x + column * (tileWidth + gap), y: layout.actionListFrame.y + row * 122, width: tileWidth, height: tileHeight }
       const frame = { x: tile.x + 16, y: tile.y + 14, width: tile.width - 32, height: tile.height - 28 }
       return block(`${layout.pageId}-topic-${topic.id}`, layout.pageId, topic.title, frame, { ...layout.bodyStyle, fontSize: 25, fontWeight: 700, lineHeight: 1.3, color: layout.titleStyle.color, align: "left" }, { kind: "topic-title", topicId: topic.id }, issues, input.measureText)
     }) : undefined
@@ -150,6 +163,7 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
       ...(topicOverview === undefined ? {} : { topicOverview }),
       ...(structured ? { closing: block(`${layout.pageId}-closing`, layout.pageId, "", layout.closingFrame, layout.bodyStyle, provenance, issues, input.measureText, false), accent: layout.accent, listMarkerStyle: layout.listMarkerStyle } : {}),
       image: layout.image,
+      ...(structured && layout.brand !== undefined ? { mascot: layout.brand.mascot, ...(layout.brand.seasonalDecoration === undefined ? {} : { seasonalDecoration: layout.brand.seasonalDecoration }) } : {}),
     }
   })
   const footerStyle = { fontFamily: "Pretendard", fontSize: 18, fontWeight: 500, lineHeight: 1.4, color: "#50656f", align: "center" } as const
@@ -161,6 +175,12 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
       title: block("a4-main-title", "a4-page", project.title, a4TitleFrame, titleStyle, { kind: "project-title" }, issues, input.measureText),
       publicationMeta: block("a4-publication-meta", "a4-page", `${snapshot.publicationMeta.issueLabel} · ${snapshot.publicationMeta.schoolName}`, metaFrame, metaStyle, { kind: "publication-meta" }, issues, input.measureText),
       modules: a4Modules,
+      ...(isV2(snapshot) && snapshot.a4Layout.brand !== undefined ? {
+        mascot: snapshot.a4Layout.brand.mascot,
+        seasonalDecoration: snapshot.a4Layout.brand.seasonalDecoration,
+        utility: block("a4-utility", "a4-page", "보건실 안내", snapshot.a4Layout.brand.utilityFrame, { ...footerStyle, fontWeight: 700, color: "#176b45" }, { kind: "template-static", templateVersion: snapshot.templateVersion }, issues, input.measureText, false),
+        closing: block("a4-closing", "a4-page", "건강 안내는 학교 원고와 일정을 최종 확인해 주세요.", snapshot.a4Layout.brand.closingFrame, footerStyle, { kind: "template-static", templateVersion: snapshot.templateVersion }, issues, input.measureText, false),
+      } : {}),
       footer: block("a4-footer", "a4-page", "학교 보건소식 · 내용과 출처를 최종 확인해 주세요.", snapshot.a4Layout.footerFrame, footerStyle, { kind: "template-static", templateVersion: snapshot.templateVersion }, issues, input.measureText),
     }, cards, issues,
   }

@@ -13,6 +13,14 @@ Newsletter Studio는 인쇄물의 신뢰감과 계절 보건소식지의 따뜻�
 - Inner card: 녹색 라운드 테두리, 월 배지, 대형 제목·한 줄 lead, 좌측 대표 삽화, 우측 행동 수칙, 우하단 캐릭터 교체 슬롯, 하단 closing 띠다.
 - Reference 이미지는 제품 번들에 복사하지 않으며 비교 캡처에서만 출처가 구분된 상태로 사용한다.
 
+### September structure restoration
+
+- Template version 2 restores the September hierarchy as live Scene layers rather than a pasted reference image.
+- A4 reserves independent slots for the header mascot and seasonal decoration, then renders six numbered topic modules and separate utility/closing strips.
+- The cover keeps all six canonical topics but previews exactly four. The mascot, seasonal decoration, and supporting illustration are separate replaceable layers.
+- Each topic card has a topic illustration slot and a distinct lower-right mascot slot. Missing assets render an explicit role-specific `QA PLACEHOLDER` instead of silently repeating one botanical image.
+- Reference files remain outside the bundle. A layout match never changes an asset from reference-only to output-approved.
+
 ## 2. Output surfaces
 
 - A4: 1240×1754 logical canvas, 2480×3508 PNG, 10mm(59 logical px) safe margin.
@@ -95,6 +103,15 @@ Accent colors identify modules and cards; they do not replace readable navy body
 | 공공누리 이용조건 안내 | 한국문화정보원 공공누리 | https://www.kogl.or.kr/recommend/recommendList.do?agcCode=03&agcName=03&atcUrl=agency | 2026-10-26 | 라이선스 판정 기준 |
 
 공공누리 제2유형은 출처표시와 비상업 조건, 제3유형은 출처표시와 변경금지, 제4유형은 세 조건을 모두 적용한다. 기관 페이지의 라이선스 표시는 자산별로 다시 확인하고, 표시가 없거나 불명확하면 `pending`으로 유지한다.
+
+### Asset registry contract
+
+- Registry records use a stable asset ID, SHA-256, origin, classification, purpose, approval status, usage scope, safe `asset:<sha256>` reference, media type, original file name, and contiguous change history.
+- Classifications are `USER_CREATED`, `AI_GENERATED`, `OFFICIAL_REFERENCE`, and `LICENSED_EXTERNAL`.
+- Purposes are `mascot`, `illustration`, `decoration`, and `reference`.
+- `OFFICIAL_REFERENCE` and `reference`-purpose records can never be promoted into the output manifest.
+- Only a file-level `approved` record with `newsletter-output` scope is converted into a DesignState asset manifest entry.
+- Registration records provenance; it does not copy or bundle the original file.
 
 ## 7. Editor states
 
