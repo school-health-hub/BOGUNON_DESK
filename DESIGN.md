@@ -1,5 +1,15 @@
 # BOGUNON DESK Integrated Work Desk 디자인 시스템
 
+## INT-5B — Dashboard hybrid palette (scoped presentation contract)
+
+- Preserve integration 74321550 layout, saved appearance IDs, narrow clock/container queries, Korean keep-all, Dock-safe scrollport and Finder keyboard contract. No Dashboard v2 geometry, calendar logic or workflow code is adopted.
+- Dashboard palette: Ivory `#F7F9F5` canvas, Mint `#E5F4EF` soft emphasis, White `#FFFFFF` work surface, Ink `#263B48` primary text, Teal `#177F71` active/selected/focus. Teal text/hover on Mint uses the darker `#126E62` companion to meet AA; selection/focus keeps `#177F71`. Readable secondary text remains `#596675`; decorative/disabled states retain separate semantics.
+- New `--dashboard-*` tokens are declared only on `.workspace-shell`. The default `blue-gray` saved ID now draws the Ivory/Mint gradient; user-selected white/warm-gray/mint/lavender backgrounds remain available without storage migration.
+- Canonical and legacy Navy/Mint text/accent aliases are rebound together only within `.workspace-dashboard` and `.dock`. Toolbar and feature dialogs, Settings, Toolbox, Official Document, Purchase, Finance and Finder keep their existing palette; only the shared Dashboard backdrop visible behind overlays intentionally changes.
+- Widget glass uses White to Ivory at 94%/92% alpha, existing border/shadow/radius/blur; memo retains warm paper. Dock keeps geometry and category tile identity while its shelf uses White/Mint at 91%/94% alpha.
+- Teal denotes current date, active launcher, focus and interaction emphasis; Navy remains primary business action identity. Buttons are not uniformly recolored. Disabled controls remain natively disabled with their existing opacity; active Dock items retain aria-current and a dot, dates retain today label/shape, not color alone.
+- Dashboard/Dock focus-visible uses a solid 2px Teal outline with 2px offset. Body text target >=4.5:1, large text >=3:1, focus >=3:1 against adjacent surfaces. Source contrast is checked against opaque and composited rendered surfaces; native/DPI is a separate gate.
+
 ## Desktop Surface Mode
 
 - 9B-1은 Windows `Progman` / `WorkerW` topology를 읽기만 하는 capability probe다. 앱 창의 parent, style, z-order, taskbar, decorations를 변경하지 않으며 desktop mode의 기본 상태는 일반 창이다.

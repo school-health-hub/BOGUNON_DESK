@@ -1,7 +1,14 @@
 /* Independent desktop composition; widget implementations and stores unchanged. */
 .workspace-shell {
   padding: 0;
-  --desktop-canvas-blue-material: radial-gradient(ellipse at 16% 0%, #e5f6f6, transparent 60%), linear-gradient(135deg, #c7e5eb, #86b9c8);
+  --dashboard-ivory: #F7F9F5;
+  --dashboard-mint: #E5F4EF;
+  --dashboard-white: #FFFFFF;
+  --dashboard-ink: #263B48;
+  --dashboard-teal: #177F71;
+  --dashboard-teal-text: #126E62;
+  --dashboard-secondary: #596675;
+  --desktop-canvas-blue-material: radial-gradient(ellipse at 85% 0%, var(--dashboard-mint), transparent 60%), linear-gradient(135deg, var(--dashboard-ivory), var(--dashboard-mint));
   --desktop-glass-bg: linear-gradient(145deg, rgb(255 255 255 / 94%), rgb(239 250 252 / 86%));
   --desktop-information-bg: var(--desktop-glass-bg);
   --desktop-empty-bg: var(--desktop-glass-bg);
@@ -24,6 +31,39 @@
   --desktop-dock-gap: 8px;
   --desktop-calendar-body: 14px;
   --desktop-clock-size: 32px;
+}
+/* Keep feature dialogs outside the Dashboard/Dock color inheritance boundary. */
+.workspace-shell :is(.workspace-dashboard, .dock) {
+  --text-primary: var(--dashboard-ink);
+  --text-secondary: var(--dashboard-secondary);
+  --text-muted: var(--dashboard-secondary);
+  --text-subtle-readable: var(--dashboard-secondary);
+  --accent: var(--dashboard-teal);
+  --accent-hover: var(--dashboard-teal-text);
+  --accent-soft: var(--dashboard-mint);
+  --widget-bg: var(--dashboard-white);
+  --navy-950: var(--dashboard-ink);
+  --navy-700: var(--dashboard-secondary);
+  --navy-500: var(--dashboard-secondary);
+  --mint-700: var(--dashboard-teal-text);
+  --mint-100: var(--dashboard-mint);
+}
+.workspace-shell .workspace-dashboard {
+  --desktop-glass-bg: linear-gradient(145deg, rgb(255 255 255 / 94%), rgb(247 249 245 / 92%));
+  --desktop-information-bg: var(--desktop-glass-bg);
+  --desktop-empty-bg: var(--desktop-glass-bg);
+  --desktop-work-sheet-bg: var(--desktop-glass-bg);
+  --desktop-widget-primary-bg: var(--desktop-glass-bg);
+  --desktop-widget-info-bg: var(--desktop-glass-bg);
+  --desktop-widget-utility-bg: var(--desktop-glass-bg);
+}
+.workspace-shell .workspace-dashboard .panel__title { color: var(--dashboard-ink); }
+.workspace-shell .dock {
+  --desktop-dock-bg: linear-gradient(145deg, rgb(255 255 255 / 91%), rgb(229 244 239 / 94%));
+}
+.workspace-shell :is(.workspace-dashboard, .dock) :is(button, input, textarea, select):focus-visible {
+  outline: 2px solid var(--dashboard-teal);
+  outline-offset: 2px;
 }
 .workspace-shell .workspace-dashboard { max-width: none; width: 100%; margin: 0; }
 .workspace-shell:is(.is-view-mode, .is-edit-mode) .workspace-dashboard { padding-bottom: calc(var(--desktop-dock-height) + var(--space-4) * 2); }
