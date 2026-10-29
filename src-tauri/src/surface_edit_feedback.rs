@@ -44,7 +44,11 @@ fn publish(shared: &SharedFeedback, state: EditState) {
         }
         feedback.state = state;
         feedback.revision = feedback.revision.saturating_add(1);
-        (feedback.sink.clone(), feedback.revision)
+        let delivery = (feedback.sink.clone(), feedback.revision);
+        if state == EditState::Closed {
+            feedback.sink = None;
+        }
+        delivery
     };
     if let (Some(sink), revision) = delivery {
         sink(state, revision);
@@ -189,6 +193,11 @@ mod tests {
         }
         publish(&shared, EditState::Idle);
         publish(&shared, EditState::Closed);
+        assert!(shared
+            .lock()
+            .unwrap_or_else(|_| panic!("fixture lock"))
+            .sink
+            .is_none());
         assert_eq!(
             *observed.lock().unwrap_or_else(|_| panic!("fixture lock")),
             vec![EditState::Idle, EditState::Closed]
