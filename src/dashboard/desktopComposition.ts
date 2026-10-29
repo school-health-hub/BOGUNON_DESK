@@ -13,6 +13,6 @@ export const desktopComposition = {
   dday: { x: 9, y: 5, w: 3, h: 2 },
   "weekly-schedule": { x: 0, y: 7, w: 6, h: 3 },
   "quick-memo": { x: 6, y: 7, w: 3, h: 3 },
-  "quick-launcher": { x: 9, y: 7, w: 3, h: 3 },
-  notifications: { x: 9, y: 10, w: 3, h: 3 },
+  "quick-launcher": { x: 9, y: 7, w: 3, h: 4 },
+  notifications: { x: 9, y: 11, w: 3, h: 3 },
 } as const satisfies Readonly<Record<WidgetType, Pick<WidgetLayout, "x" | "y" | "w" | "h">>>;

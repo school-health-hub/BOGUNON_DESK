@@ -453,7 +453,30 @@ short noninteractive waiting state; error/loading state semantics stay unchanged
 
 ## Final widget content polish
 
-Approved composition stays fixed. Populated QA uses typed synthetic fixtures in a
+INT-4A responsive corrections retain the existing materials, colors and Dock.
+Canonical desks below 1200px give clock/weather three columns and summary six;
+the right work rail continues vertically with natural canvas scrolling. Saved
+custom/legacy coordinates remain exact. Below the existing 900px measured grid
+threshold, widgets use the already specified full-width document-flow list;
+window resize and render-only callbacks do not persist the responsive projection.
+Explicit customization retains the existing persistence semantics, including
+saving displayed coordinates for manual edits and hide/restore actions.
+Clock type responds to its content box within the existing 22–32px scale.
+Korean summary words remain intact; calendar rows size to their date/event
+content rather than a forced 340px minimum. Calendar and launcher use one panel
+scroll owner when their actual content exceeds a saved slot. Memo actions wrap
+within their actual content width, with 12px memo/launcher inset and intrinsic
+textarea rows. Memo/launcher heading spacing does not duplicate their layout spacing.
+Above 820px, the canvas scroll viewport ends above the fixed Dock:
+reserve at least the existing 72px desktop footprint through
+`--desktop-dock-standard-height`, 12px bottom offset and 8px clearance, with 16px
+canvas bottom padding. This viewport may shrink below the earlier 620px minimum
+on short windows. The existing static Dock arrangement at 820px and below remains.
+Canonical wide launchers use four rendered rows for their observed content floor;
+the hidden notification slot starts below them. Short desktops use the outer
+canvas scroll rather than adding a nested scrollbar to the default launcher.
+
+At wide desktop sizes the approved composition stays fixed. Populated QA uses typed synthetic fixtures in a
 separate build config, never a demo flag in the production app. Calendar event chips
 keep category colors, two-line titles and full-title hover text; +N stays beside the
 chip rather than falling outside the cell. Compact six-week cells may use one line

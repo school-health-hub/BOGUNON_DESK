@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ClipboardCopy, ExternalLink, Search, Sparkles } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Search, Sparkles } from 'lucide-react';
 import type { ChatGptConnectionState, ChatGptModel } from '../chatgpt/types';
 import type { WebSearchResult } from '../chatgpt/webSearch';
 import { normalizeChatGptPlanError } from '../chatgpt/chatgptPlanService';
@@ -11,6 +11,7 @@ import { buildYouTubeSearchHandoff, parseTeacherVideoUrls, type TeacherVideoUrlE
 import { buildRecommendationReasonsPrompt, parseRecommendationReasons } from './aiRecommendationReasons';
 import { buildVideoReviewPrompt, buildVideoSearchPrompt, candidateDraftInput, parseVideoSearchResult, UNVERIFIED_METADATA_VERIFICATION, type AiVideoCandidate, type SearchConditions } from './aiVideo';
 import type { RecommendationReason } from './recommendationReason';
+import { AiVideoHandoffConfirmation } from './AiVideoHandoffConfirmation';
 import './aiFinder.css';
 
 export type AiFinderConnection = {
@@ -54,6 +55,7 @@ export function AiVideoFinder(p: Props) {
   const [searchFailure, setSearchFailure] = useState(false);
   const [handoffConfirm, setHandoffConfirm] = useState(false);
   const [handoffOpenFailed, setHandoffOpenFailed] = useState(false);
+  const handoffTriggerRef = useRef<HTMLButtonElement>(null);
   const topicRef = useRef<HTMLInputElement>(null);
   const manualRef = useRef<HTMLTextAreaElement>(null);
   const identity = `${p.connection.state.status}:${p.connection.state.email ?? ''}:${p.connection.selectedModel ?? ''}:${p.connection.state.planUsageEnabled}:${p.connection.supportsWebSearch}:${p.connection.state.isDisconnecting}:${p.connection.state.isSigningIn}`;
@@ -204,7 +206,7 @@ export function AiVideoFinder(p: Props) {
         ? '검색 결과가 없습니다. YouTube 검색 또는 직접 링크 입력으로 계속할 수 있습니다.'
         : `현재 후보가 ${results.length}개입니다. 후보가 3개 미만이어도 선택해 계속 진행할 수 있습니다.`
       : null;
-  return <main className="aiv-finder">
+  return <main className="aiv-finder"><div>
       <header className="aiv-header"><div><p className="aiv-eyebrow">BOGUNON DESK / 교육자료</p><h1><Sparkles aria-hidden="true" size={26} />교육영상 Finder</h1><p>교육 조건에 맞는 영상을 직접 찾고 확인한 뒤 기안 초안으로 연결하세요.</p></div><button type="button" onClick={p.onClose}><ArrowLeft size={16} />보건 업무로</button></header>
       <section className="aiv-account" aria-label="AI 추천 이유 연결"><div><strong>선택 기능 · AI 추천 이유</strong><p>{p.connection.state.status === 'connected' ? p.connection.state.email ?? '계정 연결됨' : 'AI 추천 이유를 사용하려면 연결이 필요합니다.'}</p></div><label>AI 모델<select value={p.connection.selectedModel ?? ''} onChange={event => p.connection.setSelectedModel(event.target.value)}><option value="" disabled>모델 선택</option>{p.connection.models.map(model => <option value={model.slug} key={model.slug}>{model.displayName}</option>)}</select></label><button type="button" onClick={p.onOpenSettings}>AI 연결 설정</button></section>
     <div className="aiv-layout"><section className="aiv-search" aria-labelledby="aiv-search-title"><p className="aiv-eyebrow">01 / 검색 조건</p><h2 id="aiv-search-title">어떤 교육을 준비하시나요?</h2>
@@ -214,7 +216,7 @@ export function AiVideoFinder(p: Props) {
           <label className="aiv-check"><input type="checkbox" checked={conditions.publicFirst} onChange={event => setConditions({ ...conditions, publicFirst: event.target.checked })} />공공기관 자료 우선 검색</label>{liveSearchEnabled && <button className="aiv-primary aiv-search-button" type="submit" disabled={busy || !available || !conditions.topic.trim()}><Search size={17} />{busy ? 'AI 작업 중…' : '교육영상 검색'}</button>}
       </form><p className="aiv-muted">검색 조건과 공개 소개정보만 전송합니다. 학생 이름·건강정보 등 개인정보는 입력하지 마세요. 전송 전 내용을 확인합니다.</p><p className="aiv-muted">ChatGPT 요금제의 사용량 제한이 적용될 수 있습니다. 추가 비용·사용량은 계정 및 모델 정책에서 확인해 주세요.</p>
         {liveSearchEnabled && !available && <p className="aiv-warning">현재 연결 또는 모델은 웹 검색을 지원하지 않습니다. AI 연결 설정을 확인하거나 영상 URL을 직접 추가해 주세요.</p>}
-        <section className="aiv-fallback" aria-label="직접 영상 찾기"><h3>영상 찾기</h3><p>검색어를 확인한 뒤 YouTube에서 영상을 고르고, 찾은 링크를 Finder에 등록하세요.</p>{handoff && <p className="aiv-query"><strong>검색어</strong> {handoff.query}</p>}<div><button className="aiv-primary" type="button" disabled={handoff === null} onClick={() => { setHandoffOpenFailed(false); setHandoffConfirm(true); }}><ExternalLink size={16} />YouTube에서 영상 찾기</button><button type="button" onClick={openManual}>찾은 영상 링크 붙여넣기</button><button type="button" onClick={() => topicRef.current?.focus()}>검색 조건 수정</button></div></section>
+        <section className="aiv-fallback" aria-label="직접 영상 찾기"><h3>영상 찾기</h3><p>검색어를 확인한 뒤 YouTube에서 영상을 고르고, 찾은 링크를 Finder에 등록하세요.</p>{handoff && <p className="aiv-query"><strong>검색어</strong> {handoff.query}</p>}<div><button className="aiv-primary" type="button" ref={handoffTriggerRef} disabled={handoff === null} onClick={() => { setHandoffOpenFailed(false); setHandoffConfirm(true); }}><ExternalLink size={16} />YouTube에서 영상 찾기</button><button type="button" onClick={openManual}>찾은 영상 링크 붙여넣기</button><button type="button" onClick={() => topicRef.current?.focus()}>검색 조건 수정</button></div></section>
       <details className="aiv-manual" open={manualOpen} onToggle={event => setManualOpen(event.currentTarget.open)}><summary>영상 URL 여러 개 직접 추가</summary><label>YouTube 영상 URL 여러 개<textarea ref={manualRef} rows={6} value={manualUrl} onChange={event => setManualUrl(event.target.value)} placeholder={'한 줄에 URL 하나\nhttps://www.youtube.com/watch?v=…\nhttps://youtu.be/…'} /></label><button type="button" disabled={busy || !manualUrl.trim()} onClick={manual}>유효한 영상 추가</button>{manualErrors.length > 0 && <ul className="aiv-url-errors" aria-label="URL 입력 오류">{manualErrors.map(error => <li key={`${error.line}:${error.reason}`}><strong>{error.line}번 줄</strong> {error.reason}</li>)}</ul>}</details>
     </section><section className="aiv-results" aria-labelledby="aiv-results-title"><div className="aiv-results-heading"><div><p className="aiv-eyebrow">02 / 비교와 선택</p><h2 id="aiv-results-title">{searched ? '교육영상 후보' : '교사의 선택을 돕는 영상 검색'}</h2></div><span>{results.length}개</span></div>
       <p className="aiv-status" role="status" aria-live="polite">{notice}</p><p className="aiv-muted">AI 요약은 원문 소개나 영상 전체 분석 결과가 아닙니다. 공공기관 우선 검색은 공식 채널·교육 적합성 인증이 아닙니다.</p>
@@ -224,7 +226,8 @@ export function AiVideoFinder(p: Props) {
       <AiVideoFinderCards candidates={results} busy={busy} canReview={available} reviews={reviews} recommendationReasons={recommendationReasons} selectedCandidateIds={selectedCandidateIds} onToggleSelected={candidate => setSelectedCandidateIds(current => current.includes(candidate.videoId) ? current.filter(id => id !== candidate.videoId) : current.length < 5 ? [...current, candidate.videoId] : current)} onReasonChange={(candidate, reason) => setRecommendationReasons(current => ({ ...current, [candidate.videoId]: { status: 'teacher-edited', text: reason } }))} onReasonDelete={candidate => setRecommendationReasons(current => ({ ...current, [candidate.videoId]: { status: 'deleted' } }))} onConfirmMetadata={confirmMetadata} onOpen={open} onReview={candidate => prepare('review', candidate)} onSave={save} onDraft={candidate => p.onDraft(candidateDraftInput(candidate, candidateConditions[candidate.videoId] ?? resultConditions, recommendationReasons[candidate.videoId]))} onRemove={candidate => { setResults(current => current.filter(item => item.videoId !== candidate.videoId)); setSelectedCandidateIds(current => current.filter(id => id !== candidate.videoId)); setCandidateConditions(current => { const { [candidate.videoId]: removed, ...remaining } = current; void removed; return remaining; }); setReviews(current => { const { [candidate.videoId]: removed, ...remaining } = current; void removed; return remaining; }); setRecommendationReasons(current => { const { [candidate.videoId]: removed, ...remaining } = current; void removed; return remaining; }); setNotice('후보에서 삭제했습니다. 저장된 라이브러리는 변경하지 않았습니다.'); }} />
       {(p.saved?.length ?? 0) > 0 && <details className="aiv-saved"><summary>저장된 AI 후보 {p.saved?.length}개</summary>{p.saved?.map(saved => <button key={saved.candidate.videoId} type="button" disabled={busy} onClick={() => { setResults([saved.candidate]); setCandidateConditions({ [saved.candidate.videoId]: saved.conditions }); setReviews({}); setRecommendationReasons(saved.recommendationReason ? { [saved.candidate.videoId]: saved.recommendationReason } : {}); setSelectedCandidateIds([]); setSearched(true); setResultConditions(saved.conditions); setConditions(saved.conditions); setNotice('저장된 교육 주제·대상을 불러왔습니다. 내용을 확인한 뒤 기안으로 연결해 주세요.'); }}>{saved.candidate.title}</button>)}</details>}
     </section></div>
+    </div>
     {pending && <OfficialDocumentAiConfirmation key={`${pending.kind}:${pending.prompt}`} confirmation={{ outboundText: pending.prompt, providerLabel: `ChatGPT (${p.connection.selectedModel ?? ''})` }} onCancel={() => setPending(null)} onConfirm={({ outboundText }) => { void confirm(outboundText); }} />}
-    {handoffConfirm && handoff && <section className="aiv-handoff" role="dialog" aria-modal="true" aria-label="YouTube 검색 확인"><h2>YouTube 검색 페이지로 이동할까요?</h2><p>아래 검색어가 외부 사이트 YouTube로 전달됩니다. 학생 이름·건강정보 등 개인정보가 포함되지 않았는지 확인해 주세요.</p><p className="aiv-query"><strong>검색어</strong> {handoff.query}</p><p className="aiv-handoff-url">{handoff.url}</p>{handoffOpenFailed && <p className="aiv-warning">브라우저를 열지 못했습니다. 아래 버튼으로 검색 URL을 복사할 수 있습니다.</p>}<div><button type="button" onClick={() => setHandoffConfirm(false)}>취소</button><button className="aiv-primary" type="button" onClick={() => { void openHandoff(); }}>검색 페이지 열기</button>{handoffOpenFailed && <button type="button" onClick={() => { void copyHandoff(); }}><ClipboardCopy size={16} />검색 URL 복사</button>}</div></section>}
+    {handoffConfirm && handoff && <AiVideoHandoffConfirmation query={handoff.query} url={handoff.url} openFailed={handoffOpenFailed} returnFocus={handoffTriggerRef.current} onCancel={() => setHandoffConfirm(false)} onOpen={() => { void openHandoff(); }} onCopy={() => { void copyHandoff(); }} />}
   </main>;
 }

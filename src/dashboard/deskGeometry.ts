@@ -4,6 +4,18 @@ import { deskWidgetLayouts } from "./layouts";
 import { mergeGridLayout } from "./layoutTransforms";
 import type { DashboardLayout, WidgetLayout } from "./types";
 
+const narrowDesktopComposition = {
+  ...desktopComposition,
+  clock: { x: 0, y: 0, w: 3, h: 2 },
+  weather: { x: 3, y: 0, w: 3, h: 2 },
+  "today-summary": { x: 6, y: 0, w: 6, h: 2 },
+  "priority-task": { x: 9, y: 2, w: 3, h: 2 },
+  "upcoming-schedule": { x: 9, y: 4, w: 3, h: 3 },
+  dday: { x: 9, y: 7, w: 3, h: 2 },
+  "quick-launcher": { x: 9, y: 9, w: 3, h: 4 },
+  notifications: { x: 9, y: 13, w: 3, h: 3 },
+} as const satisfies Readonly<Record<WidgetLayout["type"], Pick<WidgetLayout, "x" | "y" | "w" | "h">>>;
+
 export const isCanonicalDeskLayout = (layout: DashboardLayout): boolean =>
   layout.version === 1 && layout.presetId === "desk" && layout.widgets.length === deskWidgetLayouts.length &&
   deskWidgetLayouts.every((expected) => layout.widgets.some((widget) =>
@@ -13,8 +25,9 @@ export const isCanonicalDeskLayout = (layout: DashboardLayout): boolean =>
 
 export const resolveDeskGeometry = (layout: DashboardLayout, viewportWidth: number) => {
   const dense = layout.gridProfile === "dense-desk-v2";
+  const composition = viewportWidth < 1200 ? narrowDesktopComposition : desktopComposition;
   const widgets: readonly WidgetLayout[] = dense && isCanonicalDeskLayout(layout)
-    ? layout.widgets.map((widget) => ({ ...widget, ...desktopComposition[widget.type] }))
+    ? layout.widgets.map((widget) => ({ ...widget, ...composition[widget.type] }))
     : layout.widgets;
   return { dense, widgets, rowHeight: 48, margin: viewportWidth >= 1800 ? 14 : 12 };
 };

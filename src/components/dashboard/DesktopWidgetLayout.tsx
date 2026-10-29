@@ -22,6 +22,12 @@ type Props = {
 export function DesktopWidgetLayout({ widgets, width, compact, editing, selectedId, metrics, onLayoutChange, onHide, onSelect }: Props) {
   const { state } = useWorkspaceData();
   const layout = useMemo(() => toGridLayout(widgets, editing && !compact), [widgets, editing, compact]);
+  const widgetElements = widgets.filter((widget) => widget.visible).sort((a, b) => a.y - b.y || a.x - b.x).map((widget) => (
+    <div key={widget.id} className={compact ? "react-grid-item" : undefined} data-widget-type={widget.type} data-grid-height={widget.h} data-grid-width={widget.w} tabIndex={-1}>
+      <WidgetFrame isEditing={editing} isSelected={selectedId === widget.id} widget={widget}
+        onHide={() => onHide(widget.id)} onSelect={() => onSelect(widget.id)} />
+    </div>
+  ));
   return (
     <section className="desktop-workspace-layout" aria-label="데스크톱 위젯 작업 공간">
       {state.status === "signedOut" && <p className="desktop-connection-notice" role="status">
@@ -29,7 +35,7 @@ export function DesktopWidgetLayout({ widgets, width, compact, editing, selected
         <span>설정에서 Google 계정을 연결하면 업무와 일정을 볼 수 있습니다.</span>
       </p>}
       <CompactWorkspaceNotices>
-        <GridLayout
+        {compact ? <div className="desktop-widget-grid desktop-widget-stack">{widgetElements}</div> : <GridLayout
           autoSize={false}
           className={`workspace-grid desktop-widget-grid${editing ? " is-editing" : ""}`}
           dragConfig={{ enabled: editing && !compact, handle: ".widget-frame__drag", cancel: ".react-resizable-handle, button, textarea, input, select, a" }}
@@ -40,13 +46,8 @@ export function DesktopWidgetLayout({ widgets, width, compact, editing, selected
           width={width}
           onLayoutChange={onLayoutChange}
         >
-          {widgets.filter((widget) => widget.visible).sort((a, b) => a.y - b.y || a.x - b.x).map((widget) => (
-            <div key={widget.id} data-widget-type={widget.type} data-grid-height={widget.h} data-grid-width={widget.w} tabIndex={-1}>
-              <WidgetFrame isEditing={editing} isSelected={selectedId === widget.id} widget={widget}
-                onHide={() => onHide(widget.id)} onSelect={() => onSelect(widget.id)} />
-            </div>
-          ))}
-        </GridLayout>
+          {widgetElements}
+        </GridLayout>}
       </CompactWorkspaceNotices>
     </section>
   );
