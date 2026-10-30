@@ -7,10 +7,14 @@ import {toEntry,type LibraryEntry} from './libraryV2';
 const savedVideo=searchMockVideos({topic:'손씻기',target:'학생',minutes:10})[0];
 const saved=toEntry({...savedVideo,educationTitle:'교육A',target:'학생',schedule:'이번주',instructions:'확인',message:'교사 수정문',notes:'보호할 메모'});
 const save=vi.fn(async(item:LibraryEntry)=>({library:{version:2,entries:[...([saved].filter(existing=>existing.videoId!==item.videoId)),item]},recovered:false}));
-vi.mock('./library',()=>({nativeLibrary:false,libraryRepository:{load:async()=>({library:{version:2,entries:[]},recovered:false}),save:(item:LibraryEntry)=>save(item),export:async()=>'',import:async()=>({library:{version:2,entries:[]},recovered:false}),recover:async()=>({library:{version:2,entries:[]},recovered:true})}}));
+vi.mock('./library',()=>({nativeLibrary:false,LIBRARY_RECOVERY_NOTICE:'저장된 교육영상 목록에 문제가 발견되어 백업에서 복구했습니다. 현재 목록을 확인해 주세요.',libraryRepository:{load:async()=>({library:{version:2,entries:[]},recovered:false}),save:(item:LibraryEntry)=>save(item),export:async()=>'',import:async()=>({library:{version:2,entries:[]},recovered:false}),recover:async()=>({library:{version:2,entries:[]},recovered:true})}}));
 afterEach(()=>{cleanup();save.mockClear();});
 const search=(topic:string)=>{fireEvent.change(screen.getByLabelText('교육 주제'),{target:{value:topic}});fireEvent.change(screen.getByLabelText('검색 대상'),{target:{value:'학생'}});fireEvent.click(screen.getByRole('button',{name:'Mock 영상 검색'}));};
 describe('Finder workflow',()=>{
+ it('shows the recovery notice after an explicit successful backup recovery',async()=>{
+  render(<EducationVideoFinder onClose={()=>{}}/>);fireEvent.click(screen.getByRole('button',{name:'백업 복구'}));
+  await waitFor(()=>expect(screen.getByRole('status').textContent).toBe('저장된 교육영상 목록에 문제가 발견되어 백업에서 복구했습니다. 현재 목록을 확인해 주세요.'));
+ });
  it('preserves notes and teacher message when selecting saved video again',async()=>{
   render(<EducationVideoFinder onClose={()=>{}}/>);search('손씻기');
   fireEvent.click(screen.getAllByRole('button',{name:/선택$/})[0]);

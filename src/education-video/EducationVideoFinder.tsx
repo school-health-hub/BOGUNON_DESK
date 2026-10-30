@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {ArrowLeft,Search} from 'lucide-react';
 import {copyMessage,createMessage,filterVideos,FinderInputError,searchMockVideos,validateConditions,type Conditions,type Education,type Video} from './model';
-import {libraryRepository} from './library';
+import {LIBRARY_RECOVERY_NOTICE,libraryRepository} from './library';
 import {entryVideo,expireMetadata,toEntry,type LibraryEntry,type LibraryV2} from './libraryV2';
 import {FinderSearchError,createSearchOperation,type FinderAuthStatus,type SearchDependencies} from './searchService';
 import {VideoResults} from './VideoResults';
@@ -23,7 +23,7 @@ export function EducationVideoFinder({onClose,authStatus='signedOut',authIdentit
  const [notice,setNotice]=useState('');const [busy,setBusy]=useState(false);
  const [mode,setMode]=useState<'mock'|'proxy'>(qaSyntheticMode?'proxy':'mock');const requestEpoch=useRef(0);const authSnapshot=useRef('');authSnapshot.current=authStatus+':'+authIdentity;
  const reportError=(error:unknown):void=>setNotice(error instanceof FinderInputError||error instanceof FinderSearchError?error.message:'로컬 라이브러리 작업을 완료하지 못했습니다. 기존 데이터를 유지하고 백업 복구를 시도해 주세요.');
- useEffect(()=>{let active=true;void libraryRepository.load().then(result=>{if(active){setLibrary(result.library);if(result.recovered)setNotice('손상된 저장소 대신 백업을 불러왔습니다.');}}).catch(error=>{if(active)reportError(error);});return()=>{active=false;};},[]);
+ useEffect(()=>{let active=true;void libraryRepository.load().then(result=>{if(active){setLibrary(result.library);if(result.recovered)setNotice(LIBRARY_RECOVERY_NOTICE);}}).catch(error=>{if(active)reportError(error);});return()=>{active=false;};},[]);
  useEffect(()=>{requestEpoch.current+=1;setBusy(false);setVideos(current=>current.filter(video=>video.source!=='live'));setSelected(current=>current?.source==='live'?null:current);setConfirmed(false);},[authStatus,authIdentity]);
  useEffect(()=>{
   const videoDeadline=(video:Video|null):number=>video?.expiresAt?Date.parse(video.expiresAt):video?.fetchedAt?Date.parse(video.fetchedAt)+30*86400000:Infinity;
@@ -69,6 +69,6 @@ export function EducationVideoFinder({onClose,authStatus='signedOut',authIdentit
  <p role="status" className="ev-notice">{notice||'Mock과 안내문 생성은 외부 API 없이 동작합니다.'}</p><div className="ev-layout"><div>
  <div className="ev-filters" aria-label="영상 길이 범위">{[{value:3,label:'희망 길이 ±3분'},{value:5,label:'±5분'},{value:null,label:'전체 보기'}].map(option=><button type="button" key={option.label} aria-pressed={windowMinutes===option.value} onClick={()=>setWindow(option.value)}>{option.label}</button>)}<span>가까운 길이순 · 길이 미확인은 전체 보기</span></div>
  <VideoResults hasSearched={searched!==null} videos={shown} total={videos.length} selected={selected} onSelect={choose}/>
- <LibraryPanel library={library} busy={busy} onExport={exportLibrary} onImport={importLibrary} onLoad={loadItem} onDelete={deleteMetadata} onRefresh={refreshMetadata} onRecover={()=>void run(async()=>{const result=await libraryRepository.recover();setLibrary(result.library);setNotice('백업에서 복구했습니다. 만료 메타데이터는 제거하고 교사 자료를 유지했습니다.');})}/>
+ <LibraryPanel library={library} busy={busy} onExport={exportLibrary} onImport={importLibrary} onLoad={loadItem} onDelete={deleteMetadata} onRefresh={refreshMetadata} onRecover={()=>void run(async()=>{const result=await libraryRepository.recover();setLibrary(result.library);setNotice(LIBRARY_RECOVERY_NOTICE);})}/>
  </div><MessageEditor education={education} video={selected} canSaveTeacher={savedId!==null&&(selected===null||library.entries.some(entry=>entry.videoId===savedId))} message={message} notes={notes} confirmed={confirmed} onEducation={changeEducation} onMessage={value=>{setMessage(value);setConfirmed(false);}} onNotes={setNotes} onConfirm={setConfirmed} onGenerate={generate} onCopy={()=>void copyMessage(message,confirmed,value=>navigator.clipboard.writeText(value)).then(setNotice)} onSave={save}/></div></main>;
 }

@@ -6,6 +6,7 @@ const browserKey='bogunon.education-video.browser-qa.v2';
 const legacyKey='bogunon.education-video.browser-qa.v1';
 const emptyLibrary:LibraryV2={version:2,entries:[]};
 export type LoadedLibrary={readonly library:LibraryV2;readonly recovered:boolean};
+export const LIBRARY_RECOVERY_NOTICE='저장된 교육영상 목록에 문제가 발견되어 백업에서 복구했습니다. 현재 목록을 확인해 주세요.';
 export const nativeLibrary=isTauri();
 const parseLoaded=(value:unknown):LoadedLibrary=>{
  if(typeof value!=='object'||value===null||!('library'in value)||!('recovered'in value)||typeof value.recovered!=='boolean')throw new FinderInputError('라이브러리 응답을 확인하지 못했습니다.');

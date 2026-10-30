@@ -12,9 +12,21 @@ vi.mock('../chatgpt/ChatGptConnectionContext', async () => import('./inertConnec
 const renderWorkspace = () => render(<OfficialDocumentSessionProvider><FinderQaWorkspace /></OfficialDocumentSessionProvider>);
 const selectSynthetic = async () => fireEvent.click(await screen.findByRole('button', { name: syntheticCandidate.title }));
 beforeEach(() => localStorage.clear());
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe('isolated Finder QA component flow', () => {
+  it('shows the same recovery notice only when the isolated repository reports a successful recovery', async () => {
+    vi.spyOn(libraryRepository, 'load').mockResolvedValue({ library: { version: 2, entries: [] }, recovered: true });
+    renderWorkspace();
+    expect(await screen.findByText('저장된 교육영상 목록에 문제가 발견되어 백업에서 복구했습니다. 현재 목록을 확인해 주세요.')).toBeTruthy();
+    expect(libraryRepository.load).toHaveBeenCalledTimes(1);
+  });
+  it('keeps the recovery notice after an explicit QA backup recovery', async () => {
+    vi.spyOn(libraryRepository, 'recover').mockResolvedValue({ library: { version: 2, entries: [] }, recovered: true });
+    renderWorkspace();
+    fireEvent.click(await screen.findByRole('button', { name: 'QA 백업 복구' }));
+    expect(await screen.findByText('저장된 교육영상 목록에 문제가 발견되어 백업에서 복구했습니다. 현재 목록을 확인해 주세요.')).toBeTruthy();
+  });
   it('hands a synthetic candidate to the actual official document panel without AI', async () => {
     // Given an isolated workspace with the existing Finder component.
     renderWorkspace(); await selectSynthetic();

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { LoadedLibrary } from '../education-video/library';
+import { LIBRARY_RECOVERY_NOTICE, type LoadedLibrary } from '../education-video/library';
 import type { LibraryV2 } from '../education-video/libraryV2';
 import { qaLibraryRepository as libraryRepository } from './qaLibrary';
 import { LibraryEntrySummary } from '../education-video/LibraryEntrySummary';
@@ -9,7 +9,7 @@ export function LibraryTools({ library, onLoaded, onNotice }: {
 }) {
   const [json, setJson] = useState('');
   const run = async (operation: () => Promise<LoadedLibrary>): Promise<void> => {
-    try { onLoaded(await operation()); onNotice('QA 라이브러리 작업을 완료했습니다.'); }
+    try { const loaded = await operation(); onLoaded(loaded); onNotice(loaded.recovered ? LIBRARY_RECOVERY_NOTICE : 'QA 라이브러리 작업을 완료했습니다.'); }
     catch (error) { if (!(error instanceof Error) && typeof error !== 'string') throw error; onNotice('작업하지 못했습니다. 기존 QA 자료는 유지됩니다. 복구 가능한 백업을 확인하세요.'); }
   };
   return <section className="aiv-finder qa-library-tools" aria-label="QA 로컬 라이브러리 관리">

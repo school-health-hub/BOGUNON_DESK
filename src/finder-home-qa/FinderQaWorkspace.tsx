@@ -6,6 +6,7 @@ import { AiVideoDraftConfirmation } from '../education-video/AiVideoDraftConfirm
 import { saveAiCandidate } from '../education-video/aiLibrary';
 import { candidateFromRecord } from '../education-video/candidateRecord';
 import type { LoadedLibrary } from '../education-video/library';
+import { LIBRARY_RECOVERY_NOTICE } from '../education-video/library';
 import type { LibraryV2 } from '../education-video/libraryV2';
 import { OfficialDocumentPanel } from '../components/desktop/OfficialDocumentPanel';
 import { useOfficialDocumentSession } from '../official-document/OfficialDocumentSessionContext';
@@ -23,7 +24,7 @@ export function FinderQaWorkspace() {
   const [notice, setNotice] = useState('합성 후보만 사용합니다. 실제 검색·외부 URL·AI 생성은 차단됩니다.');
   const [documentOpen, setDocumentOpen] = useState(false);
   const [pendingDraft, setPendingDraft] = useState<OfficialDocumentInput | null>(null);
-  const loaded = (value: LoadedLibrary) => setLibrary(value.library);
+  const loaded = (value: LoadedLibrary) => { setLibrary(value.library); if (value.recovered) setNotice(LIBRARY_RECOVERY_NOTICE); };
   useEffect(() => { let active = true; void libraryRepository.load().then(value => { if (active) loaded(value); }).catch((error: unknown) => {
     if (!(error instanceof Error) && typeof error !== 'string') throw error;
     if (active) setNotice('QA 라이브러리를 읽지 못했습니다. 기존 파일은 유지됩니다.');
