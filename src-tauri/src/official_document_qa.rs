@@ -5,7 +5,7 @@ use std::{
 
 use tauri::Manager;
 
-use crate::{official_document_import, official_reference_package};
+use crate::{official_document_import, official_document_odt, official_reference_package};
 
 const QA_IDENTIFIER: &str = "kr.sungandi.schoolhealthdesk.officialdocumentqa";
 const QA_WEBVIEW_DIRECTORY: &str = "EBWebView";
@@ -101,7 +101,8 @@ pub fn run() {
             official_reference_package::write_official_reference_package,
             official_reference_package::remove_official_reference_package,
             official_document_import::pick_and_extract_official_document,
-            official_document_import::extract_official_document_path
+            official_document_import::extract_official_document_path,
+            official_document_odt::save_official_document_odt
         ])
         .setup(|app| {
             let local_data = app.path().app_local_data_dir().map_err(|_| QA_PATH_ERROR)?;

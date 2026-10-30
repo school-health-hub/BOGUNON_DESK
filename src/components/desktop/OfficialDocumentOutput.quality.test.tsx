@@ -21,8 +21,8 @@ describe("OfficialDocumentOutput quality scenarios", () => {
     // When: the production output component renders the draft and copies it.
     const view = render(
       <OfficialDocumentOutput
-        aiResponse="" aiStatus="idle" draft={draft} localSummary={null} mode="create"
-        onCopy={onCopy} onSendSummaryToQuickAdd={vi.fn()} prompt=""
+        aiResponse="" aiStatus="idle" draft={draft} isExportingOdt={false} localSummary={null} mode="create"
+        onCopy={onCopy} onExportOdt={vi.fn()} onSendSummaryToQuickAdd={vi.fn()} prompt=""
       />,
     );
     fireEvent.click(view.getByRole("button", { name: "제목 복사" }));
@@ -52,9 +52,11 @@ describe("OfficialDocumentOutput quality scenarios", () => {
         aiResponse=""
         aiStatus="idle"
         draft={draft}
+        isExportingOdt={false}
         localSummary={null}
         mode="create"
         onCopy={onCopy}
+        onExportOdt={vi.fn()}
         onSendSummaryToQuickAdd={vi.fn()}
         prompt=""
       />,

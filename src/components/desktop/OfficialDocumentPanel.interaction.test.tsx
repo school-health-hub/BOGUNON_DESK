@@ -6,12 +6,18 @@ import { AiConnectionProvider } from "../../ai/AiConnectionContext";
 import type { AiConnectionService } from "../../ai/types";
 import { OfficialDocumentSessionProvider } from "../../official-document/OfficialDocumentSessionContext";
 import { createOfficialDocumentSession } from "../../official-document/officialDocumentSession";
+import { createEmptyOfficialDocumentInput, generateOfficialDocumentDraft } from "../../official-document/documentGenerator";
 import { createSyntheticOfficialDocumentReferenceRepository } from "../../official-document/referenceRepository";
 import type { OfficialDocumentSession } from "../../official-document/types";
 import { OfficialDocumentPanel } from "./OfficialDocumentPanel";
 
-const { generateTextMock } = vi.hoisted(() => ({
+const { generateTextMock, saveOfficialDocumentOdtMock } = vi.hoisted(() => ({
   generateTextMock: vi.fn<(prompt: string) => Promise<string>>(),
+  saveOfficialDocumentOdtMock: vi.fn(),
+}));
+
+vi.mock("../../official-document/officialDocumentExportService", () => ({
+  saveOfficialDocumentOdt: saveOfficialDocumentOdtMock,
 }));
 
 vi.mock("../../chatgpt/ChatGptConnectionContext", () => ({
@@ -43,11 +49,14 @@ const revisionSession = (): OfficialDocumentSession => ({
   },
 });
 
-const renderPanel = (initialState: OfficialDocumentSession = revisionSession()): void => {
+const renderPanel = (
+  initialState: OfficialDocumentSession = revisionSession(),
+  onNotice = vi.fn<(message: string) => void>(),
+): void => {
   render(
     <AiConnectionProvider createService={() => disconnectedAiService}>
       <OfficialDocumentSessionProvider initialState={initialState}>
-        <OfficialDocumentPanel referenceRepository={createSyntheticOfficialDocumentReferenceRepository()} onClose={vi.fn()} onNotice={vi.fn()} onOpenAiSettings={vi.fn()} onSendSummaryToQuickAdd={vi.fn()} />
+        <OfficialDocumentPanel referenceRepository={createSyntheticOfficialDocumentReferenceRepository()} onClose={vi.fn()} onNotice={onNotice} onOpenAiSettings={vi.fn()} onSendSummaryToQuickAdd={vi.fn()} />
       </OfficialDocumentSessionProvider>
     </AiConnectionProvider>,
   );
@@ -68,6 +77,7 @@ describe("OfficialDocumentPanel AI interaction", () => {
   beforeEach(() => {
     generateTextMock.mockReset();
     generateTextMock.mockResolvedValue("AI 수정 결과");
+    saveOfficialDocumentOdtMock.mockReset();
     vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback): number => {
       callback(0);
       return 0;
@@ -102,6 +112,58 @@ describe("OfficialDocumentPanel AI interaction", () => {
     fireEvent.click(screen.getByRole("button", { name: "AI 프롬프트 만들기" }));
     expect(screen.getByText("AI 프롬프트 미리보기")).toBeTruthy();
     expect(generateTextMock).not.toHaveBeenCalled();
+  });
+
+  it("reports a saved ODT without exposing a path", async () => {
+    const onNotice = vi.fn<(message: string) => void>();
+    const initialState = {
+      ...createOfficialDocumentSession(),
+      draft: generateOfficialDocumentDraft(createEmptyOfficialDocumentInput()),
+    };
+    saveOfficialDocumentOdtMock.mockResolvedValue({ status: "saved", fileName: "합성 공문.odt" });
+    renderPanel(initialState, onNotice);
+
+    fireEvent.click(screen.getByRole("button", { name: "K-에듀파인용 ODT 저장" }));
+
+    await waitFor(() => expect(saveOfficialDocumentOdtMock).toHaveBeenCalledOnce());
+    expect(onNotice).toHaveBeenCalledWith("합성 공문.odt 파일을 저장했습니다.");
+    expect(onNotice.mock.calls.flat().join(" ")).not.toContain("C:\\");
+  });
+
+  it("treats ODT save cancellation as a silent normal outcome", async () => {
+    const onNotice = vi.fn<(message: string) => void>();
+    const initialState = {
+      ...createOfficialDocumentSession(),
+      draft: generateOfficialDocumentDraft(createEmptyOfficialDocumentInput()),
+    };
+    saveOfficialDocumentOdtMock.mockResolvedValue({ status: "cancelled" });
+    renderPanel(initialState, onNotice);
+
+    fireEvent.click(screen.getByRole("button", { name: "K-에듀파인용 ODT 저장" }));
+
+    await waitFor(() => expect(saveOfficialDocumentOdtMock).toHaveBeenCalledOnce());
+    expect(onNotice).not.toHaveBeenCalled();
+  });
+
+  it("disables ODT export while the current save is pending and reports failures", async () => {
+    const onNotice = vi.fn<(message: string) => void>();
+    let rejectSave: (reason: Error) => void = () => undefined;
+    saveOfficialDocumentOdtMock.mockImplementation(() => new Promise((_resolve, reject) => { rejectSave = reject; }));
+    const initialState = {
+      ...createOfficialDocumentSession(),
+      draft: generateOfficialDocumentDraft(createEmptyOfficialDocumentInput()),
+    };
+    renderPanel(initialState, onNotice);
+
+    fireEvent.click(screen.getByRole("button", { name: "K-에듀파인용 ODT 저장" }));
+    expect(screen.getByRole("button", { name: "K-에듀파인용 ODT 저장 중" })).toHaveProperty("disabled", true);
+    await act(async () => {
+      rejectSave(new Error("표준서식이 승인된 파일과 다릅니다."));
+      await Promise.resolve();
+    });
+
+    expect(onNotice).toHaveBeenCalledWith("표준서식이 승인된 파일과 다릅니다.");
+    expect(screen.getByRole("button", { name: "K-에듀파인용 ODT 저장" })).toHaveProperty("disabled", false);
   });
 
   it("cancels reference application with Escape without changing the form", async () => {

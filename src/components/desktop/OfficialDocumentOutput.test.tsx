@@ -12,7 +12,7 @@ describe("OfficialDocumentOutput", () => {
   it.each(["계획서, 안내문", ""])("renders one canonical body without changing copied data (%s)", (attachments) => {
     const draft = generateOfficialDocumentDraft({ ...createEmptyOfficialDocumentInput(), attachments });
     const onCopy = vi.fn();
-    const view = render(<OfficialDocumentOutput aiResponse="" aiStatus="idle" draft={draft} localSummary={null} mode="create" onCopy={onCopy} onSendSummaryToQuickAdd={vi.fn()} prompt="" />);
+    const view = render(<OfficialDocumentOutput aiResponse="" aiStatus="idle" draft={draft} isExportingOdt={false} localSummary={null} mode="create" onCopy={onCopy} onExportOdt={vi.fn()} onSendSummaryToQuickAdd={vi.fn()} prompt="" />);
     expect(view.getByRole("region", { name: "공문 본문" }).textContent).toBe(draft.body);
     expect(view.queryByRole("region", { name: "붙임" })).toBeNull();
     const paperText = view.getByRole("article").textContent ?? "";
@@ -33,9 +33,11 @@ describe("OfficialDocumentOutput", () => {
         aiResponse=""
         aiStatus="idle"
         draft={{ title: "제목", body: "본문", attachments: "붙임", messenger: "메신저", checklist: "체크", tableText: "구분\t인원", tableGuide: "표에 붙여넣으세요." }}
+        isExportingOdt={false}
         localSummary={null}
         mode="create"
         onCopy={onCopy}
+        onExportOdt={vi.fn()}
         onSendSummaryToQuickAdd={vi.fn()}
         prompt=""
       />,
@@ -51,9 +53,11 @@ describe("OfficialDocumentOutput", () => {
         aiResponse="연결한 AI 결과"
         aiStatus="idle"
         draft={null}
+        isExportingOdt={false}
         localSummary={extractOfficialDocumentSummary("대상: 관내 학교")}
         mode="summary"
         onCopy={vi.fn()}
+        onExportOdt={vi.fn()}
         onSendSummaryToQuickAdd={vi.fn()}
         prompt="AI 프롬프트"
       />,
@@ -76,9 +80,11 @@ describe("OfficialDocumentOutput", () => {
         aiResponse="보존된 정상 결과"
         aiStatus={aiStatus}
         draft={null}
+        isExportingOdt={false}
         localSummary={null}
         mode="revision"
         onCopy={vi.fn()}
+        onExportOdt={vi.fn()}
         onSendSummaryToQuickAdd={vi.fn()}
         prompt="검토된 전송본"
       />,
@@ -86,5 +92,46 @@ describe("OfficialDocumentOutput", () => {
     expect(markup).toContain(heading);
     expect(markup).toContain("보존된 정상 결과");
     if (notice !== null) expect(markup).toContain(notice);
+  });
+
+  it("shows the ODT export action only for a draft and disables it while saving", () => {
+    const draft = generateOfficialDocumentDraft(createEmptyOfficialDocumentInput());
+    const onExportOdt = vi.fn();
+    const view = render(
+      <OfficialDocumentOutput
+        aiResponse=""
+        aiStatus="idle"
+        draft={draft}
+        isExportingOdt={true}
+        localSummary={null}
+        mode="create"
+        onCopy={vi.fn()}
+        onExportOdt={onExportOdt}
+        onSendSummaryToQuickAdd={vi.fn()}
+        prompt=""
+      />,
+    );
+
+    const exportButton = view.getByRole("button", { name: "K-에듀파인용 ODT 저장 중" });
+    expect(exportButton).toHaveProperty("disabled", true);
+    fireEvent.click(exportButton);
+    expect(onExportOdt).not.toHaveBeenCalled();
+    view.unmount();
+
+    render(
+      <OfficialDocumentOutput
+        aiResponse=""
+        aiStatus="idle"
+        draft={null}
+        isExportingOdt={false}
+        localSummary={null}
+        mode="create"
+        onCopy={vi.fn()}
+        onExportOdt={onExportOdt}
+        onSendSummaryToQuickAdd={vi.fn()}
+        prompt=""
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "K-에듀파인용 ODT 저장" })).toBeNull();
   });
 });

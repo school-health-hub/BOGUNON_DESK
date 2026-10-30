@@ -4,6 +4,7 @@ import { useAiConnection } from "../../ai/AiConnectionContext";
 import { useChatGptConnection } from "../../chatgpt/ChatGptConnectionContext";
 import { generateOfficialDocumentDraft } from "../../official-document/documentGenerator";
 import { copyOfficialDocumentText } from "../../official-document/clipboard";
+import { saveOfficialDocumentOdt } from "../../official-document/officialDocumentExportService";
 import {
   importOfficialDocumentSource,
   pickAndExtractOfficialDocument,
@@ -86,6 +87,7 @@ export function OfficialDocumentPanel({ onClose, onNotice, onOpenAiSettings, onS
   const [pendingReferenceApplication, setPendingReferenceApplication] = useState<PendingReferenceApplication | null>(null);
   const [packageRepository, setPackageRepository] = useState<OfficialDocumentReferenceRepository>(defaultReferenceRepository);
   const [packageBusy, setPackageBusy] = useState(false);
+  const [isExportingOdt, setIsExportingOdt] = useState(false);
   const [referenceWorkspaceView, setReferenceWorkspaceView] = useState<ReferenceWorkspaceView>(null);
   const output = state.outputs[state.mode];
   const apiConnectionAvailable = ai.state.status === "connected" && ai.state.provider !== null;
@@ -192,6 +194,19 @@ export function OfficialDocumentPanel({ onClose, onNotice, onOpenAiSettings, onS
       onNotice(await copyOfficialDocumentText(navigator.clipboard.writeText.bind(navigator.clipboard), label, value));
     } catch {
       onNotice(`${label}을(를) 복사하지 못했습니다.`);
+    }
+  };
+
+  const exportOdt = async (): Promise<void> => {
+    if (state.draft === null || isExportingOdt) return;
+    setIsExportingOdt(true);
+    try {
+      const result = await saveOfficialDocumentOdt(state.draft);
+      if (result.status === "saved") onNotice(`${result.fileName} 파일을 저장했습니다.`);
+    } catch (error: unknown) {
+      onNotice(getDesktopErrorMessage(error));
+    } finally {
+      setIsExportingOdt(false);
     }
   };
 
@@ -333,7 +348,7 @@ export function OfficialDocumentPanel({ onClose, onNotice, onOpenAiSettings, onS
               {state.aiError !== null && <p className="official-document-error" role="alert">{state.aiError}</p>}
             </section>
           </div>
-          <OfficialDocumentOutput aiResponse={output.aiResponse} aiStatus={state.aiStatus} draft={state.mode === "create" ? state.draft : null} localSummary={state.mode === "summary" ? state.summaryLocalResult : null} mode={state.mode} prompt={output.prompt} onCopy={(label, value) => void copy(label, value)} onSendSummaryToQuickAdd={() => {
+          <OfficialDocumentOutput aiResponse={output.aiResponse} aiStatus={state.aiStatus} draft={state.mode === "create" ? state.draft : null} isExportingOdt={isExportingOdt} localSummary={state.mode === "summary" ? state.summaryLocalResult : null} mode={state.mode} prompt={output.prompt} onCopy={(label, value) => void copy(label, value)} onExportOdt={() => void exportOdt()} onSendSummaryToQuickAdd={() => {
             if (state.summaryLocalResult !== null) {
               onSendSummaryToQuickAdd(createOfficialDocumentQuickAddDraft(state.summaryLocalResult));
             }
