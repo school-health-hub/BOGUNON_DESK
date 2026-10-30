@@ -6,8 +6,12 @@ import { ILLUSTRATED_CARD } from "./illustratedCardLayout"
 
 const bounds = { x: 0, y: 0, width: 1200, height: 1200 }
 const safe = { x: 60, y: 60, width: 1080, height: 1080 }
+const scenePales = ["#F8E7E5", "#E3F1E9", "#E7F0F7", "#F8EEDB"] as const
 function shape(id: string, frame: Frame, fill: string, zOrder: number, radius = 0, stroke?: string): SceneLayer { return { kind: "shape", layerId: id, frame, fill, zOrder, radius, clipBounds: bounds, ...(stroke === undefined ? {} : { stroke }) } }
 function text(block: RenderTextBlock, group: string): SceneLayer { return { ...block, kind: "text", layerId: block.id, zOrder: 25, clipBounds: safe, collisionGroup: group } }
+function image(id: string, source: NonNullable<RenderPage["editorial"]>["modules"][number]["image"]): SceneLayer | undefined {
+  return source?.assetId === undefined ? undefined : { kind: "image", ...source, layerId: id, edgePolicy: "none", zOrder: 14, clipBounds: safe, placeholderKind: "generic" }
+}
 export function buildIllustratedCardScene(page: RenderPage): NewsletterPageScene {
   const config = page.editorial
   const id = `${page.pageId}-illustrated`
@@ -24,12 +28,16 @@ export function buildIllustratedCardScene(page: RenderPage): NewsletterPageScene
     for (const [index, topic] of (page.topicOverview ?? []).entries()) {
       const frame = ILLUSTRATED_CARD.previewFrames[index]
       if (frame === undefined) continue
-      const size = Math.min(140, frame.height - 75)
-      layers.push(...illustratedActionScene(`${id}-preview-${index}`, topic.text, { x: frame.x + (frame.width - size) / 2, y: frame.y, width: size, height: size }, safe), text(topic, id))
+      const size = 124
+      layers.push(shape(`${id}-preview-halo-${index}`, frame, scenePales[index] ?? scenePales[0], 5, 42, "#FFFFFF"))
+      const preview = image(`${id}-preview-action-${index}`, config.previewImages?.[index])
+      layers.push(...(preview === undefined ? illustratedActionScene(`${id}-preview-${index}`, topic.text, { x: frame.x + (frame.width - size) / 2, y: frame.y + 10, width: size, height: size }, safe) : [preview]), text(topic, id))
     }
   } else {
     for (const [index, module] of config.modules.entries()) {
-      layers.push(...illustratedActionScene(`${id}-action-scene-${index}`, module.action.text, { x: module.frame.x + 66, y: module.frame.y + 5, width: 145, height: 145 }, safe))
+      layers.push({ kind: "path", layerId: `${id}-action-zone-${index}`, frame: module.frame, path: "M2 8Q4 1 12 2Q21 0 24 8Q27 17 21 23Q13 27 5 23Q-1 18 2 8Z", fill: scenePales[index] ?? scenePales[0], stroke: "none", strokeWidth: 0, zOrder: 5, clipBounds: safe })
+      const action = image(`${id}-action-image-${index}`, module.image)
+      layers.push(...(action === undefined ? illustratedActionScene(`${id}-action-scene-${index}`, module.action.text, { x: module.frame.x + 66, y: module.frame.y + 5, width: 145, height: 145 }, safe) : [action]))
       layers.push(text(module.number, id), text(module.action, id))
     }
   }

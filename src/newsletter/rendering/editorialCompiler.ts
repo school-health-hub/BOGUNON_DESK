@@ -6,7 +6,7 @@ import type { StructuredSectionText } from "./contentStructure"
 import { editorialFrames, type EditorialLayout } from "./editorialLayout"
 
 export type EditorialModule = { readonly frame: Frame; readonly action: RenderTextBlock; readonly number: RenderTextBlock; readonly image?: RenderImage }
-export type RenderEditorial = { readonly compositionPreset?: "september-master" | "illustrated-ab"; readonly layoutType: EditorialLayout["layoutType"]; readonly season: EditorialLayout["season"]; readonly studentComposition: EditorialLayout["studentComposition"]; readonly modules: readonly EditorialModule[] }
+export type RenderEditorial = { readonly compositionPreset?: "september-master" | "illustrated-ab"; readonly layoutType: EditorialLayout["layoutType"]; readonly season: EditorialLayout["season"]; readonly studentComposition: EditorialLayout["studentComposition"]; readonly modules: readonly EditorialModule[]; readonly previewImages?: readonly RenderImage[] }
 type MakeBlock = (id: string, text: string, frame: Frame, style: TextStyle, provenance: TextProvenance, required?: boolean) => RenderTextBlock
 type Input = { readonly page: RenderPage; readonly layout: CardDesignLayoutV2; readonly content: StructuredSectionText; readonly make: MakeBlock; readonly unavailable: (message: string) => void }
 const prefix = /^\s*(?:[-*•‣▪◦]|\d+[.)])\s+/u

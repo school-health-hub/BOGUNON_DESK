@@ -12,16 +12,18 @@ export function compileIllustratedCard(page: RenderPage, layout: CardDesignLayou
   const modules = cover ? [] : actions.slice(0, 4).flatMap((action, index) => {
     const frame = ILLUSTRATED_CARD.actionFrames[index]
     if (frame === undefined) return []
+    const image = config.moduleImages?.[index]
     return [{ frame,
       number: make(`${page.pageId}-illustrated-number-${index}`, String(index + 1).padStart(2, "0"), { x: frame.x + 5, y: frame.y + 15, width: 48, height: 42 }, { ...layout.bodyStyle, fontSize: 27, fontWeight: 800, color: "#176B45", align: "center", lineHeight: 1.2 }, { kind: "template-static", templateVersion: page.templateVersion }),
-      action: make(`${page.pageId}-illustrated-action-${index}`, action.replace(/^\s*(?:[-*•‣▪◦]|\d+[.)])\s+/u, ""), { x: frame.x + 5, y: frame.y + 169, width: 250, height: 116 }, { ...layout.bodyStyle, fontSize: 28, fontWeight: 750, lineHeight: 1.32, align: "center" }, page.body.provenance),
+      action: make(`${page.pageId}-illustrated-action-${index}`, action.replace(/^\s*(?:[-*•‣▪◦]|\d+[.)])\s+/u, ""), { x: frame.x + 3, y: frame.y + 169, width: 260, height: 116 }, { ...layout.bodyStyle, fontSize: 26, fontWeight: 750, lineHeight: 1.32, align: "center" }, page.body.provenance),
+      ...(image?.assetId === undefined ? {} : { image }),
     }]
   })
   const topicOverview = cover ? page.topicOverview?.slice(0, 4).flatMap((topic, index) => {
     const frame = ILLUSTRATED_CARD.previewFrames[index]
     return frame === undefined ? [] : [make(topic.id, topic.text, { x: frame.x, y: frame.y + frame.height - 76, width: frame.width, height: 76 }, { ...layout.bodyStyle, fontSize: 27, fontWeight: 750, lineHeight: 1.2, align: "center", color: "#163E3E" }, topic.provenance)]
   }) : page.topicOverview
-  return { ...page, editorial: { layoutType: config.layoutType, compositionPreset: "illustrated-ab", season: config.season, studentComposition: config.studentComposition, modules },
+  return { ...page, editorial: { layoutType: config.layoutType, compositionPreset: "illustrated-ab", season: config.season, studentComposition: config.studentComposition, modules, ...(cover && config.moduleImages !== undefined ? { previewImages: config.moduleImages } : {}) },
     ...(topicOverview === undefined ? {} : { topicOverview }),
     ...(page.badge === undefined ? {} : { badge: make(page.badge.id, page.badge.text, { x: 400, y: 80, width: 400, height: 45 }, { ...page.badge.style, fontSize: 27, color: "#FFFFFF", align: "center" }, page.badge.provenance) }),
     lead: make(`${page.pageId}-illustrated-lead`, config.slogan ?? (content.kind === "list" ? content.lead ?? "" : ""), layout.leadFrame, { ...layout.bodyStyle, fontSize: 30, fontWeight: 650, align: "center" }, config.slogan === undefined ? page.body.provenance : { kind: "design-text", pageId: page.pageId, field: "slogan" }, false),
