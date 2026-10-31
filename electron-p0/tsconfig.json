@@ -1,0 +1,4 @@
+{
+  "compilerOptions":{"target":"ES2022","module":"NodeNext","moduleResolution":"NodeNext","strict":true,"skipLibCheck":true,"rootDir":".","outDir":"../build/electron-p0-app","types":["node"],"noUnusedLocals":true,"noUnusedParameters":true},
+  "include":["main/**/*.ts","main/**/*.mts","preload/**/*.cts","protocol.ts"]
+}

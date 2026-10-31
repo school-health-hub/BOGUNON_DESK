@@ -1,0 +1,12 @@
+import { execFileSync } from 'node:child_process';
+import { mkdir,copyFile,writeFile } from 'node:fs/promises';
+const run=(args)=>execFileSync(process.execPath,args,{stdio:'inherit'});
+run(['node_modules/typescript/bin/tsc','-p','electron-p0/tsconfig.json']);
+run(['node_modules/typescript/bin/tsc','-p','electron-p0/tsconfig.renderer.json']);
+run(['node_modules/typescript/bin/tsc','-p','electron-p0/tsconfig.tests.json']);
+run(['node_modules/vite/bin/vite.js','build','--config','electron-p0/vite.config.ts']);
+await mkdir('build/electron-p0-app',{recursive:true});
+await copyFile('electron-p0/package.json','build/electron-p0-app/package.json');
+const sourceSha=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
+const dirty=!!execFileSync('git',['status','--porcelain'],{encoding:'utf8'}).trim();
+await writeFile('build/electron-p0-app/build-meta.json',JSON.stringify({sourceSha,dirty},null,2));

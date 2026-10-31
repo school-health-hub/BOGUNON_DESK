@@ -1,0 +1,56 @@
+name: ELECTRON-P0 Windows PoC
+on:
+  push:
+    branches: [feature/electron-p0-dashboard]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: electron-p0-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  windows-poc:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Original-source guard, TypeScript, full JS regression, portable packaging and actual packaged Electron UI
+        run: npm run electron:p0:ci:windows
+      - name: Record exact PoC artifact hash and signature (not a production release)
+        shell: pwsh
+        run: |
+          $files = @(Get-ChildItem release-electron-p0/*.exe)
+          if ($files.Count -ne 1) { throw 'Ambiguous PoC artifact' }
+          $file = $files[0]
+          $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          $signature = [string](Get-AuthenticodeSignature $file.FullName).Status
+          if ($signature -notin @('NotSigned','Valid')) { throw 'Unexpected signature state' }
+          "$hash  $($file.Name)" | Set-Content release-electron-p0/SHA256SUMS.txt
+          @{scope='Electron P0 only';sourceSha=$env:GITHUB_SHA;sha256=$hash;signature=$signature;automatedPackagedUi='PASS';physicalWindowsPc='NOT RUN';productionDeployment=$false} | ConvertTo-Json | Set-Content release-electron-p0/P0-BUILD-RESULT.json
+          Write-Output "::notice title=ELECTRON_P0_SHA256::$hash"
+          Write-Output "::notice title=ELECTRON_P0_SIGNATURE::$signature"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ELECTRON-P0-Windows-${{ github.sha }}
+          path: |
+            release-electron-p0/*.exe
+            release-electron-p0/SHA256SUMS.txt
+            release-electron-p0/P0-BUILD-RESULT.json
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: ELECTRON-P0-UI-evidence-${{ github.run_id }}
+          path: artifacts/electron-p0-e2e/
+          if-no-files-found: ignore
+          retention-days: 7

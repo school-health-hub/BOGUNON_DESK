@@ -34,3 +34,8 @@ release-output/
 /dist-my-finance-qa/
 /operating-source/
 /artifacts/my-finance-qa*/
+
+/build/electron-p0-app/
+/release-electron-p0/
+/test-results/
+/playwright-report/

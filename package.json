@@ -16,7 +16,15 @@
     "release:publish": "node scripts/publish-updater-release.mjs",
     "tauri": "tauri",
     "qa:finance:frontend": "node scripts/build-my-finance-qa-frontend.mjs",
-    "qa:finance:windows": "node scripts/build-my-finance-qa.mjs"
+    "qa:finance:windows": "node scripts/build-my-finance-qa.mjs",
+    "electron:p0:build": "node scripts/electron-p0/build.mjs",
+    "electron:p0:dev": "node scripts/electron-p0/dev.mjs",
+    "electron:p0:start": "electron build/electron-p0-app",
+    "electron:p0:package:win": "npm run electron:p0:build && electron-builder --config electron-p0/builder.json --win portable --x64 --publish never",
+    "electron:p0:package:linux": "npm run electron:p0:build && electron-builder --config electron-p0/builder.json --linux dir --publish never",
+    "electron:p0:test": "vitest run electron-p0/tests",
+    "electron:p0:test:e2e": "playwright test --config electron-p0/playwright.config.ts",
+    "electron:p0:ci:windows": "node scripts/electron-p0/windows-check.mjs"
   },
   "dependencies": {
     "@fontsource/pretendard": "^5.3.0",
@@ -31,11 +39,14 @@
     "react-grid-layout": "^2.2.4"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "@tauri-apps/cli": "^2",
     "@testing-library/react": "^16.3.3",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^6.0.2",
+    "electron": "45.2.1",
+    "electron-builder": "26.18.0",
     "jsdom": "^30.1.2",
     "typescript": "~6.0.3",
     "vite": "^8.0.16",

@@ -1,0 +1,10 @@
+{
+  "appId":"kr.sungandi.schoolhealthdesk.electronp0",
+  "productName":"BOGUNON DESK ELECTRON P0",
+  "directories":{"app":"build/electron-p0-app","output":"release-electron-p0"},
+  "files":["main/**","preload/**","protocol.js","renderer/**","build-meta.json","package.json"],
+  "asar":true,"npmRebuild":false,"publish":null,
+  "artifactName":"BOGUNON-DESK-ELECTRON-P0-${version}-${os}-${arch}.${ext}",
+  "win":{"target":[{"target":"portable","arch":["x64"]}],"icon":"src-tauri/icons/icon.ico","signAndEditExecutable":false},
+  "linux":{"target":"dir","category":"Office"}
+}
