@@ -17,7 +17,7 @@ const store = new SettingsStore(join(userData,'poc-settings'));
 let quitting = false;
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
-  await app.whenReady();
+  void app.whenReady().then(async()=>{
   const renderer = join(app.getAppPath(),'renderer');
   const dev = process.env.ELECTRON_P0_DEV_URL;
   if (dev && (app.isPackaged || dev !== 'http://127.0.0.1:5174/')) throw new Error('Invalid PoC dev URL');
@@ -46,4 +46,5 @@ else {
   window.on('close',event=>{ if(!quitting){ event.preventDefault(); quitting=true; void store.flush().finally(()=>app.quit()); } });
   app.on('window-all-closed',()=>app.quit());
   await window.loadURL(url);
+  }).catch(()=>{ console.error('Electron P0 startup failed'); app.exit(1); });
 }

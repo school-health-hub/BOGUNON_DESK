@@ -2,14 +2,15 @@ import { test,expect,_electron as electron, type ElectronApplication } from '@pl
 import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 const appRoot=join(process.cwd(),'build/electron-p0-app');
-const launch=(id:string)=>electron.launch({chromiumSandbox:true,...(process.env.ELECTRON_P0_EXECUTABLE?{executablePath:process.env.ELECTRON_P0_EXECUTABLE}:{}),args:process.env.ELECTRON_P0_EXECUTABLE?[]:[appRoot],env:{...process.env,ELECTRON_P0_TEST_RUN:id,ELECTRON_P0_DEV_URL:''}});
+const launch=(id:string)=>electron.launch({chromiumSandbox:true,timeout:20000,...(process.env.ELECTRON_P0_EXECUTABLE?{executablePath:process.env.ELECTRON_P0_EXECUTABLE}:{}),args:process.env.ELECTRON_P0_EXECUTABLE?[]:[appRoot],env:{...process.env,ELECTRON_P0_TEST_RUN:id,ELECTRON_P0_DEV_URL:''}});
 test('real Electron: secure bridge, original dashboard/dock, navigation, edit and restart',async()=>{
  const id=randomUUID();let app:ElectronApplication=await launch(id);
  try{
-  let page=await app.firstWindow();
+  console.log('P0: Electron connected');
+  let page=await app.firstWindow({timeout:10000}); console.log('P0: renderer window found');
   await expect(page.getByRole('navigation',{name:'주요 기능'})).toBeVisible();
   await expect(page.locator('[data-widget-type="clock"]')).toBeVisible();
-  await expect(page.locator('[data-p0-save]')).toHaveText('PoC 설정 저장됨');
+  await expect(page.locator('[data-p0-save]')).toHaveText('PoC 설정 저장됨');console.log('P0: dashboard and settings ready');
   expect(await page.evaluate(()=>({keys:Object.keys(window.electronP0),node:typeof (window as unknown as {require:unknown}).require}))).toEqual({keys:['info','readSettings','writeSettings'],node:'undefined'});
   const info=await page.evaluate(()=>window.electronP0.info());expect(info.appId).toBe('kr.sungandi.schoolhealthdesk.electronp0');expect(info.userData).toContain(id);
   await page.getByRole('button',{name:'설정',exact:true}).click();await expect(page.getByRole('heading',{name:'PoC 설정'})).toBeVisible();

@@ -16,13 +16,34 @@ import { parseDashboardLayoutValue } from '../../src/dashboard/storage';
 import { hideWidget, restoreWidget } from '../../src/dashboard/layoutTransforms';
 import { mergeRenderedGridLayout, resolveDeskGeometry } from '../../src/dashboard/deskGeometry';
 import { applyPreset, calculateDashboardGridMetrics, useElementWidth, useViewportHeight, useViewportWidth } from '../../src/components/dashboard/dashboardCanvasSupport';
+import type { DashboardLayout } from '../../src/dashboard/types';
+import type { DockLayout } from '../../src/dock/types';
 import type { DesktopActionId } from '../../src/desktop/types';
 import type { DashboardEditorPanel } from '../../src/components/dashboard/useDesktopNavigation';
 export function P0App() {
-  const [layout,setLayout] = useState(createDefaultDashboardLayout);
-  const [dock,setDock] = useState(createDefaultDockLayout);
-  const [loaded,setLoaded] = useState(false), [info,setInfo] = useState<P0Info | null>(null);
-  const [error,setError] = useState<string | null>(null), [status,setStatus] = useState('불러오는 중');
+  const [initial,setInitial] = useState<{layout:DashboardLayout;dock:DockLayout;info:P0Info}|null>(null);
+  const [error,setError] = useState(false);
+  useEffect(()=>{
+    let active=true;
+    void Promise.all([window.electronP0.info(),window.electronP0.readSettings()]).then(([info,s])=>{
+      if(!active)return;
+      if(info.appId!=='kr.sungandi.schoolhealthdesk.electronp0')throw Error('Wrong PoC identity');
+      const layout=s?parseDashboardLayoutValue(s.dashboard):createDefaultDashboardLayout();
+      const dock=s?parseDockLayoutValue(s.dock):createDefaultDockLayout();
+      if(!layout||!dock)throw Error('Invalid saved PoC layout');
+      setInitial({layout,dock,info});
+    }).catch(()=>{if(active)setError(true)});
+    return ()=>{active=false};
+  },[]);
+  if(error)return <main role="alert">PoC 설정을 읽지 못했습니다. 기존 파일을 보존하고 앱을 다시 열어 주세요.</main>;
+  if(!initial)return <main role="status">ELECTRON-P0를 불러오는 중입니다…</main>;
+  return <P0Dashboard initial={initial}/>;
+}
+function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:DockLayout;info:P0Info}}) {
+  const [layout,setLayout] = useState(initial.layout);
+  const [dock,setDock] = useState(initial.dock);
+  const info=initial.info;
+  const [status,setStatus] = useState('불러오는 중');
   const [editing,setEditing] = useState(false), [panel,setPanel] = useState<DashboardEditorPanel>(null);
   const [selected,setSelected] = useState<string | null>(null), [active,setActive] = useState<DesktopActionId>('home');
   const [notice,setNotice] = useState<string | null>(null);
@@ -32,27 +53,14 @@ export function P0App() {
   const rows=visible.reduce((max,w)=>Math.max(max,w.y+w.h),1);
   const metrics=calculateDashboardGridMetrics(vh,rows,geometry.dense?geometry:undefined);
   useEffect(()=>{
-    let active=true;
-    void Promise.all([window.electronP0.info(),window.electronP0.readSettings()]).then(([i,s])=>{
-      if(!active)return;
-      if(i.appId!=='kr.sungandi.schoolhealthdesk.electronp0')throw Error('Wrong PoC identity');
-      if(s){const l=parseDashboardLayoutValue(s.dashboard),d=parseDockLayoutValue(s.dock);if(!l||!d)throw Error('Invalid saved PoC layout');setLayout(l);setDock(d);}
-      setInfo(i);setLoaded(true);
-    }).catch(()=>{if(active)setError('PoC 설정을 읽지 못했습니다. 기존 파일을 보존하고 앱을 다시 열어 주세요.');});
-    return ()=>{active=false};
-  },[]);
-  useEffect(()=>{
-    if(!loaded)return;
     let active=true;setStatus('저장 중');
     void window.electronP0.writeSettings({version:1,dashboard:layout,dock}).then(()=>{if(active)setStatus('PoC 설정 저장됨')}).catch(()=>{if(active)setStatus('저장 실패 — 현재 배치를 유지하고 다시 시도해 주세요')});
     return ()=>{active=false};
-  },[layout,dock,loaded]);
+  },[layout,dock]);
   const excluded=()=>setNotice('이 기능은 ELECTRON-P0 범위에 포함되지 않습니다. 로그인·업무·금융 데이터에 연결하지 않습니다.');
   const navigate=(id:DesktopActionId)=>{
     if(['home','settings','quick-memo','toolbox'].includes(id)){setActive(id);setPanel(null);setEditing(false);setNotice(null)}else excluded();
   };
-  if(error)return <main role="alert">{error}</main>;
-  if(!loaded)return <main role="status">ELECTRON-P0를 불러오는 중입니다…</main>;
   return <WidgetSessionProvider><DesktopPanelProvider notify={setNotice} openInbox={excluded} openBogunonTask={async()=>excluded()} openQuickAddEventForDate={excluded} openQuickAddFromMemo={excluded} openQuickMemoUrl={async()=>excluded()} runDesktopAction={async id=>navigate(id)} workFolderFavorites={[]} openWorkFolderFavorite={async()=>excluded()}>
     <div className={`app-shell workspace-shell ${editing?'is-edit-mode':'is-view-mode'} bg-${layout.appearance.background} card-${layout.appearance.cardStyle} corner-${layout.appearance.cornerStyle}`}>
       <div className="p0-banner">ELECTRON-P0 · 합성/빈 데이터 전용 · 로그인·업무·금융 연결 없음</div>
