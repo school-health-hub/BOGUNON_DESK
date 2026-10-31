@@ -1,5 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
 import '../../src/styles/base.css';
 import '../../src/styles/dashboard.css';
 import '../../src/styles/components.css';

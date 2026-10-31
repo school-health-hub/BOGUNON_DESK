@@ -77,7 +77,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
       </section></div>}
       {notice&&<div className="p0-notice" role="status">{notice}<button onClick={()=>setNotice(null)}>닫기</button></div>}
       <span className="p0-save" role="status" data-p0-save>{status}</span>
-      <AppDock activeActionId={active} dockLayout={dock} onAction={navigate}/>
+      <div className="dock-zone"><AppDock activeActionId={active} dockLayout={dock} onAction={navigate}/></div>
     </div>
   </DesktopPanelProvider></WidgetSessionProvider>;
 }
