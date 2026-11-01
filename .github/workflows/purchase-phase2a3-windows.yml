@@ -1,0 +1,134 @@
+name: Purchase Phase 2A-3 Windows verification
+run-name: Purchase 2A-3 Windows verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Exact approved product checkpoint (other values are rejected)
+        required: true
+        default: d12d76107e1166f0f6eb146a634a8f9d2eed3e67
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: purchase-phase2a3-windows
+  cancel-in-progress: false
+
+jobs:
+  frontend:
+    runs-on: windows-2022
+    timeout-minutes: 35
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CI: 'true'
+      NODE_OPTIONS: --max-old-space-size=2048
+      EXPECTED_PRODUCT_SHA: d12d76107e1166f0f6eb146a634a8f9d2eed3e67
+    steps:
+      - name: Initialize isolated evidence
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP 'purchase-phase2a3-evidence'
+          New-Item -ItemType Directory -Path $out -ErrorAction Stop | Out-Null
+          "QA_EVIDENCE=$out" >> $env:GITHUB_ENV
+          "npm_config_cache=$env:RUNNER_TEMP/purchase-npm-cache" >> $env:GITHUB_ENV
+      - name: Reject unapproved dispatch context
+        id: gate
+        env:
+          DISPATCH_SOURCE_SHA: ${{ inputs.source_sha }}
+          CONTROLLER_SHA: ${{ github.workflow_sha }}
+          CONTROLLER_REF: ${{ github.workflow_ref }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $valid = $env:GITHUB_EVENT_NAME -ceq 'workflow_dispatch' -and
+            $env:GITHUB_REPOSITORY -ceq 'school-health-hub/BOGUNON_DESK' -and
+            $env:GITHUB_REF -ceq 'refs/heads/feature/purchase-helper-enhancement' -and
+            $env:DISPATCH_SOURCE_SHA -ceq $env:EXPECTED_PRODUCT_SHA -and
+            $env:GITHUB_SHA -ceq $env:CONTROLLER_SHA -and
+            $env:CONTROLLER_REF -ceq 'school-health-hub/BOGUNON_DESK/.github/workflows/purchase-phase2a3-windows.yml@refs/heads/feature/purchase-helper-enhancement'
+          [ordered]@{ gatePassed=$valid; productSha=$env:EXPECTED_PRODUCT_SHA; controllerSha=$env:CONTROLLER_SHA; runId=$env:GITHUB_RUN_ID; attempt=$env:GITHUB_RUN_ATTEMPT } |
+            ConvertTo-Json | Set-Content "$env:QA_EVIDENCE/gate.json"
+          if (-not $valid) { throw 'Rejected: unapproved event, repository, branch, product SHA, or controller context' }
+      - name: Checkout exact product checkpoint
+        id: checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: d12d76107e1166f0f6eb146a634a8f9d2eed3e67
+          persist-credentials: false
+      - name: Verify actual checkout and lockfile
+        id: verify
+        run: |
+          $head = (git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $head -cne $env:EXPECTED_PRODUCT_SHA) { throw 'Actual checkout SHA mismatch' }
+          $status = git status --porcelain
+          if ($LASTEXITCODE -ne 0 -or $status) { throw 'Dirty product checkout' }
+          $lock = (Get-FileHash package-lock.json -Algorithm SHA256).Hash
+          "QA_LOCK_SHA256=$lock" >> $env:GITHUB_ENV
+          [ordered]@{ actualCheckoutSha=$head; lockSha256=$lock } | ConvertTo-Json | Set-Content "$env:QA_EVIDENCE/checkout.json"
+      - name: Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.23.3'
+      - name: Locked dependency installation
+        id: install
+        run: |
+          node --version | Set-Content "$env:QA_EVIDENCE/node-version.txt"
+          npm --version | Set-Content "$env:QA_EVIDENCE/npm-version.txt"
+          npm ci --ignore-scripts --no-audit --no-fund 2>&1 | Tee-Object "$env:QA_EVIDENCE/npm-ci.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: TypeScript
+        id: typescript
+        run: |
+          node node_modules/typescript/bin/tsc --noEmit 2>&1 | Tee-Object "$env:QA_EVIDENCE/typescript.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Purchase and keyboard regression tests
+        id: purchase
+        run: |
+          node node_modules/vitest/vitest.mjs run --maxWorkers=2 --no-cache src/purchase src/components/desktop/PurchaseBulkEditDialog.test.tsx src/components/desktop/PurchaseHelperPanel.bulk-edit.test.tsx src/components/desktop/PurchaseHelperPanel.editing.test.tsx src/components/desktop/PurchaseHelperPanel.readiness.test.tsx src/components/desktop/PurchaseHelperPanel.test.tsx 2>&1 | Tee-Object "$env:QA_EVIDENCE/purchase.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Full frontend regression including output contracts
+        id: full
+        run: |
+          node node_modules/vitest/vitest.mjs run --maxWorkers=2 --no-cache --reporter=default --reporter=junit --outputFile.junit="$env:QA_EVIDENCE/vitest.xml" 2>&1 | Tee-Object "$env:QA_EVIDENCE/vitest-all.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Standard production build
+        id: build
+        run: |
+          npm run build 2>&1 | Tee-Object "$env:QA_EVIDENCE/build.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify product preservation
+        if: always() && steps.verify.outcome == 'success'
+        run: |
+          if ((git rev-parse HEAD).Trim() -cne $env:EXPECTED_PRODUCT_SHA) { throw 'Product HEAD changed' }
+          if ((Get-FileHash package-lock.json -Algorithm SHA256).Hash -cne $env:QA_LOCK_SHA256) { throw 'Lockfile changed' }
+          git diff --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (git status --porcelain) { throw 'Product source changed' }
+      - name: Preserve failure or success summary
+        if: always() && env.QA_EVIDENCE != ''
+        env:
+          STEP_RESULTS: ${{ toJSON(steps) }}
+        run: |
+          $results = $env:STEP_RESULTS | ConvertFrom-Json
+          $lines = @('# Purchase Phase 2A-3 Windows verification', '', "Product: $env:EXPECTED_PRODUCT_SHA", '', '| Check | Result |', '|---|---|')
+          foreach ($id in @('gate','checkout','verify','install','typescript','purchase','full','build')) {
+            $outcome = $results.$id.outcome
+            $label = switch ($outcome) { 'success' { 'PASS' } 'failure' { 'FAIL' } default { 'NOT RUN' } }
+            $lines += "| $id | $label |"
+          }
+          $lines += @('', 'Playwright, WebView2, native IME/DPI and visual layout: NOT RUN.')
+          $lines | Set-Content "$env:QA_EVIDENCE/summary.md"
+          $lines >> $env:GITHUB_STEP_SUMMARY
+          $env:STEP_RESULTS | Set-Content "$env:QA_EVIDENCE/step-results.json"
+          Get-ChildItem $env:QA_EVIDENCE -File | Get-FileHash -Algorithm SHA256 | Select-Object Path,Hash | ConvertTo-Json | Set-Content "$env:QA_EVIDENCE/hashes.json"
+      - name: Upload evidence only
+        if: always() && env.QA_EVIDENCE != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: purchase-phase2a3-windows-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.QA_EVIDENCE }}
+          if-no-files-found: error
+          retention-days: 14
