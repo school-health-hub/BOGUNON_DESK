@@ -2,6 +2,9 @@ name: Purchase Phase 2A-3 Windows verification
 run-name: Purchase 2A-3 Windows verification
 
 on:
+  push:
+    branches: [feature/purchase-helper-enhancement]
+    paths: [.github/workflows/purchase-phase2a3-windows.yml]
   workflow_dispatch:
     inputs:
       source_sha:
@@ -35,21 +38,43 @@ jobs:
           New-Item -ItemType Directory -Path $out -ErrorAction Stop | Out-Null
           "QA_EVIDENCE=$out" >> $env:GITHUB_ENV
           "npm_config_cache=$env:RUNNER_TEMP/purchase-npm-cache" >> $env:GITHUB_ENV
-      - name: Reject unapproved dispatch context
+      - name: Reject unapproved event and controller context
         id: gate
         env:
           DISPATCH_SOURCE_SHA: ${{ inputs.source_sha }}
           CONTROLLER_SHA: ${{ github.workflow_sha }}
           CONTROLLER_REF: ${{ github.workflow_ref }}
+          CONTROLLER_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $valid = $env:GITHUB_EVENT_NAME -ceq 'workflow_dispatch' -and
-            $env:GITHUB_REPOSITORY -ceq 'school-health-hub/BOGUNON_DESK' -and
+          $commonValid = $env:GITHUB_REPOSITORY -ceq 'school-health-hub/BOGUNON_DESK' -and
             $env:GITHUB_REF -ceq 'refs/heads/feature/purchase-helper-enhancement' -and
-            $env:DISPATCH_SOURCE_SHA -ceq $env:EXPECTED_PRODUCT_SHA -and
+            $env:EXPECTED_PRODUCT_SHA -ceq 'd12d76107e1166f0f6eb146a634a8f9d2eed3e67' -and
+            $env:CONTROLLER_SHA -cmatch '^[0-9a-f]{40}$' -and
             $env:GITHUB_SHA -ceq $env:CONTROLLER_SHA -and
             $env:CONTROLLER_REF -ceq 'school-health-hub/BOGUNON_DESK/.github/workflows/purchase-phase2a3-windows.yml@refs/heads/feature/purchase-helper-enhancement'
-          [ordered]@{ gatePassed=$valid; productSha=$env:EXPECTED_PRODUCT_SHA; controllerSha=$env:CONTROLLER_SHA; runId=$env:GITHUB_RUN_ID; attempt=$env:GITHUB_RUN_ATTEMPT } |
+          $eventValid = $false
+          switch ($env:GITHUB_EVENT_NAME) {
+            'workflow_dispatch' { $eventValid = $env:DISPATCH_SOURCE_SHA -ceq $env:EXPECTED_PRODUCT_SHA }
+            'push' {
+              $event = Get-Content -LiteralPath $env:GITHUB_EVENT_PATH -Raw | ConvertFrom-Json
+              if (-not $commonValid) { throw 'Rejected controller context before API access' }
+              $commit = Invoke-RestMethod -Uri "https://api.github.com/repos/school-health-hub/BOGUNON_DESK/commits/$env:CONTROLLER_SHA" -Headers @{ Authorization="Bearer $env:CONTROLLER_TOKEN"; Accept='application/vnd.github+json' }
+              $files = @($commit.files)
+              $parents = @($commit.parents)
+              $eventValid = $event.ref -ceq $env:GITHUB_REF -and
+                $event.before -ceq '660d603fcfc47509f97e5895cb215678fa596391' -and
+                $event.after -ceq $env:CONTROLLER_SHA -and
+                $event.head_commit.id -ceq $env:CONTROLLER_SHA -and
+                $event.forced -ceq $false -and $event.deleted -ceq $false -and
+                $commit.sha -ceq $env:CONTROLLER_SHA -and
+                $parents.Count -eq 1 -and $parents[0].sha -ceq $event.before -and
+                $files.Count -eq 1 -and $files[0].filename -ceq '.github/workflows/purchase-phase2a3-windows.yml' -and
+                $files[0].status -ceq 'modified'
+            }
+          }
+          $valid = $commonValid -and $eventValid
+          [ordered]@{ gatePassed=$valid; eventName=$env:GITHUB_EVENT_NAME; productSha=$env:EXPECTED_PRODUCT_SHA; controllerSha=$env:CONTROLLER_SHA; runId=$env:GITHUB_RUN_ID; attempt=$env:GITHUB_RUN_ATTEMPT } |
             ConvertTo-Json | Set-Content "$env:QA_EVIDENCE/gate.json"
           if (-not $valid) { throw 'Rejected: unapproved event, repository, branch, product SHA, or controller context' }
       - name: Checkout exact product checkpoint
