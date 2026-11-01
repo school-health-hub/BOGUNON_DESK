@@ -538,3 +538,6 @@ fn fixture_content(mutation: Option<&str>) -> String {
     };
     format!("<?xml version=\"1.0\" encoding=\"UTF-8\"?><office:document-content xmlns:office=\"urn:oasis:names:tc:opendocument:xmlns:office:1.0\" xmlns:text=\"urn:oasis:names:tc:opendocument:xmlns:text:1.0\" xmlns:table=\"urn:oasis:names:tc:opendocument:xmlns:table:1.0\" xmlns:draw=\"urn:oasis:names:tc:opendocument:xmlns:drawing:1.0\"><office:body><office:text><table:table table:style-name=\"Table1\"/><table:table table:style-name=\"Table2\"/><table:table table:style-name=\"Table3\"/><table:table table:style-name=\"Table4\"/><draw:frame draw:style-name=\"Frame1\"/><draw:frame draw:style-name=\"Frame2\"/><draw:frame draw:style-name=\"Frame3\"/><draw:frame draw:style-name=\"Frame4\"/>{}<text:p text:style-name=\"Body\"><text:span><text:bookmark-start text:name=\"{BODY}\"/></text:span><text:span>합성 본문</text:span><text:span><text:bookmark-end text:name=\"{end_name}\"/></text:span></text:p></office:text></office:body></office:document-content>", points.join(""))
 }
+
+#[path = "contract_probe_tests.rs"]
+mod contract_probe;

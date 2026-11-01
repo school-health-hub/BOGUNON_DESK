@@ -7,6 +7,10 @@ on:
         description: Full feature commit SHA for Rust-only P11 tests (empty keeps existing QA modes)
         type: string
         default: ''
+      p11_contract_only:
+        description: Run only synthetic template contract probes without repeating the P11 suite
+        type: boolean
+        default: false
       runtime_only:
         description: Reuse the verified QA EXE without rebuilding
         type: boolean
@@ -59,7 +63,14 @@ jobs:
           foreach ($tool in @('perl','nasm','cargo','rustc')) { Get-Command $tool -ErrorAction Stop | Select-Object Name,Source }
           rustc -vV
           cargo --version
+      - name: Run minimal synthetic template contract probes
+        if: inputs.p11_contract_only
+        run: |
+          cargo test --manifest-path src-tauri/Cargo.toml official_document_odt::tests::contract_probe --lib --locked --jobs 1 -- --nocapture 2>&1 | Tee-Object "$env:P11_ROOT/evidence/contract-probes.log"
+          if ($LASTEXITCODE -ne 0) { throw 'Synthetic template contract probes failed' }
+          if ((Get-Content "$env:P11_ROOT/evidence/contract-probes.log" -Raw) -notmatch 'test result: ok\. 6 passed; 0 failed; 0 ignored;') { throw 'Expected six contract probes without skips' }
       - name: Reproduce the two reported tests
+        if: '!inputs.p11_contract_only'
         continue-on-error: true
         run: |
           $failed = $false
@@ -70,8 +81,9 @@ jobs:
           }
           if ($failed) { throw 'Reported P11 tests failed; see exact assertion logs' }
       - name: Run all P11 Rust tests
+        if: '!inputs.p11_contract_only'
         run: |
-          cargo test --manifest-path src-tauri/Cargo.toml official_document_odt --lib --locked --jobs 1 -- --nocapture 2>&1 | Tee-Object "$env:P11_ROOT/evidence/all-tests.log"
+          cargo test --manifest-path src-tauri/Cargo.toml official_document_odt --lib --locked --jobs 1 -- --nocapture --skip contract_probe 2>&1 | Tee-Object "$env:P11_ROOT/evidence/all-tests.log"
           if ($LASTEXITCODE -ne 0) { throw 'P11 Rust suite failed' }
           if ((Get-Content "$env:P11_ROOT/evidence/all-tests.log" -Raw) -notmatch 'test result: ok\. 24 passed; 0 failed; 0 ignored;') { throw 'Expected all 24 P11 tests without skips' }
       - name: Verify lockfile and source preservation
