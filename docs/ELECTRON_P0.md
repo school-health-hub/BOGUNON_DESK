@@ -111,3 +111,34 @@ P1A CI는 빌드/두 패키지 생성/기존 실제 패키지 GUI E2E를 실행�
 - 손상된 revision/hash chain, 잘못된 경로, symlink, 오래된 head/token은 차단합니다. 손상 파일을 자동 초기화하거나 자동 복구하지 않습니다. 실패 시 기존 파일을 보존합니다.
 - 이번 단계 검증: TypeScript/PoC 빌드 PASS, 관련 자동 테스트 195개 PASS(저장·재열기·revision·복구·충돌·저장 실패·손상·출력 제한·컴포넌트 동작).
 - **이번 GUI QA: BLOCKED / NOT RUN.** 실행 도구 요청이 반복 중단되었고 최종 점검에서 GUI 프로세스가 없었습니다. 이전 P2D2 GUI PASS는 이번 변경사항의 GUI 검증으로 대체하지 않습니다. Windows 패키징·실기기 QA도 이번 단계에서 재실행하지 않았습니다. 실제 편집기·이미지 재연결·재실행 복구·기존 출력 GUI 회귀는 미검증입니다.
+
+## Newsletter Studio Electron 1차 이전 종료·통합 인계
+
+**최종 판정: CONDITIONAL.** 기능 개발은 여기서 종료합니다. 구현 종료 브랜치는 `feature/electron-p2d3-newsletter-revisions`, 기능 코드 기준 SHA는 `96efa349306fa4c34f84893d1fb613ea0677e9f2`입니다. 이후 문서 전용 커밋은 기능 검증 기준 SHA를 변경하지 않습니다.
+
+| 단계 | 구현 범위 | 구현 체크포인트 |
+| --- | --- | --- |
+| P2-D-1 | 기존 편집기·Scene/SVG·디자인·자산 재사용, JSON 열기/명시적 저장, 이미지 SHA-256 재연결 | `ac31d15cfd49820925776f2b1fd0a0a46200bab4` |
+| P2-D-2 | 원본 PNG/PDF 엔진을 main 소유 격리 창에서 검증·생성, 출력별 main 확인과 위치 선택, 안전한 파일/새 카드 묶음 폴더 저장 | `e9980aa5c8ff6870302de6111b24eff366937fc9` |
+| P2-D-3 | Electron 내부 프로젝트 저장/불러오기, revision 조회·읽기 전용 미리보기·확인 복구, 충돌·손상·저장 실패 보호 | `96efa349306fa4c34f84893d1fb613ea0677e9f2` |
+
+### 저장·승인 경계
+
+- 내부 원고는 위 P2D-3의 PoC 전용 `work-data/newsletter-projects/<projectId>.json`에 저장합니다. 외부 JSON 저장과 내부 프로젝트 저장은 별도입니다. 이미지 원본은 포함하지 않으며 불러오기·복구 후 재연결할 수 있습니다.
+- Tauri 원고 저장소·출력 원장·운영 DB·계정·MY FINANCE에는 접근하거나 자동 이관하지 않습니다. 기존 Dashboard·Dock·빠른 메모·트레이·창 복원·Portable/NSIS 구성을 보존합니다.
+- 수달의 `exportApproval: pending`을 유지합니다. 원고 저장·JSON 저장·revision 복구는 출력 승인을 부여하지 않습니다. 출력은 별도의 검증과 main 확인을 거치며 범용 파일 경로/쓰기 IPC는 노출하지 않습니다. WIP 디자인을 최종 승인 디자인으로 간주하지 않습니다.
+
+### 검증 상태와 남은 실기기 확인
+
+- 코드 기준 SHA의 TypeScript/PoC 빌드와 관련 자동 테스트 **195 PASS**. 이번 문서 정리에서는 테스트를 재실행하지 않았습니다.
+- **P2-D-3 GUI: BLOCKED / NOT RUN.** 실행 요청이 반복 중단되어 실제 GUI 검증이 시작되지 않았습니다. 이전 [P2-D-2 Windows 패키징·GUI PASS](https://github.com/school-health-hub/BOGUNON_DESK/actions/runs/41271842095)를 이번 변경의 GUI PASS로 대체하지 않습니다.
+- 미검증: 실제 편집기에서 내부 저장·앱 재실행·revision 미리보기/복구, 복구 취소·충돌 안내, 이미지 미보유/재연결, 기존 JSON·PNG/PDF·Dashboard·메모의 통합 GUI 회귀.
+- Windows 실기기 미검증: 일반 사용자 설치/제거 및 운영 앱 격리, 파일/폴더 선택·덮어쓰기/취소·권한 오류, 복구 확인창, 설치 앱 재실행·데이터 보존, 트레이·다중 모니터/배율. 이번 인계에서는 GUI 재시도·추가 설치·권한 확대·환경 재구성을 하지 않습니다.
+
+### 향후 원본 디자인 변경분 반영
+
+1. 원본 `feature/newsletter-studio`의 현재 재사용 기준은 `7e7336b0bf1bd8adf75710e85290e4cdfc7a8813`입니다. 다음 통합 작업에서 원격 최신 SHA를 확인해 별도로 고정하고, 새 통합 브랜치에서 이 기준과 비교합니다. 원본 브랜치·worktree는 수정하지 않습니다.
+2. `src/newsletter/rendering/**`, CSS, 템플릿·글꼴·수달 등 자산의 실제 변경분을 선별 반영합니다. 원본 브랜치 전체 병합이나 렌더러 재작성은 하지 않습니다. 자산 SHA·분류·사용 범위·출력 승인 상태와 JSON/디자인 schema 호환성을 함께 확인합니다.
+3. Electron용 `NewsletterStudio.tsx` 호스트 연결·테스트, preload/IPC, 내부 저장소·복구 보호, 격리 출력 창과 출력 어댑터는 별도 변경이므로 원본 파일로 덮어쓰지 않습니다. Tauri repository/출력 저장 경로를 다시 연결하지 않습니다.
+4. Vite의 Windows 경로 정규화와 메모 Context 단일 모듈 검사를 유지합니다. `contextIsolation: true`, `sandbox: true`, `nodeIntegration: false`, 호출자·입력 검증과 다운로드 차단도 유지합니다.
+5. 다음 통합 검증은 합성 데이터로 변경 영향 범위만 수행하고, P2-D-3 GUI 미검증을 먼저 명시한 상태에서 계획합니다. 손상 원고 자동 초기화·복구, 승인 상태 자동 승격, 실제 데이터 자동 이관을 추가하지 않습니다. main 병합·PR·운영 배포는 별도 승인 전 진행하지 않습니다.
