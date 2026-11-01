@@ -847,6 +847,181 @@ use zip::{write::SimpleFileOptions,ZipWriter};
         eocd
     }
 
+use pdf_extract::{dictionary,Object,Stream};
+    fn write_synthetic_pdf(name: &str, pages: &[&str]) -> PathBuf {
+        let path =
+            std::env::temp_dir().join(format!("purchase-helper-{}-{name}.pdf", std::process::id()));
+        let mut document = Document::with_version("1.7");
+        let font_id = document.add_object(dictionary! {
+            "Type" => "Font",
+            "Subtype" => "Type1",
+            "BaseFont" => "Helvetica",
+            "Encoding" => "WinAnsiEncoding",
+        });
+        let pages_id = document.new_object_id();
+        let mut page_ids = Vec::new();
+        for page_text in pages {
+            let operations = page_text
+                .lines()
+                .map(|line| {
+                    let escaped = line
+                        .replace('\\', "\\\\")
+                        .replace('(', "\\(")
+                        .replace(')', "\\)");
+                    format!("({escaped}) Tj 0 -15 Td")
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+            let content = format!("BT /F1 10 Tf 50 750 Td\n{operations}\nET");
+            let content_id = document.add_object(Stream::new(dictionary! {}, content.into_bytes()));
+            let page_id = document.new_object_id();
+            document.objects.insert(
+                page_id,
+                Object::Dictionary(dictionary! {
+                    "Type" => "Page",
+                    "Parent" => Object::Reference(pages_id),
+                    "Contents" => Object::Reference(content_id),
+                    "Resources" => dictionary! {
+                        "Font" => dictionary! { "F1" => Object::Reference(font_id) },
+                    },
+                }),
+            );
+            page_ids.push(page_id);
+        }
+        document.objects.insert(
+            pages_id,
+            Object::Dictionary(dictionary! {
+                "Type" => "Pages",
+                "Kids" => page_ids.iter().copied().map(Object::Reference).collect::<Vec<_>>(),
+                "Count" => page_ids.len() as i64,
+                "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
+            }),
+        );
+        let catalog_id = document.add_object(dictionary! {
+            "Type" => "Catalog",
+            "Pages" => Object::Reference(pages_id),
+        });
+        document.trailer.set("Root", catalog_id);
+        document.save(&path).unwrap();
+        path
+    }
+#[test]
+    fn reconstructs_pdf_rows_without_splitting_single_spaces() {
+        let rows = pdf_text_rows(
+            "견 적 서\n품명  규격  수량  단가  금액\n일회용 니트릴 장갑  M  2  ₩12,500  25,000\n페이지 1/1",
+        )
+        .unwrap();
+        assert_eq!(rows[0], vec!["견 적 서"]);
+        assert_eq!(rows[2][0], "일회용 니트릴 장갑");
+        assert!(!rows.iter().flatten().any(|value| value.contains("페이지")));
+        let items = parse_rows(&rows, "synthetic.pdf").unwrap();
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].unit_price, Some(12500.0));
+    }
+#[test]
+    fn unknown_pdf_headers_produce_existing_mapping_candidate() {
+        let rows =
+            pdf_text_rows("상품  옵션사항  주문개수  판매금액\nDisposable gloves  M  2  12000")
+                .unwrap();
+        assert!(parse_rows(&rows, "unknown.pdf").is_err());
+        let candidate = make_candidate("unknown.pdf", "PDF", &rows).unwrap();
+        assert_eq!(candidate.sheet_name, "PDF");
+        let columns = normalize_mapping(&manual_mapping()).unwrap();
+        let items = parse_rows_with_columns(&rows, "unknown.pdf", 0, &columns).unwrap();
+        assert_eq!(items.len(), 1);
+    }
+#[test]
+    fn repeats_pdf_header_without_importing_it_as_an_item() {
+        let rows = pdf_text_rows(
+            "Name  Qty  UnitPrice\nMasks  1  1000\nName  Qty  UnitPrice\nGloves  2  2000",
+        )
+        .unwrap();
+        let items = parse_rows(&rows, "two-pages.pdf").unwrap();
+        assert_eq!(items.len(), 2);
+        assert_eq!(items[0].name, "Masks");
+        assert_eq!(items[1].name, "Gloves");
+    }
+#[test]
+    fn extracts_a_synthetic_text_pdf_and_reuses_templates() {
+        let path = write_synthetic_pdf(
+            "text-table",
+            &["Quotation\nName\tSpec\tQty\tUnitPrice\tAmount\nMasks\tKF94\t2\t10000\t20000\nGloves\tM\t3\t5000\t15000"],
+        );
+        let rows = pdf_rows(&path).unwrap();
+        assert_eq!(parse_rows(&rows, "text-table.pdf").unwrap().len(), 2);
+        let result = analyze_paths(vec![path.clone()], Vec::new()).unwrap();
+        let _ = fs::remove_file(path);
+        assert_eq!(result.sources[0].status, "success");
+        assert_eq!(result.items.len(), 2);
+    }
+#[test]
+    fn extracts_multi_page_pdf_and_skips_repeated_headers_and_totals() {
+        let path = write_synthetic_pdf(
+            "multi-page",
+            &[
+                "Name\tQty\tUnitPrice\nMasks\t1\t1000",
+                "Name\tQty\tUnitPrice\nGloves\t2\t2000\nTotal\t\t3000\nPage 2/2",
+            ],
+        );
+        let rows = pdf_rows(&path).unwrap();
+        let items = parse_rows(&rows, "multi-page.pdf").unwrap();
+        let _ = fs::remove_file(path);
+        assert_eq!(items.len(), 2);
+        assert_eq!(items[0].name, "Masks");
+        assert_eq!(items[1].name, "Gloves");
+    }
+#[test]
+    fn pdf_unknown_headers_use_saved_exact_signature_template() {
+        let path = write_synthetic_pdf(
+            "unknown-table",
+            &["Product\tOption\tOrderCount\tSalePrice\nGloves\tM\t2\t12000"],
+        );
+        let first = analyze_paths(vec![path.clone()], Vec::new()).unwrap();
+        assert_eq!(first.sources[0].status, "needsMapping");
+        let mapping = HashMap::from([
+            ("name".to_owned(), 0),
+            ("specification".to_owned(), 1),
+            ("quantity".to_owned(), 2),
+            ("unitPrice".to_owned(), 3),
+        ]);
+        let template = ImportTemplate {
+            id: "pdf-template".to_owned(),
+            name: "Synthetic PDF".to_owned(),
+            header_signature: first.candidates[0].header_options[0].signature.clone(),
+            mapping,
+        };
+        let second = analyze_paths(vec![path.clone()], vec![template]).unwrap();
+        let _ = fs::remove_file(path);
+        assert_eq!(second.sources[0].status, "success");
+        assert_eq!(second.items.len(), 1);
+        assert!(second.candidates.is_empty());
+    }
+#[test]
+    fn treats_an_image_only_pdf_as_unsupported() {
+        let path = write_synthetic_pdf("scanned", &[""]);
+        let error = pdf_rows(&path).unwrap_err();
+        let result = analyze_paths(vec![path.clone()], Vec::new()).unwrap();
+        let _ = fs::remove_file(path);
+        assert!(matches!(error, PdfTableError::Unsupported(_)));
+        assert_eq!(result.sources[0].status, "unsupported");
+        assert!(result.sources[0]
+            .message
+            .as_deref()
+            .is_some_and(|message| message.contains("스캔 문서 OCR")));
+    }
+#[test]
+    fn rejects_pdf_page_and_text_limits() {
+        let pages = vec![""; MAX_PDF_PAGES + 1];
+        let path = write_synthetic_pdf("too-many-pages", &pages);
+        assert!(
+            matches!(pdf_rows(&path), Err(PdfTableError::Error(message)) if message.contains("50페이지"))
+        );
+        let _ = fs::remove_file(path);
+        let oversized = "A".repeat(MAX_PDF_TEXT_BYTES + 1);
+        assert!(
+            matches!(pdf_text_rows(&oversized), Err(PdfTableError::Error(message)) if message.contains("2MB"))
+        );
+    }
 #[test]
 fn cli_fixtures_and_automatic_sheet_contract() {
     let dir=PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/qa-fixtures");fs::create_dir_all(&dir).unwrap();
@@ -858,3 +1033,6 @@ fn cli_fixtures_and_automatic_sheet_contract() {
     let xls=write_synthetic_xls("cli-fixture",(0,2,0,3),&records);fs::copy(&xls,dir.join("synthetic.xls")).unwrap();let _=fs::remove_file(xls);
     let mut unknown=Workbook::new();let sheet=unknown.add_worksheet();for (col,name) in ["대상","개입","예상값"].iter().enumerate(){sheet.write_string(0,col as u16,*name).unwrap();}sheet.write_string(1,0,"합성 매핑").unwrap();sheet.write_number(1,1,3).unwrap();sheet.write_number(1,2,25).unwrap();unknown.save(dir.join("unknown.xlsx")).unwrap();
 }
+
+#[path="pdf_tests.rs"]
+mod pdf_tests;

@@ -2,10 +2,10 @@ import {useEffect,useRef,useState} from 'react';
 import type {PurchaseCsvSelection} from '../../protocol';
 import type {PurchaseColumnMapping,PurchaseItem} from './purchase/types';
 import {purchaseImportFieldIds,purchaseImportFieldLabels} from './purchase/types';
-export function PurchaseImportControls({items,onApply,onNotice,format="csv"}:{readonly format?:"csv"|"excel";readonly items:readonly PurchaseItem[];readonly onApply:(items:readonly PurchaseItem[],replace:boolean)=>void;readonly onNotice:(message:string)=>void}){
- const label=format==='csv'?"CSV":'Excel';
+export function PurchaseImportControls({items,onApply,onNotice,format="csv"}:{readonly format?:"csv"|"excel"|"pdf";readonly items:readonly PurchaseItem[];readonly onApply:(items:readonly PurchaseItem[],replace:boolean)=>void;readonly onNotice:(message:string)=>void}){
+ const label=format==='csv'?"CSV":format==='pdf'?'PDF':'Excel';
  const api=window.electronWork.purchase;
- const bridge=format==='csv'?{pick:()=>api.pickCsv(),cancel:()=>api.cancelCsv(),map:api.mapCsv}:{pick:()=>api.pickExcel(),cancel:()=>api.cancelExcel(),map:api.mapExcel};
+ const bridge=format==='csv'?{pick:()=>api.pickCsv(),cancel:()=>api.cancelCsv(),map:api.mapCsv}:format==='pdf'?{pick:()=>api.pickPdf(),cancel:()=>api.cancelPdf(),map:api.mapPdf}:{pick:()=>api.pickExcel(),cancel:()=>api.cancelExcel(),map:api.mapExcel};
  const [busy,setBusy]=useState(false),[selection,setSelection]=useState<PurchaseCsvSelection|null>(null);
  const [header,setHeader]=useState(0),[mapping,setMapping]=useState<PurchaseColumnMapping>({}),[replace,setReplace]=useState(false);
  const sequence=useRef(0),snapshot=useRef(''),live=useRef(items);live.current=items;
@@ -19,7 +19,7 @@ export function PurchaseImportControls({items,onApply,onNotice,format="csv"}:{re
    if(!reply.ok){onNotice(reply.error.message);return;}
    if(!reply.data)return;
    if(snapshot.current!==JSON.stringify(live.current)){onNotice(`선택 중 품목이 변경되었습니다. 기존 품목을 보존했습니다. ${label}를 다시 선택해 주세요.`);return;}
-   if(reply.data.result.sources.some(s=>s.status==='error'||s.status==='unsupported')){onNotice(`${label} 파일을 분석하지 못했습니다. 기존 품목을 보존했습니다.`);return;}
+   const failure=reply.data.result.sources.find(s=>s.status==='error'||s.status==='unsupported');if(failure){onNotice(failure.message??`${label} 파일을 분석하지 못했습니다. 기존 품목을 보존했습니다.`);return;}
    setSelection(reply.data);const candidate=reply.data.result.candidates[0];setHeader(candidate?.headerOptions.find(o=>o.recommended)?.rowIndex??0);setMapping({});
    if(!reply.data.result.items.length&&!candidate)onNotice('가져올 품목이 없습니다. 기존 품목을 보존했습니다.');
   }catch{if(token===sequence.current)onNotice(`${label} 연결에 실패했습니다. 기존 품목은 보존됩니다.`);}

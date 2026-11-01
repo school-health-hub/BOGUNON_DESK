@@ -1,9 +1,10 @@
-// Selected from b006cbbc5593daa28220be75f21a7f3c2040ac67:src-tauri/src/purchase_helper.rs.
-// Only host dispatch (CSV/PDF/Tauri) is removed. Parsing/security bodies remain unchanged.
+// Selected from 1aeb817c6214213b23659fe54b66c6bdf7ac532c:src-tauri/src/purchase_helper.rs.
+// Only host dispatch (CSV/Tauri) is removed; encrypted PDF is rejected before extraction. Parsing/security bodies remain unchanged.
 use std::{collections::{HashMap,HashSet},fs,io::{BufReader,Read,Seek,SeekFrom},path::{Path,PathBuf},sync::atomic::{AtomicU64,Ordering}};
 use calamine::{open_workbook,open_workbook_auto,Data,DataType,Reader,Xlsx,XlsxError};
 use serde::{Deserialize,Serialize};
 use zip::ZipArchive;
+use pdf_extract::{Document,MediaBox,OutputDev,OutputError,Transform};
 const MAX_FILES: usize = 10;
 const MAX_FILE_BYTES: u64 = 15 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 30 * 1024 * 1024;
@@ -861,6 +862,232 @@ fn spreadsheet_tables(path: &Path) -> Result<Vec<(String, Vec<Vec<String>>)>, St
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+enum PdfTableError {
+    Unsupported(String),
+    Error(String),
+}
+
+fn split_pdf_columns(line: &str) -> Vec<String> {
+    if line.contains(['\t', '\0']) {
+        return line
+            .split(['\t', '\0'])
+            .map(|value| value.trim().to_owned())
+            .collect();
+    }
+    let mut columns = Vec::new();
+    let mut current = String::new();
+    let mut whitespace = String::new();
+    for character in line.chars() {
+        if character.is_whitespace() {
+            whitespace.push(character);
+            continue;
+        }
+        if whitespace.chars().count() >= 2 {
+            columns.push(current.trim().to_owned());
+            current.clear();
+        } else if !whitespace.is_empty() && !current.is_empty() {
+            current.push(' ');
+        }
+        whitespace.clear();
+        current.push(character);
+    }
+    if !current.trim().is_empty() {
+        columns.push(current.trim().to_owned());
+    }
+    columns
+}
+
+fn is_obvious_pdf_footer(line: &str) -> bool {
+    let normalized = line.trim().to_lowercase().replace(' ', "");
+    let page_suffix = normalized
+        .strip_prefix("페이지")
+        .or_else(|| normalized.strip_prefix("page"))
+        .unwrap_or(&normalized);
+    let Some((current, total)) = page_suffix.split_once('/') else {
+        return false;
+    };
+    !current.is_empty()
+        && !total.is_empty()
+        && current.chars().all(|value| value.is_ascii_digit())
+        && total.chars().all(|value| value.is_ascii_digit())
+}
+
+fn pdf_text_rows(text: &str) -> Result<Vec<Vec<String>>, PdfTableError> {
+    if text.len() > MAX_PDF_TEXT_BYTES {
+        return Err(PdfTableError::Error(
+            "PDF에서 추출한 텍스트가 2MB를 초과합니다.".to_owned(),
+        ));
+    }
+    let rows: Vec<Vec<String>> = text
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty() && !is_obvious_pdf_footer(line))
+        .map(split_pdf_columns)
+        .filter(|row| !row.is_empty())
+        .take(MAX_ROWS + 30)
+        .collect();
+    let meaningful_characters = rows
+        .iter()
+        .flatten()
+        .flat_map(|value| value.chars())
+        .filter(|value| !value.is_whitespace())
+        .count();
+    if meaningful_characters < 8 {
+        return Err(PdfTableError::Unsupported(
+            "텍스트를 읽을 수 없는 PDF입니다. 스캔 문서 OCR은 현재 지원하지 않습니다.".to_owned(),
+        ));
+    }
+    if generic_header_options(&rows).is_empty() {
+        return Err(PdfTableError::Error(
+            "PDF에서 표 형태의 품목 구성을 찾지 못했습니다.".to_owned(),
+        ));
+    }
+    Ok(rows)
+}
+
+#[derive(Debug)]
+struct PdfGlyph {
+    page: u32,
+    x: f64,
+    y: f64,
+    end_x: f64,
+    font_size: f64,
+    text: String,
+}
+
+#[derive(Default)]
+struct PdfLayoutOutput {
+    current_page: u32,
+    extracted_bytes: usize,
+    glyphs: Vec<PdfGlyph>,
+}
+
+impl OutputDev for PdfLayoutOutput {
+    fn begin_page(
+        &mut self,
+        page_num: u32,
+        _media_box: &MediaBox,
+        _art_box: Option<(f64, f64, f64, f64)>,
+    ) -> Result<(), OutputError> {
+        self.current_page = page_num;
+        Ok(())
+    }
+
+    fn end_page(&mut self) -> Result<(), OutputError> {
+        Ok(())
+    }
+
+    fn output_character(
+        &mut self,
+        transform: &Transform,
+        width: f64,
+        _spacing: f64,
+        font_size: f64,
+        character: &str,
+    ) -> Result<(), OutputError> {
+        self.extracted_bytes = self.extracted_bytes.saturating_add(character.len());
+        if self.extracted_bytes > MAX_PDF_TEXT_BYTES {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "PDF text limit exceeded",
+            )
+            .into());
+        }
+        let rendered_font_size = (transform.m11.powi(2) + transform.m12.powi(2)).sqrt() * font_size;
+        let rendered_font_size = rendered_font_size.max(1.0);
+        self.glyphs.push(PdfGlyph {
+            page: self.current_page,
+            x: transform.m31,
+            y: transform.m32,
+            end_x: transform.m31 + width * rendered_font_size,
+            font_size: rendered_font_size,
+            text: character.to_owned(),
+        });
+        Ok(())
+    }
+
+    fn begin_word(&mut self) -> Result<(), OutputError> {
+        Ok(())
+    }
+
+    fn end_word(&mut self) -> Result<(), OutputError> {
+        Ok(())
+    }
+
+    fn end_line(&mut self) -> Result<(), OutputError> {
+        Ok(())
+    }
+}
+
+fn pdf_layout_text(mut glyphs: Vec<PdfGlyph>) -> String {
+    glyphs.sort_by(|left, right| {
+        left.page
+            .cmp(&right.page)
+            .then_with(|| right.y.total_cmp(&left.y))
+            .then_with(|| left.x.total_cmp(&right.x))
+    });
+    let mut output = String::new();
+    let mut previous: Option<&PdfGlyph> = None;
+    for glyph in &glyphs {
+        if let Some(last) = previous {
+            let new_page = glyph.page != last.page;
+            let new_line =
+                new_page || (glyph.y - last.y).abs() > glyph.font_size.max(last.font_size) * 0.5;
+            if new_line {
+                if !output.ends_with('\n') {
+                    output.push('\n');
+                }
+            } else if !glyph.text.chars().all(char::is_whitespace) {
+                let gap = glyph.x - last.end_x;
+                if gap > glyph.font_size.max(last.font_size) * 1.25 {
+                    if !output.ends_with("  ") {
+                        output.push_str("  ");
+                    }
+                } else if gap > glyph.font_size.max(last.font_size) * 0.15
+                    && !output.ends_with(char::is_whitespace)
+                {
+                    output.push(' ');
+                }
+            }
+        }
+        if matches!(glyph.text.as_str(), "\t" | "\0") {
+            output.push_str("  ");
+        } else if glyph.text.chars().all(char::is_whitespace) {
+            if !output.ends_with(char::is_whitespace) {
+                output.push(' ');
+            }
+        } else {
+            output.push_str(&glyph.text);
+        }
+        previous = Some(glyph);
+    }
+    output
+}
+
+fn pdf_rows(path: &Path) -> Result<Vec<Vec<String>>, PdfTableError> {
+    let document = Document::load(path)
+        .map_err(|_| PdfTableError::Error("PDF 파일을 읽지 못했습니다.".to_owned()))?;
+    let pages = document.get_pages();
+    if pages.len() > MAX_PDF_PAGES {
+        return Err(PdfTableError::Error(
+            "PDF는 최대 50페이지까지 분석할 수 있습니다.".to_owned(),
+        ));
+    }
+    let mut output = PdfLayoutOutput::default();
+    if pdf_extract::output_doc(&document, &mut output).is_err() {
+        if output.extracted_bytes > MAX_PDF_TEXT_BYTES {
+            return Err(PdfTableError::Error(
+                "PDF에서 추출한 텍스트가 2MB를 초과합니다.".to_owned(),
+            ));
+        }
+        return Err(PdfTableError::Error(
+            "PDF 텍스트를 추출하지 못했습니다.".to_owned(),
+        ));
+    }
+    let text = pdf_layout_text(output.glyphs);
+    pdf_text_rows(&text)
+}
 fn template_items(
     rows: &[Vec<String>],
     source: &str,
@@ -953,7 +1180,36 @@ pub(crate) fn analyze_paths(
             });
             continue;
         }
-        let tables = if extension == "xlsx" || extension == "xls" {
+        let tables = if extension == "pdf" {
+            // Host-only guard: retain original pdf_rows and extraction algorithms unchanged.
+            if Document::load(&path).is_ok_and(|document| document.is_encrypted() || document.was_encrypted()) {
+                sources.push(SourceSummary { source_name: source, status: "unsupported".to_owned(), row_count: 0, message: Some("암호화된 PDF는 지원하지 않습니다. 암호를 해제한 사본을 선택해 주세요.".to_owned()), candidate_id: None });
+                continue;
+            }
+            match pdf_rows(&path) {
+                Ok(rows) => Ok(vec![("PDF".to_owned(), rows)]),
+                Err(PdfTableError::Unsupported(message)) => {
+                    sources.push(SourceSummary {
+                        source_name: source,
+                        status: "unsupported".to_owned(),
+                        row_count: 0,
+                        message: Some(message),
+                        candidate_id: None,
+                    });
+                    continue;
+                }
+                Err(PdfTableError::Error(message)) => {
+                    sources.push(SourceSummary {
+                        source_name: source,
+                        status: "error".to_owned(),
+                        row_count: 0,
+                        message: Some(message),
+                        candidate_id: None,
+                    });
+                    continue;
+                }
+            }
+        } else if extension == "xlsx" || extension == "xls" {
             spreadsheet_tables(&path)
         } else {
             Err("지원하지 않는 파일 형식입니다.".to_owned())

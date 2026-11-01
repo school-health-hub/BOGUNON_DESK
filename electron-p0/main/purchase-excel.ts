@@ -37,9 +37,10 @@ export class ExcelService {
  private track<T>(task:Promise<T>):Promise<T>{this.pending.add(task);void task.finally(()=>this.pending.delete(task)).catch(()=>{});return task;}
  async flush(){await Promise.allSettled([...this.pending]);}
  constructor(private readonly executable:string,private readonly tempRoot:string){}
- analyze(path:string,signal:AbortSignal){return this.track(this.analyzeFile(path,signal));}
- private async analyzeFile(path:string,signal:AbortSignal):Promise<PurchaseAnalysisResult>{
-  const bytes=await readSelectedPurchaseFile(path,['.xlsx','.xls']);if(signal.aborted)throw Error('Canceled');
+ analyze(path:string,signal:AbortSignal){return this.track(this.analyzeFile(path,signal,['.xlsx','.xls']));}
+ analyzePdf(path:string,signal:AbortSignal){return this.track(this.analyzeFile(path,signal,['.pdf']));}
+ private async analyzeFile(path:string,signal:AbortSignal,extensions:readonly string[]):Promise<PurchaseAnalysisResult>{
+  const bytes=await readSelectedPurchaseFile(path,extensions);if(signal.aborted)throw Error('Canceled');
   await mkdir(this.tempRoot,{recursive:true,mode:0o700});const dir=await mkdtemp(join(this.tempRoot,'request-'));
   try{
    const snapshot=join(dir,`input${extname(path).toLowerCase()}`);await writeFile(snapshot,bytes,{flag:'wx',mode:0o600});

@@ -19,7 +19,7 @@ fn run()->Result<engine::AnalysisResult,()> {
     if envelope.version!=1{return Err(());}
     match envelope.request {
         Request::Analyze{path}=>{
-            if !matches!(path.extension().and_then(|s|s.to_str()),Some("xlsx"|"xls")){return Err(());}
+            if !matches!(path.extension().and_then(|s|s.to_str()),Some("xlsx"|"xls"|"pdf")){return Err(());}
             engine::analyze_paths(vec![path],vec![]).map_err(|_|())
         },
         Request::Map{candidate,header_row,mapping}=>engine::apply_purchase_column_mapping(candidate,header_row,mapping).map_err(|_|()),

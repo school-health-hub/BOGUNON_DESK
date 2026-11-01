@@ -1,10 +1,10 @@
 import {assertSender} from './policy.js';
 import type {IpcResult,PurchaseCsvSelection,PurchaseCsvMappingRequest} from '../protocol.js';
 import type {ExcelService} from './purchase-excel.js';
-export function createExcelHandlers(contents:Parameters<typeof assertSender>[1],url:string,select:()=>Promise<string|undefined>,service:Pick<ExcelService,'analyze'|'map'>){
+export function createExcelHandlers(contents:Parameters<typeof assertSender>[1],url:string,select:()=>Promise<string|undefined>,service:Pick<ExcelService,'analyze'|'map'>,label='Excel'){
  let generation=0,current:PurchaseCsvSelection|undefined,controller:AbortController|undefined,picking=false;
  const allowed=(e:Parameters<typeof assertSender>[0])=>{try{assertSender(e,contents,url);return true;}catch{return false;}};
- const fail=(code:'FORBIDDEN'|'INVALID_INPUT'|'INTERNAL_ERROR'):IpcResult<never>=>({ok:false,error:{code,message:code==='FORBIDDEN'?'허용되지 않은 호출입니다.':'Excel 분석을 완료하지 못했습니다. 기존 품목을 보존했습니다.',retryable:code==='INTERNAL_ERROR'}});
+ const fail=(code:'FORBIDDEN'|'INVALID_INPUT'|'INTERNAL_ERROR'):IpcResult<never>=>({ok:false,error:{code,message:code==='FORBIDDEN'?'허용되지 않은 호출입니다.':`${label} 분석을 완료하지 못했습니다. 기존 품목을 보존했습니다.`,retryable:code==='INTERNAL_ERROR'}});
  const cancel=()=>{generation++;current=undefined;controller?.abort();};
  return {
   dispose:cancel,
