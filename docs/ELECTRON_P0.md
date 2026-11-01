@@ -181,3 +181,10 @@ P1A CI는 빌드/두 패키지 생성/기존 실제 패키지 GUI E2E를 실행�
 - Cloud GUI는 DISPLAY 부재로 **BLOCKED / NOT RUN**이며 재시도하지 않습니다. Windows Job Object 런타임·Portable/NSIS 생성/실행·실기기 검증은 CI 결과가 확인되기 전 **NOT RUN**입니다. 이 상태의 최종 판정은 **CONDITIONAL**, 구현 완료/실사용 준비 완료로 표시하지 않습니다.
 
 - Windows CI 첫 실행 `41287575554`: Rust 테스트/CLI 실행 단계 PASS. 기존 source preservation은 과거 P2D1 기준과 NewsletterStudio.test.tsx의 기존 차이로 중단됐습니다. 이번 승인 기준 b006cbb와 전체 src/src-tauri를 예외 없이 비교하도록 수정해 패키징 검사를 재실행합니다.
+
+### P2E3B Windows 검증 체크포인트
+
+- 코드 검증 SHA `391dc4c5a80599a9d0ad99871d22a60f1f51d79e`; [Windows CI 41287785103](https://github.com/school-health-hub/BOGUNON_DESK/actions/runs/41287785103) 전체 job SUCCESS. Windows Rust 원본/보안 테스트·자원 제한 설치 후 CLI 직접 실행, Portable/NSIS 생성, win-unpacked resources의 CLI 실제 실행 및 기존 Dashboard/Newsletter GUI 회귀 단계가 PASS입니다. 설정·자원 제한 실패 exit 78을 정상 결과로 처리하지 않습니다.
+- CI 경고 `ELECTRON_P1A_NOT_RUN`: 러너가 승격 상태이므로 일반 사용자 NSIS 설치·설치 앱 실행/재실행·제거 및 설치 경로의 CLI 실행은 **NOT RUN**입니다. Portable 자체 추출 런처와 실제 XLSX/XLS 파일 대화상자·실기기 파일 가져오기 QA도 별도로 남습니다. Job Object의 실제 메모리/CPU 초과 강제 종료 스트레스 검증은 미실행이며, 취소·wall timeout의 main 제어는 자동 테스트로 검증했습니다.
+- 다운로드: 실행의 `ELECTRON-P2E3-Windows-391dc4c5a80599a9d0ad99871d22a60f1f51d79e` artifact(Portable/NSIS·해시·서명 및 QA 결과). Cloud의 artifact blob 다운로드는 HTTP 403으로 추가 원본 열람이 차단되어, 여기서는 GitHub job/step 결론과 check annotation으로 결과를 확인했습니다. 이전의 GUI PASS를 이번 실행에 전용하지 않았습니다.
+- **최종 CONDITIONAL, 구현 완료 처리 보류.** Cloud GUI는 계속 BLOCKED/NOT RUN이며 Windows 실기기·일반 사용자 설치 및 제거 검증이 남습니다. 이후 문서 전용 커밋에는 `[skip ci]`를 사용해 동일 코드의 Windows 빌드를 반복하지 않습니다. Tauri/Rust 원본·운영 데이터 무변경, PR/병합/배포 없음.
