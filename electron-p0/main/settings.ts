@@ -33,28 +33,28 @@ export function validateSettings(value: unknown): P0Settings {
   if (Buffer.byteLength(JSON.stringify(value)) > 65536) return bad();
   return JSON.parse(JSON.stringify(value)) as P0Settings;
 }
-export class SettingsStore {
+export class SettingsStore<T = P0Settings> {
   private queue: Promise<void> = Promise.resolve();
-  constructor(private readonly root: string) {}
-  async read(): Promise<P0Settings | null> {
+  constructor(private readonly root: string, private readonly filename = 'layout.json', private readonly validate: (value: unknown) => T = validateSettings as (value: unknown) => T) {}
+  async read(): Promise<T | null> {
     try {
-      const data = await readFile(join(this.root,'layout.json'));
+      const data = await readFile(join(this.root,this.filename));
       if (data.length > 65536) throw new Error('Oversized settings');
-      return validateSettings(JSON.parse(data.toString('utf8')));
+      return this.validate(JSON.parse(data.toString('utf8')));
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
       throw new Error('PoC settings could not be read; original file preserved');
     }
   }
   write(value: unknown): Promise<void> {
-    const safe = validateSettings(value);
+    const safe = this.validate(value);
     const operation = this.queue.then(async () => {
       await mkdir(this.root,{recursive:true,mode:0o700});
       const temp = join(this.root,`layout-${randomUUID()}.tmp`);
       try {
         const file = await open(temp,'wx',0o600);
         try { await file.writeFile(JSON.stringify(safe)); await file.sync(); } finally { await file.close(); }
-        await rename(temp,join(this.root,'layout.json'));
+        await rename(temp,join(this.root,this.filename));
       } catch { await unlink(temp).catch(()=>{}); throw new Error('PoC settings were not saved'); }
     });
     this.queue = operation.catch(()=>{});

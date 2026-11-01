@@ -10,3 +10,5 @@ await copyFile('electron-p0/package.json','build/electron-p0-app/package.json');
 const sourceSha=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 const dirty=!!execFileSync('git',['status','--porcelain'],{encoding:'utf8'}).trim();
 await writeFile('build/electron-p0-app/build-meta.json',JSON.stringify({sourceSha,dirty},null,2));
+
+await copyFile('src-tauri/icons/32x32.png','build/electron-p0-app/tray.png');

@@ -4,7 +4,7 @@ import { join } from 'node:path';
 const appRoot=join(process.cwd(),'build/electron-p0-app');
 const launch=(id:string)=>electron.launch({chromiumSandbox:true,timeout:20000,...(process.env.ELECTRON_P0_EXECUTABLE?{executablePath:process.env.ELECTRON_P0_EXECUTABLE}:{}),args:process.env.ELECTRON_P0_EXECUTABLE?[]:[appRoot],env:{...process.env,ELECTRON_P0_TEST_RUN:id,ELECTRON_P0_DEV_URL:''}});
 test('real Electron: secure bridge, original dashboard/dock, navigation, edit and restart',async()=>{
- const id=randomUUID();let app:ElectronApplication=await launch(id);
+ let closed=false;const id=randomUUID();let app:ElectronApplication=await launch(id);
  try{
   console.log('P0: Electron connected');
   let page=await app.firstWindow({timeout:10000}); console.log('P0: renderer window found');
@@ -36,5 +36,29 @@ test('real Electron: secure bridge, original dashboard/dock, navigation, edit an
   expect(await page.evaluate(()=>window.electronP0.readSettings())).toEqual(saved);await expect(page.locator('[data-widget-type="clock"]')).toHaveCount(0);await expect(page.locator('.workspace-shell')).toHaveClass(/bg-mint/);await expect(page.locator('[data-dock-item="online-health-room"]')).toHaveCount(0);
   await page.screenshot({path:'artifacts/electron-p0-e2e/dashboard-restarted.png',fullPage:true});
   await page.evaluate(()=>window.open('https://example.invalid'));expect(await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().length)).toBe(1);
- }finally{await app.close();}
+
+  await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setBounds({x:60,y:50,width:1100,height:760}));
+  if(process.platform==='win32'){
+   await app.evaluate(({Menu,BrowserWindow})=>{const item=Menu.getApplicationMenu()!.items[0].submenu!.items[1];item.click(item,BrowserWindow.getAllWindows()[0],{} as never);});
+   await expect.poll(()=>app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isMinimized())).toBe(true);
+   await app.evaluate(({Menu,BrowserWindow})=>{const item=Menu.getApplicationMenu()!.items[0].submenu!.items[0];item.click(item,BrowserWindow.getAllWindows()[0],{} as never);});
+   await expect.poll(()=>app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isMinimized())).toBe(false);
+  }
+  const bounds=await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].getNormalBounds());
+  // Drive native menu callbacks through Electron's main-process test connection, not renderer IPC.
+  await app.evaluate(({Menu,BrowserWindow})=>{const item=Menu.getApplicationMenu()!.items[0].submenu!.items[2];item.click(item,BrowserWindow.getAllWindows()[0],{} as never);});
+  await expect.poll(()=>app.evaluate(({Menu})=>Menu.getApplicationMenu()!.items[0].submenu!.items[2].checked)).toBe(true);
+  await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].close());
+  await expect.poll(()=>app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isVisible())).toBe(false);
+  await app.evaluate(({Menu,BrowserWindow})=>{const item=Menu.getApplicationMenu()!.items[0].submenu!.items[0];item.click(item,BrowserWindow.getAllWindows()[0],{} as never);});
+  await expect.poll(()=>app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isVisible())).toBe(true);
+  await app.close();app=await launch(id);await app.firstWindow();await expect((await app.firstWindow()).locator('[data-p0-save]')).toHaveText('PoC 설정 저장됨');
+  expect(await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].getNormalBounds())).toEqual(bounds);
+  expect(await app.evaluate(({Menu})=>Menu.getApplicationMenu()!.items[0].submenu!.items[2].checked)).toBe(true);
+  await app.evaluate(({Menu,BrowserWindow})=>{const item=Menu.getApplicationMenu()!.items[0].submenu!.items[2];item.click(item,BrowserWindow.getAllWindows()[0],{} as never);});
+  await expect.poll(()=>app.evaluate(({Menu})=>Menu.getApplicationMenu()!.items[0].submenu!.items[2].checked)).toBe(false);
+  const child=app.process();
+  await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].close());
+  await expect.poll(()=>child.exitCode).toBe(0);closed=true;
+ }finally{if(!closed)await app.close();}
 });

@@ -11,7 +11,8 @@
     "protocol.js",
     "renderer/**",
     "build-meta.json",
-    "package.json"
+    "package.json",
+    "tray.png"
   ],
   "asar": true,
   "npmRebuild": false,

@@ -1,7 +1,7 @@
-name: ELECTRON-P1A Windows installer
+name: ELECTRON-P1B desktop experience
 on:
   push:
-    branches: [feature/electron-p0-dashboard, feature/electron-p1a-windows-installer]
+    branches: [feature/electron-p0-dashboard, feature/electron-p1a-windows-installer, feature/electron-p1b-desktop-experience]
   workflow_dispatch:
 permissions:
   contents: read
@@ -41,7 +41,7 @@ jobs:
           @{scope='Electron P1A only';sourceSha=$env:GITHUB_SHA;files=@($results);qa=(Get-Content release-electron-p0/P1A-QA-RESULT.json -Raw | ConvertFrom-Json);productionDeployment=$false} | ConvertTo-Json -Depth 8 | Set-Content release-electron-p0/P0-BUILD-RESULT.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: ELECTRON-P1A-Windows-${{ github.sha }}
+          name: ELECTRON-P1B-Windows-${{ github.sha }}
           path: |
             release-electron-p0/*.exe
             release-electron-p0/SHA256SUMS.txt
@@ -52,7 +52,7 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: ELECTRON-P1A-UI-evidence-${{ github.run_id }}
+          name: ELECTRON-P1B-UI-evidence-${{ github.run_id }}
           path: |
             artifacts/electron-p0-e2e/
             release-electron-p0/P1A-QA-RESULT.json
