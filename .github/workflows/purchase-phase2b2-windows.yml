@@ -1,0 +1,158 @@
+name: Purchase Phase 2B2 Windows verification
+on:
+  push:
+    branches: [feature/purchase-helper-enhancement]
+    paths: [.github/workflows/purchase-phase2b2-windows.yml, 'qa/purchase-phase2b2/**']
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Exact approved product checkpoint
+        required: true
+        default: b679393b3dcec1affdbda13fb4b20a6e4bbca69e
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: purchase-phase2b2-windows-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: windows-2022
+    timeout-minutes: 55
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CI: 'true'
+      NODE_OPTIONS: --max-old-space-size=2048
+      PRODUCT_SHA: b679393b3dcec1affdbda13fb4b20a6e4bbca69e
+      CONTROLLER_SHA: ${{ github.sha }}
+    steps:
+      - name: Gate event and current controller
+        id: gate
+        env:
+          EVIDENCE_DIR: ${{ runner.temp }}/purchase-phase2b2/evidence
+          GH_TOKEN: ${{ github.token }}
+          WORKFLOW_SHA: ${{ github.workflow_sha }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          REQUESTED_SOURCE: ${{ inputs.source_sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force $env:EVIDENCE_DIR | Out-Null
+          "EVIDENCE_DIR=$env:EVIDENCE_DIR" >> $env:GITHUB_ENV
+          "PLAYWRIGHT_BROWSERS_PATH=$env:RUNNER_TEMP/purchase-phase2b2/browsers" >> $env:GITHUB_ENV
+          "npm_config_cache=$env:RUNNER_TEMP/purchase-phase2b2/npm-cache" >> $env:GITHUB_ENV
+          if ($env:GITHUB_REPOSITORY -cne 'school-health-hub/BOGUNON_DESK') { throw 'Wrong repository' }
+          if ($env:GITHUB_REF -cne 'refs/heads/feature/purchase-helper-enhancement') { throw 'Wrong branch' }
+          if ($env:PRODUCT_SHA -cne 'b679393b3dcec1affdbda13fb4b20a6e4bbca69e' -or $env:PRODUCT_SHA -cnotmatch '^[0-9a-f]{40}$') { throw 'Invalid product pin' }
+          if ($env:CONTROLLER_SHA -cnotmatch '^[0-9a-f]{40}$' -or $env:WORKFLOW_SHA -cne $env:CONTROLLER_SHA) { throw 'Controller/workflow SHA mismatch' }
+          if ($env:WORKFLOW_REF -cne 'school-health-hub/BOGUNON_DESK/.github/workflows/purchase-phase2b2-windows.yml@refs/heads/feature/purchase-helper-enhancement') { throw 'Wrong workflow ref' }
+          $event = Get-Content $env:GITHUB_EVENT_PATH -Raw | ConvertFrom-Json
+          switch ($env:GITHUB_EVENT_NAME) {
+            'push' {
+              if ($event.deleted -or $event.forced -or $event.ref -cne $env:GITHUB_REF -or $event.after -cne $env:CONTROLLER_SHA -or $event.head_commit.id -cne $env:CONTROLLER_SHA) { throw 'Unsafe push event' }
+            }
+            'workflow_dispatch' { if ($env:REQUESTED_SOURCE -cne $env:PRODUCT_SHA) { throw 'Unapproved product SHA' } }
+            default { throw 'Unsupported event' }
+          }
+          $headers = @{ Authorization = "Bearer $env:GH_TOKEN"; Accept = 'application/vnd.github+json' }
+          $branch = Invoke-RestMethod -Headers $headers -Uri "https://api.github.com/repos/$env:GITHUB_REPOSITORY/git/ref/heads/feature/purchase-helper-enhancement"
+          if ($branch.object.sha -cne $env:CONTROLLER_SHA) { throw 'Controller is not current feature HEAD' }
+          [ordered]@{ gate='PASS'; productSHA=$env:PRODUCT_SHA; controllerSHA=$env:CONTROLLER_SHA; workflowSHA=$env:WORKFLOW_SHA; runId=$env:GITHUB_RUN_ID; attempt=$env:GITHUB_RUN_ATTEMPT } | ConvertTo-Json | Set-Content "$env:EVIDENCE_DIR/event-gate.json"
+      - name: Checkout controller separately
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          path: controller
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify controller ancestry and QA-only delta
+        id: controller
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((git -C controller rev-parse HEAD).Trim() -cne $env:CONTROLLER_SHA) { throw 'Controller checkout mismatch' }
+          git -C controller merge-base --is-ancestor $env:PRODUCT_SHA HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'Product is not controller ancestor' }
+          $changed = @(git -C controller diff --name-only $env:PRODUCT_SHA HEAD)
+          if ($LASTEXITCODE -ne 0 -or $changed.Count -eq 0) { throw 'Missing controller delta' }
+          foreach ($path in $changed) {
+            if ($path -notmatch '^qa/purchase-phase2b2/' -and $path -cne '.github/workflows/purchase-phase2b2-windows.yml') { throw "Disallowed controller change: $path" }
+          }
+          $changed | Set-Content "$env:EVIDENCE_DIR/controller-changed-paths.txt"
+      - name: Checkout immutable product
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: b679393b3dcec1affdbda13fb4b20a6e4bbca69e
+          path: source
+          persist-credentials: false
+      - name: Node 22.23.3
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.23.3'
+      - name: Rust stable MSVC
+        uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249
+        with:
+          toolchain: stable
+      - name: Rust cache
+        uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c
+        with:
+          workspaces: source/src-tauri -> target
+          key: purchase-phase2b2
+      - name: Provision and verify hosted native prerequisites
+        id: native_setup
+        continue-on-error: true
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:OS -cne 'Windows_NT') { throw 'Native provisioning requires GitHub-hosted Windows' }
+          $archive = Join-Path $env:RUNNER_TEMP 'purchase-nasm-3.02-win64.zip'
+          $toolRoot = Join-Path $env:RUNNER_TEMP 'purchase-nasm-3.02'
+          $url = 'https://www.nasm.us/pub/nasm/releasebuilds/3.02/win64/nasm-3.02-win64.zip'
+          $expected = '161d0bfaff53c2f9e9f3e69fd0672323ebabafd1268976a5cec11be92a19aee7'
+          Invoke-WebRequest -Uri $url -OutFile $archive
+          $actual = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -cne $expected) { throw 'NASM 3.02 archive checksum mismatch' }
+          Expand-Archive -LiteralPath $archive -DestinationPath $toolRoot
+          $nasm = Join-Path $toolRoot 'nasm-3.02/nasm.exe'
+          if (-not (Test-Path -LiteralPath $nasm)) { throw 'Pinned NASM executable missing' }
+          $nasmDirectory = Split-Path $nasm
+          $env:PATH = "$nasmDirectory;$env:PATH"
+          $nasmDirectory >> $env:GITHUB_PATH
+          $nasmVersion = & $nasm -v
+          if ($LASTEXITCODE -ne 0 -or $nasmVersion -notmatch '^NASM version 3\.02(?:\s|$)') { throw 'Wrong NASM version' }
+          $nativePerlDirectory = 'C:/Strawberry/perl/bin'
+          if (Test-Path -LiteralPath "$nativePerlDirectory/perl.exe") { $env:PATH = "$nativePerlDirectory;$env:PATH"; $nativePerlDirectory >> $env:GITHUB_PATH }
+          $perl = (Get-Command perl.exe -ErrorAction Stop).Source
+          $perlPlatform = & $perl -MConfig -MFile::Spec::Win32 -MLocale::Maketext::Simple -e 'print "$^O\n$Config{version}\n$Config{archname}\n"'
+          if ($LASTEXITCODE -ne 0 -or $perlPlatform[0] -cne 'MSWin32') { throw 'Native Windows Perl with File::Spec::Win32 and Locale::Maketext::Simple is required' }
+          [ordered]@{ nasmURL=$url; nasmSHA256=$actual; nasmPath=$nasm; nasmVersion=$nasmVersion; perlPath=$perl; perlPlatform=$perlPlatform } | ConvertTo-Json | Set-Content "$env:EVIDENCE_DIR/native-prerequisites.json"
+          rustc -Vv | Set-Content "$env:EVIDENCE_DIR/rust-version.txt"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo -V | Set-Content "$env:EVIDENCE_DIR/cargo-version.txt"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Product checks and isolated browser scenarios
+        id: verification
+        env:
+          SOURCE_ROOT: ${{ github.workspace }}/source
+        run: ./controller/qa/purchase-phase2b2/runner.ps1
+      - name: Fail incomplete native setup after frontend evidence
+        if: always() && steps.native_setup.outcome == 'failure'
+        run: throw 'Native prerequisite setup failed; frontend/browser evidence is preserved separately'
+      - name: Preserve final workflow outcomes
+        if: always() && env.EVIDENCE_DIR != ''
+        env:
+          STEP_RESULTS: ${{ toJSON(steps) }}
+        run: |
+          $env:STEP_RESULTS | Set-Content "$env:EVIDENCE_DIR/workflow-steps.json"
+          [ordered]@{ productSHA=$env:PRODUCT_SHA; controllerSHA=$env:CONTROLLER_SHA; runId=$env:GITHUB_RUN_ID; attempt=$env:GITHUB_RUN_ATTEMPT; steps=($env:STEP_RESULTS | ConvertFrom-Json); nativeTauri='NOT RUN'; nativeFileDialog='NOT RUN'; realDatabase='NOT RUN'; receivingPC='NOT RUN' } | ConvertTo-Json -Depth 12 | Set-Content "$env:EVIDENCE_DIR/workflow-manifest.json"
+          Get-ChildItem $env:EVIDENCE_DIR -Recurse -File | Where-Object Name -ne 'workflow-evidence-sha256.json' | Sort-Object FullName | ForEach-Object {
+            [ordered]@{ path=[IO.Path]::GetRelativePath($env:EVIDENCE_DIR,$_.FullName); sha256=(Get-FileHash $_.FullName -Algorithm SHA256).Hash; bytes=$_.Length }
+          } | ConvertTo-Json -Depth 5 | Set-Content "$env:EVIDENCE_DIR/workflow-evidence-sha256.json"
+      - name: Preserve success or failure evidence
+        if: always() && env.EVIDENCE_DIR != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: purchase-phase2b2-windows-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.EVIDENCE_DIR }}
+          retention-days: 14
+          include-hidden-files: true
+          if-no-files-found: error
