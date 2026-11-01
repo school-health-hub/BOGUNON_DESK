@@ -174,10 +174,12 @@ const settlementHeaders = ["품명", "품의수량", "실제수량", "품의단�
 export const createPurchaseSettlementClipboard = (
   items: readonly PurchaseItem[],
   settlement: PurchaseSettlement,
-): { readonly text: string; readonly html: string } => {
+): { readonly text: string; readonly html: string; readonly headers: readonly string[]; readonly rows: readonly (readonly string[])[]; readonly textRows: readonly (readonly string[])[] } => {
   const rows = createPurchaseSettlementExportRows(items, settlement).map((row) => [row.name, row.plannedQuantity ?? "", row.actualQuantity ?? "", row.plannedUnitPrice ?? "", row.actualUnitPrice ?? "", row.actualAmount ?? "", row.note].map(String));
+  const textRows = rows.map((row) => row.map(cleanTsv));
   return {
-    text: [settlementHeaders, ...rows].map((row) => row.map(cleanTsv).join("\t")).join("\n"),
+    headers: settlementHeaders, rows, textRows,
+    text: [settlementHeaders.map(cleanTsv), ...textRows].map((row) => row.join("\t")).join("\n"),
     html: `<table><thead><tr>${settlementHeaders.map((value) => `<th>${escapeHtml(value)}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((value) => `<td>${escapeHtml(value)}</td>`).join("")}</tr>`).join("")}</tbody></table>`,
   };
 };

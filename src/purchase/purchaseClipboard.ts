@@ -13,8 +13,10 @@ export const createPurchaseClipboard = (items: readonly PurchaseItem[], columns:
   const selected = items.filter((item) => item.selected);
   const rows = selected.map((item, index) => columns.map((column) => String(valueFor(item, column, index))));
   const header = columns.map((column) => purchaseOutputColumnLabels[column]);
+  const textRows = rows.map((row) => row.map(cleanTsv));
   return {
-    text: [header, ...rows].map((row) => row.map(cleanTsv).join("\t")).join("\n"),
+    headers: header, rows, textRows,
+    text: [header.map(cleanTsv), ...textRows].map((row) => row.join("\t")).join("\n"),
     html: `<table><thead><tr>${header.map((value) => `<th>${escapeHtml(value)}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((value) => `<td>${escapeHtml(value)}</td>`).join("")}</tr>`).join("")}</tbody></table>`,
   };
 };

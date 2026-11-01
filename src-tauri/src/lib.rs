@@ -26,6 +26,7 @@ mod my_finance_transfer;
 mod notifications;
 mod official_document_import;
 mod purchase_helper;
+mod purchase_output_preview;
 mod purchase_settlement;
 mod record_helper_import;
 mod weather;
@@ -296,6 +297,8 @@ pub fn run() {
             purchase_helper::analyze_purchase_paths,
             purchase_helper::apply_purchase_column_mapping,
             purchase_helper::save_purchase_export,
+            purchase_output_preview::preview_purchase_export,
+            purchase_settlement::preview_purchase_settlement_export,
             purchase_helper::save_purchase_edufine_export,
             purchase_settlement::save_purchase_settlement_export,
             purchase_helper::set_purchase_helper_active,

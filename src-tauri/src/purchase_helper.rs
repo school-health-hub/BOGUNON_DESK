@@ -143,13 +143,15 @@ fn normalize_header(value: &str) -> String {
 }
 fn field_for(value: &str) -> Option<&'static str> {
     match normalize_header(value).as_str() {
-        "품명" | "품목명" | "물품명" | "상품명" | "제품명" | "상품" | "제품" | "내역" | "내용" | "name"
-        | "itemname" => Some("name"),
+        "품명" | "품목명" | "물품명" | "상품명" | "제품명" | "상품" | "제품" | "내역" | "내용"
+        | "name" | "itemname" => Some("name"),
         "규격" | "사양" | "옵션" | "모델" | "모델명" | "spec" | "specification" => {
             Some("specification")
         }
         "수량" | "주문수량" | "개수" | "qty" => Some("quantity"),
-        "단가" | "가격" | "판매가" | "공급단가" | "예상단가" | "unitprice" => Some("unitPrice"),
+        "단가" | "가격" | "판매가" | "공급단가" | "예상단가" | "unitprice" => {
+            Some("unitPrice")
+        }
         "금액" | "합계금액" | "공급가액" | "소계" | "총액" | "amount" => {
             Some("amount")
         }
@@ -1334,8 +1336,13 @@ pub(crate) async fn analyze_paths_in_background(
 }
 
 #[tauri::command]
-pub async fn analyze_purchase_paths(paths: Vec<String>, templates: Vec<ImportTemplate>) -> Result<AnalysisResult, String> {
-    if paths.is_empty() { return Err("가져올 파일이 없습니다.".to_owned()); }
+pub async fn analyze_purchase_paths(
+    paths: Vec<String>,
+    templates: Vec<ImportTemplate>,
+) -> Result<AnalysisResult, String> {
+    if paths.is_empty() {
+        return Err("가져올 파일이 없습니다.".to_owned());
+    }
     analyze_paths_in_background(paths.into_iter().map(PathBuf::from).collect(), templates).await
 }
 
@@ -1544,6 +1551,99 @@ fn validate_columns(columns: &[String]) -> Result<(), String> {
     }
 }
 
+fn export_cell(item: &PurchaseItem, column: &str, index: usize, csv: bool) -> serde_json::Value {
+    let value = output_value(item, column, index);
+    if csv {
+        return serde_json::Value::String(csv_output_value(&value, column));
+    }
+    match column {
+        "quantity" | "unitPrice" | "amount" => value
+            .parse::<f64>()
+            .ok()
+            .and_then(serde_json::Number::from_f64)
+            .map(serde_json::Value::Number)
+            .unwrap_or(serde_json::Value::Null),
+        _ => serde_json::Value::String(value),
+    }
+}
+
+pub(crate) fn build_purchase_preview(
+    format: &str,
+    items: &[PurchaseItem],
+    columns: &[String],
+    selected_only: bool,
+) -> Result<crate::purchase_output_preview::PurchaseOutputPreview, String> {
+    use crate::purchase_output_preview::PurchaseOutputPreview;
+    let items = items
+        .iter()
+        .filter(|item| !selected_only || item.selected)
+        .collect::<Vec<_>>();
+    if items.is_empty() {
+        return Err("내보낼 품목을 선택해 주세요.".to_owned());
+    }
+    if format == "edufine" {
+        let mut rows = Vec::with_capacity(items.len());
+        for item in items {
+            let quantity = item
+                .quantity
+                .filter(|v| v.is_finite() && *v > 0.0)
+                .ok_or("에듀파인용 Excel에 포함할 수량을 확인해 주세요.")?;
+            let price = item
+                .unit_price
+                .filter(|v| v.is_finite() && *v >= 0.0)
+                .ok_or("에듀파인용 Excel에 포함할 예상단가를 확인해 주세요.")?;
+            rows.push(vec![
+                serde_json::json!(item.name),
+                serde_json::json!(item.specification),
+                serde_json::json!(quantity),
+                serde_json::json!(price),
+            ]);
+        }
+        return Ok(PurchaseOutputPreview {
+            headers: ["내용", "규격", "수량", "예상단가"]
+                .map(str::to_owned)
+                .to_vec(),
+            rows,
+        });
+    }
+    validate_columns(columns)?;
+    let csv = match format {
+        "csv" => true,
+        "xlsx" => false,
+        _ => return Err("지원하지 않는 내보내기 형식입니다.".to_owned()),
+    };
+    Ok(PurchaseOutputPreview {
+        headers: columns.iter().map(|c| column_label(c).to_owned()).collect(),
+        rows: items
+            .iter()
+            .enumerate()
+            .map(|(index, item)| {
+                columns
+                    .iter()
+                    .map(|column| export_cell(item, column, index, csv))
+                    .collect()
+            })
+            .collect(),
+    })
+}
+
+fn purchase_csv_bytes(
+    preview: &crate::purchase_output_preview::PurchaseOutputPreview,
+) -> Result<Vec<u8>, String> {
+    let mut bytes = vec![0xEF, 0xBB, 0xBF];
+    let mut writer = csv::Writer::from_writer(vec![]);
+    writer
+        .write_record(&preview.headers)
+        .map_err(|error| error.to_string())?;
+    for row in &preview.rows {
+        writer
+            .write_record(row.iter().map(|cell| cell.as_str().unwrap_or_default()))
+            .map_err(|error| error.to_string())?;
+    }
+    bytes.extend(writer.into_inner().map_err(|error| error.to_string())?);
+    Ok(bytes)
+}
+
 #[tauri::command]
 pub fn save_purchase_export(
     app: AppHandle,
@@ -1551,13 +1651,10 @@ pub fn save_purchase_export(
     items: Vec<PurchaseItem>,
     columns: Vec<String>,
 ) -> Result<bool, String> {
-    if items.is_empty() {
-        return Err("내보낼 품목을 선택해 주세요.".to_owned());
-    }
-    validate_columns(&columns)?;
-    if format != "xlsx" && format != "csv" {
+    if format != "csv" && format != "xlsx" {
         return Err("지원하지 않는 내보내기 형식입니다.".to_owned());
     }
+    let preview = build_purchase_preview(&format, &items, &columns, false)?;
     let filename = format!("품의_품목내역_{}.{}", chrono_free_date(), format);
     let Some(file) = app
         .dialog()
@@ -1573,125 +1670,92 @@ pub fn save_purchase_export(
     };
     let path = file.into_path().map_err(|error| error.to_string())?;
     if format == "csv" {
-        let mut bytes = vec![0xEF, 0xBB, 0xBF];
-        let mut writer = csv::Writer::from_writer(vec![]);
-        writer
-            .write_record(columns.iter().map(|c| column_label(c)))
-            .map_err(|error| error.to_string())?;
-        for (index, item) in items.iter().enumerate() {
-            writer
-                .write_record(
-                    columns
-                        .iter()
-                        .map(|column| csv_output_value(&output_value(item, column, index), column)),
-                )
-                .map_err(|error| error.to_string())?;
-        }
-        bytes.extend(writer.into_inner().map_err(|error| error.to_string())?);
+        let bytes = purchase_csv_bytes(&preview)?;
         fs::write(path, bytes).map_err(|error| error.to_string())?;
     } else {
-        let mut workbook = Workbook::new();
-        let worksheet = workbook.add_worksheet();
-        let header = Format::new().set_bold();
-        let quantity_format = Format::new().set_num_format("0.##");
-        let currency_format = Format::new().set_num_format("#,##0");
-        for (column_index, column) in columns.iter().enumerate() {
-            worksheet
-                .write_with_format(0, column_index as u16, column_label(column), &header)
-                .map_err(|e| e.to_string())?;
-            worksheet
-                .set_column_width(column_index as u16, if column == "name" { 28 } else { 14 })
-                .map_err(|e| e.to_string())?;
-        }
-        for (row_index, item) in items.iter().enumerate() {
-            for (column_index, column) in columns.iter().enumerate() {
-                let row = row_index as u32 + 1;
-                let col = column_index as u16;
-                match column.as_str() {
-                    "quantity" => {
-                        if let Some(v) = item.quantity {
-                            worksheet
-                                .write_number_with_format(row, col, v, &quantity_format)
-                                .map_err(|e| e.to_string())?;
-                        }
-                    }
-                    "unitPrice" => {
-                        if let Some(v) = item.unit_price {
-                            worksheet
-                                .write_number_with_format(row, col, v, &currency_format)
-                                .map_err(|e| e.to_string())?;
-                        }
-                    }
-                    "amount" => {
-                        if let Some(v) = item
-                            .quantity
-                            .zip(item.unit_price)
-                            .map(|(q, p)| (q * p).round())
-                            .or(item.imported_amount)
-                        {
-                            worksheet
-                                .write_number_with_format(row, col, v, &currency_format)
-                                .map_err(|e| e.to_string())?;
-                        }
-                    }
-                    _ => {
-                        worksheet
-                            .write_string(row, col, output_value(item, column, row_index))
-                            .map_err(|e| e.to_string())?;
-                    }
-                }
-            }
-        }
+        let mut workbook = build_purchase_workbook(&preview, &columns)?;
         workbook.save(path).map_err(|error| error.to_string())?;
     }
     Ok(true)
 }
 
-fn build_edufine_workbook(items: &[PurchaseItem]) -> Result<Workbook, String> {
-    let selected = items
-        .iter()
-        .filter(|item| item.selected)
-        .collect::<Vec<_>>();
-    if selected.is_empty() {
-        return Err("내보낼 품목을 선택해 주세요.".to_owned());
+fn build_purchase_workbook(
+    preview: &crate::purchase_output_preview::PurchaseOutputPreview,
+    columns: &[String],
+) -> Result<Workbook, String> {
+    let mut workbook = Workbook::new();
+    let worksheet = workbook.add_worksheet();
+    let header = Format::new().set_bold();
+    let quantity_format = Format::new().set_num_format("0.##");
+    let currency_format = Format::new().set_num_format("#,##0");
+    for (column_index, column) in columns.iter().enumerate() {
+        worksheet
+            .write_with_format(
+                0,
+                column_index as u16,
+                &preview.headers[column_index],
+                &header,
+            )
+            .map_err(|e| e.to_string())?;
+        worksheet
+            .set_column_width(column_index as u16, if column == "name" { 28 } else { 14 })
+            .map_err(|e| e.to_string())?;
     }
+    for (row_index, cells) in preview.rows.iter().enumerate() {
+        for (column_index, cell) in cells.iter().enumerate() {
+            let row = row_index as u32 + 1;
+            let col = column_index as u16;
+            match cell {
+                serde_json::Value::Number(value) => {
+                    let format = if columns[column_index] == "quantity" {
+                        &quantity_format
+                    } else {
+                        &currency_format
+                    };
+                    if let Some(number) = value.as_f64() {
+                        worksheet
+                            .write_number_with_format(row, col, number, format)
+                            .map_err(|e| e.to_string())?;
+                    }
+                }
+                serde_json::Value::String(value) => {
+                    worksheet
+                        .write_string(row, col, value)
+                        .map_err(|e| e.to_string())?;
+                }
+                _ => {}
+            }
+        }
+    }
+    Ok(workbook)
+}
+
+fn build_edufine_workbook(items: &[PurchaseItem]) -> Result<Workbook, String> {
+    let preview = build_purchase_preview("edufine", items, &[], true)?;
 
     let mut workbook = Workbook::new();
     let worksheet = workbook.add_worksheet();
     worksheet
         .set_name("품목내역")
         .map_err(|error| error.to_string())?;
-    for (column, label) in ["내용", "규격", "수량", "예상단가"].iter().enumerate() {
+    for (column, label) in preview.headers.iter().enumerate() {
         worksheet
-            .write_string(0, column as u16, *label)
+            .write_string(0, column as u16, label)
             .map_err(|error| error.to_string())?;
     }
-    for (index, item) in selected.iter().enumerate() {
+    for (index, cells) in preview.rows.iter().enumerate() {
         let row = index as u32 + 1;
-        let Some(quantity) = item
-            .quantity
-            .filter(|value| value.is_finite() && *value > 0.0)
-        else {
-            return Err("에듀파인용 Excel에 포함할 수량을 확인해 주세요.".to_owned());
-        };
-        let Some(unit_price) = item
-            .unit_price
-            .filter(|value| value.is_finite() && *value >= 0.0)
-        else {
-            return Err("에듀파인용 Excel에 포함할 예상단가를 확인해 주세요.".to_owned());
-        };
-        worksheet
-            .write_string(row, 0, &item.name)
-            .map_err(|error| error.to_string())?;
-        worksheet
-            .write_string(row, 1, &item.specification)
-            .map_err(|error| error.to_string())?;
-        worksheet
-            .write_number(row, 2, quantity)
-            .map_err(|error| error.to_string())?;
-        worksheet
-            .write_number(row, 3, unit_price)
-            .map_err(|error| error.to_string())?;
+        for (column, cell) in cells.iter().enumerate() {
+            if let Some(value) = cell.as_str() {
+                worksheet
+                    .write_string(row, column as u16, value)
+                    .map_err(|error| error.to_string())?;
+            } else if let Some(value) = cell.as_f64() {
+                worksheet
+                    .write_number(row, column as u16, value)
+                    .map_err(|error| error.to_string())?;
+            }
+        }
     }
     Ok(workbook)
 }
@@ -1747,6 +1811,105 @@ mod tests {
     use std::io::Write as _;
     use zip::{write::SimpleFileOptions, ZipWriter};
 
+    fn preview_item() -> PurchaseItem {
+        serde_json::from_value(serde_json::json!({
+            "id":"synthetic", "selected":true, "name":"=synthetic", "specification":"M",
+            "quantity":2.5, "unitPrice":1200, "importedAmount":9999,
+            "vendor":"@vendor", "note":"safe", "budgetItem":"budget", "sourceName":null
+        }))
+        .unwrap()
+    }
+
+    #[test]
+    fn csv_preview_matches_saved_bytes_and_preserves_bom() {
+        // Given selected and unselected synthetic items and reordered columns.
+        let item = preview_item();
+        let items = [
+            item.clone(),
+            PurchaseItem {
+                selected: false,
+                ..item
+            },
+        ];
+        let columns = ["name", "number", "quantity", "amount", "vendor"].map(str::to_owned);
+        // When the shared preview data is serialized by the real CSV writer.
+        let preview = build_purchase_preview("csv", &items, &columns, true).unwrap();
+        let bytes = purchase_csv_bytes(&preview).unwrap();
+        // Then the BOM and formula-safe ordered string cells match the preview.
+        assert_eq!(&bytes[..3], &[0xEF, 0xBB, 0xBF]);
+        let mut reader = csv::Reader::from_reader(&bytes[3..]);
+        assert_eq!(
+            reader.headers().unwrap().iter().collect::<Vec<_>>(),
+            preview.headers
+        );
+        let records = reader.records().collect::<Result<Vec<_>, _>>().unwrap();
+        assert_eq!(records.len(), 1);
+        assert_eq!(
+            records[0].iter().collect::<Vec<_>>(),
+            vec!["'=synthetic", "1", "2.5", "3000", "'@vendor"]
+        );
+        assert_eq!(
+            preview.rows[0],
+            serde_json::json!(["'=synthetic", "1", "2.5", "3000", "'@vendor"])
+                .as_array()
+                .unwrap()
+                .clone()
+        );
+    }
+
+    #[test]
+    fn xlsx_preview_matches_actual_saved_cell_types() {
+        // Given a quantity, amount override and a formula-like text field.
+        let columns = ["number", "name", "quantity", "unitPrice", "amount"].map(str::to_owned);
+        let path =
+            std::env::temp_dir().join(format!("purchase-preview-{}.xlsx", std::process::id()));
+        // When the same cells produce the preview and the real workbook.
+        let preview = build_purchase_preview("xlsx", &[preview_item()], &columns, true).unwrap();
+        build_purchase_workbook(&preview, &columns)
+            .unwrap()
+            .save(&path)
+            .unwrap();
+        let mut actual: Xlsx<_> = open_workbook(&path).unwrap();
+        let range = actual.worksheet_range("Sheet1").unwrap();
+        let _ = fs::remove_file(path);
+        // Then numbering remains text, text remains literal and amounts are numeric.
+        assert_eq!(
+            preview.rows[0],
+            serde_json::json!(["1", "=synthetic", 2.5, 1200.0, 3000.0])
+                .as_array()
+                .unwrap()
+                .clone()
+        );
+        assert_eq!(range.get((1, 0)).unwrap().get_string(), Some("1"));
+        assert_eq!(range.get((1, 1)).unwrap().get_string(), Some("=synthetic"));
+        for column in 2..5 {
+            assert_eq!(
+                range.get((1, column)).unwrap().get_float(),
+                preview.rows[0][column].as_f64()
+            );
+        }
+    }
+
+    #[test]
+    fn preview_rejects_empty_selection_and_invalid_columns() {
+        // Given empty selection or invalid output columns.
+        let item = preview_item();
+        // When preview validation runs, then the real writer's constraints apply.
+        assert!(build_purchase_preview("csv", &[], &["name".into()], true).is_err());
+        assert!(
+            build_purchase_preview("xlsx", &[item.clone()], &["quantity".into()], true).is_err()
+        );
+        assert!(build_purchase_preview(
+            "edufine",
+            &[PurchaseItem {
+                quantity: None,
+                ..item
+            }],
+            &[],
+            true
+        )
+        .is_err());
+    }
     fn write_synthetic_xlsx(name: &str) -> PathBuf {
         let path = std::env::temp_dir().join(format!(
             "purchase-helper-{}-{name}.xlsx",
@@ -1799,8 +1962,17 @@ mod tests {
             "purchase-helper-{}-edufine.xlsx",
             std::process::id()
         ));
-        let mut workbook =
-            build_edufine_workbook(&[selected_first, unselected, selected_second]).unwrap();
+        let items = [selected_first, unselected, selected_second];
+        let preview = build_purchase_preview("edufine", &items, &[], true).unwrap();
+        assert_eq!(preview.headers, ["내용", "규격", "수량", "예상단가"]);
+        assert_eq!(
+            preview.rows[0],
+            serde_json::json!(["합성 품목 A", "규격 A", 2.5, 1200.0])
+                .as_array()
+                .unwrap()
+                .clone()
+        );
+        let mut workbook = build_edufine_workbook(&items).unwrap();
         workbook.save(&path).unwrap();
 
         let mut actual: Xlsx<_> = open_workbook(&path).unwrap();
@@ -2155,9 +2327,24 @@ mod tests {
     #[test]
     fn reimports_edufine_four_column_contract() {
         let rows = vec![
-            vec!["내용".into(), "규격".into(), "수량".into(), "예상단가".into()],
-            vec!["전기온장고".into(), "20L".into(), "1".into(), "220000".into()],
-            vec!["드레싱카트".into(), "서랍형".into(), "1".into(), "253000".into()],
+            vec![
+                "내용".into(),
+                "규격".into(),
+                "수량".into(),
+                "예상단가".into(),
+            ],
+            vec![
+                "전기온장고".into(),
+                "20L".into(),
+                "1".into(),
+                "220000".into(),
+            ],
+            vec![
+                "드레싱카트".into(),
+                "서랍형".into(),
+                "1".into(),
+                "253000".into(),
+            ],
         ];
 
         let items = parse_rows(&rows, "edufine.xlsx").unwrap();

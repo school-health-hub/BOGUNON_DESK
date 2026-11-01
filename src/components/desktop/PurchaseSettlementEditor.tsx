@@ -1,4 +1,7 @@
 import { ClipboardCopy, FileSpreadsheet } from "lucide-react";
+import { PurchaseOutputPreviewDialog } from "./PurchaseOutputPreviewDialog";
+import { usePurchaseOutputPreview } from "../../purchase/usePurchaseOutputPreview";
+import { purchaseOutputPreviewLabels } from "../../purchase/purchaseOutputPreview";
 import { useMemo, useState } from "react";
 import {
   calculatePurchaseSettlementSummary,
@@ -16,7 +19,7 @@ import {
 } from "../../purchase/purchaseSettlement";
 import { resolvePurchaseAmount } from "../../purchase/purchaseDomain";
 import { purchaseRepository } from "../../purchase/purchaseRepository";
-import { purchaseSettlementStatuses, purchaseTaxModes, type PurchaseItem, type PurchaseSettlement, type PurchaseSettlementItem, type PurchaseSettlementStatus, type PurchaseTaxMode } from "../../purchase/types";
+import { defaultPurchaseOutputColumns, purchaseSettlementStatuses, purchaseTaxModes, type PurchaseItem, type PurchaseSettlement, type PurchaseSettlementItem, type PurchaseSettlementStatus, type PurchaseTaxMode } from "../../purchase/types";
 
 type Props = {
   readonly items: readonly PurchaseItem[];
@@ -56,6 +59,7 @@ const purchaseTaxModeLabels: Readonly<Record<PurchaseTaxMode, string>> = {
   exempt: "면세",
 };
 const formatMoney = (value: number): string => `${value.toLocaleString("ko-KR")}원`;
+const settlementPreviewKinds = ["settlement-clipboard", "settlement-summary", "settlement-xlsx"] as const;
 
 const writeClipboard = async (content: { readonly text: string; readonly html: string }): Promise<void> => {
   if (typeof ClipboardItem !== "undefined" && navigator.clipboard.write !== undefined) {
@@ -70,6 +74,7 @@ const writeClipboard = async (content: { readonly text: string; readonly html: s
 
 export function PurchaseSettlementEditor({ items, outputReady, settlement, onChange, onNotice }: Props) {
   const [busy, setBusy] = useState(false);
+  const [previewKind, setPreviewKind] = useState<(typeof settlementPreviewKinds)[number]>("settlement-clipboard");
   const selected = items.filter((item) => item.selected);
   const actualById = useMemo(() => new Map(settlement.items.map((item) => [item.purchaseItemId, item])), [settlement.items]);
   const summary = useMemo(() => calculatePurchaseSettlementSummary(items, settlement), [items, settlement]);
@@ -113,6 +118,16 @@ export function PurchaseSettlementEditor({ items, outputReady, settlement, onCha
       setBusy(false);
     }
   };
+  const outputPreview = usePurchaseOutputPreview({ items, columns: defaultPurchaseOutputColumns, settlement, format: previewKind, onNotice,
+    output: async (kind) => {
+      switch (kind) {
+        case "settlement-clipboard": await copyTable(); break;
+        case "settlement-summary": await copySummary(); break;
+        case "settlement-xlsx": await exportXlsx(); break;
+        default: onNotice("이 화면에서 사용할 수 없는 출력 형식입니다.");
+      }
+    },
+  });
   const differenceLabel = displaySummary.screenDifference === 0 ? "차액 없음" : displaySummary.screenDifference < 0 ? `${formatMoney(Math.abs(displaySummary.screenDifference))} 절감` : `${formatMoney(displaySummary.screenDifference)} 초과`;
   return (
     <div className="purchase-settlement-editor">
@@ -155,7 +170,9 @@ export function PurchaseSettlementEditor({ items, outputReady, settlement, onCha
           })}
         </tbody></table>
       </div>
+      <div className="purchase-output-preview-launcher"><label>정산 미리보기 출력 형식<select aria-label="정산 미리보기 출력 형식" value={previewKind} onChange={(event) => { const kind = settlementPreviewKinds.find((value) => value === event.target.value); if (kind !== undefined) setPreviewKind(kind); }}>{settlementPreviewKinds.map((kind) => <option key={kind} value={kind}>{purchaseOutputPreviewLabels[kind]}</option>)}</select></label><button type="button" disabled={busy || outputPreview.preparing} onClick={() => void outputPreview.open(previewKind)}>정산 출력 미리보기</button></div>
       <footer className="purchase-settlement-actions"><p>실제 구매 수량·금액은 현재 실행 중에만 유지됩니다.</p><div><button type="button" disabled={selected.length === 0 || !outputReady || !displaySummary.legacyOutputSafe} onClick={() => void copyTable()}><ClipboardCopy size={14} /> 구매결과 표 복사</button><button type="button" disabled={selected.length === 0 || !outputReady || !displaySummary.legacyOutputSafe} onClick={() => void copySummary()}><ClipboardCopy size={14} /> 정산 요약 복사</button><button type="button" disabled={selected.length === 0 || busy || !outputReady || !displaySummary.legacyOutputSafe} onClick={() => void exportXlsx()}><FileSpreadsheet size={14} /> 구매결과 XLSX</button></div></footer>
+      {outputPreview.snapshot !== null && <PurchaseOutputPreviewDialog snapshot={outputPreview.snapshot} currentKey={outputPreview.currentKey} busy={outputPreview.outputting} onClose={outputPreview.close} onOutput={() => void outputPreview.output()} />}
     </div>
   );
 }

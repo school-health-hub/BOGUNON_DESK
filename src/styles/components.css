@@ -525,6 +525,23 @@
 .purchase-helper-review__selection span { color: var(--yellow-700); }
 .purchase-helper-review__selection small { color: var(--text-muted); font-size: 9px; }
 .purchase-bulk-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-2); }
+.purchase-output-preview-launcher { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border-top: 1px solid var(--border); }
+.purchase-output-preview-launcher label { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); color: var(--text-secondary); font-size: 11px; }
+.purchase-output-preview-launcher small { color: var(--text-muted); font-size: 10px; }
+.purchase-output-preview-launcher button, .purchase-output-preview-launcher select { min-height: 32px; padding: var(--space-1) var(--space-2); border: 1px solid var(--border); border-radius: 8px; font: inherit; color: var(--text-primary); background: var(--surface); }
+.purchase-output-preview-launcher button { background: var(--accent-soft); }
+.purchase-output-preview-backdrop { min-height: 0; grid-template-rows: minmax(0, 1fr); }
+.purchase-output-preview-dialog { display: flex; flex-direction: column; width: min(1040px, 100%); max-height: 100%; min-height: 0; overflow-y: auto; overflow-wrap: anywhere; }
+.purchase-output-preview-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); margin: 0; flex: 0 0 auto; }
+.purchase-output-preview-summary div { min-width: 0; }
+.purchase-output-preview-summary dt { color: var(--text-secondary); font-size: 11px; }
+.purchase-output-preview-summary dd { margin: 0; color: var(--text-primary); font-size: 12px; }
+.purchase-output-preview-table-scroll { min-height: 80px; max-height: 32vh; overflow: auto; flex: 1 1 180px; border: 1px solid var(--border); }
+.purchase-output-preview-table-scroll table { min-width: 100%; width: max-content; border-collapse: collapse; font-size: 12px; }
+.purchase-output-preview-table-scroll th, .purchase-output-preview-table-scroll td { max-width: 320px; padding: var(--space-2); border: 1px solid var(--border); text-align: left; white-space: pre-wrap; overflow-wrap: anywhere; }
+.purchase-output-preview-table-scroll th { background: var(--surface-muted); }
+.purchase-output-preview-dialog footer { flex-wrap: wrap; flex: 0 0 auto; }
+.purchase-output-preview-launcher :focus-visible, .purchase-output-preview-table-scroll:focus-visible { outline: 2px solid var(--accent-hover); outline-offset: 2px; }
 .purchase-bulk-actions button { min-height: 32px; padding: var(--space-1) var(--space-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); background: var(--accent-soft); font: inherit; }
 .purchase-bulk-actions button:disabled { color: var(--text-muted); background: var(--surface-muted); }
 .purchase-bulk-actions button:focus-visible, .purchase-bulk-dialog select:focus-visible, .purchase-bulk-dialog input:focus-visible { outline: 2px solid var(--accent-hover); outline-offset: 2px; }
