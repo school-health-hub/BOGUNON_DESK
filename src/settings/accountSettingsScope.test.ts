@@ -11,6 +11,29 @@ const createStorage = (): KeyValueStorage => {
 };
 
 describe("account settings user scopes", () => {
+  it("preserves invalid numeric mappings across save, activation and re-query", () => {
+    const repository = createAccountSettingsScopeRepository(createStorage());
+    const settings = { ...createDefaultAccountSettings(), purchaseImportTemplates: [{ id: " old ", name: " old ", headerSignature: ["품명", "", "수량", ""], mapping: { name: 0, quantity: 0, amount: -1 } }] };
+    repository.save("user-a", settings);
+    expect(repository.activate("user-a", settings)).toEqual(settings);
+    expect(repository.load("user-a")).toEqual(settings);
+  });
+  it("refuses to rewrite any scopes when a stored template cannot be represented", () => {
+    const invalid = { ...createDefaultAccountSettings(), purchaseImportTemplates: [{ id: "old", name: "old", headerSignature: ["품명"], mapping: { name: "0" } }] };
+    const raw = JSON.stringify({ legacyOwnerUserId: "user-a", lastActiveUserId: "user-a", users: { "user-a": invalid } });
+    let stored = raw;
+    const repository = createAccountSettingsScopeRepository({ getItem: () => stored, setItem: (_key, value) => { stored = value; } });
+    expect(() => repository.save("user-b", createDefaultAccountSettings())).toThrow();
+    expect(() => repository.activate("user-a", createDefaultAccountSettings())).toThrow();
+    expect(stored).toBe(raw);
+  });
+  it.each(["not json", "null", JSON.stringify({ users: null })])("does not overwrite an unreadable existing scope container: %s", (raw) => {
+    let stored = raw;
+    const repository = createAccountSettingsScopeRepository({ getItem: () => stored, setItem: (_key, value) => { stored = value; } });
+    expect(() => repository.activate("user-a", createDefaultAccountSettings())).toThrow();
+    expect(() => repository.save("user-a", createDefaultAccountSettings())).toThrow();
+    expect(stored).toBe(raw);
+  });
   it("claims legacy settings once and never gives them to another user", () => {
     const repository = createAccountSettingsScopeRepository(createStorage());
     const legacy = {

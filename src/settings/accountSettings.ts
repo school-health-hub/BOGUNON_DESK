@@ -9,7 +9,7 @@ import type {
 } from "./types";
 import { loadWorkspaceFilters, saveWorkspaceFilters, subscribeWorkspaceFilters } from "./workspaceFilters";
 import { loadPurchaseOutputColumns, savePurchaseOutputColumns } from "../purchase/purchaseOutputSettings";
-import { loadPurchaseImportTemplates, savePurchaseImportTemplates } from "../purchase/purchaseImportSettings";
+import { loadPurchaseImportTemplates, preservePurchaseImportTemplates, savePurchaseImportTemplates } from "../purchase/purchaseImportSettings";
 import { loadPurchaseDraftTemplates, savePurchaseDraftTemplates } from "../purchase/purchaseDraftSettings";
 import { createDefaultDashboardLayout } from "../dashboard/layouts";
 import { createDefaultDockLayout } from "../dock/storage";
@@ -60,6 +60,8 @@ const saveAccountLauncherLink = async (
   accountLauncherLinksFromLegacyStore(await saveLauncherUrl(actionId, url));
 
 const replaceAccountSettings = async (settings: AccountSettings): Promise<void> => {
+  loadPurchaseImportTemplates();
+  preservePurchaseImportTemplates(settings.purchaseImportTemplates);
   saveDashboardLayout(settings.workspace);
   saveDockLayout(settings.dock);
   await replaceAccountLauncherLinks(settings.launcherLinks);

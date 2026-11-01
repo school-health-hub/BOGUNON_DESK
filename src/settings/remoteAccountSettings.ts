@@ -4,7 +4,7 @@ import { parseDockLayoutValue } from "../dock/storage";
 import type { AccountLauncherLinks, AccountSettings } from "./types";
 import { normalizeWorkspaceFilters } from "./workspaceFilters";
 import { normalizePurchaseOutputColumns } from "../purchase/purchaseDomain";
-import { normalizePurchaseImportTemplates } from "../purchase/purchaseImportSettings";
+import { preservePurchaseImportTemplates, PurchaseImportTemplateStorageError } from "../purchase/purchaseImportSettings";
 import { normalizePurchaseDraftTemplates } from "../purchase/purchaseDraftSettings";
 
 const TABLE_NAME = "school_health_desk_settings";
@@ -72,7 +72,7 @@ export const serializeAccountSettings = (settings: AccountSettings): AccountSett
   },
   workspaceFilters: normalizeWorkspaceFilters(settings.workspaceFilters),
   purchaseOutputColumns: normalizePurchaseOutputColumns(settings.purchaseOutputColumns),
-  purchaseImportTemplates: normalizePurchaseImportTemplates(settings.purchaseImportTemplates),
+  purchaseImportTemplates: preservePurchaseImportTemplates(settings.purchaseImportTemplates),
   purchaseDraftTemplates: normalizePurchaseDraftTemplates(settings.purchaseDraftTemplates),
 });
 
@@ -85,7 +85,12 @@ export const parseRemoteAccountSettings = (
   const dock = parseDockLayoutValue(value.dock);
   const launcherLinks = parseLauncherLinks(value.launcherLinks);
   if (workspace === null || dock === null || launcherLinks === null) return null;
-  return { workspace, dock, launcherLinks, workspaceFilters: normalizeWorkspaceFilters(value.workspaceFilters), purchaseOutputColumns: normalizePurchaseOutputColumns(value.purchaseOutputColumns), purchaseImportTemplates: normalizePurchaseImportTemplates(value.purchaseImportTemplates), purchaseDraftTemplates: normalizePurchaseDraftTemplates(value.purchaseDraftTemplates) };
+  try {
+    return { workspace, dock, launcherLinks, workspaceFilters: normalizeWorkspaceFilters(value.workspaceFilters), purchaseOutputColumns: normalizePurchaseOutputColumns(value.purchaseOutputColumns), purchaseImportTemplates: preservePurchaseImportTemplates(value.purchaseImportTemplates), purchaseDraftTemplates: normalizePurchaseDraftTemplates(value.purchaseDraftTemplates) };
+  } catch (error) {
+    if (error instanceof PurchaseImportTemplateStorageError) return null;
+    throw error;
+  }
 };
 
 export type RemoteAccountSettingsLoadResult =
@@ -117,6 +122,7 @@ const loadRemoteAccountSettings = async (
     .maybeSingle();
   if (error !== null) throw new AccountSettingsRemoteError(error.message);
   if (data === null) return { kind: "missing" };
+  if (isRecord(data.settings)) preservePurchaseImportTemplates(data.settings.purchaseImportTemplates);
   const settings = parseRemoteAccountSettings(data.settings_version, data.settings);
   return settings === null ? { kind: "invalid" } : { kind: "found", settings };
 };

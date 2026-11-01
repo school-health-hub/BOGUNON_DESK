@@ -1,5 +1,6 @@
 import type { AccountSettings } from "./types";
 import { parseRemoteAccountSettings, serializeAccountSettings } from "./remoteAccountSettings";
+import { PurchaseImportTemplateStorageError } from "../purchase/purchaseImportSettings";
 
 const STORAGE_KEY = "school-health-desk.account-settings-by-user.v1";
 
@@ -27,7 +28,7 @@ const parseScopes = (raw: string | null): StoredAccountScopes => {
   if (raw === null) return emptyScopes();
   try {
     const value: unknown = JSON.parse(raw);
-    if (!isRecord(value)) return emptyScopes();
+    if (!isRecord(value)) throw new PurchaseImportTemplateStorageError();
     const legacyOwnerUserId = typeof value.legacyOwnerUserId === "string"
       ? value.legacyOwnerUserId
       : null;
@@ -36,16 +37,17 @@ const parseScopes = (raw: string | null): StoredAccountScopes => {
       : null;
     const usersValue = value.users;
     if (!isRecord(usersValue)) {
-      return { legacyOwnerUserId, lastActiveUserId, users: {} };
+      throw new PurchaseImportTemplateStorageError();
     }
     const users: Record<string, AccountSettings> = {};
     for (const [userId, settingsValue] of Object.entries(usersValue)) {
       const settings = parseRemoteAccountSettings(1, settingsValue);
-      if (settings !== null) users[userId] = settings;
+      if (settings === null) throw new PurchaseImportTemplateStorageError();
+      users[userId] = settings;
     }
     return { legacyOwnerUserId, lastActiveUserId, users };
   } catch (error) {
-    if (error instanceof SyntaxError) return emptyScopes();
+    if (error instanceof SyntaxError) throw new PurchaseImportTemplateStorageError();
     throw error;
   }
 };

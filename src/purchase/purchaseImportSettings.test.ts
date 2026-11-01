@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { loadPurchaseImportTemplates, normalizePurchaseImportTemplates } from "./purchaseImportSettings";
+import { loadPurchaseImportTemplates, normalizePurchaseImportTemplates, preservePurchaseImportTemplates, purchaseAnalysisTemplates, readPurchaseImportTemplatesForDisplay, PurchaseImportTemplateStorageError, savePurchaseImportTemplates } from "./purchaseImportSettings";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -49,14 +49,62 @@ describe("normalizePurchaseImportTemplates", () => {
     expect(setItem).not.toHaveBeenCalled(); expect(removeItem).not.toHaveBeenCalled();
     expect(raw).toBe(JSON.stringify([{ id: "old", name: "old", headerSignature: ["품명", "", "수량"], mapping: { name: 0, quantity: 8 } }]));
   });
-  it("does not repair or delete persisted bytes when rejecting a malformed known mapping", () => {
+  it("preserves invalid numeric mappings without repairing or deleting persisted bytes", () => {
     const raw = JSON.stringify([{ id: "old", name: "old", headerSignature: ["품명", "수량", "단가", "금액"], mapping: { name: 0, quantity: 1, unitPrice: 2, amount: -1 } }]);
     const persisted = new Map([["school-health-desk.purchase-import-templates.v1", raw]]);
     const setItem = vi.fn((key: string, value: string) => persisted.set(key, value));
     const removeItem = vi.fn((key: string) => persisted.delete(key));
     vi.stubGlobal("localStorage", { getItem: (key: string) => persisted.get(key) ?? null, setItem, removeItem });
-    expect(loadPurchaseImportTemplates()).toEqual([]);
+    expect(loadPurchaseImportTemplates()[0]?.mapping.amount).toBe(-1);
     expect(persisted.get("school-health-desk.purchase-import-templates.v1")).toBe(raw);
     expect(setItem).not.toHaveBeenCalled(); expect(removeItem).not.toHaveBeenCalled();
+  });
+  it("round-trips existing-schema records without repairing names, positions, invalid numbers, duplicates or limits", () => {
+    const templates = Array.from({ length: 22 }, () => ({ id: " old ", name: " old ", headerSignature: [" 품명 ", "", "수량", ""], mapping: { name: 0, quantity: 0, amount: -1, unitPrice: 1.5 } }));
+    const persisted = new Map<string, string>();
+    vi.stubGlobal("localStorage", { getItem: (key: string) => persisted.get(key) ?? null, setItem: (key: string, value: string) => persisted.set(key, value) });
+    savePurchaseImportTemplates(templates);
+    expect(loadPurchaseImportTemplates()).toEqual(templates);
+    expect(preservePurchaseImportTemplates(templates)).toBe(templates);
+    expect(normalizePurchaseImportTemplates(loadPurchaseImportTemplates())).toEqual([]);
+  });
+  it.each(["not json", JSON.stringify([{ id: "old", name: "old", headerSignature: ["품명"], mapping: { name: "0" } }])])("fails closed without replacing unrepresentable persisted records: %s", (raw) => {
+    const setItem = vi.fn();
+    vi.stubGlobal("localStorage", { getItem: () => raw, setItem });
+    expect(() => loadPurchaseImportTemplates()).toThrow(PurchaseImportTemplateStorageError);
+    expect(() => savePurchaseImportTemplates([])).toThrow(PurchaseImportTemplateStorageError);
+    expect(setItem).not.toHaveBeenCalled();
+  });
+  it("does not re-save unchanged template values or rewrite their original JSON formatting", () => {
+    const templates = [{ id: " old ", name: " old ", headerSignature: ["품명", "", "수량", ""], mapping: { name: 0, quantity: 1, amount: -1 } }];
+    const raw = JSON.stringify(templates, null, 2);
+    const setItem = vi.fn();
+    vi.stubGlobal("localStorage", { getItem: () => raw, setItem });
+    savePurchaseImportTemplates(templates);
+    expect(setItem).not.toHaveBeenCalled();
+    expect(loadPurchaseImportTemplates()).toEqual(templates);
+  });
+  it("keeps unknown legacy properties on disk and refuses to turn them into synchronizable metadata", () => {
+    const raw = JSON.stringify([{ id: "old", name: "old", headerSignature: ["품명"], mapping: { name: 0 }, sampleRows: [["합성 데이터"]] }]);
+    const setItem = vi.fn();
+    vi.stubGlobal("localStorage", { getItem: () => raw, setItem });
+    expect(() => loadPurchaseImportTemplates()).toThrow(PurchaseImportTemplateStorageError);
+    expect(() => savePurchaseImportTemplates([])).toThrow(PurchaseImportTemplateStorageError);
+    expect(setItem).not.toHaveBeenCalled();
+  });
+  it("keeps all eligible conflicts and records beyond twenty visible to the analyzer", () => {
+    const templates = Array.from({ length: 22 }, (_, index) => ({ id: `old-${index}`, name: `old-${index}`, headerSignature: ["품명", "수량"], mapping: { name: index % 2, quantity: (index + 1) % 2 } }));
+    expect(purchaseAnalysisTemplates(templates)).toEqual(templates);
+  });
+  it("offers an empty analysis-only display with a warning while persistence remains blocked", () => {
+    const raw = JSON.stringify([{ id: "old", name: "old", headerSignature: ["품명"], mapping: { name: "0" } }]);
+    const setItem = vi.fn();
+    vi.stubGlobal("localStorage", { getItem: () => raw, setItem });
+    const display = readPurchaseImportTemplatesForDisplay(loadPurchaseImportTemplates);
+    expect(display.templates).toEqual([]);
+    expect(display.warning).toContain("원본");
+    expect(() => loadPurchaseImportTemplates()).toThrow(PurchaseImportTemplateStorageError);
+    expect(() => savePurchaseImportTemplates(display.templates)).toThrow(PurchaseImportTemplateStorageError);
+    expect(setItem).not.toHaveBeenCalled();
   });
 });

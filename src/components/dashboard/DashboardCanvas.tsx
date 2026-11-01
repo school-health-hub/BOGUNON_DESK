@@ -59,6 +59,7 @@ import { workFolderService } from "../../work-folders/workFolderService";
 import type { PurchaseDraft, PurchaseDraftTemplate, PurchaseImportTemplate, PurchaseItem, PurchaseSettlement } from "../../purchase/types";
 import { appendPurchaseItemsWithSessionIds, createEmptyPurchaseItem } from "../../purchase/purchaseDomain";
 import { purchaseRepository } from "../../purchase/purchaseRepository";
+import { readPurchaseImportTemplatesForDisplay, PurchaseImportTemplateStorageError } from "../../purchase/purchaseImportSettings";
 import { useOnboarding } from "../../onboarding/OnboardingContext";
 import { useDesktopUpdater } from "../../updater/DesktopUpdaterContext";
 import { DesktopUpdateBanner } from "../desktop/DesktopUpdateBanner";
@@ -120,7 +121,8 @@ export function DashboardCanvas({ onOpenFinance, suspended = false }: { readonly
   }, [nextPurchaseItemId]);
   const { sources: purchaseSources, candidates: purchaseCandidates, setSources: setPurchaseSources, setCandidates: setPurchaseCandidates, append: appendPurchaseAnalysis } = usePurchaseImportResults(appendImportedItems);
   const [purchaseColumns, setPurchaseColumns] = useState(() => settingsService.account.loadPurchaseOutputColumns());
-  const [purchaseImportTemplates, setPurchaseImportTemplates] = useState<readonly PurchaseImportTemplate[]>(() => settingsService.account.loadPurchaseImportTemplates());
+  const [initialPurchaseImport] = useState(() => readPurchaseImportTemplatesForDisplay(settingsService.account.loadPurchaseImportTemplates));
+  const [purchaseImportTemplates, setPurchaseImportTemplates] = useState<readonly PurchaseImportTemplate[]>(initialPurchaseImport.templates);
   const purchaseImportContext = JSON.stringify([purchaseImportTemplates, auth.state.status, auth.state.user?.id]);
   const purchaseImportContextRef = useRef({ key: purchaseImportContext, revision: 0 });
   if (purchaseImportContextRef.current.key !== purchaseImportContext) {
@@ -610,8 +612,13 @@ export function DashboardCanvas({ onOpenFinance, suspended = false }: { readonly
           onNotice={setNotice}
           onSourcesChange={setPurchaseSources}
           onTemplatesChange={(templates) => invalidatePurchaseImportContext(purchaseImportSession, () => {
-            setPurchaseImportTemplates(templates);
-            settingsService.account.savePurchaseImportTemplates(templates);
+            try {
+              settingsService.account.savePurchaseImportTemplates(templates);
+              setPurchaseImportTemplates(templates);
+            } catch (error) {
+              if (error instanceof PurchaseImportTemplateStorageError) setNotice(error.message);
+              else throw error;
+            }
           })}
         />
       )}
@@ -683,6 +690,7 @@ export function DashboardCanvas({ onOpenFinance, suspended = false }: { readonly
       />
 
       {notice !== null && <div className="desktop-toast" role="status">{notice}</div>}
+      {notice === null && initialPurchaseImport.warning !== null && <div className="desktop-toast" role="alert">{initialPurchaseImport.warning}</div>}
 
       <div className="dock-zone">
         <AppDock activeActionId={activeActionId} dockLayout={dockLayout} onAction={(actionId) => void runDesktopAction(actionId)} />

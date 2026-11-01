@@ -7,6 +7,8 @@ import type { RemoteAccountSettingsLoadResult, RemoteAccountSettingsRepository }
 import type { AccountSettings } from "./types";
 import { defaultWorkspaceFilters } from "./workspaceFilters";
 import { defaultPurchaseOutputColumns } from "../purchase/types";
+import { PurchaseImportTemplateStorageError, loadPurchaseImportTemplates, savePurchaseImportTemplates } from "../purchase/purchaseImportSettings";
+import { parseRemoteAccountSettings, serializeAccountSettings } from "./remoteAccountSettings";
 
 const createSettings = (url: string | null = null): AccountSettings => ({
   workspace: createDefaultDashboardLayout(),
@@ -90,7 +92,50 @@ const createHarness = (result: RemoteAccountSettingsLoadResult) => {
 
 describe("AccountSettings sync lifecycle", () => {
   beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
+
+  it("retains numeric legacy template values through remote sync, local persistence, upload and re-query", async () => {
+    const templates = [{ id: " old ", name: " old ", headerSignature: ["품명", "", "수량", ""], mapping: { name: 0, quantity: 0, amount: -1 } }];
+    const settings = { ...createSettings(), purchaseImportTemplates: templates };
+    const remoteSettings = parseRemoteAccountSettings(1, serializeAccountSettings(settings));
+    expect(remoteSettings).not.toBeNull();
+    if (remoteSettings === null) throw new Error("synthetic settings must be representable");
+    const persisted = new Map<string, string>();
+    vi.stubGlobal("localStorage", { getItem: (key: string) => persisted.get(key) ?? null, setItem: (key: string, value: string) => persisted.set(key, value) });
+    const harness = createHarness({ kind: "found", settings: remoteSettings });
+    harness.replace.mockImplementation(async (next) => {
+      savePurchaseImportTemplates(next.purchaseImportTemplates);
+      harness.setLocal({ ...next, purchaseImportTemplates: loadPurchaseImportTemplates() });
+    });
+    harness.service.start("user-a");
+    await settle();
+    expect(loadPurchaseImportTemplates()).toEqual(templates);
+    harness.service.noteLocalChange();
+    harness.setLocal({ ...harness.getLocal(), launcherLinks: { ...settings.launcherLinks, bogunonUrl: "https://synthetic.example/" } });
+    await vi.advanceTimersByTimeAsync(750);
+    await settle();
+    const uploaded = harness.remoteSave.mock.calls[0]?.[1];
+    expect(uploaded?.purchaseImportTemplates).toEqual(templates);
+    if (uploaded === undefined) throw new Error("synthetic upload must be recorded");
+    expect(parseRemoteAccountSettings(1, serializeAccountSettings(uploaded))?.purchaseImportTemplates).toEqual(templates);
+  });
+
+  it.each(["local", "remote", "scope"] as const)("blocks later automatic writes after an unrepresentable %s template failure", async (boundary) => {
+    const harness = createHarness({ kind: "missing" });
+    if (boundary === "local") harness.load.mockRejectedValue(new PurchaseImportTemplateStorageError());
+    if (boundary === "remote") harness.remoteLoad.mockRejectedValue(new PurchaseImportTemplateStorageError());
+    if (boundary === "scope") {
+      harness.scopes.activate = () => { throw new PurchaseImportTemplateStorageError(); };
+    }
+    harness.service.start("user-a");
+    await settle();
+    expect(harness.service.getState().status).toBe("error");
+    harness.service.noteLocalChange();
+    await vi.advanceTimersByTimeAsync(750);
+    await settle();
+    expect(harness.remoteSave).not.toHaveBeenCalled();
+    expect(harness.replace).not.toHaveBeenCalled();
+  });
 
   it("uploads existing local settings when the remote row is missing", async () => {
     const harness = createHarness({ kind: "missing" });

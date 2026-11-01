@@ -2,6 +2,7 @@ import { accountSettingsRepository, createDefaultAccountSettings } from "./accou
 import { accountSettingsScopeRepository, type AccountSettingsScopeRepository } from "./accountSettingsScope";
 import { remoteAccountSettingsRepository, serializeAccountSettings, type RemoteAccountSettingsRepository } from "./remoteAccountSettings";
 import type { AccountSettings, AccountSettingsRepository, AccountSyncState } from "./types";
+import { PurchaseImportTemplateStorageError } from "../purchase/purchaseImportSettings";
 
 const DEBOUNCE_MS = 750;
 
@@ -70,11 +71,12 @@ export const createAccountSyncService = ({ local, scopes, createDefaults, remote
     } catch (error) {
       if (!isCurrent(expectedEpoch, userId)) return;
       if (error instanceof DOMException && error.name === "AbortError") return;
+      if (error instanceof PurchaseImportTemplateStorageError) ready = false;
       publishState({ status: "error", lastSyncedAt: state.lastSyncedAt });
     } finally {
       if (!isCurrent(expectedEpoch, userId)) return;
       writeInFlight = false;
-      if (writeRequested || revisionAtStart !== localRevision) {
+      if (ready && (writeRequested || revisionAtStart !== localRevision)) {
         writeRequested = false;
         timer = schedule(() => void flush(expectedEpoch, userId), DEBOUNCE_MS);
       }
@@ -150,9 +152,9 @@ export const createAccountSyncService = ({ local, scopes, createDefaults, remote
     } catch (error) {
       if (!isCurrent(expectedEpoch, userId)) return;
       if (error instanceof DOMException && error.name === "AbortError") return;
-      ready = true;
+      ready = !(error instanceof PurchaseImportTemplateStorageError);
       publishState({ status: "error", lastSyncedAt: null });
-      if (revisionAtStart !== localRevision) scheduleFlush();
+      if (ready && revisionAtStart !== localRevision) scheduleFlush();
     }
   };
 

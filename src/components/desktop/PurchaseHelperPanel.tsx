@@ -11,6 +11,7 @@ import { isDesktopRuntime } from "../../desktop/actions";
 import { createPurchaseClipboard } from "../../purchase/purchaseClipboard";
 import { calculatePurchaseAmountCheck, getPurchaseOutputReadiness, normalizePurchaseOutputColumns, selectedPurchaseTotal } from "../../purchase/purchaseDomain";
 import { purchaseRepository } from "../../purchase/purchaseRepository";
+import { purchaseAnalysisTemplates } from "../../purchase/purchaseImportSettings";
 import { filterPurchaseItems, getPurchaseReviewCounts, purchaseReviewFilters, type PurchaseReviewFilter } from "../../purchase/purchaseReview";
 import { createPurchaseDraft } from "../../purchase/purchaseDraft";
 import { createPurchaseSettlement, reconcilePurchaseSettlement } from "../../purchase/purchaseSettlement";
@@ -65,7 +66,7 @@ const reviewFilterLabels: Readonly<Record<PurchaseReviewFilter, string>> = { all
 const generalPreviewKinds = ["clipboard", "csv", "xlsx", "edufine"] as const;
 type PendingNativeResult = { readonly kind: "analysis"; readonly event: PurchaseAnalysisEvent } | { readonly kind: "error"; readonly event: PurchaseAnalysisErrorEvent };
 const purchaseHelperStateQueue = createPurchaseHelperStateQueue((active, templates) =>
-  invoke("set_purchase_helper_active", { active, templates }),
+  invoke("set_purchase_helper_active", { active, templates: purchaseAnalysisTemplates(templates) }),
 );
 
 export function PurchaseHelperPanel({ importSession, importContextRevision = 0, editing, sources, columns, candidates, templates, draft, draftTemplates, settlement, onAnalysis, onAddItem, onEdit, onCandidatesChange, onColumnsChange, onSourcesChange, onTemplatesChange, onDraftChange, onDraftTemplatesChange, onSettlementChange, onClose, onNotice }: Props) {

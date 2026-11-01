@@ -6,6 +6,7 @@ import { parseRemoteAccountSettings, serializeAccountSettings } from "./remoteAc
 import type { AccountSettings } from "./types";
 import { defaultWorkspaceFilters } from "./workspaceFilters";
 import { defaultPurchaseOutputColumns } from "../purchase/types";
+import { PurchaseImportTemplateStorageError } from "../purchase/purchaseImportSettings";
 
 const createSettings = (): AccountSettings => ({
   workspace: createDefaultDashboardLayout(),
@@ -22,6 +23,24 @@ const createSettings = (): AccountSettings => ({
 });
 
 describe("remote AccountSettings boundary", () => {
+  it("preserves invalid numeric legacy mappings through serialization and re-query without changing their representation", () => {
+    const templates = [{ id: " old ", name: " old ", headerSignature: [" 품명 ", "", "수량", ""], mapping: { name: 0, quantity: 0, amount: -1, unitPrice: 1.5 } }];
+    const settings = { ...createSettings(), purchaseImportTemplates: templates };
+    const serialized = serializeAccountSettings(settings);
+    expect(serialized.purchaseImportTemplates).toEqual(templates);
+    expect(parseRemoteAccountSettings(1, JSON.parse(JSON.stringify(serialized)))?.purchaseImportTemplates).toEqual(templates);
+  });
+  it("rejects an unrepresentable template payload instead of silently replacing its collection with defaults", () => {
+    expect(parseRemoteAccountSettings(1, { ...createSettings(), purchaseImportTemplates: [{ id: "old", name: "old", headerSignature: ["품명"], mapping: { name: "0" } }] })).toBeNull();
+  });
+  it.each([
+    { id: "old", name: "old", headerSignature: ["품명"], mapping: { name: 0 }, sampleRows: [["합성 개인정보 금지"]] },
+    { id: "old", name: "old", headerSignature: ["품명"], mapping: { name: 0, extra: 1 } },
+  ])("blocks unknown template properties instead of uploading or silently deleting them", (template) => {
+    const settings = { ...createSettings(), purchaseImportTemplates: [template] };
+    expect(() => serializeAccountSettings(settings)).toThrow(PurchaseImportTemplateStorageError);
+    expect(parseRemoteAccountSettings(1, settings)).toBeNull();
+  });
   it("round-trips dense custom configuration without inferring a profile for legacy settings", () => {
     const settings = createSettings();
     const custom: AccountSettings = { ...settings, workspace: { ...settings.workspace, presetId: undefined } };

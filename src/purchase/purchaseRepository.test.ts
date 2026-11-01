@@ -12,6 +12,22 @@ describe("purchaseRepository Edufine export", () => {
     mocks.invoke.mockReset();
     mocks.invoke.mockResolvedValue(true);
   });
+  it("does not send invalid persisted mappings to either analyzer", async () => {
+    const invalid = [{ id: "old", name: "old", headerSignature: ["품명", "수량"], mapping: { name: 0, quantity: -1 } }];
+    await purchaseRepository.pickAndAnalyze(invalid);
+    await purchaseRepository.analyzePaths(["synthetic.csv"], invalid);
+    expect(mocks.invoke).toHaveBeenCalledWith("pick_and_analyze_purchase_files", { templates: [] });
+    expect(mocks.invoke).toHaveBeenCalledWith("analyze_purchase_paths", { paths: ["synthetic.csv"], templates: [] });
+    expect(invalid[0]?.mapping.quantity).toBe(-1);
+  });
+  it("retains conflicting same-signature templates for backend conflict checks", async () => {
+    const templates = [
+      { id: "first", name: "first", headerSignature: ["품명", "수량"], mapping: { name: 0, quantity: 1 } },
+      { id: "second", name: "second", headerSignature: ["품명", "수량"], mapping: { name: 1, quantity: 0 } },
+    ];
+    await purchaseRepository.analyzePaths(["synthetic.csv"], templates);
+    expect(mocks.invoke).toHaveBeenCalledWith("analyze_purchase_paths", { paths: ["synthetic.csv"], templates });
+  });
 
   it("keeps the existing general XLSX export contract", async () => {
     const first = withPurchaseIssues({ ...createEmptyPurchaseItem("first"), name: "합성 품목 A", quantity: 2, unitPrice: 1_000 });
