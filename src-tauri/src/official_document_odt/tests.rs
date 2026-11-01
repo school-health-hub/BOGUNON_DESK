@@ -394,7 +394,7 @@ fn restored_text(xml: &str, body_only: bool) -> String {
             Event::Start(element) | Event::Empty(element) => {
                 let name = element.name();
                 match name.as_ref() {
-                    b"text:bookmark-start" | b"text:bookmark-end" => {
+                    "text:bookmark-start" | "text:bookmark-end" => {
                         let attribute = element
                             .try_get_attribute("text:name")
                             .expect("valid bookmark attribute")
@@ -404,7 +404,7 @@ fn restored_text(xml: &str, body_only: bool) -> String {
                             .expect("valid bookmark name")
                             == BODY
                         {
-                            if name.as_ref() == b"text:bookmark-start" {
+                            if name.as_ref() == "text:bookmark-start" {
                                 assert!(!inside, "duplicate body start");
                                 inside = true;
                                 boundaries.0 += 1;
@@ -415,7 +415,7 @@ fn restored_text(xml: &str, body_only: bool) -> String {
                             }
                         }
                     }
-                    b"text:s" if inside || !body_only => {
+                    "text:s" if inside || !body_only => {
                         let count = element
                             .try_get_attribute("text:c")
                             .expect("valid space count attribute")
@@ -433,7 +433,7 @@ fn restored_text(xml: &str, body_only: bool) -> String {
                         );
                         output.push_str(&" ".repeat(count));
                     }
-                    b"text:line-break" if inside || !body_only => output.push('\n'),
+                    "text:line-break" if inside || !body_only => output.push('\n'),
                     _ => {}
                 }
             }
