@@ -311,3 +311,11 @@ git diff --name-only c355da4ddde9194f1f280dc622ad8cfb2a0d1257 HEAD
 - 로컬 검증: Purchase 19파일 **101 PASS**, Rust **54 PASS**, 원본 helper 38함수/정산 계산·미리보기·writer 동일성 PASS, 실제 CLI CSV/XLSX/PDF 회귀 및 정산·에듀파인 preview/생성·read-back smoke PASS. Electron TypeScript(main/preload/renderer/tests) 및 production build PASS. 테스트에는 합성 데이터만 사용했습니다.
 - Windows CLI·Portable/NSIS 검증은 아래 CI 결과로 갱신합니다. Cloud GUI는 **BLOCKED / NOT RUN**(GUI 환경 없음, 재시도하지 않음). 이전 단계 GUI PASS를 재사용하지 않습니다. 실제 Windows 일반 사용자 설치·제거·파일 대화상자·Excel 열기·한글·셀 서식·덮어쓰기 취소/권한 오류/외부 수정은 **NOT RUN**입니다.
 - 학교 PC 다음 작업: 이 전용 브랜치를 기존 Tauri와 다른 폴더로 받고 최종 보고 SHA와 원격을 비교합니다. 합성 품목으로 실제 Excel에서 11/4열 및 정산 배송비·할인·VAT 차단을 확인합니다. 운영 DB·MY FINANCE·Tauri 원고/사용자 데이터 접근과 자동 이관, 운영 설치/업데이트, PR/main 병합/배포는 하지 않습니다. 위 이전 인계의 파일 저장 동시 쓰기·강제 종료 및 일반 사용자 QA 잔여 항목도 유지합니다.
+
+### P2-E-5B Windows CI 및 최종 인계
+
+- 구현 검증 SHA: `a73010ecad7b061892e97e5367f876ad26ec0c3a`.
+- [Windows CI 41363996473](https://github.com/school-health-hub/BOGUNON_DESK/actions/runs/41363996473) **SUCCESS**: 원본 소스 보존, Windows Rust 계약/CLI 빌드·smoke, Electron/Newsletter 관련 자동 테스트·TypeScript·프로덕션 빌드, Portable/NSIS 생성, 패키지 내 CLI 정산/에듀파인 preview·XLSX 생성/read-back, 기존 Dashboard/Newsletter 패키지 GUI 회귀 단계 통과. 기존 GUI 회귀 성공을 새 Purchase native 대화상자 GUI 검증으로 간주하지 않습니다.
+- Actions 아티팩트 `ELECTRON-P2E5B-Windows-a73010ecad7b061892e97e5367f876ad26ec0c3a`에 Portable/NSIS·SHA256SUMS·서명 상태·QA 결과, `ELECTRON-P2E5B-UI-evidence-41363996473`에 GUI 증거가 있습니다(7일 보존). 운영 배포가 아닙니다.
+- 러너의 elevated 토큰이 확인되어 일반 사용자 설치/설치 앱 재실행/제거·설정 보존은 **NOT RUN**입니다. 토큰 우회·권한 완화는 하지 않았습니다. 실제 학교 PC의 운영 앱/데이터 무변경 검증을 수행했다고 주장하지 않습니다. 이번 작업의 `src/`·`src-tauri/` diff는 비어 있고 운영 데이터에는 접근하지 않았습니다.
+- **최종 CONDITIONAL**: 기능 구현·자동 검증·Windows 패키징은 통과했으나 Cloud Purchase GUI는 BLOCKED/NOT RUN, 실제 Windows 일반 사용자 설치·제거와 native 저장/취소/덮어쓰기·Excel 열기/셀 서식은 NOT RUN입니다. 다음 단계는 합성 데이터만 사용하는 별도 폴더/PoC 프로필에서 이 잔여 QA를 수행하는 것입니다. 이번 결과 문서 커밋은 기능 변경 없이 `[skip ci]`로 보존하며 정확한 최종 SHA는 최종 보고 및 `git rev-parse HEAD`로 확인합니다.
