@@ -65,6 +65,21 @@ impl ApprovedTemplateContract {
         }
     }
 
+    // Version home-v1 shares the exact bookmark and ZIP layout of the original.
+    // Its distinct style-reference fingerprint is pinned, never learned from input.
+    pub(crate) fn for_sha256(sha256: &str) -> Result<Self, TemplateContractError> {
+        match sha256 {
+            APPROVED_TEMPLATE_SHA256 => Ok(Self::production()),
+            "8BC0FD240B1BEA06758794D9F07A75ABF7FAF13BAC1FBDBCDD3556BE3FF6C285" => {
+                let mut contract = Self::production();
+                contract.sha256 = sha256.to_owned();
+                contract.style_reference_sha256 =
+                    "95162FDFF6196124FB6A01108DFFD13178A18261F2B581996B565D5FB465F028".to_owned();
+                Ok(contract)
+            }
+            _ => Err(TemplateContractError::ShaMismatch),
+        }
+    }
     pub(crate) fn validate(
         &self,
         manifest: &TemplateManifest,

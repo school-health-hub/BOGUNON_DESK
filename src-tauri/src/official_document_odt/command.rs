@@ -144,7 +144,7 @@ fn read_template(path: &Path) -> Result<Vec<u8>, ExportCommandError> {
     Ok(bytes)
 }
 
-fn validate_staged_output(
+pub(super) fn validate_staged_output(
     bytes: &[u8],
     contract: &ApprovedTemplateContract,
 ) -> Result<(), SaveError> {
@@ -180,7 +180,8 @@ pub(crate) fn execute_save_official_document_odt(
         .into_path()
         .map_err(|_| ExportCommandError::TemplateRead.to_string())?;
     let template = read_template(&template_path).map_err(|error| error.to_string())?;
-    let contract = ApprovedTemplateContract::production();
+    let contract = ApprovedTemplateContract::for_sha256(&super::sha256_hex(&template))
+        .map_err(|error| error.to_string())?;
     let output = transform_template(
         &template,
         &contract,

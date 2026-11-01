@@ -541,3 +541,6 @@ fn fixture_content(mutation: Option<&str>) -> String {
 
 #[path = "contract_probe_tests.rs"]
 mod contract_probe;
+
+#[path = "supported_template_tests.rs"]
+mod supported_template;

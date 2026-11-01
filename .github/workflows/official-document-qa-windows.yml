@@ -7,6 +7,10 @@ on:
         description: Full feature commit SHA for Rust-only P11 tests (empty keeps existing QA modes)
         type: string
         default: ''
+      p11_supported_template:
+        description: Verify supported template versions and publish offline console validator
+        type: boolean
+        default: false
       p11_contract_only:
         description: Run only synthetic template contract probes without repeating the P11 suite
         type: boolean
@@ -64,13 +68,13 @@ jobs:
           rustc -vV
           cargo --version
       - name: Run minimal synthetic template contract probes
-        if: inputs.p11_contract_only
+        if: inputs.p11_contract_only && !inputs.p11_supported_template
         run: |
           cargo test --manifest-path src-tauri/Cargo.toml official_document_odt::tests::contract_probe --lib --locked --jobs 1 -- --nocapture 2>&1 | Tee-Object "$env:P11_ROOT/evidence/contract-probes.log"
           if ($LASTEXITCODE -ne 0) { throw 'Synthetic template contract probes failed' }
           if ((Get-Content "$env:P11_ROOT/evidence/contract-probes.log" -Raw) -notmatch 'test result: ok\. 6 passed; 0 failed; 0 ignored;') { throw 'Expected six contract probes without skips' }
       - name: Reproduce the two reported tests
-        if: '!inputs.p11_contract_only'
+        if: '!inputs.p11_contract_only && !inputs.p11_supported_template'
         continue-on-error: true
         run: |
           $failed = $false
@@ -81,11 +85,21 @@ jobs:
           }
           if ($failed) { throw 'Reported P11 tests failed; see exact assertion logs' }
       - name: Run all P11 Rust tests
-        if: '!inputs.p11_contract_only'
+        if: '!inputs.p11_contract_only && !inputs.p11_supported_template'
         run: |
-          cargo test --manifest-path src-tauri/Cargo.toml official_document_odt --lib --locked --jobs 1 -- --nocapture --skip contract_probe 2>&1 | Tee-Object "$env:P11_ROOT/evidence/all-tests.log"
+          cargo test --manifest-path src-tauri/Cargo.toml official_document_odt --lib --locked --jobs 1 -- --nocapture --skip contract_probe --skip supported_template 2>&1 | Tee-Object "$env:P11_ROOT/evidence/all-tests.log"
           if ($LASTEXITCODE -ne 0) { throw 'P11 Rust suite failed' }
           if ((Get-Content "$env:P11_ROOT/evidence/all-tests.log" -Raw) -notmatch 'test result: ok\. 24 passed; 0 failed; 0 ignored;') { throw 'Expected all 24 P11 tests without skips' }
+      - name: Verify supported versions without private documents
+        if: inputs.p11_supported_template
+        run: |
+          cargo test --manifest-path src-tauri/Cargo.toml official_document_odt::tests::supported_template --lib --locked --jobs 1 -- --nocapture 2>&1 | Tee-Object "$env:P11_ROOT/evidence/supported-template.log"
+          if ($LASTEXITCODE -ne 0) { throw 'Supported template tests failed' }
+          if ((Get-Content "$env:P11_ROOT/evidence/supported-template.log" -Raw) -notmatch 'test result: ok\. 4 passed; 0 failed; 1 ignored;') { throw 'Expected four synthetic tests and one explicitly private-only harness' }
+          $executables = @(Get-ChildItem "$env:CARGO_TARGET_DIR/debug/deps/school_health_desk_lib-*.exe")
+          if ($executables.Count -ne 1) { throw 'Expected one library test executable' }
+          Copy-Item $executables[0].FullName "$env:P11_ROOT/evidence/p11-offline-validator.exe"
+          (Get-FileHash "$env:P11_ROOT/evidence/p11-offline-validator.exe" -Algorithm SHA256).Hash | Set-Content "$env:P11_ROOT/evidence/validator-sha256.txt"
       - name: Verify lockfile and source preservation
         if: always()
         run: |
