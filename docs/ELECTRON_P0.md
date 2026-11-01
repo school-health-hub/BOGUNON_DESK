@@ -1,5 +1,7 @@
 # ELECTRON-P0: Dashboard + Dock
 
+> 단계별 과거 기록입니다. 현재 기능·검증 판정과 학교 PC 인계는 **「2026-11-01 Codex Cloud 종료·학교 PC 인계」**를 먼저 확인하세요. P0의 범위 제외 설명은 당시 단계의 설명입니다.
+
 PoC 전용입니다. 운영 앱·로그인·학생 자료·금융 DB·업데이트 채널에 연결하지 않습니다. Windows 바탕화면 부착, 독립 Dock, 네이티브 셸 조작, 업무 기능 이전은 범위 밖입니다.
 
 ## 기준 및 보존
@@ -222,3 +224,78 @@ P1A CI는 빌드/두 패키지 생성/기존 실제 패키지 GUI E2E를 실행�
 - 결과물은 `ELECTRON-P2E5A-Windows-c355da4ddde9194f1f280dc622ad8cfb2a0d1257` 아티팩트에 있습니다. 새 창/범용 경로 API를 노출하거나 운영 배포하지 않았습니다. CI 경고 `ELECTRON_P1A_NOT_RUN`에 따라 일반 사용자 설치·설치 후 실행·제거는 승격 러너에서 NOT RUN입니다.
 - Cloud GUI는 BLOCKED/NOT RUN이며 Windows 실제 저장/덮어쓰기 대화상자, MS Excel 실제 열기, NTFS 외 저장소·권한·외부 편집기 동시 저장·강제 종료 검증은 미실행입니다. 마지막 지문 검사와 rename 사이의 경쟁을 완전히 차단하는 배타 잠금은 제공하지 않습니다. **최종 CONDITIONAL**이며 실사용 준비 완료로 표시하지 않습니다.
 - P2E5B는 정산·에듀파인의 원본 별도 열/금액/세무 표시 계약을 먼저 확인하고, 좁은 타입 IPC와 동일한 CLI 생성/파일 검증/main 저장 경계에 연결해야 합니다. 이 단계의 CSV/XLSX exportItems를 범용 경로/워크북 쓰기로 확대하지 않습니다. 원본 Tauri/Rust·운영 DB·MY FINANCE·기준 브랜치 보존, PR/병합/배포 없음. 문서 전용 커밋에는 `[skip ci]`를 사용해 동일 코드의 Windows 빌드를 반복하지 않습니다.
+
+## 2026-11-01 Codex Cloud 종료·학교 PC 인계
+
+### 보존 기준과 P2-E-5B 확인 상태
+
+- 저장소: https://github.com/school-health-hub/BOGUNON_DESK
+- 이어서 받을 브랜치: `feature/electron-p2e5a-purchase-export`. 이번 정리 시작 시 로컬·원격 HEAD는 모두 `5cdb601905986772b25bcd24b95f50a03fa016a1`입니다. 검증된 기능 코드 SHA는 `c355da4ddde9194f1f280dc622ad8cfb2a0d1257`이며, 그 뒤에는 문서 변경만 있습니다. 이번 종료 커밋도 문서만 추가합니다. 최종 문서 커밋의 정확한 SHA는 최종 인계 보고 및 `git rev-parse HEAD`로 확인합니다.
+- **P2-E-5B는 미확인/미완료입니다.** 사용자도 별도 완료 브랜치/최종 SHA가 없음을 확인했으며 이번 인계 기준을 위 P2-E-5A 브랜치·SHA로 확정했습니다. 확인 시점의 로컬 브랜치·GitHub 브랜치 목록·현재 문서에는 Purchase P2-E-5B 완료 SHA/검증 기록이 없습니다. 현재 Electron의 정산·에듀파인 출력은 비활성화 상태입니다. 별도 세션의 미푸시 작업을 완료로 추정하거나 가져오지 않았습니다. P2-E-5A의 CONDITIONAL을 P2-E-5B 판정으로 대신 쓰지 않습니다. 별도 결과가 있다면 먼저 브랜치/SHA와 검증 증거를 확보해야 합니다.
+- 정리 시작 시 tracked/untracked 변경 없음, 현재 저장소의 merge/rebase/cherry-pick/revert/sequencer 및 index/HEAD 잠금 표식 없음. 원격 SHA와 명시적 원격 추적 ref 기준 ahead/behind `0/0`입니다. 이 Cloud의 fetch 매핑에서는 `@{upstream}` 별칭 해석이 안 되어 `refs/remotes/origin/feature/electron-p2e5a-purchase-export`와 직접 비교했습니다. 기존 기능 브랜치와 다른 작업 트리는 변경하지 않습니다.
+- `src-tauri/`는 Electron P0 기준 `0b2f49503c7bcc2bedeb9988bd5cef6b11982829` 대비 차이가 없습니다. Purchase Rust 원본도 보존됩니다. 전체 `src/`가 과거 main과 동일하다는 뜻은 아닙니다. Newsletter는 승인된 원본 모듈·자산을 선별 반영한 변경이 있습니다. 운영 DB·MY FINANCE 파일은 열거나 복사하지 않았습니다.
+
+### 구현 현황 — 구현과 실사용 판정 구분
+
+| 단계 | 현재 브랜치에 포함된 기능 | 남은 판정/범위 |
+| --- | --- | --- |
+| P0 | 기존 React Dashboard·위젯 배치/편집·내장 Dock·설정 저장/재실행 복원 | 바탕화면 부착·독립 투명 Dock 없음 |
+| P1-A | x64 Portable·사용자별 NSIS, 운영 앱과 다른 ID/설치·데이터 경로, 업데이트 없음 | 일반 사용자 설치·실행·제거 실기기 QA 남음 |
+| P1-B/C | 트레이·최소화/복원·창 크기/위치 저장, 모니터 영역 보정, 기본 X 완전 종료·선택적 트레이 숨김, 인계 정리 | 실제 트레이·다중 모니터·혼합 DPI 확인 남음 |
+| P2-A | 좁은 타입 IPC·호출자/입력 검증·구조화 오류, 합성 샘플 | 범용 invoke/파일 경로 API 없음 |
+| P2-B | 기존 빠른 메모 UI와 Electron 전용 저장·복원 | 운영 메모 자동 이관 없음 |
+| P2-C Calendar | 기존 일정 구조 조사 | **DEFER**: 인증된 Workspace/운영 저장소와 일정·할 일·학교 업무가 연결됨. 별도 로컬 일정으로 복제하면 중복·상태 불일치 위험. Electron 일정 표시는 빈 어댑터이며 독립 일정 앱을 구현하지 않음 |
+| P2-D-1~3 Newsletter | 기존 편집·미리보기, JSON 열기/저장·이미지 재연결, 승인된 PNG/PDF, 내부 프로젝트/revision·미리보기·확인 복구·충돌 차단 | `exportApproval: pending` 자산 출력은 계속 차단. 학교 PC 원고 복구/이미지/파일 대화상자 통합 QA 남음 |
+| P2-E-1 | 수동 품목 CRUD·검토·선택 합계·품의문·복사 | 품목/품의문은 세션 전용, 앱 종료 시 소멸 |
+| P2-E-2 | CSV UTF-8/BOM·EUC-KR, 헤더/열 매핑, 추가/확인 교체, 취소·오래된 결과 차단 | 손상/수식/한도 초과 거절 등 Rust 원본과의 안전 제한 차이는 위 기록 참조 |
+| P2-E-3A/B | 원본 Rust XLSX/XLS CLI·ZIP/BIFF 방어·기존 자동 시트 선택·열 매핑, Job Object | 사용자 시트 선택 없음, 자원 초과/강제 종료 추가 QA 남음 |
+| P2-E-4 | 원본 텍스트 PDF 표 추출·한글·매핑·추가/확인 교체 | 스캔 OCR 없음, 암호화 PDF 거절·안내, 실기기 QA 남음 |
+| P2-E-5A | 선택 구매 품목 CSV/XLSX 생성·파일 검증·main 저장 선택·덮어쓰기 확인·변경 감지·staging/원자적 교체 | **CONDITIONAL**. 외부 프로그램과의 완전한 배타 잠금은 아님 |
+| P2-E-5B | **미확인/미완료** — 사용자 확인 기준 별도 완료 브랜치/SHA 없음 | 정산·에듀파인 이전 완료로 표시하지 않음 |
+
+### 기존 검증 증거와 차단 사항
+
+- 최신 확인 코드의 기존 결과: Rust **51 PASS**, 관련 JavaScript/React **347 PASS**, TypeScript·프로덕션 빌드 PASS. [Windows CI 41294421602](https://github.com/school-health-hub/BOGUNON_DESK/actions/runs/41294421602) SUCCESS: Portable/NSIS 생성, 패키지 CLI의 가져오기/CSV·XLSX 출력 및 파일 검증, 기존 앱 GUI 회귀. **이번 정리는 이 기록을 재사용하며 테스트·빌드·QA를 재실행하지 않습니다.**
+- Newsletter P2-D-3 당시의 GUI는 BLOCKED/NOT RUN, 이후 위 Windows CI에서는 기존 Newsletter GUI 회귀가 통과했습니다. 이를 학교 PC의 모든 복구·이미지·파일 대화상자 검증 완료로 확대하지 않습니다. 수달 자산의 pending 정책과 WIP 디자인의 미승인 상태는 유지합니다.
+- Cloud GUI는 실행 환경 부재로 BLOCKED/NOT RUN. Windows CI는 승격 러너였으므로 경고 `ELECTRON_P1A_NOT_RUN`에 해당하는 일반 사용자 설치·설치 후 실행/재실행·제거는 NOT RUN입니다. 코드/패키지 CI 성공만으로 실사용 준비 완료라고 선언하지 않습니다.
+- Purchase 기존 대상의 최종 지문 재검사와 rename 사이의 경쟁, 강제 종료 시 잔존 임시 파일/내구성, Job Object 메모리/CPU 한도 초과 스트레스는 남습니다. 새 파일 hardlink 미지원 파일시스템은 안전하지 않은 fallback 없이 저장 실패합니다. 외부 편집 중인 파일을 덮어쓰지 말고 별도 새 파일을 사용합니다.
+- 공문·재고·운영 일정·계정 동기화·MY FINANCE의 Electron 이전은 완료 범위가 아닙니다. P2-E-5B 증거 미확인이 다음 기능 단계 판정의 차단 사항입니다.
+
+### 학교 PC에서 소스 받기 — 기존 폴더를 재사용하지 않기
+
+아래는 **학교 PC에서 나중에 실행할 PowerShell 안내**입니다. 기존 학교 PC 저장소에서 checkout/pull/reset하거나 기존 변경을 지우지 않습니다. Git이 설치되어 있어야 하며 인증이 필요하면 GitHub의 정상 로그인 절차를 사용합니다.
+
+```powershell
+$qaSource = Join-Path $env:USERPROFILE 'source\BOGUNON_DESK_Electron_20261101'
+if (Test-Path $qaSource) { throw '이미 존재하는 폴더입니다. 새 폴더 이름을 정하세요.' }
+git clone --single-branch --branch feature/electron-p2e5a-purchase-export https://github.com/school-health-hub/BOGUNON_DESK.git $qaSource
+Set-Location $qaSource
+git fetch origin
+git branch --show-current
+git rev-parse HEAD
+git rev-parse origin/feature/electron-p2e5a-purchase-export
+git rev-list --left-right --count HEAD...origin/feature/electron-p2e5a-purchase-export
+git status --short --branch
+git diff --name-only c355da4ddde9194f1f280dc622ad8cfb2a0d1257 HEAD
+```
+
+브랜치 일치, 로컬/원격 SHA 동일, ahead/behind `0 0`, 변경 파일 없음이 기준입니다. 마지막 diff는 현재 인계 시점에서는 `docs/ELECTRON_P0.md`만 나오는 것이 정상입니다. 이후 다른 코드가 추가됐다면 이 인계 결과를 그대로 적용하지 말고 새 변경 내용을 먼저 확인합니다. 이 안내는 의존성 설치·빌드·앱 실행을 자동으로 수행하지 않습니다.
+
+**소스 폴더 분리만으로 앱 설치/프로필이 분리되지는 않습니다.** Electron PoC는 `%LOCALAPPDATA%\Programs\BOGUNON DESK ELECTRON P0`, `%APPDATA%\BOGUNON-DESK-ELECTRON-P0`를 사용합니다. 기존 Electron P0가 있으면 자동 재설치/초기화/삭제하지 말고 먼저 별도 QA 계획을 세웁니다. Portable과 NSIS는 같은 PoC 프로필을 공유하므로 동시 별도 실행하지 않습니다. Tauri 운영 앱·계정·DB·로그인 경로는 연결하지 않습니다.
+
+### Windows 실기기 체크리스트 — 합성 데이터만
+
+1. 일반 사용자 권한·기존 운영/PoC 설치 여부를 확인하고, 운영 앱을 종료/제거/업데이트하지 않은 상태에서 PoC 설치 격리 조건을 먼저 점검합니다. 조건이 불명확하면 설치 보류합니다.
+2. 검증 코드 SHA와 맞는 Portable/NSIS·해시·서명/QA 결과를 위 CI 아티팩트에서 확인합니다. 보존 기간 만료 시 이번 종료 작업에서 빌드하지 말고 다음 승인된 작업에서 재생성합니다. 보안 경고를 우회하거나 Windows 보호 기능을 끄지 않습니다.
+3. Dashboard/Dock/위젯 저장·재실행, 메모 저장·복원, 기본 X 종료/선택적 트레이 숨김, 실제 모니터 추가·제거/배율을 확인합니다.
+4. 합성 CSV/XLSX/XLS/텍스트 PDF 가져오기·매핑·추가/교체 확인·취소/오류·기존 품목 보존을 확인합니다. OCR/암호화 PDF는 거절 안내가 정상입니다.
+5. 합성 구매 품목 CSV/XLSX 저장·실제 Excel 열기·열 순서/숫자/한글, 저장/덮어쓰기 취소·권한 오류·외부 변경·NTFS 외 대상 처리를 확인합니다. 실제 운영 파일을 덮어쓰지 않습니다. 정산/에듀파인 버튼은 현재 비활성화가 정상입니다.
+6. Newsletter 합성 원고의 JSON/이미지 재연결·내부 revision/확인 복구·충돌/손상 안내·승인된 출력 성공/pending 자산 차단을 확인합니다. 운영 원고·출력 원장에 접근하지 않습니다.
+7. 승인된 QA 계획에서 PoC만 정상 종료·제거/재설치 후 PoC 설정 보존과 운영 앱 설치/데이터 무변경을 확인합니다. 운영 앱·기존 금융 DB는 열기/복사/삭제하지 않습니다.
+
+### 다음 시작 순서와 종료 범위
+
+1. 이 문서와 최종 인계 보고의 브랜치/SHA·원격 clean 상태부터 확인합니다. 별도 P2-E-5B가 있다면 그 SHA/검증 증거를 먼저 확보하고 현재 코드와 비교합니다. 다른 세션/브랜치를 자동 merge하거나 덮어쓰지 않습니다.
+2. 학교 PC에서는 위 합성 데이터 실기기 QA가 우선입니다. 일반 사용자 설치·native 파일 대화상자·실제 Excel/Newsletter 복구·운영 앱 격리 결과를 기록합니다.
+3. P2-E-5B 결과가 없다면 향후 별도 승인된 단계에서 정산·에듀파인 원본 계약 이전을 진행합니다. 기존 안전 저장의 동시 쓰기·강제 종료 한계도 먼저 평가합니다. Calendar는 운영 데이터/인증 전략이 확정되기 전 DEFER를 유지합니다.
+4. 이번 종료 작업은 이 문서만 commit/push하며 `[skip ci]`로 문서 변경에 따른 CI 재실행을 막습니다. 신규 기능·테스트/빌드/Windows QA·GUI 재시도·PR·main 병합·배포·다른 세션/작업 트리 변경은 하지 않습니다.
