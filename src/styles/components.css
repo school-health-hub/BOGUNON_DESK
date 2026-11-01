@@ -473,6 +473,7 @@
 .official-document-ai-confirm__editor textarea { min-height: 180px; max-height: 320px; resize: vertical; overflow: auto; padding: 11px; border: 1px solid var(--control-border); border-radius: var(--radius-control); color: var(--text-secondary); background: var(--workspace-bg); font: inherit; font-size: var(--text-sm); line-height: var(--leading-body); white-space: pre-wrap; word-break: keep-all; overflow-wrap: anywhere; }
 .official-document-ai-confirm__blocker { margin: 0; color: var(--danger-700); font-size: var(--text-sm); line-height: var(--leading-body); }
 .official-document-result__notice { margin: -5px 0 0; color: var(--text-muted); font-size: var(--text-sm); line-height: var(--leading-body); }
+details.official-document-result > .official-document-form-grid + .official-document-result__notice { margin: var(--space-3) 0 0; }
 .official-document-ai-confirm > footer { display: flex; justify-content: flex-end; gap: 7px; }
 .official-document-ai-confirm > footer button { min-height: 32px; padding: 0 11px; border: 1px solid var(--border); border-radius: var(--radius-control); color: var(--text-secondary); background: var(--widget-bg); font-size: var(--text-sm); font-weight: var(--weight-semibold); }
 .official-document-ai-confirm > footer button.is-primary { color: var(--accent-hover); border-color: var(--accent-border); background: var(--accent-soft); }
