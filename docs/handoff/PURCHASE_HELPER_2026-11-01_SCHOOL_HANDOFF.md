@@ -166,7 +166,7 @@ gh run download 41317332718 --repo school-health-hub/BOGUNON_DESK --name 'purcha
 | 계정 비밀값·사용자 DB·실제 파일 | 접근·전송하지 않음 | 합성 데이터만 사용; 비밀값은 변수 이름/재생성 절차만 기록 |
 | 학교 PC runtime/복원 실행 | **NOT RUN** | 첫 단계는 read-only 상태·용량·도구 확인. 수신 PC 검증 전 HANDOFF READY로 단정하지 않음 |
 
-보안 정적 검사에서 확인된 비밀값 문제는 없었다. 새 Artifact는 E:에 확보했고 내부 hash 233건을 검증했다. 새 증거 전체의 독립 보안 내용 재검토는 **NOT RUN**이며 hash 일치만으로 내용 안전성을 증명하지 않는다. 전용 gitleaks/trufflehog는 PATH에 없으며 .NET 정규식과 수동 텍스트/ZIP entry 검사를 사용한다. 바이너리 OCR 검사는 수행하지 않아 잔여 위험이 있다. tracked 파일만 검사하고 ignored 증거까지 안전하다고 추정하지 않는다. 증거는 합성 데이터만 사용하며 인증값·개인정보를 Git/Artifact에 추가하지 않는다. 원본 증거의 무분별한 force-add 금지.
+보안 정적 검사에서 확인된 비밀값 문제는 없었다. 새 Artifact는 E:에 확보했고 내부 hash 233건을 검증했다. 새 증거의 빠른 텍스트 보안 검사 **57파일 PASS**(자격증명·개인정보 패턴 미검출)이며, 바이너리 152파일의 OCR 및 전체 육안 내용 검사는 **NOT RUN**이다. hash 일치나 패턴 미검출만으로 내용 안전성을 증명하지 않는다. 전용 gitleaks/trufflehog는 PATH에 없으며 .NET 정규식과 수동 텍스트/ZIP entry 검사를 사용한다. 바이너리 OCR 검사는 수행하지 않아 잔여 위험이 있다. tracked 파일만 검사하고 ignored 증거까지 안전하다고 추정하지 않는다. 증거는 합성 데이터만 사용하며 인증값·개인정보를 Git/Artifact에 추가하지 않는다. 원본 증거의 무분별한 force-add 금지.
 
 집 PC C:는 이전 0바이트였고 오늘 시작 조회 약 1GiB였지만, 승인 제한을 유지해 C: 설치·빌드·GUI 및 임의 캐시/임시 파일 삭제를 하지 않는다. 기존 약 3.5KiB 합성 gate 임시 파일도 보존한다. E: 증거는 삭제하지 않는다. 저장 공간 복구는 별도 관리 작업이다. 최종 용량과 종료 프로세스 상태는 종료 보고에 기록한다.
 
@@ -190,15 +190,3 @@ gh run download 41317332718 --repo school-health-hub/BOGUNON_DESK --name 'purcha
 28개 worktree가 등록되어 있고 27개 경로가 존재한다. 1개는 기존 경로 누락/prunable 표시지만 삭제·prune하지 않았다. 다른 작업에서 미커밋 변경이 관측됐다: 주 저장소 1개, newsletter 40개, documents 1개, update-candidate 3,717개 및 `MERGE_HEAD`. 이들은 기존 또는 동시 작업 상태이며 Purchase 정리 대상으로 삼지 않는다. 개인정보가 포함될 수 있는 구체 untracked 파일명은 이 문서에 옮기지 않는다. 정확한 초기/최종 inventory는 E: 종료 증거에서 확인한다.
 
 Purchase 관련 열린 PR은 없었으며, 다른 열린 PR 30/29/26은 이 작업에서 변경하지 않았다. 등록 정보·작업 상태는 감사 중에도 다른 세션에 의해 바뀔 수 있으므로, 초기/최종 차이가 있으면 Purchase가 변경했다고 추정하거나 되돌리지 말고 확인 가능한 범위로 보고한다. 과거 run의 로컬 증거 240개, 43,157,257바이트는 inventory hash와 일치한다. 종료 읽기 전용 재확인에서 Purchase 외 27개 등록 항목의 경로 존재 여부·HEAD·브랜치·status 출력 SHA-256은 초기와 같았다. 이미 dirty인 파일 내용 자체의 해시는 수집하지 않았으므로 다른 세션의 동일-status 내용 변경까지 바이트 단위로 불변이라고 증명하지는 않는다. 위 dirty 상태와 MERGE_HEAD는 그대로 두었다.
-
-
-
-
-
-
-
-
-
-
-
-
