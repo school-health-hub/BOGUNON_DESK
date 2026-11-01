@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { APP_ID, PRODUCT_NAME, PROFILE_NAME } from '../protocol.js';
 import { desktopDefaults, validateDesktop, fitBounds, type DesktopState } from './desktop.js';
 import { SettingsStore } from './settings.js';
+import { createNewsletterExportHandler, generateInOwnedWindow } from './newsletter-export.js';
 import { createNewsletterSaveHandler } from './newsletter-json.js';
 import { MemoStore, createMemoHandlers } from './memo-ipc.js';
 import { createSampleHandler, SAMPLE_SUMMARY_CHANNEL } from './sample-ipc.js';
@@ -57,6 +58,12 @@ else {
   ipcMain.handle('p2:newsletter:save-json',createNewsletterSaveHandler(window.webContents,url,{
    pick:async()=>{const r=await dialog.showSaveDialog(window,{title:'원고·디자인 JSON 저장',defaultPath:'newsletter.json',filters:[{name:'Newsletter JSON',extensions:['json']}]});return r.canceled?undefined:r.filePath;},
    confirm:async()=>(await dialog.showMessageBox(window,{type:'warning',message:'선택한 JSON 파일을 덮어쓸까요?',buttons:['취소','덮어쓰기'],defaultId:0,cancelId:0})).response===1,
+  }));
+  ipcMain.handle('p2:newsletter:export',createNewsletterExportHandler(window.webContents,url,{
+   generate:r=>generateInOwnedWindow(r,renderer,dev),
+   approve:async summary=>(await dialog.showMessageBox(window,{type:'question',message:'검증된 문서로 이번 출력을 저장할까요?',detail:summary+'\n이 확인은 자산 승인 상태를 변경하지 않습니다.',buttons:['취소','이번 출력 저장'],defaultId:0,cancelId:0})).response===1,
+   pick:async selection=>{if(selection==='card-pngs'){const r=await dialog.showOpenDialog(window,{title:'카드 PNG 새 묶음 폴더를 만들 위치',properties:['openDirectory']});return r.canceled?undefined:r.filePaths[0];}const png=selection==='a4-png';const r=await dialog.showSaveDialog(window,{title:'소식지 출력 저장',defaultPath:selection==='cards-pdf'?'newsletter-cards.pdf':png?'newsletter-a4.png':'newsletter-a4.pdf',filters:[{name:png?'PNG':'PDF',extensions:[png?'png':'pdf']}]});return r.canceled?undefined:r.filePath;},
+   confirm:async()=>(await dialog.showMessageBox(window,{type:'warning',message:'선택한 출력 파일을 덮어쓸까요?',buttons:['취소','덮어쓰기'],defaultId:0,cancelId:0})).response===1,
   }));
   const show=()=>{if(window.isMinimized())window.restore();window.show();window.focus();};
   const persist=async()=>{

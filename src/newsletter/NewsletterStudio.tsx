@@ -36,7 +36,7 @@ export function NewsletterStudio({ onClose }: { readonly onClose: () => void }) 
       <button type="button" disabled={document === undefined || busy} onClick={() => { if (document !== undefined) void perform(async () => { const result = await window.electronWork.newsletter.saveJson({json:serializeStudioDocument(document)}); if(!result.ok)throw new Error(result.error.message);setMessage(result.data.saved?"원고·디자인 JSON을 저장했습니다.":"JSON 저장을 취소했습니다."); }) }}>원고·디자인 JSON 저장</button>
       <label>이미지 원본 연결<input aria-label="이미지 원본 연결" type="file" multiple accept="image/png,image/jpeg,image/webp" disabled={document === undefined || busy} onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ""; if (document !== undefined) void perform(async () => { setImages(await addStudioAssetFiles(document.design, images, files)); setMessage(`${files.length}개 이미지의 SHA-256을 확인했습니다. 승인 상태는 변경하지 않았습니다.`) }) }} /></label>
     </header>
-    <p>Electron 편집·미리보기 전용 · WIP 디자인은 승인된 최종 디자인이 아닙니다. PNG/PDF·기존 Tauri 원고 저장소는 연결하지 않습니다.</p>
+    <p>Electron 편집·미리보기 전용 · WIP 디자인은 승인된 최종 디자인이 아닙니다. PNG/PDF는 독립 검증 후 저장하며 기존 Tauri 원고 저장소는 연결하지 않습니다.</p>
     <p className="newsletter-file-note">JSON에는 원고·디자인·승인 상태를 보존하며 이미지 원본은 포함하지 않습니다. 다시 열 때 같은 이미지 파일을 선택하면 SHA-256으로 연결합니다.</p>
     {message.length > 0 && <p role="status">{message}</p>}
     {document === undefined ? <p className="newsletter-empty">저장한 원고·디자인 JSON을 열거나 Windows 앱의 기존 원고를 불러오세요. 원고 없이 건강정보를 자동 생성하지 않습니다.</p> : fontReady ? <NewsletterDesignEditor key={session} project={document.project} initialDesign={document.design} assetResolver={resolver} onChange={setDocument} /> : <p role="status">한글 글꼴을 준비하는 중입니다…</p>}

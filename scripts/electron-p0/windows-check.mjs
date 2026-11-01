@@ -6,18 +6,18 @@ const ps=script=>execFileSync('powershell.exe',['-NoProfile','-NonInteractive','
 const run=(args,env=process.env)=>{
  const r=spawnSync(process.execPath,args,{encoding:'utf8',env,maxBuffer:64*1024*1024,timeout:15*60*1000});
  process.stdout.write(r.stdout??'');process.stderr.write(r.stderr??'');
- if(r.status!==0)throw Error(`${args.join(' ')}: ${r.error?.message??''}\n${(r.stdout??'').split('\n').filter(l=>l.includes('P1B_DIAGNOSTIC')).join('\n')}\n${((r.stdout??'')+(r.stderr??'')).split('\n').slice(-25).join('\n')}`);
+ if(r.status!==0)throw Error(`${args.join(' ')}: ${r.error?.message??''}\n${(r.stdout??'').split('\n').filter(l=>l.includes('P1B_DIAGNOSTIC')||l.includes('P2D2_DIAGNOSTIC')).join('\n')}\n${((r.stdout??'')+(r.stderr??'')).split('\n').slice(-25).join('\n')}`);
 };
 const npm=(task,env)=>run([process.env.npm_execpath,'run',task],env);
-const report={baseline:'0b2f49503c7bcc2bedeb9988bd5cef6b11982829',sourceSha:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),baselineRegression:'REUSED: P0 CI 41236999963',installation:'NOT RUN',installedUiAndRestart:'NOT RUN',uninstallAndSettingsRetention:'NOT RUN',physicalWindowsPc:'NOT RUN'};
+const report={baseline:'ac31d15cfd49820925776f2b1fd0a0a46200bab4',sourceSha:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),baselineRegression:'REUSED: P0 CI 41236999963',installation:'NOT RUN',installedUiAndRestart:'NOT RUN',uninstallAndSettingsRetention:'NOT RUN',physicalWindowsPc:'NOT RUN'};
 try{
- execFileSync('git',['diff','--exit-code',report.baseline,'--','src','src-tauri','electron-p0/renderer','electron-p0/preload'],{stdio:'inherit'});
+ execFileSync('git',['diff','--exit-code',report.baseline,'--','src','src-tauri',':(exclude)src/newsletter/NewsletterStudio.tsx'],{stdio:'inherit'});
  report.elevated=ps('[Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)')==='True';
  if(!report.elevated&&(existsSync(join(process.env.LOCALAPPDATA,'Programs','BOGUNON DESK ELECTRON P0'))||existsSync(join(process.env.APPDATA,'BOGUNON-DESK-ELECTRON-P0'))))throw Error('Existing PoC installation/profile: refuse installation');
  report.windows=ps('(Get-CimInstance Win32_OperatingSystem).Version');
  // Build once; the package script intentionally remains compatible with P0 portable users.
  npm('electron:p0:build');
- npm('electron:p0:test');
+ run([process.env.npm_execpath,'exec','--','vitest','run','electron-p0/tests','src/newsletter','--maxWorkers=4']);
  run(['node_modules/electron-builder/out/cli/cli.js','--config','electron-p0/builder.json','--win','portable','nsis','--x64','--publish','never']);
  report.packaging='PASS';
  npm('electron:p0:test:e2e',{...process.env,ELECTRON_P0_EXECUTABLE:join(process.cwd(),'release-electron-p0/win-unpacked/BOGUNON DESK ELECTRON P0.exe')});

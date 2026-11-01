@@ -5,7 +5,7 @@ const root=fileURLToPath(new URL('./renderer',import.meta.url));
 const fixture=(name:string)=>fileURLToPath(new URL(`./renderer/adapters/${name}.ts`,import.meta.url));
 export default defineConfig({root,base:'./',envDir:root,envPrefix:'ELECTRON_P0_PUBLIC_',publicDir:false,plugins:[react(),{
   name:'p0-closed-renderer',enforce:'pre',
-  resolveId(source,importer){if(source==='./NewsletterOutputControls'&&importer?.endsWith('/newsletter/rendering/NewsletterDesignEditor.tsx'))return fileURLToPath(new URL('./renderer/adapters/NewsletterOutputDisabled.tsx',import.meta.url));if(/(?:^|\/)MemoWidget(?:\.tsx)?$/.test(source))return fileURLToPath(new URL('./renderer/adapters/PersistentMemo.tsx',import.meta.url));if(source==='react-grid-layout'&&importer?.replaceAll('\\','/').endsWith('/src/components/dashboard/DesktopWidgetLayout.tsx'))return fileURLToPath(new URL('./renderer/adapters/GridLayout.tsx',import.meta.url));},
+  resolveId(source,importer){if(source==='./NewsletterOutputControls'&&importer?.endsWith('/newsletter/rendering/NewsletterDesignEditor.tsx'))return fileURLToPath(new URL('./renderer/adapters/NewsletterOutputControls.tsx',import.meta.url));if(/(?:^|\/)MemoWidget(?:\.tsx)?$/.test(source))return fileURLToPath(new URL('./renderer/adapters/PersistentMemo.tsx',import.meta.url));if(source==='react-grid-layout'&&importer?.replaceAll('\\','/').endsWith('/src/components/dashboard/DesktopWidgetLayout.tsx'))return fileURLToPath(new URL('./renderer/adapters/GridLayout.tsx',import.meta.url));},
   generateBundle(){
     const modules=[...this.getModuleIds()].map(p=>p.replaceAll('\\','/'));
     const forbidden=modules.filter(p=>/@tauri-apps|@supabase|\/src\/(auth|ai|chatgpt|my-finance|purchase|official-document|record-helper)\//.test(p));
@@ -17,4 +17,4 @@ export default defineConfig({root,base:'./',envDir:root,envPrefix:'ELECTRON_P0_P
  {find:/^.*\/meal\/MealDataContext$/,replacement:fixture('meal')},
  {find:/^.*\/weather\/WeatherDataContext$/,replacement:fixture('weather')},
  {find:/^.*\/desktop\/actions$/,replacement:fixture('actions')},
-]},server:{host:'127.0.0.1',port:5174,strictPort:true,fs:{allow:[fileURLToPath(new URL('..',import.meta.url))]}},build:{outDir:'../../build/electron-p0-app/renderer',emptyOutDir:true}});
+]},server:{host:'127.0.0.1',port:5174,strictPort:true,fs:{allow:[fileURLToPath(new URL('..',import.meta.url))]}},build:{rollupOptions:{input:{app:fileURLToPath(new URL('./renderer/index.html',import.meta.url)),exportWorker:fileURLToPath(new URL('./renderer/export-worker.html',import.meta.url))}},outDir:'../../build/electron-p0-app/renderer',emptyOutDir:true}});

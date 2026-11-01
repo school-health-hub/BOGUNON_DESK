@@ -16,7 +16,7 @@ export type SyntheticSummary = Readonly<{fixture:'synthetic-only';total:3;comple
 export type IpcErrorCode = 'FORBIDDEN' | 'INVALID_INPUT' | 'INTERNAL_ERROR' | 'STORAGE_ERROR';
 export type IpcResult<T> = Readonly<{ok:true;data:T}> | Readonly<{ok:false;error:Readonly<{code:IpcErrorCode;message:string;retryable:boolean}>}>;
 export interface WorkBridge {
- readonly newsletter:Readonly<{saveJson(request:Readonly<{json:string}>):Promise<IpcResult<NewsletterSaveResult>>}>;
+ readonly newsletter:Readonly<{exportOutput(request:NewsletterExportRequest):Promise<IpcResult<NewsletterExportResult>>;saveJson(request:Readonly<{json:string}>):Promise<IpcResult<NewsletterSaveResult>>}>;
  readonly memo: Readonly<MemoBridge>;
  readonly sample: Readonly<{summarize(request:SyntheticSummaryRequest):Promise<IpcResult<SyntheticSummary>>}>;
 }
@@ -28,3 +28,9 @@ export interface MemoBridge {
 }
 
 export type NewsletterSaveResult=Readonly<{saved:boolean;fileName?:string}>;
+
+export type NewsletterExportSelection='a4-png'|'a4-pdf'|'card-pngs'|'cards-pdf';
+export type NewsletterExportRequest=Readonly<{document:string;selection:NewsletterExportSelection;assets:readonly Readonly<{reference:string;bytesBase64:string}>[]}>;
+export type NewsletterExportResult=Readonly<{saved:boolean;names?:readonly string[]}>;
+export type GeneratedNewsletterFile=Readonly<{fileName:string;bytesBase64:string}>;
+export type TrustedNewsletterOutput=Readonly<{summary:string;files:readonly GeneratedNewsletterFile[]}>;
