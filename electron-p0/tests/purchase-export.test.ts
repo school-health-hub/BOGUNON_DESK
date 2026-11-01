@@ -1,7 +1,7 @@
 import type {PurchaseExportRequest} from '../protocol';
 import {writeFileSync} from 'node:fs';
 import {it,expect,vi} from 'vitest';import {mkdtemp,readFile,writeFile,rm,readdir,symlink} from 'node:fs/promises';import {tmpdir} from 'node:os';import {join,resolve} from 'node:path';import {existsSync} from 'node:fs';
-import {validatePurchaseExport} from '../main/purchase-export-validation';import {createEmptyPurchaseItem,updatePurchaseItem} from '../renderer/purchase/purchase/purchaseDomain';import {writePurchaseExport,ExportConflict} from '../main/purchase-export-storage';import {createPurchaseExportHandler} from '../main/purchase-export';import {ExcelService} from '../main/purchase-excel';
+import {validatePurchaseExport,purchaseExportFileName} from '../main/purchase-export-validation';import {createEmptyPurchaseItem,updatePurchaseItem} from '../renderer/purchase/purchase/purchaseDomain';import {writePurchaseExport,ExportConflict} from '../main/purchase-export-storage';import {createPurchaseExportHandler} from '../main/purchase-export';import {ExcelService} from '../main/purchase-excel';
 const item=updatePurchaseItem(createEmptyPurchaseItem('synthetic-export'),{name:'합성 품목',quantity:2.5,unitPrice:100.6});const request={format:'csv' as const,items:[item],columns:['name','amount','quantity','unitPrice','specification'] as const};
 const url='file:///p0',frame={},wc={mainFrame:frame,getURL:()=>url},event={sender:wc,senderFrame:frame};
 it('reuses original amount validation, recomputes forged issues and rejects invalid/oversized/path-bearing requests',()=>{
@@ -41,3 +41,5 @@ it('cancels outstanding native dialogs without allowing a late choice to write a
  const h=createPurchaseExportHandler(wc,url,{review:()=>new Promise(r=>{answer=r;}),generate,pick,confirm});const pending=h.handle(event,request);h.dispose();await h.flush();expect(await pending).toEqual({ok:true,data:{status:'canceled'}});answer(true);await Promise.resolve();expect(generate).not.toHaveBeenCalled();expect(pick).not.toHaveBeenCalled();
  let finished!:(bytes:Buffer)=>void;let signal:AbortSignal|undefined;const active=createPurchaseExportHandler(wc,url,{review:async()=>true,generate:(_r,s)=>{signal=s;return new Promise(r=>{finished=r;});},pick,confirm});const job=active.handle(event,request);await vi.waitFor(()=>expect(signal).toBeTruthy());active.dispose();expect(signal?.aborted).toBe(true);finished(Buffer.from('unused'));expect(await job).toEqual({ok:true,data:{status:'canceled'}});expect(pick).not.toHaveBeenCalled();
 });
+
+it('keeps the original UTC YYYYMMDD default filename contract',()=>{expect(purchaseExportFileName('csv',new Date('2026-01-02T00:00:00Z'))).toBe('품의_품목내역_20260102.csv');expect(purchaseExportFileName('xlsx',new Date('2026-12-31T23:59:59Z'))).toBe('품의_품목내역_20261231.xlsx');});

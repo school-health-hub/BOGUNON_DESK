@@ -34,3 +34,5 @@ export function decodePurchaseExport(value:unknown,request:PurchaseExportRequest
  const bytes=Buffer.from(r.bytesBase64,'base64');if(bytes.length>32*1024*1024||bytes.toString('base64')!==r.bytesBase64)throw Error('Invalid generated size');
  if(request.format==='csv'?!bytes.subarray(0,3).equals(Buffer.from([239,187,191])):!bytes.subarray(0,4).equals(Buffer.from([80,75,3,4])))throw Error('Invalid generated format');return bytes;
 }
+
+export function purchaseExportFileName(format:'csv'|'xlsx',now=new Date()):string{return `품의_품목내역_${now.toISOString().slice(0,10).replaceAll('-','')}.${format}`;}
