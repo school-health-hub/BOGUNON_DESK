@@ -1,3 +1,4 @@
+import { SyntheticIpcSample } from './SyntheticIpcSample';
 import { useEffect, useState } from 'react';
 import type { P0Info } from '../protocol';
 import { DesktopWidgetLayout } from '../../src/components/dashboard/DesktopWidgetLayout';
@@ -73,7 +74,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
       {editing&&panel==='presets'&&<PresetSelector currentPresetId={layout.presetId} onClose={()=>setPanel(null)} onApply={id=>setLayout(applyPreset(layout,id,window.confirm))}/>}
       {editing&&panel==='dock'&&<DockEditor dockLayout={dock} onClose={()=>setPanel(null)} onUpdate={setDock}/>}
       {active!=='home'&&<div className="desktop-panel-backdrop"><section className="desktop-panel p0-panel" role="dialog" aria-label={active==='settings'?'PoC 설정':active==='quick-memo'?'빠른 메모':'업무 도구'}><button type="button" onClick={()=>navigate('home')}>홈으로</button>
-        {active==='quick-memo'?<MemoWidget/>:active==='settings'?<><h1>PoC 설정</h1><p>앱 ID: {info?.appId}</p><p>PoC 저장 위치: {info?.userData}</p><p>소스: {info?.sourceSha}</p><p>Electron: {info?.electron}</p><p>자동 업데이트·로그인·파일 접근 API 없음</p></>:<><h1>업무 도구</h1><p>업무 기능은 이번 PoC에 연결하지 않았습니다.</p></>}
+        {active==='quick-memo'?<MemoWidget/>:active==='settings'?<><h1>PoC 설정</h1><SyntheticIpcSample/><p>앱 ID: {info?.appId}</p><p>PoC 저장 위치: {info?.userData}</p><p>소스: {info?.sourceSha}</p><p>Electron: {info?.electron}</p><p>자동 업데이트·로그인·파일 접근 API 없음</p></>:<><h1>업무 도구</h1><p>업무 기능은 이번 PoC에 연결하지 않았습니다.</p></>}
       </section></div>}
       {notice&&<div className="p0-notice" role="status">{notice}<button onClick={()=>setNotice(null)}>닫기</button></div>}
       <span className="p0-save" role="status" data-p0-save>{status}</span>

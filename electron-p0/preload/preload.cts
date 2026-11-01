@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { P0Bridge, P0Settings } from '../protocol.js';
+import type { P0Bridge, P0Settings, WorkBridge, SyntheticSummaryRequest } from '../protocol.js';
 if (!process.sandboxed || !process.contextIsolated) throw new Error('PoC requires a sandboxed isolated preload');
 const bridge: P0Bridge = Object.freeze({
   info: () => ipcRenderer.invoke('p0:info'),
@@ -7,3 +7,11 @@ const bridge: P0Bridge = Object.freeze({
   writeSettings: (settings: P0Settings) => ipcRenderer.invoke('p0:write-settings',settings),
 });
 contextBridge.exposeInMainWorld('electronP0',bridge);
+
+const work: WorkBridge = Object.freeze({sample:Object.freeze({
+  summarize: async (request:SyntheticSummaryRequest) => {
+    try{return await ipcRenderer.invoke('p2:sample:summary',request);}
+    catch{return {ok:false as const,error:{code:'INTERNAL_ERROR' as const,message:'샘플 연결을 완료하지 못했습니다.',retryable:true}};}
+  },
+})});
+contextBridge.exposeInMainWorld('electronWork',work);

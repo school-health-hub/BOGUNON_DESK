@@ -16,6 +16,15 @@ test('real Electron: secure bridge, original dashboard/dock, navigation, edit an
   expect(await page.evaluate(()=>({keys:Object.keys(window.electronP0),node:typeof (window as unknown as {require:unknown}).require}))).toEqual({keys:['info','readSettings','writeSettings'],node:'undefined'});
   const info=await page.evaluate(()=>window.electronP0.info());expect(info.appId).toBe('kr.sungandi.schoolhealthdesk.electronp0');expect(info.userData).toContain(id);
   await page.getByRole('button',{name:'설정',exact:true}).click();await expect(page.getByRole('heading',{name:'PoC 설정'})).toBeVisible();
+  const beforeSample=await page.evaluate(()=>window.electronP0.readSettings());
+  expect(await page.evaluate(()=>({keys:Object.keys(window.electronWork),sample:Object.keys(window.electronWork.sample)}))).toEqual({keys:['sample'],sample:['summarize']});
+  await page.getByRole('button',{name:'합성 IPC 확인',exact:true}).click();
+  await expect(page.getByText('합성 항목 3개 중 1개 완료',{exact:true})).toBeVisible();
+  expect(await page.evaluate(()=>window.electronWork.sample.summarize({fixture:'synthetic-only',completed:['prepare','prepare']} as never))).toMatchObject({ok:false,error:{code:'INVALID_INPUT'}});
+  expect(await page.evaluate(()=>window.electronWork.sample.summarize({fixture:'synthetic-only',completed:[],path:'C:/synthetic'} as never))).toMatchObject({ok:false,error:{code:'INVALID_INPUT'}});
+  expect(await page.evaluate(()=>window.electronWork.sample.summarize({fixture:'synthetic-only',completed:Array(1)}))).toMatchObject({ok:false,error:{code:'INVALID_INPUT'}});
+  expect(await page.evaluate(()=>window.electronP0.readSettings())).toEqual(beforeSample);
+
   await page.getByRole('button',{name:'홈으로'}).click();await page.getByRole('button',{name:'빠른 메모',exact:true}).click();await expect(page.getByRole('dialog',{name:'빠른 메모'})).toBeVisible();await page.getByRole('button',{name:'홈으로'}).click();
   await page.getByRole('navigation',{name:'주요 기능'}).getByRole('button',{name:'BOGUNON',exact:true}).click();await expect(page.getByText('이 기능은 ELECTRON-P0 범위에 포함되지 않습니다.',{exact:false})).toBeVisible();await page.getByRole('button',{name:'닫기',exact:true}).click();
   await page.getByRole('button',{name:'화면 꾸미기',exact:true}).click();

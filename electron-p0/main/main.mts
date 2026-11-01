@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { APP_ID, PRODUCT_NAME, PROFILE_NAME } from '../protocol.js';
 import { desktopDefaults, validateDesktop, fitBounds, type DesktopState } from './desktop.js';
 import { SettingsStore } from './settings.js';
+import { createSampleHandler, SAMPLE_SUMMARY_CHANNEL } from './sample-ipc.js';
 import { assertSender, resourceAllowed } from './policy.js';
 if (app.commandLine.hasSwitch('no-sandbox') || app.commandLine.hasSwitch('disable-web-security')) throw new Error('Unsafe Electron launch flags denied');
 app.setName(PRODUCT_NAME);
@@ -46,6 +47,7 @@ else {
     if (channel === 'p0:read-settings') return store.read();
     return store.write(args[0]);
   });
+  ipcMain.handle(SAMPLE_SUMMARY_CHANNEL,createSampleHandler(window.webContents,url));
   const show=()=>{if(window.isMinimized())window.restore();window.show();window.focus();};
   const persist=async()=>{
     try{await desktopStore.write(desktop);return true;}
