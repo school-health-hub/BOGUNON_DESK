@@ -1,7 +1,7 @@
-name: ELECTRON-P0 Windows PoC
+name: ELECTRON-P1A Windows installer
 on:
   push:
-    branches: [feature/electron-p0-dashboard]
+    branches: [feature/electron-p0-dashboard, feature/electron-p1a-windows-installer]
   workflow_dispatch:
 permissions:
   contents: read
@@ -23,34 +23,38 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - name: Original-source guard, TypeScript, full JS regression, portable packaging and actual packaged Electron UI
+      - name: P0 preservation, TypeScript, Portable + NSIS, packaged UI and non-elevated installer QA
         run: npm run electron:p0:ci:windows
       - name: Record exact PoC artifact hash and signature (not a production release)
         shell: pwsh
         run: |
           $files = @(Get-ChildItem release-electron-p0/*.exe)
-          if ($files.Count -ne 1) { throw 'Ambiguous PoC artifact' }
-          $file = $files[0]
-          $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-          $signature = [string](Get-AuthenticodeSignature $file.FullName).Status
-          if ($signature -notin @('NotSigned','Valid')) { throw 'Unexpected signature state' }
-          "$hash  $($file.Name)" | Set-Content release-electron-p0/SHA256SUMS.txt
-          @{scope='Electron P0 only';sourceSha=$env:GITHUB_SHA;sha256=$hash;signature=$signature;automatedPackagedUi='PASS';physicalWindowsPc='NOT RUN';productionDeployment=$false} | ConvertTo-Json | Set-Content release-electron-p0/P0-BUILD-RESULT.json
-          Write-Output "::notice title=ELECTRON_P0_SHA256::$hash"
-          Write-Output "::notice title=ELECTRON_P0_SIGNATURE::$signature"
+          if ($files.Count -ne 2) { throw 'Expected Portable and NSIS artifacts' }
+          $results = foreach ($file in $files) {
+            $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            $signature = [string](Get-AuthenticodeSignature $file.FullName).Status
+            if ($signature -notin @('NotSigned','Valid')) { throw 'Unexpected signature state' }
+            "$hash  $($file.Name)" | Add-Content release-electron-p0/SHA256SUMS.txt
+            Write-Output "::notice title=ELECTRON_P1A_ARTIFACT::$($file.Name) SHA256=$hash signature=$signature"
+            @{file=$file.Name;sha256=$hash;signature=$signature}
+          }
+          @{scope='Electron P1A only';sourceSha=$env:GITHUB_SHA;files=@($results);qa=(Get-Content release-electron-p0/P1A-QA-RESULT.json -Raw | ConvertFrom-Json);productionDeployment=$false} | ConvertTo-Json -Depth 8 | Set-Content release-electron-p0/P0-BUILD-RESULT.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: ELECTRON-P0-Windows-${{ github.sha }}
+          name: ELECTRON-P1A-Windows-${{ github.sha }}
           path: |
             release-electron-p0/*.exe
             release-electron-p0/SHA256SUMS.txt
             release-electron-p0/P0-BUILD-RESULT.json
+            release-electron-p0/P1A-QA-RESULT.json
           if-no-files-found: error
           retention-days: 7
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: ELECTRON-P0-UI-evidence-${{ github.run_id }}
-          path: artifacts/electron-p0-e2e/
+          name: ELECTRON-P1A-UI-evidence-${{ github.run_id }}
+          path: |
+            artifacts/electron-p0-e2e/
+            release-electron-p0/P1A-QA-RESULT.json
           if-no-files-found: ignore
           retention-days: 7
