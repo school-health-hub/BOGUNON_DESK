@@ -51,7 +51,8 @@ test('invalid selected quantity blocks preview output', async ({ page }, info) =
   await input.fill('-1');
   await input.press('Enter');
   await open(page);
-  await expect(preview(page).getByRole('alert')).toContainText('입력 오류');
+  await expect(preview(page).getByRole('alert').filter({ hasText: '입력 오류' })).toHaveText('선택 품목 1건의 입력 오류를 확인해 주세요.');
+  await expect(preview(page).getByRole('alert').filter({ hasText: '금액 불일치' })).toHaveText('금액 불일치 1건을 확인해 주세요.');
   await expect(output(page)).toBeDisabled();
   await shot(page, info, 'preview-invalid-amount-blocked');
 });
