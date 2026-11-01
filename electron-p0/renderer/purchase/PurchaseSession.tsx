@@ -1,7 +1,8 @@
+import { PurchaseImportControls } from './PurchaseImportControls';
 import { useRef, useState } from 'react';
 import { PurchaseHelperPanel } from './components/desktop/PurchaseHelperPanel';
 import { usePurchaseItemEditing } from './purchase/usePurchaseItemEditing';
-import { createEmptyPurchaseItem } from './purchase/purchaseDomain';
+import { createEmptyPurchaseItem, appendPurchaseItemsWithSessionIds } from './purchase/purchaseDomain';
 import { defaultPurchaseOutputColumns, type PurchaseDraft, type PurchaseDraftTemplate } from './purchase/types';
 import './source.css';
 // No account settings, file repository, storage, migration, or auth dependency.
@@ -14,6 +15,7 @@ export function PurchaseSession({open,onClose}:{readonly open:boolean;readonly o
  const [notice,setNotice]=useState('');
  return <div hidden={!open} inert={!open} style={{display:open?undefined:'none'}}>
   {open&&<PurchaseHelperPanel editing={editing} columns={columns} draft={draft} draftTemplates={draftTemplates}
+   fileControls={<PurchaseImportControls items={editing.items} onNotice={setNotice} onApply={(items,replace)=>{const incoming=appendPurchaseItemsWithSessionIds([],items,()=>`electron-session-${sequence.current++}`);onEdit({type:replace?'replace':'append',items:incoming});if(replace)onDraftChange(null);}}/ >}
    onAddItem={()=>onEdit({type:'append',items:[createEmptyPurchaseItem(`electron-session-${sequence.current++}`)]})}
    onEdit={onEdit} onColumnsChange={onColumnsChange} onDraftChange={onDraftChange} onDraftTemplatesChange={onDraftTemplatesChange}
    onClose={onClose} onNotice={setNotice}/>}

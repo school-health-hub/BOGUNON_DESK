@@ -1,7 +1,7 @@
 // Selected from Purchase source fec6deb; native workflows deliberately unavailable.
 import { writePurchaseClipboard } from "../../clipboard";
 import { ArrowDown, ArrowUp, ClipboardCopy, Expand, FilePlus2, FileSpreadsheet, Plus, RotateCcw, Settings2, Trash2, X } from "lucide-react";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type ReactNode } from "react";
 import type { PurchaseEditingState, PurchaseItemAction, PurchaseItemPatch } from "../../purchase/purchaseItemEditing";
 import { PurchaseBulkEditDialog } from "./PurchaseBulkEditDialog";
 import { createPurchaseClipboard } from "../../purchase/purchaseClipboard";
@@ -13,6 +13,7 @@ import { PurchaseDraftEditor } from "./PurchaseDraftEditor";
 import { PurchaseEditableInput } from "./PurchaseEditableInput";
 import { PurchaseItemNameDialog } from "./PurchaseItemNameDialog";
 type Props = {
+ readonly fileControls?:ReactNode;
  readonly editing: PurchaseEditingState;
  readonly columns: readonly PurchaseOutputColumnId[];
  readonly draft: PurchaseDraft | null;
@@ -33,7 +34,7 @@ const formatNumber = (value: number | null): string => value === null ? "" : Str
 const signedMoney = (value: number): string => `${value > 0 ? "+" : ""}${value.toLocaleString("ko-KR")}원`;
 const issueLabels: Readonly<Record<string, string>> = { missingName: "품명 필요", invalidQuantity: "수량 확인", invalidUnitPrice: "단가 확인", amountMismatch: "금액 불일치" };
 const reviewFilterLabels: Readonly<Record<PurchaseReviewFilter, string>> = { all: "전체", error: "오류", mismatch: "불일치", needsReview: "확인 필요" };
-export function PurchaseHelperPanel({ editing, columns, draft, draftTemplates, onAddItem, onEdit, onColumnsChange, onDraftChange, onDraftTemplatesChange, onClose, onNotice }: Props) {
+export function PurchaseHelperPanel({ fileControls, editing, columns, draft, draftTemplates, onAddItem, onEdit, onColumnsChange, onDraftChange, onDraftTemplatesChange, onClose, onNotice }: Props) {
   const { items } = editing;
   const [bulkOpen, setBulkOpen] = useState(false);
   const bulkTriggerRef = useRef<HTMLButtonElement>(null);
@@ -95,16 +96,16 @@ export function PurchaseHelperPanel({ editing, columns, draft, draftTemplates, o
       <section ref={panelRef} tabIndex={-1} className="purchase-helper-panel" role="dialog" aria-modal="true" aria-labelledby="purchase-helper-title">
         <header className="purchase-helper-panel__header"><span><FileSpreadsheet size={20} /></span><div><h2 id="purchase-helper-title">품의 도우미</h2><p>수동 품목 입력·품의문 작성 · 세션 전용 · 파일 기능 미지원</p></div><button type="button" aria-label="품의 도우미 닫기" onClick={() => void closePanel()}><X size={18} /></button></header>
         <div className="purchase-helper-panel__toolbar">
-          <button type="button"  disabled title="Electron 파일 가져오기는 아직 지원하지 않습니다."><FilePlus2 size={16} /> 파일 가져오기</button>
+          {fileControls ?? <button type="button" disabled>파일 가져오기</button>}
           <button type="button" onClick={onAddItem}><Plus size={16} /> 품목 추가</button>
           <button type="button" onClick={() => void startNew()}><RotateCcw size={16} /> 새 작업</button>
-          <button type="button" disabled title="파일 분석·열 매핑 미지원"><Settings2 size={16} /> 가져오기 설정</button>
+          <button type="button" disabled title="가져오기 템플릿 영구 저장 미지원"><Settings2 size={16} /> 가져오기 설정</button>
           <span>{selectedCount}개 선택 · {total.toLocaleString("ko-KR")}원</span>
         </div>
         <div className="purchase-helper-tabs" role="tablist" aria-label="품의 도우미 단계"><button type="button" role="tab" aria-selected={activeView === "items"} onClick={() => setActiveView("items")}>품목내역</button><button type="button" role="tab" aria-selected={activeView === "draft"} onClick={() => setActiveView("draft")}>품의문 작성</button><button type="button" role="tab" disabled title="정산 XLSX는 아직 지원하지 않습니다.">구매결과</button></div>
         {selectedCount > 0 && !readiness.ready && <div className="purchase-helper-readiness" role="status"><strong>최종 활용 전 확인이 필요합니다.</strong><span>{readiness.blockingCount > 0 && `입력 오류 ${readiness.blockingCount}건`}{readiness.blockingCount > 0 && readiness.unreviewedMismatchCount > 0 && " · "}{readiness.unreviewedMismatchCount > 0 && `금액 불일치 확인 ${readiness.unreviewedMismatchCount}건`}</span><button type="button" onClick={() => { setActiveView("items"); setRowFilter("needsReview"); }}>문제 행 확인</button></div>}
         {activeView === "items" ? <>
-        <button className={`purchase-helper-dropzone${items.length > 0 ? " is-compact" : ""}`} type="button"  disabled title="Electron 파일 가져오기는 아직 지원하지 않습니다."><FilePlus2 size={items.length > 0 ? 16 : 22} /><strong>품목 추가로 직접 입력하세요.</strong><span>CSV/XLSX/XLS/PDF 가져오기·열 매핑은 아직 지원하지 않습니다.</span><small>계정 동기화 없음 · 앱 종료 시 품목·초안 삭제</small></button>
+        <button className={`purchase-helper-dropzone${items.length > 0 ? " is-compact" : ""}`} type="button"  disabled title="Electron 파일 가져오기는 아직 지원하지 않습니다."><FilePlus2 size={items.length > 0 ? 16 : 22} /><strong>품목 추가로 직접 입력하세요.</strong><span>CSV는 위 CSV 가져오기 버튼을 사용하세요. XLSX/XLS/PDF는 아직 지원하지 않습니다.</span><small>계정 동기화 없음 · 앱 종료 시 품목·초안 삭제</small></button>
         <section className="purchase-helper-review" aria-label="품목 검토 필터">
           <div className="purchase-helper-review__filters">
             {purchaseReviewFilters.map((filter) => <button type="button" key={filter} aria-pressed={rowFilter === filter} onClick={() => setRowFilter(filter)}>{reviewFilterLabels[filter]} <strong>{reviewCounts[filter]}</strong></button>)}

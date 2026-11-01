@@ -155,3 +155,15 @@ P1A CI는 빌드/두 패키지 생성/기존 실제 패키지 GUI E2E를 실행�
 - 다음 범위: 사용자가 선택한 파일만 읽는 형식별 IPC 및 기존 분석 엔진 연결을 먼저 조사합니다. CSV부터 단계적으로 검증하고 XLSX/XLS/PDF 분석·미리보기·열 매핑과 안전한 출력 저장을 분리합니다. 이번 세션 기능을 영구 저장·계정 동기화로 자동 확장하지 않습니다.
 
 - 검증 결과: Electron main/preload/renderer/테스트 TypeScript 및 프로덕션 빌드 PASS, 관련 자동 테스트 **67 files / 307 PASS**(Purchase 원본 회귀·세션 UI·클립보드 경계, Dashboard/Dock·메모·Newsletter 회귀). 테스트 TypeScript의 기존 JSX 옵션 누락을 보완했습니다. **최종 CONDITIONAL**: Cloud GUI와 Windows 실기기 검증은 NOT RUN입니다.
+
+## ELECTRON-P2E-2: CSV 선택·분석·열 매핑
+
+- 기준 `8ffe4f15979ae833df30eabc9108d1572eedeb8b`, 브랜치 `feature/electron-p2e2-purchase-csv`. 새 의존성·패키징 설정 변경 없이 main의 `purchase-csv.ts`/`purchase-import.ts`, 기존 Purchase 세션의 `PurchaseImportControls`를 연결했습니다. 기존 계산 모듈·CSS·Tauri/Rust는 변경하지 않습니다.
+- IPC는 `purchase.pickCsv()`·`cancelCsv()`·`mapCsv({generation,candidateId,headerRow,mapping})`만 추가했습니다. pick은 인자를 받지 않고 main의 CSV 전용 native 대화상자에서 선택한 파일 한 개만 읽습니다. main-frame/window/URL을 호출 전과 비동기 선택·읽기 후 재검사합니다. renderer는 경로/원본 rows를 제출할 수 없으며 결과에는 basename만 반환합니다. 매핑은 main이 보관한 현재 candidate에만 적용합니다.
+- 파일은 읽기 전용입니다. 확장자·일반 파일·symlink 거절·파일 크기/동일성·읽는 동안 변경을 검사하고, bounded read를 사용합니다. 제한은 15 MiB, CSV record 530행(머리글 포함), 품목 500개, 256열, 셀 65,536자입니다. 분석은 세션 메모리에서만 수행하고 원본 파일·운영 저장소를 변경하지 않습니다.
+- UTF-8/BOM 및 WHATWG EUC-KR(CP949) strict decode, quoted comma/escaped quote/embedded newline/CRLF·가변 열 수를 지원합니다. 기존 Rust의 AnalysisResult/MappingCandidate/Item 계약, 헤더 별칭·첫 30행 점수화·generic header 순위·숫자 정규화·반복 머리글/합계/금액만 있는 꼬리행 제외·issue 규칙을 반영했습니다. candidate ID는 불투명 UUID입니다.
+- **호환 범위의 안전 제한:** 원본 Rust의 손상 인코딩 대체 문자·느슨한 따옴표 복구는 따르지 않고 거절합니다. 수식 시작 셀(단순 음수 숫자는 제외), 바이너리 제어문자, 비유한/계산 금액 범위 초과도 거절합니다. Rust 소스의 기존 사례를 옮긴 계약 테스트는 PASS이지만, 이 환경에는 `rustc`가 없어 Rust 엔진과의 직접 실행 대조는 **NOT RUN**입니다. 모든 CSV에 대한 동일성을 주장하지 않습니다.
+- 분석 후 사용자가 추가/교체를 선택하고 `CSV 품목 적용`을 눌러야 반영합니다. 기본은 기존 품목에 추가하고 세션 ID를 새로 발급합니다. 교체는 기존 품목이 있으면 별도 확인하며 취소 시 기존 품목·초안을 유지합니다. 분석 실패/0품목/취소/닫기/오래된 generation/분석 중·분석 후 품목 변경은 기존 항목을 변경하지 않습니다. 교체 성공 때만 기존 품의문 초안을 비웁니다. 중복 동시 선택과 이미 사용한 매핑 candidate도 거절합니다.
+- TypeScript(main/preload/renderer/tests)·Electron 프로덕션 빌드 PASS. 관련 자동 테스트 **70 files / 323 PASS**: UTF-8/BOM·EUC-KR·CSV 문법·limits·수식/손상 거절·권한/경로/매핑 검증·취소/오래된 결과·UI 추가/확인 교체/수동 보존·기존 Purchase 계산/품의문 및 Dashboard/Dock/메모/Newsletter 회귀.
+- **Cloud GUI BLOCKED / NOT RUN:** DISPLAY와 실행 중인 Xorg/Xvfb가 없으며 반복 승인 요청·GUI 재시도·환경 재구성은 하지 않았습니다. Windows 실제 파일 대화상자·한글 파일 선택·화면 배치·OS 파일 읽기는 미검증입니다. Windows 패키징은 설정 무변경으로 재실행하지 않았습니다. 최종 **CONDITIONAL**.
+- XLSX/XLS/PDF 가져오기와 모든 파일 출력·정산·에듀파인·계정 동기화는 계속 비활성화합니다. 다음 단계는 이 파일 선택 경계를 재사용해 기존 spreadsheet/PDF 엔진의 제한·계약을 각각 연결하고, 출력 저장은 별도 사용자 선택·안전 저장 단계로 진행합니다.

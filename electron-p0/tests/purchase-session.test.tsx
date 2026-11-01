@@ -6,7 +6,7 @@ import {createEmptyPurchaseItem,updatePurchaseItem,selectedPurchaseTotal} from '
 afterEach(()=>{cleanup();vi.unstubAllGlobals();});
 function edit(label:string,value:string){const input=screen.getByLabelText(label);fireEvent.focus(input);fireEvent.change(input,{target:{value}});fireEvent.keyDown(input,{key:'Enter'});fireEvent.blur(input);}
 it('reuses source item CRUD/calculation and draft text/HTML copy with session-only state',async()=>{
- const copy=vi.fn(async(_content:{text:string;html:string})=>({ok:true,data:null}));vi.stubGlobal('electronWork',{purchase:{copy}});
+ const copy=vi.fn(async(_content:{text:string;html:string})=>({ok:true,data:null}));vi.stubGlobal('electronWork',{purchase:{copy,cancelCsv:async()=>({ok:true,data:null})}});
  const storage=vi.spyOn(Storage.prototype,'setItem');
  const view=render(<PurchaseSession open onClose={vi.fn()}/>);
  fireEvent.click(screen.getByRole('button',{name:'품목 추가'}));
@@ -27,13 +27,13 @@ it('reuses source item CRUD/calculation and draft text/HTML copy with session-on
  fireEvent.click(screen.getByLabelText('1행 삭제'));expect(screen.queryByLabelText('1행 품명')).toBeNull();
  expect(storage).not.toHaveBeenCalled();storage.mockRestore();view.unmount();render(<PurchaseSession open onClose={vi.fn()}/>);expect(screen.queryByLabelText('1행 품명')).toBeNull();
 });
-it('leaves all file and sync capabilities unavailable without a native bridge',()=>{
- render(<PurchaseSession open onClose={vi.fn()}/>);
- for(const name of ['파일 가져오기','가져오기 설정','CSV 저장','XLSX 저장','에듀파인용 Excel'])expect((screen.getByRole('button',{name}) as HTMLButtonElement).disabled).toBe(true);
+it('keeps spreadsheet/PDF output and sync unavailable while enabling explicit CSV selection',()=>{
+ vi.stubGlobal('electronWork',{purchase:{cancelCsv:async()=>({ok:true,data:null})}});render(<PurchaseSession open onClose={vi.fn()}/>);
+ for(const name of ['가져오기 설정','CSV 저장','XLSX 저장','에듀파인용 Excel'])expect((screen.getByRole('button',{name}) as HTMLButtonElement).disabled).toBe(true);
  expect((screen.getByRole('tab',{name:'구매결과'}) as HTMLButtonElement).disabled).toBe(true);
- expect(screen.getByText(/계정 동기화 없음/)).toBeTruthy();
+ expect(screen.getByText(/계정 동기화 없음/)).toBeTruthy();expect((screen.getByRole('button',{name:'CSV 가져오기'}) as HTMLButtonElement).disabled).toBe(false);
 });
 it('reports copy failure and keeps the edited item',async()=>{
- vi.stubGlobal('electronWork',{purchase:{copy:vi.fn(async()=>({ok:false,error:{code:'INTERNAL_ERROR',message:'실패',retryable:true}}))}});
+ vi.stubGlobal('electronWork',{purchase:{cancelCsv:async()=>({ok:true,data:null}),copy:vi.fn(async()=>({ok:false,error:{code:'INTERNAL_ERROR',message:'실패',retryable:true}}))}});
  render(<PurchaseSession open onClose={vi.fn()}/>);fireEvent.click(screen.getByRole('button',{name:'품목 추가'}));edit('1행 품명','합성');edit('1행 수량','1');edit('1행 단가','1');fireEvent.click(screen.getByRole('button',{name:'표 복사'}));await screen.findByText('품목내역을 복사하지 못했습니다.');expect((screen.getByLabelText('1행 품명') as HTMLInputElement).value).toBe('합성');
 });
