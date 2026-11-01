@@ -1,3 +1,4 @@
+import { clearChangedOfficialMasks } from "./officialTemplateSchema"
 import {
   parseNewsletterDesignState,
   parseNewsletterDesignStateV2,
@@ -29,6 +30,7 @@ export class DesignV2RequiredError extends Error {
 }
 export type CardLayoutPatch = {
   readonly editorial?: CardDesignLayoutV2["editorial"] | null
+  readonly officialTemplate?: CardDesignLayoutV2["officialTemplate"] | null
   readonly brand?: { readonly mascot?: { readonly frame?: Partial<Frame>; readonly fit?: "contain" | "cover" }; readonly seasonalDecoration?: { readonly assetId?: string; readonly frame?: Partial<Frame>; readonly fit?: "contain" | "cover" } }
   readonly background?: string
   readonly accent?: string
@@ -42,7 +44,7 @@ export type CardLayoutPatch = {
   readonly leadFrame?: Partial<CardDesignLayoutV2["leadFrame"]>
   readonly actionListFrame?: Partial<CardDesignLayoutV2["actionListFrame"]>
   readonly closingFrame?: Partial<CardDesignLayoutV2["closingFrame"]>
-  readonly image?: { readonly edgePolicy?: "rounded" | "none" | "soft"; readonly assetId?: string; readonly frame?: Partial<CardDesignLayoutV2["image"]["frame"]>; readonly fit?: CardDesignLayoutV2["image"]["fit"] }
+  readonly image?: { readonly edgePolicy?: "rounded" | "none" | "soft" | "feather"; readonly assetId?: string; readonly frame?: Partial<CardDesignLayoutV2["image"]["frame"]>; readonly fit?: CardDesignLayoutV2["image"]["fit"] }
 }
 export type A4ModuleLayoutPatch = {
   readonly accent?: string
@@ -75,6 +77,9 @@ export function updateCardLayout(design: NewsletterDesignState, input: UpdateCar
     return parseNewsletterDesignState({ ...design, designRevision: revision, ...snapshot, revisionHistory: [...design.revisionHistory, { revision, createdAt: input.now, changedPageIds: [target.pageId], snapshot }] })
   }
   const structured = target as CardDesignLayoutV2
+  const requestedEditorial = input.patch.editorial === undefined ? structured.editorial : input.patch.editorial ?? undefined
+  const imageAssetChanged = input.patch.image !== undefined && "assetId" in input.patch.image && input.patch.image.assetId !== structured.image.assetId
+  const editorial = imageAssetChanged && requestedEditorial !== undefined ? { ...requestedEditorial, foregroundMask: undefined } : requestedEditorial
   const cards = design.cardLayouts.map((card, index) => index === input.cardIndex ? {
     ...card,
     ...updated,
@@ -82,14 +87,15 @@ export function updateCardLayout(design: NewsletterDesignState, input: UpdateCar
     ...(input.patch.listMarkerStyle === undefined ? {} : { listMarkerStyle: input.patch.listMarkerStyle }),
     ...(input.patch.imageTextColumnRatio === undefined ? {} : { imageTextColumnRatio: input.patch.imageTextColumnRatio }),
     ...(input.patch.coverLayout === undefined ? {} : { coverLayout: input.patch.coverLayout }),
-    ...(input.patch.editorial === undefined ? {} : { editorial: input.patch.editorial ?? undefined }),
+    editorial,
     ...(structured.brand === undefined ? {} : { brand: { ...structured.brand, mascot: { ...structured.brand.mascot, ...input.patch.brand?.mascot, frame: { ...structured.brand.mascot.frame, ...input.patch.brand?.mascot?.frame } }, ...(structured.brand.seasonalDecoration === undefined ? {} : { seasonalDecoration: { ...structured.brand.seasonalDecoration, ...input.patch.brand?.seasonalDecoration, frame: { ...structured.brand.seasonalDecoration.frame, ...input.patch.brand?.seasonalDecoration?.frame } } }) } }),
     leadFrame: { ...structured.leadFrame, ...input.patch.leadFrame },
     actionListFrame: { ...structured.actionListFrame, ...input.patch.actionListFrame },
     closingFrame: { ...structured.closingFrame, ...input.patch.closingFrame },
     image: { ...structured.image, ...input.patch.image, frame: { ...structured.image.frame, ...input.patch.image?.frame } },
   } : card)
-  const snapshot = snapshotV2(design, cards)
+  const cleanedCards = cards.map((card, index) => index === input.cardIndex ? { ...card, officialTemplate: clearChangedOfficialMasks({ ...card, officialTemplate: input.patch.officialTemplate === null || input.patch.editorial === null ? undefined : input.patch.officialTemplate ?? card.officialTemplate }, design.assetManifest) } : card)
+  const snapshot = snapshotV2(design, cleanedCards)
   const revision = design.designRevision + 1
   return parseNewsletterDesignState({ ...design, designRevision: revision, ...snapshot, revisionHistory: [...design.revisionHistory, { revision, createdAt: input.now, changedPageIds: [target.pageId], snapshotVersion: 2, snapshot }] })
 }

@@ -1,3 +1,4 @@
+import { officialTemplateSchema, validateOfficialTemplate, type OfficialSourceCard } from "./officialTemplateSchema"
 import { z } from "zod"
 import { canonicalJson } from "../hash"
 
@@ -7,7 +8,7 @@ const isoDateSchema = z.iso.datetime()
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/)
 const frameSchema = z.object({ x: z.number().nonnegative(), y: z.number().nonnegative(), width: z.number().positive(), height: z.number().positive() }).readonly()
 const textStyleSchema = z.object({ fontFamily: z.literal("Pretendard"), fontSize: z.number().positive(), fontWeight: z.number().int().min(100).max(900), lineHeight: z.number().min(1).max(2), color: colorSchema, align: z.enum(["left", "center", "right"]) }).readonly()
-const imageLayerSchema = z.object({ slotId: idSchema, assetId: idSchema.optional(), frame: frameSchema, edgePolicy: z.enum(["rounded", "none", "soft"]).optional(), fit: z.enum(["contain", "cover"]) }).readonly()
+const imageLayerSchema = z.object({ slotId: idSchema, assetId: idSchema.optional(), frame: frameSchema, edgePolicy: z.enum(["rounded", "none", "soft", "feather"]).optional(), fit: z.enum(["contain", "cover"]) }).readonly()
 
 const cardLayoutV1Object = z.object({ pageId: idSchema, background: colorSchema, titleFrame: frameSchema, bodyFrame: frameSchema, titleStyle: textStyleSchema, bodyStyle: textStyleSchema, image: imageLayerSchema })
 const cardLayoutV1Schema = cardLayoutV1Object.readonly()
@@ -20,8 +21,9 @@ const listMarkerStyleSchema = z.enum(["source", "number", "dot", "check"])
 const structuredFrames = { leadFrame: frameSchema, actionListFrame: frameSchema, closingFrame: frameSchema } as const
 const a4BrandSchema = z.object({ mascot: imageLayerSchema, seasonalDecoration: imageLayerSchema, utilityFrame: frameSchema, closingFrame: frameSchema, editorialLayout: z.literal(true).optional(), compositionPreset: z.literal("september-master").optional(), utilityText: z.string().max(1000).optional(), closingText: z.string().max(1000).optional(), sourceText: z.string().max(1500).optional() }).readonly()
 const cardBrandSchema = z.object({ mascot: imageLayerSchema, seasonalDecoration: imageLayerSchema.optional(), previewTopicCount: z.literal(4).optional() }).readonly()
-const editorialSchema = z.object({ compositionPreset: z.enum(["september-master", "illustrated-ab"]).optional(), layoutType: z.enum(["A", "B", "C", "D"]), studentComposition: z.enum(["female", "male", "mixed", "objects"]), season: z.enum(["spring", "summer", "autumn", "winter", "none"]), moduleImages: z.array(imageLayerSchema).length(4).readonly().optional(), slogan: z.string().max(160).optional(), closing: z.string().max(200).optional() }).readonly()
-const cardLayoutV2Schema = cardLayoutV1Object.extend({ ...structuredFrames, accent: colorSchema, listMarkerStyle: listMarkerStyleSchema, imageTextColumnRatio: z.number().min(0.25).max(0.75), coverLayout: z.enum(["feature-right", "feature-center", "topics-grid"]), brand: cardBrandSchema.optional(), editorial: editorialSchema.optional() }).readonly()
+const foregroundMaskSchema = z.object({ assetId: idSchema, sha256: sha256Schema, sourceWidth: z.number().int().positive().max(20000), sourceHeight: z.number().int().positive().max(20000), points: z.array(z.object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) }).readonly()).min(3).max(64).readonly() }).readonly()
+const editorialSchema = z.object({ foregroundMask: foregroundMaskSchema.optional(), referenceLayout: z.literal(true).optional(), visualFinish: z.literal(true).optional(), compositionPreset: z.enum(["september-master", "illustrated-ab"]).optional(), layoutType: z.enum(["A", "B", "C", "D"]), studentComposition: z.enum(["female", "male", "mixed", "objects"]), season: z.enum(["spring", "summer", "autumn", "winter", "none"]), moduleImages: z.array(imageLayerSchema).length(4).readonly().optional(), slogan: z.string().max(160).optional(), closing: z.string().max(200).optional() }).readonly()
+const cardLayoutV2Schema = cardLayoutV1Object.extend({ officialTemplate: officialTemplateSchema.optional(), ...structuredFrames, accent: colorSchema, listMarkerStyle: listMarkerStyleSchema, imageTextColumnRatio: z.number().min(0.25).max(0.75), coverLayout: z.enum(["feature-right", "feature-center", "topics-grid"]), brand: cardBrandSchema.optional(), editorial: editorialSchema.optional() }).readonly()
 const a4ModuleV2Schema = a4ModuleV1Object.extend({ titleFrame: frameSchema, ...structuredFrames, accent: colorSchema, listMarkerStyle: listMarkerStyleSchema, imageTextColumnRatio: z.number().min(0.25).max(0.75) }).readonly()
 const a4LayoutV2Schema = a4LayoutV1Object.omit({ headerFrame: true, modules: true }).extend({ titleFrame: frameSchema, publicationMetaFrame: frameSchema, modules: z.array(a4ModuleV2Schema).length(6).readonly(), brand: a4BrandSchema.optional() }).readonly()
 
@@ -55,8 +57,12 @@ const designRevisionV2Schema = z.discriminatedUnion("snapshotVersion", [
 
 type CommonDesign = { readonly designRevision: number; readonly cardLayouts: readonly { readonly pageId: string }[]; readonly assetManifest: readonly { readonly id: string }[] }
 type CommonRevision = { readonly revision: number; readonly restoredFromRevision?: number }
-function validateEditorialPages(design: { readonly cardLayouts: readonly { readonly editorial?: { readonly layoutType: string } }[] }, issue: (message: string) => void): void {
+function validateEditorialPages(design: { readonly assetManifest: readonly { readonly id: string; readonly sha256: string }[]; readonly cardLayouts: readonly (OfficialSourceCard & { readonly image: { readonly assetId?: string }; readonly editorial?: { readonly layoutType: string; readonly visualFinish?: true; readonly referenceLayout?: true; readonly foregroundMask?: { readonly assetId: string; readonly sha256: string } } })[] }, issue: (message: string) => void): void {
   design.cardLayouts.forEach((card, index) => {
+    validateOfficialTemplate(card, index, design.assetManifest, issue)
+    const mask = card.editorial?.foregroundMask
+    if (mask !== undefined && (card.editorial?.layoutType !== "A" || mask.assetId !== card.image.assetId || design.assetManifest.find(asset => asset.id === mask.assetId)?.sha256 !== mask.sha256)) issue("foreground mask must match the cover image asset and SHA")
+    if ((card.editorial?.visualFinish === true || card.editorial?.referenceLayout === true) && card.editorial.layoutType === "D") issue("visual finish requires TYPE A, B, or C")
     if (card.editorial !== undefined && (index === 0) !== (card.editorial.layoutType === "A")) issue("TYPE A is available only on the cover; topic cards require TYPE B, C, or D")
   })
 }

@@ -1,3 +1,4 @@
+import type { ImagePolygon } from "./imagePolygon"
 import { semanticHashSync } from "../hash"
 import type { Frame, RenderDocument, RenderImage, RenderPage, RenderTextBlock, TextProvenance } from "./renderDocument"
 import type { TextStyle } from "./designSchema"
@@ -8,7 +9,7 @@ export const NEWSLETTER_PLACEHOLDER_DATA_URL = newsletterPlaceholderDataUrl("gen
 
 type SceneBase = { readonly layerId: string; readonly frame: Frame; readonly zOrder: number; readonly clipBounds: Frame; readonly collisionGroup?: string }
 export type TextSceneLayer = SceneBase & { readonly kind: "text"; readonly text: string; readonly lines: readonly string[]; readonly style: TextStyle; readonly provenance: TextProvenance }
-export type ImageSceneLayer = SceneBase & { readonly edgePolicy?: "rounded" | "none" | "soft"; readonly kind: "image"; readonly slotId: string; readonly assetId?: string; readonly fit: "contain" | "cover"; readonly placeholderKind: NewsletterPlaceholderKind }
+export type ImageSceneLayer = SceneBase & { readonly clipPolygon?: ImagePolygon; readonly edgePolicy?: "rounded" | "none" | "soft" | "feather"; readonly kind: "image"; readonly slotId: string; readonly assetId?: string; readonly fit: "contain" | "cover"; readonly placeholderKind: NewsletterPlaceholderKind }
 export type ShapeSceneLayer = SceneBase & { readonly kind: "shape"; readonly fill: string; readonly stroke?: string; readonly radius?: number }
 export type PathSceneLayer = SceneBase & { readonly kind: "path"; readonly path: string; readonly fill: string; readonly stroke: string; readonly strokeWidth: number }
 export type SceneLayer = TextSceneLayer | ImageSceneLayer | ShapeSceneLayer | PathSceneLayer
@@ -26,6 +27,7 @@ function imageLayer(pageId: string, image: RenderImage, zOrder: number, clipBoun
 function nonEmpty(block: RenderTextBlock | undefined): block is RenderTextBlock { return block !== undefined && block.text.length > 0 }
 
 export function buildCardScene(page: RenderPage): NewsletterPageScene {
+  if (page.officialLayers !== undefined) return { pageId: page.pageId, width: page.width, height: page.height, templateVersion: page.templateVersion, layers: page.officialLayers }
   if (page.editorial !== undefined) return buildEditorialCardScene(page)
   const bounds = pageBounds(page.width, page.height)
   const safe = { x: 60, y: 60, width: page.width - 120, height: page.height - 120 }

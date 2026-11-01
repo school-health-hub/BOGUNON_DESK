@@ -1,3 +1,6 @@
+import { compileOfficialTemplate } from "./officialTemplateCompiler"
+import type { SceneLayer } from "./renderScene"
+import type { ImagePolygon } from "./imagePolygon"
 import { parseNewsletterProject, type NewsletterProject } from "../schema"
 import { structureCanonicalText } from "./contentStructure"
 import { parseNewsletterDesignState, type CardDesignLayoutV2, type DesignSnapshot, type DesignSnapshotV2, type NewsletterDesignState, type TextStyle } from "./designSchema"
@@ -29,8 +32,9 @@ export type TextProvenance =
 export type Frame = { readonly x: number; readonly y: number; readonly width: number; readonly height: number }
 export type RenderTextBlock = { readonly id: string; readonly text: string; readonly lines: readonly string[]; readonly frame: Frame; readonly style: TextStyle; readonly provenance: TextProvenance }
 export type RenderIssue = { readonly kind: "overflow" | "missing-text" | "orphan-character" | "orphan-particle" | "layout-collision" | "clip-bounds"; readonly pageId: string; readonly blockId: string; readonly message: string }
-export type RenderImage = { readonly edgePolicy?: "rounded" | "none" | "soft"; readonly slotId: string; readonly assetId?: string; readonly frame: Frame; readonly fit: "contain" | "cover" }
+export type RenderImage = { readonly clipPolygon?: ImagePolygon; readonly edgePolicy?: "rounded" | "none" | "soft" | "feather"; readonly slotId: string; readonly assetId?: string; readonly frame: Frame; readonly fit: "contain" | "cover" }
 export type RenderPage = {
+  readonly officialLayers?: readonly SceneLayer[];
   readonly editorial?: RenderEditorial;
   readonly pageId: string; readonly width: number; readonly height: number; readonly background: string; readonly templateVersion: number;
   readonly title: RenderTextBlock; readonly body: RenderTextBlock; readonly badge?: RenderTextBlock; readonly lead?: RenderTextBlock; readonly closing?: RenderTextBlock;
@@ -143,6 +147,19 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
     const bodyText = content.kind === "list" ? actionText(content.actions, structured ? layout.listMarkerStyle : "source") : content.body
     const provenance: TextProvenance = section === undefined ? { kind: "project-title" } : { kind: "canonical-section", sectionId: section.id, sourceText: section.text }
     const title = index === 0 ? project.title : section === undefined ? "" : titles.get(section.topicId) ?? ""
+    if (structured && layout.officialTemplate !== undefined) {
+      const raw = (id: string, text: string, frame: Frame, style: TextStyle, source: TextProvenance): RenderTextBlock => ({ id, text, frame, style, provenance: source, lines: [] })
+      const page: RenderPage = {
+        pageId: layout.pageId, width: 1200, height: 1200, background: layout.background, templateVersion: snapshot.templateVersion, structured: true,
+        title: raw(`${layout.pageId}-title`, title, layout.titleFrame, layout.titleStyle, index === 0 ? { kind: "project-title" } : { kind: "topic-title", topicId: section?.topicId ?? "missing" }),
+        body: raw(`${layout.pageId}-body`, bodyText, layout.bodyFrame, layout.bodyStyle, provenance),
+        badge: raw(`${layout.pageId}-badge`, snapshot.publicationMeta.issueLabel, layout.titleFrame, layout.bodyStyle, { kind: "publication-meta" }),
+        topicOverview: index === 0 ? (layout.officialTemplate.previewTopicIndices ?? [0, 1, 2, 3]).flatMap(topicIndex => { const topic = project.topics[topicIndex]; return topic === undefined ? [] : [raw(`${layout.pageId}-topic-${topic.id}`, topic.title, layout.titleFrame, layout.bodyStyle, { kind: "topic-title", topicId: topic.id })] }) : undefined,
+        image: layout.image,
+        ...(layout.brand === undefined ? {} : { mascot: layout.brand.mascot }),
+      }
+      return compileOfficialTemplate(page, layout, content, (id, text, frame, style, source, required = true) => block(id, page.pageId, text, frame, style, source, issues, input.measureText, required, true), message => issues.push({ kind: "missing-text", pageId: page.pageId, blockId: `${page.pageId}-official`, message }))
+    }
     const bodyFrame = structured ? expandedBodyFrame(layout.leadFrame, layout.actionListFrame, leadText.length > 0) : layout.bodyFrame
     const badgeStyle = { ...layout.bodyStyle, fontSize: Math.min(20, layout.bodyStyle.fontSize), fontWeight: 700, lineHeight: 1.2, color: structured ? layout.accent : layout.titleStyle.color, align: "left" as const }
     const badgeFrame = { x: 88, y: 72, width: 420, height: 36 }

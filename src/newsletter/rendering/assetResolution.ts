@@ -19,6 +19,7 @@ export function referencedDesignAssets(design: NewsletterDesignState, revision: 
   if (snapshot === undefined) throw new NewsletterAssetResolutionError("design", `revision ${revision} is missing`)
   const ids = new Set<string>()
   for (const card of snapshot.cardLayouts) {
+    if ("officialTemplate" in card) for (const element of card.officialTemplate?.elements ?? []) if (element.kind === "image" && element.assetId !== undefined) ids.add(element.assetId)
     if (card.image.assetId !== undefined) ids.add(card.image.assetId)
     if ("editorial" in card) for (const image of card.editorial?.moduleImages ?? []) if (image.assetId !== undefined) ids.add(image.assetId)
     if ("brand" in card && card.brand !== undefined) {

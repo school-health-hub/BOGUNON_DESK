@@ -52,6 +52,7 @@ function LayoutFields({ ratio, accent, marker, onAccent, onMarker, onVariant, on
 
 export function NewsletterDesignControls({ design, mode, selectedIndex, onChange }: Props) {
   const [frameKind, setFrameKind] = useFrameKind()
+  if (mode === "cards" && design.cardLayouts[selectedIndex]?.officialTemplate !== undefined) return <p>공식 요소 편집에서 위치·크기와 글자·삽화 맞춤을 조정해 주세요.</p>
   if (mode === "a4") {
     const module = design.a4Layout.modules[selectedIndex]
     if (module === undefined) return null

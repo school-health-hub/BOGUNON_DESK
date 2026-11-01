@@ -1,3 +1,5 @@
+import { compileReferenceLayout } from "./referenceLayoutCompiler"
+import { compileVisualFinish } from "./visualFinishCompiler"
 import { compileIllustratedCard } from "./illustratedCardCompiler"
 import { compileSkillMaster } from "./skillMasterCompiler"
 import type { CardDesignLayoutV2, TextStyle } from "./designSchema"
@@ -5,8 +7,8 @@ import type { Frame, RenderImage, RenderPage, RenderTextBlock, TextProvenance } 
 import type { StructuredSectionText } from "./contentStructure"
 import { editorialFrames, type EditorialLayout } from "./editorialLayout"
 
-export type EditorialModule = { readonly frame: Frame; readonly action: RenderTextBlock; readonly number: RenderTextBlock; readonly image?: RenderImage }
-export type RenderEditorial = { readonly compositionPreset?: "september-master" | "illustrated-ab"; readonly layoutType: EditorialLayout["layoutType"]; readonly season: EditorialLayout["season"]; readonly studentComposition: EditorialLayout["studentComposition"]; readonly modules: readonly EditorialModule[]; readonly previewImages?: readonly RenderImage[] }
+export type EditorialModule = { readonly frame: Frame; readonly action: RenderTextBlock; readonly number: RenderTextBlock; readonly image?: RenderImage; readonly description?: RenderTextBlock; readonly caption?: RenderTextBlock }
+export type RenderEditorial = { readonly foregroundMask?: NonNullable<CardDesignLayoutV2["editorial"]>["foregroundMask"]; readonly referenceLayout?: true; readonly visualFinish?: true; readonly compositionPreset?: "september-master" | "illustrated-ab"; readonly layoutType: EditorialLayout["layoutType"]; readonly season: EditorialLayout["season"]; readonly studentComposition: EditorialLayout["studentComposition"]; readonly modules: readonly EditorialModule[]; readonly previewImages?: readonly RenderImage[] }
 type MakeBlock = (id: string, text: string, frame: Frame, style: TextStyle, provenance: TextProvenance, required?: boolean) => RenderTextBlock
 type Input = { readonly page: RenderPage; readonly layout: CardDesignLayoutV2; readonly content: StructuredSectionText; readonly make: MakeBlock; readonly unavailable: (message: string) => void }
 const prefix = /^\s*(?:[-*•‣▪◦]|\d+[.)])\s+/u
@@ -19,6 +21,8 @@ export function compileEditorialCard({ page, layout, content, make, unavailable 
   const provenance = page.body.provenance
   const actions = content.kind === "list" ? content.actions : []
   if (config.layoutType !== "A" && actions.length !== 4) unavailable(`TYPE ${config.layoutType}에는 원고의 실천 항목이 정확히 4개 필요합니다. 현재 ${actions.length}개입니다.`)
+  if (config.referenceLayout === true) return compileReferenceLayout(page, layout, content, make)
+  if (config.visualFinish === true) return compileVisualFinish(page, layout, content, make)
   if (config.compositionPreset === "illustrated-ab") return compileIllustratedCard(page, layout, content, make)
   if (config.compositionPreset === "september-master") return compileSkillMaster(page, layout, content, make)
   const modules = config.layoutType === "A" ? [] : actions.slice(0, 4).flatMap((action, i): readonly EditorialModule[] => {
