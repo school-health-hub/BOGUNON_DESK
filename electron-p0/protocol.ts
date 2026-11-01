@@ -20,7 +20,7 @@ export type PurchaseCsvSelection=Readonly<{generation:number;result:PurchaseAnal
 export type PurchaseCsvMappingRequest=Readonly<{generation:number;candidateId:string;headerRow:number;mapping:PurchaseColumnMapping}>;
 export type PurchaseClipboardRequest=Readonly<{text:string;html:string}>;
 export interface WorkBridge {
- readonly purchase:Readonly<{pickCsv():Promise<IpcResult<PurchaseCsvSelection|null>>;cancelCsv():Promise<IpcResult<null>>;mapCsv(request:PurchaseCsvMappingRequest):Promise<IpcResult<PurchaseCsvSelection>>;copy(request:PurchaseClipboardRequest):Promise<IpcResult<null>>}>;
+ readonly purchase:Readonly<{pickExcel():Promise<IpcResult<PurchaseCsvSelection|null>>;cancelExcel():Promise<IpcResult<null>>;mapExcel(request:PurchaseCsvMappingRequest):Promise<IpcResult<PurchaseCsvSelection>>;pickCsv():Promise<IpcResult<PurchaseCsvSelection|null>>;cancelCsv():Promise<IpcResult<null>>;mapCsv(request:PurchaseCsvMappingRequest):Promise<IpcResult<PurchaseCsvSelection>>;copy(request:PurchaseClipboardRequest):Promise<IpcResult<null>>}>;
  readonly newsletter:Readonly<{projects:NewsletterProjectsBridge;exportOutput(request:NewsletterExportRequest):Promise<IpcResult<NewsletterExportResult>>;saveJson(request:Readonly<{json:string}>):Promise<IpcResult<NewsletterSaveResult>>}>;
  readonly memo: Readonly<MemoBridge>;
  readonly sample: Readonly<{summarize(request:SyntheticSummaryRequest):Promise<IpcResult<SyntheticSummary>>}>;

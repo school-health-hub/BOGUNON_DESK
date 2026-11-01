@@ -4,8 +4,9 @@ import { basename, extname } from 'node:path';
 import type { IpcResult, PurchaseCsvSelection, PurchaseCsvMappingRequest } from '../protocol.js';
 import { assertSender } from './policy.js';
 import { analyzeCsv, CSV_LIMITS, parseMappedRows } from './purchase-csv.js';
-export async function readSelectedCsv(path:string):Promise<Uint8Array>{
- if(extname(path).toLowerCase()!=='.csv')throw Error('CSV 파일만 선택해 주세요.');
+export const readSelectedCsv=(path:string)=>readSelectedPurchaseFile(path,['.csv']);
+export async function readSelectedPurchaseFile(path:string,extensions:readonly string[]):Promise<Uint8Array>{
+ if(!extensions.includes(extname(path).toLowerCase()))throw Error('CSV 파일만 선택해 주세요.');
  const selected=await lstat(path);
  if(!selected.isFile()||selected.isSymbolicLink()||selected.size>CSV_LIMITS.bytes)throw Error('일반 CSV 파일만 선택해 주세요.');
  const file=await open(path,constants.O_RDONLY|(constants.O_NOFOLLOW??0));

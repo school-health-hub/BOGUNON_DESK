@@ -39,3 +39,6 @@ release-output/
 /release-electron-p0/
 /test-results/
 /playwright-report/
+
+/tools/purchase-excel-cli/target/
+/build/purchase-excel-cli/

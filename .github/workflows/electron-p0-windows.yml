@@ -1,7 +1,7 @@
-name: ELECTRON-P2D2 newsletter export
+name: ELECTRON-P2E3 Rust Excel
 on:
   push:
-    branches: [feature/electron-p0-dashboard, feature/electron-p1a-windows-installer, feature/electron-p1b-desktop-experience, feature/electron-p2d2-newsletter-export]
+    branches: [feature/electron-p0-dashboard, feature/electron-p1a-windows-installer, feature/electron-p1b-desktop-experience, feature/electron-p2d2-newsletter-export, feature/electron-p2e3-purchase-excel]
   workflow_dispatch:
 permissions:
   contents: read
@@ -23,6 +23,14 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - name: Rust Excel source contract, security fixtures and CLI build
+        run: |
+          rustup update stable --no-self-update
+          rustup default stable
+          node scripts/electron-p0/verify-excel-source.mjs
+          cargo test --locked --manifest-path tools/purchase-excel-cli/Cargo.toml
+          node scripts/electron-p0/build-excel.mjs --release
+          node scripts/electron-p0/check-excel-cli.mjs build/purchase-excel-cli/purchase-excel-cli.exe
       - name: Source preservation, Newsletter IPC/output validation, Portable + NSIS and packaged UI
         run: npm run electron:p0:ci:windows
       - name: Record exact PoC artifact hash and signature (not a production release)
@@ -38,10 +46,10 @@ jobs:
             Write-Output "::notice title=ELECTRON_P1A_ARTIFACT::$($file.Name) SHA256=$hash signature=$signature"
             @{file=$file.Name;sha256=$hash;signature=$signature}
           }
-          @{scope='Electron P2D2 only';sourceSha=$env:GITHUB_SHA;files=@($results);qa=(Get-Content release-electron-p0/P1A-QA-RESULT.json -Raw | ConvertFrom-Json);productionDeployment=$false} | ConvertTo-Json -Depth 8 | Set-Content release-electron-p0/P0-BUILD-RESULT.json
+          @{scope='Electron P2E3 only';sourceSha=$env:GITHUB_SHA;files=@($results);qa=(Get-Content release-electron-p0/P1A-QA-RESULT.json -Raw | ConvertFrom-Json);productionDeployment=$false} | ConvertTo-Json -Depth 8 | Set-Content release-electron-p0/P0-BUILD-RESULT.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: ELECTRON-P2D2-Windows-${{ github.sha }}
+          name: ELECTRON-P2E3-Windows-${{ github.sha }}
           path: |
             release-electron-p0/*.exe
             release-electron-p0/SHA256SUMS.txt
@@ -52,7 +60,7 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: ELECTRON-P2D2-UI-evidence-${{ github.run_id }}
+          name: ELECTRON-P2E3-UI-evidence-${{ github.run_id }}
           path: |
             artifacts/electron-p0-e2e/
             release-electron-p0/P1A-QA-RESULT.json

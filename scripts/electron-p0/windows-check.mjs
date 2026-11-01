@@ -19,7 +19,10 @@ try{
  npm('electron:p0:build');
  run([process.env.npm_execpath,'exec','--','vitest','run','electron-p0/tests','src/newsletter','--maxWorkers=4']);
  run(['node_modules/electron-builder/out/cli/cli.js','--config','electron-p0/builder.json','--win','portable','nsis','--x64','--publish','never']);
- report.packaging='PASS';
+ const excelCli=join(process.cwd(),'release-electron-p0/win-unpacked/resources/purchase-excel-cli/purchase-excel-cli.exe');
+ if(!existsSync(excelCli))throw Error('Packaged Excel CLI missing');
+ run(['scripts/electron-p0/check-excel-cli.mjs',excelCli]);
+ report.excelCliPackaged='PASS';report.packaging='PASS';
  npm('electron:p0:test:e2e',{...process.env,ELECTRON_P0_EXECUTABLE:join(process.cwd(),'release-electron-p0/win-unpacked/BOGUNON DESK ELECTRON P0.exe')});
  report.packagedUi='PASS';
  if(report.elevated){
@@ -36,7 +39,10 @@ try{
   ps(`$p=Start-Process -FilePath ${q(join(process.cwd(),'release-electron-p0',setup[0]))} -ArgumentList '/S' -Wait -PassThru; if($p.ExitCode -ne 0){throw "Install failed: $($p.ExitCode)"}`);
   const exe=join(install,'BOGUNON DESK ELECTRON P0.exe');
   if(!existsSync(exe))throw Error('Installed executable missing');
-  report.installation='PASS';
+  const installedCli=join(install,'resources/purchase-excel-cli/purchase-excel-cli.exe');
+  if(!existsSync(installedCli))throw Error('Installed NSIS Excel CLI missing');
+  run(['scripts/electron-p0/check-excel-cli.mjs',installedCli]);
+  report.excelCliInstalled='PASS';report.installation='PASS';
   npm('electron:p0:test:e2e',{...process.env,ELECTRON_P0_EXECUTABLE:exe});
   report.installedUiAndRestart='PASS';
   // Existing E2E writes only isolated test-runs/<UUID> settings, never a real profile.

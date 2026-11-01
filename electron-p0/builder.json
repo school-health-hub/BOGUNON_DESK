@@ -50,5 +50,16 @@
     "shortcutName": "BOGUNON DESK ELECTRON P0",
     "uninstallDisplayName": "BOGUNON DESK ELECTRON P0",
     "artifactName": "BOGUNON-DESK-ELECTRON-P0-Setup-${version}-${arch}.${ext}"
-  }
+  },
+  "extraResources": [
+    {
+      "from": "build/purchase-excel-cli",
+      "to": "purchase-excel-cli",
+      "filter": [
+        "purchase-excel-cli.exe",
+        "purchase-excel-cli"
+      ]
+    }
+  ],
+  "beforePack": "./scripts/electron-p0/check-excel-package.cjs"
 }

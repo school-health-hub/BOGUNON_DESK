@@ -20,8 +20,8 @@
     "electron:p0:build": "node scripts/electron-p0/build.mjs",
     "electron:p0:dev": "node scripts/electron-p0/dev.mjs",
     "electron:p0:start": "electron build/electron-p0-app",
-    "electron:p0:package:win": "npm run electron:p0:build && electron-builder --config electron-p0/builder.json --win portable --x64 --publish never",
-    "electron:p0:package:linux": "npm run electron:p0:build && electron-builder --config electron-p0/builder.json --linux dir --publish never",
+    "electron:p0:package:win": "node scripts/electron-p0/build-excel.mjs --release && npm run electron:p0:build && electron-builder --config electron-p0/builder.json --win portable --x64 --publish never",
+    "electron:p0:package:linux": "node scripts/electron-p0/build-excel.mjs --release && npm run electron:p0:build && electron-builder --config electron-p0/builder.json --linux dir --publish never",
     "electron:p0:test": "vitest run electron-p0/tests",
     "electron:p0:test:e2e": "playwright test --config electron-p0/playwright.config.ts",
     "electron:p0:ci:windows": "node scripts/electron-p0/windows-check.mjs"

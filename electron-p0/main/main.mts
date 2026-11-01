@@ -1,3 +1,5 @@
+import { ExcelService } from './purchase-excel.js';
+import { createExcelHandlers } from './purchase-excel-ipc.js';
 import { createPurchaseImportHandlers } from './purchase-import.js';
 import { createPurchaseClipboardHandler } from './purchase-clipboard.js';
 import { app, BrowserWindow, ipcMain, session, Menu, Tray, nativeImage, screen, dialog, clipboard, ClipboardItem } from 'electron';
@@ -55,6 +57,13 @@ else {
     if (channel === 'p0:read-settings') return store.read();
     return store.write(args[0]);
   });
+  const excelService=new ExcelService(app.isPackaged?join(process.resourcesPath,'purchase-excel-cli','purchase-excel-cli.exe'):join(app.getAppPath(),process.platform==='win32'?'../../tools/purchase-excel-cli/target/x86_64-pc-windows-msvc/debug':'../../tools/purchase-excel-cli/target/debug',process.platform==='win32'?'purchase-excel-cli.exe':'purchase-excel-cli'),join(userData,'work-data','purchase-import-tmp'));
+  const excelHandlers=createExcelHandlers(window.webContents,url,async()=>{const r=await dialog.showOpenDialog(window,{title:'Purchase Helper Excel 가져오기',properties:['openFile'],filters:[{name:'Excel',extensions:['xlsx','xls']}]});return r.canceled?undefined:r.filePaths[0];},excelService);
+  ipcMain.handle('p2:purchase:excel:pick',excelHandlers.pick);
+  ipcMain.handle('p2:purchase:excel:cancel',excelHandlers.cancel);
+  ipcMain.handle('p2:purchase:excel:map',excelHandlers.map);
+  window.on('close',excelHandlers.dispose);
+  app.on('before-quit',excelHandlers.dispose);
   const purchaseImport=createPurchaseImportHandlers(window.webContents,url,async()=>{const result=await dialog.showOpenDialog(window,{title:'Purchase Helper CSV 가져오기',properties:['openFile'],filters:[{name:'CSV',extensions:['csv']}]});return result.canceled?undefined:result.filePaths[0];});
   ipcMain.handle('p2:purchase:csv:pick',purchaseImport.pick);
   ipcMain.handle('p2:purchase:csv:cancel',purchaseImport.cancel);
@@ -82,7 +91,7 @@ else {
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
-  const quit=()=>{if(quitting)return;quitting=true;clearTimeout(timer);capture();void persist().then(()=>Promise.all([store.flush(),desktopStore.flush(),memoStore.flush(),projects.flush()])).finally(()=>{tray?.destroy();app.quit();});};
+  const quit=()=>{if(quitting)return;quitting=true;excelHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([store.flush(),desktopStore.flush(),memoStore.flush(),projects.flush(),excelService.flush()])).finally(()=>{tray?.destroy();app.quit();});};
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
       {label:'창 열기',click:show},{label:'최소화',click:()=>window.minimize()},
