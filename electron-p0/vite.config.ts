@@ -5,7 +5,7 @@ const root=fileURLToPath(new URL('./renderer',import.meta.url));
 const fixture=(name:string)=>fileURLToPath(new URL(`./renderer/adapters/${name}.ts`,import.meta.url));
 export default defineConfig({root,base:'./',envDir:root,envPrefix:'ELECTRON_P0_PUBLIC_',publicDir:false,plugins:[react(),{
   name:'p0-closed-renderer',enforce:'pre',
-  resolveId(source,importer){if(/(?:^|\/)MemoWidget(?:\.tsx)?$/.test(source))return fileURLToPath(new URL('./renderer/adapters/PersistentMemo.tsx',import.meta.url));if(source==='react-grid-layout'&&importer?.replaceAll('\\','/').endsWith('/src/components/dashboard/DesktopWidgetLayout.tsx'))return fileURLToPath(new URL('./renderer/adapters/GridLayout.tsx',import.meta.url));},
+  resolveId(source,importer){if(source==='./NewsletterOutputControls'&&importer?.endsWith('/newsletter/rendering/NewsletterDesignEditor.tsx'))return fileURLToPath(new URL('./renderer/adapters/NewsletterOutputDisabled.tsx',import.meta.url));if(/(?:^|\/)MemoWidget(?:\.tsx)?$/.test(source))return fileURLToPath(new URL('./renderer/adapters/PersistentMemo.tsx',import.meta.url));if(source==='react-grid-layout'&&importer?.replaceAll('\\','/').endsWith('/src/components/dashboard/DesktopWidgetLayout.tsx'))return fileURLToPath(new URL('./renderer/adapters/GridLayout.tsx',import.meta.url));},
   generateBundle(){
     const modules=[...this.getModuleIds()].map(p=>p.replaceAll('\\','/'));
     const forbidden=modules.filter(p=>/@tauri-apps|@supabase|\/src\/(auth|ai|chatgpt|my-finance|purchase|official-document|record-helper)\//.test(p));

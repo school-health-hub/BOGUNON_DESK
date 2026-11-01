@@ -16,6 +16,7 @@ export type SyntheticSummary = Readonly<{fixture:'synthetic-only';total:3;comple
 export type IpcErrorCode = 'FORBIDDEN' | 'INVALID_INPUT' | 'INTERNAL_ERROR' | 'STORAGE_ERROR';
 export type IpcResult<T> = Readonly<{ok:true;data:T}> | Readonly<{ok:false;error:Readonly<{code:IpcErrorCode;message:string;retryable:boolean}>}>;
 export interface WorkBridge {
+ readonly newsletter:Readonly<{saveJson(request:Readonly<{json:string}>):Promise<IpcResult<NewsletterSaveResult>>}>;
  readonly memo: Readonly<MemoBridge>;
  readonly sample: Readonly<{summarize(request:SyntheticSummaryRequest):Promise<IpcResult<SyntheticSummary>>}>;
 }
@@ -25,3 +26,5 @@ export interface MemoBridge {
  read():Promise<IpcResult<MemoDocument>>;
  write(document:MemoDocument):Promise<IpcResult<MemoDocument>>;
 }
+
+export type NewsletterSaveResult=Readonly<{saved:boolean;fileName?:string}>;

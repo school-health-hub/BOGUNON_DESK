@@ -13,7 +13,7 @@ const work: WorkBridge = Object.freeze({sample:Object.freeze({
     try{return await ipcRenderer.invoke('p2:sample:summary',request);}
     catch{return {ok:false as const,error:{code:'INTERNAL_ERROR' as const,message:'샘플 연결을 완료하지 못했습니다.',retryable:true}};}
   },
-}),memo:Object.freeze({
+}),newsletter:Object.freeze({saveJson:async(request:{readonly json:string})=>{try{return await ipcRenderer.invoke('p2:newsletter:save-json',request);}catch{return {ok:false as const,error:{code:'STORAGE_ERROR' as const,message:'JSON 저장 연결을 완료하지 못했습니다.',retryable:true}};}}}),memo:Object.freeze({
   read:async()=>{try{return await ipcRenderer.invoke('p2:memo:read');}catch{return {ok:false as const,error:{code:'STORAGE_ERROR' as const,message:'메모 연결을 완료하지 못했습니다.',retryable:true}};}},
   write:async(document:MemoDocument)=>{try{return await ipcRenderer.invoke('p2:memo:write',document);}catch{return {ok:false as const,error:{code:'STORAGE_ERROR' as const,message:'메모 연결을 완료하지 못했습니다.',retryable:true}};}},
 })});

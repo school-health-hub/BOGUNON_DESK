@@ -1,10 +1,11 @@
-import { app, BrowserWindow, ipcMain, session, Menu, Tray, nativeImage, screen } from 'electron';
+import { app, BrowserWindow, ipcMain, session, Menu, Tray, nativeImage, screen, dialog } from 'electron';
 import { join } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { APP_ID, PRODUCT_NAME, PROFILE_NAME } from '../protocol.js';
 import { desktopDefaults, validateDesktop, fitBounds, type DesktopState } from './desktop.js';
 import { SettingsStore } from './settings.js';
+import { createNewsletterSaveHandler } from './newsletter-json.js';
 import { MemoStore, createMemoHandlers } from './memo-ipc.js';
 import { createSampleHandler, SAMPLE_SUMMARY_CHANNEL } from './sample-ipc.js';
 import { assertSender, resourceAllowed } from './policy.js';
@@ -53,6 +54,10 @@ else {
   const memoHandlers=createMemoHandlers(window.webContents,url,memoStore);
   ipcMain.handle('p2:memo:read',memoHandlers.read);
   ipcMain.handle('p2:memo:write',memoHandlers.write);
+  ipcMain.handle('p2:newsletter:save-json',createNewsletterSaveHandler(window.webContents,url,{
+   pick:async()=>{const r=await dialog.showSaveDialog(window,{title:'원고·디자인 JSON 저장',defaultPath:'newsletter.json',filters:[{name:'Newsletter JSON',extensions:['json']}]});return r.canceled?undefined:r.filePath;},
+   confirm:async()=>(await dialog.showMessageBox(window,{type:'warning',message:'선택한 JSON 파일을 덮어쓸까요?',buttons:['취소','덮어쓰기'],defaultId:0,cancelId:0})).response===1,
+  }));
   const show=()=>{if(window.isMinimized())window.restore();window.show();window.focus();};
   const persist=async()=>{
     try{await desktopStore.write(desktop);return true;}
