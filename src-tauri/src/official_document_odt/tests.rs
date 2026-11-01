@@ -1,5 +1,6 @@
 use std::io::{Cursor, Read, Write};
 
+use quick_xml::{events::Event, Reader, XmlVersion};
 use zip::{write::SimpleFileOptions, CompressionMethod, ZipArchive, ZipWriter};
 
 use super::{
@@ -252,15 +253,20 @@ fn accepts_zero_one_many_attachments_without_appending_them_again() {
         .expect("canonical attachment data should export");
         // Then
         let content = read_entry(&output, "content.xml");
-        assert_eq!(content.matches("끝.").count(), 1);
+        let restored = restored_body(&content);
+        assert_eq!(restored, body);
+        assert_eq!(restored.matches("끝.").count(), 1);
         assert_eq!(
-            content.matches("합성 하나").count(),
+            restored.matches("합성 하나").count(),
             usize::from(body.contains("합성 하나"))
         );
         assert_eq!(
-            content.matches("합성 둘").count(),
+            restored.matches("합성 둘").count(),
             usize::from(body.contains("합성 둘"))
         );
+        let manifest = inspect_template(&output).expect("output manifest");
+        assert_eq!(manifest.bookmarks.len(), 43);
+        assert_eq!(manifest.bookmarks, contract.bookmarks);
     }
 }
 
@@ -287,7 +293,11 @@ fn preserves_multiline_leading_space_and_long_body_inside_the_existing_range() {
     // Then
     let content = read_entry(&output, "content.xml");
     assert_eq!(content.matches("<text:line-break/>").count(), 182);
-    assert!(content.contains("<text:s/><text:s/>가. 선행"));
+    assert_eq!(restored_body(&content), body);
+    assert_eq!(
+        restored_body(&content.replace("<text:s/><text:s/>", "<text:s text:c=\"2\"/>")),
+        body
+    );
     assert_eq!(
         inspect_template(&output)
             .expect("output manifest")
@@ -362,6 +372,84 @@ fn read_entry(bytes: &[u8], name: &str) -> String {
         .read_to_string(&mut value)
         .expect("UTF-8 XML entry");
     value
+}
+
+fn restored_body(xml: &str) -> String {
+    let mut reader = Reader::from_str(xml);
+    reader.config_mut().trim_text(false);
+    let mut output = String::new();
+    let mut inside = false;
+    let mut boundaries = (0, 0);
+    loop {
+        match reader.read_event().expect("well-formed synthetic ODF XML") {
+            Event::Start(element) | Event::Empty(element) => {
+                let name = element.name();
+                match name.as_ref() {
+                    b"text:bookmark-start" | b"text:bookmark-end" => {
+                        let attribute = element
+                            .try_get_attribute("text:name")
+                            .expect("valid bookmark attribute")
+                            .expect("named bookmark");
+                        if attribute
+                            .normalized_value(XmlVersion::Implicit1_0)
+                            .expect("valid bookmark name")
+                            == BODY
+                        {
+                            if name.as_ref() == b"text:bookmark-start" {
+                                assert!(!inside, "duplicate body start");
+                                inside = true;
+                                boundaries.0 += 1;
+                            } else {
+                                assert!(inside, "body end must follow its start");
+                                inside = false;
+                                boundaries.1 += 1;
+                            }
+                        }
+                    }
+                    b"text:s" if inside => {
+                        let count = element
+                            .try_get_attribute("text:c")
+                            .expect("valid space count attribute")
+                            .map(|attribute| {
+                                attribute
+                                    .normalized_value(XmlVersion::Implicit1_0)
+                                    .expect("valid space count")
+                                    .parse::<usize>()
+                                    .expect("integer space count")
+                            })
+                            .unwrap_or(1);
+                        assert!(
+                            (1..=1000).contains(&count),
+                            "bounded positive fixture space count"
+                        );
+                        output.push_str(&" ".repeat(count));
+                    }
+                    b"text:line-break" if inside => output.push('\n'),
+                    _ => {}
+                }
+            }
+            Event::Text(text) if inside => output.push_str(text.as_ref()),
+            Event::CData(text) if inside => output.push_str(text.as_ref()),
+            Event::GeneralRef(reference) if inside => {
+                if let Some(character) = reference
+                    .resolve_char_ref()
+                    .expect("valid character reference")
+                {
+                    output.push(character);
+                } else {
+                    output.push_str(
+                        quick_xml::escape::resolve_xml_entity(reference.as_ref())
+                            .expect("known XML entity"),
+                    );
+                }
+            }
+            Event::Eof => break,
+            _ => {}
+        }
+    }
+    assert_eq!(boundaries, (1, 1), "exactly one original body range");
+    assert!(!inside, "closed body range");
+    output
 }
 
 fn contract_for(bytes: &[u8]) -> ApprovedTemplateContract {
