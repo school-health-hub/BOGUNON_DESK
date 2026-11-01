@@ -156,6 +156,9 @@ try {
     Inventory 'controls-before'
     if ($Interact -and $window) {
         Foreground
+        if ($env:QA_P11_GUI_ONLY -eq 'true') {
+            . (Join-Path $PSScriptRoot 'official-document-p11-gui.ps1')
+        } else {
         $filled=0
         foreach ($field in @(@('업무명','QA synthetic document'),@('주요 내용','QA synthetic main content'),@('붙임','QA synthetic plan, QA synthetic notice'))) {
             $control=Find-Named $field[0] ([System.Windows.Automation.ValuePattern]::Pattern)
@@ -196,6 +199,7 @@ try {
             }
         } else { Record 'draft' 'NOT RUN' 'All three synthetic fields must be confirmed before generating a draft.' }
         . (Join-Path $PSScriptRoot 'official-document-remaining-ui.ps1')
+        }
         Inventory 'controls-after'
         Capture 'after'
     } else { Record 'interaction' 'NOT RUN' 'Interaction not requested or no visible QA window.' }

@@ -7,6 +7,10 @@ on:
         description: Full feature commit SHA for Rust-only P11 tests (empty keeps existing QA modes)
         type: string
         default: ''
+      p11_gui_only:
+        description: Build latest native QA and check only authoring GUI without repeating suites
+        type: boolean
+        default: false
       p11_authoring_only:
         description: Check authoring UI and ODT request contracts without Rust builds
         type: boolean
@@ -62,6 +66,7 @@ jobs:
           npm ci --no-audit --no-fund 2>&1 | Tee-Object "$env:AUTHORING_EVIDENCE/npm-ci.log"
           if ($LASTEXITCODE -ne 0) { throw 'Locked install failed' }
       - name: TypeScript
+        if: '!inputs.p11_gui_only'
         run: |
           node node_modules/typescript/bin/tsc --noEmit 2>&1 | Tee-Object "$env:AUTHORING_EVIDENCE/typescript.log"
           if ($LASTEXITCODE -ne 0) { throw 'TypeScript failed' }
@@ -168,7 +173,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
   native-build:
-    if: github.ref == 'refs/heads/feature/official-document-enhancement' && !inputs.runtime_only && inputs.p11_source_sha == '' && !inputs.p11_authoring_only
+    if: github.ref == 'refs/heads/feature/official-document-enhancement' && (!inputs.runtime_only || inputs.p11_gui_only) && inputs.p11_source_sha == '' && !inputs.p11_authoring_only
     runs-on: windows-latest
     timeout-minutes: 90
     defaults:
@@ -176,6 +181,7 @@ jobs:
         shell: pwsh
     env:
       QA_NATIVE_UI_ONLY: 'true'
+      QA_P11_GUI_ONLY: ${{ inputs.p11_gui_only && 'true' || 'false' }}
       CI: 'true'
       CL: /utf-8
       CARGO_BUILD_JOBS: '2'
@@ -216,14 +222,17 @@ jobs:
           npm ci --no-audit --no-fund 2>&1 | Tee-Object "$env:QA_ROOT/evidence/npm-ci.log"
           if ($LASTEXITCODE -ne 0) { throw 'npm ci failed' }
       - name: TypeScript
+        if: '!inputs.p11_gui_only'
         run: |
           node node_modules/typescript/bin/tsc --noEmit 2>&1 | Tee-Object "$env:QA_ROOT/evidence/typescript.log"
           if ($LASTEXITCODE -ne 0) { throw 'TypeScript failed' }
       - name: Vitest regressions
+        if: '!inputs.p11_gui_only'
         run: |
           npm test -- --maxWorkers=4 --exclude scripts/official-document-qa-paths.test.mjs --exclude scripts/qa/official-document-screen-assessment.test.mjs 2>&1 | Tee-Object "$env:QA_ROOT/evidence/vitest.log"
           if ($LASTEXITCODE -ne 0) { throw 'Vitest failed' }
       - name: QA path contracts
+        if: '!inputs.p11_gui_only'
         run: |
           node --test scripts/official-document-qa-paths.test.mjs scripts/qa/official-document-screen-assessment.test.mjs 2>&1 | Tee-Object "$env:QA_ROOT/evidence/path-tests.log"
           if ($LASTEXITCODE -ne 0) { throw 'Path tests failed' }
@@ -298,7 +307,7 @@ jobs:
           retention-days: 14
 
   runtime-ui:
-    if: github.ref == 'refs/heads/feature/official-document-enhancement' && inputs.runtime_only && inputs.p11_source_sha == '' && !inputs.p11_authoring_only
+    if: github.ref == 'refs/heads/feature/official-document-enhancement' && inputs.runtime_only && !inputs.p11_gui_only && inputs.p11_source_sha == '' && !inputs.p11_authoring_only
     runs-on: windows-latest
     timeout-minutes: 10
     permissions:
@@ -309,6 +318,7 @@ jobs:
         shell: pwsh
     env:
       QA_NATIVE_UI_ONLY: 'true'
+      QA_P11_GUI_ONLY: ${{ inputs.p11_gui_only && 'true' || 'false' }}
       QA_SKIP_FILE_PICKER: 'true'
       QA_EXPECTED_SOURCE_SHA: 5e3583f6b5d7abca2ccba58fc90e64a456bfb817
       QA_EXPECTED_EXE_SHA256: 14f761fcc5618f9d9cdb90c7be463f53a6fa468c0e53867a5d571f4f4f306f31
