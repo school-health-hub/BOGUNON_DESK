@@ -16,3 +16,8 @@ for(const [name,phrase] of [['scanned.pdf','OCR'],['encrypted.pdf','암호화'],
  const r=call({operation:'analyze',path:join(fixtures,name)});assert.equal(r.items.length,0);assert(r.sources[0].message.includes(phrase));assert(['unsupported','error'].includes(r.sources[0].status));
 }
 console.log('PDF CLI smoke PASS: text/Korean/total/mapping and scanned/encrypted/damaged/page-limit rejection; no OCR or external executable');
+const exportInput=JSON.parse(readFileSync(join(fixtures,'export-request.json'),'utf8'));
+for(const format of ['csv','xlsx']){
+ const r=call({operation:'export',format,...exportInput});assert.equal(r.validated,true);assert.equal(r.format,format);assert.deepEqual(r.columns,exportInput.columns);const bytes=Buffer.from(r.bytesBase64,'base64');assert(bytes.length>20);assert(bytes.subarray(0,format==='csv'?3:4).equals(Buffer.from(format==='csv'?[239,187,191]:[80,75,3,4])));
+}
+console.log('Purchase export CLI smoke PASS: original CSV/XLSX generation and read-back validation, no output path supplied to CLI');

@@ -1,28 +1,36 @@
 mod engine;
 mod limits;
+use base64::Engine as _;
 use std::{collections::HashMap,io::{Read,Write},path::PathBuf};
 use serde::Deserialize;
 const MAX_IO:usize=64*1024*1024;
 #[derive(Deserialize)]
 #[serde(tag="operation",rename_all="camelCase",rename_all_fields="camelCase",deny_unknown_fields)]
 enum Request {
+    Export { format:String, items:Vec<engine::PurchaseItem>, columns:Vec<String> },
     Analyze { path:PathBuf },
     Map { candidate:engine::MappingCandidate, header_row:usize, mapping:HashMap<String,usize> },
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Envelope {version:u8,request:Request}
-fn run()->Result<engine::AnalysisResult,()> {
+fn run()->Result<serde_json::Value,()> {
     let mut bytes=Vec::new();std::io::stdin().take((MAX_IO+1) as u64).read_to_end(&mut bytes).map_err(|_|())?;
     if bytes.len()>MAX_IO{return Err(());}
     let envelope:Envelope=serde_json::from_slice(&bytes).map_err(|_|())?;
     if envelope.version!=1{return Err(());}
     match envelope.request {
+        Request::Export{format,items,columns}=>{
+            let bytes=engine::export_bytes(&format,&items,&columns).map_err(|_|())?;
+            if bytes.len()>32*1024*1024 {return Err(());}
+            engine::verify_export(&bytes,&format,&items,&columns).map_err(|_|())?;
+            Ok(serde_json::json!({"format":format,"itemCount":items.len(),"columns":columns,"bytesBase64":base64::engine::general_purpose::STANDARD.encode(bytes),"validated":true}))
+        },
         Request::Analyze{path}=>{
             if !matches!(path.extension().and_then(|s|s.to_str()),Some("xlsx"|"xls"|"pdf")){return Err(());}
-            engine::analyze_paths(vec![path],vec![]).map_err(|_|())
+            serde_json::to_value(engine::analyze_paths(vec![path],vec![]).map_err(|_|())?).map_err(|_|())
         },
-        Request::Map{candidate,header_row,mapping}=>engine::apply_purchase_column_mapping(candidate,header_row,mapping).map_err(|_|()),
+        Request::Map{candidate,header_row,mapping}=>serde_json::to_value(engine::apply_purchase_column_mapping(candidate,header_row,mapping).map_err(|_|())?).map_err(|_|()),
     }
 }
 fn main(){

@@ -1,0 +1,11 @@
+// @vitest-environment jsdom
+import {it,expect,vi,afterEach} from 'vitest';import {render,screen,fireEvent,cleanup} from '@testing-library/react';import {PurchaseSession} from '../renderer/purchase/PurchaseSession';
+afterEach(()=>{cleanup();vi.unstubAllGlobals();});
+function edit(label:string,value:string){const input=screen.getByLabelText(label);fireEvent.focus(input);fireEvent.change(input,{target:{value}});fireEvent.keyDown(input,{key:'Enter'});fireEvent.blur(input);}
+it('enables only CSV/XLSX for valid selected rows and distinguishes saved, canceled and failed exports',async()=>{
+ const exportItems=vi.fn().mockResolvedValueOnce({ok:true,data:{status:'saved',fileName:'synthetic.csv'}}).mockResolvedValueOnce({ok:true,data:{status:'canceled'}}).mockResolvedValueOnce({ok:false,error:{code:'CONFLICT',message:'외부에서 파일이 변경되었습니다.',retryable:true}});
+ vi.stubGlobal('electronWork',{purchase:{exportItems,cancelCsv:async()=>({ok:true,data:null})}});render(<PurchaseSession open onClose={vi.fn()}/>);
+ expect((screen.getByRole('button',{name:'CSV 저장'}) as HTMLButtonElement).disabled).toBe(true);fireEvent.click(screen.getByRole('button',{name:'품목 추가'}));edit('1행 품명','합성 품목');edit('1행 수량','2.5');edit('1행 단가','100.6');fireEvent.click(screen.getByRole('button',{name:'CSV 저장'}));await screen.findByText('CSV 파일을 저장했습니다: synthetic.csv');expect(exportItems.mock.calls[0][0]).toMatchObject({format:'csv',items:[{name:'합성 품목',quantity:2.5,unitPrice:100.6}],columns:['number','name','specification','quantity','unitPrice','amount','note']});
+ fireEvent.click(screen.getByRole('button',{name:'XLSX 저장'}));await screen.findByText('파일 저장을 취소했습니다.');expect((screen.getByLabelText('1행 품명') as HTMLInputElement).value).toBe('합성 품목');fireEvent.click(screen.getByRole('button',{name:'CSV 저장'}));await screen.findByText('외부에서 파일이 변경되었습니다.');expect((screen.getByLabelText('1행 품명') as HTMLInputElement).value).toBe('합성 품목');
+ edit('1행 단가','-1');expect((screen.getByRole('button',{name:'XLSX 저장'}) as HTMLButtonElement).disabled).toBe(true);expect((screen.getByRole('button',{name:'에듀파인용 Excel'}) as HTMLButtonElement).disabled).toBe(true);expect((screen.getByRole('tab',{name:'구매결과'}) as HTMLButtonElement).disabled).toBe(true);
+});

@@ -4,6 +4,7 @@ use std::{collections::{HashMap,HashSet},fs,io::{BufReader,Read,Seek,SeekFrom},p
 use calamine::{open_workbook,open_workbook_auto,Data,DataType,Reader,Xlsx,XlsxError};
 use serde::{Deserialize,Serialize};
 use zip::ZipArchive;
+use rust_xlsxwriter::{Format,Workbook};
 use pdf_extract::{Document,MediaBox,OutputDev,OutputError,Transform};
 const MAX_FILES: usize = 10;
 const MAX_FILE_BYTES: u64 = 15 * 1024 * 1024;
@@ -1334,3 +1335,171 @@ pub fn apply_purchase_column_mapping(
 #[cfg(test)]
 #[path="engine_tests.rs"]
 mod tests;
+
+fn output_value(item: &PurchaseItem, column: &str, index: usize) -> String {
+    match column {
+        "number" => (index + 1).to_string(),
+        "name" => item.name.clone(),
+        "specification" => item.specification.clone(),
+        "quantity" => item.quantity.map(|v| v.to_string()).unwrap_or_default(),
+        "unitPrice" => item.unit_price.map(|v| v.to_string()).unwrap_or_default(),
+        "amount" => item
+            .quantity
+            .zip(item.unit_price)
+            .map(|(q, p)| (q * p).round())
+            .or(item.imported_amount)
+            .map(|v| v.to_string())
+            .unwrap_or_default(),
+        "vendor" => item.vendor.clone(),
+        "note" => item.note.clone(),
+        "budgetItem" => item.budget_item.clone(),
+        _ => String::new(),
+    }
+}
+
+fn csv_output_value(value: &str, column: &str) -> String {
+    let is_text_column = matches!(
+        column,
+        "name" | "specification" | "vendor" | "note" | "budgetItem"
+    );
+    let starts_with_formula_trigger = value
+        .chars()
+        .next()
+        .is_some_and(|first| matches!(first, '=' | '+' | '-' | '@' | '\t' | '\r'));
+    if is_text_column && starts_with_formula_trigger {
+        format!("'{value}")
+    } else {
+        value.to_owned()
+    }
+}
+fn column_label(column: &str) -> &'static str {
+    match column {
+        "number" => "번호",
+        "name" => "품명",
+        "specification" => "규격",
+        "quantity" => "수량",
+        "unitPrice" => "단가",
+        "amount" => "금액",
+        "vendor" => "구매처",
+        "note" => "비고",
+        "budgetItem" => "예산항목",
+        _ => "",
+    }
+}
+fn validate_columns(columns: &[String]) -> Result<(), String> {
+    if columns.is_empty()
+        || !columns.iter().any(|c| c == "name")
+        || columns.iter().any(|c| column_label(c).is_empty())
+    {
+        Err("출력 열 구성을 확인해 주세요.".to_owned())
+    } else {
+        Ok(())
+    }
+}
+
+
+// Original writer loops; only dialog/path writes become an in-memory return.
+pub(crate) fn export_bytes(format:&str,items:&[PurchaseItem],columns:&[String])->Result<Vec<u8>,String>{
+    if items.is_empty() || items.len()>MAX_ROWS { return Err("Invalid output count".into()); }
+    validate_columns(columns)?;
+    if format!="csv" && format!="xlsx" {return Err("Invalid output format".into());}
+    if format == "csv" {
+        let mut bytes = vec![0xEF, 0xBB, 0xBF];
+        let mut writer = csv::Writer::from_writer(vec![]);
+        writer
+            .write_record(columns.iter().map(|c| column_label(c)))
+            .map_err(|error| error.to_string())?;
+        for (index, item) in items.iter().enumerate() {
+            writer
+                .write_record(
+                    columns
+                        .iter()
+                        .map(|column| csv_output_value(&output_value(item, column, index), column)),
+                )
+                .map_err(|error| error.to_string())?;
+        }
+        bytes.extend(writer.into_inner().map_err(|error| error.to_string())?);
+        return Ok(bytes);
+    } else {
+        let mut workbook = Workbook::new();
+        let worksheet = workbook.add_worksheet();
+        let header = Format::new().set_bold();
+        let quantity_format = Format::new().set_num_format("0.##");
+        let currency_format = Format::new().set_num_format("#,##0");
+        for (column_index, column) in columns.iter().enumerate() {
+            worksheet
+                .write_with_format(0, column_index as u16, column_label(column), &header)
+                .map_err(|e| e.to_string())?;
+            worksheet
+                .set_column_width(column_index as u16, if column == "name" { 28 } else { 14 })
+                .map_err(|e| e.to_string())?;
+        }
+        for (row_index, item) in items.iter().enumerate() {
+            for (column_index, column) in columns.iter().enumerate() {
+                let row = row_index as u32 + 1;
+                let col = column_index as u16;
+                match column.as_str() {
+                    "quantity" => {
+                        if let Some(v) = item.quantity {
+                            worksheet
+                                .write_number_with_format(row, col, v, &quantity_format)
+                                .map_err(|e| e.to_string())?;
+                        }
+                    }
+                    "unitPrice" => {
+                        if let Some(v) = item.unit_price {
+                            worksheet
+                                .write_number_with_format(row, col, v, &currency_format)
+                                .map_err(|e| e.to_string())?;
+                        }
+                    }
+                    "amount" => {
+                        if let Some(v) = item
+                            .quantity
+                            .zip(item.unit_price)
+                            .map(|(q, p)| (q * p).round())
+                            .or(item.imported_amount)
+                        {
+                            worksheet
+                                .write_number_with_format(row, col, v, &currency_format)
+                                .map_err(|e| e.to_string())?;
+                        }
+                    }
+                    _ => {
+                        worksheet
+                            .write_string(row, col, output_value(item, column, row_index))
+                            .map_err(|e| e.to_string())?;
+                    }
+                }
+            }
+        }
+        return workbook.save_to_buffer().map_err(|error| error.to_string());
+    }
+}
+
+// Validate generated bytes against the original writer's cell/ordering contract before returning them.
+pub(crate) fn verify_export(bytes:&[u8],format:&str,items:&[PurchaseItem],columns:&[String])->Result<(),String>{
+    if format=="csv" {
+        let data=bytes.strip_prefix(&[0xEF,0xBB,0xBF]).ok_or("Missing BOM")?;
+        let rows=csv::ReaderBuilder::new().has_headers(false).from_reader(data).records().collect::<Result<Vec<_>,_>>().map_err(|_|"Invalid CSV")?;
+        if rows.len()!=items.len()+1 || rows[0].iter().ne(columns.iter().map(|c|column_label(c))) {return Err("CSV header mismatch".into());}
+        for (i,item) in items.iter().enumerate(){if rows[i+1].iter().ne(columns.iter().map(|c|csv_output_value(&output_value(item,c,i),c)).collect::<Vec<_>>().iter().map(String::as_str)){return Err("CSV mismatch".into());}}
+    } else {
+        let mut workbook:Xlsx<_>=Xlsx::new(std::io::Cursor::new(bytes)).map_err(|_|"Invalid XLSX")?;
+        let rows=workbook.worksheet_range_at(0).ok_or("Missing sheet")?.map_err(|_|"Invalid sheet")?;
+        for (col,column) in columns.iter().enumerate(){
+            if rows.get((0,col)).map(ToString::to_string).unwrap_or_default()!=column_label(column){return Err("XLSX header mismatch".into());}
+            for (i,item) in items.iter().enumerate(){
+                let value=rows.get((i+1,col)).cloned().unwrap_or(Data::Empty);let expected=output_value(item,column,i);
+                if value.to_string()!=expected {return Err("XLSX value mismatch".into());}
+                if matches!(column.as_str(),"quantity"|"unitPrice"|"amount") && !expected.is_empty() && !matches!(value,Data::Float(_)|Data::Int(_)){return Err("XLSX numeric type mismatch".into());}
+                if !matches!(column.as_str(),"quantity"|"unitPrice"|"amount") && !matches!(value,Data::String(_)) && !(expected.is_empty() && matches!(value,Data::Empty)){return Err("XLSX text type mismatch".into());}
+            }
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+#[path="export_tests.rs"]
+mod export_tests;

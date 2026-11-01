@@ -49,7 +49,7 @@ export function PurchaseHelperPanel({ fileControls, editing, columns, draft, dra
     wasBulkOpenRef.current = bulkOpen;
   }, [bulkOpen]);
   const [activeView, setActiveView] = useState<"items" | "draft" | "settlement">("items");
-  const busy = false;
+  const [busy,setBusy] = useState(false);
   const [isColumnEditorOpen, setIsColumnEditorOpen] = useState(false);
   const [columnDraft, setColumnDraft] = useState<readonly PurchaseOutputColumnId[]>(columns);
   const [rowFilter, setRowFilter] = useState<PurchaseReviewFilter>("all");
@@ -82,6 +82,15 @@ export function PurchaseHelperPanel({ fileControls, editing, columns, draft, dra
       await writePurchaseClipboard(content);
       onNotice("품목내역을 복사했습니다.");
     } catch { onNotice("품목내역을 복사하지 못했습니다."); }
+  };
+  const exportRows = async (format:"csv"|"xlsx") => {
+    if(busy||!readiness.ready||selectedCount===0)return;
+    setBusy(true);
+    try{
+      const result=await window.electronWork.purchase.exportItems({format,items:items.filter(i=>i.selected),columns});
+      if(!result.ok){onNotice(result.error.message);return;}
+      onNotice(result.data.status==='saved'?`${format.toUpperCase()} 파일을 저장했습니다: ${result.data.fileName}`:'파일 저장을 취소했습니다.');
+    }catch{onNotice('파일을 저장하지 못했습니다. 기존 파일은 보존했습니다.');}finally{setBusy(false);}
   };
   const startNew = async () => {
     if (items.length > 0 && !window.confirm("현재 품목내역과 품의문 초안을 비우고 새 작업을 시작할까요?")) return;
@@ -131,7 +140,7 @@ export function PurchaseHelperPanel({ fileControls, editing, columns, draft, dra
             </tr>)}</tbody></table>
         </div>
         <section className="purchase-helper-columns"><button type="button" onClick={() => { setColumnDraft(columns); setIsColumnEditorOpen((current) => !current); }}>출력 컬럼 설정</button>{isColumnEditorOpen && <div className="purchase-helper-column-editor"><strong>출력 열</strong>{purchaseOutputColumnIds.map((column) => { const shown = columnDraft.includes(column); return <div className="purchase-helper-column" key={column}><label><input type="checkbox" checked={shown} disabled={column === "name"} onChange={(event) => setColumnDraft(normalizePurchaseOutputColumns(event.target.checked ? [...columnDraft, column] : columnDraft.filter((value) => value !== column)))} />{purchaseOutputColumnLabels[column]}</label>{shown && <span><button type="button" aria-label={`${purchaseOutputColumnLabels[column]} 왼쪽 이동`} onClick={() => moveColumn(column, -1)}>←</button><button type="button" aria-label={`${purchaseOutputColumnLabels[column]} 오른쪽 이동`} onClick={() => moveColumn(column, 1)}>→</button></span>}</div>; })}<button type="button" onClick={() => { onColumnsChange(columnDraft); setIsColumnEditorOpen(false); }}>저장</button></div>}</section>
-        <footer className="purchase-helper-panel__footer"><p>파일과 품목내역은 이 작업 중에만 메모리에 유지되며 클라우드에 저장되지 않습니다.</p><div><button type="button" disabled={selectedCount === 0 || busy || !readiness.ready} onClick={() => void copy()}><ClipboardCopy size={15}/> 표 복사</button><button type="button" disabled title="파일 저장 미지원">CSV 저장</button><button type="button" disabled title="파일 저장 미지원">XLSX 저장</button><button type="button" disabled title="에듀파인 XLSX 미지원">에듀파인용 Excel</button></div></footer>
+        <footer className="purchase-helper-panel__footer"><p>파일과 품목내역은 이 작업 중에만 메모리에 유지되며 클라우드에 저장되지 않습니다.</p><div><button type="button" disabled={selectedCount === 0 || busy || !readiness.ready} onClick={() => void copy()}><ClipboardCopy size={15}/> 표 복사</button><button type="button" disabled={selectedCount===0||busy||!readiness.ready} onClick={()=>void exportRows("csv")}>CSV 저장</button><button type="button" disabled={selectedCount===0||busy||!readiness.ready} onClick={()=>void exportRows("xlsx")}>XLSX 저장</button><button type="button" disabled title="에듀파인 XLSX 미지원">에듀파인용 Excel</button></div></footer>
         </> : activeView === "draft" ? draft === null ? <section className="purchase-draft-empty"><strong>선택한 품목으로 품의문을 작성합니다.</strong><p>품목을 선택하면 합계·구매처·예산항목을 바탕으로 초안을 만듭니다.</p><button type="button" disabled={selectedCount === 0 || !readiness.ready} onClick={() => onDraftChange(createPurchaseDraft(items))}>품의문 초안 만들기</button></section> : <PurchaseDraftEditor columns={columns} draft={draft} items={items} outputReady={readiness.ready} templates={draftTemplates} onChange={onDraftChange} onNotice={onNotice} onTemplatesChange={onDraftTemplatesChange} /> : null}
 
         {nameDialogItem !== undefined && <PurchaseItemNameDialog itemName={nameDialogItem.name} rowNumber={nameDialogRowNumber} onCancel={closeNameDialog} onSave={(name) => { update(nameDialogItem.id, { name }); closeNameDialog(); }} />}
