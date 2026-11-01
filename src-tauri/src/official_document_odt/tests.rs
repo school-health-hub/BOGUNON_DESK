@@ -231,6 +231,10 @@ fn accepts_zero_one_many_attachments_without_appending_them_again() {
     let cases = [
         ("1. 합성 본문  끝.", "붙임\n1. [확인 필요] 1부.\n끝."),
         (
+            "1. 합성 <본문> & 확인  끝.",
+            "붙임\n1. [확인 필요] 1부.\n끝.",
+        ),
+        (
             "1. 합성 본문\n\n붙임  합성 하나 1부.  끝.",
             "붙임\n1. 합성 하나 1부.\n끝.",
         ),
@@ -254,14 +258,15 @@ fn accepts_zero_one_many_attachments_without_appending_them_again() {
         // Then
         let content = read_entry(&output, "content.xml");
         let restored = restored_body(&content);
+        let all_text = restored_text(&content, false);
         assert_eq!(restored, body);
-        assert_eq!(restored.matches("끝.").count(), 1);
+        assert_eq!(all_text.matches("끝.").count(), 1);
         assert_eq!(
-            restored.matches("합성 하나").count(),
+            all_text.matches("합성 하나").count(),
             usize::from(body.contains("합성 하나"))
         );
         assert_eq!(
-            restored.matches("합성 둘").count(),
+            all_text.matches("합성 둘").count(),
             usize::from(body.contains("합성 둘"))
         );
         let manifest = inspect_template(&output).expect("output manifest");
@@ -375,6 +380,10 @@ fn read_entry(bytes: &[u8], name: &str) -> String {
 }
 
 fn restored_body(xml: &str) -> String {
+    restored_text(xml, true)
+}
+
+fn restored_text(xml: &str, body_only: bool) -> String {
     let mut reader = Reader::from_str(xml);
     reader.config_mut().trim_text(false);
     let mut output = String::new();
@@ -406,7 +415,7 @@ fn restored_body(xml: &str) -> String {
                             }
                         }
                     }
-                    b"text:s" if inside => {
+                    b"text:s" if inside || !body_only => {
                         let count = element
                             .try_get_attribute("text:c")
                             .expect("valid space count attribute")
@@ -424,13 +433,13 @@ fn restored_body(xml: &str) -> String {
                         );
                         output.push_str(&" ".repeat(count));
                     }
-                    b"text:line-break" if inside => output.push('\n'),
+                    b"text:line-break" if inside || !body_only => output.push('\n'),
                     _ => {}
                 }
             }
-            Event::Text(text) if inside => output.push_str(text.as_ref()),
-            Event::CData(text) if inside => output.push_str(text.as_ref()),
-            Event::GeneralRef(reference) if inside => {
+            Event::Text(text) if inside || !body_only => output.push_str(text.as_ref()),
+            Event::CData(text) if inside || !body_only => output.push_str(text.as_ref()),
+            Event::GeneralRef(reference) if inside || !body_only => {
                 if let Some(character) = reference
                     .resolve_char_ref()
                     .expect("valid character reference")
