@@ -26,6 +26,7 @@ mod my_finance_transfer;
 mod notifications;
 mod official_document_import;
 mod purchase_helper;
+mod purchase_mapping;
 mod purchase_output_preview;
 mod purchase_settlement;
 mod record_helper_import;

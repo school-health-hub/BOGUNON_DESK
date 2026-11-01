@@ -14,7 +14,7 @@ import { purchaseRepository } from "../../purchase/purchaseRepository";
 import { filterPurchaseItems, getPurchaseReviewCounts, purchaseReviewFilters, type PurchaseReviewFilter } from "../../purchase/purchaseReview";
 import { createPurchaseDraft } from "../../purchase/purchaseDraft";
 import { createPurchaseSettlement, reconcilePurchaseSettlement } from "../../purchase/purchaseSettlement";
-import { purchaseImportFieldIds, purchaseImportFieldLabels, purchaseOutputColumnIds, purchaseOutputColumnLabels, type PurchaseAnalysisErrorEvent, type PurchaseAnalysisEvent, type PurchaseAnalysisResult, type PurchaseColumnMapping, type PurchaseDraft, type PurchaseDraftTemplate, type PurchaseImportTemplate, type PurchaseMappingCandidate, type PurchaseOutputColumnId, type PurchaseSettlement, type PurchaseSourceSummary } from "../../purchase/types";
+import { purchaseOutputColumnIds, purchaseOutputColumnLabels, type PurchaseAnalysisErrorEvent, type PurchaseAnalysisEvent, type PurchaseAnalysisResult, type PurchaseDraft, type PurchaseDraftTemplate, type PurchaseImportTemplate, type PurchaseMappingCandidate, type PurchaseOutputColumnId, type PurchaseSettlement, type PurchaseSourceSummary } from "../../purchase/types";
 import { PurchaseDraftEditor } from "./PurchaseDraftEditor";
 import { PurchaseEditableInput } from "./PurchaseEditableInput";
 import { PurchaseItemNameDialog } from "./PurchaseItemNameDialog";
@@ -26,8 +26,13 @@ import {
   type PurchaseHelperNativeBridge,
 } from "./purchaseHelperNativeLifecycle";
 import { PurchaseSettlementEditor } from "./PurchaseSettlementEditor";
+import { PurchaseMappingDialog } from "./PurchaseMappingDialog";
+import { createPurchaseMappingDraft, editPurchaseMappingDraft, getPurchaseMappingErrors, purchaseConfidenceLabels, purchaseRecognitionText, reapplyPurchaseMappingRecommendation, type PurchaseMappingDraft } from "../../purchase/purchaseMappingDraft";
+import { createPurchaseImportSession, type PurchaseImportSession, type PurchaseImportRequestToken } from "../../purchase/purchaseImportSession";
 
 type Props = {
+  readonly importSession?: PurchaseImportSession;
+  readonly importContextRevision?: number;
   readonly editing: PurchaseEditingState;
   readonly sources: readonly PurchaseSourceSummary[];
   readonly columns: readonly PurchaseOutputColumnId[];
@@ -58,11 +63,14 @@ const signedMoney = (value: number): string => `${value > 0 ? "+" : ""}${value.t
 const issueLabels: Readonly<Record<string, string>> = { missingName: "품명 필요", invalidQuantity: "수량 확인", invalidUnitPrice: "단가 확인", amountMismatch: "금액 불일치" };
 const reviewFilterLabels: Readonly<Record<PurchaseReviewFilter, string>> = { all: "전체", error: "오류", mismatch: "불일치", needsReview: "확인 필요" };
 const generalPreviewKinds = ["clipboard", "csv", "xlsx", "edufine"] as const;
+type PendingNativeResult = { readonly kind: "analysis"; readonly event: PurchaseAnalysisEvent } | { readonly kind: "error"; readonly event: PurchaseAnalysisErrorEvent };
 const purchaseHelperStateQueue = createPurchaseHelperStateQueue((active, templates) =>
   invoke("set_purchase_helper_active", { active, templates }),
 );
 
-export function PurchaseHelperPanel({ editing, sources, columns, candidates, templates, draft, draftTemplates, settlement, onAnalysis, onAddItem, onEdit, onCandidatesChange, onColumnsChange, onSourcesChange, onTemplatesChange, onDraftChange, onDraftTemplatesChange, onSettlementChange, onClose, onNotice }: Props) {
+export function PurchaseHelperPanel({ importSession, importContextRevision = 0, editing, sources, columns, candidates, templates, draft, draftTemplates, settlement, onAnalysis, onAddItem, onEdit, onCandidatesChange, onColumnsChange, onSourcesChange, onTemplatesChange, onDraftChange, onDraftTemplatesChange, onSettlementChange, onClose, onNotice }: Props) {
+  const [fallbackSession] = useState(createPurchaseImportSession);
+  const session = importSession ?? fallbackSession;
   const { items } = editing;
   const [bulkOpen, setBulkOpen] = useState(false);
   const [previewKind, setPreviewKind] = useState<(typeof generalPreviewKinds)[number]>("clipboard");
@@ -85,7 +93,7 @@ export function PurchaseHelperPanel({ editing, sources, columns, candidates, tem
   const [columnDraft, setColumnDraft] = useState<readonly PurchaseOutputColumnId[]>(columns);
   const [mappingCandidateId, setMappingCandidateId] = useState<string | null>(null);
   const [headerRow, setHeaderRow] = useState(0);
-  const [mapping, setMapping] = useState<PurchaseColumnMapping>({});
+  const [mappingDraft, setMappingDraft] = useState<PurchaseMappingDraft>({ mapping: {}, touched: [], revision: 0 });
   const [rememberTemplate, setRememberTemplate] = useState(false);
   const [templateName, setTemplateName] = useState("");
   const [showTemplates, setShowTemplates] = useState(false);
@@ -97,7 +105,45 @@ export function PurchaseHelperPanel({ editing, sources, columns, candidates, tem
   const nativeBridgeRef = useRef<PurchaseHelperNativeBridge | null>(null);
   const acceptNativeResultsRef = useRef(true);
   const latestNativeGenerationRef = useRef(0);
+  const nativeRequestRef = useRef<PurchaseImportRequestToken | null>(null);
+  const pickerExpectationRef = useRef<{ readonly token: PurchaseImportRequestToken; readonly generation: number | null } | null>(null);
+  const pendingNativeResultRef = useRef<PendingNativeResult | null>(null);
+  const mappingOperationRef = useRef(0);
+  const mappingPendingRef = useRef(false);
+  const mappingTokenRef = useRef<PurchaseImportRequestToken | null>(null);
+  const pickerOperationRef = useRef(0);
+  const mappingDraftRef = useRef(mappingDraft);
+  const mappingContextRef = useRef({ candidateId: mappingCandidateId, headerRow });
+  const templatesRef = useRef(templates);
+  const previousTemplatesRef = useRef(templates);
+  const nativeTemplatesRef = useRef(templates);
+  const contextRevisionRef = useRef(importContextRevision);
+  const previousContextRevisionRef = useRef(importContextRevision);
+  const nativeContextRevisionRef = useRef(importContextRevision);
+  useEffect(() => () => {
+    pickerOperationRef.current += 1;
+    mappingOperationRef.current += 1;
+    session.invalidate();
+  }, [session]);
+  useLayoutEffect(() => { mappingDraftRef.current = mappingDraft; mappingContextRef.current = { candidateId: mappingCandidateId, headerRow }; templatesRef.current = templates; contextRevisionRef.current = importContextRevision; }, [mappingDraft, mappingCandidateId, headerRow, templates, importContextRevision]);
+  useLayoutEffect(() => {
+    if (previousTemplatesRef.current === templates && previousContextRevisionRef.current === importContextRevision) return;
+    previousTemplatesRef.current = templates;
+    previousContextRevisionRef.current = importContextRevision;
+    const ownedBusy = mappingPendingRef.current || nativeRequestRef.current !== null || pickerExpectationRef.current !== null;
+    session.invalidate();
+    mappingOperationRef.current += 1;
+    pickerOperationRef.current += 1;
+    mappingPendingRef.current = false;
+    mappingTokenRef.current = null;
+    nativeRequestRef.current = null;
+    pickerExpectationRef.current = null;
+    pendingNativeResultRef.current = null;
+    if (ownedBusy) setBusy(false);
+  }, [session, templates, importContextRevision]);
   const mappingCandidate = candidates.find((candidate) => candidate.id === mappingCandidateId) ?? null;
+  const mappingCandidateRef = useRef(mappingCandidate);
+  useLayoutEffect(() => { mappingCandidateRef.current = mappingCandidate; }, [mappingCandidate]);
   const headerOption = mappingCandidate?.headerOptions.find((option) => option.rowIndex === headerRow) ?? null;
   const total = useMemo(() => selectedPurchaseTotal(items), [items]);
   const readiness = useMemo(() => getPurchaseOutputReadiness(items), [items]);
@@ -114,6 +160,9 @@ export function PurchaseHelperPanel({ editing, sources, columns, candidates, tem
     if (trigger?.isConnected) trigger.focus();
   };
   const closePanel = async (): Promise<void> => {
+    session.invalidate();
+    pickerOperationRef.current += 1;
+    mappingOperationRef.current += 1;
     onEdit({ type: "invalidate", reason: "패널을 닫아" });
     acceptNativeResultsRef.current = false;
     try {
@@ -124,7 +173,7 @@ export function PurchaseHelperPanel({ editing, sources, columns, candidates, tem
     }
   };
   useEffect(() => {
-    const close = (event: KeyboardEvent) => { if (event.key === "Escape") { if (previewOpenRef.current || bulkOpen || nameDialogItemId !== null) return; if (mappingCandidateId !== null) setMappingCandidateId(null); else void closePanel(); } };
+    const close = (event: KeyboardEvent) => { if (event.key === "Escape") { if (previewOpenRef.current || bulkOpen || nameDialogItemId !== null) return; if (mappingCandidateId !== null) closeMapping(); else void closePanel(); } };
     window.addEventListener("keydown", close); return () => window.removeEventListener("keydown", close);
   }, [bulkOpen, mappingCandidateId, nameDialogItemId, onClose, onEdit]);
   useEffect(() => {
@@ -134,6 +183,26 @@ export function PurchaseHelperPanel({ editing, sources, columns, candidates, tem
     onAnalysisRef.current = onAnalysis;
     onNoticeRef.current = onNotice;
   }, [onAnalysis, onNotice]);
+  const receiveNativeResult = (result: PendingNativeResult) => {
+    const { event } = result;
+    if (!shouldApplyPurchaseAnalysisEvent(event.generation, latestNativeGenerationRef.current, acceptNativeResultsRef.current)) return;
+    const token = nativeRequestRef.current;
+    if (token === null || !session.isCurrent(token) || nativeTemplatesRef.current !== templatesRef.current || nativeContextRevisionRef.current !== contextRevisionRef.current) return;
+    const expected = pickerExpectationRef.current;
+    if (expected?.token === token) {
+      if (expected.generation === null) { pendingNativeResultRef.current = result; return; }
+      if (expected.generation !== event.generation) return;
+    }
+    if (!session.accept(token)) return;
+    nativeRequestRef.current = null;
+    pickerExpectationRef.current = null;
+    pendingNativeResultRef.current = null;
+    setBusy(false);
+    switch (result.kind) {
+      case "analysis": onAnalysisRef.current(result.event.result); break;
+      case "error": onNoticeRef.current(result.event.message); break;
+    }
+  };
   useEffect(() => {
     if (!isDesktopRuntime()) return undefined;
     const bridge = mountPurchaseHelperNativeBridge({
@@ -147,19 +216,19 @@ export function PurchaseHelperPanel({ editing, sources, columns, candidates, tem
       },
       callbacks: {
         start: () => (generation) => {
+          if (!acceptNativeResultsRef.current || generation <= latestNativeGenerationRef.current) return;
+          const token = session.beginNative(generation);
+          if (token === null) return;
+          nativeRequestRef.current = token;
+          nativeTemplatesRef.current = templatesRef.current;
+          nativeContextRevisionRef.current = contextRevisionRef.current;
+          mappingOperationRef.current += 1;
+          mappingPendingRef.current = false;
           latestNativeGenerationRef.current = generation;
           if (acceptNativeResultsRef.current) setBusy(true);
         },
-        analysis: () => (event) => {
-          if (!shouldApplyPurchaseAnalysisEvent(event.generation, latestNativeGenerationRef.current, acceptNativeResultsRef.current)) return;
-          setBusy(false);
-          onAnalysisRef.current(event.result);
-        },
-        notice: () => (event) => {
-          if (!shouldApplyPurchaseAnalysisEvent(event.generation, latestNativeGenerationRef.current, acceptNativeResultsRef.current)) return;
-          setBusy(false);
-          onNoticeRef.current(event.message);
-        },
+        analysis: () => (event) => receiveNativeResult({ kind: "analysis", event }),
+        notice: () => (event) => receiveNativeResult({ kind: "error", event }),
       },
       stateQueue: purchaseHelperStateQueue,
       invalidateAnalysis: () => invoke<number>("invalidate_purchase_helper_analysis"),
@@ -172,6 +241,8 @@ export function PurchaseHelperPanel({ editing, sources, columns, candidates, tem
       if (nativeBridgeRef.current === bridge) onNoticeRef.current("파일 가져오기 기능을 준비하지 못했습니다.");
     });
     return () => {
+      pickerOperationRef.current += 1;
+      mappingOperationRef.current += 1;
       if (nativeBridgeRef.current === bridge) nativeBridgeRef.current = null;
       bridge.dispose();
     };
@@ -188,12 +259,23 @@ export function PurchaseHelperPanel({ editing, sources, columns, candidates, tem
   const update = (id: string, patch: PurchaseItemPatch) => onEdit({ type: "patch", id, patch });
   const importFiles = async () => {
     acceptNativeResultsRef.current = true;
+    const operation = ++pickerOperationRef.current;
+    const token = session.begin({ origin: "picker" });
+    pickerExpectationRef.current = { token, generation: null };
+    pendingNativeResultRef.current = null;
+    const current = () => acceptNativeResultsRef.current && operation === pickerOperationRef.current && session.isCurrent(token) && templatesRef.current === templates && contextRevisionRef.current === importContextRevision;
     setBusy(true);
     try {
       await nativeBridgeRef.current?.whenReady();
+      if (!current()) return;
       const result = await purchaseRepository.pickAndAnalyze(templates);
-      if (shouldClearPurchaseImportBusy(result, latestNativeGenerationRef.current)) setBusy(false);
-    } catch { setBusy(false); onNotice("파일을 분석하지 못했습니다."); }
+      if (!current()) return;
+      pickerExpectationRef.current = { token, generation: result.generation };
+      const queued = pendingNativeResultRef.current;
+      pendingNativeResultRef.current = null;
+      if (result.started && queued !== null) receiveNativeResult(queued);
+      if (shouldClearPurchaseImportBusy(result, latestNativeGenerationRef.current)) { session.accept(token); pickerExpectationRef.current = null; setBusy(false); }
+    } catch { if (current()) { session.accept(token); pickerExpectationRef.current = null; pendingNativeResultRef.current = null; setBusy(false); onNotice("파일을 분석하지 못했습니다."); } }
   };
   const copy = async () => {
     if (!readiness.ready) { onNotice("입력 오류와 금액 불일치를 먼저 확인해 주세요."); return; }
@@ -225,6 +307,11 @@ export function PurchaseHelperPanel({ editing, sources, columns, candidates, tem
   previewOpenRef.current = outputPreview.snapshot !== null || outputPreview.preparing;
   const startNew = async (): Promise<void> => {
     if (items.length > 0 && !window.confirm("현재 품목내역과 품의문 초안, 구매결과를 비우고 새 작업을 시작할까요?")) return;
+    session.invalidate();
+    pickerOperationRef.current += 1;
+    mappingOperationRef.current += 1;
+    mappingPendingRef.current = false;
+    setMappingCandidateId(null);
     acceptNativeResultsRef.current = false;
     setBusy(true);
     try {
@@ -238,33 +325,62 @@ export function PurchaseHelperPanel({ editing, sources, columns, candidates, tem
       setBusy(false);
     }
   };
+  const cancelOwnedMappingRequest = () => {
+    const token = mappingTokenRef.current;
+    const ownedBusy = mappingPendingRef.current;
+    if (token !== null && session.isCurrent(token)) session.invalidate();
+    mappingTokenRef.current = null;
+    mappingOperationRef.current += 1;
+    mappingPendingRef.current = false;
+    if (ownedBusy) setBusy(false);
+  };
   const openMapping = (candidateId: string) => {
     const candidate = candidates.find((entry) => entry.id === candidateId); if (candidate === undefined) return;
     const option = candidate.headerOptions.find((entry) => entry.recommended) ?? candidate.headerOptions[0];
-    setMappingCandidateId(candidateId); setHeaderRow(option?.rowIndex ?? 0); setMapping({}); setRememberTemplate(false); setTemplateName("");
+    cancelOwnedMappingRequest();
+    setMappingCandidateId(candidateId); setHeaderRow(option?.rowIndex ?? 0); setMappingDraft(option === undefined ? { mapping: {}, touched: [], revision: 0 } : createPurchaseMappingDraft(option)); setRememberTemplate(false); setTemplateName("");
   };
+  const closeMapping = () => { cancelOwnedMappingRequest(); setMappingCandidateId(null); };
   const applyMapping = async () => {
-    if (mappingCandidate === null || headerOption === null || mapping.name === undefined) { onNotice("품명에 연결할 원본 열을 선택해 주세요."); return; }
+    if (mappingCandidate === null || headerOption === null || busy || mappingPendingRef.current) return;
+    const mapping = mappingDraft.mapping;
+    const errors = getPurchaseMappingErrors(mapping, headerOption.headers.length);
+    if (errors.length > 0) { onNotice(errors.join(" ")); return; }
+    const revision = mappingDraft.revision;
+    const operation = ++mappingOperationRef.current;
+    const token = session.begin({ origin: "mapping", candidateId: mappingCandidate.id, headerRow, mappingRevision: revision });
+    mappingTokenRef.current = token;
+    const acceptedContextCurrent = () => operation === mappingOperationRef.current && session.isCurrent(token) && templatesRef.current === templates && contextRevisionRef.current === importContextRevision;
+    const current = () => acceptedContextCurrent() && mappingCandidateRef.current === mappingCandidate && mappingContextRef.current.candidateId === mappingCandidate.id && mappingContextRef.current.headerRow === headerRow && mappingDraftRef.current.revision === revision;
+    mappingPendingRef.current = true;
     setBusy(true);
     try {
+      const generation = await nativeBridgeRef.current?.invalidateAnalysis();
+      if (generation !== null && generation !== undefined) session.advanceNativeFloor(generation);
+      if (!current()) return;
       const result = await purchaseRepository.applyMapping(mappingCandidate, headerRow, mapping);
-      onAnalysis({ items: result.items, sources: [], candidates: [] });
-      onSourcesChange(sources.map((source) => source.candidateId === mappingCandidate.id ? result.sources[0] : source));
-      onCandidatesChange(candidates.filter((candidate) => candidate.id !== mappingCandidate.id));
+      if (!current() || !session.accept(token)) return;
+      setMappingCandidateId(null);
+      mappingPendingRef.current = false;
+      mappingTokenRef.current = null;
+      setBusy(false);
+      onAnalysis(result);
+      if (!acceptedContextCurrent()) return;
       if (rememberTemplate) {
         const name = templateName.trim();
         if (name.length === 0 || name.length > 40) onNotice("템플릿 이름은 1~40자로 입력해 주세요.");
         else {
-          const existing = templates.find((template) => JSON.stringify(template.headerSignature) === JSON.stringify(headerOption.signature));
+          const latestTemplates = templatesRef.current;
+          const existing = latestTemplates.find((template) => JSON.stringify(template.headerSignature) === JSON.stringify(headerOption.signature));
           const maySave = existing === undefined || window.confirm("같은 형식의 저장된 열 설정이 있습니다. 현재 설정으로 바꿀까요?");
+          if (!acceptedContextCurrent()) return;
           if (maySave) {
-            if (existing === undefined && templates.length >= 20) onNotice("가져오기 템플릿은 최대 20개까지 저장할 수 있습니다.");
-            else onTemplatesChange(existing === undefined ? [...templates, { id: `import-template-${Date.now()}`, name, headerSignature: headerOption.signature, mapping }] : templates.map((template) => template.id === existing.id ? { ...template, name, mapping } : template));
+            if (existing === undefined && latestTemplates.length >= 20) onNotice("가져오기 템플릿은 최대 20개까지 저장할 수 있습니다.");
+            else onTemplatesChange(existing === undefined ? [...latestTemplates, { id: `import-template-${Date.now()}`, name, headerSignature: headerOption.signature, mapping }] : latestTemplates.map((template) => template.id === existing.id ? { ...template, name, mapping } : template));
           }
         }
       }
-      setMappingCandidateId(null);
-    } catch { onNotice("열 설정으로 품목을 분석하지 못했습니다."); } finally { setBusy(false); }
+    } catch { if (current()) { session.accept(token); mappingTokenRef.current = null; mappingPendingRef.current = false; setBusy(false); onNotice("열 설정으로 품목을 분석하지 못했습니다. 연결을 유지했습니다. 다시 적용해 주세요."); } } finally { if (current()) { mappingPendingRef.current = false; setBusy(false); } }
   };
   const moveColumn = (column: PurchaseOutputColumnId, delta: number) => {
     const next = [...columnDraft]; const index = next.indexOf(column); const target = index + delta;
@@ -285,7 +401,7 @@ export function PurchaseHelperPanel({ editing, sources, columns, candidates, tem
         {selectedCount > 0 && !readiness.ready && <div className="purchase-helper-readiness" role="status"><strong>최종 활용 전 확인이 필요합니다.</strong><span>{readiness.blockingCount > 0 && `입력 오류 ${readiness.blockingCount}건`}{readiness.blockingCount > 0 && readiness.unreviewedMismatchCount > 0 && " · "}{readiness.unreviewedMismatchCount > 0 && `금액 불일치 확인 ${readiness.unreviewedMismatchCount}건`}</span><button type="button" onClick={() => { setActiveView("items"); setRowFilter("needsReview"); }}>문제 행 확인</button></div>}
         {activeView === "items" ? <>
         {showTemplates && <section className="purchase-import-templates"><strong>저장된 열 설정</strong>{templates.length === 0 ? <p>저장된 설정이 없습니다.</p> : templates.map((template) => <div key={template.id}><span><b>{template.name}</b><small>{Object.keys(template.mapping).length}개 열 연결</small></span><button type="button" onClick={() => { if (window.confirm(`'${template.name}' 열 설정을 삭제할까요?`)) onTemplatesChange(templates.filter((entry) => entry.id !== template.id)); }}>삭제</button></div>)}</section>}
-        {sources.length > 0 && <div className="purchase-helper-sources" aria-label="가져온 파일"><strong>가져오기 결과</strong>{sources.map((source, index) => <span key={`${source.sourceName}-${index}`} className={`is-${source.status}`}>{source.sourceName} · {source.status === "success" ? `${source.rowCount}개` : source.message}{source.status === "needsMapping" && source.candidateId !== undefined && <button type="button" onClick={() => { if (source.candidateId !== undefined) openMapping(source.candidateId); }}>열 지정</button>}</span>)}</div>}
+        {sources.length > 0 && <div className="purchase-helper-sources" aria-label="가져온 파일"><strong>가져오기 결과</strong>{sources.map((source, index) => <span key={`${source.sourceName}-${index}`} className={`is-${source.status}`}>{source.sourceName}{source.recognition !== undefined && <small className="purchase-source-recognition"> · {purchaseConfidenceLabels[source.recognition.confidence]}{source.recognition.warnings.map((warning, index) => <span key={index}>{purchaseRecognitionText(warning)}</span>)}<details><summary>인식 근거 보기</summary>{source.recognition.fields.map((field) => <p key={field.field}>{field.header}{field.reasons.map((reason, index) => <small key={index}> · {purchaseRecognitionText(reason)}</small>)}</p>)}</details></small>} · {source.status === "success" ? `${source.rowCount}개` : source.message}{source.status === "needsMapping" && source.candidateId !== undefined && <button type="button" onClick={() => { if (source.candidateId !== undefined) openMapping(source.candidateId); }}>열 지정</button>}</span>)}</div>}
         <button className={`purchase-helper-dropzone${items.length > 0 ? " is-compact" : ""}`} type="button" onClick={() => void importFiles()} disabled={busy || !nativeReady}><FilePlus2 size={items.length > 0 ? 16 : 22} /><strong>파일을 여기에 놓거나 선택하세요.</strong><span>XLSX · XLS · CSV · 텍스트형 PDF 자동 분석</span><small>스캔 PDF · PNG · JPG OCR은 아직 지원하지 않습니다.</small></button>
         <section className="purchase-helper-review" aria-label="품목 검토 필터">
           <div className="purchase-helper-review__filters">
@@ -315,7 +431,7 @@ export function PurchaseHelperPanel({ editing, sources, columns, candidates, tem
         <div className="purchase-output-preview-launcher"><label>미리보기 출력 형식<select aria-label="미리보기 출력 형식" value={previewKind} onChange={(event) => { const kind = generalPreviewKinds.find((value) => value === event.target.value); if (kind !== undefined) setPreviewKind(kind); }}>{generalPreviewKinds.map((kind) => <option key={kind} value={kind}>{purchaseOutputPreviewLabels[kind]}</option>)}</select></label><button type="button" disabled={busy || outputPreview.preparing || bulkOpen || nameDialogItemId !== null || mappingCandidateId !== null} onClick={() => void outputPreview.open(previewKind)}>출력 미리보기</button><small>미리보기에서 대상과 차단 사유를 확인합니다. 아래 버튼은 기존 바로 출력 기능입니다.</small></div>
         <footer className="purchase-helper-panel__footer"><p>파일과 품목내역은 이 작업 중에만 메모리에 유지되며 클라우드에 저장되지 않습니다.</p><div><button type="button" disabled={selectedCount === 0 || busy || !readiness.ready} onClick={() => void copy()}><ClipboardCopy size={15}/> 표 복사</button><button type="button" disabled={selectedCount === 0 || busy || !readiness.ready} onClick={() => void exportRows("csv")}>CSV 저장</button><button type="button" disabled={selectedCount === 0 || busy || !readiness.ready} onClick={() => void exportRows("xlsx")}>XLSX 저장</button><button type="button" disabled={selectedCount === 0 || busy || !readiness.ready} onClick={() => void exportEdufine()}>에듀파인용 Excel</button></div></footer>
         </> : activeView === "draft" ? draft === null ? <section className="purchase-draft-empty"><strong>선택한 품목으로 품의문을 작성합니다.</strong><p>품목을 선택하면 합계·구매처·예산항목을 바탕으로 초안을 만듭니다.</p><button type="button" disabled={selectedCount === 0 || !readiness.ready} onClick={() => onDraftChange(createPurchaseDraft(items))}>품의문 초안 만들기</button></section> : <PurchaseDraftEditor columns={columns} draft={draft} items={items} outputReady={readiness.ready} templates={draftTemplates} onChange={onDraftChange} onNotice={onNotice} onTemplatesChange={onDraftTemplatesChange} /> : settlement === null ? <section className="purchase-draft-empty"><strong>선택한 품목으로 구매결과를 정리합니다.</strong><p>품목을 선택한 뒤 구매결과 탭을 다시 열어 주세요.</p></section> : <PurchaseSettlementEditor items={items} outputReady={readiness.ready} settlement={settlement} onChange={onSettlementChange} onNotice={onNotice} />}
-        {mappingCandidate !== null && headerOption !== null && <div className="purchase-mapping-backdrop"><section className="purchase-mapping-dialog" role="dialog" aria-modal="true" aria-labelledby="purchase-mapping-title"><header><div><h3 id="purchase-mapping-title">열 지정</h3><p>원본 파일의 열을 품의 항목에 연결해 주세요.</p></div><button type="button" aria-label="열 지정 닫기" onClick={() => setMappingCandidateId(null)}><X size={17}/></button></header><p className="purchase-mapping-source"><strong>{mappingCandidate.sourceName}</strong> · {mappingCandidate.sheetName}</p>{mappingCandidate.headerOptions.length > 1 && <label>머리글 행<select aria-label="머리글 행 선택" value={headerRow} onChange={(event) => { setHeaderRow(Number(event.target.value)); setMapping({}); }} >{mappingCandidate.headerOptions.map((option) => <option key={option.rowIndex} value={option.rowIndex}>{option.rowIndex + 1}행: {option.headers.filter(Boolean).join(" | ")}</option>)}</select></label>}<div className="purchase-mapping-preview"><table><tbody>{mappingCandidate.rows.slice(headerRow, headerRow + 5).map((row, rowIndex) => <tr key={rowIndex}>{headerOption.headers.map((_, columnIndex) => row[columnIndex] !== undefined && <td key={columnIndex}>{row[columnIndex]}</td>)}</tr>)}</tbody></table></div><div className="purchase-mapping-fields">{purchaseImportFieldIds.map((field) => <label key={field}>{purchaseImportFieldLabels[field]}{field === "name" ? " *" : ""}<select aria-label={`${purchaseImportFieldLabels[field]}에 연결할 원본 열`} value={mapping[field] ?? ""} onChange={(event) => { const value = event.target.value; setMapping((current) => { const next = { ...current }; if (value === "") delete next[field]; else next[field] = Number(value); return next; }); }}><option value="">사용 안 함</option>{headerOption.headers.map((header, index) => <option key={index} value={index} disabled={Object.entries(mapping).some(([other, value]) => other !== field && value === index)}>{header || `열 ${index + 1}`}</option>)}</select></label>)}</div><label className="purchase-mapping-remember"><input type="checkbox" aria-label="이 열 구성을 기억하기" checked={rememberTemplate} onChange={(event) => setRememberTemplate(event.target.checked)}/> 이 열 구성을 기억하기</label>{rememberTemplate && <input aria-label="가져오기 템플릿 이름" maxLength={40} placeholder="예: 학교장터 견적서" value={templateName} onChange={(event) => setTemplateName(event.target.value)}/>}<footer><button type="button" onClick={() => setMappingCandidateId(null)}>취소</button><button type="button" disabled={busy || mapping.name === undefined} onClick={() => void applyMapping()}>적용</button></footer></section></div>}
+        {mappingCandidate !== null && headerOption !== null && <PurchaseMappingDialog candidate={mappingCandidate} option={headerOption} draft={mappingDraft} busy={busy} remember={rememberTemplate} templateName={templateName} onHeaderChange={(row) => { const option = mappingCandidate.headerOptions.find((entry) => entry.rowIndex === row); if (option === undefined) return; cancelOwnedMappingRequest(); setHeaderRow(row); setMappingDraft(createPurchaseMappingDraft(option)); }} onFieldChange={(field, index) => { cancelOwnedMappingRequest(); setMappingDraft((current) => editPurchaseMappingDraft(current, field, index)); }} onReapply={() => { cancelOwnedMappingRequest(); setMappingDraft((current) => reapplyPurchaseMappingRecommendation(current, headerOption)); }} onRememberChange={setRememberTemplate} onTemplateNameChange={setTemplateName} onApply={() => void applyMapping()} onClose={closeMapping} />}
         {nameDialogItem !== undefined && <PurchaseItemNameDialog itemName={nameDialogItem.name} rowNumber={nameDialogRowNumber} onCancel={closeNameDialog} onSave={(name) => { update(nameDialogItem.id, { name }); closeNameDialog(); }} />}
         {bulkOpen && <PurchaseBulkEditDialog items={items} revision={editing.revision} hiddenSelectedCount={hiddenSelectedCount} busy={busy} onCancel={closeBulk} onApply={(request) => { onEdit({ type: "bulk", request }); closeBulk(); }} />}
         {outputPreview.snapshot !== null && <PurchaseOutputPreviewDialog snapshot={outputPreview.snapshot} currentKey={outputPreview.currentKey} busy={outputPreview.outputting} onClose={outputPreview.close} onOutput={() => void outputPreview.output()} />}

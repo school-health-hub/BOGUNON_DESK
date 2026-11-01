@@ -9,6 +9,7 @@ use std::{
     },
 };
 
+use crate::purchase_mapping::{recommend, MappingConfidence, MappingRecommendation};
 use calamine::{open_workbook, open_workbook_auto, Data, DataType, Reader, Xlsx, XlsxError};
 use encoding_rs::EUC_KR;
 use pdf_extract::{Document, MediaBox, OutputDev, OutputError, Transform};
@@ -95,15 +96,17 @@ struct SourceSummary {
     message: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     candidate_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    recognition: Option<MappingRecommendation>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ImportTemplate {
     id: String,
-    name: String,
-    header_signature: Vec<String>,
-    mapping: HashMap<String, usize>,
+    pub(crate) name: String,
+    pub(crate) header_signature: Vec<String>,
+    pub(crate) mapping: HashMap<String, usize>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -113,6 +116,8 @@ pub struct HeaderOption {
     headers: Vec<String>,
     signature: Vec<String>,
     recommended: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    recommendation: Option<MappingRecommendation>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -141,7 +146,7 @@ fn normalize_header(value: &str) -> String {
         .filter(|character| character.is_alphanumeric())
         .collect()
 }
-fn field_for(value: &str) -> Option<&'static str> {
+pub(crate) fn field_for(value: &str) -> Option<&'static str> {
     match normalize_header(value).as_str() {
         "품명" | "품목명" | "물품명" | "상품명" | "제품명" | "상품" | "제품" | "내역" | "내용"
         | "name" | "itemname" => Some("name"),
@@ -165,7 +170,7 @@ fn field_for(value: &str) -> Option<&'static str> {
         _ => None,
     }
 }
-const IMPORT_FIELDS: [&str; 8] = [
+pub(crate) const IMPORT_FIELDS: [&str; 8] = [
     "name",
     "specification",
     "quantity",
@@ -178,6 +183,12 @@ const IMPORT_FIELDS: [&str; 8] = [
 fn normalize_mapping(
     mapping: &HashMap<String, usize>,
 ) -> Result<HashMap<&'static str, usize>, String> {
+    if mapping
+        .keys()
+        .any(|field| !IMPORT_FIELDS.contains(&field.as_str()))
+    {
+        return Err("지원하지 않는 품의 항목이 열 연결에 포함되어 있습니다.".to_owned());
+    }
     let mut normalized = HashMap::new();
     let mut used = HashSet::new();
     for field in IMPORT_FIELDS {
@@ -193,7 +204,7 @@ fn normalize_mapping(
     }
     Ok(normalized)
 }
-fn signature_for(headers: &[String]) -> Vec<String> {
+pub(crate) fn signature_for(headers: &[String]) -> Vec<String> {
     let mut signature: Vec<String> = headers
         .iter()
         .map(|value| normalize_header(value))
@@ -244,10 +255,11 @@ fn generic_header_options(rows: &[Vec<String>]) -> Vec<HeaderOption> {
             headers,
             signature,
             recommended: index == 0,
+            recommendation: None,
         })
         .collect()
 }
-fn parse_number(value: &str) -> Option<f64> {
+pub(crate) fn parse_number(value: &str) -> Option<f64> {
     let cleaned: String = value
         .chars()
         .filter(|c| c.is_ascii_digit() || *c == '.' || *c == '-')
@@ -258,13 +270,13 @@ fn parse_number(value: &str) -> Option<f64> {
         cleaned.parse().ok()
     }
 }
-fn is_total_row(name: &str) -> bool {
+pub(crate) fn is_total_row(name: &str) -> bool {
     matches!(
         normalize_header(name).as_str(),
         "합계" | "총계" | "소계" | "total" | "grandtotal"
     )
 }
-fn parse_rows(rows: &[Vec<String>], source: &str) -> Result<Vec<PurchaseItem>, String> {
+fn detected_header(rows: &[Vec<String>]) -> Option<(usize, HashMap<&'static str, usize>)> {
     let mut best: Option<(usize, HashMap<&'static str, usize>, usize)> = None;
     for (index, row) in rows.iter().take(30).enumerate() {
         let map: HashMap<_, _> = row
@@ -282,9 +294,26 @@ fn parse_rows(rows: &[Vec<String>], source: &str) -> Result<Vec<PurchaseItem>, S
             }
         }
     }
-    let (header, columns, _) =
-        best.ok_or_else(|| "품목 표의 머리글을 찾지 못했습니다.".to_owned())?;
+    best.map(|(header, columns, _)| (header, columns))
+}
+fn parse_rows(rows: &[Vec<String>], source: &str) -> Result<Vec<PurchaseItem>, String> {
+    let (header, columns) =
+        detected_header(rows).ok_or_else(|| "품목 표의 머리글을 찾지 못했습니다.".to_owned())?;
     parse_rows_with_columns(rows, source, header, &columns)
+}
+fn alias_analysis(
+    rows: &[Vec<String>],
+    source: &str,
+    templates: &[ImportTemplate],
+) -> Option<(Vec<PurchaseItem>, MappingRecommendation)> {
+    let (header, _) = detected_header(rows)?;
+    let recognition = recommend(rows, header, templates);
+    if recognition.confidence != MappingConfidence::Automatic {
+        return None;
+    }
+    parse_rows(rows, source)
+        .ok()
+        .map(|items| (items, recognition))
 }
 fn parse_rows_with_columns(
     rows: &[Vec<String>],
@@ -1128,7 +1157,7 @@ fn template_items(
     rows: &[Vec<String>],
     source: &str,
     templates: &[ImportTemplate],
-) -> Option<Vec<PurchaseItem>> {
+) -> Option<(Vec<PurchaseItem>, MappingRecommendation)> {
     for option in generic_header_options(rows) {
         for template in templates
             .iter()
@@ -1137,11 +1166,15 @@ fn template_items(
             if template.header_signature.is_empty() {
                 continue;
             }
+            let recognition = recommend(rows, option.row_index, templates);
+            if recognition.confidence != MappingConfidence::Automatic {
+                continue;
+            }
             if let Ok(mapping) = normalize_mapping(&template.mapping) {
                 if let Ok(items) = parse_rows_with_columns(rows, source, option.row_index, &mapping)
                 {
                     if !items.is_empty() {
-                        return Some(items);
+                        return Some((items, recognition));
                     }
                 }
             }
@@ -1153,8 +1186,15 @@ fn make_candidate(
     source_name: &str,
     sheet_name: &str,
     rows: &[Vec<String>],
+    templates: &[ImportTemplate],
 ) -> Option<MappingCandidate> {
-    let header_options = generic_header_options(rows);
+    let header_options = generic_header_options(rows)
+        .into_iter()
+        .map(|mut option| {
+            option.recommendation = Some(recommend(rows, option.row_index, templates));
+            option
+        })
+        .collect::<Vec<_>>();
     if header_options.is_empty() {
         return None;
     }
@@ -1213,6 +1253,7 @@ pub(crate) fn analyze_paths(
                         .to_owned(),
                 ),
                 candidate_id: None,
+                recognition: None,
             });
             continue;
         }
@@ -1226,6 +1267,7 @@ pub(crate) fn analyze_paths(
                         row_count: 0,
                         message: Some(message),
                         candidate_id: None,
+                        recognition: None,
                     });
                     continue;
                 }
@@ -1236,6 +1278,7 @@ pub(crate) fn analyze_paths(
                         row_count: 0,
                         message: Some(message),
                         candidate_id: None,
+                        recognition: None,
                     });
                     continue;
                 }
@@ -1254,6 +1297,7 @@ pub(crate) fn analyze_paths(
                 row_count: 0,
                 message: Some("파일을 분석하지 못했습니다.".to_owned()),
                 candidate_id: None,
+                recognition: None,
             });
             continue;
         };
@@ -1263,10 +1307,10 @@ pub(crate) fn analyze_paths(
             .or_else(|| {
                 tables
                     .iter()
-                    .filter_map(|(_, rows)| parse_rows(rows, &source).ok())
-                    .max_by_key(Vec::len)
+                    .filter_map(|(_, rows)| alias_analysis(rows, &source, &templates))
+                    .max_by_key(|(items, _)| items.len())
             });
-        if let Some(mut items) = parsed {
+        if let Some((mut items, recognition)) = parsed {
             let count = items.len();
             let base = all_items.len();
             for (index, item) in items.iter_mut().enumerate() {
@@ -1279,10 +1323,11 @@ pub(crate) fn analyze_paths(
                 row_count: count,
                 message: None,
                 candidate_id: None,
+                recognition: Some(recognition),
             });
         } else if let Some(candidate) = tables
             .iter()
-            .filter_map(|(sheet, rows)| make_candidate(&source, sheet, rows))
+            .filter_map(|(sheet, rows)| make_candidate(&source, sheet, rows, &templates))
             .max_by_key(|candidate| {
                 candidate
                     .header_options
@@ -1291,6 +1336,10 @@ pub(crate) fn analyze_paths(
             })
         {
             let candidate_id = candidate.id.clone();
+            let recognition = candidate
+                .header_options
+                .first()
+                .and_then(|option| option.recommendation.clone());
             candidates.push(candidate);
             sources.push(SourceSummary {
                 source_name: source,
@@ -1298,6 +1347,7 @@ pub(crate) fn analyze_paths(
                 row_count: 0,
                 message: Some("열 구성을 확인해 주세요.".to_owned()),
                 candidate_id: Some(candidate_id),
+                recognition,
             });
         } else {
             sources.push(SourceSummary {
@@ -1306,6 +1356,7 @@ pub(crate) fn analyze_paths(
                 row_count: 0,
                 message: Some("품목 표의 머리글을 찾지 못했습니다.".to_owned()),
                 candidate_id: None,
+                recognition: None,
             });
         }
     }
@@ -1485,6 +1536,7 @@ pub fn apply_purchase_column_mapping(
             row_count,
             message: None,
             candidate_id: Some(candidate.id),
+            recognition: None,
         }],
         candidates: Vec::new(),
     })
@@ -2984,6 +3036,373 @@ mod tests {
             ("unitPrice".into(), 3),
         ])
     }
+    fn recommendation_rows(headers: &[&str], values: &[&str]) -> Vec<Vec<String>> {
+        vec![
+            headers.iter().map(|value| (*value).to_owned()).collect(),
+            values.iter().map(|value| (*value).to_owned()).collect(),
+        ]
+    }
+    #[test]
+    fn purchase_recommendation_keeps_standard_aliases_automatic() {
+        let rows = recommendation_rows(
+            &["품목명", "주문수량", "예상단가", "합계금액"],
+            &["합성 마스크", "2", "1000원", "2000원"],
+        );
+        let recommendation = recommend(&rows, 0, &[]);
+        assert_eq!(recommendation.confidence, MappingConfidence::Automatic);
+        assert_eq!(recommendation.mapping.get("name"), Some(&0));
+        let (items, recognition) = alias_analysis(&rows, "synthetic.csv", &[]).unwrap();
+        assert_eq!(items[0].unit_price, Some(1000.0));
+        assert_eq!(recognition.confidence, MappingConfidence::Automatic);
+        let serialized = serde_json::to_value(recognition).unwrap();
+        assert_eq!(serialized["fields"][0]["columnIndex"], 0);
+        assert_eq!(serialized["confidence"], "automatic");
+    }
+    #[test]
+    fn purchase_recommendation_does_not_infer_numeric_roles_from_values() {
+        let rows = recommendation_rows(
+            &["이름미확인", "A", "B", "C"],
+            &["합성 마스크", "2", "1000", "2000"],
+        );
+        let recommendation = recommend(&rows, 0, &[]);
+        assert_eq!(recommendation.confidence, MappingConfidence::Manual);
+        assert!(recommendation.mapping.is_empty());
+    }
+    #[test]
+    fn purchase_recommendation_rejects_duplicate_alias_automatic_selection() {
+        let rows = recommendation_rows(
+            &["품명", "수량", "단가", "판매가"],
+            &["마스크", "2", "1000", "2000"],
+        );
+        let recommendation = recommend(&rows, 0, &[]);
+        assert_eq!(recommendation.confidence, MappingConfidence::Review);
+        assert!(!recommendation.mapping.contains_key("unitPrice"));
+        assert!(alias_analysis(&rows, "synthetic.csv", &[]).is_none());
+    }
+    #[test]
+    fn purchase_recommendation_never_automatically_uses_conflicting_template() {
+        let rows = recommendation_rows(&["품명", "수량", "단가"], &["마스크", "2", "1000"]);
+        let template = ImportTemplate {
+            id: "conflict".into(),
+            name: "합성 설정".into(),
+            header_signature: signature_for(&rows[0]),
+            mapping: HashMap::from([
+                ("name".into(), 0),
+                ("quantity".into(), 2),
+                ("unitPrice".into(), 1),
+            ]),
+        };
+        let recommendation = recommend(&rows, 0, &[template.clone()]);
+        assert_eq!(recommendation.confidence, MappingConfidence::Review);
+        assert_eq!(recommendation.mapping.get("quantity"), Some(&2));
+        assert!(recommendation
+            .fields
+            .iter()
+            .any(|field| !field.warnings.is_empty()));
+        assert!(template_items(&rows, "synthetic.csv", &[template.clone()]).is_none());
+        assert!(alias_analysis(&rows, "synthetic.csv", &[template]).is_none());
+    }
+    #[test]
+    fn purchase_recommendation_accepts_corroborated_exact_template() {
+        let rows = recommendation_rows(&["품명", "수량", "단가"], &["마스크", "2", "1000"]);
+        let template = ImportTemplate {
+            id: "valid".into(),
+            name: "합성 설정".into(),
+            header_signature: signature_for(&rows[0]),
+            mapping: HashMap::from([
+                ("name".into(), 0),
+                ("quantity".into(), 1),
+                ("unitPrice".into(), 2),
+            ]),
+        };
+        let (items, recognition) = template_items(&rows, "synthetic.csv", &[template]).unwrap();
+        assert_eq!(items.len(), 1);
+        assert_eq!(recognition.confidence, MappingConfidence::Automatic);
+        assert!(recognition.fields[0]
+            .reasons
+            .iter()
+            .any(|reason| reason.contains("保存") || reason.contains("저장")));
+    }
+    #[test]
+    fn purchase_recommendation_preserves_middle_blank_header_position() {
+        let rows = recommendation_rows(
+            &["품명", "", "수량", "단가", ""],
+            &["마스크", "", "2", "1000", ""],
+        );
+        assert_eq!(signature_for(&rows[0]), vec!["품명", "", "수량", "단가"]);
+        let recommendation = recommend(&rows, 0, &[]);
+        assert_eq!(recommendation.mapping.get("quantity"), Some(&2));
+        assert_eq!(recommendation.mapping.get("unitPrice"), Some(&3));
+        let shifted = ImportTemplate {
+            id: "shifted".into(),
+            name: "과거 설정".into(),
+            header_signature: vec!["품명".into(), "수량".into(), "단가".into()],
+            mapping: HashMap::from([
+                ("name".into(), 0),
+                ("quantity".into(), 1),
+                ("unitPrice".into(), 2),
+            ]),
+        };
+        assert_eq!(
+            recommend(&rows, 0, &[shifted]).mapping,
+            recommendation.mapping
+        );
+    }
+    #[test]
+    fn purchase_recommendation_rejects_out_of_range_duplicate_unknown_and_name_only_templates() {
+        let rows = recommendation_rows(&["품명", "수량", "단가"], &["마스크", "2", "1000"]);
+        for mapping in [
+            HashMap::from([("name".into(), 99)]),
+            HashMap::from([("name".into(), 0), ("quantity".into(), 0)]),
+            HashMap::from([("name".into(), 0), ("unknown".into(), 1)]),
+            HashMap::from([("name".into(), 0)]),
+        ] {
+            let template = ImportTemplate {
+                id: "unsafe".into(),
+                name: "검토 설정".into(),
+                header_signature: signature_for(&rows[0]),
+                mapping,
+            };
+            assert_ne!(
+                recommend(&rows, 0, &[template.clone()]).confidence,
+                MappingConfidence::Automatic
+            );
+            assert!(template_items(&rows, "synthetic.csv", &[template]).is_none());
+        }
+        assert!(
+            normalize_mapping(&HashMap::from([("name".into(), 0), ("unknown".into(), 1)])).is_err()
+        );
+    }
+    #[test]
+    fn purchase_recommendation_warns_on_empty_and_mixed_numeric_data() {
+        for value in ["", "문의", "2box"] {
+            let rows = recommendation_rows(&["품명", "수량", "단가"], &["마스크", value, "1000"]);
+            let recommendation = recommend(&rows, 0, &[]);
+            assert_eq!(recommendation.confidence, MappingConfidence::Review);
+            assert!(!recommendation
+                .fields
+                .iter()
+                .find(|field| field.field == "quantity")
+                .unwrap()
+                .warnings
+                .is_empty());
+        }
+    }
+    #[test]
+    fn purchase_recommendation_does_not_change_manual_items_or_amount_issues() {
+        let rows = recommendation_rows(
+            &["품명", "수량", "단가", "금액"],
+            &["마스크", "2", "1000", "1900"],
+        );
+        let candidate = make_candidate("synthetic.csv", "CSV", &rows, &[]).unwrap();
+        let mapping = candidate.header_options[0]
+            .recommendation
+            .as_ref()
+            .unwrap()
+            .mapping
+            .clone();
+        let direct = parse_rows_with_columns(
+            &rows,
+            "synthetic.csv",
+            0,
+            &normalize_mapping(&mapping).unwrap(),
+        )
+        .unwrap();
+        let mapped = apply_purchase_column_mapping(candidate, 0, mapping).unwrap();
+        assert_eq!(mapped.items[0].quantity, direct[0].quantity);
+        assert_eq!(mapped.items[0].unit_price, direct[0].unit_price);
+        assert_eq!(mapped.items[0].imported_amount, direct[0].imported_amount);
+        assert_eq!(mapped.items[0].issues, direct[0].issues);
+        assert!(mapped.items[0]
+            .issues
+            .iter()
+            .any(|issue| issue == "amountMismatch"));
+    }
+    #[test]
+    fn exports_purchase_mapping_qa_fixtures() {
+        let Some(path) = std::env::var_os("PURCHASE_QA_FIXTURE_PATH") else {
+            return;
+        };
+        if !cfg!(windows) || std::env::var("GITHUB_ACTIONS").as_deref() != Ok("true") {
+            return;
+        }
+        let review_rows = vec![
+            vec!["합성 구매내역 안내".to_owned()],
+            vec![
+                "물품설명".into(),
+                "EA".into(),
+                "구매가격".into(),
+                "합계금액".into(),
+            ],
+            vec![
+                "합성 마스크".into(),
+                "2".into(),
+                "1000".into(),
+                "2000".into(),
+            ],
+            vec!["합성 장갑".into(), "3".into(), "500".into(), "1500".into()],
+        ];
+        let review_mapping = HashMap::from([
+            ("name".into(), 0),
+            ("quantity".into(), 1),
+            ("unitPrice".into(), 2),
+            ("amount".into(), 3),
+        ]);
+        let template = ImportTemplate {
+            id: "synthetic-review".into(),
+            name: "합성 견적서 열 설정".into(),
+            header_signature: signature_for(&review_rows[1]),
+            mapping: review_mapping.clone(),
+        };
+        let review_candidate =
+            make_candidate("합성 검토용 견적서.csv", "CSV", &review_rows, &[template]).unwrap();
+        let review_header = review_candidate.header_options[0].row_index;
+        let review_result = apply_purchase_column_mapping(
+            review_candidate.clone(),
+            review_header,
+            review_mapping.clone(),
+        )
+        .unwrap();
+        let manual_rows = recommendation_rows(&["A", "B", "C"], &["합성 수동 품목", "2", "1000"]);
+        let manual_mapping = HashMap::from([
+            ("name".into(), 0),
+            ("quantity".into(), 1),
+            ("unitPrice".into(), 2),
+        ]);
+        let manual_candidate =
+            make_candidate("합성 직접 지정.csv", "CSV", &manual_rows, &[]).unwrap();
+        let manual_result =
+            apply_purchase_column_mapping(manual_candidate.clone(), 0, manual_mapping.clone())
+                .unwrap();
+        let automatic_rows =
+            recommendation_rows(&["품명", "수량", "단가"], &["합성 자동 품목", "2", "1000"]);
+        let automatic_candidate =
+            make_candidate("합성 표준.csv", "CSV", &automatic_rows, &[]).unwrap();
+        let automatic_mapping = automatic_candidate.header_options[0]
+            .recommendation
+            .as_ref()
+            .unwrap()
+            .mapping
+            .clone();
+        let automatic_result = apply_purchase_column_mapping(
+            automatic_candidate.clone(),
+            0,
+            automatic_mapping.clone(),
+        )
+        .unwrap();
+        let fixtures = serde_json::json!({"review":{"candidate":review_candidate,"mapping":review_mapping,"result":review_result},"manual":{"candidate":manual_candidate,"mapping":manual_mapping,"result":manual_result},"automatic":{"candidate":automatic_candidate,"mapping":automatic_mapping,"result":automatic_result}});
+        fs::write(path, serde_json::to_vec_pretty(&fixtures).unwrap()).unwrap();
+    }
+    #[test]
+    fn purchase_mapping_metadata_is_optional_for_existing_payloads() {
+        let option: HeaderOption = serde_json::from_value(serde_json::json!({"rowIndex":0,"headers":["품명"],"signature":["품명"],"recommended":true})).unwrap();
+        assert!(option.recommendation.is_none());
+        let source: SourceSummary = serde_json::from_value(serde_json::json!({"sourceName":"synthetic.csv","status":"success","rowCount":1,"message":null})).unwrap();
+        assert!(source.recognition.is_none());
+        assert!(serde_json::to_value(source)
+            .unwrap()
+            .get("recognition")
+            .is_none());
+    }
+    #[test]
+    fn purchase_standard_csv_keeps_automatic_items_and_exposes_reasons() {
+        let path = std::env::temp_dir().join(format!(
+            "purchase-helper-{}-automatic-reasons.csv",
+            std::process::id()
+        ));
+        fs::write(&path, "품명,수량,단가\n합성 마스크,2,1000\n").unwrap();
+        let result = analyze_paths(vec![path.clone()], vec![]).unwrap();
+        let _ = fs::remove_file(path);
+        assert_eq!(result.sources[0].status, "success");
+        assert_eq!(
+            result.sources[0].recognition.as_ref().unwrap().confidence,
+            MappingConfidence::Automatic
+        );
+        assert!(result.candidates.is_empty());
+        assert_eq!(result.items[0].quantity, Some(2.0));
+        assert_eq!(result.items[0].unit_price, Some(1000.0));
+    }
+    #[test]
+    fn purchase_conflicting_template_csv_holds_items_until_manual_confirmation() {
+        let rows = recommendation_rows(&["품명", "수량", "단가"], &["합성 마스크", "2", "1000"]);
+        let path = std::env::temp_dir().join(format!(
+            "purchase-helper-{}-conflicting-template.csv",
+            std::process::id()
+        ));
+        fs::write(&path, "품명,수량,단가\n합성 마스크,2,1000\n").unwrap();
+        let template = ImportTemplate {
+            id: "wrong".into(),
+            name: "검토할 과거 설정".into(),
+            header_signature: signature_for(&rows[0]),
+            mapping: HashMap::from([
+                ("name".into(), 0),
+                ("quantity".into(), 2),
+                ("unitPrice".into(), 1),
+            ]),
+        };
+        let result = analyze_paths(vec![path.clone()], vec![template]).unwrap();
+        let _ = fs::remove_file(path);
+        assert!(result.items.is_empty());
+        assert_eq!(result.sources[0].status, "needsMapping");
+        assert_eq!(
+            result.sources[0].recognition.as_ref().unwrap().confidence,
+            MappingConfidence::Review
+        );
+        let candidate = result.candidates[0].clone();
+        let applied = apply_purchase_column_mapping(
+            candidate,
+            0,
+            HashMap::from([
+                ("name".into(), 0),
+                ("quantity".into(), 1),
+                ("unitPrice".into(), 2),
+            ]),
+        )
+        .unwrap();
+        assert_eq!(applied.items[0].quantity, Some(2.0));
+        assert_eq!(applied.items[0].unit_price, Some(1000.0));
+    }
+    #[test]
+    fn purchase_mixed_csv_requires_confirmation_without_changing_existing_number_parser() {
+        let path = std::env::temp_dir().join(format!(
+            "purchase-helper-{}-mixed-confirmation.csv",
+            std::process::id()
+        ));
+        fs::write(&path, "품명,수량,단가\n합성 마스크,2box,1000\n").unwrap();
+        let result = analyze_paths(vec![path.clone()], vec![]).unwrap();
+        let _ = fs::remove_file(path);
+        assert!(result.items.is_empty());
+        let candidate = result.candidates[0].clone();
+        assert_eq!(candidate.rows[1][1], "2box");
+        let mapping = candidate.header_options[0]
+            .recommendation
+            .as_ref()
+            .unwrap()
+            .mapping
+            .clone();
+        let applied = apply_purchase_column_mapping(candidate, 0, mapping).unwrap();
+        assert_eq!(applied.items[0].quantity, parse_number("2box"));
+        assert_eq!(applied.items[0].quantity, Some(2.0));
+    }
+    #[test]
+    fn purchase_rejected_template_fallback_preserves_alias_amount_and_mismatch() {
+        let rows = recommendation_rows(
+            &["품명", "수량", "단가", "금액"],
+            &["마스크", "2", "1000", "5000"],
+        );
+        // The settings boundary rejects the entire malformed template, rather than
+        // silently retaining a partial mapping which could discard the amount column.
+        let (items, recognition) = alias_analysis(&rows, "synthetic.csv", &[]).unwrap();
+        assert_eq!(recognition.confidence, MappingConfidence::Automatic);
+        assert_eq!(recognition.mapping.get("amount"), Some(&3));
+        assert_eq!(items[0].quantity, Some(2.0));
+        assert_eq!(items[0].unit_price, Some(1000.0));
+        assert_eq!(items[0].imported_amount, Some(5000.0));
+        assert!(items[0]
+            .issues
+            .iter()
+            .any(|issue| issue == "amountMismatch"));
+    }
     #[test]
     fn unknown_headers_produce_mapping_candidate() {
         let options = generic_header_options(&unknown_rows());
@@ -3011,19 +3430,17 @@ mod tests {
         );
     }
     #[test]
-    fn template_exact_signature_precedes_alias_fallback() {
+    fn exact_unknown_template_is_recommended_before_aliases_but_requires_confirmation() {
         let template = ImportTemplate {
             id: "one".into(),
             name: "테스트".into(),
             header_signature: signature_for(&unknown_rows()[0]),
             mapping: manual_mapping(),
         };
-        assert_eq!(
-            template_items(&unknown_rows(), "sample.xlsx", &[template])
-                .unwrap()
-                .len(),
-            2
-        );
+        let recommendation = recommend(&unknown_rows(), 0, &[template.clone()]);
+        assert_eq!(recommendation.mapping, manual_mapping());
+        assert_eq!(recommendation.confidence, MappingConfidence::Review);
+        assert!(template_items(&unknown_rows(), "sample.xlsx", &[template]).is_none());
     }
     #[test]
     fn reordered_signature_does_not_match_template() {
@@ -3076,9 +3493,20 @@ mod tests {
         };
         let second = analyze_paths(vec![path.clone()], vec![template]).unwrap();
         let _ = fs::remove_file(path);
-        assert_eq!(second.sources[0].status, "success");
-        assert_eq!(second.items.len(), 1);
-        assert!(second.candidates.is_empty());
+        assert_eq!(second.sources[0].status, "needsMapping");
+        assert!(second.items.is_empty());
+        assert_eq!(
+            second.candidates[0].header_options[0]
+                .recommendation
+                .as_ref()
+                .unwrap()
+                .mapping,
+            manual_mapping()
+        );
+        let mapped =
+            apply_purchase_column_mapping(second.candidates[0].clone(), 0, manual_mapping())
+                .unwrap();
+        assert_eq!(mapped.items.len(), 1);
     }
 
     #[test]
@@ -3218,7 +3646,7 @@ mod tests {
             pdf_text_rows("상품  옵션사항  주문개수  판매금액\nDisposable gloves  M  2  12000")
                 .unwrap();
         assert!(parse_rows(&rows, "unknown.pdf").is_err());
-        let candidate = make_candidate("unknown.pdf", "PDF", &rows).unwrap();
+        let candidate = make_candidate("unknown.pdf", "PDF", &rows, &[]).unwrap();
         assert_eq!(candidate.sheet_name, "PDF");
         let columns = normalize_mapping(&manual_mapping()).unwrap();
         let items = parse_rows_with_columns(&rows, "unknown.pdf", 0, &columns).unwrap();
@@ -3290,9 +3718,18 @@ mod tests {
         };
         let second = analyze_paths(vec![path.clone()], vec![template]).unwrap();
         let _ = fs::remove_file(path);
-        assert_eq!(second.sources[0].status, "success");
-        assert_eq!(second.items.len(), 1);
-        assert!(second.candidates.is_empty());
+        assert_eq!(second.sources[0].status, "needsMapping");
+        assert!(second.items.is_empty());
+        let candidate = &second.candidates[0];
+        let recommendation = candidate.header_options[0].recommendation.as_ref().unwrap();
+        assert_eq!(recommendation.confidence, MappingConfidence::Review);
+        let mapped = apply_purchase_column_mapping(
+            candidate.clone(),
+            candidate.header_options[0].row_index,
+            recommendation.mapping.clone(),
+        )
+        .unwrap();
+        assert_eq!(mapped.items.len(), 1);
     }
 
     #[test]

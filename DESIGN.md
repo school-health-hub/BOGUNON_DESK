@@ -447,3 +447,11 @@ Korean guidance keeps words together, with overflow wrapping only when an indivi
 Phase 2B-1 uses a read-only, two-axis scrolling preview table in the existing dialog surface. Launch controls are separate from the unchanged direct-output controls. Existing spacing, border, surface and focus tokens apply; long names wrap within cells and the containing dialog can scroll to its action footer.
 
 Snapshots show the exact selected-row order and output-specific cells. Clipboard text tables reuse their serializer's cleaned text cells; native CSV/XLSX/edufine tables use the same cell builders as the native writers. Amount guidance uses existing domain summaries. A changed item/selection/order/settings/settlement context makes the snapshot stale and disables its output action. No draft text, saved data, tax calculation or output contract is automatically changed.
+
+## Purchase import mapping review — Phase2B2
+
+- Existing work-sheet surface, `--widget-bg`, `--border`, `--divider`, `--shadow-floating`, `--radius-control`, `--text-xs`, navy ink and mint interaction tokens remain the visual vocabulary. Mapping uses the existing 760px sheet, 16px desktop padding, 12px compact padding, 8px grouping gaps and 4px field gaps; the 720px breakpoint stacks fields.
+- Recognition uses three textual states: 자동 인식 가능 / 확인 권장 / 직접 지정 필요. Text and reasons carry meaning without requiring color. Backend-provided recommendations are provisional until 적용; no frontend inference assigns confidence.
+- Each field shows its current assignment and recommended source as an indexed label such as `3열 · 수량`, confidence, expandable reasons/warnings and 직접 수정 status. Duplicate header labels retain distinct column indices.
+- Initial recommendation may populate the draft. Manual edits, including clearing a field, survive explicit 추천 다시 적용. Changing the header row deliberately starts a new draft. Required name, unique assignments and source bounds gate 적용.
+- The dialog scrolls within a small window, retains a visible action footer, traps keyboard focus, handles IME-safe Escape and restores the opening control. A failed analysis keeps the draft available for retry. Closing or changing context invalidates pending mapping effects.

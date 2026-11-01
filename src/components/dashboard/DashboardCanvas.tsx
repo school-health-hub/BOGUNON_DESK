@@ -1,7 +1,10 @@
 import { Sparkles } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import { usePurchaseItemEditing } from "../../purchase/usePurchaseItemEditing";
+import { createPurchaseImportSession, invalidatePurchaseImportContext, runPurchaseImportRequest } from "../../purchase/purchaseImportSession";
+import { usePurchaseImportResults } from "../../purchase/usePurchaseImportResults";
 import { useAuth } from "../../auth/AuthContext";
 import { useWidgetSession } from "../../dashboard/WidgetSessionContext";
 import { DesktopSettingsPanel } from "../desktop/DesktopSettingsPanel";
@@ -53,7 +56,7 @@ import { useWorkspaceNotifications } from "../../notifications/useWorkspaceNotif
 import { toolboxToolRegistry, type ToolboxToolId } from "../../tools/toolRegistry";
 import type { WorkFolderFavorite } from "../../work-folders/types";
 import { workFolderService } from "../../work-folders/workFolderService";
-import type { PurchaseAnalysisResult, PurchaseDraft, PurchaseDraftTemplate, PurchaseImportTemplate, PurchaseMappingCandidate, PurchaseSettlement, PurchaseSourceSummary } from "../../purchase/types";
+import type { PurchaseDraft, PurchaseDraftTemplate, PurchaseImportTemplate, PurchaseItem, PurchaseSettlement } from "../../purchase/types";
 import { appendPurchaseItemsWithSessionIds, createEmptyPurchaseItem } from "../../purchase/purchaseDomain";
 import { purchaseRepository } from "../../purchase/purchaseRepository";
 import { useOnboarding } from "../../onboarding/OnboardingContext";
@@ -90,25 +93,40 @@ export function DashboardCanvas({ onOpenFinance, suspended = false }: { readonly
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isInboxOpen, setIsInboxOpen] = useState(false);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
-  const [isPurchaseHelperOpen, setIsPurchaseHelperOpen] = useState(false);
+  const [purchaseImportSession] = useState(createPurchaseImportSession);
+  const [isPurchaseHelperOpen, setPurchaseHelperOpen] = useState(false);
+  const purchaseHelperOpenRef = useRef(false);
+  const setIsPurchaseHelperOpen = useCallback((update: SetStateAction<boolean>) => {
+    const next = typeof update === "function" ? update(purchaseHelperOpenRef.current) : update;
+    purchaseHelperOpenRef.current = next;
+    if (!next) purchaseImportSession.invalidate();
+    setPurchaseHelperOpen(next);
+  }, [purchaseImportSession]);
+  useEffect(() => () => purchaseImportSession.invalidate(), [purchaseImportSession]);
+  useLayoutEffect(() => {
+    purchaseImportSession.invalidate();
+  }, [auth.state.status, auth.state.user?.id, purchaseImportSession]);
   const [isOfficialDocumentOpen, setIsOfficialDocumentOpen] = useState(false);
   const [isRecordHelperOpen, setIsRecordHelperOpen] = useState(false);
   const [pendingFileDropPaths, setPendingFileDropPaths] = useState<readonly string[] | null>(null);
   const [pendingRecordHelperImport, setPendingRecordHelperImport] = useState<RecordHelperImportBatch | null>(null);
   const [purchaseEditing, editPurchaseItems] = usePurchaseItemEditing(isPurchaseHelperOpen);
-  const [purchaseSources, setPurchaseSources] = useState<readonly PurchaseSourceSummary[]>([]);
-  const [purchaseCandidates, setPurchaseCandidates] = useState<readonly PurchaseMappingCandidate[]>([]);
   const [purchaseDraft, setPurchaseDraft] = useState<PurchaseDraft | null>(null);
   const [purchaseSettlement, setPurchaseSettlement] = useState<PurchaseSettlement | null>(null);
   const purchaseItemSequenceRef = useRef(0);
   const nextPurchaseItemId = useCallback(() => `purchase-session-${purchaseItemSequenceRef.current++}`, []);
-  const appendPurchaseAnalysis = useCallback((result: PurchaseAnalysisResult) => {
-    editPurchaseItems({ type: "append", items: appendPurchaseItemsWithSessionIds([], result.items, nextPurchaseItemId) });
-    setPurchaseSources((current) => [...current, ...result.sources]);
-    setPurchaseCandidates((current) => [...current, ...result.candidates]);
+  const appendImportedItems = useCallback((items: readonly PurchaseItem[]) => {
+    editPurchaseItems({ type: "append", items: appendPurchaseItemsWithSessionIds([], items, nextPurchaseItemId) });
   }, [nextPurchaseItemId]);
+  const { sources: purchaseSources, candidates: purchaseCandidates, setSources: setPurchaseSources, setCandidates: setPurchaseCandidates, append: appendPurchaseAnalysis } = usePurchaseImportResults(appendImportedItems);
   const [purchaseColumns, setPurchaseColumns] = useState(() => settingsService.account.loadPurchaseOutputColumns());
   const [purchaseImportTemplates, setPurchaseImportTemplates] = useState<readonly PurchaseImportTemplate[]>(() => settingsService.account.loadPurchaseImportTemplates());
+  const purchaseImportContext = JSON.stringify([purchaseImportTemplates, auth.state.status, auth.state.user?.id]);
+  const purchaseImportContextRef = useRef({ key: purchaseImportContext, revision: 0 });
+  if (purchaseImportContextRef.current.key !== purchaseImportContext) {
+    purchaseImportContextRef.current = { key: purchaseImportContext, revision: purchaseImportContextRef.current.revision + 1 };
+  }
+  const purchaseImportContextRevision = purchaseImportContextRef.current.revision;
   const [purchaseDraftTemplates, setPurchaseDraftTemplates] = useState<readonly PurchaseDraftTemplate[]>(() => settingsService.account.loadPurchaseDraftTemplates());
   const [isQuickMemoOpen, setIsQuickMemoOpen] = useState(false);
   const [isWorkFoldersOpen, setIsWorkFoldersOpen] = useState(false);
@@ -169,13 +187,13 @@ export function DashboardCanvas({ onOpenFinance, suspended = false }: { readonly
 
   useEffect(() => settingsService.account.saveWorkspace(dashboardLayout), [dashboardLayout]);
   useEffect(() => settingsService.account.saveDock(dockLayout), [dockLayout]);
-  useEffect(() => accountSyncService.subscribeApplied((settings) => {
+  useEffect(() => accountSyncService.subscribeApplied((settings) => invalidatePurchaseImportContext(purchaseImportSession, () => {
     setDashboardLayout(settings.workspace);
     setDockLayout(settings.dock);
     setPurchaseColumns(settings.purchaseOutputColumns);
     setPurchaseImportTemplates(settings.purchaseImportTemplates);
     setPurchaseDraftTemplates(settings.purchaseDraftTemplates);
-  }), []);
+  })), [purchaseImportSession]);
 
   useEffect(() => {
     void settingsService.device.setCloseToTray(
@@ -373,12 +391,25 @@ export function DashboardCanvas({ onOpenFinance, suspended = false }: { readonly
     const paths = pendingFileDropPaths;
     if (paths === null || paths.length === 0) return;
     setPendingFileDropPaths(null);
+    if (target === "purchase-helper") {
+      await runPurchaseImportRequest({
+        session: purchaseImportSession,
+        isValid: () => purchaseImportContextRef.current.revision === purchaseImportContextRevision,
+        analyze: async (token) => {
+          if (isDesktopRuntime()) {
+            const generation = await invoke<number>("invalidate_purchase_helper_analysis");
+            purchaseImportSession.advanceNativeFloor(generation);
+            if (!purchaseImportSession.isCurrent(token)) return { items: [], sources: [], candidates: [] };
+          }
+          return purchaseRepository.analyzePaths(paths, purchaseImportTemplates);
+        },
+        apply: appendPurchaseAnalysis,
+        onAccepted: () => runDesktopAction("purchase-helper"),
+        onError: (error) => setNotice(getDesktopErrorMessage(error)),
+      });
+      return;
+    }
     try {
-      if (target === "purchase-helper") {
-        appendPurchaseAnalysis(await purchaseRepository.analyzePaths(paths, purchaseImportTemplates));
-        await runDesktopAction("purchase-helper");
-        return;
-      }
       if (target === "official-document") {
         if (paths.length !== 1) throw new Error("공문 작업실에는 파일 1개만 전달할 수 있습니다.");
         const result = await extractOfficialDocumentPath(paths[0]);
@@ -553,6 +584,8 @@ export function DashboardCanvas({ onOpenFinance, suspended = false }: { readonly
           draft={purchaseDraft}
           draftTemplates={purchaseDraftTemplates}
           editing={purchaseEditing}
+          importSession={purchaseImportSession}
+          importContextRevision={purchaseImportContextRevision}
           settlement={purchaseSettlement}
           sources={purchaseSources}
           onAnalysis={appendPurchaseAnalysis}
@@ -576,10 +609,10 @@ export function DashboardCanvas({ onOpenFinance, suspended = false }: { readonly
           onSettlementChange={setPurchaseSettlement}
           onNotice={setNotice}
           onSourcesChange={setPurchaseSources}
-          onTemplatesChange={(templates) => {
+          onTemplatesChange={(templates) => invalidatePurchaseImportContext(purchaseImportSession, () => {
             setPurchaseImportTemplates(templates);
             settingsService.account.savePurchaseImportTemplates(templates);
-          }}
+          })}
         />
       )}
       {isOfficialDocumentOpen && (

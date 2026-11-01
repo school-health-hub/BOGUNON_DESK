@@ -11,19 +11,23 @@ export const normalizePurchaseImportTemplates = (value: unknown): readonly Purch
   for (const raw of value) {
     if (!isRecord(raw) || typeof raw.id !== "string" || typeof raw.name !== "string" || !Array.isArray(raw.headerSignature) || !isRecord(raw.mapping)) continue;
     const id = raw.id.trim(); const name = raw.name.trim();
-    const headerSignature = raw.headerSignature.filter((entry): entry is string => typeof entry === "string" && entry !== "").map((entry) => entry.trim());
+    if (!raw.headerSignature.every((entry): entry is string => typeof entry === "string")) continue;
+    const headerSignature = raw.headerSignature.map((entry) => entry.trim());
+    while (headerSignature[headerSignature.length - 1] === "") headerSignature.pop();
     if (id === "" || name === "" || name.length > 40 || headerSignature.length === 0) continue;
     const mapping: Partial<Record<(typeof purchaseImportFieldIds)[number], number>> = {};
     const used = new Set<number>();
     let hasDuplicateSource = false;
+    let hasInvalidIndex = false;
     for (const field of purchaseImportFieldIds) {
+      if (!Object.prototype.hasOwnProperty.call(raw.mapping, field)) continue;
       const index = raw.mapping[field];
-      if (typeof index === "number" && Number.isInteger(index) && index >= 0 && index < headerSignature.length) {
+      if (typeof index === "number" && Number.isSafeInteger(index) && index >= 0) {
         if (used.has(index)) hasDuplicateSource = true;
         else { mapping[field] = index; used.add(index); }
-      }
+      } else hasInvalidIndex = true;
     }
-    if (mapping.name === undefined || hasDuplicateSource) continue;
+    if (mapping.name === undefined || hasDuplicateSource || hasInvalidIndex) continue;
     const key = JSON.stringify(headerSignature);
     if (signatures.has(key)) continue;
     const validMapping: PurchaseColumnMapping = mapping;

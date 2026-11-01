@@ -84,7 +84,22 @@ export type PurchaseSettlementExportRow = {
   readonly status: string;
   readonly note: string;
 };
-export type PurchaseHeaderOption = { readonly rowIndex: number; readonly headers: readonly string[]; readonly signature: readonly string[]; readonly recommended: boolean };
+export type PurchaseRecognitionConfidence = "automatic" | "review" | "manual";
+export type PurchaseRecognitionField = {
+  readonly field: PurchaseImportFieldId;
+  readonly columnIndex?: number;
+  readonly header: string;
+  readonly confidence: PurchaseRecognitionConfidence;
+  readonly reasons: readonly string[];
+  readonly warnings: readonly string[];
+};
+export type PurchaseRecognition = {
+  readonly mapping: PurchaseColumnMapping;
+  readonly confidence: PurchaseRecognitionConfidence;
+  readonly fields: readonly PurchaseRecognitionField[];
+  readonly warnings: readonly string[];
+};
+export type PurchaseHeaderOption = { readonly rowIndex: number; readonly headers: readonly string[]; readonly signature: readonly string[]; readonly recommended: boolean; readonly recommendation?: PurchaseRecognition };
 export type PurchaseMappingCandidate = { readonly id: string; readonly sourceName: string; readonly sheetName: string; readonly rows: readonly (readonly string[])[]; readonly headerOptions: readonly PurchaseHeaderOption[] };
 
 export const defaultPurchaseOutputColumns: readonly PurchaseOutputColumnId[] = ["number", "name", "specification", "quantity", "unitPrice", "amount", "note"];
@@ -129,7 +144,7 @@ export type PurchaseOutputReadiness = {
   readonly unreviewedMismatchCount: number;
 };
 
-export type PurchaseSourceSummary = { readonly sourceName: string; readonly status: "success" | "needsMapping" | "unsupported" | "error"; readonly rowCount: number; readonly message: string | null; readonly candidateId?: string };
+export type PurchaseSourceSummary = { readonly sourceName: string; readonly status: "success" | "needsMapping" | "unsupported" | "error"; readonly rowCount: number; readonly message: string | null; readonly candidateId?: string; readonly recognition?: PurchaseRecognition };
 export type PurchaseAnalysisResult = { readonly items: readonly PurchaseItem[]; readonly sources: readonly PurchaseSourceSummary[]; readonly candidates: readonly PurchaseMappingCandidate[] };
 export type PurchaseAnalysisRequestResult = { readonly generation: number; readonly started: boolean };
 export type PurchaseAnalysisEvent = { readonly generation: number; readonly result: PurchaseAnalysisResult };
