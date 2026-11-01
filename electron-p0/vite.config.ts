@@ -1,13 +1,16 @@
-import { defineConfig } from 'vite';
+import { defineConfig, normalizePath } from 'vite';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
-const root=fileURLToPath(new URL('./renderer',import.meta.url));
-const fixture=(name:string)=>fileURLToPath(new URL(`./renderer/adapters/${name}.ts`,import.meta.url));
+const local=(path:string)=>normalizePath(fileURLToPath(new URL(path,import.meta.url)));
+const root=local('./renderer');
+const fixture=(name:string)=>local(`./renderer/adapters/${name}.ts`);
 export default defineConfig({root,base:'./',envDir:root,envPrefix:'ELECTRON_P0_PUBLIC_',publicDir:false,plugins:[react(),{
   name:'p0-closed-renderer',enforce:'pre',
-  resolveId(source,importer){if(source==='./NewsletterOutputControls'&&importer?.endsWith('/newsletter/rendering/NewsletterDesignEditor.tsx'))return fileURLToPath(new URL('./renderer/adapters/NewsletterOutputControls.tsx',import.meta.url));if(/(?:^|\/)MemoWidget(?:\.tsx)?$/.test(source))return fileURLToPath(new URL('./renderer/adapters/PersistentMemo.tsx',import.meta.url));if(source==='react-grid-layout'&&importer?.replaceAll('\\','/').endsWith('/src/components/dashboard/DesktopWidgetLayout.tsx'))return fileURLToPath(new URL('./renderer/adapters/GridLayout.tsx',import.meta.url));},
+  resolveId(source,importer){if(source==='./NewsletterOutputControls'&&importer?.endsWith('/newsletter/rendering/NewsletterDesignEditor.tsx'))return local('./renderer/adapters/NewsletterOutputControls.tsx');if(/(?:^|\/)MemoWidget(?:\.tsx)?$/.test(source))return local('./renderer/adapters/PersistentMemo.tsx');if(source==='react-grid-layout'&&importer?.replaceAll('\\','/').endsWith('/src/components/dashboard/DesktopWidgetLayout.tsx'))return local('./renderer/adapters/GridLayout.tsx');},
   generateBundle(){
     const modules=[...this.getModuleIds()].map(p=>p.replaceAll('\\','/'));
+    // Context providers must retain one module identity on Windows as well as POSIX.
+    if(modules.filter(p=>p.endsWith('/electron-p0/renderer/adapters/PersistentMemo.tsx')).length!==1)this.error('PersistentMemo must have exactly one canonical module identity');
     const forbidden=modules.filter(p=>/@tauri-apps|@supabase|\/src\/(auth|ai|chatgpt|my-finance|purchase|official-document|record-helper)\//.test(p));
     if(forbidden.length)this.error(`Forbidden production dependency in PoC: ${forbidden.join(', ')}`);
     this.emitFile({type:'asset',fileName:'p0-renderer-boundary.json',source:JSON.stringify({closed:true,adapters:modules.filter(p=>p.includes('/electron-p0/renderer/adapters/')).map(p=>p.slice(p.lastIndexOf('/electron-p0/')+1)),reused:modules.filter(p=>p.includes('/src/')).map(p=>p.slice(p.lastIndexOf('/src/')+1))},null,2)});
