@@ -15,7 +15,9 @@ export type SyntheticSummaryRequest = Readonly<{fixture:'synthetic-only';complet
 export type SyntheticSummary = Readonly<{fixture:'synthetic-only';total:3;completedCount:number;pending:readonly SyntheticTaskId[]}>;
 export type IpcErrorCode = 'FORBIDDEN' | 'INVALID_INPUT' | 'INTERNAL_ERROR' | 'STORAGE_ERROR' | 'CONFLICT';
 export type IpcResult<T> = Readonly<{ok:true;data:T}> | Readonly<{ok:false;error:Readonly<{code:IpcErrorCode;message:string;retryable:boolean}>}>;
+export type PurchaseClipboardRequest=Readonly<{text:string;html:string}>;
 export interface WorkBridge {
+ readonly purchase:Readonly<{copy(request:PurchaseClipboardRequest):Promise<IpcResult<null>>}>;
  readonly newsletter:Readonly<{projects:NewsletterProjectsBridge;exportOutput(request:NewsletterExportRequest):Promise<IpcResult<NewsletterExportResult>>;saveJson(request:Readonly<{json:string}>):Promise<IpcResult<NewsletterSaveResult>>}>;
  readonly memo: Readonly<MemoBridge>;
  readonly sample: Readonly<{summarize(request:SyntheticSummaryRequest):Promise<IpcResult<SyntheticSummary>>}>;

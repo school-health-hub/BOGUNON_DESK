@@ -1,3 +1,4 @@
+import { PurchaseSession } from './purchase/PurchaseSession';
 import { PersistentMemoProvider } from './adapters/PersistentMemo';
 import { SyntheticIpcSample } from './SyntheticIpcSample';
 import { useEffect, useState, lazy, Suspense } from 'react';
@@ -43,6 +44,7 @@ export function P0App() {
   return <P0Dashboard initial={initial}/>;
 }
 function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:DockLayout;info:P0Info}}) {
+  const [purchaseOpen,setPurchaseOpen]=useState(false);
   const [newsletterOpen,setNewsletterOpen]=useState(false);
   const [newsletterLoaded,setNewsletterLoaded]=useState(false);
   const [layout,setLayout] = useState(initial.layout);
@@ -64,6 +66,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   },[layout,dock]);
   const excluded=()=>setNotice('이 기능은 ELECTRON-P0 범위에 포함되지 않습니다. 로그인·업무·금융 데이터에 연결하지 않습니다.');
   const navigate=(id:DesktopActionId)=>{
+    if(id==='purchase-helper'){setPurchaseOpen(true);setActive('home');setPanel(null);setNotice(null);return;}
     if(['home','settings','quick-memo','toolbox'].includes(id)){setActive(id);setPanel(null);setEditing(false);setNotice(null)}else excluded();
   };
   return <WidgetSessionProvider><PersistentMemoProvider><DesktopPanelProvider notify={setNotice} openInbox={excluded} openBogunonTask={async()=>excluded()} openQuickAddEventForDate={excluded} openQuickAddFromMemo={excluded} openQuickMemoUrl={async()=>excluded()} runDesktopAction={async id=>navigate(id)} workFolderFavorites={[]} openWorkFolderFavorite={async()=>excluded()}>
@@ -78,12 +81,13 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
       {editing&&panel==='presets'&&<PresetSelector currentPresetId={layout.presetId} onClose={()=>setPanel(null)} onApply={id=>setLayout(applyPreset(layout,id,window.confirm))}/>}
       {editing&&panel==='dock'&&<DockEditor dockLayout={dock} onClose={()=>setPanel(null)} onUpdate={setDock}/>}
       {active!=='home'&&<div className="desktop-panel-backdrop"><section className="desktop-panel p0-panel" role="dialog" aria-label={active==='settings'?'PoC 설정':active==='quick-memo'?'빠른 메모':'업무 도구'}><button type="button" onClick={()=>navigate('home')}>홈으로</button>
-        {active==='quick-memo'?<MemoWidget/>:active==='settings'?<><h1>PoC 설정</h1><button type="button" onClick={()=>{setActive("home");setNewsletterLoaded(true);setNewsletterOpen(true);}}>보건소식지 제작소</button><SyntheticIpcSample/><p>앱 ID: {info?.appId}</p><p>PoC 저장 위치: {info?.userData}</p><p>소스: {info?.sourceSha}</p><p>Electron: {info?.electron}</p><p>자동 업데이트·로그인·파일 접근 API 없음</p></>:<><h1>업무 도구</h1><p>업무 기능은 이번 PoC에 연결하지 않았습니다.</p></>}
+        {active==='quick-memo'?<MemoWidget/>:active==='settings'?<><h1>PoC 설정</h1><button type="button" onClick={()=>{setActive("home");setNewsletterLoaded(true);setNewsletterOpen(true);}}>보건소식지 제작소</button><SyntheticIpcSample/><p>앱 ID: {info?.appId}</p><p>PoC 저장 위치: {info?.userData}</p><p>소스: {info?.sourceSha}</p><p>Electron: {info?.electron}</p><p>자동 업데이트·로그인·파일 접근 API 없음</p></>:<><h1>업무 도구</h1><button type="button" onClick={()=>{setActive("home");setPurchaseOpen(true);}}>품의 도우미 · 세션 전용</button></>}
       </section></div>}
       {notice&&<div className="p0-notice" role="status">{notice}<button onClick={()=>setNotice(null)}>닫기</button></div>}
       <span className="p0-save" role="status" data-p0-save>{status}</span>
       <div className="dock-zone"><AppDock activeActionId={active} dockLayout={dock} onAction={navigate}/></div>
     </div>
+    <PurchaseSession open={purchaseOpen} onClose={()=>setPurchaseOpen(false)}/>
     <div hidden={!newsletterOpen} inert={!newsletterOpen} style={{display:newsletterOpen?undefined:"none"}}>{newsletterLoaded&&<Suspense fallback={<p role="status">소식지 불러오는 중…</p>}><NewsletterStudio onClose={()=>setNewsletterOpen(false)}/></Suspense>}</div>
   </DesktopPanelProvider></PersistentMemoProvider></WidgetSessionProvider>;
 }

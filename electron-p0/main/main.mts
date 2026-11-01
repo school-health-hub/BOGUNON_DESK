@@ -1,4 +1,5 @@
-import { app, BrowserWindow, ipcMain, session, Menu, Tray, nativeImage, screen, dialog } from 'electron';
+import { createPurchaseClipboardHandler } from './purchase-clipboard.js';
+import { app, BrowserWindow, ipcMain, session, Menu, Tray, nativeImage, screen, dialog, clipboard, ClipboardItem } from 'electron';
 import { join } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
@@ -53,6 +54,7 @@ else {
     if (channel === 'p0:read-settings') return store.read();
     return store.write(args[0]);
   });
+  ipcMain.handle('p2:purchase:copy',createPurchaseClipboardHandler(window.webContents,url,content=>clipboard.write([new ClipboardItem({'text/plain':content.text,...(content.html?{'text/html':content.html}:{})})])));
   ipcMain.handle(SAMPLE_SUMMARY_CHANNEL,createSampleHandler(window.webContents,url));
   const memoHandlers=createMemoHandlers(window.webContents,url,memoStore);
   ipcMain.handle('p2:memo:read',memoHandlers.read);

@@ -18,7 +18,7 @@ test('real Electron: secure bridge, original dashboard/dock, navigation, edit an
   const info=await page.evaluate(()=>window.electronP0.info());expect(info.appId).toBe('kr.sungandi.schoolhealthdesk.electronp0');expect(info.userData).toContain(id);
   await page.getByRole('button',{name:'설정',exact:true}).click();await expect(page.getByRole('heading',{name:'PoC 설정'})).toBeVisible();
   const beforeSample=await page.evaluate(()=>window.electronP0.readSettings());
-  expect(await page.evaluate(()=>({keys:Object.keys(window.electronWork),sample:Object.keys(window.electronWork.sample)}))).toEqual({keys:['sample','newsletter','memo'],sample:['summarize']});
+  expect(await page.evaluate(()=>({keys:Object.keys(window.electronWork),sample:Object.keys(window.electronWork.sample)}))).toEqual({keys:['purchase','sample','newsletter','memo'],sample:['summarize']});
   await page.getByRole('button',{name:'합성 IPC 확인',exact:true}).click();
   await expect(page.getByText('합성 항목 3개 중 1개 완료',{exact:true})).toBeVisible();
   expect(await page.evaluate(()=>window.electronWork.sample.summarize({fixture:'synthetic-only',completed:['prepare','prepare']} as never))).toMatchObject({ok:false,error:{code:'INVALID_INPUT'}});

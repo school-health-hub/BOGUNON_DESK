@@ -13,7 +13,8 @@
     "types": [
       "node",
       "vite/client"
-    ]
+    ],
+    "jsx": "react-jsx"
   },
   "include": [
     "e2e",

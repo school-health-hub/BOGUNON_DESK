@@ -142,3 +142,16 @@ P1A CI는 빌드/두 패키지 생성/기존 실제 패키지 GUI E2E를 실행�
 3. Electron용 `NewsletterStudio.tsx` 호스트 연결·테스트, preload/IPC, 내부 저장소·복구 보호, 격리 출력 창과 출력 어댑터는 별도 변경이므로 원본 파일로 덮어쓰지 않습니다. Tauri repository/출력 저장 경로를 다시 연결하지 않습니다.
 4. Vite의 Windows 경로 정규화와 메모 Context 단일 모듈 검사를 유지합니다. `contextIsolation: true`, `sandbox: true`, `nodeIntegration: false`, 호출자·입력 검증과 다운로드 차단도 유지합니다.
 5. 다음 통합 검증은 합성 데이터로 변경 영향 범위만 수행하고, P2-D-3 GUI 미검증을 먼저 명시한 상태에서 계획합니다. 손상 원고 자동 초기화·복구, 승인 상태 자동 승격, 실제 데이터 자동 이관을 추가하지 않습니다. main 병합·PR·운영 배포는 별도 승인 전 진행하지 않습니다.
+
+## ELECTRON-P2E-1: Purchase Helper 수동 업무
+
+- Electron 기준 `c5df12c640b90192eb945bac2b7a1c16133f5949`, 원본 Purchase 기준 `fec6deb78502b6101a7efd328ab4b0bb57fe77be`, 작업 브랜치 `feature/electron-p2e1-purchase-manual`. 원본 브랜치를 병합하지 않고 `electron-p0/renderer/purchase/`에 필요한 모듈만 격리 복사했습니다. 기존 `src/`·`src-tauri/`는 변경하지 않습니다.
+- 원본 `types`, `purchaseDomain`, `purchaseClipboard`, `purchaseDraft`, `purchaseBulkEdit`, `purchaseItemEditing`, `purchaseReview`, `usePurchaseItemEditing`는 byte 단위 동일합니다. EditableInput/ItemNameDialog/BulkEditDialog도 원본 그대로입니다. HelperPanel은 파일 분석·출력·native lifecycle을 제거했고 DraftEditor는 복사 연결만 교체했습니다. CSS는 원본 Purchase 선택자와 해당 media 조건을 값 변경 없이 선별했습니다. 이후 원본 변경은 이 고정 SHA와 비교해 필요한 모듈만 반영합니다.
+- 진입: Dock의 품의 도우미 또는 업무 도구 → `품의 도우미 · 세션 전용`. 수동 품목 CRUD·검토·선택 합계·일괄 편집과 품의문 생성/편집/미리보기/텍스트·HTML 복사를 제공합니다. 원본 계산·반올림·입력 검증을 재사용합니다.
+- 품목·품의문·템플릿·출력 열은 React 메모리 상태로만 유지합니다. 패널을 닫았다 열면 세션 상태를 유지하고 앱을 종료하면 소멸합니다. Dashboard/메모/소식지 설정 파일과 혼합하지 않으며 계정 설정·Tauri 데이터·운영 DB·MY FINANCE를 읽거나 자동 이관하지 않습니다.
+- CSV/XLSX/XLS/PDF 가져오기, 파일 분석·열 매핑, CSV/XLSX·정산·에듀파인 출력은 비활성화하고 안내합니다. 계정 동기화는 연결하지 않습니다. 임시 분석 결과와 성공 응답은 제공하지 않습니다.
+- 최소 IPC는 `electronWork.purchase.copy({text,html})` 하나입니다. main에서 기존 main-frame/window/URL 검증, 정확한 필드·길이 제한·빈 텍스트·NUL·attribute 없는 HTML 태그 allowlist를 검사하고 Electron 45 ClipboardItem으로 텍스트/HTML을 함께 씁니다. 읽기·임의 경로·범용 invoke는 노출하지 않습니다. native 실패는 구조화 오류로 반환하며 입력 내용은 로그에 기록하지 않습니다.
+- 이번 GUI QA는 **BLOCKED / NOT RUN**: 사용 가능한 DISPLAY 및 실행 중인 Xorg/Xvfb가 없습니다. 과거 GUI 결과를 이번 변경의 PASS로 사용하지 않으며 GUI 승인 반복·환경 재구성은 하지 않았습니다. 실제 Windows의 화면 배치·클립보드 붙여넣기·종료 후 세션 소멸 확인은 남아 있습니다. 패키징 구성·의존성이 변경되지 않아 Windows 패키징/기존 GUI CI는 재실행하지 않습니다.
+- 다음 범위: 사용자가 선택한 파일만 읽는 형식별 IPC 및 기존 분석 엔진 연결을 먼저 조사합니다. CSV부터 단계적으로 검증하고 XLSX/XLS/PDF 분석·미리보기·열 매핑과 안전한 출력 저장을 분리합니다. 이번 세션 기능을 영구 저장·계정 동기화로 자동 확장하지 않습니다.
+
+- 검증 결과: Electron main/preload/renderer/테스트 TypeScript 및 프로덕션 빌드 PASS, 관련 자동 테스트 **67 files / 307 PASS**(Purchase 원본 회귀·세션 UI·클립보드 경계, Dashboard/Dock·메모·Newsletter 회귀). 테스트 TypeScript의 기존 JSX 옵션 누락을 보완했습니다. **최종 CONDITIONAL**: Cloud GUI와 Windows 실기기 검증은 NOT RUN입니다.

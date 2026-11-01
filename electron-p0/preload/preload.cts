@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { P0Bridge, P0Settings, WorkBridge, SyntheticSummaryRequest, MemoDocument, NewsletterExportRequest, NewsletterProjectsBridge } from '../protocol.js';
+import type { P0Bridge, P0Settings, WorkBridge, SyntheticSummaryRequest, MemoDocument, NewsletterExportRequest, NewsletterProjectsBridge, PurchaseClipboardRequest } from '../protocol.js';
 if (!process.sandboxed || !process.contextIsolated) throw new Error('PoC requires a sandboxed isolated preload');
 const bridge: P0Bridge = Object.freeze({
   info: () => ipcRenderer.invoke('p0:info'),
@@ -17,7 +17,7 @@ const projects:NewsletterProjectsBridge=Object.freeze({
  preview:r=>projectCall('p2:newsletter:projects:preview',r),
  restore:r=>projectCall('p2:newsletter:projects:restore',r),
 });
-const work: WorkBridge = Object.freeze({sample:Object.freeze({
+const work: WorkBridge = Object.freeze({purchase:Object.freeze({copy:(request:PurchaseClipboardRequest)=>projectCall('p2:purchase:copy',request)}),sample:Object.freeze({
   summarize: async (request:SyntheticSummaryRequest) => {
     try{return await ipcRenderer.invoke('p2:sample:summary',request);}
     catch{return {ok:false as const,error:{code:'INTERNAL_ERROR' as const,message:'샘플 연결을 완료하지 못했습니다.',retryable:true}};}
