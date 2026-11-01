@@ -3,6 +3,10 @@ name: Official document isolated Windows QA
 on:
   workflow_dispatch:
     inputs:
+      p11_source_sha:
+        description: Full feature commit SHA for Rust-only P11 tests (empty keeps existing QA modes)
+        type: string
+        default: ''
       runtime_only:
         description: Reuse the verified QA EXE without rebuilding
         type: boolean
@@ -16,8 +20,73 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  p11-rust:
+    if: github.ref == 'refs/heads/feature/official-document-enhancement' && inputs.p11_source_sha != ''
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      P11_SOURCE_SHA: ${{ inputs.p11_source_sha }}
+      CL: /utf-8
+      CARGO_BUILD_JOBS: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ inputs.p11_source_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact feature source and initialize evidence
+        run: |
+          if ($env:P11_SOURCE_SHA -notmatch '^[0-9a-f]{40}$') { throw 'Full commit SHA required' }
+          $actual = git rev-parse HEAD
+          if ($actual -ne $env:P11_SOURCE_SHA) { throw 'Checkout SHA mismatch' }
+          git merge-base --is-ancestor HEAD origin/feature/official-document-enhancement
+          if ($LASTEXITCODE -ne 0) { throw 'Source must belong to the official-document feature history' }
+          $root = Join-Path $env:RUNNER_TEMP 'p11-rust'
+          New-Item -ItemType Directory -Path "$root/evidence" -Force | Out-Null
+          "P11_ROOT=$root" >> $env:GITHUB_ENV
+          "CARGO_TARGET_DIR=$root/target" >> $env:GITHUB_ENV
+          "PSModuleAnalysisCachePath=$root/ModuleAnalysisCache" >> $env:GITHUB_ENV
+          [ordered]@{ sourceSha=$actual; workflowSha=$env:GITHUB_SHA; nativeUi='NOT RUN'; productionOdt='NOT RUN'; fixtures='synthetic only' } | ConvertTo-Json | Set-Content "$root/evidence/provenance.json"
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249
+        with:
+          toolchain: stable
+          targets: x86_64-pc-windows-msvc
+      - name: Verify existing Windows prerequisites
+        run: |
+          foreach ($tool in @('perl','nasm','cargo','rustc')) { Get-Command $tool -ErrorAction Stop | Select-Object Name,Source }
+          rustc -vV
+          cargo --version
+      - name: Reproduce the two reported tests
+        continue-on-error: true
+        run: |
+          $failed = $false
+          foreach ($test in @('accepts_zero_one_many_attachments_without_appending_them_again','preserves_multiline_leading_space_and_long_body_inside_the_existing_range')) {
+            cargo test --manifest-path src-tauri/Cargo.toml $test --lib --locked --jobs 1 -- --nocapture 2>&1 | Tee-Object "$env:P11_ROOT/evidence/$test.log"
+            if ($LASTEXITCODE -ne 0) { $failed = $true }
+          }
+          if ($failed) { throw 'Reported P11 tests failed; see exact assertion logs' }
+      - name: Run all P11 Rust tests
+        run: |
+          cargo test --manifest-path src-tauri/Cargo.toml official_document_odt --lib --locked --jobs 1 -- --nocapture 2>&1 | Tee-Object "$env:P11_ROOT/evidence/all-tests.log"
+          if ($LASTEXITCODE -ne 0) { throw 'P11 Rust suite failed' }
+      - name: Verify lockfile and source preservation
+        if: always()
+        run: |
+          git diff --exit-code
+          if ($LASTEXITCODE -ne 0) { throw 'Tracked source or lockfile changed' }
+      - name: Preserve P11 synthetic test logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: p11-rust-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.P11_ROOT }}/evidence/*
+          if-no-files-found: warn
+          retention-days: 14
   native-build:
-    if: github.ref == 'refs/heads/feature/official-document-enhancement' && !inputs.runtime_only
+    if: github.ref == 'refs/heads/feature/official-document-enhancement' && !inputs.runtime_only && inputs.p11_source_sha == ''
     runs-on: windows-latest
     timeout-minutes: 90
     defaults:
@@ -147,7 +216,7 @@ jobs:
           retention-days: 14
 
   runtime-ui:
-    if: github.ref == 'refs/heads/feature/official-document-enhancement' && inputs.runtime_only
+    if: github.ref == 'refs/heads/feature/official-document-enhancement' && inputs.runtime_only && inputs.p11_source_sha == ''
     runs-on: windows-latest
     timeout-minutes: 10
     permissions:
