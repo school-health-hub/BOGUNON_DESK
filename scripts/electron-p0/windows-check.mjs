@@ -6,7 +6,7 @@ const ps=script=>execFileSync('powershell.exe',['-NoProfile','-NonInteractive','
 const run=(args,env=process.env)=>{
  const r=spawnSync(process.execPath,args,{encoding:'utf8',env,maxBuffer:64*1024*1024,timeout:15*60*1000});
  process.stdout.write(r.stdout??'');process.stderr.write(r.stderr??'');
- if(r.status!==0)throw Error(`${args.join(' ')}: ${r.error?.message??''}\n${((r.stdout??'')+(r.stderr??'')).split('\n').slice(-25).join('\n')}`);
+ if(r.status!==0)throw Error(`${args.join(' ')}: ${r.error?.message??''}\n${(r.stdout??'').split('\n').filter(l=>l.includes('P1B_DIAGNOSTIC')).join('\n')}\n${((r.stdout??'')+(r.stderr??'')).split('\n').slice(-25).join('\n')}`);
 };
 const npm=(task,env)=>run([process.env.npm_execpath,'run',task],env);
 const report={baseline:'0b2f49503c7bcc2bedeb9988bd5cef6b11982829',sourceSha:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),baselineRegression:'REUSED: P0 CI 41236999963',installation:'NOT RUN',installedUiAndRestart:'NOT RUN',uninstallAndSettingsRetention:'NOT RUN',physicalWindowsPc:'NOT RUN'};

@@ -8,7 +8,9 @@ test('real Electron: secure bridge, original dashboard/dock, navigation, edit an
  try{
   console.log('P0: Electron connected');
   let page=await app.firstWindow({timeout:10000}); console.log('P0: renderer window found');
-  await expect(page.getByRole('navigation',{name:'주요 기능'})).toBeVisible();
+  try{await expect(page.getByRole('navigation',{name:'주요 기능'})).toBeVisible();}catch(error){
+   console.log('P1B_DIAGNOSTIC '+JSON.stringify({main:await app.evaluate(({screen,BrowserWindow})=>({bounds:BrowserWindow.getAllWindows()[0].getBounds(),areas:screen.getAllDisplays().map(d=>d.workArea)})),renderer:await page.evaluate(()=>({viewport:[innerWidth,innerHeight],body:document.body.innerText.slice(0,300)}))}));throw error;
+  }
   await expect(page.locator('[data-widget-type="clock"]')).toBeVisible();
   await expect(page.locator('[data-p0-save]')).toHaveText('PoC 설정 저장됨');console.log('P0: dashboard and settings ready');await page.screenshot({path:'artifacts/electron-p0-e2e/dashboard-initial.png'});
   expect(await page.evaluate(()=>({keys:Object.keys(window.electronP0),node:typeof (window as unknown as {require:unknown}).require}))).toEqual({keys:['info','readSettings','writeSettings'],node:'undefined'});
@@ -37,7 +39,7 @@ test('real Electron: secure bridge, original dashboard/dock, navigation, edit an
   await page.screenshot({path:'artifacts/electron-p0-e2e/dashboard-restarted.png',fullPage:true});
   await page.evaluate(()=>window.open('https://example.invalid'));expect(await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().length)).toBe(1);
 
-  await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setBounds({x:60,y:50,width:1100,height:760}));
+  await app.evaluate(({BrowserWindow,screen})=>{const a=screen.getPrimaryDisplay().workArea;BrowserWindow.getAllWindows()[0].setBounds({x:a.x+20,y:a.y+20,width:Math.min(1100,a.width-40),height:Math.min(760,a.height-40)});});
   if(process.platform==='win32'){
    await app.evaluate(({Menu,BrowserWindow})=>{const item=Menu.getApplicationMenu()!.items[0].submenu!.items[1];item.click(item,BrowserWindow.getAllWindows()[0],{} as never);});
    await expect.poll(()=>app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isMinimized())).toBe(true);
