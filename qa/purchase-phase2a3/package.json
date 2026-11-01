@@ -1,0 +1,10 @@
+{
+  "name": "bogunon-purchase-phase2a3-browser-qa",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "@types/node": "22.18.6"
+  }
+}

@@ -1,0 +1,102 @@
+name: Purchase Phase 2A3 browser QA
+on:
+  push:
+    branches: [feature/purchase-helper-enhancement]
+    paths:
+      - qa/purchase-phase2a3/**
+      - .github/workflows/purchase-phase2a3-browser-qa.yml
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Immutable product revision
+        required: true
+        default: d12d76107e1166f0f6eb146a634a8f9d2eed3e67
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: purchase-phase2a3-browser-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  browser:
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      PRODUCT_SHA: d12d76107e1166f0f6eb146a634a8f9d2eed3e67
+      CONTROLLER_SHA: ${{ github.sha }}
+    steps:
+      - name: Gate event and controller revision
+        shell: pwsh
+        env:
+          EVIDENCE_DIR: ${{ runner.temp }}/purchase-phase2a3-browser/evidence
+          GH_TOKEN: ${{ github.token }}
+          WORKFLOW_SHA: ${{ github.workflow_sha }}
+          REQUESTED_SOURCE: ${{ inputs.source_sha }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force $env:EVIDENCE_DIR | Out-Null
+          "EVIDENCE_DIR=$env:EVIDENCE_DIR" >> $env:GITHUB_ENV
+          "PLAYWRIGHT_BROWSERS_PATH=$env:RUNNER_TEMP/purchase-phase2a3-browser/browsers" >> $env:GITHUB_ENV
+          $event = Get-Content $env:GITHUB_EVENT_PATH -Raw | ConvertFrom-Json
+          if ($env:GITHUB_REPOSITORY -cne 'school-health-hub/BOGUNON_DESK') { throw 'Wrong repository' }
+          if ($env:GITHUB_REF -ne 'refs/heads/feature/purchase-helper-enhancement') { throw 'Wrong branch' }
+          if ($env:CONTROLLER_SHA -cnotmatch '^[0-9a-f]{40}$' -or $env:GITHUB_SHA -cne $env:CONTROLLER_SHA) { throw 'Malformed controller revision' }
+          if ($env:WORKFLOW_REF -cne 'school-health-hub/BOGUNON_DESK/.github/workflows/purchase-phase2a3-browser-qa.yml@refs/heads/feature/purchase-helper-enhancement') { throw 'Wrong workflow ref' }
+          if ($env:WORKFLOW_SHA -ne $env:CONTROLLER_SHA) { throw 'Workflow/controller revision mismatch' }
+          if ($env:GITHUB_EVENT_NAME -eq 'push') {
+            if ($event.deleted -or $event.forced -or $event.after -ne $env:CONTROLLER_SHA) { throw 'Unsafe push event' }
+          } elseif ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch') {
+            if ($env:REQUESTED_SOURCE -ne $env:PRODUCT_SHA) { throw 'Product revision must remain fixed' }
+          } else { throw 'Unsupported event' }
+          $headers = @{ Authorization = "Bearer $env:GH_TOKEN"; Accept = 'application/vnd.github+json' }
+          $branch = Invoke-RestMethod -Headers $headers -Uri "https://api.github.com/repos/$env:GITHUB_REPOSITORY/git/ref/heads/feature/purchase-helper-enhancement"
+          if ($branch.object.sha -ne $env:CONTROLLER_SHA) { throw 'Controller is not current feature branch HEAD' }
+          'Event gate PASS' | Set-Content "$env:EVIDENCE_DIR/event-gate.txt"
+          "npm_config_cache=$env:RUNNER_TEMP/purchase-phase2a3-browser/npm-cache" >> $env:GITHUB_ENV
+          "npm_config_audit=false" >> $env:GITHUB_ENV
+          "npm_config_fund=false" >> $env:GITHUB_ENV
+      - name: Checkout controller
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          path: controller
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Gate controller ancestry and changed paths
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $base = 'cb8b5f2ae30adf746d68e5e3a23c367e770d8118'
+          if ((git -C controller rev-parse HEAD) -ne $env:CONTROLLER_SHA) { throw 'Checkout revision mismatch' }
+          git -C controller merge-base --is-ancestor $base HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'Controller must descend from approved checkpoint' }
+          $changed = @(git -C controller diff --name-only $base HEAD)
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect controller changes' }
+          foreach ($path in $changed) {
+            if ($path -notmatch '^qa/purchase-phase2a3/' -and $path -ne '.github/workflows/purchase-phase2a3-browser-qa.yml') { throw "Disallowed controller change: $path" }
+          }
+          $changed | Set-Content "$env:EVIDENCE_DIR/controller-changed-paths.txt"
+      - name: Checkout immutable product
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: d12d76107e1166f0f6eb146a634a8f9d2eed3e67
+          path: source
+          persist-credentials: false
+      - name: Use pinned Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22.23.3
+      - name: Run isolated browser QA
+        shell: pwsh
+        env:
+          SOURCE_ROOT: ${{ github.workspace }}/source
+        run: ./controller/qa/purchase-phase2a3/runner.ps1
+      - name: Preserve evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: purchase-phase2a3-browser-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.EVIDENCE_DIR }}
+          retention-days: 14
+          if-no-files-found: error
