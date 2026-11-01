@@ -2,7 +2,7 @@ name: Purchase Phase 2B1 Windows verification
 on:
   push:
     branches: [feature/purchase-helper-enhancement]
-    paths: [.github/workflows/purchase-phase2b1-windows.yml]
+    paths: [.github/workflows/purchase-phase2b1-windows.yml, 'qa/purchase-phase2b1/**']
   workflow_dispatch:
     inputs:
       source_sha:
