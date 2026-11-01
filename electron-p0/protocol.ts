@@ -13,10 +13,10 @@ export interface P0Bridge {
 export type SyntheticTaskId = 'prepare' | 'review' | 'finish';
 export type SyntheticSummaryRequest = Readonly<{fixture:'synthetic-only';completed:readonly SyntheticTaskId[]}>;
 export type SyntheticSummary = Readonly<{fixture:'synthetic-only';total:3;completedCount:number;pending:readonly SyntheticTaskId[]}>;
-export type IpcErrorCode = 'FORBIDDEN' | 'INVALID_INPUT' | 'INTERNAL_ERROR' | 'STORAGE_ERROR';
+export type IpcErrorCode = 'FORBIDDEN' | 'INVALID_INPUT' | 'INTERNAL_ERROR' | 'STORAGE_ERROR' | 'CONFLICT';
 export type IpcResult<T> = Readonly<{ok:true;data:T}> | Readonly<{ok:false;error:Readonly<{code:IpcErrorCode;message:string;retryable:boolean}>}>;
 export interface WorkBridge {
- readonly newsletter:Readonly<{exportOutput(request:NewsletterExportRequest):Promise<IpcResult<NewsletterExportResult>>;saveJson(request:Readonly<{json:string}>):Promise<IpcResult<NewsletterSaveResult>>}>;
+ readonly newsletter:Readonly<{projects:NewsletterProjectsBridge;exportOutput(request:NewsletterExportRequest):Promise<IpcResult<NewsletterExportResult>>;saveJson(request:Readonly<{json:string}>):Promise<IpcResult<NewsletterSaveResult>>}>;
  readonly memo: Readonly<MemoBridge>;
  readonly sample: Readonly<{summarize(request:SyntheticSummaryRequest):Promise<IpcResult<SyntheticSummary>>}>;
 }
@@ -34,3 +34,17 @@ export type NewsletterExportRequest=Readonly<{document:string;selection:Newslett
 export type NewsletterExportResult=Readonly<{saved:boolean;names?:readonly string[]}>;
 export type GeneratedNewsletterFile=Readonly<{fileName:string;bytesBase64:string}>;
 export type TrustedNewsletterOutput=Readonly<{summary:string;files:readonly GeneratedNewsletterFile[]}>;
+
+export type NewsletterHead=Readonly<{projectId:string;revision:number;hash:string}>;
+export type NewsletterProjectRecord=Readonly<{head:NewsletterHead;document:string}>;
+export type NewsletterRevision=Readonly<{revision:number;hash:string;createdAt:string;restoredFrom?:number}>;
+export type NewsletterPreview=Readonly<{token:string;head:NewsletterHead;revision:number;document:string}>;
+export type NewsletterProjectsBridge=Readonly<{
+ list():Promise<IpcResult<readonly string[]>>;
+ load(request:Readonly<{projectId:string}>):Promise<IpcResult<NewsletterProjectRecord>>;
+ save(request:Readonly<{document:string;expected:NewsletterHead}>):Promise<IpcResult<NewsletterProjectRecord>>;
+ history(request:Readonly<{projectId:string}>):Promise<IpcResult<readonly NewsletterRevision[]>>;
+ preview(request:Readonly<{projectId:string;revision:number}>):Promise<IpcResult<NewsletterPreview>>;
+ restore(request:Readonly<{token:string;expected:NewsletterHead}>):Promise<IpcResult<Readonly<{restored:boolean;record?:NewsletterProjectRecord}>>>;
+}>;
+export type NewsletterApprovalBarrier=Readonly<{ids:readonly string[];hashes:readonly string[]}>;

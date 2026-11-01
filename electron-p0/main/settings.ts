@@ -35,11 +35,11 @@ export function validateSettings(value: unknown): P0Settings {
 }
 export class SettingsStore<T = P0Settings> {
   private queue: Promise<void> = Promise.resolve();
-  constructor(private readonly root: string, private readonly filename = 'layout.json', private readonly validate: (value: unknown) => T = validateSettings as (value: unknown) => T) {}
+  constructor(private readonly root: string, private readonly filename = 'layout.json', private readonly validate: (value: unknown) => T = validateSettings as (value: unknown) => T, private readonly maxBytes = 65536) {}
   async read(): Promise<T | null> {
     try {
       const data = await readFile(join(this.root,this.filename));
-      if (data.length > 65536) throw new Error('Oversized settings');
+      if (data.length > this.maxBytes) throw new Error('Oversized settings');
       return this.validate(JSON.parse(data.toString('utf8')));
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;

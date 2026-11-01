@@ -11,9 +11,11 @@ test('newsletter: original editor/scene, image reconnect, dialog-scoped JSON sav
  const now='2026-10-30T00:00:00.000Z';
  const project=await createNewsletterProject({projectId:'synthetic-electron-newsletter',title:'합성 소식지',now});
  const design=upgradeNewsletterDesignStateV2(createNewsletterDesignState({projectId:project.projectId,canonicalProjectRevision:1,now}),now);
- const app=await electron.launch({chromiumSandbox:true,...(process.env.ELECTRON_P0_EXECUTABLE?{executablePath:process.env.ELECTRON_P0_EXECUTABLE}:{}),args:process.env.ELECTRON_P0_EXECUTABLE?[]:[join(process.cwd(),'build/electron-p0-app')],env:{...process.env,ELECTRON_P0_TEST_RUN:randomUUID(),ELECTRON_P0_DEV_URL:''}});
+ const profileId=randomUUID();
+ const launch=()=>electron.launch({chromiumSandbox:true,...(process.env.ELECTRON_P0_EXECUTABLE?{executablePath:process.env.ELECTRON_P0_EXECUTABLE}:{}),args:process.env.ELECTRON_P0_EXECUTABLE?[]:[join(process.cwd(),'build/electron-p0-app')],env:{...process.env,ELECTRON_P0_TEST_RUN:profileId,ELECTRON_P0_DEV_URL:''}});
+ let app=await launch();
  try{
-  const page=await app.firstWindow();const diagnose=observeStartup(page);await page.getByRole('button',{name:'설정',exact:true}).click().catch(async e=>{console.log('P2D2_DIAGNOSTIC '+JSON.stringify(await diagnose(app)));throw e;});await page.getByRole('button',{name:'보건소식지 제작소',exact:true}).click();
+  let page=await app.firstWindow();const diagnose=observeStartup(page);await page.getByRole('button',{name:'설정',exact:true}).click().catch(async e=>{console.log('P2D2_DIAGNOSTIC '+JSON.stringify(await diagnose(app)));throw e;});await page.getByRole('button',{name:'보건소식지 제작소',exact:true}).click();
   await page.getByLabel('원고·디자인 JSON 열기',{exact:true}).setInputFiles({name:'synthetic.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({project,design}))});
   await expect(page.getByRole('img',{name:'A4 보건소식지 미리보기',exact:true})).toBeVisible();
   await page.getByLabel('원고 제목',{exact:true}).fill('합성 편집 제목');await page.getByRole('button',{name:'원고 반영',exact:true}).click();
@@ -41,13 +43,32 @@ test('newsletter: original editor/scene, image reconnect, dialog-scoped JSON sav
   const otter=await readFile('src/newsletter/rendering/assets/otter-primary-v1.png');
   const denied=await page.evaluate(({document,bytesBase64,reference})=>window.electronWork.newsletter.exportOutput({document,selection:'a4-pdf',assets:[{reference,bytesBase64}]}),{document:saved.replaceAll('"exportApproval": "pending"','"exportApproval": "approved"'),bytesBase64:otter.toString('base64'),reference:`asset:${createHash('sha256').update(otter).digest('hex')}`});
   expect(denied).toMatchObject({ok:false,error:{code:'FORBIDDEN'}});
+  await page.locator('.newsletter-native-project > summary').click();
+  await page.getByRole('button',{name:'프로젝트 내부 저장',exact:true}).click();await expect(page.locator('[data-project-status]')).toHaveText('프로젝트 저장됨 · revision 1');
+  const firstStored=await page.evaluate(projectId=>window.electronWork.newsletter.projects.load({projectId}),project.projectId);if(!firstStored.ok)throw Error('Missing stored project');
+  await page.getByLabel('원고 제목',{exact:true}).fill('합성 내부 수정');await page.getByRole('button',{name:'원고 반영',exact:true}).click();
+  await page.getByRole('button',{name:'프로젝트 내부 저장',exact:true}).click();await expect(page.locator('[data-project-status]')).toHaveText('프로젝트 저장됨 · revision 2');
+  expect(await page.evaluate(first=>window.electronWork.newsletter.projects.save({document:first.document,expected:first.head}),firstStored.data)).toMatchObject({ok:false,error:{code:'CONFLICT'}});
+  await page.getByRole('button',{name:'revision 이력 조회',exact:true}).click();await page.getByRole('button',{name:'revision 1 미리보기',exact:true}).click();
+  await expect(page.locator('.newsletter-studio input[aria-label="원고 제목"]')).toHaveValue('합성 편집 제목');
+  await page.getByRole('button',{name:'미리 본 revision 복구',exact:true}).click();await expect(page.locator('[data-project-status]')).toHaveText('복구를 취소했습니다.');
+  await expect(page.getByLabel('원고 제목',{exact:true})).toHaveValue('합성 내부 수정');
+  await page.getByRole('button',{name:'revision 1 미리보기',exact:true}).click();await app.evaluate(({dialog})=>{dialog.showMessageBox=async()=>({response:1,checkboxChecked:false});});
+  await page.getByRole('button',{name:'미리 본 revision 복구',exact:true}).click();await expect(page.locator('[data-project-status]')).toContainText('프로젝트 복구됨 · revision 3');
+  const restored=await page.evaluate(projectId=>window.electronWork.newsletter.projects.load({projectId}),project.projectId);if(!restored.ok)throw Error('Missing restored project');expect(JSON.parse(restored.data.document).design.assetManifest[0].exportApproval).toBe('pending');
+  const projectFile=await readFile(join(info.userData,'work-data','newsletter-projects',project.projectId+'.json'),'utf8');expect(JSON.parse(projectFile).rows).toHaveLength(3);expect(projectFile).not.toContain('data:image');
+  await app.close();app=await launch();page=await app.firstWindow();await page.getByRole('button',{name:'설정',exact:true}).click();await page.getByRole('button',{name:'보건소식지 제작소',exact:true}).click();
+  await page.locator('.newsletter-native-project > summary').click();await page.getByLabel('저장된 프로젝트',{exact:true}).selectOption(project.projectId);await page.getByRole('button',{name:'프로젝트 불러오기',exact:true}).click();
+  await expect(page.locator('[data-project-status]')).toContainText('프로젝트 불러옴 · revision 3');await expect(page.getByLabel('원고 제목',{exact:true})).toHaveValue('합성 편집 제목');
+
   // A fresh, explicitly approved synthetic asset; no production images or financial data.
   const pngBase64=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=2;c.height=2;const g=c.getContext('2d')!;g.fillStyle='#286c60';g.fillRect(0,0,2,2);return c.toDataURL('image/png').split(',')[1];});
   const png=Buffer.from(pngBase64,'base64'),sha=createHash('sha256').update(png).digest('hex');
   const asset={id:'synthetic-approved',sha256:sha,mediaType:'image/png' as const,approvalStatus:'approved' as const,exportApproval:'approved' as const,originalName:'synthetic-approved.png',localReference:`asset:${sha}`,registry:{classification:'USER_CREATED' as const,purpose:'illustration' as const,usageScope:'newsletter-output' as const}};
   const cards=design.cardLayouts.map((c,i)=>i===0?{...c,image:{...c.image,assetId:asset.id}}:c);
-  const approved={...design,assetManifest:[asset],cardLayouts:cards,revisionHistory:design.revisionHistory.map(e=>e.revision===design.designRevision?{...e,snapshot:{...e.snapshot,assetManifest:[asset],cardLayouts:cards}}:e)};
-  await page.getByLabel('원고·디자인 JSON 열기',{exact:true}).setInputFiles({name:'synthetic-approved.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({project,design:approved}))});
+  const approvedProject={...project,projectId:'synthetic-approved-project' as typeof project.projectId};
+  const approved={...design,projectId:approvedProject.projectId,assetManifest:[asset],cardLayouts:cards,revisionHistory:design.revisionHistory.map(e=>e.revision===design.designRevision?{...e,snapshot:{...e.snapshot,assetManifest:[asset],cardLayouts:cards}}:e)};
+  await page.getByLabel('원고·디자인 JSON 열기',{exact:true}).setInputFiles({name:'synthetic-approved.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({project:approvedProject,design:approved}))});
   await expect(page.locator('.revision-chip')).toHaveText('Revision 2');
   await page.getByLabel('이미지 원본 연결',{exact:true}).setInputFiles({name:'synthetic-approved.png',mimeType:'image/png',buffer:png});
   const exportButton=page.getByRole('button',{name:'출력 위치 선택·저장',exact:true});await expect(exportButton).toBeEnabled().catch(async e=>{console.log('P2D2_DIAGNOSTIC '+(await page.locator('.newsletter-product-host').innerText()).slice(0,5000));throw e;});
@@ -61,5 +82,11 @@ test('newsletter: original editor/scene, image reconnect, dialog-scoped JSON sav
    else{const {readdir}=await import('node:fs/promises');const folders=await readdir(destination);expect(folders).toHaveLength(1);const files=await readdir(join(destination,folders[0]));expect(files).toHaveLength(7);for(const name of files){const bytes=await readFile(join(destination,folders[0],name));expect(bytes.readUInt32BE(16)).toBe(1800);expect(bytes.readUInt32BE(20)).toBe(1800);}}
   }
   await page.screenshot({path:'artifacts/electron-p0-e2e/newsletter-export.png',fullPage:true});
+  await page.getByRole('button',{name:'프로젝트 내부 저장',exact:true}).click();await expect(page.locator('[data-project-status]')).toHaveText('프로젝트 저장됨 · revision 1');
+  await page.getByRole('button',{name:'프로젝트 불러오기',exact:true}).click();await expect(page.locator('[data-project-status]')).toContainText('이미지 원본을 다시 연결');
+  await expect(page.locator('.preview-panel').getByRole('alert')).toContainText('이미지 원본을 다시 선택');
+  await page.getByLabel('이미지 원본 연결',{exact:true}).setInputFiles({name:'synthetic-approved.png',mimeType:'image/png',buffer:png});await expect(exportButton).toBeEnabled();
+  await page.screenshot({path:'artifacts/electron-p0-e2e/newsletter-project.png',fullPage:true});
+
  }finally{await app.close();}
 });

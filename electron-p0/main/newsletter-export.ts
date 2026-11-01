@@ -28,7 +28,7 @@ export function validateGeneratedFiles(output:TrustedNewsletterOutput,s:Newslett
   return {fileName:f.fileName,bytes};
  });
 }
-export async function generateInOwnedWindow(request:NewsletterExportRequest,renderer:string,dev?:string):Promise<TrustedNewsletterOutput>{
+export async function callOwnedNewsletter(method:'generateTrustedNewsletter'|'validateStoredNewsletter',request:unknown,renderer:string,dev?:string):Promise<unknown>{
  const isolated=session.fromPartition(`newsletter-export-${randomUUID()}`);
  isolated.setPermissionCheckHandler(()=>false);isolated.setPermissionRequestHandler((_w,_p,cb)=>cb(false));isolated.on('will-download',e=>e.preventDefault());
  isolated.webRequest.onBeforeRequest((d,cb)=>cb({cancel:!resourceAllowed(d.url,renderer,dev?new URL(dev).origin:undefined)}));
@@ -37,9 +37,10 @@ export async function generateInOwnedWindow(request:NewsletterExportRequest,rend
  const timer=setTimeout(()=>worker.destroy(),90000);
  try{
   await worker.loadURL(dev?`${dev}export-worker.html`:pathToFileURL(join(renderer,'export-worker.html')).href);
-  return await worker.webContents.executeJavaScript(`window.generateTrustedNewsletter(${JSON.stringify(request)})`,false) as TrustedNewsletterOutput;
+  return await worker.webContents.executeJavaScript(`window.${method}(${JSON.stringify(request)})`,false);
  }finally{clearTimeout(timer);if(!worker.isDestroyed())worker.destroy();await isolated.clearStorageData();}
 }
+export async function generateInOwnedWindow(request:NewsletterExportRequest,renderer:string,dev?:string):Promise<TrustedNewsletterOutput>{return await callOwnedNewsletter('generateTrustedNewsletter',request,renderer,dev) as TrustedNewsletterOutput;}
 export function createNewsletterExportHandler(contents:Parameters<typeof assertSender>[1],url:string,ports:{generate:(r:NewsletterExportRequest)=>Promise<TrustedNewsletterOutput>;approve:(summary:string)=>Promise<boolean>;pick:(s:NewsletterExportSelection)=>Promise<string|undefined>;confirm:()=>Promise<boolean>}){
  let busy=false;
  return async(event:Parameters<typeof assertSender>[0],...args:unknown[]):Promise<IpcResult<NewsletterExportResult>>=>{

@@ -100,3 +100,14 @@ P1A CI는 빌드/두 패키지 생성/기존 실제 패키지 GUI E2E를 실행�
 모니터 추가/제거/해상도/배율 변경 시 Electron의 DIP workArea 기준으로 가장 많이 겹치는 모니터에 창을 맞춥니다. 해당 모니터가 없어지면 사용 가능한 모니터 영역으로 이동하며 창 크기도 작업 영역 이내로 줄입니다. 최대화 복원도 지원합니다. Windows 실제 다중 모니터 핫플러그/혼합 DPI/작업표시줄 트레이 표시·실제 마우스 조작은 수동 QA입니다.
 
 검증은 기존 P0 GUI에 창 위치/크기 재실행, 네이티브 메뉴 선택·숨김·복원·기본 X 종료를 추가하고, Windows에서는 최소화/복원을 추가합니다. Cloud Xorg에는 Windows 셸/창 관리자가 없으므로 Windows 최소화·실제 트레이 표시를 PASS로 표시하지 않습니다. 단위 테스트로 보조 모니터 제거/음수 좌표/작은 작업영역(배율 변화 포함)을 시뮬레이션합니다. 새 프레임워크나 전체 업무 회귀 실행은 필요하지 않습니다. P1A 사용자별 NSIS/portable·제거 시 데이터 보존 설정은 유지하며, 승격된 CI의 설치 검증 NOT RUN 제한도 그대로입니다.
+
+## ELECTRON-P2D-3: Electron 프로젝트 revision
+
+- 기준: `e9980aa5c8ff6870302de6111b24eff366937fc9`; 브랜치 `feature/electron-p2d3-newsletter-revisions`.
+- Windows 저장 위치: `%APPDATA%\BOGUNON-DESK-ELECTRON-P0\work-data\newsletter-projects\<projectId>.json`. 프로젝트별 파일에 원고·디자인 JSON과 SHA-256 연결 revision을 보관합니다. 최대 100 revision/64 MiB이며 이미지 원본은 포함하지 않습니다. Dashboard 설정·빠른 메모·외부 JSON 파일·Tauri 저장소와 분리합니다.
+- JSON 열기는 내부 프로젝트 연결을 해제합니다. 같은 ID가 이미 저장되어 있으면 새 프로젝트 저장으로 덮어쓰지 않고 충돌을 반환합니다. 내부 저장은 현재 head의 revision/hash가 일치해야 하며 작업은 직렬화합니다. 저장 직전 파일을 다시 검사하고 기존 원자적 파일 교체를 재사용합니다.
+- 과거 revision은 읽기 전용으로 미리 봅니다. 미리보기 token과 현재 head가 일치할 때만 main의 명시적 확인 후 새 revision으로 복구합니다. 과거 revision은 보존하며 복구 출처를 기록합니다. 미리보기·취소는 파일을 변경하지 않습니다.
+- 저장 이력에 기록된 출력 제한은 복구 후보에도 유지합니다. 복구나 내부 저장으로 `pending` 자산의 출력 승인을 부여하지 않습니다. 기존 수달 정책과 출력 검증은 유지합니다. 불러오기·복구 후 필요한 이미지 원본은 SHA-256으로 재연결합니다.
+- 손상된 revision/hash chain, 잘못된 경로, symlink, 오래된 head/token은 차단합니다. 손상 파일을 자동 초기화하거나 자동 복구하지 않습니다. 실패 시 기존 파일을 보존합니다.
+- 이번 단계 검증: TypeScript/PoC 빌드 PASS, 관련 자동 테스트 195개 PASS(저장·재열기·revision·복구·충돌·저장 실패·손상·출력 제한·컴포넌트 동작).
+- **이번 GUI QA: BLOCKED / NOT RUN.** 실행 도구 요청이 반복 중단되었고 최종 점검에서 GUI 프로세스가 없었습니다. 이전 P2D2 GUI PASS는 이번 변경사항의 GUI 검증으로 대체하지 않습니다. Windows 패키징·실기기 QA도 이번 단계에서 재실행하지 않았습니다. 실제 편집기·이미지 재연결·재실행 복구·기존 출력 GUI 회귀는 미검증입니다.

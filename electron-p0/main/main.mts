@@ -5,7 +5,9 @@ import { pathToFileURL } from 'node:url';
 import { APP_ID, PRODUCT_NAME, PROFILE_NAME } from '../protocol.js';
 import { desktopDefaults, validateDesktop, fitBounds, type DesktopState } from './desktop.js';
 import { SettingsStore } from './settings.js';
-import { createNewsletterExportHandler, generateInOwnedWindow } from './newsletter-export.js';
+import { createNewsletterExportHandler, generateInOwnedWindow, callOwnedNewsletter } from './newsletter-export.js';
+import {NewsletterProjects} from './newsletter-projects.js';
+import {createProjectHandler,PROJECT_ACTIONS} from './newsletter-project-ipc.js';
 import { createNewsletterSaveHandler } from './newsletter-json.js';
 import { MemoStore, createMemoHandlers } from './memo-ipc.js';
 import { createSampleHandler, SAMPLE_SUMMARY_CHANNEL } from './sample-ipc.js';
@@ -65,13 +67,15 @@ else {
    pick:async selection=>{if(selection==='card-pngs'){const r=await dialog.showOpenDialog(window,{title:'카드 PNG 새 묶음 폴더를 만들 위치',properties:['openDirectory']});return r.canceled?undefined:r.filePaths[0];}const png=selection==='a4-png';const r=await dialog.showSaveDialog(window,{title:'소식지 출력 저장',defaultPath:selection==='cards-pdf'?'newsletter-cards.pdf':png?'newsletter-a4.png':'newsletter-a4.pdf',filters:[{name:png?'PNG':'PDF',extensions:[png?'png':'pdf']}]});return r.canceled?undefined:r.filePath;},
    confirm:async()=>(await dialog.showMessageBox(window,{type:'warning',message:'선택한 출력 파일을 덮어쓸까요?',buttons:['취소','덮어쓰기'],defaultId:0,cancelId:0})).response===1,
   }));
+  const projects=new NewsletterProjects(join(userData,'work-data','newsletter-projects'),async(json,barrier)=>{const normalized=await callOwnedNewsletter('validateStoredNewsletter',{json,barrier},renderer,dev);if(typeof normalized!=='string')throw Error('Invalid validated document');return normalized;});
+  for(const action of PROJECT_ACTIONS)ipcMain.handle(`p2:newsletter:projects:${action}`,createProjectHandler(action,window.webContents,url,projects,async info=>(await dialog.showMessageBox(window,{type:'warning',message:'미리 본 revision으로 원고를 복구할까요?',detail:`프로젝트 ${info.projectId} · 현재 revision ${info.currentRevision}\nrevision ${info.sourceRevision} 내용을 새 revision ${info.currentRevision+1}로 복구합니다.\n현재 편집 내용은 선택한 revision으로 대체됩니다. 기존 저장 이력은 보존하며 출력 승인 권한은 부여하지 않습니다.`,buttons:['취소','확인 후 복구'],defaultId:0,cancelId:0})).response===1));
   const show=()=>{if(window.isMinimized())window.restore();window.show();window.focus();};
   const persist=async()=>{
     try{await desktopStore.write(desktop);return true;}
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
-  const quit=()=>{if(quitting)return;quitting=true;clearTimeout(timer);capture();void persist().then(()=>Promise.all([store.flush(),desktopStore.flush(),memoStore.flush()])).finally(()=>{tray?.destroy();app.quit();});};
+  const quit=()=>{if(quitting)return;quitting=true;clearTimeout(timer);capture();void persist().then(()=>Promise.all([store.flush(),desktopStore.flush(),memoStore.flush(),projects.flush()])).finally(()=>{tray?.destroy();app.quit();});};
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
       {label:'창 열기',click:show},{label:'최소화',click:()=>window.minimize()},
