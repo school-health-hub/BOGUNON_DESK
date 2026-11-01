@@ -1,0 +1,7 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": { "lib": ["ES2022", "DOM"], "types": ["node"], "noEmit": true },
+  "include": ["./**/*.ts", "./**/*.tsx", "../../src/vite-env.d.ts"],
+  "exclude": ["node_modules"],
+  "references": []
+}
