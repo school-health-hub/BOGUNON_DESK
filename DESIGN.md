@@ -442,6 +442,8 @@ shared banner is the only account instruction. Standalone/error/loading guidance
 remains. Dock active marker, accessible name, hover and keyboard tooltip stay intact.
 # Purchase output preview
 
+Korean guidance keeps words together, with overflow wrapping only when an individual token cannot fit. Tax-mode guidance reuses the settlement editor's Korean display labels; internal tax codes and calculations stay unchanged.
+
 Phase 2B-1 uses a read-only, two-axis scrolling preview table in the existing dialog surface. Launch controls are separate from the unchanged direct-output controls. Existing spacing, border, surface and focus tokens apply; long names wrap within cells and the containing dialog can scroll to its action footer.
 
 Snapshots show the exact selected-row order and output-specific cells. Clipboard text tables reuse their serializer's cleaned text cells; native CSV/XLSX/edufine tables use the same cell builders as the native writers. Amount guidance uses existing domain summaries. A changed item/selection/order/settings/settlement context makes the snapshot stale and disables its output action. No draft text, saved data, tax calculation or output contract is automatically changed.

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PurchaseItem, PurchaseOutputColumnId, PurchaseSettlement } from './types';
 import { createPurchaseClipboard } from './purchaseClipboard';
-import { calculatePurchaseSettlementSummary, calculatePurchaseSettlementDisplaySummary, createPurchaseSettlementClipboard, createPurchaseSettlementExportRows, createPurchaseSettlementSummaryText } from './purchaseSettlement';
+import { calculatePurchaseSettlementSummary, calculatePurchaseSettlementDisplaySummary, createPurchaseSettlementClipboard, createPurchaseSettlementExportRows, createPurchaseSettlementSummaryText, purchaseTaxModeLabels } from './purchaseSettlement';
 import { selectedPurchaseTotal } from './purchaseDomain';
 import { createPreviewContextKey, previewBlockReasons, type PurchaseOutputPreviewKind, type PurchaseOutputPreviewSnapshot, type PreviewTable } from './purchaseOutputPreview';
 import { purchasePreviewRepository } from './purchasePreviewRepository';
@@ -49,7 +49,7 @@ export function usePurchaseOutputPreview(options: Options) {
         { name: '기존 정산 출력 금액', value: money(summary.finalActual) }, { name: '기존 정산 차액', value: money(summary.difference) },
         { name: '별도 부가세 적용액', value: money(display.appliedTaxAmount) },
         { name: '화면 최종금액', value: money(display.screenFinalActual) },
-        { name: '세액 처리', value: `${display.tax.mode} · 새 세액 계산이나 보정 없이 기존 계산 결과를 표시합니다.` },
+        { name: '세액 처리', value: `${purchaseTaxModeLabels[display.tax.mode]} · 새 세액 계산이나 보정 없이 기존 계산 결과를 표시합니다.` },
       ]);
     } else guidance.push({ name: '금액 기준', value: '수량×단가 및 원본 금액 확인은 기존 검산 기준입니다. 배송비·할인·구매 후 실제금액은 구매결과에서 확인합니다.' });
     if (kind === 'csv') guidance.push({ name: 'CSV 기준', value: 'UTF-8 BOM 유지 · 수식 시작 문자에는 기존 보호 처리가 적용됩니다.' });

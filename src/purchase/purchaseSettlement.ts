@@ -8,6 +8,7 @@ import type {
   PurchaseSettlementSummary,
   PurchaseSettlementStatus,
   PurchaseTaxAdjustment,
+  PurchaseTaxMode,
 } from "./types";
 
 export const purchaseSettlementStatusLabels: Readonly<Record<PurchaseSettlementStatus, string>> = {
@@ -15,6 +16,13 @@ export const purchaseSettlementStatusLabels: Readonly<Record<PurchaseSettlementS
   purchased: "구매완료",
   partial: "일부구매",
   cancelled: "취소",
+};
+
+export const purchaseTaxModeLabels: Readonly<Record<PurchaseTaxMode, string>> = {
+  unspecified: "세액 미지정",
+  included: "세액 포함",
+  excluded: "세액 별도",
+  exempt: "면세",
 };
 
 const createSettlementItem = (item: PurchaseItem): PurchaseSettlementItem => ({

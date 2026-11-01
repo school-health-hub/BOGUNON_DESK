@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createEmptyPurchaseItem, withPurchaseIssues } from './purchaseDomain';
 import { createPurchaseClipboard } from './purchaseClipboard';
 import { purchasePreviewRepository } from './purchasePreviewRepository';
+import { createPurchaseSettlement } from './purchaseSettlement';
 import { usePurchaseOutputPreview } from './usePurchaseOutputPreview';
 import type { PreviewTable } from './purchaseOutputPreview';
 import type { PurchaseItem, PurchaseOutputColumnId } from './types';
@@ -19,6 +20,20 @@ function setup(initial: readonly PurchaseItem[] = items) {
   return { ...hook, output, onNotice };
 }
 describe('purchase output preview owner integration', () => {
+  it.each([
+    ['unspecified', '세액 미지정'], ['included', '세액 포함'],
+    ['excluded', '세액 별도'], ['exempt', '면세'],
+  ] as const)('shows Korean guidance for %s without changing stored tax values', async (mode, label) => {
+    const settlement = { ...createPurchaseSettlement(items), tax: { mode, amount: 0 } };
+    const before = JSON.stringify(settlement);
+    const { result } = renderHook(() => usePurchaseOutputPreview({ items, columns, settlement, onNotice: vi.fn(), output: vi.fn(async () => undefined) }));
+    await act(async () => { await result.current.open('settlement-clipboard'); });
+    const guidance = result.current.snapshot?.guidance.find((entry) => entry.name === '세액 처리');
+    expect(guidance?.value).toBe(`${label} · 새 세액 계산이나 보정 없이 기존 계산 결과를 표시합니다.`);
+    expect(guidance?.value).not.toContain(mode);
+    expect(JSON.stringify(settlement)).toBe(before);
+    expect(result.current.snapshot?.table.rows).toHaveLength(3);
+  });
   it('uses exact existing clipboard cells including hidden selected rows', async () => {
     const { result, output } = setup();
     await act(async () => { await result.current.open('clipboard'); });

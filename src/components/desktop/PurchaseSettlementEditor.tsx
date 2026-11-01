@@ -12,6 +12,7 @@ import {
   getPurchaseSettlementWarnings,
   getSettlementItemWarnings,
   purchaseSettlementStatusLabels,
+  purchaseTaxModeLabels,
   resolveSettlementItemAmount,
   updatePurchaseSettlementItem,
   updatePurchaseSettlementOrder,
@@ -51,12 +52,6 @@ const purchaseTaxModeValue = (value: string): PurchaseTaxMode => {
     case "exempt": return "exempt";
     default: return "unspecified";
   }
-};
-const purchaseTaxModeLabels: Readonly<Record<PurchaseTaxMode, string>> = {
-  unspecified: "세액 미지정",
-  included: "세액 포함",
-  excluded: "세액 별도",
-  exempt: "면세",
 };
 const formatMoney = (value: number): string => `${value.toLocaleString("ko-KR")}원`;
 const settlementPreviewKinds = ["settlement-clipboard", "settlement-summary", "settlement-xlsx"] as const;
