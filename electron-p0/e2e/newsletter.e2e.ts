@@ -1,3 +1,4 @@
+import {observeStartup} from './startup-diagnostics';
 import {test,expect,_electron as electron} from '@playwright/test';
 import {PDFDocument} from 'pdf-lib';
 import {createHash} from 'node:crypto';
@@ -12,7 +13,7 @@ test('newsletter: original editor/scene, image reconnect, dialog-scoped JSON sav
  const design=upgradeNewsletterDesignStateV2(createNewsletterDesignState({projectId:project.projectId,canonicalProjectRevision:1,now}),now);
  const app=await electron.launch({chromiumSandbox:true,...(process.env.ELECTRON_P0_EXECUTABLE?{executablePath:process.env.ELECTRON_P0_EXECUTABLE}:{}),args:process.env.ELECTRON_P0_EXECUTABLE?[]:[join(process.cwd(),'build/electron-p0-app')],env:{...process.env,ELECTRON_P0_TEST_RUN:randomUUID(),ELECTRON_P0_DEV_URL:''}});
  try{
-  const page=await app.firstWindow();await page.getByRole('button',{name:'설정',exact:true}).click();await page.getByRole('button',{name:'보건소식지 제작소',exact:true}).click();
+  const page=await app.firstWindow();const diagnose=observeStartup(page);await page.getByRole('button',{name:'설정',exact:true}).click().catch(async e=>{console.log('P2D2_DIAGNOSTIC '+JSON.stringify(await diagnose(app)));throw e;});await page.getByRole('button',{name:'보건소식지 제작소',exact:true}).click();
   await page.getByLabel('원고·디자인 JSON 열기',{exact:true}).setInputFiles({name:'synthetic.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({project,design}))});
   await expect(page.getByRole('img',{name:'A4 보건소식지 미리보기',exact:true})).toBeVisible();
   await page.getByLabel('원고 제목',{exact:true}).fill('합성 편집 제목');await page.getByRole('button',{name:'원고 반영',exact:true}).click();

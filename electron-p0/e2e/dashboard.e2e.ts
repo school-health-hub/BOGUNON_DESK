@@ -1,3 +1,4 @@
+import {observeStartup} from './startup-diagnostics';
 import { test,expect,_electron as electron, type ElectronApplication } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
@@ -7,9 +8,9 @@ test('real Electron: secure bridge, original dashboard/dock, navigation, edit an
  let closed=false;const id=randomUUID();let app:ElectronApplication=await launch(id);
  try{
   console.log('P0: Electron connected');
-  let page=await app.firstWindow({timeout:10000}); console.log('P0: renderer window found');
+  let page=await app.firstWindow({timeout:10000});const diagnose=observeStartup(page); console.log('P0: renderer window found');
   try{await expect(page.getByRole('navigation',{name:'주요 기능'})).toBeVisible();}catch(error){
-   console.log('P1B_DIAGNOSTIC '+JSON.stringify({main:await app.evaluate(({screen,BrowserWindow})=>({bounds:BrowserWindow.getAllWindows()[0].getBounds(),areas:screen.getAllDisplays().map(d=>d.workArea)})),renderer:await page.evaluate(()=>({viewport:[innerWidth,innerHeight],body:document.body.innerText.slice(0,300)}))}));throw error;
+   console.log('P1B_DIAGNOSTIC '+JSON.stringify(await diagnose(app)));throw error;
   }
   await expect(page.locator('[data-widget-type="clock"]')).toBeVisible();
   await expect(page.locator('[data-p0-save]')).toHaveText('PoC 설정 저장됨');console.log('P0: dashboard and settings ready');await page.screenshot({path:'artifacts/electron-p0-e2e/dashboard-initial.png'});
