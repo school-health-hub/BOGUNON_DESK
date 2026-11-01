@@ -165,21 +165,44 @@ pub(crate) fn execute_save_official_document_odt(
     app: AppHandle,
     request: OfficialDocumentOdtRequest,
 ) -> Result<OfficialDocumentOdtResult, String> {
+    execute_save(app, request, false)
+}
+
+pub(crate) fn execute_save_with_default_template(
+    app: AppHandle,
+    request: OfficialDocumentOdtRequest,
+) -> Result<OfficialDocumentOdtResult, String> {
+    execute_save(app, request, true)
+}
+
+pub(crate) const fn bundled_template() -> &'static [u8] {
+    include_bytes!("../../../resources/templates/official-document/home-v1.odt")
+}
+
+fn execute_save(
+    app: AppHandle,
+    request: OfficialDocumentOdtRequest,
+    use_default_template: bool,
+) -> Result<OfficialDocumentOdtResult, String> {
     request.validate().map_err(|error| error.to_string())?;
     let default_name = default_odt_filename(&request.title).map_err(|error| error.to_string())?;
-    let template_file = match selected_or_cancelled(
-        app.dialog()
-            .file()
-            .add_filter("K-에듀파인 표준서식", &["odt"])
-            .blocking_pick_file(),
-    ) {
-        Ok(file) => file,
-        Err(cancelled) => return Ok(cancelled),
+    let template = if use_default_template {
+        bundled_template().to_vec()
+    } else {
+        let template_file = match selected_or_cancelled(
+            app.dialog()
+                .file()
+                .add_filter("K-에듀파인 표준서식", &["odt"])
+                .blocking_pick_file(),
+        ) {
+            Ok(file) => file,
+            Err(cancelled) => return Ok(cancelled),
+        };
+        let template_path = template_file
+            .into_path()
+            .map_err(|_| ExportCommandError::TemplateRead.to_string())?;
+        read_template(&template_path).map_err(|error| error.to_string())?
     };
-    let template_path = template_file
-        .into_path()
-        .map_err(|_| ExportCommandError::TemplateRead.to_string())?;
-    let template = read_template(&template_path).map_err(|error| error.to_string())?;
     let contract = ApprovedTemplateContract::for_sha256(&super::sha256_hex(&template))
         .map_err(|error| error.to_string())?;
     let output = transform_template(

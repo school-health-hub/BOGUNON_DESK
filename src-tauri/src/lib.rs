@@ -352,6 +352,7 @@ pub fn run() {
             official_document_import::pick_and_extract_official_document,
             official_document_import::extract_official_document_path,
             official_document_odt::save_official_document_odt,
+            official_document_odt::save_official_document_odt_with_default_template,
             official_reference_package::read_official_reference_package,
             official_reference_package::write_official_reference_package,
             official_reference_package::remove_official_reference_package,

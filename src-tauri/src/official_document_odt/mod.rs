@@ -123,6 +123,16 @@ pub(crate) fn save_official_document_odt(
 
 #[cfg(test)]
 mod command_tests;
+#[tauri::command]
+pub(crate) fn save_official_document_odt_with_default_template(
+    app: tauri::AppHandle,
+    request: OfficialDocumentOdtRequest,
+) -> Result<OfficialDocumentOdtResult, String> {
+    command::execute_save_with_default_template(app, request)
+}
+
+#[cfg(test)]
+mod bundled_template_tests;
 #[cfg(test)]
 mod save_tests;
 #[cfg(test)]

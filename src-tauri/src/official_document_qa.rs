@@ -102,7 +102,8 @@ pub fn run() {
             official_reference_package::remove_official_reference_package,
             official_document_import::pick_and_extract_official_document,
             official_document_import::extract_official_document_path,
-            official_document_odt::save_official_document_odt
+            official_document_odt::save_official_document_odt,
+            official_document_odt::save_official_document_odt_with_default_template
         ])
         .setup(|app| {
             let local_data = app.path().app_local_data_dir().map_err(|_| QA_PATH_ERROR)?;

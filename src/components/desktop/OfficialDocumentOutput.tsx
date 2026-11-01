@@ -14,7 +14,7 @@ type OfficialDocumentOutputProps = {
   readonly localSummary: OfficialDocumentLocalSummary | null;
   readonly prompt: string;
   readonly onCopy: (label: string, value: string) => void;
-  readonly onExportOdt: () => void;
+  readonly onExportOdt: (manualTemplate?: boolean) => void;
   readonly onDraftChange?: (draft: OfficialDocumentDraft) => void;
   readonly onSendSummaryToQuickAdd: () => void;
 };
@@ -75,14 +75,15 @@ export function OfficialDocumentOutput({ aiResponse, aiStatus, draft, isExportin
           <header className="official-document-preview__toolbar">
             <div><strong>기본 초안</strong><span>저장할 원고 미리보기</span></div>
             <div>
-              <button type="button" disabled={isExportingOdt} onClick={onExportOdt}>
+              <button type="button" disabled={isExportingOdt} onClick={() => onExportOdt()}>
                 <FileDown size={14} /> {isExportingOdt ? "K-에듀파인용 ODT 저장 중" : "K-에듀파인용 ODT 저장"}
               </button>
+              <button type="button" disabled={isExportingOdt} onClick={() => onExportOdt(true)}>다른 승인 서식 선택 후 저장</button>
               <CopyButton label="제목" value={draft.title} onCopy={onCopy} /><CopyButton label="본문" value={draft.body} onCopy={onCopy} /><CopyButton label="전체" value={composeOfficialDocumentDraft(draft)} onCopy={onCopy} />
             </div>
           </header>
           {onDraftChange && <OfficialDocumentDraftEditor draft={draft} disabled={isExportingOdt} onChange={onDraftChange} />}
-          <p className="official-document-result__notice">ODT 저장 시 home-v1 표준서식.odt 또는 기존 승인 서식을 선택한 뒤 저장 위치를 지정하세요. 서식 파일은 앱에 포함되지 않습니다.</p>
+          <p className="official-document-result__notice">기본 home-v1 서식으로 저장 위치만 선택합니다. 다른 승인 서식은 직접 선택할 수 있습니다.</p>
           <article className="official-document-paper">
             <header><span>공문 제목</span><h3>{draft.title}</h3><span>수신: 내부결재 · 경유: 없음</span></header>
             <section aria-label="공문 본문"><pre>{draft.body}</pre></section>

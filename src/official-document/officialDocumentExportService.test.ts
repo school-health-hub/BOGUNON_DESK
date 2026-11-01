@@ -46,7 +46,7 @@ describe("official document ODT export contract", () => {
     // Then
     expect(result).toEqual({ status: "saved", fileName: "합성 보건교육 운영 계획.odt" });
     expect(invokeCommand).toHaveBeenCalledOnce();
-    expect(invokeCommand).toHaveBeenCalledWith("save_official_document_odt", {
+    expect(invokeCommand).toHaveBeenCalledWith("save_official_document_odt_with_default_template", {
       request: {
         title: "합성 보건교육 운영 계획",
         body: "1. 합성 보건교육을 운영하고자 합니다.\n\n끝.",
@@ -139,7 +139,7 @@ describe("edited manuscript ODT validation", () => {
     const body = "1. 사용자 문단\n  가. 들여쓰기\n\n붙임  확인표 2부.  끝.\n";
     const invokeCommand = vi.fn().mockResolvedValue({ status: "cancelled" });
     await saveOfficialDocumentOdt(createDraft({ title, body, attachments: "붙임  확인표 2부." }), invokeCommand);
-    expect(invokeCommand).toHaveBeenCalledWith("save_official_document_odt", { request: { title, body, attachments: "붙임  확인표 2부.", hasTableText: false } });
+    expect(invokeCommand).toHaveBeenCalledWith("save_official_document_odt_with_default_template", { request: { title, body, attachments: "붙임  확인표 2부.", hasTableText: false } });
   });
 });
 
@@ -157,7 +157,7 @@ describe("attachment metadata follows edited manuscript", () => {
     expect(edited.body).toBe(body);
     expect(edited.attachments).toBe(attachments);
     expect(original.attachments).toContain("이전 명칭");
-    expect(invokeCommand).toHaveBeenCalledWith("save_official_document_odt", { request: {
+    expect(invokeCommand).toHaveBeenCalledWith("save_official_document_odt_with_default_template", { request: {
       title: original.title, body, attachments, hasTableText: false,
     } });
   });

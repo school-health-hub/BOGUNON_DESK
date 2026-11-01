@@ -368,7 +368,7 @@ fn rejects_invalid_end_attachment_unsupported_and_privacy_inputs() {
     );
 }
 
-fn read_entry(bytes: &[u8], name: &str) -> String {
+pub(super) fn read_entry(bytes: &[u8], name: &str) -> String {
     let mut archive = ZipArchive::new(Cursor::new(bytes)).expect("valid output archive");
     let mut value = String::new();
     archive
@@ -379,7 +379,7 @@ fn read_entry(bytes: &[u8], name: &str) -> String {
     value
 }
 
-fn restored_body(xml: &str) -> String {
+pub(super) fn restored_body(xml: &str) -> String {
     restored_text(xml, true)
 }
 

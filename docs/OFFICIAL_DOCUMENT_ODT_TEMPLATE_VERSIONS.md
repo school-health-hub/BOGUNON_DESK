@@ -1,5 +1,21 @@
 # P11 supported template versions
 
+## Bundled home-v1 approval (2026-11-01, supersedes private/manual-only guidance below)
+
+The repository owner explicitly authorized publishing the exact reviewed home-v1
+at `resources/templates/official-document/home-v1.odt`. Its bytes/SHA and existing
+structure contract are unchanged. Static XML inspection found no populated author,
+personal/school identifiers, hidden content or external file links. This exception
+applies only to that pinned resource; other private templates and real documents
+must not be uploaded.
+
+The default `K-에듀파인용 ODT 저장` action now uses compile-time embedded home-v1
+and asks only for the destination. `다른 승인 서식 선택 후 저장` preserves the old
+manual picker. Both pass the same SHA selector, transformer and staged/atomic save.
+See `docs/handoffs/DOC_V2_P11_SCHOOL_HANDOFF_2026-11-01.md` for current restoration.
+The private harness instructions below describe the earlier non-bundled phase;
+repeating that already completed validation is unnecessary.
+
 The original approved template remains supported without changing its contract.
 The separately authorized `home-v1` template is selected by exact file SHA-256,
 not by filename or inferred structure.

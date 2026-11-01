@@ -33,6 +33,13 @@ function Template-Dialog {
     }
     return $null
 }
+function Save-Dialog {
+    for($attempt=0;$attempt -lt 20;$attempt++) {
+        $d=[NativeQaWindow]::ForProcess($ProcessId) | Where-Object { $_.Visible -and $_.Handle -ne $script:qaHandle.ToInt64() -and $_.Title -match 'Save|저장' } | Select-Object -First 1
+        if($d){return $d}; Start-Sleep -Milliseconds 200
+    }
+    return $null
+}
 function Dialog-Key($Dialog,$Keys) {
     [void][NativeQaWindow]::SetForegroundWindow([IntPtr]$Dialog.Handle)
     Start-Sleep -Milliseconds 150
@@ -64,7 +71,7 @@ try {
     }
     if($previewVerified){Authoring-Result 'preview' 'PASS' 'Edited heading and body independently visible outside input controls; actual native screenshots captured.'}
     else{Authoring-Result 'preview' 'NOT RUN' 'Edited preview visibility not independently verified; inspect captured window and UIA tree.'}
-    if(-not(Invoke-Named 'K-에듀파인용 ODT 저장')){throw 'ODT button unavailable'}
+    if(-not(Invoke-Named '다른 승인 서식 선택 후 저장')){throw 'ODT button unavailable'}
     $dialog=Template-Dialog
     if(-not $dialog){throw 'Native template file picker not observed'}
     Capture 'p11-template-picker-cancel'
@@ -75,7 +82,7 @@ try {
     if($preserved -and $cancelNotice){Authoring-Result 'cancel-preserves-manuscript' 'PASS' 'Actual native template picker cancelled; both edited values and cancellation notice verified.'}
     else{Authoring-Result 'cancel-preserves-manuscript' 'FAIL' 'Cancellation notice or manuscript readback differed.'}
     Capture 'p11-cancel-preserved'
-    if(-not(Invoke-Named 'K-에듀파인용 ODT 저장')){throw 'Second ODT button invocation unavailable'}
+    if(-not(Invoke-Named '다른 승인 서식 선택 후 저장')){throw 'Second ODT button invocation unavailable'}
     $dialog=Template-Dialog
     if(-not $dialog){throw 'Second native picker not observed'}
     $fixture=(Resolve-Path 'qa/official-document/fixtures/synthetic-document.odt').Path
@@ -84,10 +91,36 @@ try {
     Start-Sleep -Milliseconds 900
     Foreground
     $rejected=@(Controls | Where-Object {$_.Current.Name.Contains('선택한 표준서식의 SHA-256이 승인된 값과 다릅니다.')}).Count -gt 0
-    if($rejected){Authoring-Result 'template-picker' 'PASS' 'Native picker selected CI synthetic ODT; production SHA guard rejected it. Approved home-v1 selection remains NOT RUN.'}
+    if($rejected){Authoring-Result 'template-picker' 'PASS' 'Native manual picker selected CI synthetic ODT; unchanged production SHA guard rejected it.'}
     else{Authoring-Result 'template-picker' 'NOT RUN' 'No verified post-selection SHA rejection; inspect native evidence.'}
-    Authoring-Result 'odt-save' 'NOT RUN' 'Approved private template is intentionally absent; production contract was not weakened to save a synthetic template.'
-    Capture 'p11-synthetic-rejection'; Inventory 'p11-final-controls'
+    Capture 'p11-synthetic-rejection'
+    # Default action uses the exact approved embedded resource, never the synthetic picker file.
+    if(-not(Invoke-Named 'K-에듀파인용 ODT 저장')){throw 'Default save button unavailable'}
+    $saveDialog=Save-Dialog
+    if(-not $saveDialog){throw 'Default action did not open a native save-location dialog'}
+    Capture 'p11-save-location-cancel'
+    Dialog-Key $saveDialog '{ESC}'; Start-Sleep -Milliseconds 600; Foreground
+    if((Read-Editor '공문 제목 편집') -cne $title -or (Read-Editor '공문 본문 편집') -cne $body){throw 'Save-location cancellation changed manuscript'}
+    $cancelNotice=@(Controls | Where-Object {$_.Current.Name -eq 'ODT 저장을 취소했습니다. 작성 중인 원고는 유지됩니다.'}).Count -gt 0
+    if(-not $cancelNotice){throw 'Save-location cancellation notice missing'}
+    Authoring-Result 'cancel-preserves-manuscript' 'PASS' 'Actual native save-location dialog cancelled; edited title/body and notice verified.'
+    Capture 'p11-save-cancel-preserved'
+    if(-not(Invoke-Named 'K-에듀파인용 ODT 저장')){throw 'Default save reinvocation unavailable'}
+    $saveDialog=Save-Dialog
+    if(-not $saveDialog){throw 'Native save-location dialog unavailable'}
+    $destination=Join-Path $OutputDirectory 'synthetic-bundled-gui.odt'
+    if(Test-Path -LiteralPath $destination){throw 'Refusing to overwrite a GUI output'}
+    [System.Windows.Forms.Clipboard]::SetText($destination)
+    Dialog-Key $saveDialog '%n'; Dialog-Key $saveDialog '^v'; Dialog-Key $saveDialog '{ENTER}'
+    for($attempt=0;$attempt -lt 25 -and -not(Test-Path -LiteralPath $destination);$attempt++){Start-Sleep -Milliseconds 200}
+    Foreground
+    $savedNotice=@(Controls | Where-Object {$_.Current.Name -eq 'synthetic-bundled-gui.odt 파일을 저장했습니다.'}).Count -gt 0
+    if(-not(Test-Path -LiteralPath $destination) -or -not $savedNotice){throw 'No verified saved output and UI confirmation'}
+    if((Read-Editor '공문 제목 편집') -cne $title -or (Read-Editor '공문 본문 편집') -cne $body){throw 'Saving changed manuscript'}
+    (Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash | Set-Content (Join-Path $OutputDirectory 'synthetic-bundled-gui.sha256.txt')
+    Authoring-Result 'odt-save' 'PASS' 'Actual WebView2 default action saved synthetic manuscript using embedded home-v1; native save dialog, output bytes and success notice observed.'
+    Capture 'p11-bundled-saved'
+    Inventory 'p11-final-controls'
 } catch {
     Record 'p11-probe' 'NOT RUN' $_.Exception.Message
     $authoring['probeDiagnostic']=$_.Exception.Message

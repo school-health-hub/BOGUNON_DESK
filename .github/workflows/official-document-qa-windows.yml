@@ -3,6 +3,10 @@ name: Official document isolated Windows QA
 on:
   workflow_dispatch:
     inputs:
+      p11_bundled_template:
+        description: Verify only bundled home-v1 routing and product save contracts
+        type: boolean
+        default: false
       p11_source_sha:
         description: Full feature commit SHA for Rust-only P11 tests (empty keeps existing QA modes)
         type: string
@@ -127,13 +131,13 @@ jobs:
           rustc -vV
           cargo --version
       - name: Run minimal synthetic template contract probes
-        if: inputs.p11_contract_only && !inputs.p11_supported_template
+        if: inputs.p11_contract_only && !inputs.p11_supported_template && !inputs.p11_bundled_template
         run: |
           cargo test --manifest-path src-tauri/Cargo.toml official_document_odt::tests::contract_probe --lib --locked --jobs 1 -- --nocapture 2>&1 | Tee-Object "$env:P11_ROOT/evidence/contract-probes.log"
           if ($LASTEXITCODE -ne 0) { throw 'Synthetic template contract probes failed' }
           if ((Get-Content "$env:P11_ROOT/evidence/contract-probes.log" -Raw) -notmatch 'test result: ok\. 6 passed; 0 failed; 0 ignored;') { throw 'Expected six contract probes without skips' }
       - name: Reproduce the two reported tests
-        if: '!inputs.p11_contract_only && !inputs.p11_supported_template'
+        if: '!inputs.p11_contract_only && !inputs.p11_supported_template && !inputs.p11_bundled_template'
         continue-on-error: true
         run: |
           $failed = $false
@@ -144,9 +148,9 @@ jobs:
           }
           if ($failed) { throw 'Reported P11 tests failed; see exact assertion logs' }
       - name: Run all P11 Rust tests
-        if: '!inputs.p11_contract_only && !inputs.p11_supported_template'
+        if: '!inputs.p11_contract_only && !inputs.p11_supported_template && !inputs.p11_bundled_template'
         run: |
-          cargo test --manifest-path src-tauri/Cargo.toml official_document_odt --lib --locked --jobs 1 -- --nocapture --skip contract_probe --skip supported_template 2>&1 | Tee-Object "$env:P11_ROOT/evidence/all-tests.log"
+          cargo test --manifest-path src-tauri/Cargo.toml official_document_odt --lib --locked --jobs 1 -- --nocapture --skip contract_probe --skip supported_template --skip bundled_template_tests 2>&1 | Tee-Object "$env:P11_ROOT/evidence/all-tests.log"
           if ($LASTEXITCODE -ne 0) { throw 'P11 Rust suite failed' }
           if ((Get-Content "$env:P11_ROOT/evidence/all-tests.log" -Raw) -notmatch 'test result: ok\. 24 passed; 0 failed; 0 ignored;') { throw 'Expected all 24 P11 tests without skips' }
       - name: Verify supported versions without private documents
@@ -159,6 +163,12 @@ jobs:
           if ($executables.Count -ne 1) { throw 'Expected one library test executable' }
           Copy-Item $executables[0].FullName "$env:P11_ROOT/evidence/p11-offline-validator.exe"
           (Get-FileHash "$env:P11_ROOT/evidence/p11-offline-validator.exe" -Algorithm SHA256).Hash | Set-Content "$env:P11_ROOT/evidence/validator-sha256.txt"
+      - name: Verify bundled home-v1 with existing product functions
+        if: inputs.p11_bundled_template
+        run: |
+          cargo test --manifest-path src-tauri/Cargo.toml official_document_odt::bundled_template_tests --lib --locked --jobs 1 -- --nocapture 2>&1 | Tee-Object "$env:P11_ROOT/evidence/bundled-template.log"
+          if ($LASTEXITCODE -ne 0) { throw 'Bundled template tests failed' }
+          if ((Get-Content "$env:P11_ROOT/evidence/bundled-template.log" -Raw) -notmatch 'test result: ok\. 3 passed; 0 failed; 0 ignored;') { throw 'Expected three bundled template tests' }
       - name: Verify lockfile and source preservation
         if: always()
         run: |
@@ -236,6 +246,13 @@ jobs:
         run: |
           node --test scripts/official-document-qa-paths.test.mjs scripts/qa/official-document-screen-assessment.test.mjs 2>&1 | Tee-Object "$env:QA_ROOT/evidence/path-tests.log"
           if ($LASTEXITCODE -ne 0) { throw 'Path tests failed' }
+      - name: Verify only new bundled-template UI routing
+        if: inputs.p11_bundled_template
+        run: |
+          node node_modules/typescript/bin/tsc --noEmit 2>&1 | Tee-Object "$env:QA_ROOT/evidence/bundled-typescript.log"
+          if ($LASTEXITCODE -ne 0) { throw 'TypeScript failed' }
+          npm test -- src/official-document/officialDocumentBundledTemplate.test.tsx --maxWorkers=2 2>&1 | Tee-Object "$env:QA_ROOT/evidence/bundled-ui.log"
+          if ($LASTEXITCODE -ne 0) { throw 'Bundled UI routing failed' }
       - name: Build and inspect synthetic-only QA frontend
         run: |
           # Tauri treats Windows drive-letter absolute frontendDist as a URL.

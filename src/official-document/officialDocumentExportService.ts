@@ -57,6 +57,7 @@ const parseExportResult = (value: unknown): OfficialDocumentExportResult => {
 export const saveOfficialDocumentOdt = async (
   draft: OfficialDocumentDraft,
   invokeCommand: InvokeCommand = invoke,
+  manualTemplate = false,
 ): Promise<OfficialDocumentExportResult> => {
   if (draft.title.trim().length === 0) {
     throw new OfficialDocumentExportError("empty-title", "공문 제목을 입력해 주세요.");
@@ -74,7 +75,9 @@ export const saveOfficialDocumentOdt = async (
     throw new OfficialDocumentExportError("table-unsupported", "표가 포함된 공문은 현재 ODT로 저장할 수 없습니다.");
   }
 
-  return parseExportResult(await invokeCommand("save_official_document_odt", {
+  return parseExportResult(await invokeCommand(manualTemplate
+    ? "save_official_document_odt"
+    : "save_official_document_odt_with_default_template", {
     request: {
       title: draft.title,
       body: draft.body,
