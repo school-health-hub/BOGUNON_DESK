@@ -197,3 +197,10 @@ P1A CI는 빌드/두 패키지 생성/기존 실제 패키지 GUI E2E를 실행�
 - 파일 15 MiB, PDF 50페이지, 추출 텍스트 2 MiB와 원본의 최대 530개 텍스트 행 처리 계약을 유지합니다. 기존 CLI의 512 MiB/CPU 30초·main wall 30초·입출력 크기 제한과 종료(close) 확인 후 임시 스냅샷 제거를 유지합니다. JS/매크로/외부 명령을 실행하는 PDF 뷰어나 Ghostscript/OCR을 도입하지 않았습니다. OS/앱 강제 종료 시 잔존 임시 파일·부모 강제 종료 검증 등 P2E3B의 잔여 한계는 그대로입니다.
 - Cloud Rust **47 PASS**: 기존 PDF 사례 8개와 텍스트·한글 ToUnicode·숫자/합계·매핑·실제 bitmap-only 스캔·암호화·손상·페이지/텍스트 제한을 확인했습니다. CLI 직접 실행에서 원본 결과 fixture 비교와 XLSX/XLS/PDF 회귀를 확인했습니다. 관련 JavaScript/React **340 PASS**, TypeScript·프로덕션 빌드 PASS. UI 추가/교체 확인·오류 시 기존 품목/원본 파일 유지·임시 파일 정리·취소/오래된 결과·기존 CSV/Excel/수동/품의문/Dashboard/메모/Newsletter를 검증했습니다. 한글 PDF fixture는 합성 Type0/ToUnicode 데이터이며 외부 학교 문서를 사용하지 않습니다.
 - `pdf-extract` 추가로 CLI 배포 바이너리가 변경되므로 기존 Windows CI에 이번 브랜치를 연결하고 같은 smoke 검사로 패키지의 PDF 분석까지 확인합니다. 현재 Windows Job Object/Portable/NSIS/패키지 GUI 결과는 새 CI 확인 전 NOT RUN입니다. Cloud GUI는 사용 가능한 DISPLAY가 없으면 BLOCKED/NOT RUN으로 유지하며 재시도하지 않습니다. 일반 사용자 설치·제거/실제 파일 대화상자 및 실기기 QA가 남으면 최종 CONDITIONAL입니다. 파일 출력·계정 동기화·운영 DB·MY FINANCE는 연결하지 않습니다.
+
+### P2E4 Windows 검증 체크포인트
+
+- 코드 SHA `9c4eff8da75030079c2e2de5321b13b57b93cce9`; [Windows CI 41289270318](https://github.com/school-health-hub/BOGUNON_DESK/actions/runs/41289270318) SUCCESS. Rust 원본 비교·47개 테스트·Windows 자원 제한 설치 후 CLI 실행, XLSX/XLS/PDF 텍스트/한글/매핑 및 스캔/암호화/손상/페이지 제한 smoke, Portable·NSIS 생성, win-unpacked resources의 CLI 실행과 기존 앱 GUI 회귀 단계가 PASS입니다.
+- 아티팩트 `ELECTRON-P2E4-Windows-9c4eff8da75030079c2e2de5321b13b57b93cce9`에 Portable/NSIS·해시·서명/QA 결과가 있습니다. 증거는 같은 실행의 UI-evidence 아티팩트에 보관됩니다. 이번 GUI 회귀는 이번 실행의 결과이며, 과거 P2E3 PASS를 대신 사용하지 않았습니다.
+- CI 경고 `ELECTRON_P1A_NOT_RUN`: 승격 러너로 일반 사용자 NSIS 설치·설치 후 실행/재실행·제거는 NOT RUN입니다. Portable 자체 추출 런처·실제 PDF 파일 대화상자·Windows 실기기의 합성 PDF 가져오기와 기존 P2E3 자원 초과 스트레스/강제 종료 잔여 검증도 남습니다. Cloud GUI는 BLOCKED/NOT RUN입니다. **최종 CONDITIONAL**로 유지하며 실사용 준비 완료로 표시하지 않습니다.
+- 이후 문서 전용 커밋은 `[skip ci]`로 같은 코드의 전체 Windows CI를 반복하지 않습니다. 원본 Tauri/Rust·운영 데이터·기준 브랜치 보존, PR/병합/배포 없음.
