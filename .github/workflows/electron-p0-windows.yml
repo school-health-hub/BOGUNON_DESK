@@ -1,7 +1,7 @@
-name: ELECTRON-P2E5A Purchase export
+name: ELECTRON-P2E5B Purchase export
 on:
   push:
-    branches: [feature/electron-p0-dashboard, feature/electron-p1a-windows-installer, feature/electron-p1b-desktop-experience, feature/electron-p2d2-newsletter-export, feature/electron-p2e3-purchase-excel, feature/electron-p2e4-purchase-pdf, feature/electron-p2e5a-purchase-export]
+    branches: [feature/electron-p0-dashboard, feature/electron-p1a-windows-installer, feature/electron-p1b-desktop-experience, feature/electron-p2d2-newsletter-export, feature/electron-p2e3-purchase-excel, feature/electron-p2e4-purchase-pdf, feature/electron-p2e5a-purchase-export, feature/electron-p2e5b-purchase-settlement]
   workflow_dispatch:
 permissions:
   contents: read
@@ -46,10 +46,10 @@ jobs:
             Write-Output "::notice title=ELECTRON_P1A_ARTIFACT::$($file.Name) SHA256=$hash signature=$signature"
             @{file=$file.Name;sha256=$hash;signature=$signature}
           }
-          @{scope='Electron P2E5A only';sourceSha=$env:GITHUB_SHA;files=@($results);qa=(Get-Content release-electron-p0/P1A-QA-RESULT.json -Raw | ConvertFrom-Json);productionDeployment=$false} | ConvertTo-Json -Depth 8 | Set-Content release-electron-p0/P0-BUILD-RESULT.json
+          @{scope='Electron P2E5B only';sourceSha=$env:GITHUB_SHA;files=@($results);qa=(Get-Content release-electron-p0/P1A-QA-RESULT.json -Raw | ConvertFrom-Json);productionDeployment=$false} | ConvertTo-Json -Depth 8 | Set-Content release-electron-p0/P0-BUILD-RESULT.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: ELECTRON-P2E5A-Windows-${{ github.sha }}
+          name: ELECTRON-P2E5B-Windows-${{ github.sha }}
           path: |
             release-electron-p0/*.exe
             release-electron-p0/SHA256SUMS.txt
@@ -60,7 +60,7 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: ELECTRON-P2E5A-UI-evidence-${{ github.run_id }}
+          name: ELECTRON-P2E5B-UI-evidence-${{ github.run_id }}
           path: |
             artifacts/electron-p0-e2e/
             release-electron-p0/P1A-QA-RESULT.json

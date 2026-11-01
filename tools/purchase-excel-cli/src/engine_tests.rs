@@ -1023,6 +1023,116 @@ use pdf_extract::{dictionary,Object,Stream};
         );
     }
 #[test]
+    fn edufine_workbook_matches_the_four_column_contract() {
+        let selected_first = PurchaseItem {
+            id: "internal-a".into(),
+            selected: true,
+            name: "합성 품목 A".into(),
+            specification: "규격 A".into(),
+            quantity: Some(2.5),
+            unit_price: Some(1_200.0),
+            imported_amount: Some(9_999.0),
+            vendor: "포함되면 안 되는 구매처".into(),
+            note: "포함되면 안 되는 비고".into(),
+            budget_item: "포함되면 안 되는 예산항목".into(),
+            source_name: Some("private-source.xlsx".into()),
+            issues: Vec::new(),
+            amount_mismatch_reviewed: false,
+        };
+        let unselected = PurchaseItem {
+            id: "internal-b".into(),
+            selected: false,
+            name: "선택하지 않은 품목".into(),
+            ..selected_first.clone()
+        };
+        let selected_second = PurchaseItem {
+            id: "internal-c".into(),
+            name: "합성 품목 B".into(),
+            specification: String::new(),
+            quantity: Some(1.0),
+            unit_price: Some(3_400.0),
+            ..selected_first.clone()
+        };
+        let path = std::env::temp_dir().join(format!(
+            "purchase-helper-{}-edufine.xlsx",
+            std::process::id()
+        ));
+        let mut workbook =
+            build_edufine_workbook(&[selected_first, unselected, selected_second]).unwrap();
+        workbook.save(&path).unwrap();
+
+        let mut actual: Xlsx<_> = open_workbook(&path).unwrap();
+        assert_eq!(actual.sheet_names(), &["품목내역"]);
+        let range = actual.worksheet_range("품목내역").unwrap();
+        let rows = range.rows().collect::<Vec<_>>();
+        let _ = fs::remove_file(path);
+
+        assert_eq!(range.width(), 4);
+        assert_eq!(range.height(), 3);
+        assert_eq!(rows[0], ["내용", "규격", "수량", "예상단가"]);
+        assert_eq!(rows[1][0].get_string(), Some("합성 품목 A"));
+        assert_eq!(rows[1][1].get_string(), Some("규격 A"));
+        assert_eq!(rows[1][2].get_float(), Some(2.5));
+        assert_eq!(rows[1][3].get_float(), Some(1_200.0));
+        assert_eq!(rows[2][0].get_string(), Some("합성 품목 B"));
+        assert_eq!(rows[2][2].get_float(), Some(1.0));
+        assert_eq!(rows[2][3].get_float(), Some(3_400.0));
+        let all_text = rows
+            .iter()
+            .flat_map(|row| row.iter())
+            .filter_map(DataType::get_string)
+            .collect::<Vec<_>>()
+            .join(" ");
+        for excluded in [
+            "선택하지 않은 품목",
+            "포함되면 안 되는 구매처",
+            "포함되면 안 되는 비고",
+            "포함되면 안 되는 예산항목",
+            "private-source.xlsx",
+            "internal-a",
+            "9999",
+            "합계",
+        ] {
+            assert!(!all_text.contains(excluded));
+        }
+    }
+#[test]
+    fn edufine_workbook_rejects_missing_numeric_cells() {
+        let valid = PurchaseItem {
+            id: "internal-a".into(),
+            selected: true,
+            name: "합성 품목".into(),
+            specification: String::new(),
+            quantity: Some(1.0),
+            unit_price: Some(1_000.0),
+            imported_amount: None,
+            vendor: String::new(),
+            note: String::new(),
+            budget_item: String::new(),
+            source_name: None,
+            issues: Vec::new(),
+            amount_mismatch_reviewed: false,
+        };
+
+        match build_edufine_workbook(&[PurchaseItem {
+            quantity: None,
+            ..valid.clone()
+        }]) {
+            Ok(_) => panic!("missing quantity should reject Edufine export"),
+            Err(message) => assert_eq!(message, "에듀파인용 Excel에 포함할 수량을 확인해 주세요."),
+        }
+        match build_edufine_workbook(&[PurchaseItem {
+            unit_price: None,
+            ..valid
+        }]) {
+            Ok(_) => panic!("missing unit price should reject Edufine export"),
+            Err(message) => assert_eq!(
+                message,
+                "에듀파인용 Excel에 포함할 예상단가를 확인해 주세요."
+            ),
+        }
+    }
+#[test]
 fn cli_fixtures_and_automatic_sheet_contract() {
     let dir=PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/qa-fixtures");fs::create_dir_all(&dir).unwrap();
     let mut workbook=Workbook::new();

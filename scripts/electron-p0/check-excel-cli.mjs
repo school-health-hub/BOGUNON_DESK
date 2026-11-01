@@ -21,3 +21,13 @@ for(const format of ['csv','xlsx']){
  const r=call({operation:'export',format,...exportInput});assert.equal(r.validated,true);assert.equal(r.format,format);assert.deepEqual(r.columns,exportInput.columns);const bytes=Buffer.from(r.bytesBase64,'base64');assert(bytes.length>20);assert(bytes.subarray(0,format==='csv'?3:4).equals(Buffer.from(format==='csv'?[239,187,191]:[80,75,3,4])));
 }
 console.log('Purchase export CLI smoke PASS: original CSV/XLSX generation and read-back validation, no output path supplied to CLI');
+
+const rows=[{number:1,name:'=합성 품목',plannedQuantity:2,actualQuantity:2,plannedUnitPrice:1000,actualUnitPrice:900,plannedAmount:2000,actualAmount:1800,difference:-200,status:'구매완료',note:'합성'}];
+const summary={plannedTotal:2000,actualSubtotal:1800,shippingFee:300,discountAmount:100,finalActual:2000,difference:0};
+for(const operation of ['edufine','settlement']){
+ const request=operation==='edufine'?{operation,items:exportInput.items}:{operation,rows,summary};
+ const table=call({...request,preview:true});assert.equal(table.headers.length,operation==='edufine'?4:11);assert.equal(table.rows.length,1);
+ if(operation==='edufine')assert.deepEqual(table.headers,['내용','규격','수량','예상단가']);else assert.deepEqual(table.summaryRows[4],['최종결제금액',2000]);
+ const workbook=call({...request,preview:false});assert.equal(workbook.validated,true);assert.deepEqual(workbook.columns,table.headers);assert(Buffer.from(workbook.bytesBase64,'base64').subarray(0,4).equals(Buffer.from([80,75,3,4])));
+}
+console.log('Settlement/Edufine CLI smoke PASS: original 11/4 columns, summaries, workbook read-back and fixed executable exit');

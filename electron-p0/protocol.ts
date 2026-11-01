@@ -1,4 +1,4 @@
-import type { PurchaseItem,PurchaseOutputColumnId } from './renderer/purchase/purchase/types.js';
+import type { PurchaseItem,PurchaseOutputColumnId,PurchaseSettlement } from './renderer/purchase/purchase/types.js';
 import type { PurchaseAnalysisResult, PurchaseColumnMapping } from './renderer/purchase/purchase/types.js';
 export const APP_ID = 'kr.sungandi.schoolhealthdesk.electronp0';
 export const PRODUCT_NAME = 'BOGUNON DESK ELECTRON P0';
@@ -19,11 +19,14 @@ export type IpcErrorCode = 'FORBIDDEN' | 'INVALID_INPUT' | 'INTERNAL_ERROR' | 'S
 export type IpcResult<T> = Readonly<{ok:true;data:T}> | Readonly<{ok:false;error:Readonly<{code:IpcErrorCode;message:string;retryable:boolean}>}>;
 export type PurchaseCsvSelection=Readonly<{generation:number;result:PurchaseAnalysisResult}>;
 export type PurchaseCsvMappingRequest=Readonly<{generation:number;candidateId:string;headerRow:number;mapping:PurchaseColumnMapping}>;
+export type SettlementRequest=Readonly<{items:readonly PurchaseItem[];settlement:PurchaseSettlement}>;
+export type EdufineRequest=Readonly<{items:readonly PurchaseItem[]}>;
+export type PurchaseTable=Readonly<{headers:readonly string[];rows:readonly (readonly (string|number|null)[])[];summaryRows?:readonly (readonly (string|number)[])[]}>;
 export type PurchaseExportRequest=Readonly<{format:'csv'|'xlsx';items:readonly PurchaseItem[];columns:readonly PurchaseOutputColumnId[]}>;
 export type PurchaseExportResult=Readonly<{status:'saved';fileName:string}|{status:'canceled'}>;
 export type PurchaseClipboardRequest=Readonly<{text:string;html:string}>;
 export interface WorkBridge {
- readonly purchase:Readonly<{exportItems(request:PurchaseExportRequest):Promise<IpcResult<PurchaseExportResult>>;pickPdf():Promise<IpcResult<PurchaseCsvSelection|null>>;cancelPdf():Promise<IpcResult<null>>;mapPdf(request:PurchaseCsvMappingRequest):Promise<IpcResult<PurchaseCsvSelection>>;pickExcel():Promise<IpcResult<PurchaseCsvSelection|null>>;cancelExcel():Promise<IpcResult<null>>;mapExcel(request:PurchaseCsvMappingRequest):Promise<IpcResult<PurchaseCsvSelection>>;pickCsv():Promise<IpcResult<PurchaseCsvSelection|null>>;cancelCsv():Promise<IpcResult<null>>;mapCsv(request:PurchaseCsvMappingRequest):Promise<IpcResult<PurchaseCsvSelection>>;copy(request:PurchaseClipboardRequest):Promise<IpcResult<null>>}>;
+ readonly purchase:Readonly<{previewSettlement(request:SettlementRequest):Promise<IpcResult<PurchaseTable>>;exportSettlement(request:SettlementRequest):Promise<IpcResult<PurchaseExportResult>>;previewEdufine(request:EdufineRequest):Promise<IpcResult<PurchaseTable>>;exportEdufine(request:EdufineRequest):Promise<IpcResult<PurchaseExportResult>>;exportItems(request:PurchaseExportRequest):Promise<IpcResult<PurchaseExportResult>>;pickPdf():Promise<IpcResult<PurchaseCsvSelection|null>>;cancelPdf():Promise<IpcResult<null>>;mapPdf(request:PurchaseCsvMappingRequest):Promise<IpcResult<PurchaseCsvSelection>>;pickExcel():Promise<IpcResult<PurchaseCsvSelection|null>>;cancelExcel():Promise<IpcResult<null>>;mapExcel(request:PurchaseCsvMappingRequest):Promise<IpcResult<PurchaseCsvSelection>>;pickCsv():Promise<IpcResult<PurchaseCsvSelection|null>>;cancelCsv():Promise<IpcResult<null>>;mapCsv(request:PurchaseCsvMappingRequest):Promise<IpcResult<PurchaseCsvSelection>>;copy(request:PurchaseClipboardRequest):Promise<IpcResult<null>>}>;
  readonly newsletter:Readonly<{projects:NewsletterProjectsBridge;exportOutput(request:NewsletterExportRequest):Promise<IpcResult<NewsletterExportResult>>;saveJson(request:Readonly<{json:string}>):Promise<IpcResult<NewsletterSaveResult>>}>;
  readonly memo: Readonly<MemoBridge>;
  readonly sample: Readonly<{summarize(request:SyntheticSummaryRequest):Promise<IpcResult<SyntheticSummary>>}>;

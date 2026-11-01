@@ -27,10 +27,10 @@ it('reuses source item CRUD/calculation and draft text/HTML copy with session-on
  fireEvent.click(screen.getByLabelText('1행 삭제'));expect(screen.queryByLabelText('1행 품명')).toBeNull();
  expect(storage).not.toHaveBeenCalled();storage.mockRestore();view.unmount();render(<PurchaseSession open onClose={vi.fn()}/>);expect(screen.queryByLabelText('1행 품명')).toBeNull();
 });
-it('keeps settlement/Edufine and sync unavailable while enabling explicit CSV selection',()=>{
+it('keeps account/template sync unavailable while showing settlement and CSV entry',()=>{
  vi.stubGlobal('electronWork',{purchase:{cancelCsv:async()=>({ok:true,data:null})}});render(<PurchaseSession open onClose={vi.fn()}/>);
- for(const name of ['가져오기 설정','에듀파인용 Excel'])expect((screen.getByRole('button',{name}) as HTMLButtonElement).disabled).toBe(true);
- expect((screen.getByRole('tab',{name:'구매결과'}) as HTMLButtonElement).disabled).toBe(true);
+ for(const name of ['가져오기 설정'])expect((screen.getByRole('button',{name}) as HTMLButtonElement).disabled).toBe(true);
+ expect(screen.getByRole('tab',{name:'구매결과'})).toBeTruthy();
  expect(screen.getByText(/계정 동기화 없음/)).toBeTruthy();expect((screen.getByRole('button',{name:'CSV 가져오기'}) as HTMLButtonElement).disabled).toBe(false);
 });
 it('reports copy failure and keeps the edited item',async()=>{

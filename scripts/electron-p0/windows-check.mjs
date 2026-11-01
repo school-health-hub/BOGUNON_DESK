@@ -9,7 +9,7 @@ const run=(args,env=process.env)=>{
  if(r.status!==0)throw Error(`${args.join(' ')}: ${r.error?.message??''}\n${(r.stdout??'').split('\n').filter(l=>l.includes('P1B_DIAGNOSTIC')||l.includes('P2D2_DIAGNOSTIC')).join('\n')}\n${((r.stdout??'')+(r.stderr??'')).split('\n').slice(-25).join('\n')}`);
 };
 const npm=(task,env)=>run([process.env.npm_execpath,'run',task],env);
-const report={baseline:'26f57a0b3e5f42f4ef8532f45acd8b746a6edcb6',sourceSha:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),baselineRegression:'REUSED: P0 CI 41236999963',installation:'NOT RUN',installedUiAndRestart:'NOT RUN',uninstallAndSettingsRetention:'NOT RUN',physicalWindowsPc:'NOT RUN'};
+const report={baseline:'7b24104cf0e5c0d17fbbf54402cd52ecb407e672',sourceSha:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),baselineRegression:'REUSED: P0 CI 41236999963',installation:'NOT RUN',installedUiAndRestart:'NOT RUN',uninstallAndSettingsRetention:'NOT RUN',physicalWindowsPc:'NOT RUN'};
 try{
  execFileSync('git',['diff','--exit-code',report.baseline,'--','src','src-tauri'],{stdio:'inherit'});
  report.elevated=ps('[Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)')==='True';

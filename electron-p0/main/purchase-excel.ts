@@ -1,3 +1,4 @@
+import {specialRequest,decodeSpecialFile,decodeSpecialPreview,type SpecialOutput} from './purchase-specialized-validation.js';
 import {decodePurchaseExport} from './purchase-export-validation.js';
 import type {PurchaseExportRequest} from '../protocol.js';
 import {spawn} from 'node:child_process';
@@ -35,6 +36,8 @@ export class ExcelService {
  track<T>(task:Promise<T>):Promise<T>{this.pending.add(task);void task.finally(()=>this.pending.delete(task)).catch(()=>{});return task;}
  async flush(){await Promise.allSettled([...this.pending]);}
  constructor(private readonly executable:string,private readonly tempRoot:string){}
+ generateSpecial(r:SpecialOutput,signal:AbortSignal){return this.track(runExcelCli<Buffer>(this.executable,specialRequest(r,false),signal,30_000,spawn,value=>decodeSpecialFile(value,r)));}
+ previewSpecial(r:SpecialOutput,signal:AbortSignal){return this.track(runExcelCli(this.executable,specialRequest(r,true),signal,30_000,spawn,value=>decodeSpecialPreview(value,r)));}
  generateExport(request:PurchaseExportRequest,signal:AbortSignal){return this.track(runExcelCli<Buffer>(this.executable,{operation:'export',...request},signal,30_000,spawn,value=>decodePurchaseExport(value,request)));}
  analyze(path:string,signal:AbortSignal){return this.track(this.analyzeFile(path,signal,['.xlsx','.xls']));}
  analyzePdf(path:string,signal:AbortSignal){return this.track(this.analyzeFile(path,signal,['.pdf']));}

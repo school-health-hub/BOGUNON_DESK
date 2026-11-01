@@ -1503,3 +1503,58 @@ pub(crate) fn verify_export(bytes:&[u8],format:&str,items:&[PurchaseItem],column
 #[cfg(test)]
 #[path="export_tests.rs"]
 mod export_tests;
+
+fn build_edufine_workbook(items: &[PurchaseItem]) -> Result<Workbook, String> {
+    let selected = items
+        .iter()
+        .filter(|item| item.selected)
+        .collect::<Vec<_>>();
+    if selected.is_empty() {
+        return Err("내보낼 품목을 선택해 주세요.".to_owned());
+    }
+
+    let mut workbook = Workbook::new();
+    let worksheet = workbook.add_worksheet();
+    worksheet
+        .set_name("품목내역")
+        .map_err(|error| error.to_string())?;
+    for (column, label) in ["내용", "규격", "수량", "예상단가"].iter().enumerate() {
+        worksheet
+            .write_string(0, column as u16, *label)
+            .map_err(|error| error.to_string())?;
+    }
+    for (index, item) in selected.iter().enumerate() {
+        let row = index as u32 + 1;
+        let Some(quantity) = item
+            .quantity
+            .filter(|value| value.is_finite() && *value > 0.0)
+        else {
+            return Err("에듀파인용 Excel에 포함할 수량을 확인해 주세요.".to_owned());
+        };
+        let Some(unit_price) = item
+            .unit_price
+            .filter(|value| value.is_finite() && *value >= 0.0)
+        else {
+            return Err("에듀파인용 Excel에 포함할 예상단가를 확인해 주세요.".to_owned());
+        };
+        worksheet
+            .write_string(row, 0, &item.name)
+            .map_err(|error| error.to_string())?;
+        worksheet
+            .write_string(row, 1, &item.specification)
+            .map_err(|error| error.to_string())?;
+        worksheet
+            .write_number(row, 2, quantity)
+            .map_err(|error| error.to_string())?;
+        worksheet
+            .write_number(row, 3, unit_price)
+            .map_err(|error| error.to_string())?;
+    }
+    Ok(workbook)
+}
+
+
+pub(crate) fn edufine_bytes(items:&[PurchaseItem])->Result<Vec<u8>,String>{build_edufine_workbook(items)?.save_to_buffer().map_err(|e|e.to_string())}
+pub(crate) fn edufine_preview(items:&[PurchaseItem])->serde_json::Value {
+    serde_json::json!({"headers":["내용","규격","수량","예상단가"],"rows":items.iter().filter(|i|i.selected).map(|i|serde_json::json!([i.name,i.specification,i.quantity,i.unit_price])).collect::<Vec<_>>()})
+}
