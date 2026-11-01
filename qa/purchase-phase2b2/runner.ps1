@@ -51,6 +51,7 @@ try {
         Invoke-Stage 'product-typecheck' 'node.exe' @('node_modules/typescript/bin/tsc', '--noEmit')
         $purchaseTests = @(Get-ChildItem (Join-Path $source 'src/components/desktop') -Filter 'Purchase*.test.tsx' -File | Select-Object -ExpandProperty FullName)
         Invoke-Stage 'purchase-tests' 'node.exe' (@('node_modules/vitest/vitest.mjs', 'run', '--maxWorkers=2', '--no-cache', '--reporter=default', '--reporter=junit', "--outputFile.junit=$evidence/vitest-purchase.xml", 'src/purchase') + $purchaseTests)
+        Invoke-Stage 'account-settings-tests' 'node.exe' @('node_modules/vitest/vitest.mjs', 'run', '--maxWorkers=2', '--no-cache', '--reporter=default', '--reporter=junit', "--outputFile.junit=$evidence/vitest-account-settings.xml", 'src/settings')
         Invoke-Stage 'production-build' 'npm.cmd' @('run', 'build')
         $env:PURCHASE_QA_FIXTURE_PATH = Join-Path $evidence 'mapping-fixtures.json'
         Invoke-Stage 'rust-purchase-tests' 'cargo.exe' @('test', '--locked', '--manifest-path', 'src-tauri/Cargo.toml', 'purchase')
@@ -81,7 +82,7 @@ try {
         $after[$path] = if (Test-Path -LiteralPath $fullPath) { (Get-FileHash -LiteralPath $fullPath -Algorithm SHA256).Hash } else { 'MISSING' }
     }
     & git -C $source status --porcelain --untracked-files=all | Set-Content (Join-Path $evidence 'product-status.txt')
-    $expectedStages = @('product-npm-ci','product-typecheck','purchase-tests','full-vitest','production-build','rust-purchase-tests','rust-check','qa-npm-ci','typecheck','test-list','chromium-install','versions','browser-tests')
+    $expectedStages = @('product-npm-ci','product-typecheck','purchase-tests','account-settings-tests','full-vitest','production-build','rust-purchase-tests','rust-check','qa-npm-ci','typecheck','test-list','chromium-install','versions','browser-tests')
     $stageResults = foreach ($name in $expectedStages) {
         $stage = @($stages.Where({ $_.name -eq $name }))
         [ordered]@{ name=$name; status=$(if ($stage.Count -eq 0) { 'NOT RUN' } elseif ($stage[0].exitCode -eq 0) { 'PASS' } else { 'FAIL' }) }
@@ -95,7 +96,7 @@ try {
         browserGUI = $(if ($stages.Where({ $_.name -eq 'browser-tests' -and $_.exitCode -eq 0 }).Count) { 'PASS' } else { 'FAIL_OR_NOT_RUN' })
         nativeTauri = 'NOT RUN'; nativePrint = 'NOT RUN'; realDatabase = 'NOT RUN'; nativePreviewIPC = 'NOT RUN'; nativeFileDialogs = 'NOT RUN'
         rustPurchaseContracts = $(if ($stages.Where({ $_.name -eq 'rust-purchase-tests' -and $_.exitCode -eq 0 }).Count) { 'PASS' } else { 'NOT RUN OR FAIL' })
-        fullVitest = 'NOT RUN: targeted purchase/frontend regression'; mappingFixtureOrigin = 'actual Rust cfg(test) export'; nativeMappingIPC = 'NOT RUN: deferred browser transport only'
+        fullVitest = 'NOT RUN: targeted purchase/frontend and account-settings regression'; mappingFixtureOrigin = 'actual Rust cfg(test) export'; nativeMappingIPC = 'NOT RUN: deferred browser transport only'
         browserMode = 'headed Chromium'; realIme = 'NOT RUN'; windowsDpi = 'NOT RUN'
     } | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $evidence 'run-manifest.json')
     $hashes = Get-ChildItem $evidence -Recurse -File | Sort-Object FullName | ForEach-Object {

@@ -29,7 +29,17 @@ test('manual override survives recommendation reapply and missing/duplicate colu
   await expect(name).toHaveValue('');
   await chooseFixtureMapping(page);
   const nameIndex = await name.inputValue();
-  await expect(quantity.locator(`option[value="${nameIndex}"]`)).toBeDisabled();
+  // Playwright 1.56.1 retargets option state checks through the enclosing label to its select.
+  await expect(quantity.locator(`option[value="${nameIndex}"]`)).toHaveJSProperty('disabled', true);
+  await quantity.evaluate((element, duplicateIndex) => {
+    if (!(element instanceof HTMLSelectElement)) throw new Error('Quantity selector missing');
+    element.value = duplicateIndex;
+    element.dispatchEvent(new Event('change', { bubbles: true }));
+  }, nameIndex);
+  await expect(dialog(page).getByRole('alert')).toContainText('같은 원본 열');
+  await expect(applyMapping(page)).toBeDisabled();
+  expect((await state(page)).requests).toHaveLength(0);
+  await chooseFixtureMapping(page);
   await quantity.selectOption('');
   await dialog(page).getByRole('button', { name: '추천 다시 적용', exact: true }).click();
   await expect(quantity).toHaveValue('');

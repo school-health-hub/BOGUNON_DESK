@@ -8,7 +8,7 @@ on:
       source_sha:
         description: Exact approved product checkpoint
         required: true
-        default: b679393b3dcec1affdbda13fb4b20a6e4bbca69e
+        default: 782134bff8368e6b0dba290ddc80aca4f1a760fc
         type: string
 permissions:
   contents: read
@@ -25,7 +25,7 @@ jobs:
     env:
       CI: 'true'
       NODE_OPTIONS: --max-old-space-size=2048
-      PRODUCT_SHA: b679393b3dcec1affdbda13fb4b20a6e4bbca69e
+      PRODUCT_SHA: 782134bff8368e6b0dba290ddc80aca4f1a760fc
       CONTROLLER_SHA: ${{ github.sha }}
     steps:
       - name: Gate event and current controller
@@ -44,7 +44,7 @@ jobs:
           "npm_config_cache=$env:RUNNER_TEMP/purchase-phase2b2/npm-cache" >> $env:GITHUB_ENV
           if ($env:GITHUB_REPOSITORY -cne 'school-health-hub/BOGUNON_DESK') { throw 'Wrong repository' }
           if ($env:GITHUB_REF -cne 'refs/heads/feature/purchase-helper-enhancement') { throw 'Wrong branch' }
-          if ($env:PRODUCT_SHA -cne 'b679393b3dcec1affdbda13fb4b20a6e4bbca69e' -or $env:PRODUCT_SHA -cnotmatch '^[0-9a-f]{40}$') { throw 'Invalid product pin' }
+          if ($env:PRODUCT_SHA -cne '782134bff8368e6b0dba290ddc80aca4f1a760fc' -or $env:PRODUCT_SHA -cnotmatch '^[0-9a-f]{40}$') { throw 'Invalid product pin' }
           if ($env:CONTROLLER_SHA -cnotmatch '^[0-9a-f]{40}$' -or $env:WORKFLOW_SHA -cne $env:CONTROLLER_SHA) { throw 'Controller/workflow SHA mismatch' }
           if ($env:WORKFLOW_REF -cne 'school-health-hub/BOGUNON_DESK/.github/workflows/purchase-phase2b2-windows.yml@refs/heads/feature/purchase-helper-enhancement') { throw 'Wrong workflow ref' }
           $event = Get-Content $env:GITHUB_EVENT_PATH -Raw | ConvertFrom-Json
@@ -82,7 +82,7 @@ jobs:
       - name: Checkout immutable product
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: b679393b3dcec1affdbda13fb4b20a6e4bbca69e
+          ref: 782134bff8368e6b0dba290ddc80aca4f1a760fc
           path: source
           persist-credentials: false
       - name: Node 22.23.3
