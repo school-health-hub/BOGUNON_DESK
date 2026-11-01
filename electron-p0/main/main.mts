@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { APP_ID, PRODUCT_NAME, PROFILE_NAME } from '../protocol.js';
 import { desktopDefaults, validateDesktop, fitBounds, type DesktopState } from './desktop.js';
 import { SettingsStore } from './settings.js';
+import { MemoStore, createMemoHandlers } from './memo-ipc.js';
 import { createSampleHandler, SAMPLE_SUMMARY_CHANNEL } from './sample-ipc.js';
 import { assertSender, resourceAllowed } from './policy.js';
 if (app.commandLine.hasSwitch('no-sandbox') || app.commandLine.hasSwitch('disable-web-security')) throw new Error('Unsafe Electron launch flags denied');
@@ -16,6 +17,7 @@ app.setPath('userData',userData);
 app.setPath('sessionData',join(userData,'chromium'));
 app.setAppUserModelId(APP_ID);
 const store = new SettingsStore(join(userData,'poc-settings'));
+const memoStore=new MemoStore(join(userData,'work-data','quick-memo'));
 let quitting = false;
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
@@ -48,13 +50,16 @@ else {
     return store.write(args[0]);
   });
   ipcMain.handle(SAMPLE_SUMMARY_CHANNEL,createSampleHandler(window.webContents,url));
+  const memoHandlers=createMemoHandlers(window.webContents,url,memoStore);
+  ipcMain.handle('p2:memo:read',memoHandlers.read);
+  ipcMain.handle('p2:memo:write',memoHandlers.write);
   const show=()=>{if(window.isMinimized())window.restore();window.show();window.focus();};
   const persist=async()=>{
     try{await desktopStore.write(desktop);return true;}
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
-  const quit=()=>{if(quitting)return;quitting=true;clearTimeout(timer);capture();void persist().then(()=>Promise.all([store.flush(),desktopStore.flush()])).finally(()=>{tray?.destroy();app.quit();});};
+  const quit=()=>{if(quitting)return;quitting=true;clearTimeout(timer);capture();void persist().then(()=>Promise.all([store.flush(),desktopStore.flush(),memoStore.flush()])).finally(()=>{tray?.destroy();app.quit();});};
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
       {label:'창 열기',click:show},{label:'최소화',click:()=>window.minimize()},

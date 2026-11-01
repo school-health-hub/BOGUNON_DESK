@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { P0Bridge, P0Settings, WorkBridge, SyntheticSummaryRequest } from '../protocol.js';
+import type { P0Bridge, P0Settings, WorkBridge, SyntheticSummaryRequest, MemoDocument } from '../protocol.js';
 if (!process.sandboxed || !process.contextIsolated) throw new Error('PoC requires a sandboxed isolated preload');
 const bridge: P0Bridge = Object.freeze({
   info: () => ipcRenderer.invoke('p0:info'),
@@ -13,5 +13,8 @@ const work: WorkBridge = Object.freeze({sample:Object.freeze({
     try{return await ipcRenderer.invoke('p2:sample:summary',request);}
     catch{return {ok:false as const,error:{code:'INTERNAL_ERROR' as const,message:'샘플 연결을 완료하지 못했습니다.',retryable:true}};}
   },
+}),memo:Object.freeze({
+  read:async()=>{try{return await ipcRenderer.invoke('p2:memo:read');}catch{return {ok:false as const,error:{code:'STORAGE_ERROR' as const,message:'메모 연결을 완료하지 못했습니다.',retryable:true}};}},
+  write:async(document:MemoDocument)=>{try{return await ipcRenderer.invoke('p2:memo:write',document);}catch{return {ok:false as const,error:{code:'STORAGE_ERROR' as const,message:'메모 연결을 완료하지 못했습니다.',retryable:true}};}},
 })});
 contextBridge.exposeInMainWorld('electronWork',work);

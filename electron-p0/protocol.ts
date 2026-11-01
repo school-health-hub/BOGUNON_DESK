@@ -13,8 +13,15 @@ export interface P0Bridge {
 export type SyntheticTaskId = 'prepare' | 'review' | 'finish';
 export type SyntheticSummaryRequest = Readonly<{fixture:'synthetic-only';completed:readonly SyntheticTaskId[]}>;
 export type SyntheticSummary = Readonly<{fixture:'synthetic-only';total:3;completedCount:number;pending:readonly SyntheticTaskId[]}>;
-export type IpcErrorCode = 'FORBIDDEN' | 'INVALID_INPUT' | 'INTERNAL_ERROR';
+export type IpcErrorCode = 'FORBIDDEN' | 'INVALID_INPUT' | 'INTERNAL_ERROR' | 'STORAGE_ERROR';
 export type IpcResult<T> = Readonly<{ok:true;data:T}> | Readonly<{ok:false;error:Readonly<{code:IpcErrorCode;message:string;retryable:boolean}>}>;
 export interface WorkBridge {
+ readonly memo: Readonly<MemoBridge>;
  readonly sample: Readonly<{summarize(request:SyntheticSummaryRequest):Promise<IpcResult<SyntheticSummary>>}>;
+}
+
+export type MemoDocument = Readonly<{version:1;text:string}>;
+export interface MemoBridge {
+ read():Promise<IpcResult<MemoDocument>>;
+ write(document:MemoDocument):Promise<IpcResult<MemoDocument>>;
 }
