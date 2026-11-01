@@ -524,6 +524,19 @@
 .purchase-helper-review__selection strong { color: var(--text-primary); font-size: 11px; }
 .purchase-helper-review__selection span { color: var(--yellow-700); }
 .purchase-helper-review__selection small { color: var(--text-muted); font-size: 9px; }
+.purchase-bulk-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-2); }
+.purchase-bulk-actions button { min-height: 32px; padding: var(--space-1) var(--space-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); background: var(--accent-soft); font: inherit; }
+.purchase-bulk-actions button:disabled { color: var(--text-muted); background: var(--surface-muted); }
+.purchase-bulk-actions button:focus-visible, .purchase-bulk-dialog select:focus-visible, .purchase-bulk-dialog input:focus-visible { outline: 2px solid var(--accent-hover); outline-offset: 2px; }
+.purchase-bulk-backdrop { min-height: 0; grid-template-rows: minmax(0, 1fr); }
+.purchase-bulk-dialog { min-height: 0; max-height: 100%; overflow-y: auto; overflow-wrap: anywhere; }
+.purchase-bulk-dialog fieldset { display: grid; gap: var(--space-2); min-width: 0; border: 1px solid var(--border); border-radius: 8px; }
+.purchase-bulk-dialog label { display: grid; gap: var(--space-1); }
+.purchase-bulk-dialog input, .purchase-bulk-dialog select { width: 100%; min-width: 0; min-height: 32px; font: inherit; }
+.purchase-bulk-dialog dl { display: grid; gap: var(--space-2); margin: 0; }
+.purchase-bulk-dialog dd { margin: 0; white-space: pre-wrap; }
+.purchase-bulk-dialog footer { flex-wrap: wrap; }
+@media (max-width: 1040px) { .purchase-helper-review { flex-wrap: wrap; } .purchase-helper-review__selection { justify-items: start; text-align: left; } .purchase-bulk-actions { justify-content: flex-start; } }
 .purchase-helper-table-wrap { min-height: 0; flex: 1; overflow: auto; }
 .purchase-helper-table { width: max(100%, 980px); border-collapse: collapse; table-layout: fixed; }
 .purchase-helper-table th { position: sticky; top: 0; z-index: 1; padding: 8px 6px; border-bottom: 1px solid var(--divider); color: var(--text-secondary); background: var(--surface-muted); font-size: 11px; text-align: left; }

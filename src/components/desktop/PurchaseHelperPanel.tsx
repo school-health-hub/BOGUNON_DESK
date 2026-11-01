@@ -1,15 +1,17 @@
 import { ArrowDown, ArrowUp, ClipboardCopy, Expand, FilePlus2, FileSpreadsheet, Plus, RotateCcw, Settings2, Trash2, X } from "lucide-react";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch } from "react";
+import type { PurchaseEditingState, PurchaseItemAction, PurchaseItemPatch } from "../../purchase/purchaseItemEditing";
+import { PurchaseBulkEditDialog } from "./PurchaseBulkEditDialog";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { isDesktopRuntime } from "../../desktop/actions";
 import { createPurchaseClipboard } from "../../purchase/purchaseClipboard";
-import { calculatePurchaseAmountCheck, getPurchaseOutputReadiness, normalizePurchaseOutputColumns, selectedPurchaseTotal, updatePurchaseItem } from "../../purchase/purchaseDomain";
+import { calculatePurchaseAmountCheck, getPurchaseOutputReadiness, normalizePurchaseOutputColumns, selectedPurchaseTotal } from "../../purchase/purchaseDomain";
 import { purchaseRepository } from "../../purchase/purchaseRepository";
 import { filterPurchaseItems, getPurchaseReviewCounts, purchaseReviewFilters, type PurchaseReviewFilter } from "../../purchase/purchaseReview";
 import { createPurchaseDraft } from "../../purchase/purchaseDraft";
 import { createPurchaseSettlement, reconcilePurchaseSettlement } from "../../purchase/purchaseSettlement";
-import { purchaseImportFieldIds, purchaseImportFieldLabels, purchaseOutputColumnIds, purchaseOutputColumnLabels, type PurchaseAnalysisErrorEvent, type PurchaseAnalysisEvent, type PurchaseAnalysisResult, type PurchaseColumnMapping, type PurchaseDraft, type PurchaseDraftTemplate, type PurchaseImportTemplate, type PurchaseItem, type PurchaseMappingCandidate, type PurchaseOutputColumnId, type PurchaseSettlement, type PurchaseSourceSummary } from "../../purchase/types";
+import { purchaseImportFieldIds, purchaseImportFieldLabels, purchaseOutputColumnIds, purchaseOutputColumnLabels, type PurchaseAnalysisErrorEvent, type PurchaseAnalysisEvent, type PurchaseAnalysisResult, type PurchaseColumnMapping, type PurchaseDraft, type PurchaseDraftTemplate, type PurchaseImportTemplate, type PurchaseMappingCandidate, type PurchaseOutputColumnId, type PurchaseSettlement, type PurchaseSourceSummary } from "../../purchase/types";
 import { PurchaseDraftEditor } from "./PurchaseDraftEditor";
 import { PurchaseEditableInput } from "./PurchaseEditableInput";
 import { PurchaseItemNameDialog } from "./PurchaseItemNameDialog";
@@ -23,7 +25,7 @@ import {
 import { PurchaseSettlementEditor } from "./PurchaseSettlementEditor";
 
 type Props = {
-  readonly items: readonly PurchaseItem[];
+  readonly editing: PurchaseEditingState;
   readonly sources: readonly PurchaseSourceSummary[];
   readonly columns: readonly PurchaseOutputColumnId[];
   readonly candidates: readonly PurchaseMappingCandidate[];
@@ -33,7 +35,7 @@ type Props = {
   readonly settlement: PurchaseSettlement | null;
   readonly onAnalysis: (result: PurchaseAnalysisResult) => void;
   readonly onAddItem: () => void;
-  readonly onChange: (items: readonly PurchaseItem[]) => void;
+  readonly onEdit: Dispatch<PurchaseItemAction>;
   readonly onCandidatesChange: (candidates: readonly PurchaseMappingCandidate[]) => void;
   readonly onColumnsChange: (columns: readonly PurchaseOutputColumnId[]) => void;
   readonly onSourcesChange: (sources: readonly PurchaseSourceSummary[]) => void;
@@ -56,7 +58,20 @@ const purchaseHelperStateQueue = createPurchaseHelperStateQueue((active, templat
   invoke("set_purchase_helper_active", { active, templates }),
 );
 
-export function PurchaseHelperPanel({ items, sources, columns, candidates, templates, draft, draftTemplates, settlement, onAnalysis, onAddItem, onChange, onCandidatesChange, onColumnsChange, onSourcesChange, onTemplatesChange, onDraftChange, onDraftTemplatesChange, onSettlementChange, onClose, onNotice }: Props) {
+export function PurchaseHelperPanel({ editing, sources, columns, candidates, templates, draft, draftTemplates, settlement, onAnalysis, onAddItem, onEdit, onCandidatesChange, onColumnsChange, onSourcesChange, onTemplatesChange, onDraftChange, onDraftTemplatesChange, onSettlementChange, onClose, onNotice }: Props) {
+  const { items } = editing;
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const bulkTriggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
+  const wasBulkOpenRef = useRef(false);
+  const closeBulk = () => setBulkOpen(false);
+  useLayoutEffect(() => {
+    if (wasBulkOpenRef.current && !bulkOpen) {
+      if (bulkTriggerRef.current !== null && !bulkTriggerRef.current.disabled) bulkTriggerRef.current.focus();
+      else panelRef.current?.focus();
+    }
+    wasBulkOpenRef.current = bulkOpen;
+  }, [bulkOpen]);
   const [activeView, setActiveView] = useState<"items" | "draft" | "settlement">("items");
   const [busy, setBusy] = useState(false);
   const [nativeReady, setNativeReady] = useState(() => !isDesktopRuntime());
@@ -93,6 +108,7 @@ export function PurchaseHelperPanel({ items, sources, columns, candidates, templ
     if (trigger?.isConnected) trigger.focus();
   };
   const closePanel = async (): Promise<void> => {
+    onEdit({ type: "invalidate", reason: "패널을 닫아" });
     acceptNativeResultsRef.current = false;
     try {
       const generation = await nativeBridgeRef.current?.invalidateAnalysis();
@@ -102,9 +118,9 @@ export function PurchaseHelperPanel({ items, sources, columns, candidates, templ
     }
   };
   useEffect(() => {
-    const close = (event: KeyboardEvent) => { if (event.key === "Escape") { if (nameDialogItemId !== null) return; if (mappingCandidateId !== null) setMappingCandidateId(null); else void closePanel(); } };
+    const close = (event: KeyboardEvent) => { if (event.key === "Escape") { if (bulkOpen || nameDialogItemId !== null) return; if (mappingCandidateId !== null) setMappingCandidateId(null); else void closePanel(); } };
     window.addEventListener("keydown", close); return () => window.removeEventListener("keydown", close);
-  }, [mappingCandidateId, nameDialogItemId, onClose]);
+  }, [bulkOpen, mappingCandidateId, nameDialogItemId, onClose, onEdit]);
   useEffect(() => {
     if (nameDialogItemId !== null && nameDialogItem === undefined) setNameDialogItemId(null);
   }, [nameDialogItem, nameDialogItemId]);
@@ -163,7 +179,7 @@ export function PurchaseHelperPanel({ items, sources, columns, candidates, templ
     if (reconciled !== settlement) onSettlementChange(reconciled);
   }, [items, onSettlementChange, settlement]);
 
-  const update = (id: string, patch: Partial<Omit<PurchaseItem, "id" | "issues">>) => onChange(items.map((item) => item.id === id ? updatePurchaseItem(item, patch) : item));
+  const update = (id: string, patch: PurchaseItemPatch) => onEdit({ type: "patch", id, patch });
   const importFiles = async () => {
     acceptNativeResultsRef.current = true;
     setBusy(true);
@@ -197,7 +213,7 @@ export function PurchaseHelperPanel({ items, sources, columns, candidates, templ
     try {
       const generation = await nativeBridgeRef.current?.invalidateAnalysis();
       if (generation !== null && generation !== undefined) latestNativeGenerationRef.current = generation;
-      onChange([]); onSourcesChange([]); onCandidatesChange([]); onDraftChange(null); onSettlementChange(null); setActiveView("items"); setRowFilter("all");
+      onEdit({ type: "reset" }); onSourcesChange([]); onCandidatesChange([]); onDraftChange(null); onSettlementChange(null); setActiveView("items"); setRowFilter("all");
     } catch {
       onNotice("진행 중인 파일 분석을 중단하지 못했습니다.");
     } finally {
@@ -239,7 +255,7 @@ export function PurchaseHelperPanel({ items, sources, columns, candidates, templ
   };
   return (
     <div className="desktop-panel-backdrop purchase-helper-backdrop" onMouseDown={(event) => { if (event.currentTarget === event.target) void closePanel(); }}>
-      <section className="purchase-helper-panel" role="dialog" aria-modal="true" aria-labelledby="purchase-helper-title">
+      <section ref={panelRef} tabIndex={-1} className="purchase-helper-panel" role="dialog" aria-modal="true" aria-labelledby="purchase-helper-title">
         <header className="purchase-helper-panel__header"><span><FileSpreadsheet size={20} /></span><div><h2 id="purchase-helper-title">품의 도우미</h2><p>품목 정리부터 품의문 작성, 실제 구매금액 정산까지 이어갑니다.</p></div><button type="button" aria-label="품의 도우미 닫기" onClick={() => void closePanel()}><X size={18} /></button></header>
         <div className="purchase-helper-panel__toolbar">
           <button type="button" onClick={() => void importFiles()} disabled={busy || !nativeReady}><FilePlus2 size={16} /> 파일 가져오기</button>
@@ -258,12 +274,12 @@ export function PurchaseHelperPanel({ items, sources, columns, candidates, templ
           <div className="purchase-helper-review__filters">
             {purchaseReviewFilters.map((filter) => <button type="button" key={filter} aria-pressed={rowFilter === filter} onClick={() => setRowFilter(filter)}>{reviewFilterLabels[filter]} <strong>{reviewCounts[filter]}</strong></button>)}
           </div>
-          <div className="purchase-helper-review__selection"><strong>{items.length}개 중 {selectedCount}개 선택</strong>{hiddenSelectedCount > 0 && <span>현재 화면에 표시되지 않은 선택 품목 {hiddenSelectedCount}개 포함</span>}<small>출력과 일괄 적용은 선택된 전체 품목을 대상으로 합니다.</small></div>
+          <div className="purchase-helper-review__selection"><strong>{items.length}개 중 {selectedCount}개 선택</strong>{hiddenSelectedCount > 0 && <span>현재 화면에 표시되지 않은 선택 품목 {hiddenSelectedCount}개 포함</span>}<small>출력과 일괄 적용은 선택된 전체 품목을 대상으로 합니다.</small><div className="purchase-bulk-actions"><button ref={bulkTriggerRef} type="button" disabled={selectedCount === 0 || busy || bulkOpen || nameDialogItemId !== null || mappingCandidateId !== null} onClick={() => setBulkOpen(true)}>선택 품목 일괄 편집</button>{editing.undo !== null && <button type="button" disabled={busy} onClick={() => onEdit({ type: "undo", revision: editing.revision })}>마지막 일괄 적용 실행 취소</button>}</div>{editing.message !== "" && <span role="status">{editing.message}</span>}</div>
         </section>
         <div className="purchase-helper-table-wrap">
-          <table className="purchase-helper-table"><thead><tr><th><input type="checkbox" aria-label="전체 품목 선택" checked={items.length > 0 && selectedCount === items.length} onChange={(event) => onChange(items.map((item) => ({ ...item, selected: event.target.checked })))} /></th><th>품명</th><th>규격</th><th>수량</th><th>단가</th><th>금액</th><th>구매처</th><th>비고</th><th>예산항목</th><th aria-label="행 작업" /></tr></thead>
+          <table className="purchase-helper-table"><thead><tr><th><input type="checkbox" aria-label="전체 품목 선택" checked={items.length > 0 && selectedCount === items.length} onChange={(event) => onEdit({ type: "select", selected: event.target.checked })} /></th><th>품명</th><th>규격</th><th>수량</th><th>단가</th><th>금액</th><th>구매처</th><th>비고</th><th>예산항목</th><th aria-label="행 작업" /></tr></thead>
             <tbody>{items.length === 0 ? <tr><td colSpan={10} className="purchase-helper-empty">파일을 가져오거나 품목을 직접 추가하세요.</td></tr> : visibleRows.length === 0 ? <tr><td colSpan={10} className="purchase-helper-empty">현재 필터에 해당하는 품목이 없습니다.</td></tr> : visibleRows.map(({ item, originalIndex }) => <tr key={item.id} className={item.issues.length > 0 ? "has-issue" : ""}>
-              <td><input type="checkbox" aria-label={`${originalIndex + 1}행 선택`} checked={item.selected} onChange={(event) => update(item.id, { selected: event.target.checked })} /></td>
+              <td><input type="checkbox" aria-label={`${originalIndex + 1}행 선택`} checked={item.selected} onChange={(event) => onEdit({ type: "select", id: item.id, selected: event.target.checked })} /></td>
               <td><div className="purchase-helper-name-cell"><PurchaseEditableInput ariaLabel={`${originalIndex + 1}행 품명`} value={item.name} format={formatText} parse={parseText} onCommit={(name) => update(item.id, { name })} /><button type="button" aria-label={`${originalIndex + 1}행 품목명 전체 보기 및 수정`} title="품목명 전체 보기 및 수정" onClick={(event) => { nameDialogTriggerRef.current = event.currentTarget; setNameDialogItemId(item.id); }}><Expand size={13} /></button></div>{item.issues.length > 0 && <small title={item.issues.map((issue) => issueLabels[issue]).join(", ")}>{item.issues.map((issue) => issueLabels[issue]).join(" · ")}</small>}</td>
               <td><PurchaseEditableInput ariaLabel={`${originalIndex + 1}행 규격`} value={item.specification} format={formatText} parse={parseText} onCommit={(specification) => update(item.id, { specification })} /></td>
               <td><PurchaseEditableInput ariaLabel={`${originalIndex + 1}행 수량`} inputMode="decimal" value={item.quantity} format={formatNumber} parse={numberValue} onCommit={(quantity) => update(item.id, { quantity })} /></td>
@@ -275,7 +291,7 @@ export function PurchaseHelperPanel({ items, sources, columns, candidates, templ
               <td><PurchaseEditableInput ariaLabel={`${originalIndex + 1}행 구매처`} value={item.vendor} format={formatText} parse={parseText} onCommit={(vendor) => update(item.id, { vendor })} /></td>
               <td><PurchaseEditableInput ariaLabel={`${originalIndex + 1}행 비고`} value={item.note} format={formatText} parse={parseText} onCommit={(note) => update(item.id, { note })} /></td>
               <td><PurchaseEditableInput ariaLabel={`${originalIndex + 1}행 예산항목`} value={item.budgetItem} format={formatText} parse={parseText} onCommit={(budgetItem) => update(item.id, { budgetItem })} /></td>
-              <td><div className="purchase-helper-row-actions"><button type="button" aria-label={`${originalIndex + 1}행 위로 이동`} disabled={rowFilter !== "all" || originalIndex === 0} onClick={() => { const next=[...items]; [next[originalIndex-1],next[originalIndex]]=[next[originalIndex],next[originalIndex-1]]; onChange(next); }}><ArrowUp size={13}/></button><button type="button" aria-label={`${originalIndex + 1}행 아래로 이동`} disabled={rowFilter !== "all" || originalIndex === items.length - 1} onClick={() => { const next=[...items]; [next[originalIndex+1],next[originalIndex]]=[next[originalIndex],next[originalIndex+1]]; onChange(next); }}><ArrowDown size={13}/></button><button type="button" aria-label={`${originalIndex + 1}행 삭제`} onClick={() => onChange(items.filter((entry) => entry.id !== item.id))}><Trash2 size={13}/></button></div></td>
+              <td><div className="purchase-helper-row-actions"><button type="button" aria-label={`${originalIndex + 1}행 위로 이동`} disabled={rowFilter !== "all" || originalIndex === 0} onClick={() => onEdit({ type: "move", id: item.id, delta: -1 })}><ArrowUp size={13}/></button><button type="button" aria-label={`${originalIndex + 1}행 아래로 이동`} disabled={rowFilter !== "all" || originalIndex === items.length - 1} onClick={() => onEdit({ type: "move", id: item.id, delta: 1 })}><ArrowDown size={13}/></button><button type="button" aria-label={`${originalIndex + 1}행 삭제`} onClick={() => onEdit({ type: "remove", id: item.id })}><Trash2 size={13}/></button></div></td>
             </tr>)}</tbody></table>
         </div>
         <section className="purchase-helper-columns"><button type="button" onClick={() => { setColumnDraft(columns); setIsColumnEditorOpen((current) => !current); }}>출력 컬럼 설정</button>{isColumnEditorOpen && <div className="purchase-helper-column-editor"><strong>출력 열</strong>{purchaseOutputColumnIds.map((column) => { const shown = columnDraft.includes(column); return <div className="purchase-helper-column" key={column}><label><input type="checkbox" checked={shown} disabled={column === "name"} onChange={(event) => setColumnDraft(normalizePurchaseOutputColumns(event.target.checked ? [...columnDraft, column] : columnDraft.filter((value) => value !== column)))} />{purchaseOutputColumnLabels[column]}</label>{shown && <span><button type="button" aria-label={`${purchaseOutputColumnLabels[column]} 왼쪽 이동`} onClick={() => moveColumn(column, -1)}>←</button><button type="button" aria-label={`${purchaseOutputColumnLabels[column]} 오른쪽 이동`} onClick={() => moveColumn(column, 1)}>→</button></span>}</div>; })}<button type="button" onClick={() => { onColumnsChange(columnDraft); setIsColumnEditorOpen(false); }}>저장</button></div>}</section>
@@ -283,6 +299,7 @@ export function PurchaseHelperPanel({ items, sources, columns, candidates, templ
         </> : activeView === "draft" ? draft === null ? <section className="purchase-draft-empty"><strong>선택한 품목으로 품의문을 작성합니다.</strong><p>품목을 선택하면 합계·구매처·예산항목을 바탕으로 초안을 만듭니다.</p><button type="button" disabled={selectedCount === 0 || !readiness.ready} onClick={() => onDraftChange(createPurchaseDraft(items))}>품의문 초안 만들기</button></section> : <PurchaseDraftEditor columns={columns} draft={draft} items={items} outputReady={readiness.ready} templates={draftTemplates} onChange={onDraftChange} onNotice={onNotice} onTemplatesChange={onDraftTemplatesChange} /> : settlement === null ? <section className="purchase-draft-empty"><strong>선택한 품목으로 구매결과를 정리합니다.</strong><p>품목을 선택한 뒤 구매결과 탭을 다시 열어 주세요.</p></section> : <PurchaseSettlementEditor items={items} outputReady={readiness.ready} settlement={settlement} onChange={onSettlementChange} onNotice={onNotice} />}
         {mappingCandidate !== null && headerOption !== null && <div className="purchase-mapping-backdrop"><section className="purchase-mapping-dialog" role="dialog" aria-modal="true" aria-labelledby="purchase-mapping-title"><header><div><h3 id="purchase-mapping-title">열 지정</h3><p>원본 파일의 열을 품의 항목에 연결해 주세요.</p></div><button type="button" aria-label="열 지정 닫기" onClick={() => setMappingCandidateId(null)}><X size={17}/></button></header><p className="purchase-mapping-source"><strong>{mappingCandidate.sourceName}</strong> · {mappingCandidate.sheetName}</p>{mappingCandidate.headerOptions.length > 1 && <label>머리글 행<select aria-label="머리글 행 선택" value={headerRow} onChange={(event) => { setHeaderRow(Number(event.target.value)); setMapping({}); }} >{mappingCandidate.headerOptions.map((option) => <option key={option.rowIndex} value={option.rowIndex}>{option.rowIndex + 1}행: {option.headers.filter(Boolean).join(" | ")}</option>)}</select></label>}<div className="purchase-mapping-preview"><table><tbody>{mappingCandidate.rows.slice(headerRow, headerRow + 5).map((row, rowIndex) => <tr key={rowIndex}>{headerOption.headers.map((_, columnIndex) => row[columnIndex] !== undefined && <td key={columnIndex}>{row[columnIndex]}</td>)}</tr>)}</tbody></table></div><div className="purchase-mapping-fields">{purchaseImportFieldIds.map((field) => <label key={field}>{purchaseImportFieldLabels[field]}{field === "name" ? " *" : ""}<select aria-label={`${purchaseImportFieldLabels[field]}에 연결할 원본 열`} value={mapping[field] ?? ""} onChange={(event) => { const value = event.target.value; setMapping((current) => { const next = { ...current }; if (value === "") delete next[field]; else next[field] = Number(value); return next; }); }}><option value="">사용 안 함</option>{headerOption.headers.map((header, index) => <option key={index} value={index} disabled={Object.entries(mapping).some(([other, value]) => other !== field && value === index)}>{header || `열 ${index + 1}`}</option>)}</select></label>)}</div><label className="purchase-mapping-remember"><input type="checkbox" aria-label="이 열 구성을 기억하기" checked={rememberTemplate} onChange={(event) => setRememberTemplate(event.target.checked)}/> 이 열 구성을 기억하기</label>{rememberTemplate && <input aria-label="가져오기 템플릿 이름" maxLength={40} placeholder="예: 학교장터 견적서" value={templateName} onChange={(event) => setTemplateName(event.target.value)}/>}<footer><button type="button" onClick={() => setMappingCandidateId(null)}>취소</button><button type="button" disabled={busy || mapping.name === undefined} onClick={() => void applyMapping()}>적용</button></footer></section></div>}
         {nameDialogItem !== undefined && <PurchaseItemNameDialog itemName={nameDialogItem.name} rowNumber={nameDialogRowNumber} onCancel={closeNameDialog} onSave={(name) => { update(nameDialogItem.id, { name }); closeNameDialog(); }} />}
+        {bulkOpen && <PurchaseBulkEditDialog items={items} revision={editing.revision} hiddenSelectedCount={hiddenSelectedCount} busy={busy} onCancel={closeBulk} onApply={(request) => { onEdit({ type: "bulk", request }); closeBulk(); }} />}
       </section>
     </div>
   );

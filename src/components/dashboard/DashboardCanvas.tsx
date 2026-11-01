@@ -1,6 +1,7 @@
 import { Sparkles } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePurchaseItemEditing } from "../../purchase/usePurchaseItemEditing";
 import { useAuth } from "../../auth/AuthContext";
 import { useWidgetSession } from "../../dashboard/WidgetSessionContext";
 import { DesktopSettingsPanel } from "../desktop/DesktopSettingsPanel";
@@ -52,7 +53,7 @@ import { useWorkspaceNotifications } from "../../notifications/useWorkspaceNotif
 import { toolboxToolRegistry, type ToolboxToolId } from "../../tools/toolRegistry";
 import type { WorkFolderFavorite } from "../../work-folders/types";
 import { workFolderService } from "../../work-folders/workFolderService";
-import type { PurchaseAnalysisResult, PurchaseDraft, PurchaseDraftTemplate, PurchaseImportTemplate, PurchaseItem, PurchaseMappingCandidate, PurchaseSettlement, PurchaseSourceSummary } from "../../purchase/types";
+import type { PurchaseAnalysisResult, PurchaseDraft, PurchaseDraftTemplate, PurchaseImportTemplate, PurchaseMappingCandidate, PurchaseSettlement, PurchaseSourceSummary } from "../../purchase/types";
 import { appendPurchaseItemsWithSessionIds, createEmptyPurchaseItem } from "../../purchase/purchaseDomain";
 import { purchaseRepository } from "../../purchase/purchaseRepository";
 import { useOnboarding } from "../../onboarding/OnboardingContext";
@@ -94,7 +95,7 @@ export function DashboardCanvas({ onOpenFinance, suspended = false }: { readonly
   const [isRecordHelperOpen, setIsRecordHelperOpen] = useState(false);
   const [pendingFileDropPaths, setPendingFileDropPaths] = useState<readonly string[] | null>(null);
   const [pendingRecordHelperImport, setPendingRecordHelperImport] = useState<RecordHelperImportBatch | null>(null);
-  const [purchaseItems, setPurchaseItems] = useState<readonly PurchaseItem[]>([]);
+  const [purchaseEditing, editPurchaseItems] = usePurchaseItemEditing(isPurchaseHelperOpen);
   const [purchaseSources, setPurchaseSources] = useState<readonly PurchaseSourceSummary[]>([]);
   const [purchaseCandidates, setPurchaseCandidates] = useState<readonly PurchaseMappingCandidate[]>([]);
   const [purchaseDraft, setPurchaseDraft] = useState<PurchaseDraft | null>(null);
@@ -102,7 +103,7 @@ export function DashboardCanvas({ onOpenFinance, suspended = false }: { readonly
   const purchaseItemSequenceRef = useRef(0);
   const nextPurchaseItemId = useCallback(() => `purchase-session-${purchaseItemSequenceRef.current++}`, []);
   const appendPurchaseAnalysis = useCallback((result: PurchaseAnalysisResult) => {
-    setPurchaseItems((current) => appendPurchaseItemsWithSessionIds(current, result.items, nextPurchaseItemId));
+    editPurchaseItems({ type: "append", items: appendPurchaseItemsWithSessionIds([], result.items, nextPurchaseItemId) });
     setPurchaseSources((current) => [...current, ...result.sources]);
     setPurchaseCandidates((current) => [...current, ...result.candidates]);
   }, [nextPurchaseItemId]);
@@ -551,14 +552,15 @@ export function DashboardCanvas({ onOpenFinance, suspended = false }: { readonly
           templates={purchaseImportTemplates}
           draft={purchaseDraft}
           draftTemplates={purchaseDraftTemplates}
-          items={purchaseItems}
+          editing={purchaseEditing}
           settlement={purchaseSettlement}
           sources={purchaseSources}
           onAnalysis={appendPurchaseAnalysis}
-          onAddItem={() => setPurchaseItems((current) => [...current, createEmptyPurchaseItem(nextPurchaseItemId())])}
-          onChange={setPurchaseItems}
+          onAddItem={() => editPurchaseItems({ type: "append", items: [createEmptyPurchaseItem(nextPurchaseItemId())] })}
+          onEdit={editPurchaseItems}
           onCandidatesChange={setPurchaseCandidates}
           onClose={() => {
+            editPurchaseItems({ type: "invalidate", reason: "패널을 닫아" });
             setIsPurchaseHelperOpen(false);
             void runDesktopAction("home");
           }}

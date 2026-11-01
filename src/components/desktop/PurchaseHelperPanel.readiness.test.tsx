@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { useState } from "react";
+import { useReducer } from "react";
+import { createPurchaseEditingState, purchaseItemEditingReducer } from "../../purchase/purchaseItemEditing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createEmptyPurchaseItem, withPurchaseIssues } from "../../purchase/purchaseDomain";
 import { purchaseRepository } from "../../purchase/purchaseRepository";
@@ -11,10 +12,10 @@ import { PurchaseHelperPanel } from "./PurchaseHelperPanel";
 const renderPanel = (initialItems: readonly PurchaseItem[]) => {
   const onSettlementChange = vi.fn();
   function Harness() {
-    const [items, setItems] = useState(initialItems);
+    const [editing, onEdit] = useReducer(purchaseItemEditingReducer, initialItems, createPurchaseEditingState);
     return (
       <PurchaseHelperPanel
-        items={items}
+        editing={editing}
         sources={[]}
         candidates={[]}
         columns={defaultPurchaseOutputColumns}
@@ -25,7 +26,7 @@ const renderPanel = (initialItems: readonly PurchaseItem[]) => {
         onAnalysis={() => undefined}
         onAddItem={() => undefined}
         onCandidatesChange={() => undefined}
-        onChange={setItems}
+        onEdit={onEdit}
         onClose={() => undefined}
         onColumnsChange={() => undefined}
         onNotice={vi.fn()}

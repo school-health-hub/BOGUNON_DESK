@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { useState } from "react";
+import { useReducer } from "react";
+import { createPurchaseEditingState, purchaseItemEditingReducer } from "../../purchase/purchaseItemEditing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createEmptyPurchaseItem, withPurchaseIssues } from "../../purchase/purchaseDomain";
 import { defaultPurchaseOutputColumns, type PurchaseItem } from "../../purchase/types";
@@ -15,12 +16,13 @@ function renderPanel(initialItems: readonly PurchaseItem[]) {
   const onClose = vi.fn();
   let latestItems = initialItems;
   function Harness() {
-    const [items, setItems] = useState(initialItems);
+    const [editing, onEdit] = useReducer(purchaseItemEditingReducer, initialItems, createPurchaseEditingState);
+    const { items } = editing;
     latestItems = items;
     return <>
-      <button type="button" onClick={() => setItems([validItem("replacement", "교체 품목")])}>외부 교체</button>
+      <button type="button" onClick={() => onEdit({ type: "replace", items: [validItem("replacement", "교체 품목")] })}>외부 교체</button>
       <PurchaseHelperPanel
-        items={items}
+        editing={editing}
         sources={[]}
         candidates={[]}
         columns={defaultPurchaseOutputColumns}
@@ -31,7 +33,7 @@ function renderPanel(initialItems: readonly PurchaseItem[]) {
         onAnalysis={() => undefined}
         onAddItem={() => undefined}
         onCandidatesChange={() => undefined}
-        onChange={setItems}
+        onEdit={onEdit}
         onClose={onClose}
         onColumnsChange={() => undefined}
         onNotice={() => undefined}
