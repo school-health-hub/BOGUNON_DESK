@@ -98,16 +98,33 @@ jobs:
         with:
           workspaces: source/src-tauri -> target
           key: purchase-phase2b1
-      - name: Verify native build prerequisites
+      - name: Provision and verify hosted native prerequisites
+        id: native_setup
+        continue-on-error: true
         run: |
           $ErrorActionPreference = 'Stop'
-          foreach ($directory in @('C:/Program Files/NASM', 'C:/Strawberry/perl/bin')) {
-            if (Test-Path $directory) { $env:PATH = "$directory;$env:PATH"; $directory >> $env:GITHUB_PATH }
-          }
-          & nasm -v
-          if ($LASTEXITCODE -ne 0) { throw 'NASM unavailable' }
-          & perl -v
-          if ($LASTEXITCODE -ne 0) { throw 'Perl unavailable' }
+          if ($env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:OS -cne 'Windows_NT') { throw 'Native provisioning requires GitHub-hosted Windows' }
+          $archive = Join-Path $env:RUNNER_TEMP 'purchase-nasm-3.02-win64.zip'
+          $toolRoot = Join-Path $env:RUNNER_TEMP 'purchase-nasm-3.02'
+          $url = 'https://www.nasm.us/pub/nasm/releasebuilds/3.02/win64/nasm-3.02-win64.zip'
+          $expected = '161d0bfaff53c2f9e9f3e69fd0672323ebabafd1268976a5cec11be92a19aee7'
+          Invoke-WebRequest -Uri $url -OutFile $archive
+          $actual = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -cne $expected) { throw 'NASM 3.02 archive checksum mismatch' }
+          Expand-Archive -LiteralPath $archive -DestinationPath $toolRoot
+          $nasm = Join-Path $toolRoot 'nasm-3.02/nasm.exe'
+          if (-not (Test-Path -LiteralPath $nasm)) { throw 'Pinned NASM executable missing' }
+          $nasmDirectory = Split-Path $nasm
+          $env:PATH = "$nasmDirectory;$env:PATH"
+          $nasmDirectory >> $env:GITHUB_PATH
+          $nasmVersion = & $nasm -v
+          if ($LASTEXITCODE -ne 0 -or $nasmVersion -notmatch '^NASM version 3\.02(?:\s|$)') { throw 'Wrong NASM version' }
+          $nativePerlDirectory = 'C:/Strawberry/perl/bin'
+          if (Test-Path -LiteralPath "$nativePerlDirectory/perl.exe") { $env:PATH = "$nativePerlDirectory;$env:PATH"; $nativePerlDirectory >> $env:GITHUB_PATH }
+          $perl = (Get-Command perl.exe -ErrorAction Stop).Source
+          $perlPlatform = & $perl -MConfig -MFile::Spec::Win32 -MLocale::Maketext::Simple -e 'print "$^O\n$Config{version}\n$Config{archname}\n"'
+          if ($LASTEXITCODE -ne 0 -or $perlPlatform[0] -cne 'MSWin32') { throw 'Native Windows Perl with File::Spec::Win32 and Locale::Maketext::Simple is required' }
+          [ordered]@{ nasmURL=$url; nasmSHA256=$actual; nasmPath=$nasm; nasmVersion=$nasmVersion; perlPath=$perl; perlPlatform=$perlPlatform } | ConvertTo-Json | Set-Content "$env:EVIDENCE_DIR/native-prerequisites.json"
           rustc -Vv | Set-Content "$env:EVIDENCE_DIR/rust-version.txt"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cargo -V | Set-Content "$env:EVIDENCE_DIR/cargo-version.txt"
@@ -117,6 +134,9 @@ jobs:
         env:
           SOURCE_ROOT: ${{ github.workspace }}/source
         run: ./controller/qa/purchase-phase2b1/runner.ps1
+      - name: Fail incomplete native setup after frontend evidence
+        if: always() && steps.native_setup.outcome == 'failure'
+        run: throw 'Native prerequisite setup failed; frontend/browser evidence is preserved separately'
       - name: Preserve final workflow outcomes
         if: always() && env.EVIDENCE_DIR != ''
         env:

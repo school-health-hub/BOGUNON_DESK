@@ -48,8 +48,6 @@ try {
         Invoke-Stage 'purchase-tests' 'node.exe' @('node_modules/vitest/vitest.mjs', 'run', '--maxWorkers=2', '--no-cache', 'src/purchase', 'src/components/desktop/PurchaseOutputPreviewDialog.test.tsx', 'src/components/desktop/PurchaseSettlementEditor.test.tsx', 'src/components/desktop/PurchaseHelperPanel.test.tsx', 'src/components/desktop/PurchaseHelperPanel.readiness.test.tsx', 'src/components/desktop/PurchaseHelperPanel.bulk-edit.test.tsx', 'src/components/desktop/PurchaseHelperPanel.editing.test.tsx', 'src/components/desktop/PurchaseBulkEditDialog.test.tsx')
         Invoke-Stage 'full-vitest' 'node.exe' @('node_modules/vitest/vitest.mjs', 'run', 'src', '--maxWorkers=2', '--no-cache', '--reporter=default', '--reporter=junit', "--outputFile.junit=$evidence/vitest.xml")
         Invoke-Stage 'production-build' 'npm.cmd' @('run', 'build')
-        Invoke-Stage 'rust-purchase-tests' 'cargo.exe' @('test', '--locked', '--manifest-path', 'src-tauri/Cargo.toml', 'purchase')
-        Invoke-Stage 'rust-check' 'cargo.exe' @('check', '--locked', '--manifest-path', 'src-tauri/Cargo.toml')
     }
     finally { Pop-Location }
     Push-Location $qa
@@ -61,6 +59,11 @@ try {
         Invoke-Stage 'chromium-install' 'node.exe' @($playwright, 'install', 'chromium')
         Invoke-Stage 'versions' 'node.exe' @((Join-Path $qa 'runner-versions.mjs'))
         Invoke-Stage 'browser-tests' 'node.exe' @($playwright, 'test', '--config', 'playwright.config.ts', '--workers=1', '--retries=0')
+    } finally { Pop-Location }
+    Push-Location $source
+    try {
+        Invoke-Stage 'rust-purchase-tests' 'cargo.exe' @('test', '--locked', '--manifest-path', 'src-tauri/Cargo.toml', 'purchase')
+        Invoke-Stage 'rust-check' 'cargo.exe' @('check', '--locked', '--manifest-path', 'src-tauri/Cargo.toml')
     } finally { Pop-Location }
 } catch {
     $failure = $_.Exception.Message
@@ -99,7 +102,8 @@ try {
     Product: $env:PRODUCT_SHA
     Controller: $env:CONTROLLER_SHA
     Product integrity: $integrity
-    Browser execution: $(if ($failure) { 'FAIL / see stage logs' } else { 'PASS' })
+    Browser execution: $(($stageResults | Where-Object { $_.name -eq 'browser-tests' }).status)
+    Overall runner: $(if ($failure) { 'FAIL / see stage logs' } else { 'PASS' })
     Native Tauri, native print, and real database: NOT RUN.
     Artifact includes stage stdout/stderr, reports and browser evidence produced by the tests, and SHA-256 inventory.
 "@ | Add-Content $env:GITHUB_STEP_SUMMARY
