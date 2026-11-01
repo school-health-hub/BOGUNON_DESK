@@ -99,4 +99,5 @@ jobs:
           name: purchase-phase2a3-browser-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ env.EVIDENCE_DIR }}
           retention-days: 14
+          include-hidden-files: true
           if-no-files-found: error
