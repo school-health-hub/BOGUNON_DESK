@@ -42,3 +42,20 @@ and reports only the resulting SHA-256. Keep the private template and output on
 the local disk; never upload them to Git or Actions artifacts. No local compilation,
 authentication, GUI initialization, or external service is needed. Record actual
 execution results separately; availability of the harness alone is not a PASS.
+
+## Authoring and file-selection flow (2026-11-01)
+
+Create a local draft, then expand `제목·본문 수정` to edit its title and body.
+The preview, title/body/full copy actions and ODT request share the same draft.
+The preview shows the fixed export recipient `내부결재` and blank route.
+Paragraphs, numbering, indentation and line breaks are passed through unchanged.
+The frontend requires one final `끝.` and never silently rewrites the manuscript.
+Choose `K-에듀파인용 ODT 저장`, select the private home-v1 source file (or original
+approved version), then select the output location. No template path is remembered,
+and no private template is bundled. Cancellation and failure retain the manuscript.
+During saving, the manuscript editor is disabled to keep preview and request aligned.
+
+The user reports actual K-education import success for the previously generated
+home-v1 output. This does not constitute GUI testing of these authoring changes.
+The authoring-only CI mode runs TypeScript and targeted jsdom tests, without Rust
+compilation, GUI startup, AI requests, or private ODT uploads.

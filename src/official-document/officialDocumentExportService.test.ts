@@ -1,3 +1,4 @@
+import { editOfficialDocumentBody } from "./officialDocumentDraftEditing";
 import { describe, expect, it, vi } from "vitest";
 import { saveOfficialDocumentOdt } from "./officialDocumentExportService";
 import type { OfficialDocumentDraft } from "./types";
@@ -115,5 +116,49 @@ describe("official document ODT export contract", () => {
       "표가 포함된 공문은 현재 ODT로 저장할 수 없습니다.",
     );
     expect(invokeCommand).not.toHaveBeenCalled();
+  });
+});
+
+describe("edited manuscript ODT validation", () => {
+  it.each(["본문", "끝.\n끝.", "끝.\n뒤에 남은 문장"])("blocks misplaced or missing ending without invoking Rust: %s", async (body) => {
+    const invokeCommand = vi.fn();
+    const draft = createDraft({ body });
+    await expect(saveOfficialDocumentOdt(draft, invokeCommand)).rejects.toMatchObject({ code: "body-ending" });
+    expect(invokeCommand).not.toHaveBeenCalled();
+    expect(draft.body).toBe(body);
+  });
+
+  it.each(["제목\n두 줄", "제목\t탭"])("blocks unsupported title without changing it", async (title) => {
+    const invokeCommand = vi.fn();
+    await expect(saveOfficialDocumentOdt(createDraft({ title }), invokeCommand)).rejects.toMatchObject({ code: "invalid-title" });
+    expect(invokeCommand).not.toHaveBeenCalled();
+  });
+
+  it("passes user title and numbered multiline body unchanged", async () => {
+    const title = "사용자가 확정한 제목";
+    const body = "1. 사용자 문단\n  가. 들여쓰기\n\n붙임  확인표 2부.  끝.\n";
+    const invokeCommand = vi.fn().mockResolvedValue({ status: "cancelled" });
+    await saveOfficialDocumentOdt(createDraft({ title, body, attachments: "붙임  확인표 2부." }), invokeCommand);
+    expect(invokeCommand).toHaveBeenCalledWith("save_official_document_odt", { request: { title, body, attachments: "붙임  확인표 2부.", hasTableText: false } });
+  });
+});
+
+describe("attachment metadata follows edited manuscript", () => {
+  it.each([
+    ["1. 본문\n\n붙임  변경한 확인표 2부.  끝.", "붙임\n변경한 확인표 2부.\n끝."],
+    ["1. 본문\n\n끝.", ""],
+    ["1. 본문\n붙임  1. 첫째 1매.\n2. 둘째 2부.  끝.", "붙임\n1. 첫째 1매.\n2. 둘째 2부.\n끝."],
+    ["1. 본문\r\n\r\n붙임\r\n변경한 확인표 2부.\r\n끝.", "붙임\n변경한 확인표 2부.\n끝."],
+  ])("replaces stale attachment metadata without modifying body", async (body, attachments) => {
+    const original = createDraft({ attachments: "붙임\n1. 이전 명칭 1부.\n끝." });
+    const edited = editOfficialDocumentBody(original, body);
+    const invokeCommand = vi.fn().mockResolvedValue({ status: "cancelled" });
+    await saveOfficialDocumentOdt(edited, invokeCommand);
+    expect(edited.body).toBe(body);
+    expect(edited.attachments).toBe(attachments);
+    expect(original.attachments).toContain("이전 명칭");
+    expect(invokeCommand).toHaveBeenCalledWith("save_official_document_odt", { request: {
+      title: original.title, body, attachments, hasTableText: false,
+    } });
   });
 });

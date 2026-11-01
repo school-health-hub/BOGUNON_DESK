@@ -6,7 +6,7 @@ import { AiConnectionProvider } from "../../ai/AiConnectionContext";
 import type { AiConnectionService } from "../../ai/types";
 import { OfficialDocumentSessionProvider } from "../../official-document/OfficialDocumentSessionContext";
 import { createOfficialDocumentSession } from "../../official-document/officialDocumentSession";
-import { createEmptyOfficialDocumentInput, generateOfficialDocumentDraft } from "../../official-document/documentGenerator";
+import { composeOfficialDocumentDraft, createEmptyOfficialDocumentInput, generateOfficialDocumentDraft } from "../../official-document/documentGenerator";
 import { createSyntheticOfficialDocumentReferenceRepository } from "../../official-document/referenceRepository";
 import type { OfficialDocumentSession } from "../../official-document/types";
 import { OfficialDocumentPanel } from "./OfficialDocumentPanel";
@@ -114,6 +114,48 @@ describe("OfficialDocumentPanel AI interaction", () => {
     expect(generateTextMock).not.toHaveBeenCalled();
   });
 
+  it("exports and copies the edited title and multiline body shown in preview", async () => {
+    const writeText = vi.fn(async (_value: string) => undefined);
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+    const draft = generateOfficialDocumentDraft(createEmptyOfficialDocumentInput());
+    saveOfficialDocumentOdtMock.mockResolvedValue({ status: "saved", fileName: "직접 작성한 제목.odt" });
+    renderPanel({ ...createOfficialDocumentSession(), draft });
+    fireEvent.click(screen.getByText("제목·본문 수정"));
+    const title = "직접 작성한 제목";
+    const body = "1. 직접 작성한 문단입니다.\n  가. 번호와 들여쓰기\n\n붙임  합성 확인표 1부.  끝.";
+    fireEvent.change(screen.getByLabelText("공문 제목 편집"), { target: { value: title } });
+    fireEvent.change(screen.getByLabelText("공문 본문 편집"), { target: { value: body } });
+    expect(screen.getByRole("heading", { name: title }).textContent).toBe(title);
+    expect(screen.getByRole("region", { name: "공문 본문" }).textContent).toBe(body);
+    expect(screen.getByText("수신: 내부결재 · 경유: 없음")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "제목 복사" }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(title));
+    fireEvent.click(screen.getByRole("button", { name: "전체 복사" }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(composeOfficialDocumentDraft({ ...draft, title, body })));
+    fireEvent.click(screen.getByRole("button", { name: "본문 복사" }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(body));
+    fireEvent.click(screen.getByRole("button", { name: "K-에듀파인용 ODT 저장" }));
+    await waitFor(() => expect(saveOfficialDocumentOdtMock).toHaveBeenCalledWith({ ...draft, title, body, attachments: "붙임\n합성 확인표 1부.\n끝." }));
+  });
+
+  it("keeps edited manuscript after cancelled and failed saves", async () => {
+    const draft = generateOfficialDocumentDraft(createEmptyOfficialDocumentInput());
+    const onNotice = vi.fn<(message: string) => void>();
+    saveOfficialDocumentOdtMock.mockResolvedValueOnce({ status: "cancelled" }).mockRejectedValueOnce(new Error("저장 실패"));
+    renderPanel({ ...createOfficialDocumentSession(), draft }, onNotice);
+    fireEvent.click(screen.getByText("제목·본문 수정"));
+    const editedBody = "1. 보존할 편집 문단\n\n끝.";
+    fireEvent.change(screen.getByLabelText("공문 제목 편집"), { target: { value: "보존할 제목" } });
+    fireEvent.change(screen.getByLabelText("공문 본문 편집"), { target: { value: editedBody } });
+    fireEvent.click(screen.getByRole("button", { name: "K-에듀파인용 ODT 저장" }));
+    await waitFor(() => expect(onNotice).toHaveBeenCalledWith("ODT 저장을 취소했습니다. 작성 중인 원고는 유지됩니다."));
+    expect(screen.getByLabelText("공문 제목 편집")).toHaveProperty("value", "보존할 제목");
+    expect(screen.getByLabelText("공문 본문 편집")).toHaveProperty("value", editedBody);
+    fireEvent.click(screen.getByRole("button", { name: "K-에듀파인용 ODT 저장" }));
+    await waitFor(() => expect(onNotice).toHaveBeenCalledWith("저장 실패"));
+    expect(screen.getByLabelText("공문 제목 편집")).toHaveProperty("value", "보존할 제목");
+    expect(screen.getByLabelText("공문 본문 편집")).toHaveProperty("value", editedBody);
+  });
   it("reports a saved ODT without exposing a path", async () => {
     const onNotice = vi.fn<(message: string) => void>();
     const initialState = {
@@ -130,7 +172,7 @@ describe("OfficialDocumentPanel AI interaction", () => {
     expect(onNotice.mock.calls.flat().join(" ")).not.toContain("C:\\");
   });
 
-  it("treats ODT save cancellation as a silent normal outcome", async () => {
+  it("reports cancellation while keeping the original manuscript", async () => {
     const onNotice = vi.fn<(message: string) => void>();
     const initialState = {
       ...createOfficialDocumentSession(),
@@ -142,7 +184,7 @@ describe("OfficialDocumentPanel AI interaction", () => {
     fireEvent.click(screen.getByRole("button", { name: "K-에듀파인용 ODT 저장" }));
 
     await waitFor(() => expect(saveOfficialDocumentOdtMock).toHaveBeenCalledOnce());
-    expect(onNotice).not.toHaveBeenCalled();
+    expect(onNotice).toHaveBeenCalledWith("ODT 저장을 취소했습니다. 작성 중인 원고는 유지됩니다.");
   });
 
   it("disables ODT export while the current save is pending and reports failures", async () => {
@@ -157,6 +199,8 @@ describe("OfficialDocumentPanel AI interaction", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "K-에듀파인용 ODT 저장" }));
     expect(screen.getByRole("button", { name: "K-에듀파인용 ODT 저장 중" })).toHaveProperty("disabled", true);
+    expect(screen.getByLabelText("공문 제목 편집")).toHaveProperty("disabled", true);
+    expect(screen.getByLabelText("공문 본문 편집")).toHaveProperty("disabled", true);
     await act(async () => {
       rejectSave(new Error("표준서식이 승인된 파일과 다릅니다."));
       await Promise.resolve();

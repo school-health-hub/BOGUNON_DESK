@@ -2,6 +2,7 @@ import { ClipboardCopy, FileDown, FileText } from "lucide-react";
 import { composeOfficialDocumentDraft } from "../../official-document/documentGenerator";
 import type { OfficialDocumentLocalSummary } from "../../official-document/summaryExtractor";
 import type { OfficialDocumentAiStatus, OfficialDocumentDraft, OfficialDocumentMode } from "../../official-document/types";
+import { OfficialDocumentDraftEditor } from "./OfficialDocumentDraftEditor";
 import { OfficialDocumentLocalSummaryView } from "./OfficialDocumentLocalSummary";
 
 type OfficialDocumentOutputProps = {
@@ -14,6 +15,7 @@ type OfficialDocumentOutputProps = {
   readonly prompt: string;
   readonly onCopy: (label: string, value: string) => void;
   readonly onExportOdt: () => void;
+  readonly onDraftChange?: (draft: OfficialDocumentDraft) => void;
   readonly onSendSummaryToQuickAdd: () => void;
 };
 
@@ -47,7 +49,7 @@ function CopyButton({ label, value, onCopy }: {
   );
 }
 
-export function OfficialDocumentOutput({ aiResponse, aiStatus, draft, isExportingOdt, mode, localSummary, prompt, onCopy, onExportOdt, onSendSummaryToQuickAdd }: OfficialDocumentOutputProps) {
+export function OfficialDocumentOutput({ aiResponse, aiStatus, draft, isExportingOdt, mode, localSummary, prompt, onCopy, onExportOdt, onDraftChange, onSendSummaryToQuickAdd }: OfficialDocumentOutputProps) {
   if (draft === null && localSummary === null && prompt === "" && aiResponse === "") {
     const copy = emptyStateCopy[mode];
     return (
@@ -71,7 +73,7 @@ export function OfficialDocumentOutput({ aiResponse, aiStatus, draft, isExportin
       {draft !== null && (
         <section className="official-document-preview" aria-label="기본 초안 문서 미리보기">
           <header className="official-document-preview__toolbar">
-            <div><strong>기본 초안</strong><span>읽기 전용 미리보기</span></div>
+            <div><strong>기본 초안</strong><span>저장할 원고 미리보기</span></div>
             <div>
               <button type="button" disabled={isExportingOdt} onClick={onExportOdt}>
                 <FileDown size={14} /> {isExportingOdt ? "K-에듀파인용 ODT 저장 중" : "K-에듀파인용 ODT 저장"}
@@ -79,8 +81,10 @@ export function OfficialDocumentOutput({ aiResponse, aiStatus, draft, isExportin
               <CopyButton label="제목" value={draft.title} onCopy={onCopy} /><CopyButton label="본문" value={draft.body} onCopy={onCopy} /><CopyButton label="전체" value={composeOfficialDocumentDraft(draft)} onCopy={onCopy} />
             </div>
           </header>
+          {onDraftChange && <OfficialDocumentDraftEditor draft={draft} disabled={isExportingOdt} onChange={onDraftChange} />}
+          <p className="official-document-result__notice">ODT 저장 시 home-v1 표준서식.odt 또는 기존 승인 서식을 선택한 뒤 저장 위치를 지정하세요. 서식 파일은 앱에 포함되지 않습니다.</p>
           <article className="official-document-paper">
-            <header><span>공문 제목</span><h3>{draft.title}</h3></header>
+            <header><span>공문 제목</span><h3>{draft.title}</h3><span>수신: 내부결재 · 경유: 없음</span></header>
             <section aria-label="공문 본문"><pre>{draft.body}</pre></section>
           </article>
           <div className="official-document-appendix" aria-label="공문 부록">

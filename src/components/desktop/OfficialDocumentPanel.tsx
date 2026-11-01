@@ -203,6 +203,7 @@ export function OfficialDocumentPanel({ onClose, onNotice, onOpenAiSettings, onS
     try {
       const result = await saveOfficialDocumentOdt(state.draft);
       if (result.status === "saved") onNotice(`${result.fileName} 파일을 저장했습니다.`);
+      else onNotice("ODT 저장을 취소했습니다. 작성 중인 원고는 유지됩니다.");
     } catch (error: unknown) {
       onNotice(getDesktopErrorMessage(error));
     } finally {
@@ -348,7 +349,7 @@ export function OfficialDocumentPanel({ onClose, onNotice, onOpenAiSettings, onS
               {state.aiError !== null && <p className="official-document-error" role="alert">{state.aiError}</p>}
             </section>
           </div>
-          <OfficialDocumentOutput aiResponse={output.aiResponse} aiStatus={state.aiStatus} draft={state.mode === "create" ? state.draft : null} isExportingOdt={isExportingOdt} localSummary={state.mode === "summary" ? state.summaryLocalResult : null} mode={state.mode} prompt={output.prompt} onCopy={(label, value) => void copy(label, value)} onExportOdt={() => void exportOdt()} onSendSummaryToQuickAdd={() => {
+          <OfficialDocumentOutput aiResponse={output.aiResponse} aiStatus={state.aiStatus} draft={state.mode === "create" ? state.draft : null} isExportingOdt={isExportingOdt} localSummary={state.mode === "summary" ? state.summaryLocalResult : null} mode={state.mode} prompt={output.prompt} onCopy={(label, value) => void copy(label, value)} onDraftChange={(draft) => dispatch({ type: "setDraft", draft })} onExportOdt={() => void exportOdt()} onSendSummaryToQuickAdd={() => {
             if (state.summaryLocalResult !== null) {
               onSendSummaryToQuickAdd(createOfficialDocumentQuickAddDraft(state.summaryLocalResult));
             }
