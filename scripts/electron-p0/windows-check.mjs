@@ -9,9 +9,9 @@ const run=(args,env=process.env)=>{
  if(r.status!==0)throw Error(`${args.join(' ')}: ${r.error?.message??''}\n${(r.stdout??'').split('\n').filter(l=>l.includes('P1B_DIAGNOSTIC')||l.includes('P2D2_DIAGNOSTIC')).join('\n')}\n${((r.stdout??'')+(r.stderr??'')).split('\n').slice(-25).join('\n')}`);
 };
 const npm=(task,env)=>run([process.env.npm_execpath,'run',task],env);
-const report={baseline:'ac31d15cfd49820925776f2b1fd0a0a46200bab4',sourceSha:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),baselineRegression:'REUSED: P0 CI 41236999963',installation:'NOT RUN',installedUiAndRestart:'NOT RUN',uninstallAndSettingsRetention:'NOT RUN',physicalWindowsPc:'NOT RUN'};
+const report={baseline:'b006cbbc5593daa28220be75f21a7f3c2040ac67',sourceSha:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),baselineRegression:'REUSED: P0 CI 41236999963',installation:'NOT RUN',installedUiAndRestart:'NOT RUN',uninstallAndSettingsRetention:'NOT RUN',physicalWindowsPc:'NOT RUN'};
 try{
- execFileSync('git',['diff','--exit-code',report.baseline,'--','src','src-tauri',':(exclude)src/newsletter/NewsletterStudio.tsx'],{stdio:'inherit'});
+ execFileSync('git',['diff','--exit-code',report.baseline,'--','src','src-tauri'],{stdio:'inherit'});
  report.elevated=ps('[Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)')==='True';
  if(!report.elevated&&(existsSync(join(process.env.LOCALAPPDATA,'Programs','BOGUNON DESK ELECTRON P0'))||existsSync(join(process.env.APPDATA,'BOGUNON-DESK-ELECTRON-P0'))))throw Error('Existing PoC installation/profile: refuse installation');
  report.windows=ps('(Get-CimInstance Win32_OperatingSystem).Version');

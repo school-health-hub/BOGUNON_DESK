@@ -179,3 +179,5 @@ P1A CI는 빌드/두 패키지 생성/기존 실제 패키지 GUI E2E를 실행�
 - Portable/NSIS는 `extraResources/purchase-excel-cli`에 CLI를 포함합니다. CLI 빌드 누락은 beforePack에서 거절합니다. 기존 Windows CI에 Rust 원본 비교·37개 테스트·직접 CLI 실행을 추가하고, 패키지 및 일반 사용자 NSIS 설치 경로의 CLI를 실제 실행하도록 연결했습니다. 설치 불가능한 승격 러너는 기존 정책대로 NOT RUN입니다. 운영 앱 ID·업데이트 채널·저장 경로는 변경하지 않습니다.
 - Cloud 확인: Rust 테스트 **37 PASS**, CLI 직접 XLSX/XLS·다중 시트 자동 선택·매핑·원본 결과 fixture 비교·잘못된 요청 종료 PASS. TypeScript/프로덕션 빌드 및 관련 Vitest **331 PASS**. 취소/시간 초과 후 close 대기, 출력/입력 크기 제한, 실제 CLI 임시 파일 정리 및 CSV/수동 입력/품의문/Dashboard/메모/Newsletter 회귀를 확인했습니다. Windows-target Job Object 코드 cross-check PASS(런타임 검증과 다름).
 - Cloud GUI는 DISPLAY 부재로 **BLOCKED / NOT RUN**이며 재시도하지 않습니다. Windows Job Object 런타임·Portable/NSIS 생성/실행·실기기 검증은 CI 결과가 확인되기 전 **NOT RUN**입니다. 이 상태의 최종 판정은 **CONDITIONAL**, 구현 완료/실사용 준비 완료로 표시하지 않습니다.
+
+- Windows CI 첫 실행 `41287575554`: Rust 테스트/CLI 실행 단계 PASS. 기존 source preservation은 과거 P2D1 기준과 NewsletterStudio.test.tsx의 기존 차이로 중단됐습니다. 이번 승인 기준 b006cbb와 전체 src/src-tauri를 예외 없이 비교하도록 수정해 패키징 검사를 재실행합니다.
