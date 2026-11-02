@@ -369,3 +369,60 @@ Main의 `p2:inventory-local-qa:status`는 **인자 없는 단일 상태 API**다
 - 후속: Cloud B가 transport 계약을 제공하면 고정 SHA의 필요한 파일만 선별하고 typed 업무 IPC/UUID presenter/대화상자 연결을 구현한다. 기존 DB QA CI의 local fixture stack에서 main service를 동일한 loopback 제한으로 실행하여 로그인→학교 권한→목록/상세→RPC→재조회→로그아웃/학교 전환과 중복 UUID/불명확 결과를 검사한다. 합성 계정/키는 CI에서만 생성하고 artifact/log에 남기지 않는다. 이후 별도 Windows GUI에서 모드 분리·980×700·대화상자 스크롤/포커스를 확인한다.
 
 로컬 체크포인트만 허용하며 **원격 push/PR/merge/배포는 하지 않는다**. 이 단계는 운영 또는 실제 Inventory 연결 완료가 아니다.
+
+## INV-EL-03 — Main/Preload 업무 IPC 및 Local QA 화면 (2026-11-03)
+
+**CONDITIONAL — 구현·자동 검증 완료 / 실제 DB E2E·Windows GUI NOT RUN.** INV-EL-01의 실제 Adapter 연결 BLOCKED는 이 코드에서 해소했지만, 실행 환경·실제 Auth/RLS/RPC 검증 완료를 의미하지 않는다. 기존 DB CI READY를 이번 Electron 연결 PASS로 전용하지 않는다.
+
+### 고정 기준 및 소유권
+
+- Cloud A base: `feature/electron-inventory-local-qa` / `4b37d7885050f174fddeeb4af2441c9efccd1108`.
+- Cloud B source: `codex/inventory-electron-transport` / `416599bb78e6dbe9e8261beca8a54b6b02828a9e`.
+- DB QA reference: `ci/inventory-postgres-integration-qa` / `95e4f10415a971790d476dd58ac42a12b1ffb80c`, Actions `41467324396` (이전 코드의 인계 증거).
+- 독립 worktree `/workspace/BOGUNON_DESK-inventory-el03`, branch `feature/electron-inventory-el03`. Newsletter, 기존 통합/Inventory/CI/main 작업본은 수정하지 않는다. 로컬 checkpoint commit까지만 승인됐으며 원격 push/PR/merge/deploy는 하지 않는다.
+- [Cloud B 계약](https://github.com/school-health-hub/BOGUNON_DESK/blob/416599bb78e6dbe9e8261beca8a54b6b02828a9e/docs/inventory-management/INV-EL-02-transport-contract.md)의 `src/inventory-management/connection/{electron,localQa,contracts,responses,validation,transport}.ts` **6개만** `electron-p0/main/inventory-connection/`으로 바이트 그대로 선별했다. Main tsconfig의 rootDir/output 구조를 지키고 Renderer/Preview import를 피하기 위한 Main 전용 위치다. Browser factory/원본 Cloud B 소유 경로/SQL/RPC/RLS/migration은 변경하지 않았다. 이후 B 변경도 고정 SHA와 6개 의존성 계약을 함께 검토한다.
+
+### 실행과 보안
+
+실제 Main이 읽는 `app.isPackaged`, 정확한 dev URL `http://127.0.0.1:5174/`, `INVENTORY_LOCAL_QA=1`을 매 호출에서 확인하고 `NODE_ENV=production`도 차단한다. Main의 `INVENTORY_LOCAL_QA_PUBLIC_KEY`에는 해당 로컬 스택의 publishable/anon 키만 주입한다. 예제 키/계정/비밀번호를 설정 파일에 저장하지 않으며 운영 키·service_role은 금지한다. 키가 없거나 잘못되면 실패한다. 기존 개발 명령 `npm run electron:p0:dev`를 사용하되 이번 Cloud 작업에서는 실제 앱/DB 스택을 실행하지 않았다.
+
+- `inventory-qa-transport.ts`: Main-only `createElectronInventoryConnection`에 transport v1을 주입한다. 고정 `127.0.0.1:56321`에만 Node HTTP로 요청하며 DNS/외부 URL/환경 proxy를 통한 외부 라우팅·redirect·자동 retry를 허용하지 않는다. shared validator의 method/table/RPC/query/body/key 제한을 재검사한다.
+- request 64KiB, Auth response 32KiB, REST/RPC response 2MiB, 전체 15초. Content-Length를 신뢰하지 않고 스트리밍 byte를 집계한다. 초과/timeout/abort/응답 중단 시 request를 destroy하고 listener/timer를 정리한다. raw body/key/JWT/비밀번호를 로그나 UI 오류로 반환하지 않는다. 외부 설정 URL·renderer header 지정 기능은 없다.
+- `inventory-qa-service.ts`: window별 Adapter/handle 소유, exact sender/frame/URL 전후 검사, exact arity/schema/UUID·문자열 수량 검사, 결과 IPC 크기 제한, 고정 한국어 오류. auth/school 전환·만료·dispose/창 close/navigation/render-process-gone에서 컨텍스트를 무효화한다. 무효화 revision은 단조 증가하고 read 응답은 이전 컨텍스트면 거절한다. 캐시/토큰은 Main 메모리 전용이다.
+- Main에서 logical request UUID를 생성하고 immutable PreparedMutation을 opaque handle에 저장한다. 같은 payload 준비는 같은 handle/UUID를 반환하고 중복 실행을 차단한다. Renderer는 requestUuid/다른 payload를 execute에 덧붙일 수 없다. 정상 결과 재확인도 같은 UUID를 쓴다. 결과 불명확 시 새 준비 요청을 차단하고 같은 handle로 명시적 재확인만 허용한다. unknown 후 discard는 handle만 해제하며 불명확 tombstone을 해당 컨텍스트에 유지한다. 학교/계정/모드 전환 시 요청/인증 컨텍스트는 폐기되므로 재작업 전 서버 권위 데이터를 확인해야 한다.
+- `registerItem`의 결과가 불명확하면 같은 세션에서 재등록을 차단한다. INSERT에는 서버 멱등 UUID 계약이 없으므로 자동 replay를 추가하지 않는다.
+
+### IPC / 화면 계약
+
+기존 `p2:inventory-local-qa:status`와 `inventoryLocalQa.status()`는 **3초/16KiB·고정 health GET 전용 계약 그대로**다. `inventoryConnection:'blocked'`는 기존 health 응답 계약이며 업무 연결 상태로 사용하지 않는다. health 200/실패 어느 쪽도 DB/로그인/저장 성공이 아니다. 명시적인 상태 점검 후 별도 업무 화면을 열며 health 접근이 제한됐어도 실제 로그인 요청 결과로 판단한다.
+
+새 Preload API는 `window.electronWork.inventoryLocalQa?.business` 아래에 다음 메서드만 제공한다. 채널은 각각 `p2:inventory-local-qa:<method>`이고 generic invoke/send/URL/header/token API는 없다.
+
+- `login({email,password})`, `logout()`, `authState()`, `dispose()`
+- `selectSchool({contextRevision,schoolId})`
+- `listItems({contextRevision})`, `itemDetail({contextRevision,itemId})`, `movements({contextRevision,itemId?})`
+- `purchaseBatches({contextRevision})`, `purchaseProgress({contextRevision,batchId})`
+- `registerItem({contextRevision,item:NewItem})`
+- `prepare({contextRevision,operation,input})` → `{handleId,requestUuid}`
+- `execute({contextRevision,handleId})` → 검증된 `{persisted:true,data,refreshRequired:true}`
+- `discard({contextRevision,handleId})` → null (서버 rollback/cancel 아님)
+
+`inventory-qa-protocol.ts`의 별도 `InventoryQaResult<T>`는 성공 시 `{contextRevision,value}`, 실패 시 `{contextRevision,code,serverCode?,outcomeUnknown,retryable:false,message}`를 반환한다. 공용 기존 IpcResult enum을 Adapter 오류로 확장하지 않았다. 결과 불명확/인증 만료/권한 거부/연결 실패/충돌을 구분하고 상세 서버 오류는 숨긴다.
+
+화면은 기존 Local QA 패널과 화이트/네이비/민트를 유지한다. 합성 `example.invalid` 로그인 → 명시적 학교 UUID/멤버십 확인 → 서버 목록/상세/로트/유효기간·문자열 재고 → 품목 등록 또는 입고/사용/폐기/정정 검토 → prepare → 별도 실행 → 서버 결과 재조회 → logout을 제공한다. 목록/상세는 실제 DTO 전용으로 기존 numeric JSON 또는 synthetic-* ID를 캐스팅하지 않는다. 서버 변경 성공과 후속 재조회 실패를 구분한다. 계정/학교 전환 전 데이터와 입력 폼을 비우고 늦은 응답은 무시한다. 모드를 떠나면 Main dispose와 포커스 복원을 수행한다. 인증 상태는 Main 메모리 IPC만 주기적으로 확인하며 refresh token endpoint는 없다. 실제 화면 980×700/키보드/포커스는 Windows QA 대상이다.
+
+기존 로컬 JSON 저장·백업·`inventory.load/save`, Preview 소스/무네트워크 정책, Purchase/공문/Newsletter 및 Tauri는 변경하지 않았다. Production renderer에는 Local QA 메뉴/업무 화면 코드가 제거되고 Main에서도 패키지/Production 호출을 거부한다.
+
+### 자동 검증 및 미검증
+
+- `npx vitest run electron-p0/tests/inventory electron-p0/tests/policy.test.ts electron-p0/tests/sample-ipc.test.ts electron-p0/tests/memo-ipc.test.ts`: **17개 파일 / 102 PASS**. 기존 JSON/Preview 경계, 실제 Adapter+합성 wire를 통한 로그인/학교/품목/4종 RPC/재조회/logout, bigint 문자열, UUID replay/unknown/discard/소유권/무효화, HTTP 고정 목적지/크기/timeout/abort/redirect, 실제 preload 코드의 VM 실행 계약, native Node ESM factory DEV 성공/PROD 차단을 포함한다. 실제 Electron GUI/실제 DB를 Mock 테스트로 대체해 PASS라고 하지 않는다.
+- `npm run electron:p0:build`: **PASS**, Main/Preload·renderer·테스트 TypeScript 및 Electron production build. 기존 chunk-size 경고는 유지한다. Production renderer JS에서 Local QA 메뉴/로그인/품목 폼 문구가 제거된 것을 검사했다.
+- `npm run build`: **FAIL — root TypeScript 26개 진단**. 이전 Preview 기준 진단과 경로 정규화 후 모두 동일하다. 기존 Window.electronWork 선언/공문 session 타입 범위를 확장해 수정하지 않는다. Electron 전용 빌드 PASS와 구분한다.
+- `lint`, `typecheck` npm script는 존재하지 않는다. 신규 lint/QA framework를 도입하지 않았다. 기존 Electron TypeScript 및 diff/범위/secret 패턴 감사를 사용하며 lint PASS로 표시하지 않는다.
+- 실제 Local PostgreSQL/Auth/RLS/RPC E2E **NOT RUN**, 실제 Electron Main/Preload 프로세스 간 실행 **NOT RUN**, Windows GUI/파일 설치 QA **NOT RUN**. 운영 Supabase/실제 학교 자료는 사용하지 않았다.
+
+### 후속 DB CI / Windows 인계
+
+별도 승인 후 CI 기준 `95e4f10...`의 stack/reset/migration/합성 Auth fixture와 기존 SQL 기대값을 보존한 독립 CI에서 검증한다. 기존 Browser 경로와 B의 `INVENTORY_QA_TRANSPORT=electron-host` 경로를 먼저 분리 실행하고, 다음으로 이 Main service를 native ESM으로 emit하여 실제 고정 loopback transport/typed method/contextRevision으로 동일 흐름을 검증한다. Native service 실행은 실제 Electron IPC PASS가 아니므로, 별도 Electron host에서 실제 Preload→Main 채널/forged caller·Production 차단·모드 종료도 검증한다. 합성 키/JWT/비밀번호/raw HTTP body를 artifact/log에 올리지 않는다. 이번 작업은 CI 브랜치를 수정하거나 Actions를 실행하지 않는다.
+
+Windows에서는 고정 checkpoint에서 DEV opt-in/로컬 공개 키만 프로세스에 주입하고 JSON/Preview/Local QA 모드 분리, 로그인/만료/logout, 학교 전환/권한 거부, 등록·입고·사용·폐기·정정 및 동일 UUID 재확인, unknown 후 재전송 차단, 앱/모드 종료 후 세션 정리, 980×700 스크롤/포커스/긴 UUID 표시를 확인한다. 운영 앱/데이터는 그대로 둔다. Newsletter의 Windows 출력·디자인 QA는 독립 작업이며 선행조건으로 묶지 않는다.

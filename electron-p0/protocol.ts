@@ -1,3 +1,4 @@
+import type {InventoryQaApi} from './inventory-qa-protocol.js';
 import type { PurchaseItem,PurchaseOutputColumnId,PurchaseSettlement } from './renderer/purchase/purchase/types.js';
 import type { PurchaseAnalysisResult, PurchaseColumnMapping } from './renderer/purchase/purchase/types.js';
 export const APP_ID = 'kr.sungandi.schoolhealthdesk.electronp0';
@@ -30,7 +31,7 @@ export type OfficialDocumentSave=Readonly<{title:string;body:string;attachments:
 export type OfficialDocumentImported=Readonly<{sourceName:string;format:"pdf"|"hwpx"|"odt";text:string}>;
 export type InventoryQaStatus = { mode: "local-qa"; authGateway: "reachable" | "unavailable"; inventoryConnection: "blocked"; persisted: false };
 export interface WorkBridge {
-  inventoryLocalQa?: { status: () => Promise<IpcResult<InventoryQaStatus>> };
+  inventoryLocalQa?: { status: () => Promise<IpcResult<InventoryQaStatus>>; business?: InventoryQaApi };
  readonly officialDocument:Readonly<{pick():Promise<IpcResult<OfficialDocumentImported|null>>;save(document:OfficialDocumentSave):Promise<IpcResult<{fileName:string}|null>>;cancel():Promise<IpcResult<null>>}>;
  readonly educationVideo:EducationVideoBridge;
  readonly inventory:Readonly<{load():Promise<IpcResult<Readonly<{document:InventoryDocument|null;recovered:boolean}>>>;save(document:InventoryDocument):Promise<IpcResult<Readonly<{document:InventoryDocument;recovered:boolean}>>>}>;

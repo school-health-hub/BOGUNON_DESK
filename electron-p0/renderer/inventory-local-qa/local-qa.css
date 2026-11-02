@@ -2,3 +2,8 @@
 .inventory-local-qa header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .inventory-local-qa button{background:#e4f4ef;color:#172b49;border:1px solid #b5d9cc;border-radius:10px;padding:10px 14px}
 @media(max-width:700px){.inventory-local-qa{inset:8px;padding:16px}}
+.inventory-qa-workspace{border-top:1px solid #cde5e0;margin-top:20px;padding-top:16px}
+.inventory-qa-workspace form,.inventory-qa-workspace fieldset{display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin:16px 0;padding:12px;border:1px solid #cde5e0;border-radius:10px}
+.inventory-qa-workspace label{display:flex;flex-direction:column;gap:6px;min-width:140px;max-width:100%}
+.inventory-qa-workspace input,.inventory-qa-workspace select{padding:8px;border:1px solid #bdcecf;border-radius:6px;max-width:100%;box-sizing:border-box}
+.inventory-qa-table{overflow:auto;max-width:100%;margin:16px 0}.inventory-qa-table table{border-collapse:collapse;width:100%}.inventory-qa-table th,.inventory-qa-table td{padding:10px;border-bottom:1px solid #dce8e5;text-align:left}

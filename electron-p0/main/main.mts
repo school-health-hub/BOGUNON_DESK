@@ -1,3 +1,5 @@
+import {InventoryQaService,inventoryQaHandler} from './inventory-qa-service.js';
+import {INVENTORY_QA_ACTIONS} from '../inventory-qa-protocol.js';
 import {createInventoryQaStatusHandler} from './inventory-local-qa.js';
 import {OfficialDocumentService,createOfficialDocumentHandlers} from './official-document-files.js';
 import {createSpecialPreview} from './purchase-specialized.js';
@@ -116,6 +118,9 @@ else {
   ipcMain.handle('p2:education-video:import',educationVideoHandlers.import);
   ipcMain.handle('p2:education-video:export',educationVideoHandlers.export);
   ipcMain.handle('p2:education-video:recover',educationVideoHandlers.recover);
+  const inventoryQa=new InventoryQaService({readExecutionState:()=>({packaged:app.isPackaged,devUrl:dev,optIn:process.env.INVENTORY_LOCAL_QA})},()=>process.env.INVENTORY_LOCAL_QA_PUBLIC_KEY??'');
+  for(const action of INVENTORY_QA_ACTIONS)ipcMain.handle(`p2:inventory-local-qa:${action}`,inventoryQaHandler(inventoryQa,action,window.webContents,url));
+  window.on('close',()=>inventoryQa.close());window.webContents.on('will-navigate',()=>inventoryQa.close());window.webContents.on('render-process-gone',()=>inventoryQa.close());
   ipcMain.handle('p2:inventory-local-qa:status',createInventoryQaStatusHandler(window.webContents,url,{packaged:app.isPackaged,devUrl:dev,optIn:process.env.INVENTORY_LOCAL_QA}));
   ipcMain.handle('p2:inventory:load',async(event,...args:unknown[])=>{try{assertSender(event,window.webContents,url);if(args.length)throw Error('Invalid input');return {ok:true,data:await inventoryStore.load()};}catch{return {ok:false,error:{code:'STORAGE_ERROR',message:'격리된 재고를 불러오지 못했습니다. 기존 파일은 유지됩니다.',retryable:true}};}});
   ipcMain.handle('p2:inventory:save',async(event,document:unknown,...args:unknown[])=>{try{assertSender(event,window.webContents,url);if(args.length)throw Error('Invalid input');return {ok:true,data:await inventoryStore.save(document)};}catch{return {ok:false,error:{code:'STORAGE_ERROR',message:'재고 기록을 저장하지 못했습니다. 기존 파일은 유지됩니다.',retryable:true}};}});
