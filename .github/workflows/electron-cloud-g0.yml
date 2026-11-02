@@ -1,0 +1,31 @@
+name: Electron CLOUD-G0 integration
+on:
+  push:
+    branches: [codex/cloud-g0-integration-stabilization]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  integration:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Prepare original Rust fixtures then integrated Electron automated tests
+        run: npm run electron:p0:test
+      - name: Electron TypeScript and production build
+        run: npm run electron:p0:build
+      - name: Only integrated entries (no file-dialog or full Windows QA repeat)
+        run: npx playwright test --config electron-p0/playwright.config.ts dashboard.e2e.ts --grep CLOUD-G0
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: CLOUD-G0-entry-evidence-${{ github.sha }}
+          path: artifacts/electron-p0-e2e/
+          if-no-files-found: ignore
+          retention-days: 7

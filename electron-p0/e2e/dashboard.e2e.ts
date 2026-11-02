@@ -18,7 +18,7 @@ test('real Electron: secure bridge, original dashboard/dock, navigation, edit an
   const info=await page.evaluate(()=>window.electronP0.info());expect(info.appId).toBe('kr.sungandi.schoolhealthdesk.electronp0');expect(info.userData).toContain(id);
   await page.getByRole('button',{name:'설정',exact:true}).click();await expect(page.getByRole('heading',{name:'PoC 설정'})).toBeVisible();
   const beforeSample=await page.evaluate(()=>window.electronP0.readSettings());
-  expect(await page.evaluate(()=>({keys:Object.keys(window.electronWork),sample:Object.keys(window.electronWork.sample)}))).toEqual({keys:['inventory','educationVideo','purchase','sample','newsletter','memo'],sample:['summarize']});
+  expect(await page.evaluate(()=>({keys:Object.keys(window.electronWork),sample:Object.keys(window.electronWork.sample)}))).toEqual({keys:['officialDocument','inventory','educationVideo','purchase','sample','newsletter','memo'],sample:['summarize']});
   await page.getByRole('button',{name:'합성 IPC 확인',exact:true}).click();
   await expect(page.getByText('합성 항목 3개 중 1개 완료',{exact:true})).toBeVisible();
   expect(await page.evaluate(()=>window.electronWork.sample.summarize({fixture:'synthetic-only',completed:['prepare','prepare']} as never))).toMatchObject({ok:false,error:{code:'INVALID_INPUT'}});
@@ -86,4 +86,28 @@ await page.getByRole('button',{name:'홈으로'}).click();
   await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].close());
   await expect.poll(()=>child.exitCode).toBe(0);closed=true;
  }finally{if(!closed)await app.close();}
+});
+
+test('CLOUD-G0: one isolated Electron instance opens every integrated entry',async()=>{
+ const id=randomUUID(),app=await launch(id),checked:string[]=[],errors:string[]=[];
+ try{
+  const page=await app.firstWindow({timeout:10000});page.on('pageerror',error=>errors.push(error.name));
+  const dock=page.getByRole('navigation',{name:'주요 기능'});
+  const home=page.getByRole('main',{name:'보건실 업무 위젯 작업 공간'});
+  await expect(home).toBeVisible();checked.push('Dashboard');await expect(dock).toBeVisible();checked.push('Dock');
+  expect((await page.evaluate(()=>window.electronP0.info())).userData).toContain(id);
+  expect(await app.evaluate(({app})=>app.commandLine.hasSwitch('no-sandbox'))).toBe(false);
+  expect(await page.evaluate(()=>typeof (window as unknown as {require:unknown}).require)).toBe('undefined');
+  expect(await page.evaluate(()=>Object.keys(window.electronWork).sort())).toEqual(['educationVideo','inventory','memo','newsletter','officialDocument','purchase','sample']);
+  await dock.getByRole('button',{name:'빠른 메모',exact:true}).click();await expect(page.getByRole('dialog',{name:'빠른 메모'})).toBeVisible();checked.push('Quick Memo');await page.getByRole('button',{name:'홈으로'}).click();
+  const tools=async()=>{await dock.getByRole('button',{name:'업무 도구',exact:true}).click();};
+  await tools();await page.getByRole('button',{name:'품의 도우미 · 세션 전용'}).click();await expect(page.getByRole('heading',{name:'품의 도우미',exact:true})).toBeVisible();checked.push('Purchase');await page.getByRole('button',{name:'품의 도우미 닫기'}).click();
+  await tools();await page.getByRole('button',{name:'교육영상 Finder · 합성 Mock'}).click();await expect(page.getByRole('heading',{name:/AI 교육영상 Finder/})).toBeVisible();checked.push('Finder');await page.getByRole('button',{name:'보건 업무로',exact:true}).click();
+  await tools();await page.getByRole('button',{name:'공문작업실 · 로컬 초안'}).click();await expect(page.getByRole('heading',{name:'공문작업실',exact:true})).toBeVisible();checked.push('공문작업실');await page.getByRole('button',{name:'보건 업무로',exact:true}).click();
+  await tools();await page.getByRole('button',{name:'재고 관리 · 합성 로컬'}).click();await expect(page.getByRole('heading',{name:'재고 관리',exact:true})).toBeVisible();checked.push('Inventory');await page.getByRole('button',{name:'대시보드로',exact:true}).click();
+  await dock.getByRole('button',{name:'설정',exact:true}).click();await page.getByRole('button',{name:'보건소식지 제작소',exact:true}).click();await expect(page.getByRole('heading',{name:'보건소식지 제작소',exact:true})).toBeVisible();checked.push('Newsletter');await page.getByRole('button',{name:'보건 업무로',exact:true}).click();
+  await expect(home).toBeVisible();await expect(dock).toBeVisible();expect(errors).toEqual([]);expect(checked).toHaveLength(8);
+  console.log('CLOUD_G0_ENTRIES '+JSON.stringify({checked,profile:'UUID-isolated',security:'sandboxed',fileProcessingQa:'REUSED: Windows PC PASS per user; not repeated'}));
+  await page.screenshot({path:'artifacts/electron-p0-e2e/cloud-g0-entries.png'});
+ }finally{await app.close();}
 });

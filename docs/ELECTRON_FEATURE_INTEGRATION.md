@@ -1,5 +1,7 @@
 # BOGUNON DESK 2.0 Electron 기능 통합 기록
 
+> 최신 기준은 아래 **CLOUD-G0** 절입니다. 앞부분은 이전 통합 당시의 이력입니다.
+
 ## 기준과 계보
 
 - 통합 브랜치: `codex/electron-feature-integration`
@@ -39,3 +41,43 @@
 - 통합 실행본 6개 화면의 단일 Windows 진입 확인
 
 상세 결함 상태는 `docs/INTEGRATED_DEFECTS.md`를 기준으로 한다. PR, main 병합, 설치, 운영 배포는 수행하지 않는다.
+
+
+## CLOUD-G0 — 2026-11-02 통합 안정화
+
+- 기준/원격 확인: `codex/electron-official-document-files-integration` = `d167c934c1281cbfd9927fa94e8cc02b66d44b2f`. 변경 시작 시 clean. 별도 Cloud worktree/브랜치 `codex/cloud-g0-integration-stabilization` 사용.
+- 포함 계보: P0/P1 Dashboard·Dock/창·트레이, P2 메모·Purchase CSV/Excel/PDF/품목·정산·에듀파인 출력, Newsletter JSON/이미지/출력/revision, Finder, 공문작업실, Inventory. `8f0044cd…` 7기능 기준 + `b0d3545…` 공문 파일 IPC/CLI + `d167c93…` 인계/패키징 준비가 포함된다. Tauri/기능 원본 브랜치는 병합·변경하지 않는다.
+
+### 실패 재현과 최소 조치
+
+| 항목 | 재현/분류 | G0 조치/판정 |
+| --- | --- | --- |
+| 기존 9 FAIL | 새 worktree에서 Excel UI 1, Excel service 1, PDF 7건 실패 재현(3파일 9 FAIL/8 PASS). `target/qa-fixtures` 미생성, 제품 결함 근거 없음 | `electron:p0:test`에 원본 Rust 계약 테스트의 fixture 생성과 두 fixed CLI 빌드를 선행. 테스트 삭제/skip/약화 없이 해당 17건 모두 포함한 Electron 225 PASS |
+| Dashboard·Dock | 기존 pure/UI 테스트 | 10파일 47 PASS. Electron 41파일 225 PASS와 합계 **51파일 272 PASS** |
+| Rust Purchase 계약 | 원본 fixture 생성·PDF 합계 행 회귀 포함 | **55 PASS**. 공문 Rust core/Windows 파일 QA는 기존 검증 재사용; 실행에 필요한 CLI만 빌드 |
+| Electron 타입·빌드 | main/renderer/tests 3개 구성 및 닫힌 renderer 검사 | PASS. Tauri/auth/Supabase/MY FINANCE 금지 경계 유지; `officialDocumentSession`은 bundle에 없음 |
+| 전체 `npx tsc --noEmit` | **26 오류**: Electron bridge ambient 선언이 root 범위에 없는 파생 오류 24건 + 기존 공문 session/reference 2건 | 분리 확인용 `/tmp` tsconfig에서 bridge 선언만 포함하면 기존 2건만 남음. Electron 전용 구성은 PASS. Tauri 원본/전역 타입을 억지 수정하지 않아 root 검사는 여전히 FAIL |
+| 과거 Dashboard E2E bridge key 단정 | 새 `officialDocument` API를 반영하지 않은 기대값 | 승인된 명시 API를 포함한 정확한 key 집합으로 갱신. 범용 IPC 허용이나 단정 삭제 없음 |
+
+`npm run electron:p0:test`는 Cargo·Node가 설치된 새 worktree에서도 원본 생성 자료를 준비하고 Electron/Dashboard/Dock 테스트를 실행한다. 다른 worktree의 target/fixture를 복사하지 않는다. 개별 `vitest` 직접 실행 전에는 `node scripts/electron-p0/prepare-tests.mjs`가 필요하다. 데이터 파일은 합성 fixture와 UUID PoC 프로필만 사용한다.
+
+### 통합 진입 현황
+
+| 진입점 | 코드 포함/Cloud 근거 | 단일 Windows 실행본 진입 |
+| --- | --- | --- |
+| Dashboard | 기존 위젯·설정/레이아웃 테스트 PASS | CI 확인 중 |
+| Dock | 기존 UI/저장 테스트 PASS | CI 확인 중 |
+| Quick Memo | memo IPC 및 기존 테스트 PASS | CI 확인 중 |
+| Purchase | fixture 준비 후 가져오기·출력·편집 테스트 PASS | CI 확인 중 |
+| Newsletter | 프로젝트/JSON/출력 경계 테스트 PASS | CI 확인 중 |
+| Finder | model/library/UI 테스트 PASS | CI 확인 중 |
+| 공문작업실 | 기존 파일 처리 CI `41401980509` PASS, **Windows 실기기 QA PASS(사용자 보고, 이번에 재실행하지 않음)** | 진입만 CI 확인 중; 파일 대화상자 QA 재실행 아님 |
+| Inventory | store/model/workspace 테스트 PASS | CI 확인 중 |
+
+### 검증 범위와 잔여
+
+- 새 Windows CI는 이 자동 테스트·타입/production build와 **8개 진입만** 수행한다. 설치/제거·반복 파일 처리·전체 심층 Windows QA를 수행하지 않는다. 단일 인스턴스/UUID 프로필, sandbox/contextIsolation 유지, 범용 IPC 노출 없음.
+- Cloud에는 GUI 세션이 없어 실제 Electron GUI는 NOT RUN. 이를 Windows/단위 테스트 PASS로 대체하지 않는다.
+- 실제 제품 실행 코드 변경은 **없음**. 확인된 9건은 준비 경로 결함이므로 개발 검증 경로만 수정했다. Windows 진입 중 제품 결함이 재현되면 별도 기록한다.
+- 전체 저장소 Tauri 타입 2건, Newsletter 실제 출력/자산 승인 검증, Purchase PDF 실제 GUI 요약 행 재검증 등 기존 잔여를 미검증 상태로 유지한다. 승인 reference/AI, Calendar 운영 연계, Inventory↔Purchase 자동 입고, 계정/운영 DB/MY FINANCE는 신규 구현하지 않는다.
+- 다음 우선순위: 통합 진입 CI 잔여 → Newsletter 승인된 합성 자산/실제 출력 계약 검증 → Purchase PDF 실제 GUI 요약 행 확인 → 기존 기능의 다음 이식(공문 reference는 별도 승인·계약 확인 후). Calendar/운영 동기화는 데이터/인증 전략 확정 전 DEFER.
