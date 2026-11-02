@@ -426,3 +426,56 @@ Main의 `p2:inventory-local-qa:status`는 **인자 없는 단일 상태 API**다
 별도 승인 후 CI 기준 `95e4f10...`의 stack/reset/migration/합성 Auth fixture와 기존 SQL 기대값을 보존한 독립 CI에서 검증한다. 기존 Browser 경로와 B의 `INVENTORY_QA_TRANSPORT=electron-host` 경로를 먼저 분리 실행하고, 다음으로 이 Main service를 native ESM으로 emit하여 실제 고정 loopback transport/typed method/contextRevision으로 동일 흐름을 검증한다. Native service 실행은 실제 Electron IPC PASS가 아니므로, 별도 Electron host에서 실제 Preload→Main 채널/forged caller·Production 차단·모드 종료도 검증한다. 합성 키/JWT/비밀번호/raw HTTP body를 artifact/log에 올리지 않는다. 이번 작업은 CI 브랜치를 수정하거나 Actions를 실행하지 않는다.
 
 Windows에서는 고정 checkpoint에서 DEV opt-in/로컬 공개 키만 프로세스에 주입하고 JSON/Preview/Local QA 모드 분리, 로그인/만료/logout, 학교 전환/권한 거부, 등록·입고·사용·폐기·정정 및 동일 UUID 재확인, unknown 후 재전송 차단, 앱/모드 종료 후 세션 정리, 980×700 스크롤/포커스/긴 UUID 표시를 확인한다. 운영 앱/데이터는 그대로 둔다. Newsletter의 Windows 출력·디자인 QA는 독립 작업이며 선행조건으로 묶지 않는다.
+
+## INV-EL-04 — Electron Host 실제 DB CI 준비 (2026-11-03)
+
+**BLOCKED — 실제 CI 실행을 위한 전용 브랜치 push 승인 대기.** 로컬 준비 검증은 통과했지만 실제 PostgreSQL/Auth/RPC E2E·Windows Actions·실제 Electron IPC/Windows GUI는 **NOT RUN**이다. 기존 DB CI나 Mock 테스트를 이번 실제 DB PASS로 전용하지 않는다.
+
+### 고정 기준과 실행 계약
+
+- Host base: `feature/electron-inventory-el03` / `9915eff1ea5a016977b017ab9bedf9f1f9070e1f`.
+- Cloud B: `codex/inventory-electron-transport` / `416599bb78e6dbe9e8261beca8a54b6b02828a9e`.
+- DB baseline: `ci/inventory-postgres-integration-qa` / `95e4f10415a971790d476dd58ac42a12b1ffb80c`. GitHub API에서 run `41467324396`의 정확한 SHA/branch/push event 및 conclusion=success를 확인했다. 이 결과는 기존 코드의 근거다.
+- 새 브랜치 `ci/inventory-electron-host-qa`는 기존 INV-EL-03 작업 폴더를 재사용한다. 새 worktree를 만들지 않았고, 원래 feature/Newsletter/Cloud B/통합 브랜치를 움직이지 않는다.
+- 기존 DB workflow/run.mjs는 정확한 이전 QA ref/push에서만 실행된다. guard를 약화하거나 GITHUB_REF를 위장해 호출하지 않는다. 새 workflow `.github/workflows/inventory-electron-host-qa.yml`도 정확한 새 QA ref의 push에서만 실행한다. GitHub API에서 새 workflow는 아직 404이며, default branch에 없는 workflow_dispatch로 실행할 수 있다고 가정하지 않는다. **push가 두 CI job을 실행하므로 별도 사용자 승인이 필요하다.**
+
+### 최소 변경 6개 파일
+
+- `.github/workflows/inventory-electron-host-qa.yml`: Linux 실제 DB job + 별도 Windows Node 계약/타입/빌드 job. contents:read, credential persistence 없음, 배포/PR/Git push step 없음.
+- `scripts/electron-p0/inventory-host-ci-policy.mjs`: repo/ref/push/Linux/opt-in/외부 환경 및 고정 local config guard, 실제 E2E 증거의 필수 case 검증.
+- `scripts/electron-p0/inventory-host-ci-policy.test.mjs`: 정책/미지원 context/Mock·누락·skip 증거 거부 테스트.
+- `scripts/electron-p0/inventory-host-ci.mjs`: 자원/기존 stack/로컬 Docker context/CLI 2.121.0 integrity 확인 → 계약/빌드 → 최소 stack → unchanged migration → 실제 E2E → always cleanup. raw 명령 출력·SQL·JWT·키·HTTP body는 저장/출력하지 않는다.
+- `scripts/electron-p0/inventory-host-db-e2e.mjs`: 실제 emit된 Main handler/service와 기존 native Node HTTP transport를 통한 Auth/REST/RPC 요청. transport/DB 응답을 Mock하지 않는다. 학교·계정·품목은 실행 때 새 UUID와 example.invalid 합성 계정으로 생성한다.
+- 이 기존 인계 문서.
+
+제품 Main/Preload/Transport/UI 및 package/lockfile은 Host base와 동일하다. SQL/RPC/RLS/migration 또는 기존 CI 지원 파일을 복사·수정하지 않는다. workflow의 두 번째 credential 없는 checkout으로 **DB SHA를 고정**해 `.inventory-db-baseline`에 읽고 해당 config/migration을 사용한다. 단계마다 pin/변경 여부를 확인한다. 6개 migration 순서와 기존 security catalog/final invariant만 확인하며, 기존 SQL 78+15와 전체 B 회귀를 반복하지 않는다.
+
+### 예정된 실제 DB 검증 경로
+
+Linux GitHub-hosted fresh runner에서만 시작하며, 기본 local Unix Docker socket·inventory_qa의 기존 컨테이너 부재·14GiB disk/3GiB RAM을 요구한다. PostgreSQL/Auth/REST/Kong만 시작하고 외부 프로젝트/원격 Docker/운영 환경으로 fallback하지 않는다. stop은 이번 job이 start를 시도한 inventory_qa만 수행하며 prune/all-stop은 없다.
+
+실제 E2E 필수 case:
+
+1. 실제 Auth 합성 signup/login + 학교 멤버십 선택.
+2. Main registerItem + 서버 목록/상세 재조회.
+3. 입고/사용 prepare→execute, 중복 동시 실행 거부, 같은 UUID replay 및 실제 재고/idempotency 1건 확인.
+4. 폐기/정정 + 이동 이력/권위 수량 확인.
+5. 타학교 목록/상세/학교 선택 거부와 instructor 등록/구매 권한 거부.
+6. discard가 stock을 바꾸지 않음, logout/재로그인 후 오래된 handle 거부.
+7. 실제 Auth 세션을 만든 뒤 Node 내장 테스트 clock으로 **클라이언트 메모리 만료**만 검증. 서버 JWT의 실제 wall-clock 만료는 NOT RUN으로 별도 표기한다. Auth 응답/transport를 위조하지 않는다.
+8. 이번 job이 생성·확인한 Kong만 pause하여 실제 HTTP 15초 timeout을 확인하고 finally unpause.
+9. 해당 Kong stop으로 실제 연결 실패를 확인하고 finally start·제한된 readiness 확인·stock 불변 확인. 중단 시 outer always cleanup도 paused gateway를 복구하고 해당 project만 stop한다. 다른 컨테이너/프로세스는 중단하지 않는다.
+10. Production capability 거절 및 서버 stock 불변.
+
+Node에서 실제 Main handler 함수를 호출하지만 sender/window는 harness 객체다. 따라서 실제 Electron Main↔Preload 프로세스 간 IPC·GUI PASS로 표시하지 않는다. Linux summary는 실제 DB/Mock 여부, 필수 case, 실패 case enum, SHA/run ID와 단계 상태만 담고 `${runner.temp}/inventory-host-qa/summary.json`만 artifact로 업로드한다. real case가 하나라도 빠지거나 실행이 skip/실패하면 PASS gate가 거부한다. Windows job은 Docker/DB/설치/GUI 없이 native Node/Preload VM 계약과 Electron build만 실행하며 결과를 Linux에서 추정하지 않는다.
+
+### 이번 로컬 확인과 다음 승인
+
+- 새 정책 테스트 **3 PASS**.
+- 기존 Inventory/JSON/Preview/Main/Preload/transport 회귀 **17개 파일 / 102 PASS**.
+- Electron TypeScript/production build **PASS** (기존 chunk-size 경고 유지).
+- 새 Node 스크립트 구문, 기존 Python YAML parser의 workflow ref/job/permission/pin 검사, `git diff --check` PASS. 새 dependency/QA framework는 설치하지 않았다.
+- 실제 DB E2E **NOT RUN**, GitHub Actions Linux/Windows **NOT RUN**, 실제 Electron IPC/Windows GUI **NOT RUN**. Cloud/집 PC Docker는 실행하지 않았고 운영 Supabase에 접속하지 않았다.
+- 기존 root 타입 오류 26건은 이전 인계 상태 그대로이며 제품 코드가 동일하므로 이번 준비 단계에서 불필요하게 재실행/수정하지 않았다.
+
+로컬 checkpoint 후, 이 **새 QA 브랜치만 일반 push하고 그 push로 격리 Linux DB·Windows 계약 job을 실행하는 승인**을 요청한다. 기존 DB CI/제품/Newsletter/main 브랜치 push나 PR/병합/운영 배포는 포함하지 않는다. 승인 후에도 실제 run 결과를 확인하기 전에는 DB PASS로 표시하지 않는다.
