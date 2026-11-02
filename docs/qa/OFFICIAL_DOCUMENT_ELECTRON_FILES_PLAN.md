@@ -31,3 +31,12 @@
 - LF 원본 PDF 562B는 실제 CLI에서 `PDF unreadable`로 거절됨. CRLF 593B는 `Synthetic official document QA`를 추출했다. 실행용 fixture는 WIP 593B를 유지하며 복구 inventory는 변경 전 증거로 보존한다. 이 차이를 엔진 재작성/검사 완화로 우회하지 않는다.
 - dev/packaging 스크립트에 fixed CLI build·extraResources·beforePack 존재 검사 추가. Windows release CLI는 static CRT로 빌드하도록 설정했다. 실제 Portable/NSIS 패키지 생성·실행은 이번 범위에서 **NOT RUN**.
 - Windows는 새 집중 CI에서 Rust와 이 6파일/타입/빌드만 실행한다. 이전 PASS 7기능 전체 QA/GUI는 재실행하지 않는다. CI 결과와 실제 Windows PC 결과는 별도로 기록한다.
+
+## Windows 집중 CI 및 최종 인계
+
+- 검증 구현 SHA `b0d3545dedcf336b3e6529db391c878379e096ff`.
+- [Windows CI 41401980509](https://github.com/school-health-hub/BOGUNON_DESK/actions/runs/41401980509) **SUCCESS**. Windows Rust 계약/CLI, 실제 CLI를 통한 PDF/HWPX/ODT 반입·승인 템플릿 생성/재반입·새 파일 저장·원본 보존, 공문 IPC/UI 계약 테스트와 TypeScript/production build가 통과했다. native dialog는 테스트 포트로 대체하므로 실제 대화상자 PASS를 의미하지 않는다.
+- 후속 마감 변경은 이 결과 문서와 기존 선택적 전체 패키징 스크립트의 CLI 선행 빌드 1줄이다. `node --check` PASS. 이 선택적 전체 흐름은 실행하지 않았으며 `[skip ci]` 마감으로 집중 CI를 불필요하게 반복하지 않는다. 기능 구현/테스트 소스는 위 검증 SHA 그대로다.
+- **실제 Windows Codex/학교 PC NOT RUN**: 현재 연결 실행기는 Linux다. 사용자 PC native open/save/취소·한글 경로, 앱을 통한 ODT 저장·외부 ODT 프로그램 열기/인쇄, 취소/권한 오류 후 편집 상태, 패키징된 CLI와 일반 사용자 실행은 미검증이다. Portable/NSIS 생성/설치·7기능 전체 QA·GUI 재시도는 하지 않았다. Clippy NOT RUN(도구 미설치).
+- **최종 CONDITIONAL**: 승인 범위의 연결 및 Linux/Windows 집중 자동 검증은 통과. 설치 앱/실기기 사용 가능 최종 승인은 남긴다. 기존 Tauri 원본, 운영 자료, reference, AI, 디자인 및 원본 서식/표 구조 보존은 이번 변경 대상이 아니다.
+- 다음 단계: 학교 PC 별도 worktree에서 최종 SHA를 확인하고 합성 파일로 native 반입/취소·편집 중 취소, 새로운 한글 ODT 저장/기존 대상 거절, 실제 ODT 프로그램 열기와 승인 템플릿 결과를 집중 확인한다. 기존 7기능 전체 QA를 다시 돌리지 않는다. 저장은 hardlink 지원 로컬 디스크를 사용하며 미지원 파일시스템 실패를 덮어쓰기 fallback으로 바꾸지 않는다.

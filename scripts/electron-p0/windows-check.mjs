@@ -18,6 +18,7 @@ try{
  // Build once; the package script intentionally remains compatible with P0 portable users.
  npm('electron:p0:build');
  run([process.env.npm_execpath,'exec','--','vitest','run','electron-p0/tests','src/newsletter','--maxWorkers=4']);
+ run(['scripts/electron-p0/build-official-document.mjs','--release']);
  run(['node_modules/electron-builder/out/cli/cli.js','--config','electron-p0/builder.json','--win','portable','nsis','--x64','--publish','never']);
  const excelCli=join(process.cwd(),'release-electron-p0/win-unpacked/resources/purchase-excel-cli/purchase-excel-cli.exe');
  if(!existsSync(excelCli))throw Error('Packaged Excel CLI missing');
