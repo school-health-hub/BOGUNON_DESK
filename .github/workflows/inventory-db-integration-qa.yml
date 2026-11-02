@@ -1,0 +1,66 @@
+name: Inventory PostgreSQL integration QA
+
+# This file need not exist on main. Only this exact QA branch push starts it.
+on:
+  push:
+    branches: [ci/inventory-postgres-integration-qa]
+    paths:
+      - .github/workflows/inventory-db-integration-qa.yml
+      - inventory-management/qa/**
+      - src/inventory-management/**
+      - docs/inventory-management/INV-CI-01.md
+      - package.json
+      - package-lock.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: inventory-postgres-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  postgres:
+    if: github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/ci/inventory-postgres-integration-qa'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      CI: 'true'
+      INVENTORY_CI_ONLY: '1'
+      NO_COLOR: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install locked frontend dependencies (no lifecycle scripts)
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Guard branch, resources, Docker and pinned CLI
+        run: node inventory-management/qa/ci/run.mjs preflight
+      - name: Start isolated minimum PostgreSQL Auth REST Kong stack
+        run: node inventory-management/qa/ci/run.mjs start
+      - name: Clean migration and schema baseline
+        run: node inventory-management/qa/ci/run.mjs migration
+      - name: Historical contracts and actual SQL regression (78 + 15)
+        run: node inventory-management/qa/ci/run.mjs regression
+      - name: Actual JWT roles, tenant isolation and concurrency
+        run: node inventory-management/qa/ci/run.mjs jwt
+      - name: Cloud B real adapter integration (4) and Preview isolation
+        run: node inventory-management/qa/ci/run.mjs adapter
+      - name: Database lint, permission catalog and final invariants
+        run: node inventory-management/qa/ci/run.mjs security
+      - name: Stop only inventory_qa (no reset or prune)
+        if: always()
+        run: node inventory-management/qa/ci/run.mjs stop
+      - name: Upload allowlisted sanitized summary only
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: inventory-postgres-summary-${{ github.run_id }}
+          path: inventory-management/qa/reports/inv-ci-01/summary.json
+          if-no-files-found: warn
+          retention-days: 7
+          include-hidden-files: false

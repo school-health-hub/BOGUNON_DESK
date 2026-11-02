@@ -22,9 +22,11 @@ if ($ids.Count -ne 34 -or (@($ids | Sort-Object -Unique)).Count -ne 34) {
 
 $requiredContractFields = @("id", "category", "entities", "environment", "fixture", "preconditions", "steps", "expected", "failureMessage", "cleanup", "implementationStage", "status")
 $implementedContractIds = @(
-  "INV-D01", "INV-D02", "INV-D03", "INV-D04", "INV-D05", "INV-D07", "INV-D08", "INV-D09",
+  "INV-D01", "INV-D02", "INV-D03", "INV-D04", "INV-D05", "INV-D06", "INV-D07", "INV-D08", "INV-D09",
   "INV-C01", "INV-C02", "INV-C03", "INV-C04", "INV-C05", "INV-C06",
-  "INV-S01", "INV-S02", "INV-S03", "INV-S04", "INV-S05", "INV-S06", "INV-S07", "INV-S08"
+  "INV-S01", "INV-S02", "INV-S03", "INV-S04", "INV-S05", "INV-S06", "INV-S07", "INV-S08",
+  # Purchase contracts implemented in b2efb09; see INV-CI-01 evidence mapping.
+  "INV-P01", "INV-P02", "INV-P03", "INV-P04"
 )
 foreach ($contract in $contracts.contracts) {
   foreach ($field in $requiredContractFields) {
