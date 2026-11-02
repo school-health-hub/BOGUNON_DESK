@@ -426,3 +426,160 @@ Main의 `p2:inventory-local-qa:status`는 **인자 없는 단일 상태 API**다
 별도 승인 후 CI 기준 `95e4f10...`의 stack/reset/migration/합성 Auth fixture와 기존 SQL 기대값을 보존한 독립 CI에서 검증한다. 기존 Browser 경로와 B의 `INVENTORY_QA_TRANSPORT=electron-host` 경로를 먼저 분리 실행하고, 다음으로 이 Main service를 native ESM으로 emit하여 실제 고정 loopback transport/typed method/contextRevision으로 동일 흐름을 검증한다. Native service 실행은 실제 Electron IPC PASS가 아니므로, 별도 Electron host에서 실제 Preload→Main 채널/forged caller·Production 차단·모드 종료도 검증한다. 합성 키/JWT/비밀번호/raw HTTP body를 artifact/log에 올리지 않는다. 이번 작업은 CI 브랜치를 수정하거나 Actions를 실행하지 않는다.
 
 Windows에서는 고정 checkpoint에서 DEV opt-in/로컬 공개 키만 프로세스에 주입하고 JSON/Preview/Local QA 모드 분리, 로그인/만료/logout, 학교 전환/권한 거부, 등록·입고·사용·폐기·정정 및 동일 UUID 재확인, unknown 후 재전송 차단, 앱/모드 종료 후 세션 정리, 980×700 스크롤/포커스/긴 UUID 표시를 확인한다. 운영 앱/데이터는 그대로 둔다. Newsletter의 Windows 출력·디자인 QA는 독립 작업이며 선행조건으로 묶지 않는다.
+## Newsletter B안 편집 구조 선별 이식 — 미커밋 검토본 (2026-11-03)
+
+기준은 `integration/newsletter-json-guard` / `e78ee6c8035a5130fb1a5014b88e435a69a82565`, 참고 소스는 `feature/newsletter-studio` / `d7f9a01b1222c068002b3bb0aa00bfaba4ce5e2a`다. 별도 worktree/브랜치 `feature/newsletter-b-editor-port`에서 필요한 스키마·편집·Scene/SVG·자산 참조 코드와 집중 테스트만 선별했다. 원본 NewsletterStudio, Main/Preload IPC, JSON/프로젝트 저장 어댑터, 다른 작업실 및 Inventory, Tauri/Rust는 변경하지 않는다. 승인 전 commit/push/PR/merge/deploy는 하지 않는다.
+
+- 기존 B안 JSON의 officialTemplate, 표시/마스크, foregroundMask, referenceLayout, visualFinish, feather를 현재 문서와 혼합 V1/V2 revision에서 보존한다. `compatibility.ts`와 `studioDocument.ts`는 바이트 단위로 유지하며 새 미지원 필드/enum은 계속 거부한다. 스키마 허용과 compiler/React/SVG 이식을 함께 수행했다.
+- 기존 JSON에 이미 있는 요소만 편집한다. 위치/크기/겹침 순서, 글자 크기/색, 원고에 연결된 한글 문구, 마무리 문구, 이미지 교체/맞춤/표시/마스크 토글을 제공한다. 문구는 기존 원고 편집 계약을 사용하며 숫자/강조 등 파생 binding은 임의의 literal로 바꾸지 않는다. 여러 줄 원고는 기존 원고 편집 textarea를 사용한다. 한국어 원고는 명시적인 사용자 반영 전에는 변경하지 않는다. 공통 원고 binding을 참조하는 다른 표시에도 해당 사용자 수정이 반영될 수 있으나 다른 카드의 레이아웃/요소를 자동 수정하지 않는다.
+- B안 구성 생성 모듈·자동 적용 버튼, 월/학교 유형 신규 작성 UI는 추가하지 않았다. 기존 프리셋을 재설계하지 않으며, 기존 템플릿 편집 중에는 프리셋 전환 UI로 구조가 소실되지 않도록 기존 요소 편집만 노출한다.
+- 이미지 교체 시 ID/SHA가 달라진 마스크를 제거하는 원본 규칙을 재사용하고 이전 revision은 유지한다. 화면의 이미지 후보도 기존 승인·사용 범위 필터를 지킨다. 레지스트리, 공식 수달쌤 원본 PNG/ID/SHA 및 pending 상태는 변경하지 않는다. 숨긴 수달쌤을 공식 요소에서만 참조해도 출력 승인 검사를 통과할 수 없다.
+- React 미리보기와 출력 SVG는 같은 Scene hash 및 polygon/feather geometry를 사용한다. PNG/PDF는 기존 Electron 승인 검증·파일 대화상자·원자적 저장 경로를 사용한다. 원본 최신 renderDocument의 전체 교체 대신 B안 compiler 연결만 반영하여 기존 Electron 한글 A4 제목/부제 줄바꿈 보정을 보존했다.
+- 합성 JSON fixture는 이전 호환성 gate에서 고정 최신 소스로 생성한 자료이며 사용자 원본·이미지 bytes·학교/학생 자료가 아니다. 별도의 승인 합성 이미지 테스트는 저장소에 이미 있는 1px 테스트 PNG를 사용하며 실제 pending 자료를 approved로 승격하지 않는다.
+
+집중 검증은 기존 V1/V2/Guard/Revision/출력/파일 실패 보호와 선별 원본 렌더링 테스트, B안 JSON/혼합 history/내부 저장소 재생성/명시적 복구/충돌/취소, 요소 UI 편집 및 React/SVG 일치를 포함한다. B안 출력 engine 테스트의 rasterizer와 engine PDF 포트는 대역이다. 별도로 실제 pdf-lib PNG decode 및 7페이지 PDF 생성/재열기를 검증하지만, 실제 Canvas 고해상도 PNG와 Windows GUI 시각 검증을 대체하지 않는다. 구체적인 최종 실행 건수와 빌드 결과는 작업 완료 보고에서 확인한다.
+
+Windows 후속 QA: 고정 체크포인트에서 V1/V2/B안 열기·요소/문구/마스크 편집·이미지 재연결·JSON 저장/재열기·앱 재실행·Revision 복구, native dialog 취소/덮어쓰기/오류, 실제 한글 Canvas PNG/PDF와 미리보기의 일치, A4 1장/카드 7장, pending 출력 차단을 확인한다. 원본 프레임을 보존하므로 긴 제목·두 자리 월·문구 길이에 따른 기존 조판 overflow는 자동 디자인 변경 없이 출력 차단 사유로 남긴다. B안 디자인은 **REVISE / PENDING**이며 구조 지원을 디자인/출력 승인으로 해석하지 않는다. 이전 프로젝트 저장 상태 문구 잔류는 이번 범위에서 수정하지 않았다. 정책 차단된 자동 저장 직접 계측은 재시도하지 않았고 NOT VERIFIED를 유지한다. 실제 Windows/Canvas GUI 검증 전 최종 판정은 **CONDITIONAL**이다.
+
+최종 자동 검증: `npx vitest run src/newsletter electron-p0/tests/newsletter electron-p0/tests/policy.test.ts electron-p0/tests/sample-ipc.test.ts electron-p0/tests/memo-ipc.test.ts` — **51개 파일 / 253 PASS** (B안 전용 13건 포함). `npm run electron:p0:build` — Main/Preload·renderer·테스트 TypeScript 및 프로덕션 빌드 PASS. `git diff --check` PASS. 실제 GUI/Canvas/Windows는 NOT RUN, 자동 저장 직접 계측은 NOT VERIFIED 유지.
+
+변경 파일 전수 목록(41개):
+
+```text
+docs/ELECTRON_P0.md
+electron-p0/tests/fixtures/newsletter-b-synthetic.json
+electron-p0/tests/newsletter-b-fixture.ts
+electron-p0/tests/newsletter-b-integration.test.ts
+electron-p0/tests/newsletter-b-ui.test.tsx
+electron-p0/tests/newsletter-compatibility.test.ts
+src/newsletter/output/svgRenderer.ts
+src/newsletter/rendering/NewsletterDesignEditor.tsx
+src/newsletter/rendering/NewsletterEditorialControls.tsx
+src/newsletter/rendering/NewsletterPreview.tsx
+src/newsletter/rendering/OfficialElementCopy.tsx
+src/newsletter/rendering/OfficialTemplateControls.tsx
+src/newsletter/rendering/assetResolution.ts
+src/newsletter/rendering/designSchema.ts
+src/newsletter/rendering/designState.ts
+src/newsletter/rendering/editorialCompiler.ts
+src/newsletter/rendering/editorialScene.ts
+src/newsletter/rendering/editorialState.ts
+src/newsletter/rendering/editorialVisualFinish.test.ts
+src/newsletter/rendering/editorialVisualFinish.ts
+src/newsletter/rendering/illustratedCardPreset.ts
+src/newsletter/rendering/imageFeather.ts
+src/newsletter/rendering/imagePolygon.test.ts
+src/newsletter/rendering/imagePolygon.ts
+src/newsletter/rendering/mascotQuality.ts
+src/newsletter/rendering/officialAssetProfiles.ts
+src/newsletter/rendering/officialTemplate.test.ts
+src/newsletter/rendering/officialTemplate.ts
+src/newsletter/rendering/officialTemplateCompiler.ts
+src/newsletter/rendering/officialTemplateRecipes.ts
+src/newsletter/rendering/officialTemplateSchema.ts
+src/newsletter/rendering/officialTemplateValidation.test.ts
+src/newsletter/rendering/referenceLayout.test.ts
+src/newsletter/rendering/referenceLayout.ts
+src/newsletter/rendering/referenceLayoutCompiler.ts
+src/newsletter/rendering/referenceLayoutScene.ts
+src/newsletter/rendering/renderDocument.ts
+src/newsletter/rendering/renderScene.ts
+src/newsletter/rendering/skillMasterPreset.ts
+src/newsletter/rendering/visualFinishCompiler.ts
+src/newsletter/rendering/visualFinishScene.ts
+```
+
+## INT-EL-01 — Newsletter B안 + Inventory EL-03 선별 통합 (2026-11-03)
+
+**CONDITIONAL — 동일 Electron 소스의 통합·자동 검증 완료 / native CLI·실제 Windows QA 잔여.** 기존 독립 QA와 INV-EL-04 CI 성공을 새 통합본의 실제 DB/GUI PASS로 전용하지 않는다. 원격 push/PR/merge/deploy는 승인되지 않았다.
+
+### 기준과 통합 방법
+
+- 기반: `feature/electron-inventory-el03` / `9915eff1ea5a016977b017ab9bedf9f1f9070e1f`.
+- 순차 적용: Guard 단일 변경 `e78ee6c8035a5130fb1a5014b88e435a69a82565`, B안 단일 변경 `f29a30ce148952b415451cd2a8cf1e9fb57e1d9d`.
+- CI 참고만: `fc609c02358fe44a7bd6d9d7518cd82f99fe8a1f` / Actions `41483149925` Linux 실제 DB + Windows 계약 job 성공. CI 6개 파일은 통합하지 않았다.
+- 전용 branch/worktree: `integration/electron-int-el01`, `/workspace/BOGUNON_DESK-int-el01`. 네 원격 SHA와 기존 clean 상태를 먼저 확인했다. 기존 기능 브랜치/작업본은 변경하지 않았다.
+- 전체 브랜치 병합/소스 전체 교체 없이 두 commit의 patch만 no-commit 방식으로 적용했다. Guard에서는 protocol 첫 부분, B안에서는 문서 append가 충돌했다. Inventory type-only import와 Newsletter 오류 상수 및 양쪽 문서 기록을 모두 보존했다. Main은 자동 적용 후 내용 검토로 확인했다. 중간 cherry-pick/sequencer는 정리하고 하나의 최종 로컬 checkpoint로 보존한다.
+
+### 공유 경계 및 보호
+
+`main.mts`는 기반의 Inventory 서비스/업무·health 채널/window close/navigation/process 종료 처리에 **Newsletter JSON 저장 전 validate 연결 한 줄만** 추가했다. `protocol.ts`는 Inventory API type-only import/bridge에 Newsletter 오류 상수 한 줄만 추가했다. Preload/Inventory 공개 API/서비스/transport/6개 B vendor 파일은 기반과 동일하다. shared type을 runtime import로 바꾸지 않았다.
+
+B안/Guard 파일은 Newsletter source와 바이트 단위로 비교했다. 예외는 위 공유 파일·문서 및 `NewsletterProjectControls.tsx`의 명시적인 `NewsletterProjectsBridge` 타입 주석뿐이다. 이 주석은 root 빌드에서 guard가 추가한 문서 접근의 unknown 파생 오류를 막는 최소 수정이며 실행 동작/IPC/저장 어댑터를 바꾸지 않는다.
+
+- V1/V2/B안 JSON·혼합 revision 복구·요소 편집·React/Scene/SVG·A4 1장/카드 7장·미지원 필드/enum 거부·pending 출력 차단은 통합 소스에서 회귀 검증했다.
+- Asset registry/수달쌤 PNG·SHA(`fd90b63e8d78ee53eb796c130315ac71d4c5a2a8b4af92e8e03cefdccc3ce302`)/승인 계약은 그대로다. 디자인은 **REVISE / PENDING**. 신규 이미지·원고 자동 수정·B안 자동 적용 버튼은 없다.
+- Inventory JSON/Preview/개발 opt-in Local QA를 유지한다. Main 소유 인증/학교/UUID prepare/execute/replay/재조회/unknown/권한/만료/종료·Production 차단 테스트와 실제 preload VM 계약을 재사용했다. 운영 Supabase/학교 데이터를 사용하지 않는다.
+- Dashboard/Dock·메모·Purchase·Finder·공문 소스/CLI 및 package/lockfile/tsconfig/builder를 변경하지 않았다. 공문 home-v1/PDF/HWPX/ODT/안전 저장 코드는 기존 그대로다.
+- production renderer boundary manifest에 Main service/transport/connection 구현이 없고, production JS에 Local QA 메뉴·로그인·품목 폼 문구가 제거됨을 확인했다.
+
+### 실행한 자동 검증
+
+- Newsletter 전체 집중 + Inventory + 공유 IPC + desktop/settings + Purchase session/domain + Finder model/library + 공문 UI/generator + Dashboard/Dock 저장/geometry/Dock UI: **77개 파일 / 439 PASS**, `--maxWorkers=2` 사용.
+- 별도 공문 안전 writer/caller/cancel 및 Purchase 전문 출력 validation/obsolete preview: **5 PASS / native 2개는 필터로 NOT RUN**. 통합 합계 **444 PASS**.
+- 첫 실행은 빌드와 병렬 수행 중 B안 파일 저장 테스트 1개가 기존 5초 제한을 넘었고, 위 두 native 테스트가 실행 파일 부재로 실패했다. 코드/검증 조건/timeout을 완화하지 않았다. worker 수를 제한한 집중 실행에서 B안 저장 테스트는 원래 제한으로 통과했다. native 테스트는 실제 엔진이 시작되지 못했으므로 미검증이며 PASS에 합산하지 않는다.
+- 공문 native 파일 import/export/reimport 및 정산/에듀파인 실제 CLI 출력 **2건 NOT RUN**: 새 worktree에 CLI 바이너리가 없고 Cargo도 없다. 다른 worktree 바이너리를 복사하거나 도구 설치·원본 테스트 삭제/비활성화·Rust 재검증 확장을 하지 않았다. 기존 독립 QA 증거는 유지하지만 통합본 실제 실행 증거로 대체하지 않는다.
+- `npm run electron:p0:build`: **PASS**, Main/Preload·renderer·테스트 TypeScript 및 Electron production build. 기존 chunk-size 경고는 유지한다.
+- `npm run build`: **FAIL, 남은 root 진단 15건**. 기반 26건과 최초 통합 29건을 비교했다. 최초 추가 3건은 bridge 미타입화로 인해 Guard의 r.document/p.document 접근에서 파생됐다. 기존 bridge 타입을 명시하여 새 오류를 해소하고 기존 파생 11건도 함께 없어졌다. 최종은 기존 Window.electronWork 선언 관련 13건 + 공문 session 계약 2건이다. 파일/오류 코드/메시지를 비교한 새 진단 서명은 0이며 tsconfig/대상 파일을 줄여서 통과시키지 않았다. root 전체 PASS라고 표시하지 않는다.
+- 변경 전수 범위/secret·PII 패턴 및 staged/working diff 공백 검사 PASS. 실제 DB·GitHub Actions·Windows GUI/Canvas/native dialog/설치 QA는 이번 통합본에서 **NOT RUN**.
+
+### 다음 검증
+
+INV-EL-04는 product SHA `9915eff...` 고정 및 정확한 QA ref guard가 있어 이 통합본을 그대로 실행 대상으로 사용할 수 없다. 별도 승인 후 최종 통합 checkpoint SHA를 새 QA 기준으로 고정하되 기존 격리·timeout·실제 DB 필수 case/production guard를 완화하지 않는다. Windows에서는 메뉴/Dock/트레이/재실행, Newsletter 이미지 재연결·실제 한글 Canvas PNG/PDF·파일 취소/덮어쓰기·revision, Inventory 실제 Electron IPC/세 모드/계정·학교 전환, 공문 native 파일 경로 중심으로 검증한다. 이전 저장 상태 문구 잔류와 B안 디자인 검토, root 타입 오류는 잔여 사항으로 유지한다.
+
+INT-EL-01 변경 파일 전수(52개):
+
+```text
+docs/ELECTRON_P0.md
+electron-p0/main/main.mts
+electron-p0/main/newsletter-export.ts
+electron-p0/main/newsletter-json.ts
+electron-p0/main/newsletter-project-ipc.ts
+electron-p0/protocol.ts
+electron-p0/renderer/adapters/NewsletterProjectControls.tsx
+electron-p0/tests/fixtures/newsletter-b-synthetic.json
+electron-p0/tests/newsletter-b-fixture.ts
+electron-p0/tests/newsletter-b-integration.test.ts
+electron-p0/tests/newsletter-b-ui.test.tsx
+electron-p0/tests/newsletter-compatibility-fixtures.ts
+electron-p0/tests/newsletter-compatibility-ui.test.tsx
+electron-p0/tests/newsletter-compatibility.test.ts
+electron-p0/tests/newsletter-json.test.ts
+src/newsletter/compatibility.ts
+src/newsletter/output/svgRenderer.ts
+src/newsletter/rendering/NewsletterDesignEditor.tsx
+src/newsletter/rendering/NewsletterEditorialControls.tsx
+src/newsletter/rendering/NewsletterPreview.tsx
+src/newsletter/rendering/OfficialElementCopy.tsx
+src/newsletter/rendering/OfficialTemplateControls.tsx
+src/newsletter/rendering/assetResolution.ts
+src/newsletter/rendering/designSchema.ts
+src/newsletter/rendering/designState.ts
+src/newsletter/rendering/editorialCompiler.ts
+src/newsletter/rendering/editorialScene.ts
+src/newsletter/rendering/editorialState.ts
+src/newsletter/rendering/editorialVisualFinish.test.ts
+src/newsletter/rendering/editorialVisualFinish.ts
+src/newsletter/rendering/illustratedCardPreset.ts
+src/newsletter/rendering/imageFeather.ts
+src/newsletter/rendering/imagePolygon.test.ts
+src/newsletter/rendering/imagePolygon.ts
+src/newsletter/rendering/mascotQuality.ts
+src/newsletter/rendering/officialAssetProfiles.ts
+src/newsletter/rendering/officialTemplate.test.ts
+src/newsletter/rendering/officialTemplate.ts
+src/newsletter/rendering/officialTemplateCompiler.ts
+src/newsletter/rendering/officialTemplateRecipes.ts
+src/newsletter/rendering/officialTemplateSchema.ts
+src/newsletter/rendering/officialTemplateValidation.test.ts
+src/newsletter/rendering/referenceLayout.test.ts
+src/newsletter/rendering/referenceLayout.ts
+src/newsletter/rendering/referenceLayoutCompiler.ts
+src/newsletter/rendering/referenceLayoutScene.ts
+src/newsletter/rendering/renderDocument.ts
+src/newsletter/rendering/renderScene.ts
+src/newsletter/rendering/skillMasterPreset.ts
+src/newsletter/rendering/visualFinishCompiler.ts
+src/newsletter/rendering/visualFinishScene.ts
+src/newsletter/studioDocument.ts
+```

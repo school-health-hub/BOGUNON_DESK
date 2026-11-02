@@ -1,3 +1,5 @@
+import { imageFeatherGeometry } from "../rendering/imageFeather"
+import { imagePolygonPoints } from "../rendering/imagePolygon"
 import { buildA4PageScene, buildCardScene, newsletterPageSceneHash, validateNewsletterScene, type ImageSceneLayer, type NewsletterPageScene, type SceneLayer, type ShapeSceneLayer, type TextSceneLayer } from "../rendering/renderScene"
 import type { RenderDocument, RenderPage } from "../rendering/renderDocument"
 import { newsletterPlaceholderDataUrl } from "../rendering/placeholders"
@@ -24,11 +26,19 @@ function renderText(layer: TextSceneLayer): string {
 }
 function renderImage(pageId: string, layer: ImageSceneLayer, assets: ReadonlyMap<string, string>): string {
   const clipId = `clip-${pageId}-${layer.slotId}`
+  if (layer.clipPolygon !== undefined) {
+    const { clipPolygon, ...unclipped } = layer
+    return `<defs><clipPath id="${clipId}-polygon"><polygon points="${imagePolygonPoints(layer.frame, layer.fit, clipPolygon)}"/></clipPath></defs><g clip-path="url(#${clipId}-polygon)">${renderImage(pageId, unclipped, assets)}</g>`
+  }
   const source = layer.assetId === undefined ? newsletterPlaceholderDataUrl(layer.placeholderKind) : assets.get(layer.assetId)
   if (source === undefined && layer.assetId !== undefined) throw new SvgAssetMissingError(layer.assetId)
   const aspect = layer.fit === "cover" ? "xMidYMid slice" : "xMidYMid meet"
   const image = `<image id="${escapeXml(layer.layerId)}" href="${escapeXml(source ?? newsletterPlaceholderDataUrl("generic"))}" x="${layer.frame.x}" y="${layer.frame.y}" width="${layer.frame.width}" height="${layer.frame.height}" preserveAspectRatio="${aspect}"`
   if (layer.edgePolicy === "none") return `${image}/>`
+  if (layer.edgePolicy === "feather") {
+    const feather = imageFeatherGeometry(layer.frame)
+    return `<defs><filter id="${clipId}-blur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="${feather.blur}"/></filter><mask id="${clipId}-feather" maskUnits="userSpaceOnUse" x="${layer.frame.x}" y="${layer.frame.y}" width="${layer.frame.width}" height="${layer.frame.height}"><rect x="${feather.x}" y="${feather.y}" width="${feather.width}" height="${feather.height}" rx="${feather.radius}" fill="white" filter="url(#${clipId}-blur)"/></mask></defs>${image} mask="url(#${clipId}-feather)"/>`
+  }
   if (layer.edgePolicy === "soft") return `<defs><radialGradient id="${clipId}-fade"><stop offset="65%" stop-color="white"/><stop offset="100%" stop-color="black"/></radialGradient><mask id="${clipId}-soft" maskUnits="userSpaceOnUse" x="${layer.frame.x}" y="${layer.frame.y}" width="${layer.frame.width}" height="${layer.frame.height}"><rect x="${layer.frame.x}" y="${layer.frame.y}" width="${layer.frame.width}" height="${layer.frame.height}" fill="url(#${clipId}-fade)"/></mask></defs>${image} mask="url(#${clipId}-soft)"/>`
   return `<defs><clipPath id="${clipId}"><rect x="${layer.frame.x}" y="${layer.frame.y}" width="${layer.frame.width}" height="${layer.frame.height}" rx="12"/></clipPath></defs><image id="${escapeXml(layer.layerId)}" href="${escapeXml(source ?? newsletterPlaceholderDataUrl("generic"))}" x="${layer.frame.x}" y="${layer.frame.y}" width="${layer.frame.width}" height="${layer.frame.height}" preserveAspectRatio="${aspect}" clip-path="url(#${clipId})"/>`
 }

@@ -9,7 +9,7 @@ export function mascotEnlargementWarning(frame: { readonly width: number; readon
 export function mascotQualityWarnings(document: RenderDocument): readonly string[] {
   const placements = [
     { pageId: "a4-page", image: document.a4.mascot, scale: 2 },
-    ...document.cards.map((page) => ({ pageId: page.pageId, image: page.mascot, scale: 1.5 })),
+    ...document.cards.flatMap((page) => page.officialLayers === undefined ? [{ pageId: page.pageId, image: page.mascot, scale: 1.5 }] : page.officialLayers.flatMap(layer => layer.kind === "image" && layer.assetId === OTTER_ASSET_ID ? [{ pageId: page.pageId, image: layer, scale: 1.5 }] : [])),
   ]
   return placements.flatMap(({ pageId, image, scale }) => {
     if (image?.assetId !== OTTER_ASSET_ID) return []

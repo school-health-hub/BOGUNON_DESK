@@ -1,3 +1,4 @@
+import {NEWSLETTER_COMPATIBILITY_MESSAGE} from '../protocol.js';
 import {assertSender} from './policy.js';
 import {validateNewsletterSave} from './newsletter-json.js';
 import {NewsletterProjects,ProjectConflict,projectId,type RestorePrompt} from './newsletter-projects.js';
@@ -20,6 +21,6 @@ export function createProjectHandler(action:typeof PROJECT_ACTIONS[number],conte
    let data:unknown;
    switch(action){case 'list':data=await store.list();break;case 'load':data=await store.load(v.projectId as string);break;case 'save':data=await store.save(v.document as string,head!);break;case 'history':data=await store.history(v.projectId as string);break;case 'preview':data=await store.preview(v.projectId as string,v.revision as number);break;case 'restore':data=await store.restore(v.token as string,head!,confirm);break;}
    return {ok:true,data};
-  }catch(e){return e instanceof ProjectConflict?{ok:false,error:{code:'CONFLICT',message:'저장된 원고가 변경되었습니다. 다시 불러온 뒤 비교해 주세요. 현재 편집 내용은 유지됩니다.',retryable:false}}:{ok:false,error:{code:'STORAGE_ERROR',message:'프로젝트 또는 revision을 처리하지 못했습니다. 원본 파일을 보존했습니다. 손상·이미지 참조·저장 공간을 확인해 주세요.',retryable:true}};}
+  }catch(e){if(e instanceof Error&&e.message.includes(NEWSLETTER_COMPATIBILITY_MESSAGE))return {ok:false,error:{code:'INVALID_INPUT',message:NEWSLETTER_COMPATIBILITY_MESSAGE,retryable:false}};return e instanceof ProjectConflict?{ok:false,error:{code:'CONFLICT',message:'저장된 원고가 변경되었습니다. 다시 불러온 뒤 비교해 주세요. 현재 편집 내용은 유지됩니다.',retryable:false}}:{ok:false,error:{code:'STORAGE_ERROR',message:'프로젝트 또는 revision을 처리하지 못했습니다. 원본 파일을 보존했습니다. 손상·이미지 참조·저장 공간을 확인해 주세요.',retryable:true}};}
  };
 }

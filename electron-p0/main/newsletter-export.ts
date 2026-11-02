@@ -1,3 +1,4 @@
+import {NEWSLETTER_COMPATIBILITY_MESSAGE} from '../protocol.js';
 import {BrowserWindow,session,nativeImage} from 'electron';
 import {join} from 'node:path';import {randomUUID} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
@@ -48,7 +49,7 @@ export function createNewsletterExportHandler(contents:Parameters<typeof assertS
   let request:NewsletterExportRequest;try{if(args.length!==1)throw Error('Invalid arity');request=validateExportRequest(args[0]);}catch{return {ok:false,error:{code:'INVALID_INPUT',message:'출력 요청 형식·자산 크기를 확인해 주세요.',retryable:false}};}
   if(busy)return {ok:false,error:{code:'STORAGE_ERROR',message:'출력 작업이 이미 진행 중입니다.',retryable:true}};
   busy=true;try{
-   let generated:TrustedNewsletterOutput;try{generated=await ports.generate(request);}catch{return {ok:false,error:{code:'FORBIDDEN',message:'독립 출력 검증에 실패했습니다. 조판·이미지 원본·출력 승인 상태를 확인해 주세요.',retryable:false}};}
+   let generated:TrustedNewsletterOutput;try{generated=await ports.generate(request);}catch(e){if(e instanceof Error&&e.message.includes(NEWSLETTER_COMPATIBILITY_MESSAGE))return {ok:false,error:{code:'INVALID_INPUT',message:NEWSLETTER_COMPATIBILITY_MESSAGE,retryable:false}};return {ok:false,error:{code:'FORBIDDEN',message:'독립 출력 검증에 실패했습니다. 조판·이미지 원본·출력 승인 상태를 확인해 주세요.',retryable:false}};}
    const files=validateGeneratedFiles(generated,request.selection);
    if(!await ports.approve(generated.summary))return {ok:true,data:{saved:false}};
    const path=await ports.pick(request.selection);return {ok:true,data:path?await saveGeneratedExport(files,request.selection,path,ports.confirm):{saved:false}};
