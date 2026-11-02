@@ -43,3 +43,13 @@
 - `package.json`, lockfile
 
 운영 Supabase/RPC 실행, Docker 변경, 실제 학교 데이터 사용, 다른 worktree 쓰기, push/PR/배포는 0건이다.
+
+## Native 증거 마감
+
+- 제품 기능 개발: 없음
+- 전체 회귀 재실행: 없음
+- 캡처 자동화 초기화: 2/2 FAIL (`kernel assets` 경로 오류)
+- 신규 Inventory Native 캡처: NOT RUN
+- 기존 Native 기능 직접 검증: PASS 유지
+- 다른 앱·프로세스·worktree 변경: 없음
+- 최종 판정: `CONDITIONAL`

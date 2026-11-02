@@ -54,3 +54,18 @@ Windows Tauri 앱은 현재 Inventory worktree 소스에서 빌드·실행되었
 ## 잔여 증거 조건
 
 기능 동작은 실제 Tauri에서 확인되었지만 신규 Inventory Native 캡처는 없다. 창 전용 자동화 런타임이 복구되는 세션에서 동일 빌드를 대상으로 본문·상세·검색·필터·6개 대화상자를 캡처하면 시각 증거 게이트를 완전히 닫을 수 있다. 이 미완료 항목 때문에 전체 판정은 `READY`로 올리지 않는다.
+
+## Native 증거 마감 재시도
+
+`IM-2A-NATIVE-EVIDENCE-CLOSE`에서 제품 기능이나 회귀 테스트를 변경하지 않고 캡처 자동화 초기화만 재검증했다.
+
+- `cua_repl` 초기화: FAIL — `failed to write kernel assets: 지정된 경로를 찾을 수 없습니다. (os error 3)`
+- `node_repl`의 공식 `@oai/sky` 초기화: FAIL — 동일 오류
+- 시도 횟수: 2회로 제한 후 중단
+- Temp, Codex runtime, `node_repl.exe` 및 `cua_node` 실행 경로: 존재
+- 사용자 및 Codex sandbox 쓰기 권한: 확인
+- 다른 독립 worktree의 기존 기록에서도 동일 오류 확인
+- Tauri/Vite 신규 실행: 없음
+- 다른 Electron·Codex 프로세스 조작: 없음
+
+따라서 이번 마감 작업에서도 Inventory 메인·상세·검색·필터·6개 대화상자의 신규 Native 캡처는 `NOT RUN`이다. 실제 Tauri 기능의 사용자 직접 검증 PASS는 유지하지만, 캡처 증거 확보 PASS로 바꾸지 않는다.
