@@ -450,3 +450,12 @@ remains. Dock active marker, accessible name, hover and keyboard tooltip stay in
 - Electron 라이브러리는 격리된 Electron 프로필의 education-video 전용 JSON과 백업만 사용한다. Tauri·MY FINANCE·운영 데이터 경로를 공유하지 않는다.
 - Finder scoped tokens: `--ev-accent: #176e62`, `--ev-accent-soft: #e5f3ed`, `--ev-warning: #75521c`, `--ev-warning-bg: #fcf6e8`, `--ev-paper: #fff`.
 - 좁은 CJK 텍스트는 `word-break: keep-all`과 `overflow-wrap: anywhere` fallback을 사용한다.
+
+## 공문작업실 Electron 로컬 이식
+
+- 첫 이식 범위는 검증된 deterministic TypeScript 계약을 재사용한 신규 공문 기본 초안, 제목·본문·붙임 직접 편집, 로컬 핵심정리, 개인정보 경고, 클립보드 복사로 제한한다.
+- compact header와 작성 정보/문서 미리보기 1:1 작업면을 사용하고 960px 아래에서는 한 열로 전환한다. 기존 Pretendard, muted mint/navy, shared surface/border/text 토큰을 유지한다.
+- 모든 입력과 생성 결과는 현재 Electron renderer 메모리에만 둔다. 운영 계정, 실제 공문, Tauri 데이터, MY FINANCE, 외부 AI나 네트워크로 전송하지 않는다.
+- 원문 핵심정리는 기존 로컬 extractor 계약대로 원문에 없는 사실을 추정하지 않고 불명확한 값은 `확인 필요`로 남긴다.
+- ODT 기본 양식, PDF/HWPX/ODT 가져오기, 승인 reference package, Google/AI 연계는 이번 최소 이식 범위에서 제외하고 후속 adapter로 연결한다.
+- 버튼은 최소 40px target과 명시적 label/focus 상태를 제공한다. CJK 본문은 `word-break: keep-all`과 `overflow-wrap: anywhere` fallback으로 잘림을 피한다.

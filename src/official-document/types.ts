@@ -1,5 +1,6 @@
 import type { OfficialDocumentPurpose, OfficialDocumentWorkArea } from "./options";
 import type { OfficialDocumentLocalSummary } from "./summaryExtractor";
+import type { OfficialDocumentReference } from "./referenceTypes";
 
 export const officialDocumentModes = ["create", "revision", "summary"] as const;
 export type OfficialDocumentMode = (typeof officialDocumentModes)[number];
@@ -24,6 +25,7 @@ export type OfficialDocumentInput = {
 };
 
 export type OfficialDocumentInputField = Exclude<keyof OfficialDocumentInput, "purpose" | "workArea">;
+export type OfficialDocumentCreateField = keyof OfficialDocumentInput;
 
 export type OfficialDocumentDraft = {
   readonly title: string;
@@ -31,6 +33,8 @@ export type OfficialDocumentDraft = {
   readonly attachments: string;
   readonly messenger: string;
   readonly checklist: string;
+  readonly tableText?: string;
+  readonly tableGuide?: string;
 };
 
 export type OfficialDocumentRevisionInput = {
@@ -49,12 +53,15 @@ export type OfficialDocumentAiStatus = "idle" | "generating" | "error";
 export type OfficialDocumentSession = {
   readonly mode: OfficialDocumentMode;
   readonly createInput: OfficialDocumentInput;
+  readonly touchedCreateFields: readonly OfficialDocumentCreateField[];
   readonly revisionInput: OfficialDocumentRevisionInput;
   readonly revisionSourceName: string | null;
   readonly summaryOriginal: string;
   readonly summarySourceName: string | null;
   readonly summaryLocalResult: OfficialDocumentLocalSummary | null;
   readonly draft: OfficialDocumentDraft | null;
+  readonly selectedReference: OfficialDocumentReference | null;
+  readonly appliedReference: OfficialDocumentReference | null;
   readonly outputs: Readonly<Record<OfficialDocumentMode, OfficialDocumentModeOutput>>;
   readonly aiStatus: OfficialDocumentAiStatus;
   readonly aiError: string | null;
@@ -72,6 +79,8 @@ export type OfficialDocumentSessionAction =
   | { readonly type: "importSummarySource"; readonly original: string; readonly sourceName: string }
   | { readonly type: "setSummaryLocalResult"; readonly result: OfficialDocumentLocalSummary }
   | { readonly type: "setDraft"; readonly draft: OfficialDocumentDraft }
+  | { readonly type: "selectReference"; readonly reference: OfficialDocumentReference | null }
+  | { readonly type: "applyReference"; readonly reference: OfficialDocumentReference; readonly input: OfficialDocumentInput }
   | { readonly type: "setPrompt"; readonly mode: OfficialDocumentMode; readonly prompt: string }
   | { readonly type: "setAiResponse"; readonly mode: OfficialDocumentMode; readonly response: string }
   | { readonly type: "storeReviewedOutbound"; readonly mode: OfficialDocumentMode; readonly outboundText: string }
