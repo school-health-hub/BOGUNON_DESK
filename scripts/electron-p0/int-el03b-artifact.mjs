@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFile,writeFile,readdir} from 'node:fs/promises';
-import {resolve,join,posix} from 'node:path';
+import {resolve,join,posix,normalize} from 'node:path';
 import {createRequire} from 'node:module';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
@@ -14,7 +14,7 @@ const asar=require('@electron/asar'),ts=require('typescript');
 const output=join(root,'release-electron-p0');
 const archive=join(output,'win-unpacked/resources/app.asar');
 const files=new Set(asar.listPackage(archive).map(file=>file.replaceAll('\\','/').replace(/^\//,'')));
-const read=file=>asar.extractFile(archive,file).toString('utf8');
+const read=file=>asar.extractFile(archive,normalize(file)).toString('utf8');
 const queue=['main/main.mjs','preload/preload.cjs'],seen=new Set();
 while(queue.length){
  const file=queue.pop();if(seen.has(file))continue;seen.add(file);

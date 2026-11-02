@@ -1,10 +1,12 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile,mkdtemp,mkdir,copyFile,rm,readdir} from 'node:fs/promises';
-import {join,dirname,posix} from 'node:path';
+import {readFile,mkdtemp,mkdir,copyFile,rm,readdir,stat} from 'node:fs/promises';
+import {join,dirname,posix,resolve,normalize,win32} from 'node:path';
 import {tmpdir} from 'node:os';
 import {execFileSync} from 'node:child_process';
-import {minimatch} from 'minimatch';
+import {createRequire} from 'node:module';
+import {runInNewContext} from 'node:vm';
+import {getMainFileMatchers} from 'app-builder-lib/out/fileMatcher.js';
 import {createPackage,listPackage,extractFile} from '@electron/asar';
 import ts from 'typescript';
 
@@ -38,17 +40,25 @@ function verifyRuntime(files,read){
 test('builder selection archives the complete Main/Preload relative runtime graph',async()=>{
  const temp=await mkdtemp(join(tmpdir(),'desk-runtime-package-'));
  try{
-  const selected=(await walk(root)).filter(file=>config.files.some(pattern=>minimatch(file,pattern)));
+  const appDir=resolve(root);
+  const matchers=getMainFileMatchers(appDir,join(temp,'app'),value=>value,config.win,{info:{config,projectDir:process.cwd(),buildResourcesDir:'build',isPrepackedAppAsar:false,debugLogger:{isEnabled:false}}},resolve(config.directories.output),false);
+  assert.equal(matchers.length,1,'Review new file mappings before packaging');
+  const filter=matchers[0].createFilter();
+  const selected=[];
+  for(const file of await walk(root)){const absolute=resolve(root,file);if(filter(absolute,await stat(absolute)))selected.push(file);}
+  assert(selected.includes('main/inventory-connection/transport.js'),'Builder must include nested transport');
   const staging=join(temp,'app');await mkdir(staging);
   for(const file of selected){await mkdir(dirname(join(staging,file)),{recursive:true});await copyFile(join(root,file),join(staging,file));}
   const archive=join(temp,'app.asar');await createPackage(staging,archive);
   const files=new Set(listPackage(archive).map(file=>file.replaceAll('\\','/').replace(/^\//,'')));
-  const read=file=>extractFile(archive,file).toString('utf8');
+  const read=file=>extractFile(archive,normalize(file)).toString('utf8');
   const graph=verifyRuntime(files,read);
   assert(graph.has('inventory-qa-protocol.js'),'Main must use the Inventory protocol');
   assert(graph.has('protocol.js'));
-  const broken=new Set(files);broken.delete('inventory-qa-protocol.js');
-  assert.throws(()=>verifyRuntime(broken,read),/Missing packaged runtime module: inventory-qa-protocol.js/);
+  for(const missing of graph){
+   const broken=new Set(files);broken.delete(missing);
+   assert.throws(()=>verifyRuntime(broken,read),/Missing packaged runtime module:/,`Missing ${missing} must fail`);
+  }
  }finally{await rm(temp,{recursive:true,force:true});}
 });
 test('native CLI generated output is ignored without hiding source crates',()=>{
@@ -58,4 +68,15 @@ test('native CLI generated output is ignored without hiding source crates',()=>{
  for(const file of ['tools/official-document-cli/src/main.rs','tools/purchase-excel-cli/src/main.rs']){
   assert.throws(()=>execFileSync('git',['check-ignore',file],{stdio:'pipe'}));
  }
+});
+
+// Exercise the installed ASAR implementation with Win32 path semantics on Linux too.
+test('ASAR Win32 nested lookup reproduces POSIX failure and accepts native paths',async()=>{
+ const require=createRequire(import.meta.url);
+ const library=require.resolve('@electron/asar/lib/filesystem.js');
+ const localRequire=createRequire(library),exports={};
+ runInNewContext(await readFile(library,'utf8'),{exports,require:name=>name==='path'?win32:localRequire(name),Buffer,process});
+ const make=()=>{const fs=new exports.Filesystem('C:\\synthetic');fs.setHeader({files:{main:{files:{'inventory-connection':{files:{'transport.js':{size:1,offset:'0'}}}}}}});return fs;};
+ assert.throws(()=>make().getFile('main/inventory-connection/transport.js'),/was not found in this archive/);
+ assert.equal(make().getFile(win32.normalize('main/inventory-connection/transport.js')).size,1);
 });
