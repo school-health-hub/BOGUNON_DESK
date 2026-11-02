@@ -942,6 +942,23 @@ use pdf_extract::{dictionary,Object,Stream};
         assert_eq!(items[1].name, "Gloves");
     }
 #[test]
+fn skips_win_qa_04_labeled_summary_without_dropping_legitimate_names() {
+    let rows=vec![
+        vec!["WIN-QA-02 합성 구매 품목".into()],
+        vec!["품목명".into(),"규격".into(),"수량".into(),"단가".into()],
+        vec!["합성 거즈".into(),"10cm x 10cm".into(),"2".into(),"3000".into()],
+        vec!["합성 밴드".into(),"표준형".into(),"5".into(),"1500".into()],
+        vec!["합성 소독솜".into(),"100매".into(),"1".into(),"4000".into()],
+        vec!["합성 체온계".into(),"디지털".into(),"1".into(),"6000".into()],
+        vec!["예상 합계: 23,500원".into()],
+        vec!["합계표 보관함".into(),"A4".into(),"1".into(),"1000".into()],
+        vec!["소계용 계산기".into(),"표준".into(),"1".into(),"2000".into()],
+    ];
+    let items=parse_rows(&rows,"synthetic-purchase.pdf").unwrap();
+    assert_eq!(items.iter().map(|item|item.name.as_str()).collect::<Vec<_>>(),["합성 거즈","합성 밴드","합성 소독솜","합성 체온계","합계표 보관함","소계용 계산기"]);
+    assert_eq!(items[..4].iter().map(|item|item.quantity.unwrap()*item.unit_price.unwrap()).sum::<f64>(),23_500.0);
+}
+#[test]
     fn extracts_a_synthetic_text_pdf_and_reuses_templates() {
         let path = write_synthetic_pdf(
             "text-table",

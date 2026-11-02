@@ -245,10 +245,20 @@ fn parse_number(value: &str) -> Option<f64> {
     }
 }
 fn is_total_row(name: &str) -> bool {
-    matches!(
-        normalize_header(name).as_str(),
-        "합계" | "총계" | "소계" | "total" | "grandtotal"
-    )
+    let normalized=normalize_header(name);
+    if matches!(
+        normalized.as_str(),
+        "합계"|"총계"|"소계"|"총액"|"total"|"subtotal"|"grandtotal"
+    ){return true;}
+    let mut value=name.trim();
+    for prefix in ["예상","최종"]{if let Some(rest)=value.strip_prefix(prefix){value=rest.trim_start();break;}}
+    let Some(rest)=["합계","총계","소계","총액","grand total","subtotal","total"].into_iter().find_map(|label|value.strip_prefix(label)) else{return false;};
+    if rest.is_empty(){return true;}
+    let Some(first)=rest.chars().next() else{return true;};
+    if !first.is_whitespace()&&!matches!(first,':'|'：'|'-'){return false;}
+    let amount=rest.trim_start_matches(|c:char|c.is_whitespace()||matches!(c,':'|'：'|'-')).trim_end_matches('원').trim();
+    let amount=amount.strip_prefix(['+','-']).unwrap_or(amount);
+    !amount.is_empty()&&amount.chars().any(|c|c.is_ascii_digit())&&amount.chars().all(|c|c.is_ascii_digit()||matches!(c,','|'.'))
 }
 fn parse_rows(rows: &[Vec<String>], source: &str) -> Result<Vec<PurchaseItem>, String> {
     let mut best: Option<(usize, HashMap<&'static str, usize>, usize)> = None;
