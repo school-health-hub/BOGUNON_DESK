@@ -583,3 +583,23 @@ src/newsletter/rendering/visualFinishCompiler.ts
 src/newsletter/rendering/visualFinishScene.ts
 src/newsletter/studioDocument.ts
 ```
+
+## INT-EL-03A — Portable startup packaging repair (2026-11-03 KST)
+
+- Product baseline: `integration/electron-int-el01@bd22237aade2d5576d5c3c1b8b991ad914357398`. Prior CI checkpoint `c4aa18f1df5e80368e4f31137c3ea6582731d641` / run `41489520623` validates contracts/build, not a distributable EXE.
+- Root cause: TypeScript emits `inventory-qa-protocol.js` into the application root and Main imports it, but builder `files` allowed only `protocol.js` at that level. The module was omitted from ASAR. Add only the missing module to the allowlist; imports and business behavior remain unchanged.
+- `build/official-document-cli/` now joins the existing Purchase CLI output exclusion. This ignores generated artifacts, not source crates; no tracked binary is removed. Clean builds can now record `dirty:false` after this checkpoint is committed.
+- `runtime-package.test.mjs` uses the actual build output and builder allowlist to construct a temporary ASAR, then traverses static relative Main/Preload imports, re-exports and literal dynamic imports/requires. Missing dependencies fail; deliberately removing the Inventory protocol reproduces rejection. This is not an actual Windows Portable launch. The existing `beforePack` hook runs this gate, so missing modules prevent packaging.
+- Local validation: Electron TypeScript/production build PASS; Inventory native/Preload/service/transport/policy and Newsletter compatibility 42 PASS; Newsletter authority/export 8 PASS; new ASAR/ignore tests 2 PASS. Total 52 assertions. Production Local QA guards and Newsletter pending approval enforcement unchanged. Native Rust CLI execution, actual Windows packaging, GUI/Canvas/file-dialog/installation QA NOT RUN here.
+
+### Next approved Windows artifact job (proposal only; not executed)
+
+Use a disposable GitHub Actions Windows runner, Node 24, Rust MSVC/Build Tools; checkout the exact repair product checkpoint with full history. Require clean status before building. Do not build on the school PC (C: 2.1 GiB free); download the resulting Portable and manifest to a separate F: folder instead.
+
+1. Record `git rev-parse HEAD` as **productSourceSha**, separate from workflow/CI `github.sha`. Require expected product SHA and `git status --porcelain` empty; use `npm ci` only on the runner.
+2. Run `npm run electron:p0:package:win`. It builds both fixed Rust CLIs, runs the Electron build, and packages Portable with `--publish never`; the beforePack runtime graph gate must pass. Do not use the legacy full `windows-check.mjs` suite as-is: its old source-preservation baseline predates this integration and it performs unrelated installation/full GUI checks.
+3. Inspect the real `win-unpacked/resources/app.asar`: verify `inventory-qa-protocol.js`, Main/Preload relative module closure, and `build-meta.json` product SHA/`dirty:false`; verify both native CLI resources. Record their hashes too.
+4. Compute Portable SHA-256 and Authenticode status via PowerShell. Emit a manifest with productSourceSha, ciWorkflowSha, run URL, Node/Electron/Rust versions, Portable name/hash/signature and native CLI hashes. Fail on dirty metadata or source mismatch; never relabel CI SHA as product SHA.
+5. Upload Portable + manifest + checksums only, no profile/credentials/database. No release/publication/updater deployment. A normal-user Windows smoke launch using a fresh `ELECTRON_P0_TEST_RUN` GUID is still required before startup PASS; packaged Local QA must remain blocked. Actual Local QA DB/IPC requires a separate opted-in development run, not the Portable.
+
+Status: **CONDITIONAL — local packaging repair/automatic checks PASS; actual Windows Portable creation/startup and integrated GUI/output QA pending**. Existing school WIP/worktrees, Tauri app/data, Inventory JSON and operating databases remain untouched. No push or Actions execution authorized in this step.

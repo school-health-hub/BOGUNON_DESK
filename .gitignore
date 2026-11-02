@@ -42,3 +42,5 @@ release-output/
 
 /tools/purchase-excel-cli/target/
 /build/purchase-excel-cli/
+
+/build/official-document-cli/
