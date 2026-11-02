@@ -50,6 +50,7 @@ try {
     if(integrity!=='sha512-xffhOgD9rXsXLK+DQ+3Gq8b2KmavMjPHGuJr7lfVlD8vKK1HHFggYlmzdRECqPmOL8g3Yd5PN3URcUR8xWZcWw==')throw Error('CLI_INTEGRITY');
     for(const args of [['start','--help'],['db','reset','--help'],['db','lint','--help'],['stop','--help']])cli(args);
     summary.resources={diskAvailableGiB:Math.floor(disk/2**30),memoryAvailableGiB:Math.floor(memory/2**30)};
+    run(process.execPath,['--test','inventory-management/qa/ci/local-status.test.mjs']);
     validateManifest(JSON.parse(readFileSync(resolve(qa,'contracts/qa-contracts.json'),'utf8')));
   }
   if(step==='start') {
@@ -58,6 +59,7 @@ try {
     cli(['start','--exclude','realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor','--yes'],900000);
     const status=JSON.parse(cli(['status','-o','json']));
     if(status.API_URL!=='http://127.0.0.1:56321')throw Error('API_ORIGIN');
+    summary.statusFormat={cli:'2.121.0',format:'json',apiField:'API_URL',hasAnonKey:typeof status.ANON_KEY==='string' && status.ANON_KEY.length>0,hasPublishableKey:typeof status.PUBLISHABLE_KEY==='string' && status.PUBLISHABLE_KEY.length>0};
     summary.stack='inventory_qa: PostgreSQL/Auth/REST/Kong';
   }
   if(step==='migration') {

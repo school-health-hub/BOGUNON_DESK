@@ -16,18 +16,24 @@ if ($LASTEXITCODE -ne 0 -or $kong.Count -ne 1 -or $kong[0] -notmatch '^supabase_
   throw "The isolated inventory_qa API gateway is not running."
 }
 
-$studioEnvironment = @(docker inspect --format "{{range .Config.Env}}{{println .}}{{end}}" supabase_studio_inventory_qa)
-$anonEntry = @($studioEnvironment | Where-Object { $_ -like 'SUPABASE_ANON_KEY=*' })
-if ($anonEntry.Count -ne 1) {
-  throw "Unable to resolve the local anonymous key without printing it."
+# The minimum QA stack has no Studio. Capture CLI status privately through the
+# shared validator; never echo the JSON/key or substitute a service_role key.
+$statusHelper = Join-Path $qaRoot 'ci/local-status.mjs'
+$privateStatus = @(& node $statusHelper $qaRoot 2>$null)
+if ($LASTEXITCODE -ne 0) { throw 'Unable to resolve validated local Inventory QA public key.' }
+try { $qaCredentials = ($privateStatus -join "`n") | ConvertFrom-Json }
+catch { throw 'Invalid local Inventory QA public-key response.' }
+$privateStatus = $null
+if ($qaCredentials.apiBase -ne 'http://127.0.0.1:56321' -or [string]::IsNullOrWhiteSpace([string]$qaCredentials.key)) {
+  throw 'Local Inventory QA endpoint/key validation failed.'
 }
-$anonKey = $anonEntry[0].Substring('SUPABASE_ANON_KEY='.Length)
-
-$apiBase = "http://127.0.0.1:56321"
+$anonKey = [string]$qaCredentials.key
+$apiBase = [string]$qaCredentials.apiBase
 $email = "http-use-rpc@example.invalid"
 $password = ([Guid]::NewGuid().ToString("N") + "!Aa1")
 $signupBody = @{ email = $email; password = $password } | ConvertTo-Json
-$authHeaders = @{ apikey = $anonKey; Authorization = "Bearer $anonKey" }
+$authHeaders = @{ apikey = $anonKey }
+if ($qaCredentials.keyKind -eq 'anon-jwt') { $authHeaders.Authorization = "Bearer $anonKey" }
 $signup = Invoke-RestMethod -Method Post -Uri "$apiBase/auth/v1/signup" -Headers $authHeaders -ContentType "application/json" -Body $signupBody
 
 if ([string]::IsNullOrWhiteSpace([string]$signup.access_token) -or $null -eq $signup.user.id) {

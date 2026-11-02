@@ -2,7 +2,9 @@
 
 ## 상태
 
-**ENVIRONMENT BLOCKED (Actions 실행 미확보)**. 전용 workflow/QA 지원 코드와 정적 검증은 준비됐지만 실제 GitHub Actions run은 없다. 이번 사용자 승인은 로컬 commit까지이며 신규 CI 브랜치 원격 push는 승인되지 않았다. 기존 Cloud B 원격 push 승인은 `codex/inventory-im2b1-cloud-b` 하나에만 적용된다. 실제 PostgreSQL/Adapter 4개를 PASS 또는 READY로 기록하지 않는다. 현재 환경에 제품 결함이 재현됐다는 의미는 아니다.
+INV-CI-01 실제 run [41464282269](https://github.com/school-health-hub/BOGUNON_DESK/actions/runs/41464282269)은 migration 6개/RPC 8개, DB 78개, 구매 SQL 15개, D06 exact 및 초기 보안 catalog를 통과했다. 첫 HTTP E2E가 Studio에서 anon key를 읽으려 해 실패했다. 최소 스택은 Studio를 제외한다. Adapter 실제 4개와 최종 보안 단계는 NOT RUN이었다. 이는 QA 키 조회의 환경 의존성 문제이며 제품 JWT/RLS 결함으로 판정하지 않았다.
+
+INV-CI-02에서는 사용자가 CI 지원 코드 수정과 같은 전용 브랜치의 일반 push를 승인했다. 아래 역사 설계 기록은 유지하고 최신 수정/실행 결과는 이 문서 끝의 INV-CI-02 절과 완료 보고를 따른다.
 
 - QA worktree: `/workspace/BOGUNON_DESK_INVENTORY_CI`.
 - QA branch: `ci/inventory-postgres-integration-qa`, 기준 `ef0ba64cae5c0a6ccbba05a8821a80730dcfc087`.
@@ -81,3 +83,17 @@ Artifact는 `inventory-postgres-summary-<run_id>`의 **`inventory-management/qa/
 > 최종 보고의 QA SHA를 `ci/inventory-postgres-integration-qa` 브랜치로 일반 push하여 Inventory QA workflow 1회를 실행하는 것만 승인합니다. Cloud A/B·Inventory feature·work·main 변경, PR·병합·배포·운영 Supabase 접근은 금지합니다.
 
 승인 후 정확한 QA branch/SHA/clean/원격 동명 ref를 다시 확인하고 일반 push한다. push 트리거로 발생한 **해당 workflow·해당 SHA의 run**을 조회해 run ID/URL을 기록한다. 원격 push/실행 없이 READY로 올리지 않는다. workflow 실패는 위 분류로 조사하고 assertion을 줄여 수치를 맞추지 않는다.
+
+
+## INV-CI-02 — 최소 스택의 CLI status 키 조회
+
+- 변경: `Invoke-IM1B3HttpE2E.ps1`에서 Studio inspect 제거, `ci/local-status.mjs`의 검증된 CLI JSON status 결과를 PowerShell 변수로만 캡처.
+- CLI는 기존 QA와 동일하게 `npm exec --yes --package=supabase@2.121.0 -- supabase --workdir <qaRoot> status -o json`을 사용한다. 외부 Docker context를 거절하고 config project_id 및 healthy `supabase_db_inventory_qa`를 먼저 확인한다.
+- `API_URL`은 정확히 `http://127.0.0.1:56321`이어야 한다. 선택적 PROJECT_ID가 있으면 inventory_qa여야 한다. 다른 endpoint/project로 fallback하지 않는다.
+- ANON_KEY가 있으면 JWT payload role=anon 및 구조를 확인한다(서명 검증은 서버 책임). service_role은 거절한다. anon JWT가 없는 경우 publishable 형식 PUBLISHABLE_KEY만 허용한다. secret/service-role key를 사용하지 않는다.
+- anon-jwt에는 기존 anonymous Bearer header를 유지하고 publishable에는 apikey header만 사용한다. 로그인 이후 RPC에는 실제 합성 사용자 JWT를 쓴다. 기존 다른 HTTP QA의 CLI status 방식과 호환된다.
+- CLI stdout/stderr와 credentials 객체는 메모리에만 존재한다. helper 실패 메시지는 고정 문구이며 key/Auth body/status 전체를 출력하지 않는다. Artifact allowlist는 기존 summary.json 한 개 그대로다.
+- 추가 지원 테스트 4개와 기존 지원 테스트 5개 = 9 PASS. 키 누락/권한 키/외부 origin/타 프로젝트/Studio 부재/CLI 실패 오류 비노출을 검사했다. 이 Mock status 검사를 실제 Auth/SQL PASS로 기록하지 않는다.
+- 실제 CLI JSON 형식은 이번 run의 safe summary에 API_URL 필드 및 ANON_KEY/PUBLISHABLE_KEY 존재 여부(boolean)만 기록한다. 키 값은 기록하지 않는다.
+- YAML/actionlint/Node syntax/diff 검사를 통과했다. PowerShell parser 및 실제 JWT/Adapter/DB 결과는 새 Actions run에서 판정한다.
+- 제품 Adapter, SQL/RPC/RLS/migration, Cloud A/B 제품 브랜치는 변경하지 않았다. Studio를 추가하지 않았다. 신규 CI commit을 일반 push한 뒤 실제 run ID/결론을 최종 보고한다.
