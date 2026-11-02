@@ -16,6 +16,7 @@ function New-Actor([string]$label){
 }
 function Invoke-Rpc($token,$name,$body){Invoke-RestMethod -Method Post -Uri "$base/rest/v1/rpc/$name" -Headers @{apikey=$anon;Authorization="Bearer $token"} -ContentType 'application/json' -Body ($body|ConvertTo-Json)}
 function Expect-Http($token,$name,$body,[int]$status,[string]$message){try{Invoke-Rpc $token $name $body|Out-Null;return $false}catch{return ([int]$_.Exception.Response.StatusCode-eq$status -and [string]$_.ErrorDetails.Message-match $message)}}
+function Expect-DirectDmlDenied($token,$lotId){try{Invoke-RestMethod -Method Patch -Uri "$base/rest/v1/inventory_stock_lots?lot_id=eq.$lotId" -Headers @{apikey=$anon;Authorization="Bearer $token";Prefer='return=representation'} -ContentType 'application/json' -Body '{"remaining_quantity":999}'|Out-Null;return $false}catch{return [int]$_.Exception.Response.StatusCode -in @(401,403)}}
 $teacher=New-Actor 'teacher'; $instructor=New-Actor 'instructor'; $inactive=New-Actor 'inactive'
 $school='b4100000-0000-4000-8000-000000000001'; $other='b4100000-0000-4000-8000-000000000002'; $item='b4200000-0000-4000-8000-000000000001'
 $seed=@"
@@ -32,6 +33,9 @@ $adjust=Invoke-Rpc $teacher.Token 'inventory_adjust_stock' @{p_school_id=$school
 $reverse=Invoke-Rpc $teacher.Token 'inventory_reverse_movement' @{p_school_id=$school;p_original_movement_id=[string]$adjust.movement_id;p_request_uuid='b4900000-0000-4000-8000-000000000004';p_reason='Synthetic HTTP reverse'}
 $use=Invoke-Rpc $instructor.Token 'inventory_use_stock' @{p_school_id=$school;p_item_id=$item;p_quantity=1;p_request_uuid='b4900000-0000-4000-8000-000000000009';p_reason='Synthetic HTTP use'}
 $replay=Invoke-Rpc $teacher.Token 'inventory_receive_stock' $receive
+$conflictingReceive=$receive.Clone();$conflictingReceive.p_purchase_quantity=3
+$payloadConflict=Expect-Http $teacher.Token 'inventory_receive_stock' $conflictingReceive 409 'IDEMPOTENCY_CONFLICT'
+$directDmlDenied=Expect-DirectDmlDenied $teacher.Token $lot
 $instructorReceive=$receive.Clone(); $instructorReceive.p_request_uuid='b4900000-0000-4000-8000-000000000005'
 $instructorDenied=Expect-Http $instructor.Token 'inventory_receive_stock' $instructorReceive 403 'PERMISSION_DENIED'
 $inactiveDenied=Expect-Http $inactive.Token 'inventory_dispose_stock' @{p_school_id=$school;p_item_id=$item;p_lot_id=$lot;p_quantity=1;p_request_uuid='b4900000-0000-4000-8000-000000000006';p_reason='Synthetic inactive'} 403 'PERMISSION_DENIED'
@@ -44,7 +48,7 @@ $dtoOk=$true
 foreach($response in $responses){if(@($required|Where-Object{$response.PSObject.Properties.Name -notcontains $_}).Count -ne 0){$dtoOk=$false}}
 $operations=@($r.operation,$dispose.operation,$adjust.operation,$reverse.operation,$use.operation) -join ','
 $replayStable=$replay.status-eq'replayed'-and$replay.item_total_quantity-eq$r.item_total_quantity-and$replay.item_available_quantity-eq$r.item_available_quantity-and(($replay.movements|ConvertTo-Json -Compress)-eq($r.movements|ConvertTo-Json -Compress))
-$passed=$dtoOk-and$r.status-eq'applied'-and$replayStable-and$instructorDenied-and$inactiveDenied-and$crossDenied-and$anonDenied-and$operations-eq'RECEIVE,DISPOSE,ADJUST,REVERSAL,USE'
+$passed=$dtoOk-and$r.status-eq'applied'-and$replayStable-and$payloadConflict-and$directDmlDenied-and$instructorDenied-and$inactiveDenied-and$crossDenied-and$anonDenied-and$operations-eq'RECEIVE,DISPOSE,ADJUST,REVERSAL,USE'
 if(-not $passed){throw "IM-1B-4A HTTP E2E assertion failed: dto=$dtoOk operations=$operations replayStable=$replayStable"}
-[pscustomobject]@{suite='IM-1B-4A-http';status='PASS';rpcCalls=6;dto=$dtoOk;operations=$operations;replayStable=$replayStable;instructorDenied=$instructorDenied;inactiveDenied=$inactiveDenied;crossTenantDenied=$crossDenied;anonDenied=$anonDenied}
+[pscustomobject]@{suite='IM-1B-4A-http';status='PASS';rpcCalls=7;dto=$dtoOk;operations=$operations;replayStable=$replayStable;payloadConflict=$payloadConflict;directDmlDenied=$directDmlDenied;instructorDenied=$instructorDenied;inactiveDenied=$inactiveDenied;crossTenantDenied=$crossDenied;anonDenied=$anonDenied}
 $anon=$null; $teacher.Token=$null; $instructor.Token=$null; $inactive.Token=$null
