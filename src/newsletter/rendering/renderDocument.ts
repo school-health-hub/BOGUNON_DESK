@@ -83,7 +83,8 @@ function expandedBodyFrame(leadFrame: Frame, actionFrame: Frame, hasLead: boolea
   return { ...actionFrame, y: leadFrame.y, height: actionFrame.y + actionFrame.height - leadFrame.y }
 }
 function moveTopPreservingBottom(frame: Frame, delta: number): Frame {
-  return { ...frame, y: frame.y + delta, height: frame.height - delta }
+  const applied = Math.min(Math.max(delta, 0), frame.height)
+  return { ...frame, y: frame.y + applied, height: frame.height - applied }
 }
 function reflowA4ModuleFrames(input: {
   readonly titleText: string
@@ -105,7 +106,7 @@ function reflowA4ModuleFrames(input: {
   const image = moveTopPreservingBottom(input.imageFrame, titleDelta)
   const leadLayout = layoutText(input.leadText, input.bodyStyle, leadAfterTitle, input.measureText)
   const leadHeight = Math.ceil(leadLayout.requiredHeight)
-  const leadDelta = input.leadText.length > 0 && leadLayout.lines.length === 2 && leadHeight > leadAfterTitle.height ? leadHeight - leadAfterTitle.height : 0
+  const leadDelta = input.leadText.length > 0 && leadHeight > leadAfterTitle.height ? leadHeight - leadAfterTitle.height : 0
   return {
     title,
     lead: leadDelta === 0 ? leadAfterTitle : { ...leadAfterTitle, height: leadHeight },

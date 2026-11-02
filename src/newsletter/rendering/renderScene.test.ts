@@ -130,4 +130,30 @@ describe("Newsletter common render scene", () => {
     expect(document.issues.filter((issue) => ["overflow", "layout-collision", "clip-bounds"].includes(issue.kind))).toEqual([])
     expect(validateNewsletterScene(buildNewsletterScene(document))).toEqual([])
   })
+
+  it("reflows a lead after a two-line Korean A4 module title without negative frames", async () => {
+    // Given
+    const longTitle = "환절기 건강 습관과 안전한 학교생활 안내"
+    const sourceText = "짧은 안내\n1. 등교 전 기온을 확인해요.\n2. 물을 자주 마셔요."
+    const topics = Array.from({ length: 6 }, (_, index) => ({
+      id: `topic-${index + 1}`,
+      title: index === 0 ? longTitle : `주제 ${index + 1}`,
+      text: index === 0 ? sourceText : `일반 문장 ${index + 1}`,
+    }))
+    const project = await createNewsletterProject({ projectId: "project-1", title: "합성 보건소식", now: NOW, topics })
+    const design = upgradeNewsletterDesignStateV2(createNewsletterDesignState({ projectId: project.projectId, canonicalProjectRevision: 1, now: NOW }), "2026-01-02T00:00:00.000Z")
+
+    // When
+    const document = compileRenderDocument({ project, projectRevision: 1, design, designRevision: 2 })
+    const first = document.a4.modules[0]
+
+    // Then
+    expect(first?.title.lines).toHaveLength(2)
+    expect(first?.title.lines.join("").replace(/\s/gu, "")).toBe(longTitle.replace(/\s/gu, ""))
+    expect(first?.lead?.lines.join("").replace(/\s/gu, "")).toBe("짧은안내")
+    expect(first?.body.lines.join("").replace(/\s/gu, "")).toBe("1.등교전기온을확인해요.2.물을자주마셔요.")
+    expect([first?.title.frame, first?.lead?.frame, first?.body.frame, first?.image.frame].every((frame) => frame !== undefined && frame.width >= 0 && frame.height >= 0)).toBe(true)
+    expect(document.issues.filter((issue) => ["overflow", "layout-collision", "clip-bounds"].includes(issue.kind))).toEqual([])
+    expect(validateNewsletterScene(buildNewsletterScene(document))).toEqual([])
+  })
 })
