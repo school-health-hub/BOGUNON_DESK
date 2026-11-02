@@ -129,3 +129,16 @@ Cloud 결과: **273 PASS(51파일)**, Rust Purchase **56 PASS**, Electron TypeSc
 ### G1 최종 결과
 
 [Windows Actions 41409674837](https://github.com/school-health-hub/BOGUNON_DESK/actions/runs/41409674837) **SUCCESS**, 검증 구현/후보 SHA **`571ac15e5600251e7140a21c7938d6d5e6a2ff37`**. Portable/NSIS 생성·fixed CLI 포함 및 smoke, packaged EXE의 기존 8개 대상/보조 패널과 optional 공문 Dock·WIN-QA-04 PDF→UI(4개/23,500원) PASS. native 파일 선택창은 test double이므로 실기기 native dialog QA는 NOT RUN이다. 기존 합계 행 파서 변경은 필요 없었고, 두 실제 연결 결함(Dock/개발 CLI 경로)만 최소 수정했다. root 타입 26건은 G0와 동일하게 남는다. **전체 CONDITIONAL / 실기기 QA 후보 확보**이며 설치/제거·전체 GUI·공문 파일 독립 QA는 반복하지 않았다. 아티팩트/격리 실행/실기기 확인 항목은 G1 QA 인계 문서를 따른다. Inventory Cloud B는 최종 계약/검증 인계를 기다리며 이번에 병합하지 않았다.
+
+## Cloud A Inventory Preview 통합 (2026-11-02)
+
+- 기준: A `codex/cloud-g1-windows-qa-handoff@723e301446b06af9690a91df6cbd724549710d8d`, B `codex/inventory-im2b1-cloud-b@ef0ba64cae5c0a6ccbba05a8821a80730dcfc087`. 시작 시 두 원격 SHA 일치·A clean 확인. 독립 로컬 worktree/브랜치 `codex/cloud-a-inventory-preview` 사용. **원격 push/PR/병합/배포는 승인되지 않아 실행하지 않는다.**
+- 업무 도구에 **물품관리 — 로컬 저장**과 **물품관리 — 미리보기**를 독립 메뉴로 제공한다. 기존 메뉴·Dock 구성은 유지한다. 기존 로컬 화면은 원본 InventoryWorkspace/model과 inventory.load/save·JSON 저장소를 그대로 사용한다. Preview 화면 안에서는 합성 adapter만 사용하며 `preview_only`, `persisted:false`, 실제 저장/DB 기능 없음이 표시된다.
+- B의 합성 의존성 4개+기존 Panel/WorkflowDialog 2개, CSS만 선별 재사용했다. 원본 import 관계·해시·변경 내역은 `electron-p0/renderer/inventory-preview/PROVENANCE.md`와 `source-hashes.json`을 따른다. B 전체 merge/cherry-pick, connection/**·인증·RPC·운영 설정 복사는 하지 않았다.
+- Preview 기능: 재고 요약/품목·검색·필터/상세·로트·유효기간/등록·입고·사용·폐기·정정·구매 후보 입력 확인. 결과는 미리보기 검증이며 서버 저장 성공을 표시하지 않고 재고도 바꾸지 않는다. 기존 로컬 저장과 B Preview의 의미가 다르므로 데이터를 섞거나 자동 변환하지 않는다.
+- 격리: 별도 타입·fixture·adapter, Local/Preview 별도 lazy mount로 UI 상태 폐기. Preview 입력값을 inventory.save로 전달하지 않는다. 전환 후 기존 JSON·backup 바이트 보존, 로컬 입고 저장 및 재조회 PASS. Preview 최초 진입 시 inventory.load/save와 fetch/XHR/WebSocket 호출 없음. source scan과 renderer boundary에서 B connection/transport·Supabase·Tauri 혼입을 차단한다.
+- CSS: 동일 클래스 충돌을 확인해 Preview selector를 모두 한정했다. 기존 CSS/디자인/로컬 소스는 변경하지 않는다. B의 900/620px 반응형 규칙을 유지하고 작은 창 header wrapping을 추가했다. **실제 좁은 창 렌더링은 NOT RUN**이며 DOM/CSS 검증을 시각 QA PASS로 표시하지 않는다.
+- 검증: Inventory/B UI 재사용/격리·경계, 기존 JSON/store·IPC/policy/settings/memo, Dashboard/Dock 관련 **101 PASS / 20파일**, Electron TypeScript(main/preload/renderer/tests)·production build PASS. 비밀키/JWT/private key/한국 전화번호·주민번호 고확신 패턴의 best-effort 검사와 git diff --check PASS. 전용 외부 DLP 도구를 설치하지 않았다.
+- GUI: sandbox를 유지한 headless Electron 1회 시도는 **BLOCKED / NOT RUN**. 마지막 오류 `Process failed to launch!`, 화면은 실제 시작되지 않았고 해당 작업의 실행 중 Electron 프로세스도 발견되지 않았다. 원인은 확정하지 않았다. 추가 설치/권한 확대/no-sandbox/재시도 없음. 새 Preview E2E와 기존 메뉴 명칭 기대값은 준비했으나 GUI 실행 성공을 주장하지 않는다. 이전 G1 Windows CI PASS는 이번 변경의 PASS로 대체하지 않는다. Windows CI/패키징은 이번에 NOT RUN(미푸시).
+- **최종 CONDITIONAL**: Preview 구현·집중 자동 검증 완료, GUI/실제 좁은 창 확인 대기. Cloud B 추가 변경 요청 없음. 실제 PostgreSQL/Auth/RLS 검증 및 향후 Electron transport/origin 계약은 별도 후속 단계이고, Local QA·운영 연결은 계속 차단한다. Inventory B 파일·기존 JSON·Finance/Desktop Surface/Purchase/공문/Finder/Tauri는 변경하지 않았다.
+- 현재 G1 인계 아티팩트에는 이 Preview 변경이 들어 있지 않다. 이번 결과는 로컬 체크포인트만 보존하며 원격 공유·CI는 별도 승인 후 진행한다.

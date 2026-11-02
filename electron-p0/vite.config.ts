@@ -11,7 +11,7 @@ export default defineConfig({root,base:'./',envDir:root,envPrefix:'ELECTRON_P0_P
     const modules=[...this.getModuleIds()].map(p=>p.replaceAll('\\','/'));
     // Context providers must retain one module identity on Windows as well as POSIX.
     if(modules.filter(p=>p.endsWith('/electron-p0/renderer/adapters/PersistentMemo.tsx')).length!==1)this.error('PersistentMemo must have exactly one canonical module identity');
-    const forbidden=modules.filter(p=>/@tauri-apps|@supabase|\/src\/(auth|ai|chatgpt|my-finance|purchase|record-helper)\//.test(p));
+    const forbidden=modules.filter(p=>/@tauri-apps|@supabase|\/src\/inventory-management\/connection\/|\/src\/(auth|ai|chatgpt|my-finance|purchase|record-helper)\//.test(p));
     if(forbidden.length)this.error(`Forbidden production dependency in PoC: ${forbidden.join(', ')}`);
     this.emitFile({type:'asset',fileName:'p0-renderer-boundary.json',source:JSON.stringify({closed:true,adapters:modules.filter(p=>p.includes('/electron-p0/renderer/adapters/')).map(p=>p.slice(p.lastIndexOf('/electron-p0/')+1)),reused:modules.filter(p=>p.includes('/src/')).map(p=>p.slice(p.lastIndexOf('/src/')+1))},null,2)});
   }

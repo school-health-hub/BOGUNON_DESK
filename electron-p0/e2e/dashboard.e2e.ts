@@ -109,7 +109,7 @@ test('CLOUD-G0: one isolated Electron instance opens every integrated entry',asy
   await page.getByRole('button',{name:'품의 도우미 닫기'}).click();
   await tools();await page.getByRole('button',{name:'교육영상 Finder · 합성 Mock'}).click();await expect(page.getByRole('heading',{name:/AI 교육영상 Finder/})).toBeVisible();checked.push('Finder');await page.getByRole('button',{name:'보건 업무로',exact:true}).click();
   await tools();await page.getByRole('button',{name:'공문작업실 · 로컬 초안'}).click();await expect(page.getByRole('heading',{name:'공문작업실',exact:true})).toBeVisible();checked.push('공문작업실');await page.getByRole('button',{name:'보건 업무로',exact:true}).click();
-  await tools();await page.getByRole('button',{name:'재고 관리 · 합성 로컬'}).click();await expect(page.getByRole('heading',{name:'재고 관리',exact:true})).toBeVisible();checked.push('Inventory');await page.getByRole('button',{name:'대시보드로',exact:true}).click();
+  await tools();await page.getByRole('button',{name:'물품관리 — 로컬 저장'}).click();await expect(page.getByRole('heading',{name:'재고 관리',exact:true})).toBeVisible();checked.push('Inventory');await page.getByRole('button',{name:'대시보드로',exact:true}).click();
   await dock.getByRole('button',{name:'설정',exact:true}).click();await page.getByRole('button',{name:'보건소식지 제작소',exact:true}).click();await expect(page.getByRole('heading',{name:'보건소식지 제작소',exact:true})).toBeVisible();checked.push('Newsletter');await page.getByRole('button',{name:'보건 업무로',exact:true}).click();
   await expect(home).toBeVisible();await expect(dock).toBeVisible();expect(errors).toEqual([]);expect(checked).toHaveLength(8);
   await page.getByRole('button',{name:'화면 꾸미기',exact:true}).click();await page.getByRole('button',{name:'Dock',exact:true}).click();
