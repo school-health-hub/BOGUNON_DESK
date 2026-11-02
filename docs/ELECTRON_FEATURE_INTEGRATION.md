@@ -65,14 +65,14 @@
 
 | 진입점 | 코드 포함/Cloud 근거 | 단일 Windows 실행본 진입 |
 | --- | --- | --- |
-| Dashboard | 기존 위젯·설정/레이아웃 테스트 PASS | CI 확인 중 |
-| Dock | 기존 UI/저장 테스트 PASS | CI 확인 중 |
-| Quick Memo | memo IPC 및 기존 테스트 PASS | CI 확인 중 |
-| Purchase | fixture 준비 후 가져오기·출력·편집 테스트 PASS | CI 확인 중 |
-| Newsletter | 프로젝트/JSON/출력 경계 테스트 PASS | CI 확인 중 |
-| Finder | model/library/UI 테스트 PASS | CI 확인 중 |
-| 공문작업실 | 기존 파일 처리 CI `41401980509` PASS, **Windows 실기기 QA PASS(사용자 보고, 이번에 재실행하지 않음)** | 진입만 CI 확인 중; 파일 대화상자 QA 재실행 아님 |
-| Inventory | store/model/workspace 테스트 PASS | CI 확인 중 |
+| Dashboard | 기존 위젯·설정/레이아웃 테스트 PASS | **PASS** (G0 Windows CI) |
+| Dock | 기존 UI/저장 테스트 PASS | **PASS** (G0 Windows CI) |
+| Quick Memo | memo IPC 및 기존 테스트 PASS | **PASS** (G0 Windows CI) |
+| Purchase | fixture 준비 후 가져오기·출력·편집 테스트 PASS | **PASS** (G0 Windows CI) |
+| Newsletter | 프로젝트/JSON/출력 경계 테스트 PASS | **PASS** (G0 Windows CI) |
+| Finder | model/library/UI 테스트 PASS | **PASS** (G0 Windows CI) |
+| 공문작업실 | 기존 파일 처리 CI `41401980509` PASS, **Windows 실기기 QA PASS(사용자 보고, 이번에 재실행하지 않음)** | **진입 PASS**; 파일 대화상자 QA 재실행 아님 |
+| Inventory | store/model/workspace 테스트 PASS | **PASS** (G0 Windows CI) |
 
 ### 검증 범위와 잔여
 
@@ -81,3 +81,13 @@
 - 실제 제품 실행 코드 변경은 **없음**. 확인된 9건은 준비 경로 결함이므로 개발 검증 경로만 수정했다. Windows 진입 중 제품 결함이 재현되면 별도 기록한다.
 - 전체 저장소 Tauri 타입 2건, Newsletter 실제 출력/자산 승인 검증, Purchase PDF 실제 GUI 요약 행 재검증 등 기존 잔여를 미검증 상태로 유지한다. 승인 reference/AI, Calendar 운영 연계, Inventory↔Purchase 자동 입고, 계정/운영 DB/MY FINANCE는 신규 구현하지 않는다.
 - 다음 우선순위: 통합 진입 CI 잔여 → Newsletter 승인된 합성 자산/실제 출력 계약 검증 → Purchase PDF 실제 GUI 요약 행 확인 → 기존 기능의 다음 이식(공문 reference는 별도 승인·계약 확인 후). Calendar/운영 동기화는 데이터/인증 전략 확정 전 DEFER.
+
+
+### CLOUD-G0 최종 증거와 판정
+
+- 검증 코드 SHA: `dd987b1`(정확한 SHA는 아래 remote/최종 보고로 확인). [Windows CI 41405828621](https://github.com/school-health-hub/BOGUNON_DESK/actions/runs/41405828621) **SUCCESS**: fixture 준비·통합 자동 테스트, Electron TypeScript/production build, 8개 진입 smoke 모두 통과. `CLOUD-G0-entry-evidence-<검증 SHA>`에 스크린샷/실패 시 trace를 보존한다(7일).
+- 실제 Electron 하나의 UUID 격리 프로필에서 8개 화면/내비게이션 및 Dashboard 복귀를 확인했다. 승인된 preload key 집합, Node require 비노출, no-sandbox 우회 없음, renderer pageerror 없음도 확인했다. 파일 열기/저장/학교 자료/원고/이미지 출력·설치/제거는 이 smoke에서 실행하지 않았다.
+- Cloud 자동: **272 PASS(51파일)**, Rust Purchase **55 PASS**, Electron 전용 3개 TypeScript 구성·production build PASS. 처음의 9 FAIL은 모두 준비 경로 문제로 해소했다. 테스트를 삭제·skip·disable하거나 assertion을 제거하지 않았다. 실제 제품 로직 수정은 없으며 `src/`·`src-tauri/` diff는 비어 있다.
+- 전체 root TypeScript **FAIL 26건**(Electron ambient 범위 24 + 기존 Tauri 상태/동작 계약 2)은 별도 결함으로 남긴다. bridge 선언을 포함한 임시 진단에서는 2건으로 줄어드는 것을 확인했으며 임시 설정을 저장소에 반영하지 않았다.
+- **G0 통합 진입·회귀 검증 PASS / Electron 전체 CONDITIONAL**. Newsletter 실제 출력·승인 자산, Purchase PDF GUI 요약 행 등 기존 잔여를 완료로 승격하지 않는다. 공문 파일 Windows 실기기 QA PASS는 사용자 보고와 기존 증거를 재사용하며 재실행하지 않았다.
+- 마감 커밋은 문서만 갱신하고 `[skip ci]`로 불필요한 반복을 피한다. 신규 기능/의존성/QA 프레임워크/운영 데이터 접근/PR/main 병합/배포는 없다. 후속 이식은 위 우선순위와 결함 목록을 기준으로 새 승인 범위에서 진행한다.

@@ -24,7 +24,7 @@
 | Purchase fixture 연동 9 FAIL | **해소(검증 준비 결함)**. 새 worktree에서 9 FAIL 재현 후 원본 Rust fixture 생성·CLI 빌드 선행. 테스트 skip 없이 Electron 225 PASS, Dashboard/Dock 47 PASS. 제품 로직 수정 없음 |
 | 공문 ODT/PDF/HWPX/ODT adapter | **이식됨**. `d167c934…`, Windows CI 41401980509 PASS, Windows PC 파일 QA PASS는 사용자 보고로 재사용. reference/Google/AI 연계는 여전히 제외 |
 | 전체 저장소 TypeScript | **미해결/범위 분리**. root 26 오류 중 24건은 Electron bridge 선언 범위, 2건은 기존 Tauri 공문 session/reference. Electron 3개 타입 구성/빌드 PASS. 전역 타입 오염이나 기존 Tauri 수정으로 숨기지 않음 |
-| 단일 통합 실행본 진입 | 새 Windows CI에서 Dashboard/Dock/Memo/Purchase/Newsletter/Finder/공문/Inventory 진입만 검증. 기존 개별 파일/설치 QA는 반복하지 않음. 최종 결과는 통합 현황표 참조 |
+| 단일 통합 실행본 진입 | **해소**. [Windows CI 41405828621](https://github.com/school-health-hub/BOGUNON_DESK/actions/runs/41405828621)에서 Dashboard/Dock/Memo/Purchase/Newsletter/Finder/공문/Inventory 진입·복귀 PASS. 기존 개별 파일/설치 QA는 반복하지 않음. 전체 기능 완성 판정은 아님 |
 | 기존 출력·운영 연계 잔여 | 위 Newsletter 실제 출력·이미지 승인, Purchase PDF GUI, Inventory 운영/자동 입고 미완료는 그대로 유지. 신규 기능으로 범위를 확대하지 않음 |
 
 전체 Electron은 잔여 검증으로 **CONDITIONAL**이며 main 병합·PR·운영 배포는 하지 않는다.
