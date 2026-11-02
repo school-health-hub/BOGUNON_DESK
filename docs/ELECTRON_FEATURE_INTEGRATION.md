@@ -125,3 +125,7 @@
 - 공문 home-v1 원본·구조/취소·원고 보호는 그대로. Tauri DOC-V2-P11 (`6f26310…`, Actions `41318375451`, 사용자 제공 GUI EXE SHA256 `C1F244633B21993B344577632F41D6AF9E8E4BB2A381CF73B6D36EC4D5B8971E`)은 **Tauri 독립 증거**이며 Electron PASS로 전환하지 않는다. 최신 Tauri GUI ODT의 K-에듀파인 재검증과 Electron 생성 ODT의 확인을 자동 PASS 처리하지 않는다.
 
 Cloud 결과: **273 PASS(51파일)**, Rust Purchase **56 PASS**, Electron TypeScript(main/preload/renderer/tests)·production build PASS, 실제 CLI smoke PASS. Windows 결과·최종 SHA/후속 실기기 항목은 [G1 QA 인계](qa/CLOUD_G1_WINDOWS_QA_HANDOFF.md)에 기록한다. 기존 공문 실기기 QA는 반복하지 않으며 전체 Windows GUI/설치·제거 QA도 재실행하지 않는다.
+
+### G1 최종 결과
+
+[Windows Actions 41409674837](https://github.com/school-health-hub/BOGUNON_DESK/actions/runs/41409674837) **SUCCESS**, 검증 구현/후보 SHA **`571ac15e5600251e7140a21c7938d6d5e6a2ff37`**. Portable/NSIS 생성·fixed CLI 포함 및 smoke, packaged EXE의 기존 8개 대상/보조 패널과 optional 공문 Dock·WIN-QA-04 PDF→UI(4개/23,500원) PASS. native 파일 선택창은 test double이므로 실기기 native dialog QA는 NOT RUN이다. 기존 합계 행 파서 변경은 필요 없었고, 두 실제 연결 결함(Dock/개발 CLI 경로)만 최소 수정했다. root 타입 26건은 G0와 동일하게 남는다. **전체 CONDITIONAL / 실기기 QA 후보 확보**이며 설치/제거·전체 GUI·공문 파일 독립 QA는 반복하지 않았다. 아티팩트/격리 실행/실기기 확인 항목은 G1 QA 인계 문서를 따른다. Inventory Cloud B는 최종 계약/검증 인계를 기다리며 이번에 병합하지 않았다.

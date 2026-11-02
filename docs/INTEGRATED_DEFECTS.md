@@ -28,3 +28,12 @@
 | 기존 출력·운영 연계 잔여 | 위 Newsletter 실제 출력·이미지 승인, Purchase PDF GUI, Inventory 운영/자동 입고 미완료는 그대로 유지. 신규 기능으로 범위를 확대하지 않음 |
 
 전체 Electron은 잔여 검증으로 **CONDITIONAL**이며 main 병합·PR·운영 배포는 하지 않는다.
+
+## CLOUD-G1 갱신 (2026-11-02)
+
+- **Purchase WIN-QA-04**: 기존 `03e31e2` 필터가 유효하므로 파서 수정 없음. 실제 합성 한글 PDF의 합계 행을 제외하고 4개/23,500원을 Rust·CLI·UI 및 Windows packaged GUI(파일 선택 test double)에서 확인했다. 기존 ‘GUI 미확인’은 이 자동 경로에 한해 해소했으며 실기기 native dialog 확인은 남긴다.
+- **optional 공문 Dock 연결**: 미지원 안내로 빠지던 Electron route를 기존 화면에 연결. Windows packaged EXE에서 사용자 Dock 편집→표시→공문 진입/복귀 PASS.
+- **Windows 개발 CLI 경로**: debug 빌드/준비 경로와 main의 고정 경로를 native `target/debug`로 일치시키고 dev 실행에 CLI 빌드를 선행했다. fixed release CLI 경로/제품 ID/사용자 데이터 경로 변경 없음.
+- **QA 후보**: Actions `41409674837` SUCCESS, source `571ac15e5600251e7140a21c7938d6d5e6a2ff37`. Portable/NSIS 생성 및 패키지 GUI/CLI PASS. 실제 PC 실행·native dialog·설치/제거는 NOT RUN, 전체 CONDITIONAL.
+- **그대로 남는 항목**: root TypeScript 26건, Newsletter 실제 출력/승인 자산, 최신 ODT 외부 호환성, Inventory 운영 연계/자동 입고. Inventory B 코드는 임의 병합하지 않으며 RPC/RLS/migration은 수정하지 않는다.
+- 상세 [G1 Windows QA 인계](qa/CLOUD_G1_WINDOWS_QA_HANDOFF.md)를 기준으로 하며 기존 Tauri DOC-V2-P11 PASS를 Electron 실기기 PASS로 바꾸지 않는다.

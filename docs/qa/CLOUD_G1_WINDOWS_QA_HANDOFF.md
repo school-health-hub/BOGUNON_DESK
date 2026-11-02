@@ -46,3 +46,13 @@ Start-Process -FilePath $pocExe[0].FullName -Wait
 - Newsletter 실제 승인 자산/긴 제목 출력, Purchase PDF native dialog/실제 PC 결과, 최신 생성 ODT K-에듀파인 호환성, 설치·제거 및 일반 사용자 패키지 QA는 미검증 상태를 유지한다.
 - **Inventory Cloud B 통합 대기**: 현재는 기존 `8f0044cd…`의 합성 로컬 Inventory만 포함한다. 관찰한 별도 `feature/inventory-management` 원격 SHA는 `a765ad08570dc5513edf96bb970442026a0a31ce`이며 가져오거나 병합하지 않았다. B 최종 SHA·변경 범위·IPC/DTO 계약·검증 결과 인계를 받은 후 별도 승인된 통합 단계에서만 검토한다. RPC/RLS/migration/운영 DB를 수정하지 않는다.
 - PR/main 병합/운영 배포/AI 신규 기능/TD2 재설계/공문 중복 이식 없음. 최종 판정은 Windows CI 결과와 실제 PC 미검증을 함께 기록한다.
+
+## 최종 Windows CI 증거
+
+- 구현/아티팩트 전체 SHA: **`571ac15e5600251e7140a21c7938d6d5e6a2ff37`**.
+- [Windows Actions 41409674837](https://github.com/school-health-hub/BOGUNON_DESK/actions/runs/41409674837): **SUCCESS**. 원본 합성 fixture·통합 테스트, Electron 타입/production build, fixed release CLI·Portable/NSIS 생성·패키지 CLI smoke, packaged Electron 집중 GUI(1 test, 5.9초), 후보 manifest/해시 기록·업로드 모두 성공.
+- 다운로드: 위 Actions의 **`CLOUD-G1-QA-candidate-571ac15e5600251e7140a21c7938d6d5e6a2ff37`**. EXE 두 개, `SHA256SUMS.txt`, `G1-BUILD-RESULT.json`, `WIN-QA-04-synthetic.pdf`가 포함된다. 서명 상태는 manifest에 기록되며 CI는 NotSigned/Valid 이외의 상태를 거절했다. 실제 SHA256/서명 값은 동봉 기록과 대조한다. 증거 파일은 **`CLOUD-G1-evidence-41409674837`**에 있다. 업로드 시 두 아티팩트 모두 expired=false 확인(7일 보존).
+- 실제 검증: Windows **win-unpacked의 packaged EXE**가 UUID 격리 프로필로 실행되어 기존 8개 대상, 설정·업무 도구 경유, optional 공문 Dock 진입·복귀와 PDF→main IPC→패키지 CLI→UI 4개/23,500원을 확인했다. `예상 합계`가 다섯 번째 품목으로 추가되지 않았다. native open dialog는 synthetic 경로 test double이므로 실제 파일 선택창 통과를 주장하지 않는다.
+- **Windows CI PASS / Windows 실기기 NOT RUN**. Portable wrapper EXE의 실제 PC 실행, NSIS 설치/제거, 일반 사용자 데스크톱 환경, native 파일 선택과 외부 프로그램 확인은 미실행이다. packaged EXE smoke PASS를 Portable/NSIS 실기기 PASS로 대체하지 않는다. 이 후보는 Windows x64 대상이며 Cloud 실제 Electron GUI와 Linux 패키징은 NOT RUN이다.
+- 전체 root `npx tsc --noEmit`은 현재도 26건으로 FAIL, G0와 동일하다. 닫힌 renderer boundary=true이며 기존 Tauri `officialDocumentSession`이 bundle에 없는 것을 확인했다. Electron 전용 타입·빌드 PASS와 혼동하지 않는다.
+- **최종 CONDITIONAL: Windows 실기기 집중 QA에 인계할 후보 확보**. 알려진 범위 밖 결함을 고치기 위해 원본 Tauri/보호 데이터를 변경하지 않았다. Inventory B/RPC/RLS/migration 변경/병합 없음. 코드 변경 없이 이 검증 기록만 문서 마감 커밋(`[skip ci]`)으로 보존한다. 마감 전체 SHA/remote clean 여부는 최종 보고로 확인한다.
