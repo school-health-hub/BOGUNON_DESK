@@ -3,6 +3,9 @@ import type { PurchaseAnalysisResult, PurchaseColumnMapping, PurchaseHeaderOptio
 export const CSV_LIMITS={bytes:15*1024*1024,rows:530,items:500,columns:256,cell:65536} as const;
 const aliases:Record<string,string[]>={name:['품명','품목명','물품명','상품명','제품명','상품','제품','내역','내용','name','itemname'],specification:['규격','사양','옵션','모델','모델명','spec','specification'],quantity:['수량','주문수량','개수','qty'],unitPrice:['단가','가격','판매가','공급단가','예상단가','unitprice'],amount:['금액','합계금액','공급가액','소계','총액','amount'],vendor:['구매처','업체','업체명','공급업체','공급자','판매처','상호'],note:['비고','메모','remark','remarks'],budgetItem:['예산항목','예산','예산과목','세부사업','비목']};
 const normalize=(s:string)=>s.trim().toLowerCase().replace(/[^\p{L}\p{N}]/gu,'');
+const summaryLabels=new Set(['합계','총계','소계','총액','total','subtotal','grandtotal']);
+const labeledSummaryAmount=/^(?:(?:예상|최종)\s*)?(?:합계|총계|소계|총액)\s*(?::|：|-)?\s*[+-]?\d[\d,]*(?:\.\d+)?\s*원?$/iu;
+const isSummaryName=(name:string)=>summaryLabels.has(normalize(name))||labeledSummaryAmount.test(name.trim());
 const fieldFor=(s:string)=>Object.keys(aliases).find(key=>aliases[key].includes(normalize(s)));
 const signature=(row:readonly string[])=>{const values=row.map(normalize);while(values.at(-1)==='')values.pop();return values;};
 const same=(a:unknown,b:unknown)=>JSON.stringify(a)===JSON.stringify(b);
@@ -62,7 +65,7 @@ export function parseMappedRows(rows:readonly (readonly string[])[],source:strin
  rows.slice(header+1).forEach((row,offset)=>{
   if(row.every(v=>!v.trim())||same(sig,signature(row)))return;
   const get=(field:keyof PurchaseColumnMapping)=>(row[mapping[field]??-1]??'').trim();
-  const name=get('name');if(['합계','총계','소계','total','grandtotal'].includes(normalize(name)))return;
+  const name=get('name');if(isSummaryName(name))return;
   const quantityRaw=get('quantity'),priceRaw=get('unitPrice');
   const quantity=number(quantityRaw),unitPrice=number(priceRaw),importedAmount=number(get('amount'));
   const specification=get('specification'),vendor=get('vendor'),note=get('note'),budgetItem=get('budgetItem');
