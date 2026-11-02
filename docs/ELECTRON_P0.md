@@ -603,3 +603,13 @@ Use a disposable GitHub Actions Windows runner, Node 24, Rust MSVC/Build Tools; 
 5. Upload Portable + manifest + checksums only, no profile/credentials/database. No release/publication/updater deployment. A normal-user Windows smoke launch using a fresh `ELECTRON_P0_TEST_RUN` GUID is still required before startup PASS; packaged Local QA must remain blocked. Actual Local QA DB/IPC requires a separate opted-in development run, not the Portable.
 
 Status: **CONDITIONAL — local packaging repair/automatic checks PASS; actual Windows Portable creation/startup and integrated GUI/output QA pending**. Existing school WIP/worktrees, Tauri app/data, Inventory JSON and operating databases remain untouched. No push or Actions execution authorized in this step.
+
+## INT-EL-03B — Windows QA Portable artifact job
+
+Product repair source remains fixed at `fix/electron-int-el03a-portable-runtime@6a17ea7635b1f140a68de3f7a01e03488034b14e`; QA workflow lives separately on `ci/electron-int-el03b-portable`. `.github/workflows/electron-int-el03b-portable.yml` checks out that exact product into `product/`, uses Node 24 and the runner's Rust MSVC, and runs the existing Portable command only. It does not invoke the historical full installation/GUI QA workflow.
+
+`scripts/electron-p0/int-el03b-artifact.mjs` inspects the actual packaged ASAR runtime dependency closure and product build metadata, compares both packaged native CLI hashes to their build outputs, and hashes the Portable. The workflow records Authenticode status without assuming a signature. Product clean state/`dirty:false` are required. CI SHA is recorded separately from the immutable product SHA.
+
+Expected artifact: `INT-EL-03B-Windows-Portable-6a17ea7635b1f140a68de3f7a01e03488034b14e`, retained seven days, containing one Portable EXE, `INT-EL-03B-MANIFEST.json` and `SHA256SUMS.txt`. Runtime GUI/native CLI execution is not inferred from resource inclusion. Actual Windows GUI remains NOT RUN.
+
+School PC handoff: open the successful Actions run, download its artifact to a new F: folder, extract it, compare `Get-FileHash '<Portable.exe>' -Algorithm SHA256` with the manifest and `SHA256SUMS.txt`, and check `productSourceSha` is exactly the repair SHA. Do not clone/install dependencies/build on the low-space school PC. Before GUI QA, use a fresh `ELECTRON_P0_TEST_RUN` GUID so PoC settings/data stay separate; do not install/uninstall or touch existing Tauri/Inventory data. Do not run an artifact from a failed or incomplete job. Packaged Production Local QA must remain blocked; actual DB work requires a separate opted-in development environment.

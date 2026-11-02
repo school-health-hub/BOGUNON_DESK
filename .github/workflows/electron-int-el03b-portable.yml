@@ -1,0 +1,81 @@
+name: Electron INT-EL-03B QA Portable
+on:
+  push:
+    branches: [ci/electron-int-el03b-portable]
+    paths:
+      - .github/workflows/electron-int-el03b-portable.yml
+      - scripts/electron-p0/int-el03b-artifact.mjs
+permissions:
+  contents: read
+concurrency:
+  group: electron-int-el03b-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  windows-portable:
+    if: github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/ci/electron-int-el03b-portable'
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    defaults:
+      run:
+        working-directory: product
+    steps:
+      - name: Checkout QA workflow tooling
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Checkout exact approved product (not CI SHA)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 6a17ea7635b1f140a68de3f7a01e03488034b14e
+          path: product
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: product/package-lock.json
+      - name: Verify pinned clean product before build
+        shell: pwsh
+        run: |
+          if ((git rev-parse HEAD) -ne '6a17ea7635b1f140a68de3f7a01e03488034b14e') { throw 'Unexpected product SHA' }
+          if (git status --porcelain) { throw 'Dirty product checkout' }
+          rustc --version
+          cargo --version
+      - run: npm ci --no-audit --no-fund
+      - name: Existing Node and Rust MSVC Portable packaging (no install or GUI)
+        run: npm run electron:p0:package:win
+      - name: Inspect real ASAR closure, CLI resources, metadata and EXE hashes
+        run: node ../scripts/electron-p0/int-el03b-artifact.mjs .
+      - name: Record Authenticode status and manifest
+        shell: pwsh
+        run: |
+          $path = 'release-electron-p0/INT-EL-03B-MANIFEST.json'
+          $manifest = Get-Content $path -Raw | ConvertFrom-Json
+          $exe = Join-Path 'release-electron-p0' $manifest.portable.file
+          $signature = [string](Get-AuthenticodeSignature $exe).Status
+          if ($signature -notin @('NotSigned','Valid')) { throw "Unexpected signature: $signature" }
+          $actual = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $manifest.portable.sha256) { throw 'Portable hash mismatch' }
+          $manifest.portable.signature = $signature
+          $manifest | ConvertTo-Json -Depth 12 | Set-Content $path -Encoding utf8
+          "## INT-EL-03B QA Portable" >> $env:GITHUB_STEP_SUMMARY
+          "Product SHA: $($manifest.productSourceSha)" >> $env:GITHUB_STEP_SUMMARY
+          "CI SHA: $($manifest.ciWorkflowSha)" >> $env:GITHUB_STEP_SUMMARY
+          "File: $($manifest.portable.file)" >> $env:GITHUB_STEP_SUMMARY
+          "SHA-256: $actual" >> $env:GITHUB_STEP_SUMMARY
+          "Signature: $signature; dirty: $($manifest.metadata.dirty)" >> $env:GITHUB_STEP_SUMMARY
+          "Actual ASAR and two native CLI resources: PASS. Windows GUI: NOT RUN." >> $env:GITHUB_STEP_SUMMARY
+          Write-Output "::notice title=INT_EL03B_PORTABLE::file=$($manifest.portable.file) SHA256=$actual signature=$signature source=$($manifest.productSourceSha)"
+      - name: Upload only QA Portable and public integrity metadata
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: INT-EL-03B-Windows-Portable-6a17ea7635b1f140a68de3f7a01e03488034b14e
+          path: |
+            product/release-electron-p0/*.exe
+            product/release-electron-p0/INT-EL-03B-MANIFEST.json
+            product/release-electron-p0/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 7
