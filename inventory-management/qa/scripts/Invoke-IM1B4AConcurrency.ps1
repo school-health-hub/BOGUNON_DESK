@@ -30,7 +30,7 @@ $expect=@(
  @{Min=2;Max=2;States=@(15)},@{Min=1;Max=1;States=@(4)},@{Min=1;Max=2;States=@(7,9)},@{Min=1;Max=2;States=@(9,11)},
  @{Min=2;Max=2;States=@(15)},@{Min=1;Max=1;States=@(4)},@{Min=1;Max=1;States=@(7,8)},@{Min=1;Max=1;States=@(10)}
 )
-$allowedErrors='INSUFFICIENT_STOCK|STALE_STOCK_STATE|MOVEMENT_NOT_REVERSIBLE|MOVEMENT_ALREADY_REVERSED|P0001'
+$allowedErrors='INSUFFICIENT_STOCK|STALE_STOCK_STATE|MOVEMENT_NOT_REVERSIBLE|ALREADY_REVERSED|P0001'
 $deadBefore=[long](Sql 'select deadlocks from pg_stat_database where datname=current_database();'|Select-Object -Last 1)
 $results=@()
 for($i=0;$i-lt$pairs.Count;$i++){
