@@ -26,6 +26,7 @@ import type { DashboardEditorPanel } from '../../src/components/dashboard/useDes
 const NewsletterStudio=lazy(()=>import('../../src/newsletter/NewsletterStudio').then(m=>({default:m.NewsletterStudio})));
 const EducationVideoFinder=lazy(()=>import('../../src/education-video/EducationVideoFinder').then(m=>({default:m.EducationVideoFinder})));
 const OfficialDocumentWorkspace=lazy(()=>import('../../src/official-document/OfficialDocumentWorkspace').then(m=>({default:m.OfficialDocumentWorkspace})));
+const InventoryWorkspace=lazy(()=>import('../../src/inventory-management/InventoryWorkspace').then(m=>({default:m.InventoryWorkspace})));
 export function P0App() {
   const [initial,setInitial] = useState<{layout:DashboardLayout;dock:DockLayout;info:P0Info}|null>(null);
   const [error,setError] = useState(false);
@@ -51,6 +52,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   const [newsletterLoaded,setNewsletterLoaded]=useState(false);
   const [educationVideoOpen,setEducationVideoOpen]=useState(false);
   const [officialDocumentOpen,setOfficialDocumentOpen]=useState(false);
+  const [inventoryOpen,setInventoryOpen]=useState(false);
   const [layout,setLayout] = useState(initial.layout);
   const [dock,setDock] = useState(initial.dock);
   const info=initial.info;
@@ -74,7 +76,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
     if(['home','settings','quick-memo','toolbox'].includes(id)){setActive(id);setPanel(null);setEditing(false);setNotice(null)}else excluded();
   };
   return <WidgetSessionProvider><PersistentMemoProvider><DesktopPanelProvider notify={setNotice} openInbox={excluded} openBogunonTask={async()=>excluded()} openQuickAddEventForDate={excluded} openQuickAddFromMemo={excluded} openQuickMemoUrl={async()=>excluded()} runDesktopAction={async id=>navigate(id)} workFolderFavorites={[]} openWorkFolderFavorite={async()=>excluded()}>
-    <div hidden={newsletterOpen||educationVideoOpen||officialDocumentOpen} style={{display:newsletterOpen||educationVideoOpen||officialDocumentOpen?"none":undefined}} className={`app-shell workspace-shell ${editing?'is-edit-mode':'is-view-mode'} bg-${layout.appearance.background} card-${layout.appearance.cardStyle} corner-${layout.appearance.cornerStyle}`}>
+    <div hidden={newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen} style={{display:newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen?"none":undefined}} className={`app-shell workspace-shell ${editing?'is-edit-mode':'is-view-mode'} bg-${layout.appearance.background} card-${layout.appearance.cardStyle} corner-${layout.appearance.cornerStyle}`}>
       <div className="p0-banner">ELECTRON-P0 · 합성/빈 데이터 전용 · 로그인·업무·금융 연결 없음</div>
       <DashboardToolbar activePanel={panel} isEditing={editing} onOpenPanel={p=>setPanel(panel===p?null:p)} onOpenQuickAdd={excluded} onReset={()=>{if(window.confirm('PoC 배치만 기본값으로 되돌릴까요?'))setLayout(createDefaultDashboardLayout())}} onToggleEdit={()=>{setEditing(!editing);setPanel(null);setSelected(null);setActive('home')}}/>
       <main ref={ref} aria-label="보건실 업무 위젯 작업 공간" className={`dashboard workspace-dashboard${metrics.requiresScroll?' is-scrollable':''}${geometry.dense?' is-dense-desk':''}`}>
@@ -85,7 +87,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
       {editing&&panel==='presets'&&<PresetSelector currentPresetId={layout.presetId} onClose={()=>setPanel(null)} onApply={id=>setLayout(applyPreset(layout,id,window.confirm))}/>}
       {editing&&panel==='dock'&&<DockEditor dockLayout={dock} onClose={()=>setPanel(null)} onUpdate={setDock}/>}
       {active!=='home'&&<div className="desktop-panel-backdrop"><section className="desktop-panel p0-panel" role="dialog" aria-label={active==='settings'?'PoC 설정':active==='quick-memo'?'빠른 메모':'업무 도구'}><button type="button" onClick={()=>navigate('home')}>홈으로</button>
-        {active==='quick-memo'?<MemoWidget/>:active==='settings'?<><h1>PoC 설정</h1><button type="button" onClick={()=>{setActive("home");setNewsletterLoaded(true);setNewsletterOpen(true);}}>보건소식지 제작소</button><SyntheticIpcSample/><p>앱 ID: {info?.appId}</p><p>PoC 저장 위치: {info?.userData}</p><p>소스: {info?.sourceSha}</p><p>Electron: {info?.electron}</p><p>자동 업데이트·로그인·운영 데이터 접근 API 없음</p></>:<><h1>업무 도구</h1><button type="button" onClick={()=>{setActive("home");setPurchaseOpen(true);}}>품의 도우미 · 세션 전용</button><button type="button" onClick={()=>{setActive('home');setEducationVideoOpen(true);}}>교육영상 Finder · 합성 Mock</button><button type="button" onClick={()=>{setActive('home');setOfficialDocumentOpen(true);}}>공문작업실 · 로컬 초안</button></>}
+        {active==='quick-memo'?<MemoWidget/>:active==='settings'?<><h1>PoC 설정</h1><button type="button" onClick={()=>{setActive("home");setNewsletterLoaded(true);setNewsletterOpen(true);}}>보건소식지 제작소</button><SyntheticIpcSample/><p>앱 ID: {info?.appId}</p><p>PoC 저장 위치: {info?.userData}</p><p>소스: {info?.sourceSha}</p><p>Electron: {info?.electron}</p><p>자동 업데이트·로그인·운영 데이터 접근 API 없음</p></>:<><h1>업무 도구</h1><button type="button" onClick={()=>{setActive("home");setPurchaseOpen(true);}}>품의 도우미 · 세션 전용</button><button type="button" onClick={()=>{setActive('home');setEducationVideoOpen(true);}}>교육영상 Finder · 합성 Mock</button><button type="button" onClick={()=>{setActive('home');setOfficialDocumentOpen(true);}}>공문작업실 · 로컬 초안</button><button type="button" onClick={()=>{setActive('home');setInventoryOpen(true);}}>재고 관리 · 합성 로컬</button></>}
       </section></div>}
       {notice&&<div className="p0-notice" role="status">{notice}<button onClick={()=>setNotice(null)}>닫기</button></div>}
       <span className="p0-save" role="status" data-p0-save>{status}</span>
@@ -95,5 +97,6 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
     <div hidden={!newsletterOpen} inert={!newsletterOpen} style={{display:newsletterOpen?undefined:"none"}}>{newsletterLoaded&&<Suspense fallback={<p role="status">소식지 불러오는 중…</p>}><NewsletterStudio onClose={()=>setNewsletterOpen(false)}/></Suspense>}</div>
     {educationVideoOpen&&<Suspense fallback={<main role="status">교육영상 Finder를 불러오는 중…</main>}><EducationVideoFinder onClose={()=>setEducationVideoOpen(false)}/></Suspense>}
     {officialDocumentOpen&&<Suspense fallback={<main role="status">공문작업실을 불러오는 중…</main>}><OfficialDocumentWorkspace onClose={()=>setOfficialDocumentOpen(false)}/></Suspense>}
+    {inventoryOpen&&<Suspense fallback={<main role="status">재고 관리를 불러오는 중…</main>}><InventoryWorkspace onClose={()=>setInventoryOpen(false)}/></Suspense>}
   </DesktopPanelProvider></PersistentMemoProvider></WidgetSessionProvider>;
 }

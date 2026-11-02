@@ -17,6 +17,7 @@ export type SyntheticSummaryRequest = Readonly<{fixture:'synthetic-only';complet
 export type SyntheticSummary = Readonly<{fixture:'synthetic-only';total:3;completedCount:number;pending:readonly SyntheticTaskId[]}>;
 export type IpcErrorCode = 'FORBIDDEN' | 'INVALID_INPUT' | 'INTERNAL_ERROR' | 'STORAGE_ERROR' | 'CONFLICT';
 export type IpcResult<T> = Readonly<{ok:true;data:T}> | Readonly<{ok:false;error:Readonly<{code:IpcErrorCode;message:string;retryable:boolean}>}>;
+export type InventoryDocument=Readonly<{version:1;updatedAt:string;items:readonly Readonly<{itemId:string;name:string;baseUnit:string;recommendedStock:number}>[];lots:readonly Readonly<{lotId:string;itemId:string;balance:number;expirationDate:string;status:'usable'|'quarantined'}>[];movements:readonly Readonly<{movementId:string;kind:'receive'|'use'|'dispose';itemId:string;quantity:number;reason:string;createdAt:string;expirationDate?:string}>[]}>;
 export type PurchaseCsvSelection=Readonly<{generation:number;result:PurchaseAnalysisResult}>;
 export type PurchaseCsvMappingRequest=Readonly<{generation:number;candidateId:string;headerRow:number;mapping:PurchaseColumnMapping}>;
 export type SettlementRequest=Readonly<{items:readonly PurchaseItem[];settlement:PurchaseSettlement}>;
@@ -27,6 +28,7 @@ export type PurchaseExportResult=Readonly<{status:'saved';fileName:string}|{stat
 export type PurchaseClipboardRequest=Readonly<{text:string;html:string}>;
 export interface WorkBridge {
  readonly educationVideo:EducationVideoBridge;
+ readonly inventory:Readonly<{load():Promise<IpcResult<Readonly<{document:InventoryDocument|null;recovered:boolean}>>>;save(document:InventoryDocument):Promise<IpcResult<Readonly<{document:InventoryDocument;recovered:boolean}>>>}>;
  readonly purchase:Readonly<{previewSettlement(request:SettlementRequest):Promise<IpcResult<PurchaseTable>>;exportSettlement(request:SettlementRequest):Promise<IpcResult<PurchaseExportResult>>;previewEdufine(request:EdufineRequest):Promise<IpcResult<PurchaseTable>>;exportEdufine(request:EdufineRequest):Promise<IpcResult<PurchaseExportResult>>;exportItems(request:PurchaseExportRequest):Promise<IpcResult<PurchaseExportResult>>;pickPdf():Promise<IpcResult<PurchaseCsvSelection|null>>;cancelPdf():Promise<IpcResult<null>>;mapPdf(request:PurchaseCsvMappingRequest):Promise<IpcResult<PurchaseCsvSelection>>;pickExcel():Promise<IpcResult<PurchaseCsvSelection|null>>;cancelExcel():Promise<IpcResult<null>>;mapExcel(request:PurchaseCsvMappingRequest):Promise<IpcResult<PurchaseCsvSelection>>;pickCsv():Promise<IpcResult<PurchaseCsvSelection|null>>;cancelCsv():Promise<IpcResult<null>>;mapCsv(request:PurchaseCsvMappingRequest):Promise<IpcResult<PurchaseCsvSelection>>;copy(request:PurchaseClipboardRequest):Promise<IpcResult<null>>}>;
  readonly newsletter:Readonly<{projects:NewsletterProjectsBridge;exportOutput(request:NewsletterExportRequest):Promise<IpcResult<NewsletterExportResult>>;saveJson(request:Readonly<{json:string}>):Promise<IpcResult<NewsletterSaveResult>>}>;
  readonly memo: Readonly<MemoBridge>;

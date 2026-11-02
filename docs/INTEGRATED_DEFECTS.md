@@ -9,5 +9,7 @@
 - **통합 Purchase fixture 테스트** — 통합 worktree에 `tools/purchase-excel-cli/target/qa-fixtures` 생성 자료가 없어 Excel/PDF 실제 파일 연동 9건 FAIL. 나머지 선별 핵심 테스트 233건은 PASS. Purchase 결함 수정은 재개하지 않고 fixture 재현 환경 복구 후 통합 검증 대상으로 유지한다.
 - **저장소 전체 TypeScript** — Electron 전용 main/renderer/tests TypeScript와 프로덕션 빌드는 PASS. 전체 `npx tsc --noEmit`은 기존 Newsletter global bridge 타입 및 Tauri 공문 session/reference 타입 불일치로 FAIL이며 Electron 통합 완료로 간주하지 않는다.
 - **통합 Windows 화면 진입** — 격리 UUID 실행은 시작됐으나 Computer Use 초기화가 `failed to write kernel assets`로 두 번 실패하여 하나의 실행본에서 6개 영역 진입은 NOT RUN. 개별 Finder·공문 기본 실행 PASS를 반복 수행하지 않았다.
+- **Inventory 운영 연계 제외** — Electron 최소 이식은 합성 데이터와 `work-data/inventory` 격리 JSON만 사용한다. Supabase 운영 DB, 보건지원강사 계정, 실시간 동기화, 실제 재고 이전은 NOT RUN이며 운영 자료를 읽거나 변경하지 않았다.
+- **Inventory ↔ Purchase 자동 반영 제외** — 부족 수량을 `stockEffect: NONE`인 읽기 전용 후보 DTO로 만드는 계약만 확인했다. Purchase Helper에서 실제 구매·입고를 자동 반영하는 UI/IPC 연결은 미구현이며 후속 통합 대상으로 유지한다.
 
 반복적인 개별 Windows GUI QA와 추가 QA 자동화는 중단한다. 앱 실행 불가, 데이터 손상, 보안 위험을 제외한 결함은 핵심 Tauri 기능의 Electron 이식 완료 후 통합 처리한다.

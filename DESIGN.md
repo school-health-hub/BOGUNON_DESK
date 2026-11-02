@@ -459,3 +459,12 @@ remains. Dock active marker, accessible name, hover and keyboard tooltip stay in
 - 원문 핵심정리는 기존 로컬 extractor 계약대로 원문에 없는 사실을 추정하지 않고 불명확한 값은 `확인 필요`로 남긴다.
 - ODT 기본 양식, PDF/HWPX/ODT 가져오기, 승인 reference package, Google/AI 연계는 이번 최소 이식 범위에서 제외하고 후속 adapter로 연결한다.
 - 버튼은 최소 40px target과 명시적 label/focus 상태를 제공한다. CJK 본문은 `word-break: keep-all`과 `overflow-wrap: anywhere` fallback으로 잘림을 피한다.
+
+## Inventory Management Electron 로컬 이식
+
+- 기존 Inventory의 `item → lot → movement` 계약과 합성 fixture 필드를 재사용하되 운영 Supabase·계정·실시간 동기화에는 연결하지 않는다.
+- 독립 업무 도구는 compact header, 요약/검색·필터, 물품 목록, 선택 상세의 work-sheet 구조를 사용한다. 데스크톱은 목록+상세 2열, 960px 아래에서는 한 열로 전환한다.
+- 목록은 품명·기본단위·가용/총재고·부족·유효기간 상태를 함께 표시한다. 상태는 색상만으로 전달하지 않고 텍스트 badge와 수량을 병기한다.
+- 입고·사용·폐기는 합성 데이터에만 적용하며 사유와 양수를 요구한다. 모든 변경은 Electron 격리 프로필의 inventory 전용 JSON에 원자적으로 저장하고 최근 정상본을 backup으로 보존한다.
+- Purchase Helper 연결은 권위 ID와 기본단위 수량을 전달할 수 있는 읽기 전용 후보 interface만 확인한다. 자동 구매·입고 반영이나 Purchase session 변경은 하지 않는다.
+- 기존 Pretendard, muted navy/mint, shared surface/border/text 토큰과 40px control target을 유지한다. 원격 이미지, 신규 animation, 새로운 전역 navigation은 추가하지 않는다.
