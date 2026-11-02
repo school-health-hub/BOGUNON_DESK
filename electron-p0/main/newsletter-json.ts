@@ -1,3 +1,4 @@
+import {NEWSLETTER_COMPATIBILITY_MESSAGE} from '../protocol.js';
 import {lstat,readFile,open,rename,unlink} from 'node:fs/promises';
 import {dirname,basename,join,extname,isAbsolute,parse} from 'node:path';
 import {randomUUID} from 'node:crypto';
@@ -28,13 +29,13 @@ export async function writeSelectedJson(path:string,json:string,confirm:()=>Prom
   await commit(temp,path);return {saved:true,fileName:basename(path)};
  }finally{await unlink(temp).catch(()=>{});}
 }
-export function createNewsletterSaveHandler(contents:Parameters<typeof assertSender>[1],url:string,ports:{pick:()=>Promise<string|undefined>;confirm:()=>Promise<boolean>}){
+export function createNewsletterSaveHandler(contents:Parameters<typeof assertSender>[1],url:string,ports:{validate:(json:string)=>Promise<void>;pick:()=>Promise<string|undefined>;confirm:()=>Promise<boolean>}){
  let busy=false;
  return async(event:Parameters<typeof assertSender>[0],...args:unknown[]):Promise<IpcResult<NewsletterSaveResult>>=>{
   try{assertSender(event,contents,url);}catch{return {ok:false,error:{code:'FORBIDDEN',message:'허용되지 않은 호출입니다.',retryable:false}};}
   let json:string;try{if(args.length!==1)throw Error('Invalid arity');json=validateNewsletterSave(args[0]);}catch{return {ok:false,error:{code:'INVALID_INPUT',message:'원고·디자인 JSON 형식을 확인해 주세요.',retryable:false}};}
   if(busy)return {ok:false,error:{code:'STORAGE_ERROR',message:'이미 저장 작업이 진행 중입니다.',retryable:true}};
-  busy=true;try{const path=await ports.pick();return {ok:true,data:path?await writeSelectedJson(path,json,ports.confirm):{saved:false}};}
+  busy=true;try{try{await ports.validate(json);}catch(e){return {ok:false,error:{code:'INVALID_INPUT',message:e instanceof Error&&e.message.includes(NEWSLETTER_COMPATIBILITY_MESSAGE)?NEWSLETTER_COMPATIBILITY_MESSAGE:'원고·디자인 JSON 형식을 확인해 주세요.',retryable:false}};}assertSender(event,contents,url);const path=await ports.pick();return {ok:true,data:path?await writeSelectedJson(path,json,ports.confirm):{saved:false}};}
   catch{return {ok:false,error:{code:'STORAGE_ERROR',message:'JSON을 저장하지 못했습니다. 기존 파일은 보존했습니다.',retryable:true}};}finally{busy=false;}
  };
 }

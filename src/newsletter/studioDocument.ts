@@ -1,3 +1,4 @@
+import {assertNewsletterCompatibility} from "./compatibility"
 import { z } from "zod"
 import { parseNewsletterProject, type NewsletterProject } from "./schema"
 import { parseNewsletterDesignState, type NewsletterDesignState } from "./rendering/designSchema"
@@ -11,6 +12,7 @@ const envelope = z.object({ project: z.unknown(), design: z.unknown() })
 export class StudioDocumentError extends Error { readonly name = "StudioDocumentError" }
 
 export function parseStudioDocument(input: unknown): StudioDocument {
+  assertNewsletterCompatibility(input)
   const value = envelope.parse(input)
   const project = parseNewsletterProject(value.project)
   const design = parseNewsletterDesignState(value.design)
