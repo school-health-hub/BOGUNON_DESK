@@ -319,3 +319,7 @@ git diff --name-only c355da4ddde9194f1f280dc622ad8cfb2a0d1257 HEAD
 - Actions 아티팩트 `ELECTRON-P2E5B-Windows-a73010ecad7b061892e97e5367f876ad26ec0c3a`에 Portable/NSIS·SHA256SUMS·서명 상태·QA 결과, `ELECTRON-P2E5B-UI-evidence-41363996473`에 GUI 증거가 있습니다(7일 보존). 운영 배포가 아닙니다.
 - 러너의 elevated 토큰이 확인되어 일반 사용자 설치/설치 앱 재실행/제거·설정 보존은 **NOT RUN**입니다. 토큰 우회·권한 완화는 하지 않았습니다. 실제 학교 PC의 운영 앱/데이터 무변경 검증을 수행했다고 주장하지 않습니다. 이번 작업의 `src/`·`src-tauri/` diff는 비어 있고 운영 데이터에는 접근하지 않았습니다.
 - **최종 CONDITIONAL**: 기능 구현·자동 검증·Windows 패키징은 통과했으나 Cloud Purchase GUI는 BLOCKED/NOT RUN, 실제 Windows 일반 사용자 설치·제거와 native 저장/취소/덮어쓰기·Excel 열기/셀 서식은 NOT RUN입니다. 다음 단계는 합성 데이터만 사용하는 별도 폴더/PoC 프로필에서 이 잔여 QA를 수행하는 것입니다. 이번 결과 문서 커밋은 기능 변경 없이 `[skip ci]`로 보존하며 정확한 최종 SHA는 최종 보고 및 `git rev-parse HEAD`로 확인합니다.
+
+## 공문작업실 파일 처리 이전(2026-11-02)
+
+기준 `8f0044cd00bdcfe219a2d9ff0decaf4b4b2bede4`의 별도 브랜치 `codex/electron-official-document-files-integration`에서 PDF/HWPX/ODT 텍스트 반입 및 승인 템플릿 ODT 새 파일 저장을 연결했습니다. 정식 실행계획·재사용 provenance·검증·미검증 항목은 [공문 파일 처리 실행계획](qa/OFFICIAL_DOCUMENT_ELECTRON_FILES_PLAN.md)을 확인하세요. 원본 덮어쓰기·원본 서식/표 구조 보존·OCR·reference/AI 신규 기능은 지원하지 않습니다. 기존 Tauri 소스/운영 데이터와 `codex/electron-official-document-files`의 WIP 체크포인트는 보존합니다. Cloud Linux 구현이며 Windows 실제 PC 검증을 완료했다고 표시하지 않습니다. dev 실행은 `npm run electron:p0:dev`가 전용 CLI를 빌드하고, 기존 Windows 패키징 명령도 이 CLI를 포함하도록 연결합니다. Cargo/Node 도구가 필요하며 전역 설치는 자동으로 하지 않습니다.

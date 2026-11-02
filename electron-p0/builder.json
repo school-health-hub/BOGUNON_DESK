@@ -59,6 +59,14 @@
         "purchase-excel-cli.exe",
         "purchase-excel-cli"
       ]
+    },
+    {
+      "from": "build/official-document-cli",
+      "to": "official-document-cli",
+      "filter": [
+        "official-document-cli.exe",
+        "official-document-cli"
+      ]
     }
   ],
   "beforePack": "./scripts/electron-p0/check-excel-package.cjs"

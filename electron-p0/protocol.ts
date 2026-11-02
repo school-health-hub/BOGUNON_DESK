@@ -26,7 +26,10 @@ export type PurchaseTable=Readonly<{headers:readonly string[];rows:readonly (rea
 export type PurchaseExportRequest=Readonly<{format:'csv'|'xlsx';items:readonly PurchaseItem[];columns:readonly PurchaseOutputColumnId[]}>;
 export type PurchaseExportResult=Readonly<{status:'saved';fileName:string}|{status:'canceled'}>;
 export type PurchaseClipboardRequest=Readonly<{text:string;html:string}>;
+export type OfficialDocumentSave=Readonly<{title:string;body:string;attachments:string;hasTableText:boolean}>;
+export type OfficialDocumentImported=Readonly<{sourceName:string;format:"pdf"|"hwpx"|"odt";text:string}>;
 export interface WorkBridge {
+ readonly officialDocument:Readonly<{pick():Promise<IpcResult<OfficialDocumentImported|null>>;save(document:OfficialDocumentSave):Promise<IpcResult<{fileName:string}|null>>;cancel():Promise<IpcResult<null>>}>;
  readonly educationVideo:EducationVideoBridge;
  readonly inventory:Readonly<{load():Promise<IpcResult<Readonly<{document:InventoryDocument|null;recovered:boolean}>>>;save(document:InventoryDocument):Promise<IpcResult<Readonly<{document:InventoryDocument;recovered:boolean}>>>}>;
  readonly purchase:Readonly<{previewSettlement(request:SettlementRequest):Promise<IpcResult<PurchaseTable>>;exportSettlement(request:SettlementRequest):Promise<IpcResult<PurchaseExportResult>>;previewEdufine(request:EdufineRequest):Promise<IpcResult<PurchaseTable>>;exportEdufine(request:EdufineRequest):Promise<IpcResult<PurchaseExportResult>>;exportItems(request:PurchaseExportRequest):Promise<IpcResult<PurchaseExportResult>>;pickPdf():Promise<IpcResult<PurchaseCsvSelection|null>>;cancelPdf():Promise<IpcResult<null>>;mapPdf(request:PurchaseCsvMappingRequest):Promise<IpcResult<PurchaseCsvSelection>>;pickExcel():Promise<IpcResult<PurchaseCsvSelection|null>>;cancelExcel():Promise<IpcResult<null>>;mapExcel(request:PurchaseCsvMappingRequest):Promise<IpcResult<PurchaseCsvSelection>>;pickCsv():Promise<IpcResult<PurchaseCsvSelection|null>>;cancelCsv():Promise<IpcResult<null>>;mapCsv(request:PurchaseCsvMappingRequest):Promise<IpcResult<PurchaseCsvSelection>>;copy(request:PurchaseClipboardRequest):Promise<IpcResult<null>>}>;
