@@ -1,0 +1,81 @@
+{
+  "productSha": "bd22237aade2d5576d5c3c1b8b991ad914357398",
+  "expectedCount": 15,
+  "diagnostics": [
+    {
+      "file": "electron-p0/renderer/adapters/NewsletterProjectControls.tsx",
+      "code": "TS2339",
+      "message": "Property 'electronWork' does not exist on type 'Window & typeof globalThis'."
+    },
+    {
+      "file": "src/education-video/library.ts",
+      "code": "TS2339",
+      "message": "Property 'electronWork' does not exist on type 'Window & typeof globalThis'."
+    },
+    {
+      "file": "src/education-video/library.ts",
+      "code": "TS2339",
+      "message": "Property 'electronWork' does not exist on type 'Window & typeof globalThis'."
+    },
+    {
+      "file": "src/education-video/library.ts",
+      "code": "TS2339",
+      "message": "Property 'electronWork' does not exist on type 'Window & typeof globalThis'."
+    },
+    {
+      "file": "src/education-video/library.ts",
+      "code": "TS2339",
+      "message": "Property 'electronWork' does not exist on type 'Window & typeof globalThis'."
+    },
+    {
+      "file": "src/education-video/library.ts",
+      "code": "TS2339",
+      "message": "Property 'electronWork' does not exist on type 'Window & typeof globalThis'."
+    },
+    {
+      "file": "src/inventory-management/InventoryWorkspace.tsx",
+      "code": "TS2339",
+      "message": "Property 'electronWork' does not exist on type 'Window & typeof globalThis'."
+    },
+    {
+      "file": "src/inventory-management/InventoryWorkspace.tsx",
+      "code": "TS7006",
+      "message": "Parameter 'result' implicitly has an 'any' type."
+    },
+    {
+      "file": "src/inventory-management/InventoryWorkspace.tsx",
+      "code": "TS2339",
+      "message": "Property 'electronWork' does not exist on type 'Window & typeof globalThis'."
+    },
+    {
+      "file": "src/inventory-management/InventoryWorkspace.tsx",
+      "code": "TS7006",
+      "message": "Parameter 'error' implicitly has an 'any' type."
+    },
+    {
+      "file": "src/inventory-management/InventoryWorkspace.tsx",
+      "code": "TS2339",
+      "message": "Property 'electronWork' does not exist on type 'Window & typeof globalThis'."
+    },
+    {
+      "file": "src/newsletter/NewsletterStudio.tsx",
+      "code": "TS2339",
+      "message": "Property 'electronWork' does not exist on type 'Window & typeof globalThis'."
+    },
+    {
+      "file": "src/official-document/OfficialDocumentWorkspace.tsx",
+      "code": "TS2339",
+      "message": "Property 'electronWork' does not exist on type 'Window & typeof globalThis'."
+    },
+    {
+      "file": "src/official-document/officialDocumentSession.ts",
+      "code": "TS2739",
+      "message": "Type '{ mode: \"create\"; createInput: OfficialDocumentInput; revisionInput: { original: string; request: string; }; revisionSourceName: null; summaryOriginal: string; summarySourceName: null; ... 5 more ...; activeAiRequestId: null; }' is missing the following properties from type 'OfficialDocumentSession': touchedCreateFields, selectedReference, appliedReference"
+    },
+    {
+      "file": "src/official-document/officialDocumentSession.ts",
+      "code": "TS2345",
+      "message": "Argument of type '{ readonly type: \"selectReference\"; readonly reference: OfficialDocumentReference | null; } | { readonly type: \"applyReference\"; readonly reference: OfficialDocumentReference; readonly input: OfficialDocumentInput; }' is not assignable to parameter of type 'never'."
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+name: Electron INT-EL-02 integrated QA
+on:
+  push:
+    branches: [ci/electron-int-el02]
+    paths:
+      - .github/workflows/inventory-electron-host-qa.yml
+      - scripts/electron-p0/inventory-host-*.mjs
+      - scripts/electron-p0/int-el02-*
+      - electron-p0/**
+      - package.json
+      - package-lock.json
+      - docs/ELECTRON_P0.md
+permissions:
+  contents: read
+concurrency:
+  group: electron-integrated-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  isolated-db:
+    if: github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/ci/electron-int-el02'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      INVENTORY_HOST_CI_ONLY: '1'
+      NO_COLOR: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Read-only pinned DB QA baseline (no branch merge)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 95e4f10415a971790d476dd58ac42a12b1ffb80c
+          path: .inventory-db-baseline
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Isolated CI policy, pinned migrations and resources
+        run: node scripts/electron-p0/inventory-host-ci.mjs preflight
+      - name: Newsletter Guard B and Inventory Main Preload JSON Preview contracts
+        run: node scripts/electron-p0/inventory-host-ci.mjs contracts
+      - name: Electron TypeScript and production renderer build
+        run: node scripts/electron-p0/inventory-host-ci.mjs build
+      - name: Root type debt baseline (15 expected errors; not a clean root build)
+        run: node scripts/electron-p0/inventory-host-ci.mjs root-types
+      - name: Start only this job's minimum inventory_qa stack
+        run: node scripts/electron-p0/inventory-host-ci.mjs start
+      - name: Apply unchanged six pinned migrations (no historical SQL suite rerun)
+        run: node scripts/electron-p0/inventory-host-ci.mjs migration
+      - name: Actual Main handler and native HTTP transport against Auth REST RPC PostgreSQL
+        run: node scripts/electron-p0/inventory-host-ci.mjs e2e
+      - name: Stop only the isolated stack started by this job
+        if: always()
+        run: node scripts/electron-p0/inventory-host-ci.mjs stop
+      - name: Upload sanitized allowlisted summary only (no keys or HTTP bodies)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: electron-int-el02-db-summary-${{ github.sha }}
+          path: ${{ runner.temp }}/electron-int-el02-qa/summary.json
+          if-no-files-found: warn
+          retention-days: 7
+  windows-contracts:
+    if: github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/ci/electron-int-el02'
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Native Node and Preload VM contracts (not Electron GUI or DB)
+        run: npx vitest run --maxWorkers=2 src/newsletter electron-p0/tests/newsletter electron-p0/tests/inventory-el03-native.test.ts electron-p0/tests/inventory-el03-preload.test.ts electron-p0/tests/inventory-el03-service.test.ts electron-p0/tests/inventory-el03-transport.test.ts electron-p0/tests/inventory-el03-ui.test.tsx electron-p0/tests/policy.test.ts
+      - name: Root type debt baseline (15 expected errors; not a clean root build)
+        run: node scripts/electron-p0/int-el02-root-types.mjs
+      - name: Electron TypeScript and production build (no installer or GUI)
+        run: npm run electron:p0:build

@@ -583,3 +583,37 @@ src/newsletter/rendering/visualFinishCompiler.ts
 src/newsletter/rendering/visualFinishScene.ts
 src/newsletter/studioDocument.ts
 ```
+
+## INT-EL-02 — 통합 SHA 전용 CI 준비 (2026-11-03)
+
+**CONDITIONAL — CI 구성·로컬 검증 완료 / 원격 push·Actions 미실행.** INT-EL-01의 기존 444 PASS와 실제 Windows/native CLI NOT RUN은 그대로 유지하며, 이번 단계에서 실제 DB나 Windows CI PASS를 새로 주장하지 않는다.
+
+- 제품 고정 기준: `integration/electron-int-el01` / `bd22237aade2d5576d5c3c1b8b991ad914357398`.
+- 독립 작업 브랜치: `ci/electron-int-el02`. 기존 통합 작업 폴더를 재사용하고 원본 통합 브랜치/다른 기능 브랜치는 변경하지 않는다.
+- 참고 CI: `ci/inventory-electron-host-qa` / `fc609c02358fe44a7bd6d9d7518cd82f99fe8a1f`. 기존 workflow는 교체하지 않고 새 `.github/workflows/electron-int-el02-qa.yml`을 추가한다. 정확한 새 ref/push/repository만 허용하며 permissions는 contents:read, checkout credential persistence는 없다. 원격 push 시 두 job이 시작되므로 별도 승인 전에는 push/Actions를 실행하지 않는다.
+- DB baseline `95e4f10415a971790d476dd58ac42a12b1ffb80c`는 동일하다. pinned read-only checkout의 config/migration·local status/resource helper를 재사용하고 SQL/RPC/RLS/migration은 수정하지 않는다. 실제 DB E2E 스크립트는 INV-EL-04와 바이트 그대로 동일하다.
+
+### 새 기준과 기존 격리 계약
+
+QA script의 `HOST_BASELINE`을 `bd22237...`, `HOST_CI_REF`를 `refs/heads/ci/electron-int-el02`로 고정한다. 제품 diff 금지 검사는 없애지 않으며 electron-p0/src/src-tauri/package/lockfile 및 root tsconfig를 통합 checkpoint와 비교한다. 기존 `9915eff...`와의 비교를 억지로 통과시키거나 기존 CI ref를 위장하지 않는다. 두 기존 source branch의 전체 merge 없이 QA 파일만 선별한다.
+
+Linux job: guard/자원/CLI integrity → Newsletter·Inventory·공유 IPC 집중 검증 → Electron 타입·production build → root 타입 부채 gate → isolated PostgreSQL/Auth/REST/Kong 시작 → unchanged 6 migration → Main handler/native HTTP 실제 E2E 10 case → 해당 stack만 always cleanup. 64KiB/32KiB/2MiB/15초, redirect/외부 endpoint/remote Docker/운영 env 거절, mock/skip/필수 case 누락의 실제 E2E PASS 거절, credential/raw SQL/HTTP body 비출력 계약을 그대로 유지한다. 기존 SQL 78+15 전체 회귀는 반복하지 않는다.
+
+Linux 집중 검증은 Newsletter Guard/B안 + Inventory JSON/Preview/Local QA + policy/sample/memo IPC를 선택하며, 고정 제품의 예상 expanded test count **345건**을 요구한다. Windows는 Newsletter Guard/B안 + 기존 EL-03 native Node/Preload VM/service/transport/UI/policy, root 부채 gate, Electron 타입·production build를 검증한다. 기존 작업실/native CLI 전체 회귀는 새로 확대하지 않는다. Windows job은 DB/실제 Electron GUI/설치를 수행하지 않는다.
+
+### 루트 타입 부채의 독립 판정
+
+`int-el02-root-diagnostics.json`은 통합 checkpoint의 root 진단 **15건**(13 Window.electronWork 관련 + 2 공문 session)의 파일/TS code/첫 메시지/중복 개수를 고정한다. `int-el02-root-types.mjs`는 실제 root `tsc --noEmit --pretty false`를 실행한다. line/column과 Windows path 구분자만 정규화하고 나머지 서명·개수·컴파일러 실패 status=2를 정확히 비교한다. 같은 개수의 다른 오류도 거부하며 진단 파싱이 안 되면 실패한다. root 설정/대상 파일/검증 조건을 완화하지 않는다.
+
+성공한 부채 gate의 결과는 `rootTypecheck:FAIL`, `status:EXPECTED_FAILURE`, `actualCount:15`, `newDiagnostics:0`이다. 이것은 root 빌드 PASS가 아니다. Linux summary에도 별도로 기록하고, 예상 오류가 달라지면 DB 시작 전에 중단한다. Windows도 같은 helper로 별도 판정한다.
+
+### 이번 로컬 검증과 변경 목록
+
+- 새/재사용 CI 정책 및 root comparator 테스트 **5 PASS**.
+- 실제 root 타입 부채 검사: **15건 정확 일치, 신규/제거 서명 0건**, root typecheck 자체는 예상된 FAIL.
+- `npm run electron:p0:build`: **PASS**, Main/Preload·renderer·테스트 TypeScript 및 production build. 기존 chunk-size 경고는 유지한다.
+- CI 선택 테스트는 `vitest list`로 수집만 확인했다(65개 파일, parameterized expansion 전 276개 정의). assertion을 재실행한 PASS가 아니다. 제품 바이트 동일성이 확인돼 기존 통합 444 PASS 증거를 재사용했으며 불필요한 전체 회귀를 반복하지 않았다.
+- 새 workflow YAML의 jobs/ref/permissions/DB pin, Node 구문, diff/범위/secret 패턴 검사 PASS. 새 dependency/framework를 설치하지 않았다.
+- 변경은 새 workflow 1개, 재사용 QA script 4개, root baseline/helper/test 3개, 이 기존 문서 총 **9개 파일**뿐이다. 제품 기능/디자인/자산/Inventory·Newsletter 보호 코드 및 package/config는 변경하지 않았다.
+
+실제 Linux DB E2E/Windows Actions는 이번 SHA에서 **NOT RUN**이다. 실제 Windows Canvas PNG/PDF, native dialog·설치·Electron 프로세스 간 IPC·GUI 및 native 공문/구매 CLI 미검증도 별도 단계로 남는다. B안 디자인 REVISE/PENDING·수달쌤 pending·Production Local QA 차단을 그대로 유지한다. 로컬 checkpoint까지만 보존하고, 사용자 승인 전 원격 push/Actions/PR/merge/deploy는 하지 않는다.
