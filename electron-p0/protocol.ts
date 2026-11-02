@@ -1,3 +1,4 @@
+export const NEWSLETTER_COMPATIBILITY_MESSAGE='이 프로젝트는 현재 버전에서 지원하지 않는 편집 요소를 포함하고 있습니다. 데이터 손실을 방지하기 위해 열기와 저장을 중단했습니다. 최신 버전에서 다시 열어 주세요.';
 import type { PurchaseItem,PurchaseOutputColumnId,PurchaseSettlement } from './renderer/purchase/purchase/types.js';
 import type { PurchaseAnalysisResult, PurchaseColumnMapping } from './renderer/purchase/purchase/types.js';
 export const APP_ID = 'kr.sungandi.schoolhealthdesk.electronp0';
