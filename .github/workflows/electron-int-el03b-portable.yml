@@ -28,7 +28,7 @@ jobs:
       - name: Checkout exact approved product (not CI SHA)
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: 6a17ea7635b1f140a68de3f7a01e03488034b14e
+          ref: 1720be78368f0be135995b4d92072f25346a5df5
           path: product
           fetch-depth: 0
           persist-credentials: false
@@ -40,7 +40,7 @@ jobs:
       - name: Verify pinned clean product before build
         shell: pwsh
         run: |
-          if ((git rev-parse HEAD) -ne '6a17ea7635b1f140a68de3f7a01e03488034b14e') { throw 'Unexpected product SHA' }
+          if ((git rev-parse HEAD) -ne '1720be78368f0be135995b4d92072f25346a5df5') { throw 'Unexpected product SHA' }
           if (git status --porcelain) { throw 'Dirty product checkout' }
           rustc --version
           cargo --version
@@ -72,7 +72,7 @@ jobs:
       - name: Upload only QA Portable and public integrity metadata
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: INT-EL-03B-Windows-Portable-6a17ea7635b1f140a68de3f7a01e03488034b14e
+          name: INT-EL-03B-Windows-Portable-1720be78368f0be135995b4d92072f25346a5df5
           path: |
             product/release-electron-p0/*.exe
             product/release-electron-p0/INT-EL-03B-MANIFEST.json

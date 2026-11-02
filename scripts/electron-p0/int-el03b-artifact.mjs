@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import {readFile,writeFile,readdir} from 'node:fs/promises';
-import {resolve,join,posix} from 'node:path';
+import {resolve,join,posix,normalize} from 'node:path';
 import {createRequire} from 'node:module';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
-const sourceSha='6a17ea7635b1f140a68de3f7a01e03488034b14e';
+const sourceSha='1720be78368f0be135995b4d92072f25346a5df5';
 const root=resolve(process.argv[2]??'product');
 const run=(command,args)=>execFileSync(command,args,{cwd:root,encoding:'utf8'}).trim();
 assert.equal(run('git',['rev-parse','HEAD']),sourceSha);
@@ -14,7 +14,7 @@ const asar=require('@electron/asar'),ts=require('typescript');
 const output=join(root,'release-electron-p0');
 const archive=join(output,'win-unpacked/resources/app.asar');
 const files=new Set(asar.listPackage(archive).map(file=>file.replaceAll('\\','/').replace(/^\//,'')));
-const read=file=>asar.extractFile(archive,file).toString('utf8');
+const read=file=>asar.extractFile(archive,normalize(file)).toString('utf8');
 const queue=['main/main.mjs','preload/preload.cjs'],seen=new Set();
 while(queue.length){
  const file=queue.pop();if(seen.has(file))continue;seen.add(file);
