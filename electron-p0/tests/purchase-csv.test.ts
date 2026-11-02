@@ -8,6 +8,21 @@ it('matches Rust titled-table/amount-only-footer/repeated-header/total fixtures 
  // Rust importer leaves absent numeric fields null without pre-emptive issues; original UI readiness stays unchanged.
  expect(emptyNumeric).toMatchObject({quantity:null,unitPrice:null,issues:[]});
 });
+it('drops labeled PDF summary rows while preserving item names that contain summary words',()=>{
+ const rows=[
+  ['품명','규격','수량','단가'],
+  ['합성 거즈','10cm x 10cm','2','3000'],
+  ['합성 밴드','표준형','5','1500'],
+  ['합성 소독솜','100매','1','4000'],
+  ['합성 체온계','디지털','1','6000'],
+  ['예상 합계: 23,500원','','',''],
+ ];
+ const items=parseMappedRows(rows,'synthetic-purchase.pdf',0,{name:0,specification:1,quantity:2,unitPrice:3},true);
+ expect(items.map(item=>item.name)).toEqual(['합성 거즈','합성 밴드','합성 소독솜','합성 체온계']);
+ expect(items.reduce((total,item)=>total+(item.quantity??0)*(item.unitPrice??0),0)).toBe(23_500);
+ for(const summary of ['소계: 23,500원','최종 총계 23,500원','총액 - 23,500원'])expect(parseMappedRows([rows[0],[summary,'','','']],'summary.pdf',0,{name:0,specification:1,quantity:2,unitPrice:3},true)).toEqual([]);
+ for(const name of ['합계표 보관함','소계용 계산기','총액 확인 스탬프'])expect(parseMappedRows([rows[0],[name,'A4','1','1000']],'legitimate.pdf',0,{name:0,specification:1,quantity:2,unitPrice:3},true)[0]?.name).toBe(name);
+});
 it('handles BOM, CRLF, escaped quotes, embedded newlines and variable-width rows',()=>{
  expect(csvRows(decodeCsv(bytes('\ufeff품명,수량,단가\r\n"합성 ""품목""\n두 줄",2,10\r\n')))).toEqual([['품명','수량','단가'],['합성 "품목"\n두 줄','2','10']]);
  expect(csvRows('a,b\n1\n2,3,4\n')).toEqual([['a','b'],['1'],['2','3','4']]);
