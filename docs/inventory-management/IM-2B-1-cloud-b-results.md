@@ -8,7 +8,7 @@
 
 - 원격 Inventory HEAD를 시작 시 직접 조회: `a765ad08570dc5513edf96bb970442026a0a31ce`, 인계 SHA와 일치.
 - 독립 clone: `/workspace/BOGUNON_DESK_INVENTORY`.
-- 작업 브랜치: `codex/inventory-im2b1-cloud-b`.
+- 작업 브랜치: `codex/inventory-im2b1-cloud-b`. 구현 SHA: `d5931a85b695e353343f5d55472fdf557c14c6ba`. 이후 HANDOFF 보완은 두 기존 문서만 변경한다.
 - 기존 `/workspace/BOGUNON_DESK`: `work`, HEAD `a7717f1e1b2234a568f8877adae8c42f8a4d262b`, clean 유지. reset/clean/rebase/checkout/fetch를 수행하지 않았다.
 - 최초 두 저장소 모두 clean, 각각 worktree 1개. Inventory 저장소 내부에도 별도 linked worktree는 없다.
 - 작업 저장소 및 상위 `/workspace`에 적용할 AGENTS.md 없음. 기존 Inventory 인계/보안/QA 계약, QA 포트, SQL migration/GRANT/RLS와 실제 UI/Purchase Helper adapter를 조사했다.
@@ -69,9 +69,11 @@ Docker 데몬 28.4.0은 응답했고, 최초 실행 중 컨테이너와 이미�
 
 ## 로컬 Windows 재현 명령
 
-별도 Inventory clone의 root에서 실행한다. 운영 env 파일/자격정보를 복사하지 않는다. Docker Desktop과 Node 24, 기존 PowerShell QA 조건을 먼저 확인한다. 아래 start/reset은 **inventory_qa 전용 합성 환경**임을 확인한 뒤에만 실행하며 공유 중인 stack에는 reset하지 않는다. 키/비밀번호는 출력하거나 파일로 저장하지 않는다.
+PowerShell 7.3 이상에서 별도 Inventory clone의 root를 사용한다. native 명령 실패 시 중단하도록 아래 설정을 유지한다. 운영 env 파일/자격정보를 복사하지 않는다. Docker Desktop과 Node 24, 기존 PowerShell QA 조건을 먼저 확인한다. 아래 start/reset은 **inventory_qa 전용 합성 환경**임을 확인한 뒤에만 실행하며 공유 중인 stack에는 reset하지 않는다. 키/비밀번호는 출력하거나 파일로 저장하지 않는다.
 
 ```powershell
+$ErrorActionPreference = 'Stop'
+$PSNativeCommandUseErrorActionPreference = $true
 npm ci --ignore-scripts
 npx tsc --noEmit
 npx vitest run src/inventory-management --maxWorkers=2
@@ -80,9 +82,11 @@ node inventory-management/qa/scripts/Verify-IM2B1-scope.mjs
 
 Push-Location inventory-management/qa
 # 기존 전체 start가 리소스 문제를 보이면 승인된 동일 최소 스택 사용:
-npm exec --yes --package=supabase@2.121.0 -- supabase --workdir . start --exclude realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+npm exec --yes --package=supabase@2.121.0 -- supabase --workdir . start --exclude realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor *> $null
+if ($LASTEXITCODE -ne 0) { throw 'Inventory QA start failed; no external fallback.' }
 # 기존 합성 QA 상태를 지워도 되는 전용 stack에서만 clean migration:
-npm exec --yes --package=supabase@2.121.0 -- supabase --workdir . db reset --local --no-seed --yes
+npm exec --yes --package=supabase@2.121.0 -- supabase --workdir . db reset --local --no-seed --yes *> $null
+if ($LASTEXITCODE -ne 0) { throw 'Inventory QA clean migration failed.' }
 ./scripts/Invoke-IM1B1Tests.ps1
 ./scripts/Invoke-IM1B2Tests.ps1
 ./scripts/Invoke-IM1B3Tests.ps1
@@ -109,3 +113,52 @@ DB 권한 catalog는 기존 `IM-1B-6A-regression-results.md`의 검사 기준(RL
 ## Cloud A 인계 조건
 
 공개 계약은 `IM-2B-1-cloud-a-contract.md`다. Cloud A는 UI를 연결하기 전에 위 실제 통합 4개와 기존 DB 회귀가 실행된 증거를 확보한다. 현재 상태는 구현 완료 / 필수 Local DB 검증 미실행의 CONDITIONAL이다. 운영 연결·migration 변경·보안 경계 완화를 통한 QA 통과를 하지 않는다.
+
+## IM-2B-1-HANDOFF 최종 점검
+
+### 원격 관계와 보존 상태
+
+직접 `git ls-remote`로 확인한 원격 스냅샷:
+
+| ref | SHA |
+| --- | --- |
+| feature/inventory-management | a765ad08570dc5513edf96bb970442026a0a31ce |
+| codex/inventory-im2b1-cloud-b | 원격 ref 없음 — 아직 로컬에만 보존 |
+| main | a7717f1e1b2234a568f8877adae8c42f8a4d262b |
+| codex/electron-feature-integration | 40d0153af1d95a8669d48102c1e1cdab2c8a14d7 |
+| codex/electron-inventory-minimal | 8f0044cd00bdcfe219a2d9ff0decaf4b4b2bede4 |
+| codex/electron-seven-feature-integration | 8f0044cd00bdcfe219a2d9ff0decaf4b4b2bede4 |
+
+HANDOFF 시작 시 B는 Inventory 기준의 직계 자식 1 commit(ahead 1 / behind 0), HEAD d5931a85b695e353343f5d55472fdf557c14c6ba, clean이었다. 현재 인계 문서 확정은 별도 문서 전용 commit으로 보존한다. 구현 파일은 계속 d5931a85와 동일하다. 최종 문서 포함 HEAD는 최종 보고에서 제공한다.
+
+원격 Electron 관련 세 브랜치의 공통 조상은 97f9ee9a6fe6ba93b7bfb7a89707902c7b4f2d96이며, 그 이후 원격 변경 경로와 B 13개 변경 경로의 교집합은 0개다. Cloud A의 실제 현재 브랜치 지정 및 미푸시 변경은 미확인이다. 따라서 충돌 없음/전체 병합 가능을 보장하지 않는다. 특히 B의 기존 Preview 의존성 네 파일과 서버 QA 기반이 원격 Electron 브랜치에 없으므로, B commit 단독 적용이 충분하지 않다. 상세 선행 파일은 Cloud A 계약 문서를 따른다.
+
+### 공개 저장소 보안 사전 검사
+
+원격 Inventory 기준부터 B까지 새로 추가되는 13개 파일과 outgoing commit 변경 내용을 검사했다. 기존 공개 브랜치의 전체 역사나 다른 세션의 파일은 검사 범위가 아니다.
+
+- 인증정보/JWT/private key/service-role·secret key/한국 개인 전화번호/주민번호/DB dump 고확신 패턴: 발견 없음.
+- 이메일 문자열은 example.invalid 합성 계정과 운영 계정 거절 테스트의 real@example.com뿐이다. 실제 개인 이메일이 아니다.
+- 합성 계정 비밀번호·token은 실행 시 생성하며 소스에 고정하지 않는다. 기존 런타임 key/password를 읽거나 출력하지 않았다.
+- .env, QA log, 운영 dump, DB, ZIP/EXE 등 생성물은 13개 변경 파일에 없다. 최대 파일 크기 19,839 bytes(구현 기준)로 대용량 추가 없음.
+- 새 production entry 검증은 운영 endpoint 차단을 유지하며 Local transport와 인증 설정을 production bundle에 포함하지 않는다.
+- 이 결과는 고확신 패턴 및 변경 내용 검토다. 전체 DLP/과거 Git 역사 무결함을 보장하지 않는다. 공유를 막을 실제 secret/PII 발견은 없었다.
+
+### 승인 후 일반 push 절차 (이번에는 실행하지 않음)
+
+승인 대상은 전용 브랜치 1개 생성/일반 push뿐이다. force, feature/inventory-management 갱신, main 갱신, PR/병합/배포는 포함하지 않는다.
+
+1. 최종 보고의 문서 포함 HEAD와 `git rev-parse HEAD`, `git status --porcelain` clean을 대조한다.
+2. `git ls-remote --heads origin refs/heads/feature/inventory-management refs/heads/codex/inventory-im2b1-cloud-b`로 원격을 다시 조회한다. 기준 Inventory SHA가 바뀌거나 B 원격이 새로 생겼다면 새 차이를 읽기 전용 비교하고 자동 덮어쓰지 않는다.
+3. `git diff --check` 및 `node inventory-management/qa/scripts/Verify-IM2B1-scope.mjs`를 통과시킨다.
+4. 승인된 HEAD를 가리키는 로컬 전용 브랜치를 명시적 refspec으로 일반 push한다:
+
+```sh
+git push --set-upstream origin refs/heads/codex/inventory-im2b1-cloud-b:refs/heads/codex/inventory-im2b1-cloud-b
+```
+
+5. `git ls-remote --heads origin refs/heads/codex/inventory-im2b1-cloud-b`가 승인된 SHA와 일치하는지 확인한다. 인증/보호 정책이나 non-fast-forward 오류가 발생하면 중단한다. force로 우회하지 않는다.
+
+사용자 최소 승인 문구: **“최종 보고의 SHA를 codex/inventory-im2b1-cloud-b 브랜치로 일반 push하는 것만 승인합니다. 다른 브랜치 변경·병합·배포는 금지합니다.”**
+
+현재는 push 미승인·미실행이다. Cloud A에 계약·코드 검토를 위한 인계는 가능하지만, 별도 Cloud에서 GitHub fetch로 가져오는 것은 이 push 승인·검증 이후에 가능하다. 실제 PostgreSQL 검증이 끝나기 전 CONDITIONAL을 유지한다. 동일 Cloud Docker 복구는 이번 HANDOFF에서 재시도하지 않았다.

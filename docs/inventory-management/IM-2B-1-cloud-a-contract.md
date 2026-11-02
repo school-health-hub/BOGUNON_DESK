@@ -15,15 +15,18 @@
 공개 진입점은 `src/inventory-management/connection/index.ts`, 전체 DTO/인터페이스는 같은 폴더의 `contracts.ts`다.
 
 ```ts
+import { createInventoryConnection, InventoryError } from './inventory-management/connection';
+import type { InventoryLocalConnection, LocalQaConfig } from './inventory-management/connection';
+
+// 위 경로는 src/의 소비 파일 기준. 다른 위치에서는 실제 상대 경로를 맞춘다.
 const preview = await createInventoryConnection(); // mode=preview, persisted=false
 // preview.mode를 좁힌 뒤 preview.adapter.loadWorkspace()/previewMutation() 사용.
 
 const local = await createInventoryConnection('local-qa', runtimeLocalConfig);
-if (local.mode === 'local-qa') {
-  await local.login(syntheticEmail, runtimePassword);
-  await local.selectSchool(syntheticSchoolId);
-  const items = await local.listItems();
-}
+if (local.mode !== 'local-qa') throw new Error('Local QA connection required');
+await local.login(syntheticEmail, runtimePassword);
+await local.selectSchool(syntheticSchoolId);
+const items = await local.listItems();
 ```
 
 `runtimeLocalConfig`는 `{ endpoint: string; publishableKey: string }`이다. 실제 값/비밀번호를 소스·VITE 변수·번들·Git·로그에 넣지 않는다. 이 모듈은 환경 파일을 읽거나 기존 운영 인증 singleton을 import하지 않는다. Supabase Auth REST/PostgREST 전용 클라이언트를 사용하며 토큰·만료 시간은 인스턴스의 private 메모리만 사용한다. Local Storage, IndexedDB, 파일, 운영 세션 namespace를 사용하지 않는다. client 간 세션도 공유하지 않는다.
@@ -41,7 +44,7 @@ if (local.mode === 'local-qa') {
 `authState()`는 `signed_out | signing_in | authenticated | expired | disposed`를 반환한다. authenticated 상태에는 `userId`, `schoolId|null`만 있으며 token/email/password는 없다.
 
 - `login(email,password)`: `@example.invalid` 합성 계정만 허용. 계정은 기존 QA harness 또는 신규 Local test가 생성한다. 앱 signup/OAuth는 제공하지 않는다.
-- 로그인 시도 전에 이전 세션/학교/요청을 폐기한다. 로그인 실패 후 이전 계정으로 돌아가지 않는다.
+- 허용된 형식의 로그인 요청을 보내기 전에 이전 세션/학교/요청을 폐기한다. 서버 로그인 실패 후 이전 계정으로 돌아가지 않는다. 입력 형식 오류는 네트워크 전 검증에서 거절되며 기존 세션을 전환하지 않는다.
 - `logout()`: 메모리·진행 요청을 먼저 제거하고 현재 로컬 세션만 revoke한다. revoke 실패도 이전 세션을 복원하지 않는다. 이미 발급된 JWT는 서버 만료 전까지 유효할 수 있다.
 - refresh token은 저장하거나 자동 갱신하지 않는다. 만료 시 `expired`로 전환하고 재로그인이 필요하다. 서버 401/JWT 오류도 동일하게 세션을 제거한다.
 - `selectSchool(id)`: 기존 학교를 먼저 제거한 후 실제 RLS-visible active membership을 확인한다. 실패하면 선택 학교는 null이다.
@@ -68,6 +71,7 @@ if (local.mode === 'local-qa') {
 ## mutation API와 DTO
 
 ```ts
+// local은 위 예시처럼 mode를 좁힌 InventoryLocalConnection이다.
 const request = local.prepare('inventory_use_stock', {
   p_item_id: itemId, p_quantity: '1', p_reason: 'Synthetic use',
 });
@@ -75,7 +79,8 @@ const request = local.prepare('inventory_use_stock', {
 try {
   const result = await request.execute();
   // persisted=true, data=검증된 RPC 응답, refreshRequired=true
-  // 이후 listItems/itemDetail/movements/purchaseProgress를 다시 호출한다.
+  const freshDetail = await local.itemDetail(itemId);
+  // UI는 result와 freshDetail을 해당 context의 최신 상태로 반영한다.
 } catch (error) {
   // UI가 판단한 재시도는 request.execute()로 수행한다. 자동 재시도 없음.
 }
@@ -109,7 +114,37 @@ try {
 - SERVER_REJECTED, NETWORK_ERROR, INVALID_RESPONSE, STALE_CONTEXT, DISPOSED
 - 서버 PT401/403/404/409/422, 42501 및 JWT 오류를 정규화한다.
 - INSUFFICIENT_STOCK, STALE_STOCK_STATE, RETRYABLE_CONFLICT, PURCHASE_RECEIPT_EXCEEDS_REQUESTED, PURCHASE_RECEIPT_REVERSAL_REQUIRES_POLICY 등 원 서버의 안전한 code를 serverCode로 유지한다.
+UI 권장 처리(아래는 표시 계약이며 UI 구현은 Cloud A 범위):
+
+| code / 상태 | UI 표시·동작 |
+| --- | --- |
+| INVALID_INPUT | 필드 입력 안내, 저장 완료 표시 금지 |
+| UNAUTHENTICATED / expired | 이전 데이터 제거 후 합성 계정 재로그인 안내 |
+| PERMISSION_DENIED | 빈 목록과 구별한 권한 부족 상태 |
+| NOT_FOUND | 현재 학교에서 대상을 조회할 수 없음; 타학교 존재를 추정하지 않음 |
+| CONFLICT / IDEMPOTENCY_CONFLICT | 현재 데이터 재조회·재검토; 새 UUID로 자동 재전송 금지 |
+| REQUEST_IN_FLIGHT | 해당 논리 요청의 버튼 비활성 유지 |
+| NETWORK_ERROR / INVALID_RESPONSE + outcomeUnknown | 저장 여부 미확인 안내; 기존 UUID handle과 재조회로 확인 |
+| STALE_CONTEXT / DISPOSED | 이전 화면 응답 폐기, 새 학교/사용자 화면에 표시하지 않음 |
+| ENVIRONMENT_BLOCKED | 개발 Local QA 조건 안내, 운영 origin으로 fallback 금지 |
+| SERVER_REJECTED | 허용된 serverCode를 사용자 설명으로 매핑하고 raw 응답 출력 금지 |
+
 - POST 이후 네트워크/문맥 변경/잘못된 acknowledgement는 outcomeUnknown=true일 수 있다. abort는 서버 rollback을 보장하지 않는다. 동일 UUID로 확인·재조회하며 새 UUID로 맹목 재시도하지 않는다.
 - 구매 연결 입고 reversal, batch 임의 편집/삭제, 강사 구매 쓰기, lot 상태 재활성화, 운영 연결, 자동 세션 복원, Electron UI/IPC는 미지원이다. 서버가 제공하지 않는 정정/취소 흐름을 만들지 않는다.
 
 실행 명령과 현재 검증 한계는 `IM-2B-1-cloud-b-results.md`를 따른다.
+
+## Cloud A에서 가져올 때 필요한 선행 파일
+
+2026-11-02 원격 `codex/electron-feature-integration` (`40d0153af1d95a8669d48102c1e1cdab2c8a14d7`), `codex/electron-inventory-minimal` 및 `codex/electron-seven-feature-integration` (`8f0044cd00bdcfe219a2d9ff0decaf4b4b2bede4`)과 비교했다. B의 13개 변경 경로와 직접 겹치는 원격 변경은 0개다. 다른 채팅의 미푸시 변경은 이 비교로 확인하지 못한다.
+
+**B 구현 커밋만 해당 Electron 브랜치에 cherry-pick하는 것은 충분하지 않다.** 이들 원격에는 B의 Preview 진입점이 import하는 아래 기존 Inventory 기준 파일이 없다:
+
+- `src/inventory-management/ui/syntheticAdapter.ts`
+- `src/inventory-management/ui/syntheticFixtures.ts`
+- `src/inventory-management/ui/inventorySelectors.ts`
+- `src/inventory-management/ui/inventoryTypes.ts`
+
+위 네 파일은 B가 이번에 수정한 파일이 아니라 인계 기준 `a765ad08570dc5513edf96bb970442026a0a31ce`의 의존성이다. 독립 B clone에서는 이미 존재한다. Cloud A는 별도 통합 작업에서 이 선행 의존성과 로컬 서버 QA 트리를 검토·확보해야 한다. Electron의 기존 `InventoryWorkspace.tsx`/`model.ts`는 별도 모델이므로 자동 대체하지 않는다. 원본 Inventory 브랜치 전체를 자동 병합하지 않는다.
+
+또한 Local API의 PostgreSQL migration/기존 QA 스크립트는 `inventory-management/qa/**` 인계 기준에 의존한다. 새 연결 통합 테스트만 복사해도 DB가 자동 준비되지 않는다. `file:` Electron origin에서 Local QA를 연결하려고 guard를 제거하지 말고, 우선 Windows의 독립 Inventory clone과 Node/Vitest 경로로 DB 연결을 검증한다. Electron UI 연결·DTO 변환·origin 설계는 Cloud A의 별도 승인 범위다.
