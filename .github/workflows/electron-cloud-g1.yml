@@ -1,0 +1,67 @@
+name: Electron CLOUD-G1 QA candidate
+on:
+  push:
+    branches: [codex/cloud-g1-windows-qa-handoff]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  qa-candidate:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Original synthetic fixtures, IPC and focused integration tests
+        run: npm run electron:p0:test
+      - name: Electron TypeScript and production build
+        run: npm run electron:p0:build
+      - name: Fixed release CLIs and isolated Portable / per-user NSIS (no publishing)
+        run: |
+          node scripts/electron-p0/build-excel.mjs --release
+          node scripts/electron-p0/build-official-document.mjs --release
+          npx electron-builder --config electron-p0/builder.json --win portable nsis --x64 --publish never
+          node scripts/electron-p0/check-excel-cli.mjs release-electron-p0/win-unpacked/resources/purchase-excel-cli/purchase-excel-cli.exe
+      - name: Only packaged entries, optional Official Dock and WIN-QA-04 synthetic PDF
+        shell: pwsh
+        run: |
+          $env:ELECTRON_P0_EXECUTABLE = Join-Path $pwd 'release-electron-p0/win-unpacked/BOGUNON DESK ELECTRON P0.exe'
+          npx playwright test --config electron-p0/playwright.config.ts dashboard.e2e.ts --grep CLOUD-G0 --reporter=list,github
+      - name: Candidate manifest, hashes and signature state
+        shell: pwsh
+        run: |
+          $files = @(Get-ChildItem release-electron-p0/*.exe)
+          if ($files.Count -ne 2) { throw 'Expected Portable and NSIS' }
+          $results = foreach ($file in $files) {
+            $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            $signature = [string](Get-AuthenticodeSignature $file.FullName).Status
+            if ($signature -notin @('NotSigned','Valid')) { throw 'Unexpected signature state' }
+            "$hash  $($file.Name)" | Add-Content release-electron-p0/SHA256SUMS.txt
+            Write-Output "::notice title=CLOUD_G1_ARTIFACT::$($file.Name) SHA256=$hash signature=$signature"
+            @{file=$file.Name;sha256=$hash;signature=$signature}
+          }
+          @{sourceSha=$env:GITHUB_SHA;scope='CLOUD-G1 QA candidate';verdict='CONDITIONAL';windowsCi='PASS';physicalPc='NOT RUN';installation='NOT RUN';officialFileQa='REUSED user-reported PASS';productionDeployment=$false;files=@($results)} | ConvertTo-Json -Depth 5 | Set-Content release-electron-p0/G1-BUILD-RESULT.json
+          Copy-Item tools/purchase-excel-cli/target/qa-fixtures/win-qa04.pdf release-electron-p0/WIN-QA-04-synthetic.pdf
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: CLOUD-G1-QA-candidate-${{ github.sha }}
+          path: |
+            release-electron-p0/*.exe
+            release-electron-p0/SHA256SUMS.txt
+            release-electron-p0/G1-BUILD-RESULT.json
+            release-electron-p0/WIN-QA-04-synthetic.pdf
+          retention-days: 7
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: CLOUD-G1-evidence-${{ github.run_id }}
+          path: artifacts/electron-p0-e2e/
+          retention-days: 7
+          if-no-files-found: ignore

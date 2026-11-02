@@ -33,3 +33,7 @@ it('drops canceled and stale PDF results and rejects forged renderer paths',asyn
  const h=createExcelHandlers(wc,url,select,{analyze:(_p,s)=>{signal=s;return new Promise<never>(r=>{finish=r;});},map:vi.fn()},'PDF');
  expect(await h.pick(event,'/forged.pdf')).toMatchObject({ok:false,error:{code:'INVALID_INPUT'}});expect(await h.pick({sender:{},senderFrame:frame})).toMatchObject({ok:false,error:{code:'FORBIDDEN'}});expect(select).not.toHaveBeenCalled();const pending=h.pick(event);await waitFor(()=>expect(signal).toBeTruthy());await h.cancel(event);expect(signal?.aborted).toBe(true);finish({items:[],sources:[],candidates:[]} as never);expect(await pending).toEqual({ok:true,data:null});
 });
+
+it('WIN-QA-04 real Korean PDF applies exactly four items and 23,500 won, excluding labeled total',async()=>{
+ const ctx=await setup('win-qa04.pdf');try{pick();await screen.findByRole('button',{name:'PDF 품목 적용'});fireEvent.click(screen.getByRole('button',{name:'PDF 품목 적용'}));expect(screen.getByText('4개 선택 · 23,500원')).toBeTruthy();expect(screen.queryByLabelText('5행 품명')).toBeNull();expect((screen.getByLabelText('4행 품명') as HTMLInputElement).value).toBe('합성 체온계');}finally{await ctx.dispose();}
+});

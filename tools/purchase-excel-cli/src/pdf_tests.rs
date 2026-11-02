@@ -3,6 +3,9 @@ use pdf_extract::{EncryptionState,EncryptionVersion,Permissions};
 fn fixtures()->PathBuf{let dir=PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/qa-fixtures");fs::create_dir_all(&dir).unwrap();dir}
 fn korean_pdf(path:&Path){
     let lines=["품명\t수량\t단가\t금액","합성 품목\t2\t1500\t3000","합계\t\t\t3000"];
+    korean_pdf_lines(path,&lines);
+}
+fn korean_pdf_lines(path:&Path,lines:&[&str]){
     let chars:std::collections::BTreeSet<u16>=lines.iter().flat_map(|line|line.encode_utf16()).collect();
     let cmap=format!("/CIDInit /ProcSet findresource begin 12 dict begin begincmap /CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def /CMapName /SyntheticUCS def /CMapType 2 def 1 begincodespacerange <0000> <FFFF> endcodespacerange {} beginbfchar {} endbfchar endcmap CMapName currentdict /CMap defineresource pop end end",chars.len(),chars.iter().map(|c|format!("<{c:04X}> <{c:04X}>")).collect::<Vec<_>>().join("\n"));
     let mut doc=Document::with_version("1.7");let unicode=doc.add_object(Stream::new(dictionary!{},cmap.into_bytes()));
@@ -33,4 +36,13 @@ fn generates_pdf_cli_fixtures_and_preserves_failure_contracts(){
 #[test]
 fn extracts_korean_unicode_table_and_skips_total(){
     let path=fixtures().join("korean.pdf");korean_pdf(&path);let result=analyze_paths(vec![path],vec![]).unwrap();assert_eq!(result.items.len(),1);assert_eq!(result.items[0].name,"합성 품목");assert_eq!(result.items[0].quantity,Some(2.0));assert_eq!(result.items[0].unit_price,Some(1500.0));assert_eq!(result.items[0].imported_amount,Some(3000.0));
+}
+
+#[test]
+fn win_qa_04_real_pdf_excludes_labeled_total(){
+ let path=fixtures().join("win-qa04.pdf");
+ korean_pdf_lines(&path,&["품목명\t규격\t수량\t단가","합성 거즈\t10cm\t2\t3000","합성 밴드\t표준형\t5\t1500","합성 소독솜\t100매\t1\t4000","합성 체온계\t디지털\t1\t6000","예상 합계: 23,500원"]);
+ let result=analyze_paths(vec![path],vec![]).unwrap();assert_eq!(result.items.len(),4);
+ assert_eq!(result.items.iter().map(|i|i.name.as_str()).collect::<Vec<_>>(),["합성 거즈","합성 밴드","합성 소독솜","합성 체온계"]);
+ assert_eq!(result.items.iter().map(|i|i.quantity.unwrap()*i.unit_price.unwrap()).sum::<f64>(),23_500.0);
 }

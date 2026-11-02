@@ -91,3 +91,37 @@
 - 전체 root TypeScript **FAIL 26건**(Electron ambient 범위 24 + 기존 Tauri 상태/동작 계약 2)은 별도 결함으로 남긴다. bridge 선언을 포함한 임시 진단에서는 2건으로 줄어드는 것을 확인했으며 임시 설정을 저장소에 반영하지 않았다.
 - **G0 통합 진입·회귀 검증 PASS / Electron 전체 CONDITIONAL**. Newsletter 실제 출력·승인 자산, Purchase PDF GUI 요약 행 등 기존 잔여를 완료로 승격하지 않는다. 공문 파일 Windows 실기기 QA PASS는 사용자 보고와 기존 증거를 재사용하며 재실행하지 않았다.
 - 마감 커밋은 문서만 갱신하고 `[skip ci]`로 불필요한 반복을 피한다. 신규 기능/의존성/QA 프레임워크/운영 데이터 접근/PR/main 병합/배포는 없다. 후속 이식은 위 우선순위와 결함 목록을 기준으로 새 승인 범위에서 진행한다.
+
+## CLOUD-G1 — 통합 안정화 및 Windows QA 인계 (2026-11-02)
+
+기준/원격은 `codex/cloud-g0-integration-stabilization@27ffc44cc9986984af0a7e4500b626fb7edc9b6e`, 시작 시 clean·차이 없음. 별도 브랜치/worktree `codex/cloud-g1-windows-qa-handoff`에서 작업한다. 이 절이 과거 현황보다 우선한다.
+
+### 실제 진입과 저장/IPC 매트릭스
+
+업무·대시보드 화면은 **7개**(Dashboard/Memo/Purchase/Newsletter/Finder/Official/Inventory), 보조 패널 **2개**(설정/업무 도구)다. Dock은 별도 화면이 아닌 공통 내비게이션이다. G0의 8개 검증 대상은 업무 화면 7개+Dock을 센 것이다. 진입 수를 신규 기능 수로 표시하지 않는다.
+
+공통 프로필은 `%APPDATA%\BOGUNON-DESK-ELECTRON-P0`, QA는 그 아래 `test-runs/<UUID>`다. 아래 경로는 이 프로필 기준이다.
+
+| 실제 진입 | 현재 연결/저장 | 명시 API/미이식 범위 |
+| --- | --- | --- |
+| Dashboard / Dock | 홈·위젯/배치·편집; `poc-settings/layout.json`, 창/트레이 `desktop.json` | `electronP0.info/readSettings/writeSettings`; 운영 일정·업무 데이터는 빈 adapter, 실제 바탕화면 부착 제외 |
+| Quick Memo | Dock 빠른 메모; `work-data/quick-memo/memo.json` | `memo.read/write`, 8천자 검증·안전 저장; 계정 동기화 없음 |
+| Purchase Helper | 업무 도구/기존 Purchase action; 품목·품의·정산 **세션 전용**; 선택한 외부 CSV/XLSX | `purchase.pick/map/cancel*`, export/preview/clipboard; 기존 Rust CLI 재사용. 영구 품목 이관/계정·Inventory 자동 입고 제외 |
+| Newsletter Studio | 설정→보건소식지; `work-data/newsletter-projects/<id>.json` revision, 사용자 선택 JSON/PNG/PDF | `newsletter.projects.*`, saveJson/exportOutput; pending 자산 출력 차단, 원본 이미지 재연결 필요. 실제 승인 자산/출력 QA 잔여 |
+| Education Video Finder | 업무 도구; `work-data/education-video/library.json` 및 backup | `educationVideo.load/save/import/export/recover`; 합성 Mock 중심, 운영 검색/계정 연계 없음 |
+| Official Document | 업무 도구 및 선택 Dock ‘공문 작업실’; 원고 세션 전용, `work-data/official-import-tmp` 정리 후 사용자 선택 새 ODT | `officialDocument.pick/save/cancel`, PDF/HWPX/ODT 텍스트 반입·내장 home-v1·원고 보존·no-clobber·구조 검사. 수동 템플릿/제목 기반 파일명/reference·AI 제외 |
+| Inventory | 업무 도구; `work-data/inventory/inventory.json` 및 backup | 기존 `inventory.load/save` 합성 로컬 최소본만 포함. **Cloud B RPC/RLS/migration/신규 기능 미통합·인계 대기**, 임의 merge 없음 |
+| 설정 | Dock 설정, 앱 정보·합성 IPC 진단·Newsletter 연결 | 기존 설정 API·`sample.summarize`만 사용; 운영 로그인/업데이터 없음 |
+| 업무 도구 | Dock 업무 도구에서 기존 4개 도구 연결 | 별도 업무 데이터 저장 없음; 공유된 전용 상태/브리지로 연결 |
+| 나머지 Dock action | 온라인 보건실/BOGUNON/업무 폴더 등은 미지원 안내 | 운영 앱/웹·계정에 연결하지 않음. 이를 동작 기능으로 세지 않음 |
+
+저장소 루트/파일명은 위와 같이 서로 다르며 자동 이관/공유 운영 DB가 없다. 외부 저장 대화상자는 사용자 지정 위치이므로 QA 자료는 별도 합성 폴더만 사용한다. renderer build의 닫힌 의존성 검사에서 Tauri/auth/Supabase/MY FINANCE 모듈 혼입을 거부한다. Tauri app ID `kr.sungandi.schoolhealthdesk`와 Electron `kr.sungandi.schoolhealthdesk.electronp0` 및 프로필을 구분한다. 기존 Electron PoC 설치/설정과의 교체를 피하려고 이번 실기기 인계는 **설치 없이 Portable+UUID 프로필**을 우선한다.
+
+### 확인/최소 수정
+
+- **WIN-QA-04 파서는 이미 해결됨**: `03e31e260d1edad656e704d63283544926a455a0`, `engine.rs:is_total_row`와 기존 `skips_win_qa_04_labeled_summary_without_dropping_legitimate_names`가 포함된다. 합계표 보관함/소계용 계산기 같은 정상 품목은 남긴다. 파서 제품 코드는 수정하지 않았다.
+- 실제 Unicode 합성 PDF `win-qa04.pdf`(4개 합성 품목 + `예상 합계: 23,500원`)를 기존 생성기로 추가했다. 기존 필터를 실제 PDF→Rust CLI→품목 UI로 검증한다. 정확히 4개/23,500원, 다섯 번째 품목 없음. 배포 candidate에 이 합성 PDF를 함께 보존한다.
+- 실제 연결 결함 두 곳만 수정: optional Dock `official-document`가 미지원 안내로 빠지던 라우팅을 기존 화면에 연결; Windows 개발 실행 Purchase CLI 경로를 원래 test 준비의 native `target/debug`와 일치시키고 dev 스크립트에서 두 CLI를 선행 빌드한다. release target/서명/운영 경로는 변경하지 않는다.
+- 공문 home-v1 원본·구조/취소·원고 보호는 그대로. Tauri DOC-V2-P11 (`6f26310…`, Actions `41318375451`, 사용자 제공 GUI EXE SHA256 `C1F244633B21993B344577632F41D6AF9E8E4BB2A381CF73B6D36EC4D5B8971E`)은 **Tauri 독립 증거**이며 Electron PASS로 전환하지 않는다. 최신 Tauri GUI ODT의 K-에듀파인 재검증과 Electron 생성 ODT의 확인을 자동 PASS 처리하지 않는다.
+
+Cloud 결과: **273 PASS(51파일)**, Rust Purchase **56 PASS**, Electron TypeScript(main/preload/renderer/tests)·production build PASS, 실제 CLI smoke PASS. Windows 결과·최종 SHA/후속 실기기 항목은 [G1 QA 인계](qa/CLOUD_G1_WINDOWS_QA_HANDOFF.md)에 기록한다. 기존 공문 실기기 QA는 반복하지 않으며 전체 Windows GUI/설치·제거 QA도 재실행하지 않는다.

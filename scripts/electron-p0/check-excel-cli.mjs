@@ -31,3 +31,5 @@ for(const operation of ['edufine','settlement']){
  const workbook=call({...request,preview:false});assert.equal(workbook.validated,true);assert.deepEqual(workbook.columns,table.headers);assert(Buffer.from(workbook.bytesBase64,'base64').subarray(0,4).equals(Buffer.from([80,75,3,4])));
 }
 console.log('Settlement/Edufine CLI smoke PASS: original 11/4 columns, summaries, workbook read-back and fixed executable exit');
+
+const winQa=call({operation:'analyze',path:join(fixtures,'win-qa04.pdf')});assert.equal(winQa.items.length,4);assert.equal(winQa.items.reduce((sum,item)=>sum+item.quantity*item.unitPrice,0),23500);assert(winQa.items.every(item=>!item.name.includes('예상 합계')));console.log('WIN-QA-04 CLI regression PASS: labeled 23,500 won total excluded');

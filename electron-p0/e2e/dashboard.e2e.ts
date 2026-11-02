@@ -101,13 +101,24 @@ test('CLOUD-G0: one isolated Electron instance opens every integrated entry',asy
   expect(await page.evaluate(()=>Object.keys(window.electronWork).sort())).toEqual(['educationVideo','inventory','memo','newsletter','officialDocument','purchase','sample']);
   await dock.getByRole('button',{name:'빠른 메모',exact:true}).click();await expect(page.getByRole('dialog',{name:'빠른 메모'})).toBeVisible();checked.push('Quick Memo');await page.getByRole('button',{name:'홈으로'}).click();
   const tools=async()=>{await dock.getByRole('button',{name:'업무 도구',exact:true}).click();};
-  await tools();await page.getByRole('button',{name:'품의 도우미 · 세션 전용'}).click();await expect(page.getByRole('heading',{name:'품의 도우미',exact:true})).toBeVisible();checked.push('Purchase');await page.getByRole('button',{name:'품의 도우미 닫기'}).click();
+  await tools();await page.getByRole('button',{name:'품의 도우미 · 세션 전용'}).click();await expect(page.getByRole('heading',{name:'품의 도우미',exact:true})).toBeVisible();checked.push('Purchase');
+  await app.evaluate(({dialog},file)=>{const original=dialog.showOpenDialog;dialog.showOpenDialog=async()=>{dialog.showOpenDialog=original;return {canceled:false,filePaths:[file]};};},join(process.cwd(),'tools/purchase-excel-cli/target/qa-fixtures/win-qa04.pdf'));
+  await page.getByLabel('가져오기 형식',{exact:true}).selectOption('pdf');await page.getByRole('button',{name:'PDF 가져오기',exact:true}).click();
+  await page.getByRole('button',{name:'PDF 품목 적용',exact:true}).click();await expect(page.getByText('4개 선택 · 23,500원',{exact:true})).toBeVisible();await expect(page.getByLabel('5행 품명',{exact:true})).toHaveCount(0);
+  console.log('CLOUD_G1_PURCHASE_PDF '+JSON.stringify({synthetic:true,items:4,total:23500,nativeDialog:'test double',parser:'existing 03e31e2'}));
+  await page.getByRole('button',{name:'품의 도우미 닫기'}).click();
   await tools();await page.getByRole('button',{name:'교육영상 Finder · 합성 Mock'}).click();await expect(page.getByRole('heading',{name:/AI 교육영상 Finder/})).toBeVisible();checked.push('Finder');await page.getByRole('button',{name:'보건 업무로',exact:true}).click();
   await tools();await page.getByRole('button',{name:'공문작업실 · 로컬 초안'}).click();await expect(page.getByRole('heading',{name:'공문작업실',exact:true})).toBeVisible();checked.push('공문작업실');await page.getByRole('button',{name:'보건 업무로',exact:true}).click();
   await tools();await page.getByRole('button',{name:'재고 관리 · 합성 로컬'}).click();await expect(page.getByRole('heading',{name:'재고 관리',exact:true})).toBeVisible();checked.push('Inventory');await page.getByRole('button',{name:'대시보드로',exact:true}).click();
   await dock.getByRole('button',{name:'설정',exact:true}).click();await page.getByRole('button',{name:'보건소식지 제작소',exact:true}).click();await expect(page.getByRole('heading',{name:'보건소식지 제작소',exact:true})).toBeVisible();checked.push('Newsletter');await page.getByRole('button',{name:'보건 업무로',exact:true}).click();
   await expect(home).toBeVisible();await expect(dock).toBeVisible();expect(errors).toEqual([]);expect(checked).toHaveLength(8);
-  console.log('CLOUD_G0_ENTRIES '+JSON.stringify({checked,profile:'UUID-isolated',security:'sandboxed',fileProcessingQa:'REUSED: Windows PC PASS per user; not repeated'}));
+  await page.getByRole('button',{name:'화면 꾸미기',exact:true}).click();await page.getByRole('button',{name:'Dock',exact:true}).click();
+  await page.getByLabel('Dock 편집',{exact:true}).locator('article').filter({hasText:'공문 작업실'}).getByRole('checkbox').check();
+  await page.getByRole('button',{name:'Dock 편집 닫기',exact:true}).click();
+  await dock.getByRole('button',{name:'공문 작업실',exact:true}).click();await expect(page.getByRole('heading',{name:'공문작업실',exact:true})).toBeVisible();
+  await expect(page.getByText('이 기능은 ELECTRON-P0 범위에 포함되지 않습니다.',{exact:false})).toHaveCount(0);
+  await page.getByRole('button',{name:'보건 업무로',exact:true}).click();await expect(home).toBeVisible();
+  console.log('CLOUD_G0_ENTRIES '+JSON.stringify({checked,profile:'UUID-isolated',security:'sandboxed',officialDocumentFileQa:'REUSED: Windows PC PASS per user; not repeated'}));
   await page.screenshot({path:'artifacts/electron-p0-e2e/cloud-g0-entries.png'});
  }finally{await app.close();}
 });

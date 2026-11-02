@@ -72,6 +72,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   },[layout,dock]);
   const excluded=()=>setNotice('이 기능은 ELECTRON-P0 범위에 포함되지 않습니다. 로그인·업무·금융 데이터에 연결하지 않습니다.');
   const navigate=(id:DesktopActionId)=>{
+    if(id==='official-document'){setOfficialDocumentOpen(true);setActive('home');setEditing(false);setPanel(null);setNotice(null);return;}
     if(id==='purchase-helper'){setPurchaseOpen(true);setActive('home');setPanel(null);setNotice(null);return;}
     if(['home','settings','quick-memo','toolbox'].includes(id)){setActive(id);setPanel(null);setEditing(false);setNotice(null)}else excluded();
   };
