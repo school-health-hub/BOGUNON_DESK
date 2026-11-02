@@ -440,3 +440,13 @@ two lines. D-Day uses readable rows. All use existing spacing/type/color tokens.
 Signed-out desktop widgets show a quiet dash with an accessible waiting label; the
 shared banner is the only account instruction. Standalone/error/loading guidance
 remains. Dock active marker, accessible name, hover and keyboard tooltip stay intact.
+## AI 교육영상 Finder Electron 이식
+
+- 기존 Pretendard, muted mint/navy work-sheet 언어와 공통 text/border/surface 토큰을 유지한다.
+- 독립 업무 도구 화면은 compact header, 검색 조건, 결과/편집 1.5:1 열을 사용하고 1050px 아래에서는 한 열로 전환한다.
+- 합성 Mock 표시는 항상 유지하며 실제 검색 결과나 운영 연결로 오해하게 만들지 않는다.
+- 결과 행은 separator와 selected mint rim으로 구분하고 원격 이미지나 장식 motion을 추가하지 않는다.
+- 입력과 버튼은 최소 40px target, keyboard focus, named field, live status를 제공한다. 복사는 교사의 명시적 확인 뒤에만 허용하고 편집 시 확인을 해제한다.
+- Electron 라이브러리는 격리된 Electron 프로필의 education-video 전용 JSON과 백업만 사용한다. Tauri·MY FINANCE·운영 데이터 경로를 공유하지 않는다.
+- Finder scoped tokens: `--ev-accent: #176e62`, `--ev-accent-soft: #e5f3ed`, `--ev-warning: #75521c`, `--ev-warning-bg: #fcf6e8`, `--ev-paper: #fff`.
+- 좁은 CJK 텍스트는 `word-break: keep-all`과 `overflow-wrap: anywhere` fallback을 사용한다.

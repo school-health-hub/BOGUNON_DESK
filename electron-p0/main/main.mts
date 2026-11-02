@@ -18,6 +18,7 @@ import {NewsletterProjects} from './newsletter-projects.js';
 import {createProjectHandler,PROJECT_ACTIONS} from './newsletter-project-ipc.js';
 import { createNewsletterSaveHandler } from './newsletter-json.js';
 import { MemoStore, createMemoHandlers } from './memo-ipc.js';
+import {EducationVideoLibraryStore,createEducationVideoHandlers} from './education-video-library.js';
 import { createSampleHandler, SAMPLE_SUMMARY_CHANNEL } from './sample-ipc.js';
 import { assertSender, resourceAllowed } from './policy.js';
 if (app.commandLine.hasSwitch('no-sandbox') || app.commandLine.hasSwitch('disable-web-security')) throw new Error('Unsafe Electron launch flags denied');
@@ -30,6 +31,7 @@ app.setPath('sessionData',join(userData,'chromium'));
 app.setAppUserModelId(APP_ID);
 const store = new SettingsStore(join(userData,'poc-settings'));
 const memoStore=new MemoStore(join(userData,'work-data','quick-memo'));
+const educationVideoStore=new EducationVideoLibraryStore(join(userData,'work-data','education-video'));
 let quitting = false;
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
@@ -97,6 +99,12 @@ else {
   const memoHandlers=createMemoHandlers(window.webContents,url,memoStore);
   ipcMain.handle('p2:memo:read',memoHandlers.read);
   ipcMain.handle('p2:memo:write',memoHandlers.write);
+  const educationVideoHandlers=createEducationVideoHandlers(window.webContents,url,educationVideoStore);
+  ipcMain.handle('p2:education-video:load',educationVideoHandlers.load);
+  ipcMain.handle('p2:education-video:save',educationVideoHandlers.save);
+  ipcMain.handle('p2:education-video:import',educationVideoHandlers.import);
+  ipcMain.handle('p2:education-video:export',educationVideoHandlers.export);
+  ipcMain.handle('p2:education-video:recover',educationVideoHandlers.recover);
   ipcMain.handle('p2:newsletter:save-json',createNewsletterSaveHandler(window.webContents,url,{
    pick:async()=>{const r=await dialog.showSaveDialog(window,{title:'원고·디자인 JSON 저장',defaultPath:'newsletter.json',filters:[{name:'Newsletter JSON',extensions:['json']}]});return r.canceled?undefined:r.filePath;},
    confirm:async()=>(await dialog.showMessageBox(window,{type:'warning',message:'선택한 JSON 파일을 덮어쓸까요?',buttons:['취소','덮어쓰기'],defaultId:0,cancelId:0})).response===1,
@@ -115,7 +123,7 @@ else {
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
-  const quit=()=>{if(quitting)return;quitting=true;specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([store.flush(),desktopStore.flush(),memoStore.flush(),projects.flush(),excelService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
+  const quit=()=>{if(quitting)return;quitting=true;specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([store.flush(),desktopStore.flush(),memoStore.flush(),educationVideoStore.flush(),projects.flush(),excelService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
       {label:'창 열기',click:show},{label:'최소화',click:()=>window.minimize()},

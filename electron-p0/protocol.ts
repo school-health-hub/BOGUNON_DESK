@@ -26,10 +26,22 @@ export type PurchaseExportRequest=Readonly<{format:'csv'|'xlsx';items:readonly P
 export type PurchaseExportResult=Readonly<{status:'saved';fileName:string}|{status:'canceled'}>;
 export type PurchaseClipboardRequest=Readonly<{text:string;html:string}>;
 export interface WorkBridge {
+ readonly educationVideo:EducationVideoBridge;
  readonly purchase:Readonly<{previewSettlement(request:SettlementRequest):Promise<IpcResult<PurchaseTable>>;exportSettlement(request:SettlementRequest):Promise<IpcResult<PurchaseExportResult>>;previewEdufine(request:EdufineRequest):Promise<IpcResult<PurchaseTable>>;exportEdufine(request:EdufineRequest):Promise<IpcResult<PurchaseExportResult>>;exportItems(request:PurchaseExportRequest):Promise<IpcResult<PurchaseExportResult>>;pickPdf():Promise<IpcResult<PurchaseCsvSelection|null>>;cancelPdf():Promise<IpcResult<null>>;mapPdf(request:PurchaseCsvMappingRequest):Promise<IpcResult<PurchaseCsvSelection>>;pickExcel():Promise<IpcResult<PurchaseCsvSelection|null>>;cancelExcel():Promise<IpcResult<null>>;mapExcel(request:PurchaseCsvMappingRequest):Promise<IpcResult<PurchaseCsvSelection>>;pickCsv():Promise<IpcResult<PurchaseCsvSelection|null>>;cancelCsv():Promise<IpcResult<null>>;mapCsv(request:PurchaseCsvMappingRequest):Promise<IpcResult<PurchaseCsvSelection>>;copy(request:PurchaseClipboardRequest):Promise<IpcResult<null>>}>;
  readonly newsletter:Readonly<{projects:NewsletterProjectsBridge;exportOutput(request:NewsletterExportRequest):Promise<IpcResult<NewsletterExportResult>>;saveJson(request:Readonly<{json:string}>):Promise<IpcResult<NewsletterSaveResult>>}>;
  readonly memo: Readonly<MemoBridge>;
  readonly sample: Readonly<{summarize(request:SyntheticSummaryRequest):Promise<IpcResult<SyntheticSummary>>}>;
+}
+
+export type EducationVideoLibraryItem=Readonly<{videoId:string;title:string;channelId:string;channelTitle:string;durationSeconds:number;url:string;source:'mock';educationTitle:string;target:string;schedule:string;instructions:string;message:string;notes:string}>;
+export type EducationVideoLibrary=Readonly<{version:1;items:readonly EducationVideoLibraryItem[]}>;
+export type EducationVideoLibraryLoad=Readonly<{library:EducationVideoLibrary;recovered:boolean}>;
+export interface EducationVideoBridge {
+ load():Promise<IpcResult<EducationVideoLibraryLoad>>;
+ save(item:EducationVideoLibraryItem):Promise<IpcResult<EducationVideoLibraryLoad>>;
+ import(json:string):Promise<IpcResult<EducationVideoLibraryLoad>>;
+ export():Promise<IpcResult<string>>;
+ recover():Promise<IpcResult<EducationVideoLibraryLoad>>;
 }
 
 export type MemoDocument = Readonly<{version:1;text:string}>;
