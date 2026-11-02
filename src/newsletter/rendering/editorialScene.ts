@@ -1,3 +1,5 @@
+import { buildReferenceLayoutScene } from "./referenceLayoutScene"
+import { buildVisualFinishScene } from "./visualFinishScene"
 import { buildIllustratedCardScene } from "./illustratedCardScene"
 import { buildSkillMasterScene } from "./skillMasterScene"
 import type { Frame, RenderImage, RenderPage, RenderTextBlock } from "./renderDocument"
@@ -27,6 +29,8 @@ export function seasonalSceneLayers(id: string, season: EditorialLayout["season"
 }
 
 export function buildEditorialCardScene(page: RenderPage): NewsletterPageScene {
+  if (page.editorial?.referenceLayout === true) return buildReferenceLayoutScene(page)
+  if (page.editorial?.visualFinish === true) return buildVisualFinishScene(page)
   if (page.editorial?.compositionPreset === "illustrated-ab") return buildIllustratedCardScene(page)
   if (page.editorial?.compositionPreset === "september-master") return buildSkillMasterScene(page)
   const editorial = page.editorial

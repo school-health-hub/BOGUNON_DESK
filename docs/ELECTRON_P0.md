@@ -325,3 +325,66 @@ git diff --name-only c355da4ddde9194f1f280dc622ad8cfb2a0d1257 HEAD
 기준 `8f0044cd00bdcfe219a2d9ff0decaf4b4b2bede4`의 별도 브랜치 `codex/electron-official-document-files-integration`에서 PDF/HWPX/ODT 텍스트 반입 및 승인 템플릿 ODT 새 파일 저장을 연결했습니다. 정식 실행계획·재사용 provenance·검증·미검증 항목은 [공문 파일 처리 실행계획](qa/OFFICIAL_DOCUMENT_ELECTRON_FILES_PLAN.md)을 확인하세요. 원본 덮어쓰기·원본 서식/표 구조 보존·OCR·reference/AI 신규 기능은 지원하지 않습니다. 기존 Tauri 소스/운영 데이터와 `codex/electron-official-document-files`의 WIP 체크포인트는 보존합니다. Cloud Linux 구현이며 Windows 실제 PC 검증을 완료했다고 표시하지 않습니다. dev 실행은 `npm run electron:p0:dev`가 전용 CLI를 빌드하고, 기존 Windows 패키징 명령도 이 CLI를 포함하도록 연결합니다. Cargo/Node 도구가 필요하며 전역 설치는 자동으로 하지 않습니다.
 
 공문 파일 처리 집중 검증은 Linux 63개/Rust 18개(수동 artifact 1 ignored)·타입/빌드 PASS, [Windows 집중 CI 41401980509](https://github.com/school-health-hub/BOGUNON_DESK/actions/runs/41401980509) SUCCESS입니다. 실제 Windows native dialog/ODT 프로그램 열기·설치 패키지 실행과 Clippy는 NOT RUN이므로 **CONDITIONAL**입니다. 기능 검증 SHA는 `b0d3545dedcf336b3e6529db391c878379e096ff`; 마감 커밋은 검증 기록과 미실행 선택적 패키징 준비 1줄만 반영합니다. 최신 branch/SHA는 최종 보고 및 원격 비교로 확인합니다.
+
+## Newsletter B안 편집 구조 선별 이식 — 미커밋 검토본 (2026-11-03)
+
+기준은 `integration/newsletter-json-guard` / `e78ee6c8035a5130fb1a5014b88e435a69a82565`, 참고 소스는 `feature/newsletter-studio` / `d7f9a01b1222c068002b3bb0aa00bfaba4ce5e2a`다. 별도 worktree/브랜치 `feature/newsletter-b-editor-port`에서 필요한 스키마·편집·Scene/SVG·자산 참조 코드와 집중 테스트만 선별했다. 원본 NewsletterStudio, Main/Preload IPC, JSON/프로젝트 저장 어댑터, 다른 작업실 및 Inventory, Tauri/Rust는 변경하지 않는다. 승인 전 commit/push/PR/merge/deploy는 하지 않는다.
+
+- 기존 B안 JSON의 officialTemplate, 표시/마스크, foregroundMask, referenceLayout, visualFinish, feather를 현재 문서와 혼합 V1/V2 revision에서 보존한다. `compatibility.ts`와 `studioDocument.ts`는 바이트 단위로 유지하며 새 미지원 필드/enum은 계속 거부한다. 스키마 허용과 compiler/React/SVG 이식을 함께 수행했다.
+- 기존 JSON에 이미 있는 요소만 편집한다. 위치/크기/겹침 순서, 글자 크기/색, 원고에 연결된 한글 문구, 마무리 문구, 이미지 교체/맞춤/표시/마스크 토글을 제공한다. 문구는 기존 원고 편집 계약을 사용하며 숫자/강조 등 파생 binding은 임의의 literal로 바꾸지 않는다. 여러 줄 원고는 기존 원고 편집 textarea를 사용한다. 한국어 원고는 명시적인 사용자 반영 전에는 변경하지 않는다. 공통 원고 binding을 참조하는 다른 표시에도 해당 사용자 수정이 반영될 수 있으나 다른 카드의 레이아웃/요소를 자동 수정하지 않는다.
+- B안 구성 생성 모듈·자동 적용 버튼, 월/학교 유형 신규 작성 UI는 추가하지 않았다. 기존 프리셋을 재설계하지 않으며, 기존 템플릿 편집 중에는 프리셋 전환 UI로 구조가 소실되지 않도록 기존 요소 편집만 노출한다.
+- 이미지 교체 시 ID/SHA가 달라진 마스크를 제거하는 원본 규칙을 재사용하고 이전 revision은 유지한다. 화면의 이미지 후보도 기존 승인·사용 범위 필터를 지킨다. 레지스트리, 공식 수달쌤 원본 PNG/ID/SHA 및 pending 상태는 변경하지 않는다. 숨긴 수달쌤을 공식 요소에서만 참조해도 출력 승인 검사를 통과할 수 없다.
+- React 미리보기와 출력 SVG는 같은 Scene hash 및 polygon/feather geometry를 사용한다. PNG/PDF는 기존 Electron 승인 검증·파일 대화상자·원자적 저장 경로를 사용한다. 원본 최신 renderDocument의 전체 교체 대신 B안 compiler 연결만 반영하여 기존 Electron 한글 A4 제목/부제 줄바꿈 보정을 보존했다.
+- 합성 JSON fixture는 이전 호환성 gate에서 고정 최신 소스로 생성한 자료이며 사용자 원본·이미지 bytes·학교/학생 자료가 아니다. 별도의 승인 합성 이미지 테스트는 저장소에 이미 있는 1px 테스트 PNG를 사용하며 실제 pending 자료를 approved로 승격하지 않는다.
+
+집중 검증은 기존 V1/V2/Guard/Revision/출력/파일 실패 보호와 선별 원본 렌더링 테스트, B안 JSON/혼합 history/내부 저장소 재생성/명시적 복구/충돌/취소, 요소 UI 편집 및 React/SVG 일치를 포함한다. B안 출력 engine 테스트의 rasterizer와 engine PDF 포트는 대역이다. 별도로 실제 pdf-lib PNG decode 및 7페이지 PDF 생성/재열기를 검증하지만, 실제 Canvas 고해상도 PNG와 Windows GUI 시각 검증을 대체하지 않는다. 구체적인 최종 실행 건수와 빌드 결과는 작업 완료 보고에서 확인한다.
+
+Windows 후속 QA: 고정 체크포인트에서 V1/V2/B안 열기·요소/문구/마스크 편집·이미지 재연결·JSON 저장/재열기·앱 재실행·Revision 복구, native dialog 취소/덮어쓰기/오류, 실제 한글 Canvas PNG/PDF와 미리보기의 일치, A4 1장/카드 7장, pending 출력 차단을 확인한다. 원본 프레임을 보존하므로 긴 제목·두 자리 월·문구 길이에 따른 기존 조판 overflow는 자동 디자인 변경 없이 출력 차단 사유로 남긴다. B안 디자인은 **REVISE / PENDING**이며 구조 지원을 디자인/출력 승인으로 해석하지 않는다. 이전 프로젝트 저장 상태 문구 잔류는 이번 범위에서 수정하지 않았다. 정책 차단된 자동 저장 직접 계측은 재시도하지 않았고 NOT VERIFIED를 유지한다. 실제 Windows/Canvas GUI 검증 전 최종 판정은 **CONDITIONAL**이다.
+
+최종 자동 검증: `npx vitest run src/newsletter electron-p0/tests/newsletter electron-p0/tests/policy.test.ts electron-p0/tests/sample-ipc.test.ts electron-p0/tests/memo-ipc.test.ts` — **51개 파일 / 253 PASS** (B안 전용 13건 포함). `npm run electron:p0:build` — Main/Preload·renderer·테스트 TypeScript 및 프로덕션 빌드 PASS. `git diff --check` PASS. 실제 GUI/Canvas/Windows는 NOT RUN, 자동 저장 직접 계측은 NOT VERIFIED 유지.
+
+변경 파일 전수 목록(41개):
+
+```text
+docs/ELECTRON_P0.md
+electron-p0/tests/fixtures/newsletter-b-synthetic.json
+electron-p0/tests/newsletter-b-fixture.ts
+electron-p0/tests/newsletter-b-integration.test.ts
+electron-p0/tests/newsletter-b-ui.test.tsx
+electron-p0/tests/newsletter-compatibility.test.ts
+src/newsletter/output/svgRenderer.ts
+src/newsletter/rendering/NewsletterDesignEditor.tsx
+src/newsletter/rendering/NewsletterEditorialControls.tsx
+src/newsletter/rendering/NewsletterPreview.tsx
+src/newsletter/rendering/OfficialElementCopy.tsx
+src/newsletter/rendering/OfficialTemplateControls.tsx
+src/newsletter/rendering/assetResolution.ts
+src/newsletter/rendering/designSchema.ts
+src/newsletter/rendering/designState.ts
+src/newsletter/rendering/editorialCompiler.ts
+src/newsletter/rendering/editorialScene.ts
+src/newsletter/rendering/editorialState.ts
+src/newsletter/rendering/editorialVisualFinish.test.ts
+src/newsletter/rendering/editorialVisualFinish.ts
+src/newsletter/rendering/illustratedCardPreset.ts
+src/newsletter/rendering/imageFeather.ts
+src/newsletter/rendering/imagePolygon.test.ts
+src/newsletter/rendering/imagePolygon.ts
+src/newsletter/rendering/mascotQuality.ts
+src/newsletter/rendering/officialAssetProfiles.ts
+src/newsletter/rendering/officialTemplate.test.ts
+src/newsletter/rendering/officialTemplate.ts
+src/newsletter/rendering/officialTemplateCompiler.ts
+src/newsletter/rendering/officialTemplateRecipes.ts
+src/newsletter/rendering/officialTemplateSchema.ts
+src/newsletter/rendering/officialTemplateValidation.test.ts
+src/newsletter/rendering/referenceLayout.test.ts
+src/newsletter/rendering/referenceLayout.ts
+src/newsletter/rendering/referenceLayoutCompiler.ts
+src/newsletter/rendering/referenceLayoutScene.ts
+src/newsletter/rendering/renderDocument.ts
+src/newsletter/rendering/renderScene.ts
+src/newsletter/rendering/skillMasterPreset.ts
+src/newsletter/rendering/visualFinishCompiler.ts
+src/newsletter/rendering/visualFinishScene.ts
+```

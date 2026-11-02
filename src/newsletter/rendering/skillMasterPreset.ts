@@ -18,7 +18,7 @@ export function applySkillMasterPreset(design: NewsletterDesignStateV2, input: {
     return { ...card, titleFrame: frames.title, leadFrame: frames.lead, closingFrame: frames.closing,
       titleStyle: { ...card.titleStyle, fontSize: index === 0 ? 104 : 88, align: "center" as const },
       image: { ...card.image, frame: frames.image, edgePolicy: "none" as const },
-      ...(card.editorial === undefined ? {} : { editorial: { ...card.editorial, moduleImages: undefined, compositionPreset: "september-master" as const } }),
+      ...(card.editorial === undefined ? {} : { editorial: { ...card.editorial, foregroundMask: undefined, referenceLayout: undefined, visualFinish: undefined, moduleImages: undefined, compositionPreset: "september-master" as const } }),
       ...(card.brand === undefined ? {} : { brand: { ...card.brand, previewTopicCount: 4 as const, mascot: { ...card.brand.mascot, frame: frames.mascot, edgePolicy: "none" as const } } }),
     }
   })

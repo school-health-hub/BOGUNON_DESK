@@ -1,3 +1,5 @@
+import type { ReactNode } from "react"
+import { OfficialTemplateControls } from "./OfficialTemplateControls"
 import { applyIllustratedCardPreset } from "./illustratedCardPreset"
 import { applySkillMasterPreset } from "./skillMasterPreset"
 import { parseNewsletterDesignStateV2, type CardDesignLayoutV2, type NewsletterDesignStateV2 } from "./designSchema"
@@ -6,7 +8,7 @@ import { editorialFrames } from "./editorialLayout"
 
 function updateCardLayout(design: NewsletterDesignStateV2, input: Parameters<typeof updateDesignCard>[1]): NewsletterDesignStateV2 { return parseNewsletterDesignStateV2(updateDesignCard(design, input)) }
 type Editorial = NonNullable<CardDesignLayoutV2["editorial"]>
-type Props = { readonly design: NewsletterDesignStateV2; readonly cardIndex: number; readonly actionCount: number; readonly onChange: (design: NewsletterDesignStateV2) => void }
+type Props = { readonly renderTextEditor?: (binding: string) => ReactNode; readonly design: NewsletterDesignStateV2; readonly cardIndex: number; readonly actionCount: number; readonly onChange: (design: NewsletterDesignStateV2) => void }
 const now = (): string => new Date().toISOString()
 function layoutType(value: string): Editorial["layoutType"] | undefined { switch (value) { case "A": case "B": case "C": case "D": return value; default: return undefined } }
 function composition(value: string): Editorial["studentComposition"] { switch (value) { case "female": case "male": case "objects": return value; default: return "mixed" } }
@@ -15,7 +17,7 @@ export function AssetChoice({ label, value, design, onChange }: { readonly label
   const assets = design.assetManifest.filter((asset) => asset.approvalStatus === "approved" && asset.registry?.usageScope === "newsletter-output" && asset.registry.purpose === "illustration" && asset.registry.classification !== "OFFICIAL_REFERENCE")
   return <label>{label}<select aria-label={label} value={value ?? ""} onChange={(event) => onChange(event.target.value)}><option value="" disabled>등록된 삽화 선택</option>{assets.map((asset) => <option key={asset.id} value={asset.id}>{asset.originalName}</option>)}</select>{assets.length === 0 && <small>사용 가능한 승인 삽화를 먼저 등록해 주세요.</small>}</label>
 }
-export function NewsletterEditorialControls({ design, cardIndex, actionCount, onChange }: Props) {
+export function NewsletterEditorialControls({ design, cardIndex, actionCount, onChange, renderTextEditor }: Props) {
   const card = design.cardLayouts[cardIndex]
   if (card === undefined) return null
   const config = card.editorial
@@ -33,6 +35,7 @@ export function NewsletterEditorialControls({ design, cardIndex, actionCount, on
     const ratio = percent / 100
     update({ moduleImages: config.moduleImages.map((image, moduleIndex) => moduleIndex === index ? { ...image, frame: { x: frame.x + frame.width * (1 - ratio) / 2, y: frame.y + frame.height * (1 - ratio) / 2, width: frame.width * ratio, height: frame.height * ratio } } : image) })
   }
+  if (design.cardLayouts[cardIndex]?.officialTemplate !== undefined) return <OfficialTemplateControls design={design} cardIndex={cardIndex} actionCount={actionCount} onChange={onChange} renderTextEditor={renderTextEditor} />
   return <fieldset className="control-stack"><legend>편집형 카드 구성</legend>
     {cardIndex > 0 && <button type="button" disabled={actionCount !== 4} onClick={() => onChange(applyIllustratedCardPreset(design, { cardIndex, now: now() }))}>삽화형 A·B · 표지·선택 카드 적용</button>}
     {cardIndex > 0 && <button type="button" disabled={actionCount !== 4} onClick={() => onChange(applySkillMasterPreset(design, { cardIndex, now: now() }))}>9월 스킬 기본형 · A4·표지·선택 카드 적용</button>}
