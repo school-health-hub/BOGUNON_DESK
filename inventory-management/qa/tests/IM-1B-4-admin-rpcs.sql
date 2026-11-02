@@ -9,11 +9,11 @@ returns void language sql as $$
 $$;
 grant execute on function pg_temp.record_result(text, boolean, text) to authenticated;
 
-insert into auth.users(id,email,encrypted_password,email_confirmed_at,created_at,updated_at,raw_app_meta_data,raw_user_meta_data,aud,role)
+insert into auth.users(id,email,encrypted_password,created_at,updated_at,raw_app_meta_data,raw_user_meta_data,aud,role)
 values
-('a4000000-0000-4000-8000-000000000001','teacher-im1b4@example.invalid','',now(),now(),now(),'{}','{}','authenticated','authenticated'),
-('a4000000-0000-4000-8000-000000000002','instructor-im1b4@example.invalid','',now(),now(),now(),'{}','{"role":"teacher_admin"}','authenticated','authenticated'),
-('a4000000-0000-4000-8000-000000000003','other-im1b4@example.invalid','',now(),now(),now(),'{}','{}','authenticated','authenticated');
+('a4000000-0000-4000-8000-000000000001','teacher-im1b4@example.invalid','',now(),now(),'{}','{}','authenticated','authenticated'),
+('a4000000-0000-4000-8000-000000000002','instructor-im1b4@example.invalid','',now(),now(),'{}','{"role":"teacher_admin"}','authenticated','authenticated'),
+('a4000000-0000-4000-8000-000000000003','other-im1b4@example.invalid','',now(),now(),'{}','{}','authenticated','authenticated');
 
 insert into public.inventory_schools(school_id,display_name) values
 ('a4100000-0000-4000-8000-000000000001','Synthetic School A'),
