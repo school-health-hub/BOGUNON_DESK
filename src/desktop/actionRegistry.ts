@@ -5,6 +5,7 @@ export const desktopActionRegistry = {
   "today-tasks": { id: "today-tasks", kind: "internal", target: "today-tasks" },
   inbox: { id: "inbox", kind: "internal", target: "inbox" },
   calculator: { id: "calculator", kind: "internal", target: "calculator" },
+  "inventory-management": { id: "inventory-management", kind: "internal", target: "inventory-management" },
   "purchase-helper": { id: "purchase-helper", kind: "internal", target: "purchase-helper" },
   "official-document": { id: "official-document", kind: "internal", target: "official-document" },
   "online-health-room": { id: "online-health-room", kind: "externalUrl", configured: false },

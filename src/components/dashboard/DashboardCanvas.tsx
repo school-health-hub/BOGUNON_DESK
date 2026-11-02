@@ -14,6 +14,7 @@ import { WorkFoldersPanel } from "../desktop/WorkFoldersPanel";
 import { PurchaseHelperPanel } from "../desktop/PurchaseHelperPanel";
 import { OfficialDocumentPanel } from "../desktop/OfficialDocumentPanel";
 import { RecordHelperPanel } from "../desktop/RecordHelperPanel";
+import { InventoryManagementPanel } from "../../inventory-management/ui/InventoryManagementPanel";
 import { DesktopPanelProvider } from "../desktop/DesktopPanelContext";
 import { createQuickAddOpenState, type QuickAddOpenOptions } from "./quickAddOpenState";
 import { AppDock } from "../../dock/AppDock";
@@ -89,6 +90,7 @@ export function DashboardCanvas({ onOpenFinance, suspended = false }: { readonly
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isInboxOpen, setIsInboxOpen] = useState(false);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
+  const [isInventoryManagementOpen, setIsInventoryManagementOpen] = useState(false);
   const [isPurchaseHelperOpen, setIsPurchaseHelperOpen] = useState(false);
   const [isOfficialDocumentOpen, setIsOfficialDocumentOpen] = useState(false);
   const [isRecordHelperOpen, setIsRecordHelperOpen] = useState(false);
@@ -117,6 +119,7 @@ export function DashboardCanvas({ onOpenFinance, suspended = false }: { readonly
     setActivePanel,
     setIsEditing,
     setIsCalculatorOpen,
+    setIsInventoryManagementOpen,
     setIsPurchaseHelperOpen,
     setIsOfficialDocumentOpen,
     setIsRecordHelperOpen,
@@ -159,12 +162,12 @@ export function DashboardCanvas({ onOpenFinance, suspended = false }: { readonly
   }, [isWorkFoldersOpen]);
 
   useEffect(() => {
-    if (isEditing || isDesktopSettingsOpen || toolbox.isToolboxOpen || isInboxOpen || isCalculatorOpen || isPurchaseHelperOpen || isOfficialDocumentOpen || isRecordHelperOpen || isQuickMemoOpen || isWorkFoldersOpen) setIsQuickAddOpen(false);
-  }, [isCalculatorOpen, isPurchaseHelperOpen, isOfficialDocumentOpen, isRecordHelperOpen, isDesktopSettingsOpen, isEditing, isInboxOpen, isQuickMemoOpen, isWorkFoldersOpen, toolbox.isToolboxOpen]);
+    if (isEditing || isDesktopSettingsOpen || toolbox.isToolboxOpen || isInboxOpen || isCalculatorOpen || isInventoryManagementOpen || isPurchaseHelperOpen || isOfficialDocumentOpen || isRecordHelperOpen || isQuickMemoOpen || isWorkFoldersOpen) setIsQuickAddOpen(false);
+  }, [isCalculatorOpen, isInventoryManagementOpen, isPurchaseHelperOpen, isOfficialDocumentOpen, isRecordHelperOpen, isDesktopSettingsOpen, isEditing, isInboxOpen, isQuickMemoOpen, isWorkFoldersOpen, toolbox.isToolboxOpen]);
 
   useEffect(() => {
-    if (isQuickAddOpen || isDesktopSettingsOpen || toolbox.isToolboxOpen || isInboxOpen || isCalculatorOpen || isPurchaseHelperOpen || isOfficialDocumentOpen || isRecordHelperOpen || isQuickMemoOpen || isWorkFoldersOpen) setIsCommandPaletteOpen(false);
-  }, [isCalculatorOpen, isPurchaseHelperOpen, isOfficialDocumentOpen, isRecordHelperOpen, isDesktopSettingsOpen, isInboxOpen, isQuickAddOpen, isQuickMemoOpen, isWorkFoldersOpen, toolbox.isToolboxOpen]);
+    if (isQuickAddOpen || isDesktopSettingsOpen || toolbox.isToolboxOpen || isInboxOpen || isCalculatorOpen || isInventoryManagementOpen || isPurchaseHelperOpen || isOfficialDocumentOpen || isRecordHelperOpen || isQuickMemoOpen || isWorkFoldersOpen) setIsCommandPaletteOpen(false);
+  }, [isCalculatorOpen, isInventoryManagementOpen, isPurchaseHelperOpen, isOfficialDocumentOpen, isRecordHelperOpen, isDesktopSettingsOpen, isInboxOpen, isQuickAddOpen, isQuickMemoOpen, isWorkFoldersOpen, toolbox.isToolboxOpen]);
 
   useEffect(() => settingsService.account.saveWorkspace(dashboardLayout), [dashboardLayout]);
   useEffect(() => settingsService.account.saveDock(dockLayout), [dockLayout]);
@@ -542,6 +545,14 @@ export function DashboardCanvas({ onOpenFinance, suspended = false }: { readonly
             void runDesktopAction("home");
           }}
           onNotice={setNotice}
+        />
+      )}
+      {isInventoryManagementOpen && (
+        <InventoryManagementPanel
+          onClose={() => {
+            setIsInventoryManagementOpen(false);
+            void runDesktopAction("home");
+          }}
         />
       )}
       {isPurchaseHelperOpen && (

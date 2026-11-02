@@ -62,6 +62,7 @@ describe("desktop navigation record helper route", () => {
     const setIsCalculatorOpen = vi.fn();
     const setIsEditing = vi.fn();
     const setIsInboxOpen = vi.fn();
+    const setIsInventoryManagementOpen = vi.fn();
     const setIsOfficialDocumentOpen = vi.fn();
     const setIsPurchaseHelperOpen = vi.fn();
     const setIsQuickMemoOpen = vi.fn();
@@ -72,6 +73,7 @@ describe("desktop navigation record helper route", () => {
       setIsCalculatorOpen,
       setIsEditing,
       setIsInboxOpen,
+      setIsInventoryManagementOpen,
       setIsOfficialDocumentOpen,
       setIsPurchaseHelperOpen,
       setIsQuickMemoOpen,
@@ -86,6 +88,7 @@ describe("desktop navigation record helper route", () => {
     expect(setIsRecordHelperOpen).toHaveBeenNthCalledWith(1, false);
     expect(setIsRecordHelperOpen).toHaveBeenNthCalledWith(2, true);
     expect(setIsOfficialDocumentOpen).toHaveBeenCalledWith(false);
+    expect(setIsInventoryManagementOpen).toHaveBeenCalledWith(false);
     expect(setIsPurchaseHelperOpen).toHaveBeenCalledWith(false);
     expect(setIsCalculatorOpen).toHaveBeenCalledWith(false);
     expect(setIsInboxOpen).toHaveBeenCalledWith(false);

@@ -11,6 +11,7 @@ export const commandIds = [
   "today-tasks",
   "inbox",
   "calculator",
+  "inventory-management",
   "purchase-helper",
   "official-document",
   "toolbox",

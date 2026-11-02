@@ -3,6 +3,7 @@ export const desktopActionIds = [
   "today-tasks",
   "inbox",
   "calculator",
+  "inventory-management",
   "purchase-helper",
   "official-document",
   "online-health-room",
@@ -20,7 +21,7 @@ export const desktopActionIds = [
 
 export type DesktopActionId = (typeof desktopActionIds)[number];
 
-export type InternalDesktopTarget = "home" | "today-tasks" | "inbox" | "calculator" | "purchase-helper" | "official-document" | "record-helper" | "toolbox" | "work-folder" | "quick-memo" | "settings";
+export type InternalDesktopTarget = "home" | "today-tasks" | "inbox" | "calculator" | "inventory-management" | "purchase-helper" | "official-document" | "record-helper" | "toolbox" | "work-folder" | "quick-memo" | "settings";
 
 export type DesktopAction =
   | { readonly id: DesktopActionId; readonly kind: "internal"; readonly target: InternalDesktopTarget }

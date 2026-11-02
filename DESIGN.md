@@ -440,3 +440,13 @@ two lines. D-Day uses readable rows. All use existing spacing/type/color tokens.
 Signed-out desktop widgets show a quiet dash with an accessible waiting label; the
 shared banner is the only account instruction. Standalone/error/loading guidance
 remains. Dock active marker, accessible name, hover and keyboard tooltip stay intact.
+
+## Inventory Management workspace (IM-2A)
+
+- 물품관리는 Toolbox의 `보건 업무`에서 여는 독립 DESK work sheet다. Dock, 전역 sidebar, 저장된 desktop grid와 Tauri window bounds를 변경하지 않는다.
+- IM-2A는 합성 fixture 전용이다. header 아래에 항상 보이는 neutral-mint notice로 `합성 데이터 미리보기`와 `실제 재고에 반영되지 않음`을 함께 알린다. mutation 결과는 `preview_only` 또는 `unavailable`이며 운영 저장 성공 문구를 사용하지 않는다.
+- 정보 계층은 page heading/action row → 네 개의 compact summary metric → search/filter → item table → selected item detail 순서다. 상세 영역은 기본정보, 총재고/가용재고, lot, 최근 movement를 divider와 spacing으로 나누며 card-in-card를 반복하지 않는다.
+- 총재고는 보관 중인 모든 lot 잔량, 가용재고는 미만료 `available` lot 잔량이다. 상태는 만료 → 임박(90일) → 부족 → 정상 우선순위로 읽되, summary에서는 조건별 개수를 독립 집계한다.
+- 등록·입고·사용·폐기·정정·구매 후보는 기존 dialog/form/button 문법을 사용한다. destructive 업무는 reason과 대상 lot/수량을 명시하고, primary action label은 `입력 내용 확인`처럼 미리보기 경계를 드러낸다.
+- Loading, empty, no-result, permission, network error는 동일한 work sheet 안에서 구분한다. 오류만 error surface/leading border를 사용하고 empty/no-result는 muted inline guidance를 사용한다.
+- 900px에서는 목록과 상세를 세로로 쌓고 table/dialog 내부만 scroll한다. keyboard focus ring, labelled controls, Escape close와 focus return을 유지하며 Native 최소 검증은 기존 980×700을 사용한다.

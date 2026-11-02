@@ -23,10 +23,27 @@ describe("desktop launcher registries", () => {
       id: category.id,
       tools: category.tools.map((tool) => tool.id),
     }))).toEqual([
-      { id: "health", tools: ["aed-check", "checkup-tools"] },
+      { id: "health", tools: ["aed-check", "checkup-tools", "inventory-management"] },
       { id: "records", tools: ["record-helper", "purchase-helper", "official-document"] },
       { id: "general", tools: ["calculator"] },
     ]);
+  });
+
+  it("registers Inventory Management as an internal health tool without changing the Dock", () => {
+    const inventory = toolboxToolRegistry["inventory-management"];
+
+    expect(inventory).toEqual(expect.objectContaining({
+      kind: "internalTool",
+      label: "물품관리",
+      category: "health",
+      launchActionId: "inventory-management",
+    }));
+    expect(desktopActionRegistry["inventory-management"]).toEqual({
+      id: "inventory-management",
+      kind: "internal",
+      target: "inventory-management",
+    });
+    expect(defaultDockItemIds).not.toContain("inventory-management");
   });
 
   it("registers the official document workspace as a records internal tool", () => {

@@ -12,7 +12,7 @@ describe("command registry", () => {
   it("keeps command IDs unique and contains every required command", () => {
     expect(new Set(commandIds).size).toBe(commandIds.length);
     expect(commandIds).toEqual([
-      "quick-add", "home", "today-tasks", "inbox", "calculator", "purchase-helper", "official-document", "toolbox", "quick-memo", "settings",
+      "quick-add", "home", "today-tasks", "inbox", "calculator", "inventory-management", "purchase-helper", "official-document", "toolbox", "quick-memo", "settings",
       "online-health-room", "bogunon", "work-folder", "work-portal",
       "workspace", "widget-library", "presets", "appearance", "dock-editor",
     ]);
@@ -39,6 +39,8 @@ describe("command search", () => {
     ["inbox", "inbox"],
     ["퍼센트", "calculator"],
     ["calculator", "calculator"],
+    ["재고", "inventory-management"],
+    ["물품관리", "inventory-management"],
     ["견적", "purchase-helper"],
     ["장바구니", "purchase-helper"],
     ["공문", "official-document"],
@@ -70,6 +72,7 @@ describe("command execution", () => {
     ["work-portal", "desktopAction", "work-portal"],
     ["inbox", "desktopAction", "inbox"],
     ["calculator", "desktopAction", "calculator"],
+    ["inventory-management", "desktopAction", "inventory-management"],
     ["purchase-helper", "desktopAction", "purchase-helper"],
     ["official-document", "desktopAction", "official-document"],
     ["workspace", "workspaceEditor", "workspace"],

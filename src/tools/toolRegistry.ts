@@ -1,10 +1,10 @@
-import { Activity, BookOpenCheck, Calculator, ClipboardCheck, FileSpreadsheet, FileText, type LucideIcon } from "lucide-react";
+import { Activity, BookOpenCheck, Calculator, ClipboardCheck, FileSpreadsheet, FileText, PackageSearch, type LucideIcon } from "lucide-react";
 import type { ConfigurableUrlActionId, DesktopActionId } from "../desktop/types";
 import type { AccountLauncherLinks } from "../settings/types";
 
 export const healthToolIds = ["aed-check", "checkup-tools"] as const;
 export type HealthToolId = (typeof healthToolIds)[number];
-export const internalToolIds = ["calculator", "purchase-helper", "official-document", "record-helper"] as const;
+export const internalToolIds = ["calculator", "inventory-management", "purchase-helper", "official-document", "record-helper"] as const;
 export type InternalToolId = (typeof internalToolIds)[number];
 export type ToolboxToolId = HealthToolId | InternalToolId;
 
@@ -66,6 +66,15 @@ export const healthToolRegistry = {
 } as const satisfies Record<HealthToolId, ExternalToolDefinition>;
 
 export const internalToolRegistry = {
+  "inventory-management": {
+    id: "inventory-management",
+    label: "물품관리",
+    description: "재고와 유효기간, 입고·사용 내역을 한곳에서 관리",
+    category: "health",
+    icon: PackageSearch,
+    kind: "internalTool",
+    launchActionId: "inventory-management",
+  },
   calculator: {
     id: "calculator",
     label: "계산기",

@@ -13,6 +13,7 @@ type UseDesktopNavigationOptions = {
   readonly setActivePanel: Dispatch<SetStateAction<DashboardEditorPanel>>;
   readonly setIsEditing: Dispatch<SetStateAction<boolean>>;
   readonly setIsCalculatorOpen: Dispatch<SetStateAction<boolean>>;
+  readonly setIsInventoryManagementOpen: Dispatch<SetStateAction<boolean>>;
   readonly setIsPurchaseHelperOpen: Dispatch<SetStateAction<boolean>>;
   readonly setIsOfficialDocumentOpen: Dispatch<SetStateAction<boolean>>;
   readonly setIsRecordHelperOpen: Dispatch<SetStateAction<boolean>>;
@@ -24,7 +25,7 @@ type UseDesktopNavigationOptions = {
 };
 
 export function useDesktopNavigation(options: UseDesktopNavigationOptions) {
-  const { setActivePanel, setIsCalculatorOpen, setIsPurchaseHelperOpen, setIsOfficialDocumentOpen, setIsRecordHelperOpen, setIsEditing, setIsInboxOpen, setIsQuickMemoOpen, setIsWorkFoldersOpen, setNotice, setSelectedWidgetId } = options;
+  const { setActivePanel, setIsCalculatorOpen, setIsInventoryManagementOpen, setIsPurchaseHelperOpen, setIsOfficialDocumentOpen, setIsRecordHelperOpen, setIsEditing, setIsInboxOpen, setIsQuickMemoOpen, setIsWorkFoldersOpen, setNotice, setSelectedWidgetId } = options;
   const [activeActionId, setActiveActionId] = useState<DesktopActionId>("home");
   const [isDesktopSettingsOpen, setIsDesktopSettingsOpen] = useState(false);
   const [settingsSectionId, setSettingsSectionId] = useState<SettingsSectionId>("account");
@@ -42,6 +43,7 @@ export function useDesktopNavigation(options: UseDesktopNavigationOptions) {
 
   const focusInternalTarget = useCallback((target: InternalDesktopTarget) => {
     setActiveActionId(target);
+    setIsInventoryManagementOpen(false);
     setIsOfficialDocumentOpen(false);
     setIsRecordHelperOpen(false);
     if (target === "work-folder") {
@@ -57,6 +59,18 @@ export function useDesktopNavigation(options: UseDesktopNavigationOptions) {
       return;
     }
     setIsWorkFoldersOpen(false);
+    if (target === "inventory-management") {
+      setIsDesktopSettingsOpen(false);
+      setIsInboxOpen(false);
+      setIsCalculatorOpen(false);
+      setIsPurchaseHelperOpen(false);
+      setIsQuickMemoOpen(false);
+      setIsEditing(false);
+      setActivePanel(null);
+      closePanels();
+      setIsInventoryManagementOpen(true);
+      return;
+    }
     if (target === "official-document") {
       setIsDesktopSettingsOpen(false);
       setIsInboxOpen(false);
@@ -149,7 +163,7 @@ export function useDesktopNavigation(options: UseDesktopNavigationOptions) {
     }
     widget.scrollIntoView({ behavior: "smooth", block: "center" });
     widget.focus({ preventScroll: true });
-  }, [clearSettingsTarget, closePanels, openToolbox, setActivePanel, setIsCalculatorOpen, setIsPurchaseHelperOpen, setIsOfficialDocumentOpen, setIsRecordHelperOpen, setIsEditing, setIsInboxOpen, setIsQuickMemoOpen, setIsWorkFoldersOpen, setNotice]);
+  }, [clearSettingsTarget, closePanels, openToolbox, setActivePanel, setIsCalculatorOpen, setIsInventoryManagementOpen, setIsPurchaseHelperOpen, setIsOfficialDocumentOpen, setIsRecordHelperOpen, setIsEditing, setIsInboxOpen, setIsQuickMemoOpen, setIsWorkFoldersOpen, setNotice]);
 
   const runDesktopAction = useCallback(async (actionId: DesktopActionId) => {
     const action = desktopActionRegistry[actionId];
@@ -164,6 +178,7 @@ export function useDesktopNavigation(options: UseDesktopNavigationOptions) {
         onPrepareLaunch: () => {
           setIsInboxOpen(false);
           setIsCalculatorOpen(false);
+          setIsInventoryManagementOpen(false);
           setIsQuickMemoOpen(false);
           setIsWorkFoldersOpen(false);
           setIsPurchaseHelperOpen(false);
@@ -185,12 +200,13 @@ export function useDesktopNavigation(options: UseDesktopNavigationOptions) {
     } catch (error) {
       setNotice(getDesktopErrorMessage(error));
     }
-  }, [clearSettingsTarget, closePanels, focusInternalTarget, openToolSettings, setIsCalculatorOpen, setIsPurchaseHelperOpen, setIsOfficialDocumentOpen, setIsRecordHelperOpen, setIsInboxOpen, setIsQuickMemoOpen, setIsWorkFoldersOpen, setNotice]);
+  }, [clearSettingsTarget, closePanels, focusInternalTarget, openToolSettings, setIsCalculatorOpen, setIsInventoryManagementOpen, setIsPurchaseHelperOpen, setIsOfficialDocumentOpen, setIsRecordHelperOpen, setIsInboxOpen, setIsQuickMemoOpen, setIsWorkFoldersOpen, setNotice]);
 
   const openWorkspaceEditor = useCallback((target: WorkspaceEditorTarget) => {
     setIsDesktopSettingsOpen(false);
     setIsInboxOpen(false);
     setIsCalculatorOpen(false);
+    setIsInventoryManagementOpen(false);
     setIsQuickMemoOpen(false);
     setIsWorkFoldersOpen(false);
     setIsPurchaseHelperOpen(false);
@@ -202,12 +218,13 @@ export function useDesktopNavigation(options: UseDesktopNavigationOptions) {
     setSelectedWidgetId(null);
     setIsEditing(true);
     setActivePanel(resolveWorkspaceEditorPanel(target));
-  }, [clearSettingsTarget, closePanels, setActivePanel, setIsCalculatorOpen, setIsPurchaseHelperOpen, setIsOfficialDocumentOpen, setIsRecordHelperOpen, setIsEditing, setIsInboxOpen, setIsQuickMemoOpen, setIsWorkFoldersOpen, setSelectedWidgetId]);
+  }, [clearSettingsTarget, closePanels, setActivePanel, setIsCalculatorOpen, setIsInventoryManagementOpen, setIsPurchaseHelperOpen, setIsOfficialDocumentOpen, setIsRecordHelperOpen, setIsEditing, setIsInboxOpen, setIsQuickMemoOpen, setIsWorkFoldersOpen, setSelectedWidgetId]);
 
   const openSettingsSection = useCallback((sectionId: SettingsSectionId) => {
     setIsOfficialDocumentOpen(false);
     setIsRecordHelperOpen(false);
     setIsPurchaseHelperOpen(false);
+    setIsInventoryManagementOpen(false);
     setIsCalculatorOpen(false);
     setIsInboxOpen(false);
     setIsQuickMemoOpen(false);
@@ -219,7 +236,7 @@ export function useDesktopNavigation(options: UseDesktopNavigationOptions) {
     setSettingsSectionId(sectionId);
     setActiveActionId("settings");
     setIsDesktopSettingsOpen(true);
-  }, [clearSettingsTarget, closePanels, setActivePanel, setIsCalculatorOpen, setIsInboxOpen, setIsOfficialDocumentOpen, setIsRecordHelperOpen, setIsPurchaseHelperOpen, setIsQuickMemoOpen, setIsWorkFoldersOpen]);
+  }, [clearSettingsTarget, closePanels, setActivePanel, setIsCalculatorOpen, setIsInboxOpen, setIsInventoryManagementOpen, setIsOfficialDocumentOpen, setIsRecordHelperOpen, setIsPurchaseHelperOpen, setIsQuickMemoOpen, setIsWorkFoldersOpen]);
 
   const closeSettings = useCallback(() => {
     setIsDesktopSettingsOpen(false);
