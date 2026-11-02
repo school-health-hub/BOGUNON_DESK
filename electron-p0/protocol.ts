@@ -28,7 +28,9 @@ export type PurchaseExportResult=Readonly<{status:'saved';fileName:string}|{stat
 export type PurchaseClipboardRequest=Readonly<{text:string;html:string}>;
 export type OfficialDocumentSave=Readonly<{title:string;body:string;attachments:string;hasTableText:boolean}>;
 export type OfficialDocumentImported=Readonly<{sourceName:string;format:"pdf"|"hwpx"|"odt";text:string}>;
+export type InventoryQaStatus = { mode: "local-qa"; authGateway: "reachable" | "unavailable"; inventoryConnection: "blocked"; persisted: false };
 export interface WorkBridge {
+  inventoryLocalQa?: { status: () => Promise<IpcResult<InventoryQaStatus>> };
  readonly officialDocument:Readonly<{pick():Promise<IpcResult<OfficialDocumentImported|null>>;save(document:OfficialDocumentSave):Promise<IpcResult<{fileName:string}|null>>;cancel():Promise<IpcResult<null>>}>;
  readonly educationVideo:EducationVideoBridge;
  readonly inventory:Readonly<{load():Promise<IpcResult<Readonly<{document:InventoryDocument|null;recovered:boolean}>>>;save(document:InventoryDocument):Promise<IpcResult<Readonly<{document:InventoryDocument;recovered:boolean}>>>}>;

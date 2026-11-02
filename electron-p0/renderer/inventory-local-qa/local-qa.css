@@ -1,0 +1,4 @@
+.inventory-local-qa{position:fixed;inset:24px;z-index:90;overflow:auto;background:#fff;color:#172b49;border:1px solid #cde5e0;border-radius:18px;padding:24px;box-shadow:0 12px 40px #172b4920;overflow-wrap:anywhere}
+.inventory-local-qa header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.inventory-local-qa button{background:#e4f4ef;color:#172b49;border:1px solid #b5d9cc;border-radius:10px;padding:10px 14px}
+@media(max-width:700px){.inventory-local-qa{inset:8px;padding:16px}}

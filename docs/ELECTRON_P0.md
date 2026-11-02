@@ -325,3 +325,47 @@ git diff --name-only c355da4ddde9194f1f280dc622ad8cfb2a0d1257 HEAD
 기준 `8f0044cd00bdcfe219a2d9ff0decaf4b4b2bede4`의 별도 브랜치 `codex/electron-official-document-files-integration`에서 PDF/HWPX/ODT 텍스트 반입 및 승인 템플릿 ODT 새 파일 저장을 연결했습니다. 정식 실행계획·재사용 provenance·검증·미검증 항목은 [공문 파일 처리 실행계획](qa/OFFICIAL_DOCUMENT_ELECTRON_FILES_PLAN.md)을 확인하세요. 원본 덮어쓰기·원본 서식/표 구조 보존·OCR·reference/AI 신규 기능은 지원하지 않습니다. 기존 Tauri 소스/운영 데이터와 `codex/electron-official-document-files`의 WIP 체크포인트는 보존합니다. Cloud Linux 구현이며 Windows 실제 PC 검증을 완료했다고 표시하지 않습니다. dev 실행은 `npm run electron:p0:dev`가 전용 CLI를 빌드하고, 기존 Windows 패키징 명령도 이 CLI를 포함하도록 연결합니다. Cargo/Node 도구가 필요하며 전역 설치는 자동으로 하지 않습니다.
 
 공문 파일 처리 집중 검증은 Linux 63개/Rust 18개(수동 artifact 1 ignored)·타입/빌드 PASS, [Windows 집중 CI 41401980509](https://github.com/school-health-hub/BOGUNON_DESK/actions/runs/41401980509) SUCCESS입니다. 실제 Windows native dialog/ODT 프로그램 열기·설치 패키지 실행과 Clippy는 NOT RUN이므로 **CONDITIONAL**입니다. 기능 검증 SHA는 `b0d3545dedcf336b3e6529db391c878379e096ff`; 마감 커밋은 검증 기록과 미실행 선택적 패키징 준비 1줄만 반영합니다. 최신 branch/SHA는 최종 보고 및 원격 비교로 확인합니다.
+
+## INV-EL-01 — Electron Local QA 연결 준비 (2026-11-02)
+
+**판정: BLOCKED (실제 Adapter 연결).** 이번 체크포인트는 개발 전용 진입점과 제한된 Auth 상태 점검만 구현한다. 로그인/학교 선택/재고 조회/상세/입고/사용/폐기/정정/재조회/로그아웃/학교 전환은 미구현이며 성공으로 표시하지 않는다. Production 및 패키지 설치본에서는 사용할 수 없다.
+
+### 기준 및 선별 결과
+
+- Cloud A `codex/cloud-a-inventory-preview` / `0c4472b6bf21ec5c6ed31773222f5c93abae5da0`에서 독립 worktree, 브랜치 `feature/electron-inventory-local-qa`를 생성했다.
+- Cloud B 제품 `codex/inventory-im2b1-cloud-b` / `ef0ba64cae5c0a6ccbba05a8821a80730dcfc087`를 읽기 전용으로 조사했다. `connection/contracts.ts`, `localQa.ts`, `index.ts`, `responses.ts`, `validation.ts`를 검토했으나 **제품 파일은 아직 복사하지 않았다**. 연결이 막힌 상태에서 사용되지 않는 인증 코드나 중복 Adapter를 추가하지 않는다.
+- DB CI `ci/inventory-postgres-integration-qa` / `95e4f10415a971790d476dd58ac42a12b1ffb80c`, run `41467324396`의 READY는 사용자 인계 증거이며 Electron E2E PASS가 아니다. CI/제품 브랜치 전체 merge/cherry-pick은 하지 않았다.
+- Newsletter Guard 통합 브랜치는 별도 보존되며 이번 Preview 기반 브랜치에 포함되지 않는다.
+
+### 차단 근거와 Cloud B 인터페이스 요청
+
+`connection/localQa.ts`의 `environment()`는 DEV/비PROD 및 브라우저 loopback origin 포트 **56300**을 검사한다. 현재 Electron 개발 origin은 **5174**, 패키지는 `file:`이다. 생성자와 각 요청에서 환경 검사를 수행하며 네트워크는 private `#http()`의 전역 `fetch()`에 고정되어 있다. `createLocalQaConnection(config)`에는 승인된 host transport 주입 지점이 없다. 따라서 현 계약 그대로 Main/Preload transport에 연결할 수 없다. origin 위장, import.meta 환경 치환, 전역 fetch 교체, CORS 무력화, Adapter 복제/보안 guard 삭제는 하지 않는다.
+
+Cloud B 요청: 기존 브라우저 factory의 guard를 유지하면서 **별도 Electron 개발 전용 factory 또는 host transport 주입 계약**을 제공해 달라. 이 문서는 변경 요청이며 Cloud B 소유 파일을 수정할 권한으로 해석하지 않는다.
+
+- factory는 browser factory와 구분하고 DEV/비PROD 및 host의 검증된 실행 capability를 요구해야 한다. renderer가 주장하는 boolean만 신뢰하지 않는다.
+- endpoint는 host가 고정한 loopback `127.0.0.1:56321`만 허용한다. endpoint/URL/header/token을 renderer가 고르는 범용 proxy를 만들지 않는다.
+- main-owned memory-only Auth/Adapter 및 명시적인 typed 업무 IPC를 권장한다. 공개 DTO의 UUID, bigint/decimal 문자열, `AuthState`, `InventoryError`, `outcomeUnknown`, `PreparedMutation` 계약은 유지한다. 기존 numeric JSON/Preview 모델과 직접 캐스팅하지 않는다.
+- 후속 IPC는 login/logout/selectSchool/listItems/itemDetail/prepare/execute/dispose 등 구체적인 동작별로 입력·응답을 검증한다. exact caller/frame/URL, RLS 학교 권한, 제한된 RPC 이름을 검사한다. 요청 최대 64KiB·응답 최대 2MiB·15초 timeout을 초기 상한으로 제안하며 실제 DTO/페이지 크기로 확인한다. header/토큰은 main 메모리만, service_role 및 운영 URL 금지, redirect/retry 금지다.
+- mutation은 host가 만든 UUID와 불변 payload를 보존하고 pending 중복 실행을 차단한다. 결과 불명확 시 자동 재시도하지 않는다. 성공 응답 후 권위 데이터를 재조회하고, 재조회 실패를 빈 목록/저장 실패와 혼동하지 않는다. 학교·계정·모드 변경 시 Adapter dispose/abort 및 epoch 갱신으로 이전 캐시/응답을 폐기한다.
+- 현재 Preview UI는 `previewMutation` 합성 계약이므로 실제 연결 시 별도 UUID DTO presenter가 필요하다. 순수 카드/표 디자인은 재사용하되 합성 adapter를 실제 쓰기에 연결하지 않는다. 입력·대화상자 수집 계약을 먼저 비교한다.
+
+### 이번 구현의 보안 경계
+
+기존 로컬 JSON 메뉴와 Preview 디렉터리/저장소/IPC/백업은 변경하지 않았다. 개발 빌드에서 세 번째 메뉴 `물품관리 — 로컬 QA`를 제공하며 실제 연결 BLOCKED 안내만 표시한다. 자격정보 입력·실제 재고·합성 Preview 목록은 표시하지 않는다. 다른 모드의 데이터를 읽거나 전송하지 않는다.
+
+Main의 `p2:inventory-local-qa:status`는 **인자 없는 단일 상태 API**다. exact sender/window/frame/URL 검사 후 `!app.isPackaged`, 정확한 dev URL `http://127.0.0.1:5174/`, `INVENTORY_LOCAL_QA=1`을 모두 요구한다. 유일한 요청은 `GET http://127.0.0.1:56321/auth/v1/health`, body/인증 header 없음, 응답 16KiB, 전체 3초, redirect 미추적, 중복 점검 차단이다. 응답 body·상세 예외·URL·로그인 정보는 renderer에 반환하지 않는다. 기존 renderer network allowlist/CORS는 유지한다. 200 응답도 Auth 게이트웨이 응답 여부만 의미하며 DB/Auth/RPC/학교 권한 READY가 아니다. `inventoryConnection:'blocked'`, `persisted:false`를 반환한다.
+
+개발자 환경에서 기존 `npm run electron:p0:dev`를 실행할 때 `INVENTORY_LOCAL_QA=1`을 해당 프로세스에만 설정할 수 있다. 이번 Cloud 세션에서는 실행/설치/로컬 스택 연결을 하지 않았다. 상태 점검도 사용자가 버튼을 누를 때만 수행한다. 화면을 떠날 때 늦은 응답을 무시하고 이전 포커스를 복원한다. 980×700 포함 좁은 화면에는 스크롤 가능한 별도 패널을 사용하지만 실제 GUI 레이아웃은 NOT RUN이다.
+
+### 검증 및 후속 순서
+
+- 신규 경계/UI 집중 테스트 **16 PASS**. Production/비활성화 차단, 잘못된 호출자/endpoint 인자 거부, timeout/size/redirect/중복 점검, 비저장 상태, UI에서 네트워크·기존 저장 IPC 미호출을 검증했다.
+- Inventory 및 관련 policy/sample/memo IPC 집중 회귀 **12개 파일 / 70 PASS (위 16건 포함)**. 기존 JSON 저장·백업, Preview 무네트워크/분리 검증을 포함한다.
+- `npm run electron:p0:build` **PASS**: Main/Preload, renderer, 테스트 TypeScript 및 Electron 프로덕션 Vite 빌드. 프로덕션 renderer JS에 Local QA 메뉴/화면 문구가 없음을 확인했다. 기존 chunk size 경고는 남아 있다.
+- `npm run lint`, `npm run typecheck`는 package.json에 없다. 새 도구/프레임워크를 설치하지 않았다. diff 검사 및 기존 Electron TypeScript 빌드를 사용했으며 lint PASS로 표시하지 않는다.
+- 요청된 `npm run build`는 root `tsc`에서 **FAIL (26 diagnostics)**. 기준 Preview의 읽기 전용 `tsc --noEmit` 결과와 경로 정규화 후 26개 진단이 모두 동일하다. 기존 Window.electronWork 선언 및 공문 session 타입 문제이며 범위 밖 수정은 하지 않는다. Electron 빌드 PASS와 구분한다.
+- 실제 Local PostgreSQL/Auth/RPC E2E **NOT RUN**, 실제 로그인/학교 전환/수량 변경/중복 mutation 방어 **BLOCKED**, 실제 Windows Electron GUI **NOT RUN**. DB CI READY를 이 결과로 전용하지 않는다.
+- 후속: Cloud B가 transport 계약을 제공하면 고정 SHA의 필요한 파일만 선별하고 typed 업무 IPC/UUID presenter/대화상자 연결을 구현한다. 기존 DB QA CI의 local fixture stack에서 main service를 동일한 loopback 제한으로 실행하여 로그인→학교 권한→목록/상세→RPC→재조회→로그아웃/학교 전환과 중복 UUID/불명확 결과를 검사한다. 합성 계정/키는 CI에서만 생성하고 artifact/log에 남기지 않는다. 이후 별도 Windows GUI에서 모드 분리·980×700·대화상자 스크롤/포커스를 확인한다.
+
+로컬 체크포인트만 허용하며 **원격 push/PR/merge/배포는 하지 않는다**. 이 단계는 운영 또는 실제 Inventory 연결 완료가 아니다.
