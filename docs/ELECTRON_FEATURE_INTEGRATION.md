@@ -142,3 +142,7 @@ Cloud 결과: **273 PASS(51파일)**, Rust Purchase **56 PASS**, Electron TypeSc
 - GUI: sandbox를 유지한 headless Electron 1회 시도는 **BLOCKED / NOT RUN**. 마지막 오류 `Process failed to launch!`, 화면은 실제 시작되지 않았고 해당 작업의 실행 중 Electron 프로세스도 발견되지 않았다. 원인은 확정하지 않았다. 추가 설치/권한 확대/no-sandbox/재시도 없음. 새 Preview E2E와 기존 메뉴 명칭 기대값은 준비했으나 GUI 실행 성공을 주장하지 않는다. 이전 G1 Windows CI PASS는 이번 변경의 PASS로 대체하지 않는다. Windows CI/패키징은 이번에 NOT RUN(미푸시).
 - **최종 CONDITIONAL**: Preview 구현·집중 자동 검증 완료, GUI/실제 좁은 창 확인 대기. Cloud B 추가 변경 요청 없음. 실제 PostgreSQL/Auth/RLS 검증 및 향후 Electron transport/origin 계약은 별도 후속 단계이고, Local QA·운영 연결은 계속 차단한다. Inventory B 파일·기존 JSON·Finance/Desktop Surface/Purchase/공문/Finder/Tauri는 변경하지 않았다.
 - 현재 G1 인계 아티팩트에는 이 Preview 변경이 들어 있지 않다. 이번 결과는 로컬 체크포인트만 보존하며 원격 공유·CI는 별도 승인 후 진행한다.
+
+### Inventory Preview 원격 인계 승인 (2026-11-02)
+
+위 ‘미푸시’ 설명은 구현 체크포인트 당시 기록이다. 사용자가 이번에 `codex/cloud-a-inventory-preview`로의 일반 push를 명시적으로 승인했다. 구현 `a8f8dc1da6416c4a6c0bed0e80526480231e9275`는 변경하지 않고 Windows GUI 재현·JSON 해시·6개 대화상자·좁은 창·캡처·네트워크/IPC 관측 한계만 [기존 QA 인계 문서](qa/CLOUD_G1_WINDOWS_QA_HANDOFF.md)에 추가한다. 실제 push 결과와 문서 포함 전체 SHA는 최종 보고로 확인한다. 이번 단계는 제품 코드·Host/IPC·B 브랜치·저장 구조 변경과 테스트/GUI/빌드 재실행이 없으며, GUI BLOCKED/NOT RUN·전체 CONDITIONAL을 유지한다.
