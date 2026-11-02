@@ -5,7 +5,7 @@ export type Integer = string; // Never round PostgreSQL bigint through JS number
 export type Role = 'teacher_admin' | 'instructor';
 export type BatchStatus = 'DRAFT' | 'APPROVED' | 'ORDERED' | 'AWAITING_RECEIPT' | 'PARTIALLY_RECEIVED' | 'RECEIVED' | 'CANCELLED';
 export type AuthState = { status: 'signed_out' | 'signing_in' | 'expired' | 'disposed' } | { status: 'authenticated'; userId: UUID; schoolId: UUID | null };
-export type ErrorCode = 'ENVIRONMENT_BLOCKED' | 'INVALID_INPUT' | 'UNAUTHENTICATED' | 'PERMISSION_DENIED' | 'NOT_FOUND' | 'CONFLICT' | 'SERVER_REJECTED' | 'NETWORK_ERROR' | 'INVALID_RESPONSE' | 'STALE_CONTEXT' | 'REQUEST_IN_FLIGHT' | 'IDEMPOTENCY_CONFLICT' | 'DISPOSED';
+export type ErrorCode = 'ENVIRONMENT_BLOCKED' | 'INVALID_INPUT' | 'UNAUTHENTICATED' | 'PERMISSION_DENIED' | 'NOT_FOUND' | 'CONFLICT' | 'SERVER_REJECTED' | 'NETWORK_ERROR' | 'INVALID_RESPONSE' | 'STALE_CONTEXT' | 'REQUEST_IN_FLIGHT' | 'IDEMPOTENCY_CONFLICT' | 'DISPOSED' | 'TRANSPORT_TIMEOUT' | 'PAYLOAD_TOO_LARGE' | 'RESPONSE_TOO_LARGE';
 export class InventoryError extends Error {
   constructor(readonly code: ErrorCode, readonly serverCode?: string, readonly outcomeUnknown = false) {
     super(code); this.name = 'InventoryError';

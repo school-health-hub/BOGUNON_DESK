@@ -1,5 +1,5 @@
-import { InventoryError, type RpcInputs, type RpcName, type RpcOutput } from './contracts';
-import { integer, normalizeNumbers, record, timestamp, uuid } from './validation';
+import { InventoryError, type RpcInputs, type RpcName, type RpcOutput } from './contracts.js';
+import { integer, normalizeNumbers, record, timestamp, uuid } from './validation.js';
 const operations: Record<RpcName,string> = {
   inventory_use_stock:'USE', inventory_receive_stock:'RECEIVE', inventory_dispose_stock:'DISPOSE', inventory_adjust_stock:'ADJUST',
   inventory_reverse_movement:'REVERSAL', inventory_create_purchase_batch:'PURCHASE_BATCH_CREATE', inventory_set_purchase_batch_status:'PURCHASE_BATCH_STATUS', inventory_confirm_receipt:'PURCHASE_RECEIPT_CONFIRM',

@@ -1,9 +1,11 @@
 import {
   InventoryError, type AuthState, type InventoryLocalConnection, type Item, type ItemDetail, type Lot, type Movement,
   type NewItem, type PreparedMutation, type PurchaseBatch, type PurchaseProgress, type Role, type RpcInputs, type RpcName,
-} from './contracts';
-import { decodeRpc } from './responses';
-import { date, decimal, exact, integer, normalizeNumbers, record, text, timestamp, uuid, validateRpc } from './validation';
+} from './contracts.js';
+import { createBrowserTransport, sendInventoryRequest, validatePublicKey, validateUserBearer, INVENTORY_LOCAL_ORIGIN } from './transport.js';
+import type { InventoryTransport, InventoryTransportRequest, InventoryApiPath, ElectronLocalQaOptions } from './transport.js';
+import { decodeRpc } from './responses.js';
+import { date, decimal, exact, integer, normalizeNumbers, record, text, timestamp, uuid, validateRpc, validateNewItem } from './validation.js';
 
 export interface LocalQaConfig { endpoint: string; publishableKey: string }
 export function validateLocalEndpoint(endpoint: string): string {
@@ -17,14 +19,6 @@ function environment(): void {
   if (!import.meta.env.DEV || import.meta.env.PROD) throw new InventoryError('ENVIRONMENT_BLOCKED');
   // Browser Local QA is served only on the committed Inventory QA UI origin.
   if (typeof location !== 'undefined' && (location.protocol !== 'http:' || !['127.0.0.1','localhost','[::1]'].includes(location.hostname) || location.port !== '56300')) throw new InventoryError('ENVIRONMENT_BLOCKED');
-}
-function publicKey(key: string): void {
-  if (/^sb_publishable_[A-Za-z0-9_-]+$/.test(key)) return;
-  try {
-    const payload = record(JSON.parse(atob(key.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))));
-    if (payload.role === 'anon') return;
-  } catch { /* Never include key material in errors. */ }
-  throw new InventoryError('ENVIRONMENT_BLOCKED');
 }
 const safeServerCode = (value: unknown): string | undefined => typeof value === 'string' && /^[A-Z][A-Z0-9_]{1,79}$/.test(value) ? value : undefined;
 const orders: Record<string,string> = {
@@ -86,7 +80,15 @@ class LocalConnection implements InventoryLocalConnection {
   #registering = false;
   #endpoint: string;
   #key: string;
-  constructor(config: LocalQaConfig) { environment(); this.#endpoint=validateLocalEndpoint(config.endpoint); publicKey(config.publishableKey); this.#key=config.publishableKey; }
+  #transport: InventoryTransport;
+  #checkEnvironment:()=>void;
+  constructor(config: LocalQaConfig, electron?:ElectronLocalQaOptions) {
+    this.#checkEnvironment=electron?()=>electronEnvironment(electron):environment;
+    this.#checkEnvironment();
+    if(!electron)exact(record(config),['endpoint','publishableKey']);
+    this.#endpoint=validateLocalEndpoint(config.endpoint);validatePublicKey(config.publishableKey);this.#key=config.publishableKey;
+    this.#transport=electron?.transport ?? createBrowserTransport(this.#endpoint);
+  }
   authState(): AuthState { this.#checkExpiry(); return {...this.#state}; }
   subscribe(fn:(s:AuthState)=>void):()=>void { this.#listeners.add(fn); return ()=>{this.#listeners.delete(fn);}; }
   onInvalidate(fn:()=>void):()=>void { this.#invalidators.add(fn); return ()=>{this.#invalidators.delete(fn);}; }
@@ -98,7 +100,11 @@ class LocalConnection implements InventoryLocalConnection {
     for(const fn of this.#listeners) { try { fn({...state}); } catch { /* No auth data in diagnostics. */ } }
   }
   #checkExpiry():void { if(this.#token && Date.now()>=this.#expiry) this.#transition({status:'expired'},true); }
-  #alive():void { environment(); validateLocalEndpoint(this.#endpoint); if(this.#state.status==='disposed') throw new InventoryError('DISPOSED'); this.#checkExpiry(); }
+  #alive():void {
+    try {this.#checkEnvironment();validateLocalEndpoint(this.#endpoint);}catch(error){
+      if(this.#state.status!=='signed_out' && this.#state.status!=='disposed')this.#transition({status:'signed_out'},true);
+      throw error;
+    } if(this.#state.status==='disposed') throw new InventoryError('DISPOSED'); this.#checkExpiry(); }
   #context():{epoch:number; userId:string; schoolId:string} {
     this.#alive(); const s=this.#state;
     if(s.status!=='authenticated' || !this.#token) throw new InventoryError('UNAUTHENTICATED');
@@ -111,14 +117,17 @@ class LocalConnection implements InventoryLocalConnection {
     const epoch=this.#epoch; const controller=new AbortController(); this.#controllers.add(controller);
     const url=new URL(path,this.#endpoint);
     if(url.origin!==this.#endpoint || !/^\/(auth\/v1\/(token|logout)|rest\/v1\/inventory_|rest\/v1\/rpc\/inventory_)/.test(url.pathname)) throw new InventoryError('ENVIRONMENT_BLOCKED');
+    let delivered=false;
     try {
-      const response=await fetch(url.href,{...init,redirect:'error',credentials:'omit',cache:'no-store',signal:controller.signal,
-        headers:{apikey:this.#key,Authorization:`Bearer ${authenticated ? this.#token : this.#key}`,'Content-Type':'application/json',...init.headers}});
-      this.#checkExpiry(); if(epoch!==this.#epoch) throw new InventoryError('STALE_CONTEXT',undefined,init.method==='POST');
-      if(response.url && new URL(response.url).origin!==this.#endpoint) throw new InventoryError('ENVIRONMENT_BLOCKED');
-      const body=response.status===204 ? null : await response.json();
-      if(epoch!==this.#epoch) throw new InventoryError('STALE_CONTEXT',undefined,init.method==='POST');
-      if(!response.ok) {
+      const bearer=authenticated?this.#token:(init.headers as Record<string,string>|undefined)?.Authorization?.replace(/^Bearer /,'') ?? null;
+      const request:InventoryTransportRequest={version:1,id:crypto.randomUUID(),method:(init.method??'GET') as 'GET'|'POST',path:url.pathname as InventoryApiPath,
+        query:Object.fromEntries(url.searchParams),body:init.body?JSON.parse(String(init.body)):null,credentials:{publicKey:this.#key,bearer}};
+      const response=await sendInventoryRequest(this.#transport,request,controller.signal);
+      delivered=true;this.#alive();if(epoch!==this.#epoch)throw new InventoryError('STALE_CONTEXT',undefined,init.method==='POST');
+      let body:unknown;
+      try {body=response.status===204?null:JSON.parse(response.body);}catch{throw new InventoryError('INVALID_RESPONSE',undefined,init.method==='POST');}
+      if(epoch!==this.#epoch)throw new InventoryError('STALE_CONTEXT',undefined,init.method==='POST');
+      if(response.status<200 || response.status>=300) {
         const e=body && typeof body==='object' ? body as Record<string,unknown> : {};
         const sql=typeof e.code==='string' ? e.code : '';
         const code=safeServerCode(e.message) ?? safeServerCode(e.code);
@@ -132,7 +141,10 @@ class LocalConnection implements InventoryLocalConnection {
       }
       return body;
     } catch(e) {
-      if(e instanceof InventoryError) throw e;
+      if(e instanceof InventoryError) {
+        if(delivered && init.method==='POST' && e.code==='ENVIRONMENT_BLOCKED')throw new InventoryError(e.code,e.serverCode,true);
+        throw e;
+      }
       if(epoch!==this.#epoch) throw new InventoryError('STALE_CONTEXT',undefined,init.method==='POST');
       throw new InventoryError('NETWORK_ERROR',undefined,init.method==='POST');
     } finally { this.#controllers.delete(controller); }
@@ -148,6 +160,7 @@ class LocalConnection implements InventoryLocalConnection {
       const r=record(await this.#http('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify({email,password})},false));
       const user=record(r.user); uuid(user.id);
       if(typeof user.email!=='string' || user.email.toLowerCase()!==email.toLowerCase() || typeof r.access_token!=='string' || typeof r.expires_in!=='number' || r.expires_in<=0 || !Number.isFinite(r.expires_in)) throw new InventoryError('INVALID_RESPONSE');
+      validateUserBearer(r.access_token);
       this.#token=r.access_token; this.#expiry=Date.now()+Math.min(r.expires_in,86400)*1000;
       this.#transition({status:'authenticated',userId:user.id,schoolId:null});
       this.#timer=setTimeout(()=>this.#checkExpiry(),Math.min(r.expires_in,86400)*1000);
@@ -245,9 +258,7 @@ class LocalConnection implements InventoryLocalConnection {
     }});
   }
   async registerItem(input:NewItem):Promise<{persisted:true;item:Item;refreshRequired:true}> {
-    const v=record(input); exact(v,['item_name','category','specification','base_unit','purchase_unit','base_units_per_purchase_unit','recommended_stock','minimum_stock','is_active']);
-    text(v.item_name); text(v.category,true); text(v.specification,true); text(v.base_unit); text(v.purchase_unit); decimal(v.base_units_per_purchase_unit,true); integer(v.recommended_stock); integer(v.minimum_stock);
-    if(typeof v.is_active!=='boolean') throw new InventoryError('INVALID_INPUT');
+    validateNewItem(input);
     const c=this.#context(); if(this.#registering) throw new InventoryError('REQUEST_IN_FLIGHT'); this.#registering=true;
     const payload=JSON.stringify({...input,school_id:c.schoolId});
     try {
@@ -264,3 +275,20 @@ class LocalConnection implements InventoryLocalConnection {
   dispose():void { this.#transition({status:'disposed'},true); this.#listeners.clear(); this.#invalidators.clear(); this.#key=''; }
 }
 export const createLocalQaConnection = (config:LocalQaConfig):InventoryLocalConnection => new LocalConnection(config);
+
+function electronEnvironment(options:ElectronLocalQaOptions):void {
+  if(!options || typeof options!=='object')throw new InventoryError('ENVIRONMENT_BLOCKED');
+  const nodeEnvironment=(globalThis as {process?:{env?:{NODE_ENV?:string}}}).process?.env?.NODE_ENV;
+  if(import.meta.env?.PROD || nodeEnvironment==='production' || 'window' in globalThis || 'document' in globalThis || 'location' in globalThis
+    || options.enabled!==true || options.endpoint!==INVENTORY_LOCAL_ORIGIN
+    || typeof options.host?.readExecutionState!=='function'
+    || options.transport?.kind!=='electron-local-qa' || options.transport.version!==1 || typeof options.transport.send!=='function')throw new InventoryError('ENVIRONMENT_BLOCKED');
+  // Main supplies a closure over real app/config state. No renderer-supplied boolean authority.
+  let state;
+  try {state=options.host.readExecutionState();}catch{throw new InventoryError('ENVIRONMENT_BLOCKED');}
+  if(!state || typeof state!=='object' || state.packaged!==false || state.devUrl!=='http://127.0.0.1:5174/' || state.optIn!=='1')throw new InventoryError('ENVIRONMENT_BLOCKED');
+}
+export function createElectronLocalQaConnection(options:ElectronLocalQaOptions):InventoryLocalConnection {
+  electronEnvironment(options);exact(record(options),['enabled','host','endpoint','publishableKey','transport']);
+  return new LocalConnection({endpoint:options.endpoint,publishableKey:options.publishableKey},options);
+}

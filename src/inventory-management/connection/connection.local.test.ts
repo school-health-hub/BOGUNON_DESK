@@ -1,6 +1,8 @@
 /** Opt-in REAL local PostgreSQL/Auth test. No mock transport. Run via Run-IM2B1-local.mjs. */
 import { beforeAll, afterAll, describe, expect, it } from 'vitest';
 import { createLocalQaConnection } from './localQa';
+import { createElectronInventoryConnection } from './electron';
+import { createBrowserTransport } from './transport';
 import type { InventoryLocalConnection } from './contracts';
 // @ts-expect-error Node harness only; application does not import this test.
 import { execFileSync } from 'node:child_process';
@@ -13,6 +15,15 @@ const school=crypto.randomUUID(),otherSchool=crypto.randomUUID(),item=crypto.ran
 let teacher:InventoryLocalConnection, instructor:InventoryLocalConnection, outsider:InventoryLocalConnection, second:InventoryLocalConnection;
 let teacherCredentials:{email:string;password:string};
 let publicKey='';
+// Opt-in real HTTP wire transport harness; does not claim Electron IPC/GUI coverage.
+function qaClient():InventoryLocalConnection {
+  if(process.env.INVENTORY_QA_TRANSPORT==='electron-host') {
+    const wire=createBrowserTransport(endpoint);
+    return createElectronInventoryConnection({enabled:true,host:{readExecutionState:()=>({packaged:false,devUrl:'http://127.0.0.1:5174/',optIn:'1'})},
+      endpoint,publishableKey:publicKey,transport:{kind:'electron-local-qa',version:1,send:(request,signal)=>wire.send(request,signal)}});
+  }
+  return createLocalQaConnection({endpoint,publishableKey:publicKey});
+}
 function sql(query:string):void {
   execFileSync('docker',['exec','-i','supabase_db_inventory_qa','psql','-X','-qAt','-v','ON_ERROR_STOP=1','-U','postgres','-d','postgres'],{input:query,stdio:['pipe','pipe','pipe']});
 }
@@ -22,7 +33,7 @@ async function actor() {
   if(!response.ok)throw Error('Synthetic local Auth fixture creation failed');
   const body=await response.json();const id=body.user?.id;
   if(typeof id!=='string' || !/^[0-9a-f-]{36}$/.test(id))throw Error('Invalid synthetic actor');
-  const client=createLocalQaConnection({endpoint,publishableKey:publicKey});clients.push(client);
+  const client=qaClient();clients.push(client);
   return {client,id,email,password};
 }
 describe.skipIf(!enabled)('IM-2B-1 REAL Local Auth/PostgreSQL integration',()=>{
@@ -37,7 +48,7 @@ describe.skipIf(!enabled)('IM-2B-1 REAL Local Auth/PostgreSQL integration',()=>{
     for(const [client,credentials,target] of [[teacher,a,school],[instructor,i,school],[outsider,b,otherSchool]] as const) {
       await client.login(credentials.email,credentials.password);await client.selectSchool(target);
     }
-    second=createLocalQaConnection({endpoint,publishableKey:publicKey});clients.push(second);await second.login(a.email,a.password);await second.selectSchool(school);
+    second=qaClient();clients.push(second);await second.login(a.email,a.password);await second.selectSchool(school);
   },60000);
   afterAll(()=>{for(const c of clients)c.dispose();publicKey='';teacherCredentials={email:'',password:''};});
   it('reads actual RLS and rejects cross-school selection and instructor purchase access',async()=>{

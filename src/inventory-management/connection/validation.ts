@@ -1,4 +1,4 @@
-import { InventoryError, type RpcInputs, type RpcName } from './contracts';
+import { InventoryError, type RpcInputs, type RpcName } from './contracts.js';
 export const record = (v: unknown): Record<string, unknown> => {
   if (!v || typeof v !== 'object' || Array.isArray(v)) throw new InventoryError('INVALID_RESPONSE');
   return v as Record<string, unknown>;
@@ -81,4 +81,11 @@ export function normalizeNumbers(value: unknown, key = ''): unknown {
   if (Array.isArray(value)) return value.map(v=>normalizeNumbers(v,key));
   if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k,v])=>[k,normalizeNumbers(v,k)]));
   return value;
+}
+
+export function validateNewItem(input:unknown):void {
+  const v=record(input);exact(v,['item_name','category','specification','base_unit','purchase_unit','base_units_per_purchase_unit','recommended_stock','minimum_stock','is_active']);
+  text(v.item_name);text(v.category,true);text(v.specification,true);text(v.base_unit);text(v.purchase_unit);
+  decimal(v.base_units_per_purchase_unit,true);integer(v.recommended_stock);integer(v.minimum_stock);
+  if(typeof v.is_active!=='boolean')throw new InventoryError('INVALID_INPUT');
 }

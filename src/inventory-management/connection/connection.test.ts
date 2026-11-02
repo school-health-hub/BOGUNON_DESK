@@ -23,7 +23,7 @@ beforeEach(()=>{
   fetcher=vi.fn(async (url:string,init:RequestInit)=>{
     const u=new URL(url);
     const routed=route?.(u,init); if(routed) return routed;
-    if(u.pathname==='/auth/v1/token') return json({access_token:crypto.randomUUID(),expires_in:3600,user:{id:user,email:JSON.parse(String(init.body)).email}});
+    if(u.pathname==='/auth/v1/token') return json({access_token:[btoa(JSON.stringify({alg:'HS256'})),btoa(JSON.stringify({role:'authenticated'})),crypto.randomUUID().replace(/-/g,'')].join('.'),expires_in:3600,user:{id:user,email:JSON.parse(String(init.body)).email}});
     if(u.pathname==='/auth/v1/logout') return new Response(null,{status:204});
     if(u.pathname.endsWith('/inventory_members')) return json(membership?[{school_id:u.searchParams.get('school_id')!.slice(3),user_id:user,role,is_active:true}]:[]);
     if(u.pathname.endsWith('/inventory_items')) return json([itemRow]);
