@@ -65,4 +65,69 @@ describe("Newsletter common render scene", () => {
     expect(first?.body.text).toBe("1. 비누로 30초 이상 손 씻기\n• 교실 환기하기")
     expect(first?.body.provenance).toMatchObject({ kind: "canonical-section", sourceText: text })
   })
+
+  it("reflows a two-line Korean A4 lead without changing title or card geometry", async () => {
+    // Given
+    const qaText = "일교차가 큰 날에는 얇은 옷을 겹쳐 입어요.\n1. 등교 전 기온을 확인해요.\n2. 물을 자주 마셔요."
+    const topics = Array.from({ length: 6 }, (_, index) => ({
+      id: `topic-${index + 1}`,
+      title: index === 0 ? "환절기 건강 습관 QA" : `주제 ${index + 1}`,
+      text: index === 0 ? qaText : `일반 문장 ${index + 1}`,
+    }))
+    const project = await createNewsletterProject({ projectId: "project-1", title: "합성 보건소식", now: NOW, topics })
+    const design = upgradeNewsletterDesignStateV2(createNewsletterDesignState({ projectId: project.projectId, canonicalProjectRevision: 1, now: NOW }), "2026-01-02T00:00:00.000Z")
+    const normalTopics = topics.map((topic, index) => ({ ...topic, title: `주제 ${index + 1}`, text: index === 0 ? "짧은 안내\n1. 등교 전 기온을 확인해요.\n2. 물을 자주 마셔요." : topic.text }))
+    const normalProject = await createNewsletterProject({ projectId: "project-1", title: "합성 보건소식", now: NOW, topics: normalTopics })
+    const normal = compileRenderDocument({ project: normalProject, projectRevision: 1, design, designRevision: 2 })
+
+    // When
+    const document = compileRenderDocument({ project, projectRevision: 1, design, designRevision: 2 })
+    const first = document.a4.modules[0]
+    const normalFirst = normal.a4.modules[0]
+
+    // Then
+    expect(first?.title.text).toBe("환절기 건강 습관 QA")
+    expect(first?.title.frame).toEqual(normalFirst?.title.frame)
+    expect(first?.image.frame).toEqual(normalFirst?.image.frame)
+    expect(document.cards.map((card) => ({ title: card.title.frame, body: card.body.frame, image: card.image.frame }))).toEqual(normal.cards.map((card) => ({ title: card.title.frame, body: card.body.frame, image: card.image.frame })))
+    expect(first?.lead?.lines).toHaveLength(2)
+    expect(first?.lead?.lines.join("").replace(/\s/gu, "")).toBe("일교차가큰날에는얇은옷을겹쳐입어요.")
+    expect(document.issues.filter((issue) => ["overflow", "layout-collision", "clip-bounds"].includes(issue.kind))).toEqual([])
+    expect(validateNewsletterScene(buildNewsletterScene(document))).toEqual([])
+  })
+
+  it("reflows a two-line Korean A4 module title without changing one-line or card geometry", async () => {
+    // Given
+    const longTitle = "환절기 건강 습관과 안전한 학교생활 안내"
+    const topics = Array.from({ length: 6 }, (_, index) => ({
+      id: `topic-${index + 1}`,
+      title: index === 0 ? longTitle : `주제 ${index + 1}`,
+      text: `일반 문장 ${index + 1}`,
+    }))
+    const project = await createNewsletterProject({ projectId: "project-1", title: "합성 보건소식", now: NOW, topics })
+    const design = upgradeNewsletterDesignStateV2(createNewsletterDesignState({ projectId: project.projectId, canonicalProjectRevision: 1, now: NOW }), "2026-01-02T00:00:00.000Z")
+    const normalProject = await createNewsletterProject({ projectId: "project-1", title: "합성 보건소식", now: NOW })
+    const normal = compileRenderDocument({ project: normalProject, projectRevision: 1, design, designRevision: 2 })
+
+    // When
+    const document = compileRenderDocument({ project, projectRevision: 1, design, designRevision: 2 })
+    const first = document.a4.modules[0]
+    const normalFirst = normal.a4.modules[0]
+
+    // Then
+    expect(first?.title.text).toBe(longTitle)
+    expect(first?.title.lines).toHaveLength(2)
+    expect(first?.title.lines.join("").replace(/\s/gu, "")).toBe(longTitle.replace(/\s/gu, ""))
+    expect(first?.title.frame.height).toBe(75)
+    expect(first?.title.frame.x).toBe(normalFirst?.title.frame.x)
+    expect(first?.title.frame.y).toBe(normalFirst?.title.frame.y)
+    expect(first?.title.frame.width).toBe(normalFirst?.title.frame.width)
+    expect(first?.image.frame.y).toBeGreaterThan(normalFirst?.image.frame.y ?? Number.POSITIVE_INFINITY)
+    expect((first?.image.frame.y ?? 0) + (first?.image.frame.height ?? 0)).toBe((normalFirst?.image.frame.y ?? 0) + (normalFirst?.image.frame.height ?? 0))
+    expect(normalFirst?.title.frame.height).toBe(48)
+    expect(document.a4.modules.slice(1).map((module) => ({ title: module.title.frame, body: module.body.frame, image: module.image.frame }))).toEqual(normal.a4.modules.slice(1).map((module) => ({ title: module.title.frame, body: module.body.frame, image: module.image.frame })))
+    expect(document.cards.map((card) => ({ title: card.title.frame, body: card.body.frame, image: card.image.frame }))).toEqual(normal.cards.map((card) => ({ title: card.title.frame, body: card.body.frame, image: card.image.frame })))
+    expect(document.issues.filter((issue) => ["overflow", "layout-collision", "clip-bounds"].includes(issue.kind))).toEqual([])
+    expect(validateNewsletterScene(buildNewsletterScene(document))).toEqual([])
+  })
 })

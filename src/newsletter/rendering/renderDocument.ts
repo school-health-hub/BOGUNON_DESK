@@ -82,6 +82,37 @@ function expandedBodyFrame(leadFrame: Frame, actionFrame: Frame, hasLead: boolea
   if (hasLead) return actionFrame
   return { ...actionFrame, y: leadFrame.y, height: actionFrame.y + actionFrame.height - leadFrame.y }
 }
+function moveTopPreservingBottom(frame: Frame, delta: number): Frame {
+  return { ...frame, y: frame.y + delta, height: frame.height - delta }
+}
+function reflowA4ModuleFrames(input: {
+  readonly titleText: string
+  readonly leadText: string
+  readonly titleFrame: Frame
+  readonly leadFrame: Frame
+  readonly actionFrame: Frame
+  readonly imageFrame: Frame
+  readonly titleStyle: TextStyle
+  readonly bodyStyle: TextStyle
+  readonly measureText?: TextMeasurer
+}): { readonly title: Frame; readonly lead: Frame; readonly action: Frame; readonly image: Frame } {
+  const titleLayout = layoutText(input.titleText, input.titleStyle, input.titleFrame, input.measureText)
+  const titleHeight = Math.ceil(titleLayout.requiredHeight)
+  const titleDelta = titleLayout.lines.length === 2 && titleHeight > input.titleFrame.height ? titleHeight - input.titleFrame.height : 0
+  const title = titleDelta === 0 ? input.titleFrame : { ...input.titleFrame, height: titleHeight }
+  const leadAfterTitle = moveTopPreservingBottom(input.leadFrame, titleDelta)
+  const actionAfterTitle = moveTopPreservingBottom(input.actionFrame, titleDelta)
+  const image = moveTopPreservingBottom(input.imageFrame, titleDelta)
+  const leadLayout = layoutText(input.leadText, input.bodyStyle, leadAfterTitle, input.measureText)
+  const leadHeight = Math.ceil(leadLayout.requiredHeight)
+  const leadDelta = input.leadText.length > 0 && leadLayout.lines.length === 2 && leadHeight > leadAfterTitle.height ? leadHeight - leadAfterTitle.height : 0
+  return {
+    title,
+    lead: leadDelta === 0 ? leadAfterTitle : { ...leadAfterTitle, height: leadHeight },
+    action: moveTopPreservingBottom(actionAfterTitle, leadDelta),
+    image,
+  }
+}
 function verifyAssets(snapshot: DesignSnapshot): void {
   const assets = new Map(snapshot.assetManifest.map((asset) => [asset.id, asset]))
   const brandImages = isV2(snapshot) ? [
@@ -119,19 +150,21 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
     if (module === undefined) throw new RenderContractMismatchError(`A4 module ${index + 1} is missing`)
     const structured = isV2Module(module)
     const content = structureCanonicalText(section.text)
-    const titleFrame = structured ? module.titleFrame : { ...module.frame, height: 60 }
     const leadText = content.kind === "list" ? content.lead ?? "" : ""
-    const bodyFrame = structured ? expandedBodyFrame(module.leadFrame, module.actionListFrame, leadText.length > 0) : { x: module.frame.x, y: module.frame.y + 72, width: module.frame.width, height: module.frame.height - 72 }
+    const topicTitle = titles.get(section.topicId) ?? ""
+    const frames = structured ? reflowA4ModuleFrames({ titleText: topicTitle, leadText, titleFrame: module.titleFrame, leadFrame: module.leadFrame, actionFrame: module.actionListFrame, imageFrame: module.image.frame, titleStyle: moduleTitleStyle, bodyStyle, measureText: input.measureText }) : undefined
+    const titleFrame = frames?.title ?? { ...module.frame, height: 60 }
+    const bodyFrame = structured ? expandedBodyFrame(frames?.lead ?? module.leadFrame, frames?.action ?? module.actionListFrame, leadText.length > 0) : { x: module.frame.x, y: module.frame.y + 72, width: module.frame.width, height: module.frame.height - 72 }
     const bodyText = content.kind === "list" ? actionText(content.actions, structured ? module.listMarkerStyle : "source") : content.body
     const provenance = { kind: "canonical-section", sectionId: section.id, sourceText: section.text } as const
     return {
       moduleId: module.moduleId, moduleFrame: module.frame, topicId: section.topicId, sectionId: section.id, structured,
       ...(structured ? { number: block(`a4-number-${section.id}`, "a4-page", String(index + 1).padStart(2, "0"), { x: module.frame.x + 12, y: module.frame.y + 12, width: 40, height: 36 }, numberStyle, { kind: "template-static", templateVersion: snapshot.templateVersion }, issues, input.measureText) } : {}),
-      title: block(`a4-title-${section.id}`, "a4-page", titles.get(section.topicId) ?? "", titleFrame, moduleTitleStyle, { kind: "topic-title", topicId: section.topicId }, issues, input.measureText),
-      ...(structured && leadText.length > 0 ? { lead: block(`a4-lead-${section.id}`, "a4-page", leadText, module.leadFrame, bodyStyle, provenance, issues, input.measureText, false, editorialA4) } : {}),
+      title: block(`a4-title-${section.id}`, "a4-page", topicTitle, titleFrame, moduleTitleStyle, { kind: "topic-title", topicId: section.topicId }, issues, input.measureText),
+      ...(structured && leadText.length > 0 ? { lead: block(`a4-lead-${section.id}`, "a4-page", leadText, frames?.lead ?? module.leadFrame, bodyStyle, provenance, issues, input.measureText, false, editorialA4) } : {}),
       body: block(`a4-body-${section.id}`, "a4-page", bodyText, bodyFrame, bodyStyle, provenance, issues, input.measureText, true, editorialA4),
       ...(structured ? { closing: block(`a4-closing-${section.id}`, "a4-page", editorialA4 && isV2(snapshot) ? snapshot.cardLayouts[index + 1]?.editorial?.closing ?? "" : "", module.closingFrame, editorialA4 ? { ...bodyStyle, fontSize: 18, fontWeight: 650, color: module.accent, align: "center" } : bodyStyle, editorialA4 ? { kind: "design-text", pageId: snapshot.cardLayouts[index + 1]?.pageId ?? "a4-page", field: "closing" } : provenance, issues, input.measureText, false, editorialA4), accent: module.accent, listMarkerStyle: module.listMarkerStyle } : {}),
-      image: module.image,
+      image: structured && frames !== undefined ? { ...module.image, frame: frames.image } : module.image,
     }
   })
   const cards = snapshot.cardLayouts.map((layout, index): RenderPage => {

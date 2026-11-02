@@ -70,6 +70,11 @@ test('newsletter: original editor/scene, image reconnect, dialog-scoped JSON sav
   const approved={...design,projectId:approvedProject.projectId,assetManifest:[asset],cardLayouts:cards,revisionHistory:design.revisionHistory.map(e=>e.revision===design.designRevision?{...e,snapshot:{...e.snapshot,assetManifest:[asset],cardLayouts:cards}}:e)};
   await page.getByLabel('원고·디자인 JSON 열기',{exact:true}).setInputFiles({name:'synthetic-approved.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({project:approvedProject,design:approved}))});
   await expect(page.locator('.revision-chip')).toHaveText('Revision 2');
+  const changedPngBase64=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=2;c.height=2;const g=c.getContext('2d')!;g.fillStyle='#a33d35';g.fillRect(0,0,2,2);return c.toDataURL('image/png').split(',')[1];});
+  const changedPng=Buffer.from(changedPngBase64,'base64');expect(createHash('sha256').update(changedPng).digest('hex')).not.toBe(sha);
+  await page.getByLabel('이미지 원본 연결',{exact:true}).setInputFiles({name:'synthetic-changed.png',mimeType:'image/png',buffer:changedPng});
+  await expect(page.getByText('원장에 없는 이미지입니다: synthetic-changed.png',{exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'출력 위치 선택·저장',exact:true})).toBeDisabled();
   await page.getByLabel('이미지 원본 연결',{exact:true}).setInputFiles({name:'synthetic-approved.png',mimeType:'image/png',buffer:png});
   const exportButton=page.getByRole('button',{name:'출력 위치 선택·저장',exact:true});await expect(exportButton).toBeEnabled().catch(async e=>{console.log('P2D2_DIAGNOSTIC '+(await page.locator('.newsletter-product-host').innerText()).slice(0,5000));throw e;});
   await app.evaluate(({dialog})=>{dialog.showMessageBox=async()=>({response:1,checkboxChecked:false});});
