@@ -583,3 +583,19 @@ src/newsletter/rendering/visualFinishCompiler.ts
 src/newsletter/rendering/visualFinishScene.ts
 src/newsletter/studioDocument.ts
 ```
+
+## DESIGN-06 — selective Soft Rose integration candidate
+
+Integration base: `integration/electron-int-el01@bd22237aade2d5576d5c3c1b8b991ad914357398`. Approved product reference: `e919dc4b552879e6c49dbd3d8887d8d45c3cdd74`. Candidate branch: `integration/electron-soft-rose-candidate`. Existing integration/main/Cloud B branches are not updated.
+
+Applied by explicit per-commit path patches, not branch merge or whole-tree overwrite:
+1. `6a17ea7`: Portable root Inventory protocol inclusion, generated Official CLI output ignore, prepack runtime graph gate. `1720be7`: native Windows ASAR lookup and actual electron-builder file matcher in the formal regression test.
+2. `52b0802`: INT-EL-04 tool cards/accessibility, disabled Newsletter output indication and small-window presentation.
+3. `b54bbe4` + `036ff1e`: Electron-only Soft Rose theme, Surface/Dock/tool/settings/modal UI, actual material pseudo-layer correction and compact clock/summary styles.
+4. `e919dc4`: bounded Windows rename/EPERM replacement retry with permanent-failure preservation tests. Validation/IPC/JSON shape unchanged.
+
+Excluded: `2a49b94` QA workflow and `scripts/electron-p0/int-el03b-artifact.mjs`, all subsequent SHA-pinned workflows, diagnostic bootstrap/e2e tests, failure fixtures and artifacts. Formal runtime-package/int-el04-ui/soft-rose-surface/settings-replacement regressions are retained. No dependencies/frameworks added. Product-path comparison against approved e919dc4 is identical; handoff text is curated instead of importing obsolete QA history.
+
+Preservation: all13 widget identities, coordinates/minima/visibility/resize, settings and Dock versions, original work modules, Newsletter Guard/approval policy, Inventory JSON/Preview/Local QA and Main Transport/security remain intact. `src`, `src-tauri`, main entry, Preload and Protocol are unchanged against integration base. Only main/settings.ts's verified replacement behavior changes in Main.
+
+Validation must run on the new committed candidate SHA, not inherited source QA: Electron TypeScript/build, focused UI/storage/EPERM/security regressions and runtime ASAR graph. Reuse registered Windows visual workflow from separate QA tooling pinned to this candidate; do not add SHA-specific QA files to the product candidate. Previous Windows source checks/design user approval are provenance only. Native DPI, physical multi-monitor, native file dialogs/install/uninstall remain NOT RUN for integration.

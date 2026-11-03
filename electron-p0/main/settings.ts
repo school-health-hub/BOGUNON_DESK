@@ -33,6 +33,18 @@ export function validateSettings(value: unknown): P0Settings {
   if (Buffer.byteLength(JSON.stringify(value)) > 65536) return bad();
   return JSON.parse(JSON.stringify(value)) as P0Settings;
 }
+// Windows may temporarily deny replacement (observed EPERM in isolated GUI QA).
+// Retry the same already-synced temp file only; never delete the valid target.
+export async function replaceSettingsFile(temp:string,target:string,platform=process.platform):Promise<void>{
+  for(let attempt=0;;attempt++){
+    try{await rename(temp,target);return;}
+    catch(error){
+      const code=(error as NodeJS.ErrnoException).code;
+      if(platform!=='win32'||code!=='EPERM'||attempt>=3)throw error;
+      await new Promise(resolve=>setTimeout(resolve,20*2**attempt));
+    }
+  }
+}
 export class SettingsStore<T = P0Settings> {
   private queue: Promise<void> = Promise.resolve();
   constructor(private readonly root: string, private readonly filename = 'layout.json', private readonly validate: (value: unknown) => T = validateSettings as (value: unknown) => T, private readonly maxBytes = 65536) {}
@@ -54,7 +66,7 @@ export class SettingsStore<T = P0Settings> {
       try {
         const file = await open(temp,'wx',0o600);
         try { await file.writeFile(JSON.stringify(safe)); await file.sync(); } finally { await file.close(); }
-        await rename(temp,join(this.root,this.filename));
+        await replaceSettingsFile(temp,join(this.root,this.filename));
       } catch { await unlink(temp).catch(()=>{}); throw new Error('PoC settings were not saved'); }
     });
     this.queue = operation.catch(()=>{});
