@@ -1,4 +1,4 @@
-name: DESIGN-05 Soft Rose Windows Visual QA
+name: DESIGN-05B-Diagnostic Soft Rose Windows Visual QA
 on:
   workflow_dispatch:
 permissions:
@@ -8,7 +8,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   visual:
-    if: github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/qa/design05-soft-rose-visual-fix'
+    if: github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/qa/design05b-settings-diagnostic'
     runs-on: windows-latest
     timeout-minutes: 20
     steps:
@@ -40,19 +40,21 @@ jobs:
         run: npm run electron:p0:build
       - name: Copy QA-only test after clean product build
         shell: pwsh
-        run: Copy-Item electron-p0/e2e/soft-rose-visual.e2e.ts product/electron-p0/e2e/soft-rose-visual.e2e.ts
+        run: |
+          Copy-Item electron-p0/e2e/settings-diagnostic.e2e.ts product/electron-p0/e2e/settings-diagnostic.e2e.ts
+          Copy-Item electron-p0/e2e/settings-observer.cjs product/electron-p0/e2e/settings-observer.cjs
       - name: Actual Electron Surface and overlays, four window sizes
         working-directory: product
         env:
           DESIGN_QA_SHA: ${{ github.sha }}
-        run: npx playwright test --config electron-p0/playwright.config.ts soft-rose-visual.e2e.ts --reporter=list,github
+        run: npx playwright test --config electron-p0/playwright.config.ts settings-diagnostic.e2e.ts --reporter=list,github
       - name: Preserve screenshots, manifests and failure traces only
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: DESIGN-05-Windows-Visual-${{ github.sha }}
+          name: DESIGN-05B-Diagnostic-Windows-Visual-${{ github.sha }}
           path: |
-            product/artifacts/design05/
+            product/artifacts/design05b-diagnostic/
             product/artifacts/electron-p0-e2e/
           retention-days: 7
           if-no-files-found: warn
