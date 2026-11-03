@@ -1,0 +1,86 @@
+name: Integrated feature baseline Portable and focused Windows usage
+on:
+  workflow_dispatch:
+    inputs:
+      expected_qa_sha:
+        description: Exact reviewed QA branch SHA
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: integrated-feature-portable
+  cancel-in-progress: false
+jobs:
+  integrated-portable:
+    if: github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/qa/electron-integrated-portable' && github.sha == inputs.expected_qa_sha
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ inputs.expected_qa_sha }}
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 9e22f7e5666ffa73afc48a03ff2c844ea67bc0c9
+          path: product
+          persist-credentials: false
+      - name: Enforce fixed product and reviewed QA identities
+        shell: pwsh
+        env:
+          EXPECTED_QA_SHA: ${{ inputs.expected_qa_sha }}
+        run: |
+          if ($env:EXPECTED_QA_SHA -notmatch '^[a-f0-9]{40}$' -or (git rev-parse HEAD) -ne $env:EXPECTED_QA_SHA -or $env:GITHUB_SHA -ne $env:EXPECTED_QA_SHA) { throw 'QA SHA mismatch' }
+          if ((git -C product rev-parse HEAD) -ne '9e22f7e5666ffa73afc48a03ff2c844ea67bc0c9' -or (git -C product status --porcelain)) { throw 'Product source mismatch/dirty' }
+          New-Item -ItemType Directory -Force diagnostic-output | Out-Null
+          foreach ($tool in @('C:\Strawberry\perl\bin','C:\Program Files\NASM')) { if (Test-Path $tool) { $tool | Out-File -FilePath $env:GITHUB_PATH -Append } }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: product/package-lock.json
+      - name: Install locked dependencies only
+        working-directory: product
+        run: npm ci
+      - name: Existing locked three-CLI Windows x64 Portable packaging
+        working-directory: product
+        run: npm run electron:p0:package:win
+      - name: Actual ASAR graph, three CLI bytes, source and Portable manifest
+        run: node scripts/electron-p0/int-el05e-artifact.mjs product
+      - name: Record signature and synthetic fixture preparation
+        shell: pwsh
+        run: |
+          $path='product/release-electron-p0/INTEGRATED-PORTABLE-MANIFEST.json'
+          $manifest=Get-Content $path -Raw | ConvertFrom-Json
+          $exe=Join-Path 'product/release-electron-p0' $manifest.portable.file
+          $manifest.portable.signature=[string](Get-AuthenticodeSignature $exe).Status
+          if ($manifest.portable.signature -notin @('NotSigned','Valid')) { throw 'Unexpected signature state' }
+          $manifest | ConvertTo-Json -Depth 12 | Set-Content $path -Encoding utf8
+          node scripts/qa/int-el05h-ui.mjs --prepare
+          if ($LASTEXITCODE -ne 0) { 'Synthetic newsletter fixture preparation failed; remaining GUI checks continue' | Set-Content diagnostic-output/fixture-preparation-warning.txt; $global:LASTEXITCODE=0 }
+      - name: Preserve the new Portable independently of GUI outcomes
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Integrated-Portable-9e22f7e-${{ github.run_id }}
+          path: |
+            product/release-electron-p0/*.exe
+            product/release-electron-p0/INTEGRATED-PORTABLE-MANIFEST.json
+            product/release-electron-p0/SHA256SUMS.txt
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Actual Portable independent launch, owned HWND/CDP UI, restart and cleanup
+        shell: pwsh
+        run: ./scripts/qa/int-el05h-portable.ps1 -InputDirectory product/release-electron-p0 -OutputDirectory diagnostic-output
+      - name: Preserve screenshots, files, hashes, independent results and process logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Integrated-Portable-usage-${{ github.run_id }}
+          path: diagnostic-output/
+          if-no-files-found: warn
+          retention-days: 14
