@@ -1,5 +1,6 @@
 import {execFileSync,spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
+import {createReadStream} from 'node:fs';
 import {cp,mkdir,mkdtemp,readFile,realpath,symlink,writeFile} from 'node:fs/promises';
 import {join,resolve} from 'node:path';
 
@@ -17,8 +18,14 @@ const hostSha256='0c84a7108c249733aeca2c0e8c5db86826d73cea8aacbb2e732eae177778e3
 const hash=data=>createHash('sha256').update(data).digest('hex');
 if(hash(await readFile(hostSource))!==hostSha256)throw Error('NATIVE03_REVIEWED_HOST_DIGEST_REQUIRED');
 const dependencies=await realpath(resolve('node_modules'));
-const electron=join(dependencies,'electron','dist','electron.exe');
+// Portable official runtime only; do not repair or install into shared node_modules.
+const runtimeRoot='E:\\BOGUNON_DEV\\qa\\native-03-runtime-45.2.1';
+const electron=join(runtimeRoot,'dist','electron.exe');
+const digestFile=async path=>{const digest=createHash('sha256');for await(const chunk of createReadStream(path))digest.update(chunk);return digest.digest('hex');};
+if(await digestFile(join(runtimeRoot,'electron-v45.2.1-win32-x64.zip'))!==
+  '7c342aee45d5b4ccafe5dfe9037028796b082735a576e21e2b4e2d8422ebb727')throw Error('NATIVE03_ELECTRON_ZIP_REJECTED');
 const electronSha256=hash(await readFile(electron));
+if(electronSha256!=='32e357fc856feadd1e51531f47811d2621483e5a58815eb4999154d7c9baea3b')throw Error('NATIVE03_ELECTRON_IMAGE_REJECTED');
 const template=join(runRoot,'template');
 execFileSync(process.execPath,['node_modules/typescript/bin/tsc','-p','electron-p0/tsconfig.json',
   '--outDir',template,'--noEmitOnError'],{stdio:'inherit'});
