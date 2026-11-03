@@ -1,10 +1,10 @@
 mod admission;
+pub(crate) mod dry_run;
 #[cfg(test)]
 mod admission_tests;
 #[cfg(test)]
 mod identity_tests;
 mod machine;
-#[cfg(test)]
 mod mock;
 mod model;
 #[cfg(all(windows, feature = "windows-adapter-skip-miri"))]

@@ -3,3 +3,5 @@
 pub mod edit_control;
 pub mod main_restore;
 pub mod memory_channel;
+#[path = "../src/workerw_channel.rs"]
+pub mod workerw_channel;

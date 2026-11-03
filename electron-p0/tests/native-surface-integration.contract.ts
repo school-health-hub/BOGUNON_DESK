@@ -102,8 +102,10 @@ test('health rejection returns to ordinary window without restarting Host',async
 });
 test('Main entry cannot top-level-await Electron ready through its isolated QA path',()=>{
   const source=ts.createSourceFile('main.mts',readFileSync('electron-p0/main/main.mts','utf8'),ts.ScriptTarget.Latest,true);
-  const branch=source.statements.find(statement=>ts.isIfStatement(statement)
-    &&statement.expression.getText(source).includes('native-surface-isolated-qa'));
+  const branches:ts.IfStatement[]=[];
+  const collect=(node:ts.Node):void=>{if(ts.isIfStatement(node))branches.push(node);ts.forEachChild(node,collect);};
+  collect(source);
+  const branch=branches.find(statement=>statement.expression.getText(source).includes('native-surface-isolated-qa'));
   assert.ok(branch&&ts.isIfStatement(branch));let awaits=0;
   const visit=(node:ts.Node):void=>{
     if(ts.isFunctionLike(node))return;

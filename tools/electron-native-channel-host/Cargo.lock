@@ -6,6 +6,16 @@ version = 4
 name = "bogunon-surface-channel-host"
 version = "0.1.0"
 dependencies = [
+ "bogunon-workerw-boundary",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "bogunon-workerw-boundary"
+version = "0.1.0"
+dependencies = [
  "serde",
  "serde_json",
  "thiserror",

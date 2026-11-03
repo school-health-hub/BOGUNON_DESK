@@ -165,6 +165,11 @@ impl HostTransaction {
             self.quarantine();
         }
     }
+    pub fn host_lost_request(&mut self, c: Context) -> Result<(), Rejection> {
+        self.admit(c)?;
+        self.host_lost();
+        Ok(())
+    }
     pub fn host_lost(&mut self) {
         self.quarantine();
     }

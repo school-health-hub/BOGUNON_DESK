@@ -13,6 +13,10 @@ import type {ProcessPort,Spawner} from './process-port.js';
 import {RestoreAdmission} from './restore-admission.js';
 import type {Inspector,ObservedProcess} from './windows-inspector.js';
 
+export interface TrustedHostExtension {
+  prepare(binding:Binding):Readonly<Record<string,unknown>>;
+  run(exchange:(body:Readonly<Record<string,unknown>>)=>Promise<Buffer>):Promise<void>;
+}
 const ack=z.strictObject({accepted:z.literal(true),code:z.literal('OPENED')});
 // Main-process lifetime lease: an unverified Native cleanup must not enable a second launcher.
 const launchLeases=new Set<string>();
@@ -27,7 +31,8 @@ export class NativeHostLauncher {
   #boundary:NativeSurfaceBoundary|null=null;#binding:Binding|null=null;#mainSequence=0n;#hostSequence=0n;
   #exited=false;#observedExit=false;#stopPromise:Promise<LauncherSnapshot>|null=null;
   #startupFinished:Promise<void>|null=null;#finishStartup:(()=>void)|null=null;
-  constructor(readonly approved:ApprovedHost,readonly inspector:Inspector,readonly spawner:Spawner=spawnHost){}
+  #extensionSecret:Buffer|null=null;#extensionUsed=false;
+  constructor(readonly approved:ApprovedHost,readonly inspector:Inspector,readonly spawner:Spawner=spawnHost,readonly extension?:TrustedHostExtension){}
   get snapshot():LauncherSnapshot{return Object.freeze({state:this.#state,error:this.#error,
     processExitVerified:this.#exitVerified,forcedTermination:this.#forced,nativeCleanup:'NotVerified',
     nativeAttachmentVerified:false,normalWindowRequested:this.#normal});}
@@ -43,7 +48,7 @@ export class NativeHostLauncher {
     if(!result.ok&&kind!=='CleanupFinished')this.#error='CleanupUnknown';
   }
   #retire(error:HostError):void {
-    this.#error=error.code;this.#admission?.retire();this.#normal=true;
+    this.#extensionSecret?.fill(0);this.#extensionSecret=null;this.#error=error.code;this.#admission?.retire();this.#normal=true;
     if(this.#state==='Starting'||this.#state==='Authenticated'){
       this.#state='CleanupUnknown';this.#process?.input.end();
     }
@@ -102,7 +107,8 @@ export class NativeHostLauncher {
       await bounded(()=>recheckHost(this.approved));
       await bounded(()=>this.#verifyPeer());
       this.#admission=new RestoreAdmission(generation,attempt,child.pid,capability);
-      const grant=Buffer.from(JSON.stringify({generation,attempt,expected_surface_pid:child.pid,capability:[...capability]}));
+      const grant=Buffer.from(JSON.stringify({generation,attempt,expected_surface_pid:child.pid,capability:[...capability],
+        ...(this.extension?{workerwDryRun:this.extension.prepare(this.#binding)}:{})}));
       try{await this.#channel.write(grant,remaining());}finally{grant.fill(0);}
       const request=await this.#channel.read(remaining());
       try{
@@ -115,13 +121,41 @@ export class NativeHostLauncher {
       const response=await this.#channel.read(remaining());
       try{ack.parse(JSON.parse(response.toString('utf8')));}finally{response.fill(0);}
       if(this.#state!=='Starting'||this.#exited)throw new HostError('ChannelClosed');
-      this.#channel.expectSilence();this.#host('HostStarted');this.#state='Authenticated';
+      if(this.extension)this.#extensionSecret=Buffer.from(capability);else this.#channel.expectSilence();
+      this.#host('HostStarted');this.#state='Authenticated';
       return this.snapshot;
     }catch(error){
       this.#retire(fixedError(error));
       if(this.#process)await this.stop();else this.#state='Failed';
       throw fixedError(error);
     }finally{capability.fill(0);this.#finishStartup?.();}
+  }
+  /** Single closed Main-owned DryRun exchange plan, never exposed through renderer IPC. */
+  async runTrustedExtension():Promise<void>{
+    if(!this.extension||this.#extensionUsed||this.#state!=='Authenticated'||!this.#extensionSecret)
+      throw new HostError('AuthenticationFailed');
+    this.#extensionUsed=true;const end=Date.now()+60000;
+    const budget=():number=>{const ms=end-Date.now();
+      if(ms<=0||this.#state!=='Authenticated'||!this.#extensionSecret)throw new HostError('Deadline');return ms;};
+    let pending=false;
+    try{
+      await deadline(this.extension.run(async body=>{
+        if(pending)throw new HostError('ProtocolRejected');pending=true;
+        try{
+          await deadline(this.#verifyPeer(),budget());
+          const binding=this.#binding,secret=this.#extensionSecret,channel=this.#channel;
+          if(!binding||!secret||!channel)throw new HostError('AuthenticationFailed');
+          const bytes=Buffer.from(JSON.stringify({...body,version:1,generation:Number(binding.attempt.generation),
+            attempt:Number(binding.attempt.nonce),capability:secret.toString('hex')}));
+          try{await channel.write(bytes,budget());}finally{bytes.fill(0);}
+          const response=await channel.read(budget());
+          try{await deadline(this.#verifyPeer(),budget());return response;}
+          catch(error){response.fill(0);throw error;}
+        }finally{pending=false;}
+      }),budget());
+      this.#channel?.expectSilence();
+    }catch(error){this.#retire(fixedError(error));throw fixedError(error);}
+    finally{this.#extensionSecret?.fill(0);this.#extensionSecret=null;}
   }
   async checkHealth():Promise<LauncherSnapshot>{
     if(this.#state!=='Authenticated')throw new HostError('AuthenticationFailed');
@@ -137,7 +171,7 @@ export class NativeHostLauncher {
   }
   async #stop():Promise<LauncherSnapshot>{
     const child=this.#process;if(!child)return this.snapshot;
-    this.#state='Stopping';this.#admission?.retire();this.#normal=true;
+    this.#state='Stopping';this.#extensionSecret?.fill(0);this.#extensionSecret=null;this.#admission?.retire();this.#normal=true;
     if(this.#boundary){this.#main('ReturnToNormal');this.#host('CleanupStarted');}
     child.input.end();
     try{

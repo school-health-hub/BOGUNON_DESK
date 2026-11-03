@@ -39,9 +39,12 @@ import {EducationVideoLibraryStore,createEducationVideoHandlers} from './educati
 import {InventoryStore,InventoryConflict} from './inventory-store.js';
 import { createSampleHandler, SAMPLE_SUMMARY_CHANNEL } from './sample-ipc.js';
 import { assertSender, resourceAllowed } from './policy.js';
+import {runWorkerwDryRunQa} from './desktop-surface/native04b/electron-qa.js';
 import {runNativeMainQa} from './desktop-surface/native03/electron-qa.js';
 // Default product path never starts a Native Host. The isolated path precedes all product stores.
-if(app.commandLine.hasSwitch('native-surface-isolated-qa')){
+if(app.commandLine.hasSwitch('native-workerw-dry-run-qa')){
+  void runWorkerwDryRunQa().catch(()=>{console.error('NATIVE04B_SETUP_REJECTED');app.exit(2);});
+}else if(app.commandLine.hasSwitch('native-surface-isolated-qa')){
   // Setup through setPath is synchronous; do not block ESM appCodeLoaded on app.whenReady().
   void runNativeMainQa().catch(()=>{console.error('NATIVE03_SETUP_REJECTED');app.exit(2);});
 }else{
