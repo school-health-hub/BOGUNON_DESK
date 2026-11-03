@@ -1,0 +1,58 @@
+name: DESIGN-04B Soft Rose Windows Visual QA
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: design04b-soft-rose-visual
+  cancel-in-progress: false
+jobs:
+  visual:
+    if: github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/qa/design04b-soft-rose-windows-visual'
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: QA tooling at dispatched SHA
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Fixed product, isolated checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: b54bbe47aa9b8785b41900b2b06970d2f3e68e21
+          path: product
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: product/package-lock.json
+      - name: Verify approved product source
+        working-directory: product
+        shell: pwsh
+        run: |
+          if ((git rev-parse HEAD) -ne 'b54bbe47aa9b8785b41900b2b06970d2f3e68e21') { throw 'Wrong product SHA' }
+          if (git status --porcelain) { throw 'Dirty product checkout' }
+      - run: npm ci --no-audit --no-fund
+        working-directory: product
+      - name: Existing Electron build, no Rust or packaging QA
+        working-directory: product
+        run: npm run electron:p0:build
+      - name: Copy QA-only test after clean product build
+        shell: pwsh
+        run: Copy-Item electron-p0/e2e/soft-rose-visual.e2e.ts product/electron-p0/e2e/soft-rose-visual.e2e.ts
+      - name: Actual Electron Surface and overlays, four window sizes
+        working-directory: product
+        env:
+          DESIGN_QA_SHA: ${{ github.sha }}
+        run: npx playwright test --config electron-p0/playwright.config.ts soft-rose-visual.e2e.ts --reporter=list,github
+      - name: Preserve screenshots, manifests and failure traces only
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: DESIGN-04B-Windows-Visual-${{ github.sha }}
+          path: |
+            product/artifacts/design04b/
+            product/artifacts/electron-p0-e2e/
+          retention-days: 7
+          if-no-files-found: warn
