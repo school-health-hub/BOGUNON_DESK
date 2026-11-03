@@ -2,10 +2,21 @@ import type {IpcResult,PurchaseExportResult} from './protocol.js';
 export const ADMIN_SYSTEMS={portal:'업무포털',neis:'나이스',edufine:'K-에듀파인'} as const;
 export const LEAVE_KINDS=['연가','조퇴','출장','시간외근무'] as const;
 export type AdminSystem=keyof typeof ADMIN_SYSTEMS;
+export const ADMIN_ENVIRONMENTS={school:'학교망',evpn:'eVPN'} as const;
+export type AdminEnvironment=keyof typeof ADMIN_ENVIRONMENTS;
+export type AdminAddresses=Readonly<Record<AdminSystem,string>>;
+export type AdminLauncher=Readonly<{environment:AdminEnvironment;evpn:AdminAddresses}>;
 export type LeaveDraft=Readonly<{id:string;system:AdminSystem;kind:typeof LEAVE_KINDS[number];startDate:string;endDate:string;startTime:string;endTime:string;reason:string;text:string}>;
-export type AdminDocument=Readonly<{version:1;revision:number;systems:Readonly<Record<AdminSystem,string>>;templates:Readonly<Record<AdminSystem,string>>;drafts:readonly LeaveDraft[]}>;
+export type AdminDocument=Readonly<{version:1;revision:number;systems:AdminAddresses;launcher?:AdminLauncher;templates:Readonly<Record<AdminSystem,string>>;drafts:readonly LeaveDraft[]}>;
 const DEFAULT_TEMPLATE='[{{유형}} 신청 검토용 초안]\n기간: {{시작일}} {{시작시간}} ~ {{종료일}} {{종료시간}}\n사유: {{사유}}\n\n기관 양식과 복무 규정을 확인한 뒤 직접 입력해 주세요.';
 export const emptyAdmin=():AdminDocument=>({version:1,revision:0,systems:{portal:'',neis:'',edufine:''},templates:{portal:DEFAULT_TEMPLATE,neis:DEFAULT_TEMPLATE,edufine:DEFAULT_TEMPLATE},drafts:[]});
+// Legacy systems remain the school profile. No write/migration takes place on read.
+export const adminEnvironment=(document:AdminDocument):AdminEnvironment=>document.launcher?.environment??'school';
+export const adminAddresses=(document:AdminDocument,environment:AdminEnvironment=adminEnvironment(document)):AdminAddresses=>environment==='school'?document.systems:(document.launcher?.evpn??{portal:'',neis:'',edufine:''});
+export function withAdminEnvironment(document:AdminDocument,environment:AdminEnvironment):AdminDocument{
+ if(!Object.prototype.hasOwnProperty.call(ADMIN_ENVIRONMENTS,environment))throw Error('학교망 또는 eVPN을 선택해 주세요.');
+ return {...document,launcher:{environment,evpn:adminAddresses(document,'evpn')}};
+}
 const object=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const keys=(v:unknown,allowed:string[]):v is Record<string,unknown>=>object(v)&&Object.keys(v).sort().join(',')===allowed.sort().join(',');
 const text=(v:unknown,max:number,required=true):v is string=>typeof v==='string'&&v.length<=max&&(!required||!!v.trim())&&!/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(v);
@@ -32,7 +43,11 @@ export function renderLeaveDraft(template:string,draft:Omit<LeaveDraft,'text'>){
  const result=validateAdminTemplate(template).replace(/\{\{([^{}]+)\}\}/g,(_match,key:keyof typeof fields)=>fields[key]);validateLeaveDraft({...draft,text:result});return result;
 }
 export function validateAdminDocument(value:unknown):AdminDocument{
- if(!keys(value,['version','revision','systems','templates','drafts'])||value.version!==1||!Number.isSafeInteger(value.revision)||Number(value.revision)<0||!keys(value.systems,Object.keys(ADMIN_SYSTEMS))||!keys(value.templates,Object.keys(ADMIN_SYSTEMS))||!Array.isArray(value.drafts)||value.drafts.length>200)throw Error('학교 행정 저장 형식을 확인해 주세요.');
+ if(!keys(value,['version','revision','systems','templates','drafts',...(object(value)&&Object.prototype.hasOwnProperty.call(value,'launcher')?['launcher']:[])])||value.version!==1||!Number.isSafeInteger(value.revision)||Number(value.revision)<0||!keys(value.systems,Object.keys(ADMIN_SYSTEMS))||!keys(value.templates,Object.keys(ADMIN_SYSTEMS))||!Array.isArray(value.drafts)||value.drafts.length>200)throw Error('학교 행정 저장 형식을 확인해 주세요.');
+ if(Object.prototype.hasOwnProperty.call(value,'launcher')){
+  if(!keys(value.launcher,['environment','evpn'])||typeof value.launcher.environment!=='string'||!Object.prototype.hasOwnProperty.call(ADMIN_ENVIRONMENTS,value.launcher.environment)||!keys(value.launcher.evpn,Object.keys(ADMIN_SYSTEMS)))throw Error('학교망/eVPN 설정 형식을 확인해 주세요.');
+  for(const url of Object.values(value.launcher.evpn))if(typeof url!=='string'||url!==''&&officialAdminUrl(url)!==url)throw Error('eVPN 공식 주소를 확인해 주세요.');
+ }
  for(const key of Object.keys(ADMIN_SYSTEMS)){const url=value.systems[key];if(typeof url!=='string'||url!==''&&officialAdminUrl(url)!==url)throw Error('공식 주소를 확인해 주세요.');validateAdminTemplate(value.templates[key]);}
  const ids=new Set<string>();for(const draft of value.drafts){const parsed=validateLeaveDraft(draft);if(ids.has(parsed.id))throw Error('중복 초안입니다.');ids.add(parsed.id);}
  if(new TextEncoder().encode(JSON.stringify(value)).length>2*1024*1024)throw Error('저장 크기 제한을 초과했습니다.');return structuredClone(value) as AdminDocument;
@@ -45,7 +60,8 @@ export type AdminMapping=Readonly<{generation:number;headerRow:number;columns:re
 export type AdminSelection=Readonly<{reviewId:string;rowIndexes:readonly number[]}>;
 export type AdminBridge=Readonly<{
  close():Promise<IpcResult<null>>;load():Promise<IpcResult<AdminLoad>>;save(document:AdminDocument,expectedRevision:number):Promise<IpcResult<AdminLoad>>;
- openSystem(system:AdminSystem):Promise<IpcResult<Readonly<{status:'launched'|'canceled'}>>>;
+ setEnvironment(environment:AdminEnvironment,expectedRevision:number):Promise<IpcResult<AdminLoad>>;
+ openSystem(system:AdminSystem):Promise<IpcResult<Readonly<{status:'launched'|'canceled'}>|Readonly<{status:'needs-configuration';system:AdminSystem;environment:AdminEnvironment}>>>;
  copyDraft(draft:LeaveDraft):Promise<IpcResult<Readonly<{copied:boolean}>>>;
  pickTable():Promise<IpcResult<AdminTable|null>>;cancel():Promise<IpcResult<null>>;
  mapTable(input:AdminMapping):Promise<IpcResult<AdminReview>>;

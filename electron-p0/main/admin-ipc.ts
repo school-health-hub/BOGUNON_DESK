@@ -1,6 +1,6 @@
 import {basename,extname,isAbsolute,relative,sep} from 'node:path';
 import {assertSender} from './policy.js';import {AdminStore,AdminConflict} from './admin-store.js';
-import {ADMIN_SYSTEMS,officialAdminUrl,validateAdminDocument,validateLeaveDraft,type AdminSystem,type AdminTable,type AdminReview} from '../admin-protocol.js';
+import {ADMIN_SYSTEMS,ADMIN_ENVIRONMENTS,adminEnvironment,adminAddresses,officialAdminUrl,validateAdminDocument,validateLeaveDraft,type AdminSystem,type AdminTable,type AdminReview} from '../admin-protocol.js';
 import type {IpcResult} from '../protocol.js';
 import {csvRows,decodeCsv} from './purchase-csv.js';import {readSelectedPurchaseFile} from './purchase-import.js';import {writeSelectedExport,ExportConflict} from './purchase-export-storage.js';
 import {mapAdminTable,selectAdminRows,validateAdminRows} from './admin-table.js';
@@ -20,8 +20,18 @@ export function createAdminHandlers(contents:Parameters<typeof assertSender>[1],
  const confirm=async(event:Parameters<typeof assertSender>[0],token:number,message:string,text:string)=>{const approved=await ports.review(message,text);fresh(event,token);return approved;};
  return {
   load:run(0,()=>ports.store.load()),
+  setEnvironment:run(2,async args=>ports.store.setEnvironment(args[0],args[1])),
   save:run(2,async args=>ports.store.save(validateAdminDocument(args[0]),args[1])),
-  openSystem:run(1,async(args,event,token)=>{if(typeof args[0]!=='string'||!Object.hasOwn(ADMIN_SYSTEMS,args[0]))throw Error();const system=args[0] as AdminSystem,current=await ports.store.load(),target=officialAdminUrl(current.document.systems[system]);fresh(event,token);if(!await confirm(event,token,`${ADMIN_SYSTEMS[system]} 공식 주소를 기본 브라우저로 열까요?`,target+'\n기관 안내와 주소를 대조하세요. 로그인은 직접 진행합니다.'))return {status:'canceled'};try{await ports.openExternal(target);}catch{throw new AdminActionError(`${ADMIN_SYSTEMS[system]} 브라우저 실행 요청에 실패했습니다. 등록 주소와 기본 브라우저를 확인하세요. 접속·로그인 오류는 해당 시스템 안내를 확인해 주세요.`);}fresh(event,token);return {status:'launched'};},true),
+  openSystem:run(1,async(args,event,token)=>{
+   if(typeof args[0]!=='string'||!Object.hasOwn(ADMIN_SYSTEMS,args[0]))throw Error();
+   const system=args[0] as AdminSystem,current=await ports.store.load(),environment=adminEnvironment(current.document),address=adminAddresses(current.document,environment)[system];
+   fresh(event,token);if(!address)return {status:'needs-configuration',system,environment};
+   const target=officialAdminUrl(address);
+   if(!await confirm(event,token,`${ADMIN_ENVIRONMENTS[environment]} · ${ADMIN_SYSTEMS[system]} 공식 주소를 기본 브라우저로 열까요?`,target+'\n환경은 수동 선택 값입니다. 기관 안내와 주소를 대조하세요. 인증서 로그인은 브라우저에서 직접 진행합니다.'))return {status:'canceled'};
+   const latest=(await ports.store.load()).document;fresh(event,token);
+   if(adminEnvironment(latest)!==environment||adminAddresses(latest,environment)[system]!==target)throw new AdminActionError('선택 환경 또는 주소가 변경되어 실행하지 않았습니다. 현재 설정을 확인하고 다시 열어 주세요.');
+   try{await ports.openExternal(target);}catch{throw new AdminActionError(`${ADMIN_ENVIRONMENTS[environment]} · ${ADMIN_SYSTEMS[system]} 브라우저 실행 요청에 실패했습니다. 등록 주소와 기본 브라우저를 확인하세요. 접속·로그인 오류는 해당 시스템 안내를 확인해 주세요.`);}fresh(event,token);return {status:'launched'};
+  },true),
   copyDraft:run(1,async(args,event,token)=>{const draft=validateLeaveDraft(args[0]);if(!await confirm(event,token,'복무 초안을 확인하고 클립보드에 복사할까요?',draft.text))return {copied:false};await ports.copy(draft.text);return {copied:true};},true),
   pickTable:run(0,async(_args,event,token)=>{
    const path=await ports.pick();fresh(event,token);if(!path)return null;let rows:string[][],sheetName='CSV';
