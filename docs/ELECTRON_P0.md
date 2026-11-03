@@ -680,3 +680,10 @@ Validation must run on the new committed candidate SHA, not inherited source QA:
 - **eVPN 및 기존 주소:** 기존 학교망/eVPN 수동 선택·마지막 환경 복원을 유지한다. 별도 eVPN 접속 URL은 기존 `launcher`의 선택 필드 `entryUrl`로 저장한다. 미등록이면 입력란으로 안내하고, 사용자 등록 주소는 기존 공식 HTTPS 검증과 native 확인을 거쳐 기본 브라우저로 전달한다. 환경 전환·기존 형태 저장 요청에서 entryUrl을 누락해도 기존 값을 유지하고, 명시적 빈 문자열 저장으로만 지운다. 실제 eVPN 연결·인증서 로그인·세션 관리는 사용자와 공식 브라우저의 책임이며 우회/자동 로그인/비밀번호·쿠키 저장은 없다.
 - **이번 검증:** 학교 프로필 domain/network/store/선택·실패 보호/초기 설정·학교 변경 및 기존 학교 행정 집중 **38 PASS (8파일)**, Soft Rose·네트워크 정책·AI/Finance/Inventory IPC 경계 **15 PASS (6파일)**. Electron Main/Preload/Renderer/테스트 TypeScript와 production build **PASS**. 기존 ASAR runtime 검사 **3 PASS**. 기존 Purchase CLI의 합성 fixture 계약 **1 PASS** 및 CLI 빌드로 Excel UI 회귀 실행 조건을 준비했으며 Rust 소스 변경은 없다. lint 스크립트는 없고 diff·민감정보·파일 범위를 검사한다. 초기 UI 회귀 1건은 native CLI 준비 전 실행으로 실패했으며, CLI 준비 후 최종 38건이 통과했다. 이전 테스트 PASS를 이번 결과로 승계하지 않는다.
 - **미검증:** Windows의 실제 Electron Main/session/Preload 연결, 기본 브라우저·eVPN·인증서 로그인, 실제 작은 창/DPI/네이티브 UI, Portable/NSIS. 새 Windows QA workflow·Actions 또는 전체 Windows QA는 실행하지 않았다. 기존 초기 설정/설정/런처 연결은 jsdom의 실제 store/handler 통합으로 검증했다. 판정 **CONDITIONAL — 기능·Cloud 검증 완료 / 공식 URL 기본값 검토 및 Windows 실사용 확인 대기**.
+
+## 기능 통합 기준본 — 학교 프로필까지 포함
+
+- `integration/electron-feature-baseline`은 `feature/electron-common-school-profile@0a417bd98e75c1b0eefbd80eda6b77df4ca0cdcf`에서 생성했다. 요청한 업무 기능이 이미 포함돼 있어 제품 재병합·재구현 없이 통합 기준으로 고정한다.
+- 기능별 진입점·계보·미지원 범위·기존 데이터 보존·이번 집중 49건/ASAR 3건/타입·빌드 결과 및 다음 Windows 실행본 준비 절차는 [ELECTRON_FEATURE_BASELINE.md](ELECTRON_FEATURE_BASELINE.md)에 정리했다. 최초 build 전 Finance 검사 1건의 ENOENT와 build 후 해당 파일만 재검증한 결과도 구분한다.
+- 이번 변경은 문서 2개뿐이며 제품 소스·저장 schema·IPC·암호화·디자인·workflow를 변경하지 않는다. 새 Portable·Windows GUI·설치 QA·Actions는 **NOT RUN**. 과거 QA 결과를 새 실행본의 PASS로 승계하지 않는다.
+- 해당 통합 브랜치만 일반 commit/push하며 기존 기능 브랜치·worktree·WIP·main을 보존한다. 판정 **CONDITIONAL — 통합 소스·Cloud 빌드 확인 / Windows 실행본 생성·실사용 확인 대기**.
