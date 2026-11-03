@@ -9,6 +9,7 @@ import '../../src/styles/release-ui.css';
 import '../../src/styles/desktop-workspace.css';
 import './p0.css';
 import './soft-rose.css';
+import './surface-usability.css';
 document.body.classList.add('electron-soft-rose');
 import { P0App } from './P0App';
 createRoot(document.getElementById('root')!).render(<React.StrictMode><P0App /></React.StrictMode>);

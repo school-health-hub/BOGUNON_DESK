@@ -8,9 +8,11 @@ export function SurfaceDialog({title,onClose,children,modal=true,shouldRestoreFo
   const siblings=modal?[...document.body.children].filter(el=>el!==dialog.parentElement) as HTMLElement[]:[];
   const states=siblings.map(el=>[el,el.inert??false] as const);siblings.forEach(el=>{el.inert=true});
   const visible=(el:HTMLElement)=>{for(let node:HTMLElement|null=el;node;node=node.parentElement){if(node.hidden||node.inert||getComputedStyle(node).display==='none'||getComputedStyle(node).visibility==='hidden')return false;}return true;};
-  const focusables=()=>[...dialog.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),textarea:not(:disabled),select:not(:disabled),a[href],[tabindex="0"]')].filter(visible);
-  focusables()[0]?.focus();
+  const focusables=()=>[...dialog.querySelectorAll<HTMLElement>('button,input,textarea,select,a[href],[tabindex]')].filter(el=>el.tabIndex>=0&&!el.matches(':disabled')&&visible(el));
+  (focusables()[0]??dialog).focus();
   const key=(event:KeyboardEvent)=>{
+   // A newer modal makes earlier portals inert; only the active surface handles keys.
+   if(event.defaultPrevented||!visible(dialog))return;
    if(event.key==='Escape'&&(modal||dialog.contains(document.activeElement))){event.preventDefault();event.stopPropagation();close.current();}
    if(modal&&event.key==='Tab'){const list=focusables(),first=list[0],last=list[list.length-1];if(!first){event.preventDefault();dialog.focus();}else if(event.shiftKey&&(document.activeElement===first||!dialog.contains(document.activeElement))){event.preventDefault();last?.focus();}else if(!event.shiftKey&&(document.activeElement===last||!dialog.contains(document.activeElement))){event.preventDefault();first.focus();}}
   };

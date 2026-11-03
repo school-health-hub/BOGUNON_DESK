@@ -3,7 +3,7 @@ import {useState,useRef} from 'react';
 import {afterEach,expect,it,vi} from 'vitest';
 import {cleanup,fireEvent,render,screen} from '@testing-library/react';
 import {SurfaceDialog} from '../renderer/SurfaceDialog';
-import {SurfaceSettings} from '../renderer/SurfaceSettings';
+import {SurfaceSettings,SurfaceEffectsControl} from '../renderer/SurfaceSettings';
 afterEach(cleanup);
 it('contains keyboard focus, closes on Escape and restores the invoker without leaving background inert',()=>{
  function Host(){const [open,setOpen]=useState(false);return <><button onClick={()=>setOpen(true)}>설정 열기</button>{open&&<SurfaceDialog title="설정" onClose={()=>setOpen(false)}><button>마지막 항목</button></SurfaceDialog>}</>}
@@ -36,4 +36,30 @@ it('does not restore a hidden Settings invoker during Newsletter handoff',()=>{
 it('excludes hidden editor controls from modal tab endpoints',()=>{
  render(<SurfaceDialog title="설정" onClose={()=>{}}><div style={{display:'none'}}><button>숨긴 닫기</button></div><button>보이는 마지막</button></SurfaceDialog>);
  const first=screen.getByRole('button',{name:'설정 닫기'});first.focus();fireEvent.keyDown(first,{key:'Tab',shiftKey:true});expect(document.activeElement).toBe(screen.getByText('보이는 마지막'));
+});
+it('closes only the active nested modal on Escape and restores focus into its parent',()=>{
+ function Host(){const [outer,setOuter]=useState(true),[inner,setInner]=useState(false);return <>{outer&&<SurfaceDialog title="설정" onClose={()=>setOuter(false)}><button onClick={()=>setInner(true)}>추가 설정</button></SurfaceDialog>}{inner&&<SurfaceDialog title="추가 설정" onClose={()=>setInner(false)}><button>저장</button></SurfaceDialog>}</>}
+ // Given: a modal above another modal.
+ render(<Host/>);const trigger=screen.getByRole('button',{name:'추가 설정'});trigger.focus();fireEvent.click(trigger);
+ // When: Escape is pressed in the top dialog.
+ fireEvent.keyDown(screen.getByRole('button',{name:'추가 설정 닫기'}),{key:'Escape'});
+ // Then: only the top dialog closes.
+ expect(screen.queryByRole('dialog',{name:'추가 설정'})).toBeNull();expect(screen.getByRole('dialog',{name:'설정'})).toBeTruthy();expect(document.activeElement).toBe(trigger);
+});
+it('does not use negative tabindex controls as modal keyboard endpoints',()=>{
+ // Given: an explicitly skipped button after the last tab stop.
+ render(<SurfaceDialog title="설정" onClose={()=>{}}><button>저장</button><button tabIndex={-1}>건너뛸 항목</button></SurfaceDialog>);
+ // When: keyboard focus wraps backwards.
+ fireEvent.keyDown(screen.getByRole('button',{name:'설정 닫기'}),{key:'Tab',shiftKey:true});
+ // Then: the last tabbable control receives focus.
+ expect(document.activeElement).toBe(screen.getByRole('button',{name:'저장'}));
+});
+it('allows reduced glass effects for this session without changing settings contracts',()=>{
+ function Host(){const [reduced,setReduced]=useState(false);return <SurfaceEffectsControl reduced={reduced} onChange={setReduced}/>}
+ // Given: the ordinary effects control.
+ render(<Host/>);const control=screen.getByRole('checkbox',{name:/유리 효과 줄이기/});
+ // When: the user selects the low-effects option.
+ fireEvent.click(control);
+ // Then: the controlled session preference changes, with its scope explained.
+ expect(control).toHaveProperty('checked',true);expect(screen.getByText(/이번 실행에만 적용/)).toBeTruthy();
 });

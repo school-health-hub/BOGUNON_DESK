@@ -1,4 +1,7 @@
 import {useState,type ReactNode} from 'react';
+export function SurfaceEffectsControl({reduced,onChange}:{readonly reduced:boolean;readonly onChange:(value:boolean)=>void}){
+ return <div className="rose-effects-control"><label><input type="checkbox" checked={reduced} onChange={event=>onChange(event.target.checked)}/> 유리 효과 줄이기</label><p>저사양 PC에서는 블러를 끌 수 있습니다. 이번 실행에만 적용하며 저장된 배치와 업무 데이터는 변경하지 않습니다.</p></div>;
+}
 export function SurfaceSettings({appearance,widgets,dock,about,saveStatus,ai,school}:{appearance:ReactNode;widgets:ReactNode;dock:ReactNode;about:ReactNode;saveStatus:string;ai?:ReactNode;school?:ReactNode}){
  const [category,setCategory]=useState<'appearance'|'widgets'|'dock'|'about'|'ai'|'school'>('appearance');
  const choices=[['appearance','화면'],['widgets','위젯'],['dock','Dock'],['about','앱 정보'],...(school?[['school','학교 프로필'] as const]:[]),...(ai?[['ai','AI 연결'] as const]:[])] as const;
