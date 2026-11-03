@@ -1568,3 +1568,42 @@ pub(crate) fn edufine_bytes(items:&[PurchaseItem])->Result<Vec<u8>,String>{build
 pub(crate) fn edufine_preview(items:&[PurchaseItem])->serde_json::Value {
     serde_json::json!({"headers":["내용","규격","수량","예상단가"],"rows":items.iter().filter(|i|i.selected).map(|i|serde_json::json!([i.name,i.specification,i.quantity,i.unit_price])).collect::<Vec<_>>()})
 }
+
+// School administration reuses the exact spreadsheet preflight/reader and CSV escaping.
+// It does not invoke Purchase item inference or change any Purchase output contract.
+pub(crate) fn admin_table(path:&Path)->Result<serde_json::Value,String>{
+ if fs::metadata(path).map_err(|_|"Invalid file")?.len()>MAX_FILE_BYTES{return Err("Oversized file".into());}
+ if path.extension().and_then(|v|v.to_str())!=Some("xlsx"){return Err("XLSX only".into());}
+ let (name,rows)=spreadsheet_tables(path)?.into_iter().find(|(_,rows)|rows.iter().any(|r|r.iter().any(|v|!v.trim().is_empty()))).ok_or("Empty spreadsheet")?;
+ if rows.len()>530||rows.iter().any(|r|r.len()>256||r.iter().any(|v|v.len()>65536)){return Err("Oversized review table".into());}
+ let result=serde_json::json!({"sheetName":name,"rows":rows});if serde_json::to_vec(&result).map_err(|_|"Invalid table")?.len()>4*1024*1024{return Err("Oversized review table".into());}Ok(result)
+}
+pub(crate) fn admin_review_csv(headers:Vec<String>,rows:Vec<Vec<String>>)->Result<serde_json::Value,String>{
+ if headers.is_empty()||headers.len()>16||rows.is_empty()||rows.len()>500||rows.iter().any(|r|r.len()!=headers.len()){return Err("Invalid review dimensions".into());}
+ if headers.iter().chain(rows.iter().flatten()).any(|v|v.len()>65536||v.contains(['\0','\t','\r','\n'])){return Err("Invalid review cell".into());}
+ let safe=|row:&Vec<String>|row.iter().map(|v|csv_output_value(v,"name")).collect::<Vec<_>>();
+ let headers=safe(&headers);let rows=rows.iter().map(safe).collect::<Vec<_>>();
+ let mut writer=csv::Writer::from_writer(Vec::new());writer.write_record(&headers).map_err(|_|"CSV header error")?;for row in &rows{writer.write_record(row).map_err(|_|"CSV row error")?;}
+ let raw=writer.into_inner().map_err(|_|"CSV output error")?;
+ let decoded=csv::Reader::from_reader(raw.as_slice()).records().collect::<Result<Vec<_>,_>>().map_err(|_|"CSV validation error")?;
+ if decoded.len()!=rows.len()||decoded.iter().zip(&rows).any(|(a,b)|a.iter().ne(b.iter().map(String::as_str))){return Err("CSV validation mismatch".into());}
+ let mut bytes=vec![0xEF,0xBB,0xBF];bytes.extend(raw);
+ let copy=std::iter::once(&headers).chain(rows.iter()).map(|row|row.join("\t")).collect::<Vec<_>>().join("\r\n");
+ Ok(serde_json::json!({"validated":true,"copyText":copy,"bytesBase64":base64::Engine::encode(&base64::engine::general_purpose::STANDARD,bytes)}))
+}
+
+#[cfg(test)]
+mod admin_review_tests{
+ use super::*;
+ #[test]fn admin_table_reuses_bounded_reader_without_purchase_inference(){
+  let dir=tempfile_path();let mut workbook=Workbook::new();let sheet=workbook.add_worksheet();sheet.write_string(0,0,"합성 업무").unwrap();sheet.write_string(0,1,"검토 수량").unwrap();sheet.write_string(1,0,"합성 비품 점검").unwrap();sheet.write_number(1,1,3.0).unwrap();workbook.save(&dir).unwrap();let table=admin_table(&dir).unwrap();assert_eq!(table["rows"][1][0],"합성 비품 점검");assert_eq!(table["rows"][1][1],"3");std::fs::remove_file(dir).unwrap();
+ }
+ fn tempfile_path()->PathBuf{std::env::temp_dir().join(format!("admin-synthetic-{}.xlsx",std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()))}
+ #[test]fn review_csv_quotes_formula_triggers_and_preserves_hangul_and_order(){
+  let result=admin_review_csv(vec!["항목".into(),"검토값".into()],vec![vec!["합성, 업무".into(),"=1+1".into()],vec!["합성 검토".into(),"-2".into()]]).unwrap();
+  let bytes=base64::Engine::decode(&base64::engine::general_purpose::STANDARD,result["bytesBase64"].as_str().unwrap()).unwrap();assert!(bytes.starts_with(&[0xEF,0xBB,0xBF]));let text=std::str::from_utf8(&bytes).unwrap();assert!(text.contains("'=1+1"));assert!(text.contains("'-2"));assert!(text.contains("합성, 업무"));assert!(result["copyText"].as_str().unwrap().starts_with("항목\t검토값\r\n"));
+ }
+ #[test]fn review_csv_rejects_invalid_dimensions_and_control_cells(){
+  assert!(admin_review_csv(vec!["열".into()],vec![vec!["a".into(),"b".into()]]).is_err());assert!(admin_review_csv(vec!["열".into()],vec![vec!["a\tb".into()]]).is_err());assert!(admin_review_csv(vec![],vec![]).is_err());
+ }
+}

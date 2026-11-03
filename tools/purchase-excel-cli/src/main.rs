@@ -9,6 +9,8 @@ const MAX_IO:usize=64*1024*1024;
 #[derive(Deserialize)]
 #[serde(tag="operation",rename_all="camelCase",rename_all_fields="camelCase",deny_unknown_fields)]
 enum Request {
+    AdminTable {path:PathBuf},
+    AdminReview {headers:Vec<String>,rows:Vec<Vec<String>>},
     Edufine { items:Vec<engine::PurchaseItem>, preview:bool },
     Settlement { rows:Vec<settlement::PurchaseSettlementExportRow>, summary:settlement::PurchaseSettlementSummary, preview:bool },
     Export { format:String, items:Vec<engine::PurchaseItem>, columns:Vec<String> },
@@ -24,6 +26,8 @@ fn run()->Result<serde_json::Value,()> {
     let envelope:Envelope=serde_json::from_slice(&bytes).map_err(|_|())?;
     if envelope.version!=1{return Err(());}
     match envelope.request {
+        Request::AdminTable{path}=>engine::admin_table(&path).map_err(|_|()),
+        Request::AdminReview{headers,rows}=>engine::admin_review_csv(headers,rows).map_err(|_|()),
         Request::Edufine{items,preview}=>{let (bytes,table)=specialized::edufine(&items)?;special_result(bytes,table,preview)},
         Request::Settlement{rows,summary,preview}=>{let (bytes,table)=specialized::settlement(rows,summary)?;special_result(bytes,table,preview)},
         Request::Export{format,items,columns}=>{

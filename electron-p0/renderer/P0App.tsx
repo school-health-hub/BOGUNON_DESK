@@ -3,7 +3,7 @@ import type {InventoryPurchaseRequest} from './purchase/inventoryPurchase';
 import {LocalWorkspaceStatus} from './local-tasks/LocalNotices';
 import {LocalWorkspaceProvider} from './adapters/workspace';
 import {LocalTasksPanel,type LocalTaskRequest} from './local-tasks/LocalTasksPanel';
-import {ShoppingCart,FileText,Search,Database,Wallet} from 'lucide-react';
+import {ShoppingCart,FileText,Search,Database,Wallet,BriefcaseBusiness} from 'lucide-react';
 import {SurfaceDialog} from './SurfaceDialog';
 import {SurfaceSettings} from './SurfaceSettings';
 import {ToolCard} from './ToolCard';
@@ -37,6 +37,7 @@ import type { DashboardEditorPanel } from '../../src/components/dashboard/useDes
 const NewsletterStudio=lazy(()=>import('../../src/newsletter/NewsletterStudio').then(m=>({default:m.NewsletterStudio})));
 const EducationVideoFinder=lazy(()=>import('../../src/education-video/EducationVideoFinder').then(m=>({default:m.EducationVideoFinder})));
 const OfficialDocumentWorkspace=lazy(()=>import('../../src/official-document/OfficialDocumentWorkspace').then(m=>({default:m.OfficialDocumentWorkspace})));
+const SchoolAdmin=lazy(()=>import('./school-admin/SchoolAdmin').then(m=>({default:m.SchoolAdmin})));
 const FinanceHost=lazy(()=>import('./finance/FinanceHost').then(m=>({default:m.FinanceHost})));
 const InventoryHost=lazy(()=>import('./inventory-preview/InventoryHost').then(m=>({default:m.InventoryHost})));
 function SurfaceDate(){const {now}=useWidgetSession();return <time dateTime={now.toISOString()}>{new Intl.DateTimeFormat('ko-KR',{month:'long',day:'numeric',weekday:'long'}).format(now)}</time>;}
@@ -60,6 +61,7 @@ export function P0App() {
   return <P0Dashboard initial={initial}/>;
 }
 function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:DockLayout;info:P0Info}}) {
+  const [adminOpen,setAdminOpen]=useState(false);
   const [financeOpen,setFinanceOpen]=useState(false);
   const [aiSettingsOpen,setAiSettingsOpen]=useState(false);
   const [taskRequest,setTaskRequest]=useState<LocalTaskRequest|null>(null);
@@ -99,7 +101,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
     if(['home','settings','quick-memo','toolbox'].includes(id)){if(id==='settings')settingsHandoffRef.current=false;setActive(id);setPanel(null);setEditing(false);setNotice(null)}else excluded();
   };
   return <WidgetSessionProvider><LocalWorkspaceProvider><PersistentMemoProvider><DesktopPanelProvider notify={setNotice} openInbox={()=>openTasks()} openBogunonTask={async id=>openTasks({id})} openQuickAddEventForDate={date=>openTasks({date})} openQuickAddFromMemo={title=>openTasks({title})} openQuickMemoUrl={async()=>excluded()} runDesktopAction={async id=>navigate(id)} workFolderFavorites={[]} openWorkFolderFavorite={async()=>excluded()}>
-    <div hidden={newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen||financeOpen} style={{display:newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen||financeOpen?"none":undefined}} className={`app-shell workspace-shell ${editing?'is-edit-mode':'is-view-mode'} bg-${layout.appearance.background} card-${layout.appearance.cardStyle} corner-${layout.appearance.cornerStyle}`}>
+    <div hidden={newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen||financeOpen||adminOpen} style={{display:newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen||financeOpen||adminOpen?"none":undefined}} className={`app-shell workspace-shell ${editing?'is-edit-mode':'is-view-mode'} bg-${layout.appearance.background} card-${layout.appearance.cardStyle} corner-${layout.appearance.cornerStyle}`}>
       <header className="rose-surface-header"><strong>BOGUNON DESK</strong><SurfaceDate/><span>Electron 전용 로컬 저장 · 운영 서비스·외부 금융 연결 없음</span></header>
       <LocalWorkspaceStatus onOpen={()=>openTasks()}/>
       <DashboardToolbar activePanel={panel} isEditing={editing} onOpenPanel={p=>setPanel(panel===p?null:p)} onOpenQuickAdd={()=>openTasks()} onReset={()=>{if(window.confirm('PoC 배치만 기본값으로 되돌릴까요?'))setLayout(createDefaultDashboardLayout())}} onToggleEdit={()=>{setEditing(!editing);setPanel(null);setSelected(null);setActive('home')}}/>
@@ -111,13 +113,14 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
       {editing&&panel==='presets'&&<PresetSelector currentPresetId={layout.presetId} onClose={()=>setPanel(null)} onApply={id=>setLayout(applyPreset(layout,id,window.confirm))}/>}
       {editing&&panel==='dock'&&<DockEditor dockLayout={dock} onClose={()=>setPanel(null)} onUpdate={setDock}/>}
       {active!=='home'&&<SurfaceDialog key={active} modal={active==='settings'} shouldRestoreFocus={()=>active!=='settings'||!settingsHandoffRef.current} title={active==='settings'?'설정':active==='quick-memo'?'빠른 메모':'업무 도구'} onClose={()=>navigate('home')}>
-        {active==='quick-memo'?<MemoWidget/>:active==='settings'?<SurfaceSettings ai={<AiSettings/>} saveStatus={status} appearance={<AppearancePanel appearance={layout.appearance} onClose={()=>navigate('home')} onUpdate={appearance=>setLayout({...layout,appearance})}/>} widgets={<WidgetLibraryDrawer widgets={layout.widgets} onClose={()=>navigate('home')} onRestore={type=>setLayout(restoreWidget({...layout,widgets:geometry.widgets},type))}/>} dock={<DockEditor dockLayout={dock} onClose={()=>navigate('home')} onUpdate={setDock}/>} about={<><button type="button" onClick={()=>{settingsHandoffRef.current=true;setActive("home");setNewsletterLoaded(true);setNewsletterOpen(true);}}>보건소식지 제작소</button><SyntheticIpcSample/><p>앱 ID: {info?.appId}</p><p>PoC 저장 위치: {info?.userData}</p><p>소스: {info?.sourceSha}</p><p>Electron: {info?.electron}</p><p>자동 업데이트·운영 데이터 접근 API 없음 · AI API 연결은 별도 설정</p></>}/>:<><div className="p0-tools-grid"><ToolCard icon={Wallet} label="MY FINANCE · 암호화 로컬" description="수입·세금·투자·자산 · Windows SQLCipher·DPAPI" onClick={()=>{setActive('home');setFinanceOpen(true);}}/><ToolCard icon={FileText} label="일정·업무 — 로컬 저장" description="업무·마감·완료 관리와 Dashboard 동기화" onClick={()=>{setActive('home');openTasks();}}/><ToolCard icon={ShoppingCart} label="품의 도우미 · 세션 전용" description="품목 계산과 품의문 작성" onClick={()=>{setActive("home");setPurchaseOpen(true);}}/><ToolCard icon={Search} label="교육영상 Finder · 합성 Mock" description="교육영상 검색과 보관함" onClick={()=>{setActive('home');setEducationVideoOpen(true);}}/><ToolCard icon={FileText} label="공문작업실 · 로컬 초안" description="공문 편집과 파일 가져오기·저장" onClick={()=>{setActive('home');setOfficialDocumentOpen(true);}}/>{import.meta.env.DEV&&<ToolCard icon={Database} label="물품관리 — 로컬 QA" description="개발 전용 격리 환경 연결" onClick={()=>{setInventoryOpen(false);setInventoryQaOpen(true);}}/>}<InventoryEntryButtons onSelect={mode=>{setActive('home');setInventoryMode(mode);setInventoryOpen(true);}}/></div></>}
+        {active==='quick-memo'?<MemoWidget/>:active==='settings'?<SurfaceSettings ai={<AiSettings/>} saveStatus={status} appearance={<AppearancePanel appearance={layout.appearance} onClose={()=>navigate('home')} onUpdate={appearance=>setLayout({...layout,appearance})}/>} widgets={<WidgetLibraryDrawer widgets={layout.widgets} onClose={()=>navigate('home')} onRestore={type=>setLayout(restoreWidget({...layout,widgets:geometry.widgets},type))}/>} dock={<DockEditor dockLayout={dock} onClose={()=>navigate('home')} onUpdate={setDock}/>} about={<><button type="button" onClick={()=>{settingsHandoffRef.current=true;setActive("home");setNewsletterLoaded(true);setNewsletterOpen(true);}}>보건소식지 제작소</button><SyntheticIpcSample/><p>앱 ID: {info?.appId}</p><p>PoC 저장 위치: {info?.userData}</p><p>소스: {info?.sourceSha}</p><p>Electron: {info?.electron}</p><p>자동 업데이트·운영 데이터 접근 API 없음 · AI API 연결은 별도 설정</p></>}/>:<><div className="p0-tools-grid"><ToolCard icon={BriefcaseBusiness} label="학교 행정 업무 도우미" description="공식 시스템 바로가기·복무 초안·Excel 검토" onClick={()=>{setActive('home');setAdminOpen(true);}}/><ToolCard icon={Wallet} label="MY FINANCE · 암호화 로컬" description="수입·세금·투자·자산 · Windows SQLCipher·DPAPI" onClick={()=>{setActive('home');setFinanceOpen(true);}}/><ToolCard icon={FileText} label="일정·업무 — 로컬 저장" description="업무·마감·완료 관리와 Dashboard 동기화" onClick={()=>{setActive('home');openTasks();}}/><ToolCard icon={ShoppingCart} label="품의 도우미 · 세션 전용" description="품목 계산과 품의문 작성" onClick={()=>{setActive("home");setPurchaseOpen(true);}}/><ToolCard icon={Search} label="교육영상 Finder · 합성 Mock" description="교육영상 검색과 보관함" onClick={()=>{setActive('home');setEducationVideoOpen(true);}}/><ToolCard icon={FileText} label="공문작업실 · 로컬 초안" description="공문 편집과 파일 가져오기·저장" onClick={()=>{setActive('home');setOfficialDocumentOpen(true);}}/>{import.meta.env.DEV&&<ToolCard icon={Database} label="물품관리 — 로컬 QA" description="개발 전용 격리 환경 연결" onClick={()=>{setInventoryOpen(false);setInventoryQaOpen(true);}}/>}<InventoryEntryButtons onSelect={mode=>{setActive('home');setInventoryMode(mode);setInventoryOpen(true);}}/></div></>}
       </SurfaceDialog>}
       {notice&&<div className="p0-notice" role="status">{notice}<button onClick={()=>setNotice(null)}>닫기</button></div>}
       <span className="p0-save" role="status" data-p0-save>{status}</span>
       <div className="dock-zone"><AppDock activeActionId={active} dockLayout={dock} onAction={navigate}/></div>
     </div>
     {aiSettingsOpen&&<SurfaceDialog title="AI 연결" onClose={()=>setAiSettingsOpen(false)}><AiSettings/></SurfaceDialog>}
+    {adminOpen&&<Suspense fallback={<p role="status">학교 행정 업무를 불러오는 중…</p>}><SchoolAdmin onClose={()=>setAdminOpen(false)}/></Suspense>}
     {financeOpen&&<Suspense fallback={<p role="status">MY FINANCE를 불러오는 중…</p>}><FinanceHost onClose={()=>setFinanceOpen(false)}/></Suspense>}
     {taskRequest&&<LocalTasksPanel request={taskRequest} onClose={()=>setTaskRequest(null)}/>}
     <PurchaseSession incoming={purchaseIncoming} onIncomingApplied={id=>setPurchaseIncoming(current=>current?.id===id?null:current)} open={purchaseOpen} onClose={()=>setPurchaseOpen(false)}/>

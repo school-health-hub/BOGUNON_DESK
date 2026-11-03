@@ -1,3 +1,4 @@
+import type {AdminBridge} from './admin-protocol.js';
 import type {FinanceBridge} from './finance-protocol.js';
 import type {LocalTaskDocument,LocalTaskLoad} from './local-tasks.js';
 import type {InventoryQaApi} from './inventory-qa-protocol.js';
@@ -34,6 +35,7 @@ export type OfficialDocumentSave=Readonly<{title:string;body:string;attachments:
 export type OfficialDocumentImported=Readonly<{sourceName:string;format:"pdf"|"hwpx"|"odt";text:string}>;
 export type InventoryQaStatus = { mode: "local-qa"; authGateway: "reachable" | "unavailable"; inventoryConnection: "blocked"; persisted: false };
 export interface WorkBridge {
+ readonly admin?:AdminBridge;
  readonly finance?:FinanceBridge;
  readonly ai?:AiBridge;
  readonly tasks:Readonly<{load():Promise<IpcResult<LocalTaskLoad>>;save(document:LocalTaskDocument,expectedRevision:number):Promise<IpcResult<LocalTaskLoad>>}>;

@@ -42,15 +42,20 @@ export class ExcelService {
  analyze(path:string,signal:AbortSignal){return this.track(this.analyzeFile(path,signal,['.xlsx','.xls']));}
  analyzePdf(path:string,signal:AbortSignal){return this.track(this.analyzeFile(path,signal,['.pdf']));}
  private async analyzeFile(path:string,signal:AbortSignal,extensions:readonly string[]):Promise<PurchaseAnalysisResult>{
+  const result=await this.snapshotFile(path,signal,extensions,'analyze',decodeAnalysis),sourceName=basename(path);
+  return {...result,items:result.items.map(i=>({...i,sourceName})),sources:result.sources.map(s=>({...s,sourceName})),candidates:result.candidates.map(c=>({...c,sourceName}))};
+ }
+ private async snapshotFile<T>(path:string,signal:AbortSignal,extensions:readonly string[],operation:string,decode:(value:unknown)=>T):Promise<T>{
   const bytes=await readSelectedPurchaseFile(path,extensions);if(signal.aborted)throw Error('Canceled');
   await mkdir(this.tempRoot,{recursive:true,mode:0o700});const dir=await mkdtemp(join(this.tempRoot,'request-'));
   try{
    const snapshot=join(dir,`input${extname(path).toLowerCase()}`);await writeFile(snapshot,bytes,{flag:'wx',mode:0o600});
-   const result=await runExcelCli(this.executable,{operation:'analyze',path:snapshot},signal);
-   const sourceName=basename(path);
-   return {...result,items:result.items.map(i=>({...i,sourceName})),sources:result.sources.map(s=>({...s,sourceName})),candidates:result.candidates.map(c=>({...c,sourceName}))};
+   return await runExcelCli(this.executable,{operation,path:snapshot},signal,30_000,spawn,decode);
   }finally{await rm(dir,{recursive:true,force:true});}
  }
+ table<T>(path:string,signal:AbortSignal,decode:(value:unknown)=>T){return this.track(this.snapshotFile(path,signal,['.xlsx'],'adminTable',decode));}
+ review<T>(headers:readonly string[],rows:readonly (readonly string[])[],signal:AbortSignal,decode:(value:unknown)=>T){return this.track(runExcelCli(this.executable,{operation:'adminReview',headers,rows},signal,30_000,spawn,decode));}
+
  map(candidate:PurchaseMappingCandidate,headerRow:number,mapping:PurchaseColumnMapping,signal:AbortSignal){return this.track(runExcelCli(this.executable,{operation:'map',candidate,headerRow,mapping},signal));}
 }
 

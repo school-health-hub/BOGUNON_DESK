@@ -1,3 +1,5 @@
+import {AdminStore} from './admin-store.js';
+import {createAdminHandlers} from './admin-ipc.js';
 import {FinanceProcess} from './finance-process.js';
 import {FinanceService,createFinanceHandlers} from './finance-ipc.js';
 import {AiService,createAiHandlers} from './ai-service.js';
@@ -17,7 +19,7 @@ import { ExcelService } from './purchase-excel.js';
 import { createExcelHandlers } from './purchase-excel-ipc.js';
 import { createPurchaseImportHandlers } from './purchase-import.js';
 import { createPurchaseClipboardHandler } from './purchase-clipboard.js';
-import { app, BrowserWindow, ipcMain, session, Menu, Tray, nativeImage, screen, dialog, clipboard, ClipboardItem, safeStorage } from 'electron';
+import { app, BrowserWindow, ipcMain, session, Menu, Tray, nativeImage, screen, dialog, clipboard, ClipboardItem, safeStorage, shell } from 'electron';
 import { join } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
@@ -45,6 +47,7 @@ const store = new SettingsStore(join(userData,'poc-settings'));
 const taskStore=new LocalTaskStore(join(userData,'work-data','local-tasks'));
 const memoStore=new MemoStore(join(userData,'work-data','quick-memo'));
 const educationVideoStore=new EducationVideoLibraryStore(join(userData,'work-data','education-video'));
+const adminStore=new AdminStore(join(userData,'work-data','school-admin'));
 const inventoryStore=new InventoryStore(join(userData,'work-data','inventory'));
 let quitting = false;
 if (!app.requestSingleInstanceLock()) app.quit();
@@ -106,6 +109,13 @@ else {
   ipcMain.handle('p2:official-document:pick',officialFiles.pick);ipcMain.handle('p2:official-document:save',officialFiles.save);ipcMain.handle('p2:official-document:cancel',officialFiles.cancel);
   window.on('close',officialFiles.dispose);app.on('before-quit',officialFiles.dispose);
   const excelService=new ExcelService(app.isPackaged?join(process.resourcesPath,'purchase-excel-cli','purchase-excel-cli.exe'):join(app.getAppPath(),'../../tools/purchase-excel-cli/target/debug',process.platform==='win32'?'purchase-excel-cli.exe':'purchase-excel-cli'),join(userData,'work-data','purchase-import-tmp'));
+  const adminHandlers=createAdminHandlers(window.webContents,url,{store:adminStore,excel:excelService,protectedRoot:userData,
+   pick:async()=>{const r=await dialog.showOpenDialog(window,{title:'학교 행정 검토용 CSV/XLSX 선택',properties:['openFile','dontAddToRecent'],filters:[{name:'검토용 표',extensions:['csv','xlsx']}]});return r.canceled?undefined:r.filePaths[0];},
+   save:async()=>{const r=await dialog.showSaveDialog(window,{title:'학교 행정 검토용 CSV 저장',defaultPath:'학교행정_검토용.csv',properties:['dontAddToRecent'],filters:[{name:'검토용 CSV',extensions:['csv']}]});return r.canceled?undefined:r.filePath;},
+   openExternal:target=>shell.openExternal(target,{activate:true}),copy:text=>clipboard.writeText(text),
+   review:async(message,text)=>(await dialog.showMessageBox(window,{type:'question',message,detail:'인증정보와 개인정보가 없는지 검토하세요. 로그인 자동화·실제 신청·상신은 하지 않습니다.\n\n'+text,buttons:['취소','확인 후 진행'],defaultId:0,cancelId:0})).response===1});
+  for(const [action,handler] of Object.entries(adminHandlers))if(action!=='dispose'&&action!=='flush')ipcMain.handle(`p2:admin:${action}`,handler);
+  window.on('close',adminHandlers.dispose);window.webContents.on('will-navigate',adminHandlers.dispose);window.webContents.on('render-process-gone',adminHandlers.dispose);
   const purchaseExport=createPurchaseExportHandler(window.webContents,url,{review:async summary=>(await dialog.showMessageBox(window,{type:'question',message:'선택 품목·수량·단가·합계를 확인하고 출력할까요?',detail:summary,buttons:['취소','확인 후 저장 위치 선택'],defaultId:0,cancelId:0})).response===1,generate:(request,signal)=>excelService.generateExport(request,signal),pick:async format=>{const r=await dialog.showSaveDialog(window,{title:'구매 품목 출력 저장',defaultPath:purchaseExportFileName(format),filters:[{name:format==='csv'?'CSV':'Excel',extensions:[format]}],properties:['dontAddToRecent']});return r.canceled?undefined:r.filePath;},confirm:async()=>(await dialog.showMessageBox(window,{type:'warning',message:'선택한 기존 파일을 덮어쓸까요?',detail:'저장 직전에 변경 여부를 다시 확인합니다. 다른 프로그램에서 편집 중이면 취소하고 새 파일로 저장해 주세요.',buttons:['취소','덮어쓰기'],defaultId:0,cancelId:0})).response===1});
   ipcMain.handle('p2:purchase:export',purchaseExport.handle);
   window.on('close',purchaseExport.dispose);app.on('before-quit',purchaseExport.dispose);
@@ -177,7 +187,7 @@ else {
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
-  const quit=()=>{if(quitting)return;quitting=true;officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([financeService.close(),store.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
+  const quit=()=>{if(quitting)return;quitting=true;adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([adminStore.flush(),financeService.close(),store.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
       {label:'창 열기',click:show},{label:'최소화',click:()=>window.minimize()},
