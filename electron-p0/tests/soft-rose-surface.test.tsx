@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import {useState} from 'react';
+import {useState,useRef} from 'react';
 import {afterEach,expect,it,vi} from 'vitest';
 import {cleanup,fireEvent,render,screen} from '@testing-library/react';
 import {SurfaceDialog} from '../renderer/SurfaceDialog';
@@ -21,3 +21,19 @@ it('presents only existing settings groups and switches the visible editor',()=>
  expect(screen.queryByRole('button',{name:'자동 로그인'})).toBeNull();
 });
 it('does not invoke a close callback on unrelated typing',()=>{const close=vi.fn();render(<SurfaceDialog title="메모" onClose={close}><textarea aria-label="메모 입력"/></SurfaceDialog>);fireEvent.keyDown(screen.getByLabelText('메모 입력'),{key:'a'});expect(close).not.toHaveBeenCalled()});
+
+it.each(['빠른 메모','업무 도구'])('%s is nonmodal: no inert background, trap or modal claim',title=>{
+ const close=vi.fn();const view=render(<><button>배경 Dock</button><SurfaceDialog title={title} modal={false} onClose={close}><button>패널 마지막</button></SurfaceDialog></>);
+ const dialog=screen.getByRole('dialog',{name:title});expect(dialog.hasAttribute('aria-modal')).toBe(false);expect(view.container.inert??false).toBe(false);
+ const last=screen.getByText('패널 마지막');last.focus();const tab=new KeyboardEvent('keydown',{key:'Tab',bubbles:true,cancelable:true});last.dispatchEvent(tab);expect(tab.defaultPrevented).toBe(false);
+ const background=screen.getByText('배경 Dock');background.focus();fireEvent.keyDown(background,{key:'Escape'});expect(close).not.toHaveBeenCalled();
+ last.focus();fireEvent.keyDown(last,{key:'Escape'});expect(close).toHaveBeenCalledTimes(1);
+});
+it('does not restore a hidden Settings invoker during Newsletter handoff',()=>{
+ function Host(){const [open,setOpen]=useState(false),[newsletter,setNewsletter]=useState(false);const allow=useRef(true);return <><div hidden={newsletter}><button onClick={()=>{allow.current=true;setOpen(true)}}>설정 호출자</button></div>{open&&<SurfaceDialog title="설정" shouldRestoreFocus={()=>allow.current} onClose={()=>setOpen(false)}><button onClick={()=>{allow.current=false;setOpen(false);setNewsletter(true)}}>보건소식지 제작소</button></SurfaceDialog>}{newsletter&&<button>소식지 작업실</button>}</>}
+ render(<Host/>);const invoker=screen.getByText('설정 호출자');invoker.focus();fireEvent.click(invoker);const restore=vi.spyOn(invoker,'focus');fireEvent.click(screen.getByText('보건소식지 제작소'));expect(restore).not.toHaveBeenCalled();expect(document.activeElement).not.toBe(invoker);
+});
+it('excludes hidden editor controls from modal tab endpoints',()=>{
+ render(<SurfaceDialog title="설정" onClose={()=>{}}><div style={{display:'none'}}><button>숨긴 닫기</button></div><button>보이는 마지막</button></SurfaceDialog>);
+ const first=screen.getByRole('button',{name:'설정 닫기'});first.focus();fireEvent.keyDown(first,{key:'Tab',shiftKey:true});expect(document.activeElement).toBe(screen.getByText('보이는 마지막'));
+});

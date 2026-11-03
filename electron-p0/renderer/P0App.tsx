@@ -7,7 +7,7 @@ import {InventoryEntryButtons} from './inventory-preview/InventoryEntryButtons';
 import { PurchaseSession } from './purchase/PurchaseSession';
 import { PersistentMemoProvider } from './adapters/PersistentMemo';
 import { SyntheticIpcSample } from './SyntheticIpcSample';
-import { useEffect, useState, lazy, Suspense } from 'react';
+import { useEffect, useRef, useState, lazy, Suspense } from 'react';
 import type { P0Info } from '../protocol';
 import { DesktopWidgetLayout } from '../../src/components/dashboard/DesktopWidgetLayout';
 import { DashboardToolbar } from '../../src/components/dashboard/DashboardToolbar';
@@ -68,6 +68,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   const [status,setStatus] = useState('불러오는 중');
   const [editing,setEditing] = useState(false), [panel,setPanel] = useState<DashboardEditorPanel>(null);
   const [selected,setSelected] = useState<string | null>(null), [active,setActive] = useState<DesktopActionId>('home');
+  const settingsHandoffRef=useRef(false);
   const [notice,setNotice] = useState<string | null>(null);
   const {ref,width} = useElementWidth(); const vh=useViewportHeight(), vw=useViewportWidth();
   const geometry=resolveDeskGeometry(layout,vw);
@@ -83,7 +84,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   const navigate=(id:DesktopActionId)=>{
     if(id==='official-document'){setOfficialDocumentOpen(true);setActive('home');setEditing(false);setPanel(null);setNotice(null);return;}
     if(id==='purchase-helper'){setPurchaseOpen(true);setActive('home');setPanel(null);setNotice(null);return;}
-    if(['home','settings','quick-memo','toolbox'].includes(id)){setActive(id);setPanel(null);setEditing(false);setNotice(null)}else excluded();
+    if(['home','settings','quick-memo','toolbox'].includes(id)){if(id==='settings')settingsHandoffRef.current=false;setActive(id);setPanel(null);setEditing(false);setNotice(null)}else excluded();
   };
   return <WidgetSessionProvider><PersistentMemoProvider><DesktopPanelProvider notify={setNotice} openInbox={excluded} openBogunonTask={async()=>excluded()} openQuickAddEventForDate={excluded} openQuickAddFromMemo={excluded} openQuickMemoUrl={async()=>excluded()} runDesktopAction={async id=>navigate(id)} workFolderFavorites={[]} openWorkFolderFavorite={async()=>excluded()}>
     <div hidden={newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen} style={{display:newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen?"none":undefined}} className={`app-shell workspace-shell ${editing?'is-edit-mode':'is-view-mode'} bg-${layout.appearance.background} card-${layout.appearance.cardStyle} corner-${layout.appearance.cornerStyle}`}>
@@ -96,8 +97,8 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
       {editing&&panel==='appearance'&&<AppearancePanel appearance={layout.appearance} onClose={()=>setPanel(null)} onUpdate={appearance=>setLayout({...layout,appearance})}/>}
       {editing&&panel==='presets'&&<PresetSelector currentPresetId={layout.presetId} onClose={()=>setPanel(null)} onApply={id=>setLayout(applyPreset(layout,id,window.confirm))}/>}
       {editing&&panel==='dock'&&<DockEditor dockLayout={dock} onClose={()=>setPanel(null)} onUpdate={setDock}/>}
-      {active!=='home'&&<SurfaceDialog title={active==='settings'?'설정':active==='quick-memo'?'빠른 메모':'업무 도구'} onClose={()=>navigate('home')}>
-        {active==='quick-memo'?<MemoWidget/>:active==='settings'?<SurfaceSettings saveStatus={status} appearance={<AppearancePanel appearance={layout.appearance} onClose={()=>navigate('home')} onUpdate={appearance=>setLayout({...layout,appearance})}/>} widgets={<WidgetLibraryDrawer widgets={layout.widgets} onClose={()=>navigate('home')} onRestore={type=>setLayout(restoreWidget({...layout,widgets:geometry.widgets},type))}/>} dock={<DockEditor dockLayout={dock} onClose={()=>navigate('home')} onUpdate={setDock}/>} about={<><button type="button" onClick={()=>{setActive("home");setNewsletterLoaded(true);setNewsletterOpen(true);}}>보건소식지 제작소</button><SyntheticIpcSample/><p>앱 ID: {info?.appId}</p><p>PoC 저장 위치: {info?.userData}</p><p>소스: {info?.sourceSha}</p><p>Electron: {info?.electron}</p><p>자동 업데이트·로그인·운영 데이터 접근 API 없음</p></>}/>:<><div className="p0-tools-grid"><ToolCard icon={ShoppingCart} label="품의 도우미 · 세션 전용" description="품목 계산과 품의문 작성" onClick={()=>{setActive("home");setPurchaseOpen(true);}}/><ToolCard icon={Search} label="교육영상 Finder · 합성 Mock" description="교육영상 검색과 보관함" onClick={()=>{setActive('home');setEducationVideoOpen(true);}}/><ToolCard icon={FileText} label="공문작업실 · 로컬 초안" description="공문 편집과 파일 가져오기·저장" onClick={()=>{setActive('home');setOfficialDocumentOpen(true);}}/>{import.meta.env.DEV&&<ToolCard icon={Database} label="물품관리 — 로컬 QA" description="개발 전용 격리 환경 연결" onClick={()=>{setInventoryOpen(false);setInventoryQaOpen(true);}}/>}<InventoryEntryButtons onSelect={mode=>{setActive('home');setInventoryMode(mode);setInventoryOpen(true);}}/></div></>}
+      {active!=='home'&&<SurfaceDialog key={active} modal={active==='settings'} shouldRestoreFocus={()=>active!=='settings'||!settingsHandoffRef.current} title={active==='settings'?'설정':active==='quick-memo'?'빠른 메모':'업무 도구'} onClose={()=>navigate('home')}>
+        {active==='quick-memo'?<MemoWidget/>:active==='settings'?<SurfaceSettings saveStatus={status} appearance={<AppearancePanel appearance={layout.appearance} onClose={()=>navigate('home')} onUpdate={appearance=>setLayout({...layout,appearance})}/>} widgets={<WidgetLibraryDrawer widgets={layout.widgets} onClose={()=>navigate('home')} onRestore={type=>setLayout(restoreWidget({...layout,widgets:geometry.widgets},type))}/>} dock={<DockEditor dockLayout={dock} onClose={()=>navigate('home')} onUpdate={setDock}/>} about={<><button type="button" onClick={()=>{settingsHandoffRef.current=true;setActive("home");setNewsletterLoaded(true);setNewsletterOpen(true);}}>보건소식지 제작소</button><SyntheticIpcSample/><p>앱 ID: {info?.appId}</p><p>PoC 저장 위치: {info?.userData}</p><p>소스: {info?.sourceSha}</p><p>Electron: {info?.electron}</p><p>자동 업데이트·로그인·운영 데이터 접근 API 없음</p></>}/>:<><div className="p0-tools-grid"><ToolCard icon={ShoppingCart} label="품의 도우미 · 세션 전용" description="품목 계산과 품의문 작성" onClick={()=>{setActive("home");setPurchaseOpen(true);}}/><ToolCard icon={Search} label="교육영상 Finder · 합성 Mock" description="교육영상 검색과 보관함" onClick={()=>{setActive('home');setEducationVideoOpen(true);}}/><ToolCard icon={FileText} label="공문작업실 · 로컬 초안" description="공문 편집과 파일 가져오기·저장" onClick={()=>{setActive('home');setOfficialDocumentOpen(true);}}/>{import.meta.env.DEV&&<ToolCard icon={Database} label="물품관리 — 로컬 QA" description="개발 전용 격리 환경 연결" onClick={()=>{setInventoryOpen(false);setInventoryQaOpen(true);}}/>}<InventoryEntryButtons onSelect={mode=>{setActive('home');setInventoryMode(mode);setInventoryOpen(true);}}/></div></>}
       </SurfaceDialog>}
       {notice&&<div className="p0-notice" role="status">{notice}<button onClick={()=>setNotice(null)}>닫기</button></div>}
       <span className="p0-save" role="status" data-p0-save>{status}</span>

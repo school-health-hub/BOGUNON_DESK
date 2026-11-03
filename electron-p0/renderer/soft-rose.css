@@ -87,3 +87,20 @@
  .electron-soft-rose .workspace-shell:is(.is-view-mode,.is-edit-mode) .react-grid-item[data-widget-type=today-summary] .summary-stats>div{display:flex;flex-wrap:wrap;gap:4px;align-content:start}
  .electron-soft-rose .workspace-shell .react-grid-item[data-widget-type=today-summary] .summary-stats :is(strong,span){white-space:normal;overflow-wrap:anywhere}
 }
+
+/* INT-EL-04F usability only: nonmodal panels leave the visible Surface interactive. */
+.electron-soft-rose .rose-overlay.is-nonmodal{background:transparent;pointer-events:none}
+.electron-soft-rose .rose-overlay.is-nonmodal .rose-dialog{pointer-events:auto}
+@media(max-height:720px) and (min-width:821px){
+ .electron-soft-rose .workspace-shell:is(.is-view-mode,.is-edit-mode){display:grid;grid-template-rows:minmax(0,1fr) auto;row-gap:8px;box-sizing:border-box;height:100dvh;min-height:0;overflow:hidden;padding-bottom:0}
+ .electron-soft-rose .workspace-shell:is(.is-view-mode,.is-edit-mode) .workspace-dashboard{height:100%;min-height:0;overflow-y:auto;padding-bottom:18px;scroll-padding-bottom:18px}
+ .electron-soft-rose .workspace-shell .workspace-grid{min-height:620px}
+ .electron-soft-rose .workspace-shell .dock-zone{position:static;inset:auto;width:max-content;max-width:calc(100% - 32px);margin:0 auto 10px;transform:none}
+ .electron-soft-rose .workspace-shell .quick-launcher__actions>button>span:nth-child(2){white-space:normal;word-break:keep-all;overflow-wrap:anywhere;overflow:visible;text-overflow:clip}
+ .electron-soft-rose .workspace-shell [data-widget-type=quick-memo] fieldset{min-width:0;max-width:100%;overflow-x:hidden!important}
+ .electron-soft-rose .workspace-shell .quick-memo-editor.is-widget{box-sizing:border-box;width:100%;min-width:0;max-width:100%;overflow-x:hidden}
+ .electron-soft-rose .workspace-shell .quick-memo-editor.is-widget textarea{box-sizing:border-box;max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;overflow-x:hidden;overflow-y:auto}
+ .electron-soft-rose .workspace-shell .quick-memo-editor.is-widget .quick-memo-actions{flex-wrap:wrap}
+ .electron-soft-rose .workspace-shell .react-grid-item[data-widget-type=clock] :is(.widget-frame__body,.date-card){overflow:hidden}
+ .electron-soft-rose .workspace-shell .react-grid-item[data-widget-type=clock] .date-card>*{min-width:0;max-width:100%}
+}

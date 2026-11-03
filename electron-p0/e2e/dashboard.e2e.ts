@@ -122,3 +122,34 @@ test('CLOUD-G0: one isolated Electron instance opens every integrated entry',asy
   await page.screenshot({path:'artifacts/electron-p0-e2e/cloud-g0-entries.png'});
  }finally{await app.close();}
 });
+
+test('INT-EL-05C: Soft Rose independent Dock row, Settings handoff and nonmodal contracts',async()=>{
+ const app=await launch(randomUUID());
+ try{
+  const page=await app.firstWindow();const dock=page.getByRole('navigation',{name:'주요 기능'});
+  await expect(dock).toBeVisible();
+  for(const [width,height] of [[980,700],[1440,900]]){
+   await app.evaluate(({BrowserWindow},size)=>BrowserWindow.getAllWindows()[0].setSize(size.width,size.height),{width,height});
+   await expect.poll(()=>app.evaluate(({BrowserWindow})=>{const b=BrowserWindow.getAllWindows()[0].getBounds();return {width:b.width,height:b.height}})).toEqual({width,height});
+   const layout=await page.evaluate(()=>{const main=document.querySelector<HTMLElement>('.workspace-dashboard')!,dock=document.querySelector<HTMLElement>('.dock-zone')!,shell=document.querySelector<HTMLElement>('.workspace-shell')!;return {main:main.getBoundingClientRect().toJSON(),dock:dock.getBoundingClientRect().toJSON(),innerHeight,position:getComputedStyle(dock).position,scroll:getComputedStyle(main).overflowY,shellOverflow:shell.scrollWidth>innerWidth};});
+   expect(layout.shellOverflow).toBe(false);expect(layout.scroll).toBe('auto');
+   if(width===980){expect(layout.position).toBe('static');expect(layout.main.bottom).toBeLessThanOrEqual(layout.dock.top);expect(layout.dock.bottom).toBeLessThanOrEqual(layout.innerHeight);}
+   else expect(layout.position).toBe('fixed');
+   const main=page.locator('.workspace-dashboard');await main.evaluate(el=>{el.scrollTop=el.scrollHeight});expect(await main.evaluate(el=>el.scrollTop+el.clientHeight>=el.scrollHeight-1)).toBe(true);
+   const memo=page.locator('[data-widget-type="quick-memo"]');await memo.scrollIntoViewIfNeeded();expect(await memo.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+   await main.evaluate(el=>{el.scrollTop=0});
+   const clock=await page.locator('[data-widget-type="clock"] .date-card').evaluate(el=>{const time=el.querySelector<HTMLElement>('.date-card__time')!,date=el.querySelector<HTMLElement>('.date-card__date')!;return {text:time.textContent,timeWidth:time.clientWidth,timeScroll:time.scrollWidth,dateWidth:date.clientWidth,dateScroll:date.scrollWidth};});expect(clock.text).toMatch(/\d{2}:\d{2}/);expect(clock.timeScroll).toBeLessThanOrEqual(clock.timeWidth+1);expect(clock.dateScroll).toBeLessThanOrEqual(clock.dateWidth+1);
+   await page.screenshot({path:`artifacts/electron-p0-e2e/int-el05c-${width}x${height}.png`});
+  }
+  const settings=dock.getByRole('button',{name:'설정',exact:true});await settings.click();const modal=page.getByRole('dialog',{name:'설정',exact:true});await expect(modal).toHaveAttribute('aria-modal','true');
+  const close=modal.getByRole('button',{name:'설정 닫기'});await expect(close).toBeFocused();await page.keyboard.press('Shift+Tab');expect(await modal.evaluate(el=>el.contains(document.activeElement))).toBe(true);await page.keyboard.press('Tab');await expect(close).toBeFocused();
+  await page.keyboard.press('Escape');await expect(settings).toBeFocused();
+  await settings.click();await modal.getByRole('navigation',{name:'설정 카테고리'}).getByRole('button',{name:'앱 정보',exact:true}).click();await modal.getByRole('button',{name:'보건소식지 제작소',exact:true}).click();
+  await expect(page.getByRole('region',{name:'보건소식지 제작소',exact:true})).toBeVisible();expect(await page.evaluate(()=>document.activeElement===document.querySelector('[data-dock-item="settings"]'))).toBe(false);
+  await page.getByRole('button',{name:'보건 업무로',exact:true}).click();
+  for(const name of ['빠른 메모','업무 도구']){
+   await dock.getByRole('button',{name,exact:true}).click();const panel=page.getByRole('dialog',{name,exact:true});await expect(panel).not.toHaveAttribute('aria-modal','true');expect(await page.locator('#root').evaluate(el=>(el as HTMLElement).inert)).toBe(false);
+   await dock.getByRole('button',{name:'홈',exact:true}).click();await expect(dock.getByRole('button',{name:'홈',exact:true})).toBeFocused();await expect(panel).toHaveCount(0);await dock.getByRole('button',{name,exact:true}).click();await page.keyboard.press('Escape');await expect(panel).toHaveCount(0);await expect(dock.getByRole('button',{name,exact:true})).toBeFocused();
+  }
+ }finally{await app.close();}
+});
