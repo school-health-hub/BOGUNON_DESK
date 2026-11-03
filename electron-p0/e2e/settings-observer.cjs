@@ -10,8 +10,8 @@ for(const name of ['readFile','open','rename','unlink']){
  fsp[name]=async function(...args){
   const observed=target(args[0])||target(args[1]);
   if(observed)emit('fs-start',{op:name,file:path.basename(String(args[0])),...(name==='rename'?{dest:path.basename(String(args[1]))}:{})});
-  try{const result=await original.apply(this,args);if(observed)emit('fs-ok',{op:name});return result;}
-  catch(error){if(observed){emit('fs-error',{op:name,code:error.code??'UNKNOWN',syscall:error.syscall??'UNKNOWN'});console.log(`::notice title=SETTINGS_FS_ERROR::op=${name} code=${error.code??'UNKNOWN'} syscall=${error.syscall??'UNKNOWN'}`);}throw error;}
+  try{if(observed&&name==='rename'&&global.__settingsQaDenyRename)throw Object.assign(new Error('QA injected permanent replacement denial'),{code:'EPERM',syscall:'rename'});const result=await original.apply(this,args);if(observed)emit('fs-ok',{op:name});return result;}
+  catch(error){if(observed){emit('fs-error',{op:name,code:error.code??'UNKNOWN',syscall:error.syscall??'UNKNOWN',injected:!!global.__settingsQaDenyRename});console.log(`::notice title=SETTINGS_FS_ERROR::op=${name} code=${error.code??'UNKNOWN'} syscall=${error.syscall??'UNKNOWN'}`);}throw error;}
  };
 }
 syncBuiltinESMExports();
