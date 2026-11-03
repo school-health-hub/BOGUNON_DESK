@@ -107,8 +107,8 @@
 }
 
 /* Material treatment is independent from saved widget geometry and content. */
-.electron-soft-rose .workspace-shell:is(.is-view-mode,.is-edit-mode) .react-grid-item[data-widget-type] .widget-frame:is(.is-viewing,.is-editing){background:var(--rose-glass-panel);border-color:var(--rose-glass-border);box-shadow:var(--rose-glass-shadow);backdrop-filter:var(--rose-glass-blur);-webkit-backdrop-filter:var(--rose-glass-blur)}
-.electron-soft-rose .workspace-shell :is(.workspace-toolbar,.workspace-view-actions,.dock){background:var(--rose-glass-chrome);border-color:var(--rose-glass-border);box-shadow:var(--rose-glass-shadow);backdrop-filter:var(--rose-glass-blur);-webkit-backdrop-filter:var(--rose-glass-blur)}
+.electron-soft-rose .workspace-shell:is(.is-view-mode,.is-edit-mode) .react-grid-item[data-widget-type] .widget-frame:is(.is-viewing,.is-editing){background:var(--rose-glass-panel);border-color:var(--rose-glass-border);box-shadow:var(--rose-glass-shadow);-webkit-backdrop-filter:var(--rose-glass-blur);backdrop-filter:var(--rose-glass-blur)}
+.electron-soft-rose .workspace-shell :is(.workspace-toolbar,.workspace-view-actions,.dock){background:var(--rose-glass-chrome);border-color:var(--rose-glass-border);box-shadow:var(--rose-glass-shadow);-webkit-backdrop-filter:var(--rose-glass-blur);backdrop-filter:var(--rose-glass-blur)}
 .electron-soft-rose .workspace-shell.card-soft{--rose-glass-shadow:inset 0 1px 0 rgb(255 255 255 / 90%),0 12px 32px rgb(91 41 61 / 12%)}
 .electron-soft-rose .workspace-shell.card-flat{--rose-glass-panel:var(--rose-glass-solid);--rose-glass-chrome:var(--rose-glass-solid);--rose-glass-blur:none;--rose-glass-shadow:none}
 .electron-soft-rose .workspace-shell.card-flat:is(.is-view-mode,.is-edit-mode) .react-grid-item[data-widget-type] .widget-frame:is(.is-viewing,.is-editing){box-shadow:none}
