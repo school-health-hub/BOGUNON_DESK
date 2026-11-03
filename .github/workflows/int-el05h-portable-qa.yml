@@ -1,4 +1,4 @@
-name: INT-EL-05I native HWND Portable usability QA
+name: INT-EL-07B Finder export reproduction only
 on:
   workflow_dispatch:
     inputs:
@@ -10,11 +10,11 @@ permissions:
   contents: read
   actions: read
 concurrency:
-  group: int-el05i-original-portable
+  group: int-el07b-original-portable
   cancel-in-progress: false
 jobs:
   diagnostic:
-    if: github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/qa/int-el05i-native-window' && github.sha == inputs.expected_qa_sha
+    if: github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/qa/int-el07b-finder-export' && github.sha == inputs.expected_qa_sha
     runs-on: windows-latest
     timeout-minutes: 15
     steps:
@@ -49,14 +49,14 @@ jobs:
         run: |
           npm install --prefix .qa-runtime --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.64.1
           if ($LASTEXITCODE -ne 0) { throw 'QA client installation failed' }
-      - name: Original Portable execution with native HWND control and CDP DOM QA
+      - name: Original Portable Finder export reproduction (no product build)
         shell: pwsh
         run: ./scripts/qa/int-el05h-portable.ps1 -InputDirectory original-artifact -OutputDirectory diagnostic-output
       - name: Preserve diagnostic evidence only (original EXE stays in source artifact)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: INT-EL-05I-usability-${{ github.sha }}
+          name: INT-EL-07B-finder-${{ github.sha }}
           path: diagnostic-output/
           if-no-files-found: warn
           retention-days: 7
