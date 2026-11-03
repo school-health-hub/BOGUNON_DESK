@@ -20,6 +20,14 @@ it('presents only existing settings groups and switches the visible editor',()=>
  expect(screen.getByRole('button',{name:'Dock'}).getAttribute('aria-pressed')).toBe('true');
  expect(screen.queryByRole('button',{name:'자동 로그인'})).toBeNull();
 });
+it('explains the existing flat-style reduced effects option without adding a storage setting',()=>{
+ render(<SurfaceSettings saveStatus="설정 저장됨" appearance={<button>기존 배경 옵션</button>} widgets={<p>기존 위젯 목록</p>} dock={<p>기존 Dock 순서</p>} about={<p>소스 정보</p>}/>);
+ expect(screen.getByText(/저사양 PC에서는 위젯 스타일을 플랫으로/)).toBeTruthy();
+ expect(screen.queryByRole('checkbox',{name:/투명/})).toBeNull();
+ fireEvent.click(screen.getByRole('button',{name:'Dock'}));
+ expect(screen.queryByText(/저사양 PC에서는 위젯 스타일을 플랫으로/)).toBeNull();
+ expect(screen.getByText('기존 Dock 순서')).toBeTruthy();
+});
 it('does not invoke a close callback on unrelated typing',()=>{const close=vi.fn();render(<SurfaceDialog title="메모" onClose={close}><textarea aria-label="메모 입력"/></SurfaceDialog>);fireEvent.keyDown(screen.getByLabelText('메모 입력'),{key:'a'});expect(close).not.toHaveBeenCalled()});
 
 it.each(['빠른 메모','업무 도구'])('%s is nonmodal: no inert background, trap or modal claim',title=>{

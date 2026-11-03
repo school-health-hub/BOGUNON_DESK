@@ -1,4 +1,5 @@
 /* Electron-only theme: no layout IDs, persisted appearance enums or business styles changed. */
+.electron-soft-rose{--rose-glass-panel:rgb(255 253 254 / 78%);--rose-glass-chrome:rgb(255 249 252 / 84%);--rose-glass-solid:#fffdfd;--rose-glass-border:rgb(138 63 91 / 17%);--rose-glass-blur:blur(18px) saturate(1.12);--rose-glass-shadow:inset 0 1px 0 rgb(255 255 255 / 86%),0 8px 24px rgb(91 41 61 / 8%)}
 .electron-soft-rose .workspace-shell,.electron-soft-rose .rose-dialog{--desk-bg:#fff8fa;--workspace-bg:#fff8fa;--widget-bg:#fffdfd;--text-primary:#243246;--text-secondary:#626874;--text-muted:#626874;--border:#e9dde2;--divider:#e9dde2;--accent:#8a3f5b;--accent-hover:#713149;--accent-soft:#f7dce4;--control-border:#8a7680;--accent-border:#8a7680;color:#243246;background:#fff8fa}
 .electron-soft-rose .workspace-shell.bg-blue-gray{background:#fff8fa}
 .electron-soft-rose .workspace-shell{padding-top:76px;padding-bottom:120px}
@@ -103,4 +104,26 @@
  .electron-soft-rose .workspace-shell .quick-memo-editor.is-widget .quick-memo-actions{flex-wrap:wrap}
  .electron-soft-rose .workspace-shell .react-grid-item[data-widget-type=clock] :is(.widget-frame__body,.date-card){overflow:hidden}
  .electron-soft-rose .workspace-shell .react-grid-item[data-widget-type=clock] .date-card>*{min-width:0;max-width:100%}
+}
+
+/* Material treatment is independent from saved widget geometry and content. */
+.electron-soft-rose .workspace-shell:is(.is-view-mode,.is-edit-mode) .react-grid-item[data-widget-type] .widget-frame:is(.is-viewing,.is-editing){background:var(--rose-glass-panel);border-color:var(--rose-glass-border);box-shadow:var(--rose-glass-shadow);backdrop-filter:var(--rose-glass-blur);-webkit-backdrop-filter:var(--rose-glass-blur)}
+.electron-soft-rose .workspace-shell :is(.workspace-toolbar,.workspace-view-actions,.dock){background:var(--rose-glass-chrome);border-color:var(--rose-glass-border);box-shadow:var(--rose-glass-shadow);backdrop-filter:var(--rose-glass-blur);-webkit-backdrop-filter:var(--rose-glass-blur)}
+.electron-soft-rose .workspace-shell.card-soft{--rose-glass-shadow:inset 0 1px 0 rgb(255 255 255 / 90%),0 12px 32px rgb(91 41 61 / 12%)}
+.electron-soft-rose .workspace-shell.card-flat{--rose-glass-panel:var(--rose-glass-solid);--rose-glass-chrome:var(--rose-glass-solid);--rose-glass-blur:none;--rose-glass-shadow:none}
+.electron-soft-rose .workspace-shell.card-flat:is(.is-view-mode,.is-edit-mode) .react-grid-item[data-widget-type] .widget-frame:is(.is-viewing,.is-editing){box-shadow:none}
+.electron-soft-rose .rose-material-note{padding:12px 14px;border:1px solid var(--rose-glass-border);border-radius:12px;background:#fff4f8;color:#626874;font-size:13px;line-height:1.6}
+/* Only a trusted Main material response enables a clear renderer canvas. This
+   is a native ordinary-window material request, never proof of WorkerW attach. */
+html.electron-native-glass,html.electron-native-glass body,html.electron-native-glass #root{background:transparent}
+html.electron-native-glass .electron-soft-rose .workspace-shell{background:transparent}
+html.electron-native-glass .electron-soft-rose .workspace-shell::before,html.electron-native-glass .electron-soft-rose .workspace-shell::after{background:none}
+@media(prefers-reduced-transparency:reduce){
+ .electron-soft-rose,.electron-soft-rose .workspace-shell.card-soft{--rose-glass-panel:var(--rose-glass-solid);--rose-glass-chrome:var(--rose-glass-solid);--rose-glass-blur:none;--rose-glass-shadow:none}
+ html.electron-native-glass,html.electron-native-glass body,html.electron-native-glass #root,html.electron-native-glass .electron-soft-rose .workspace-shell{background:#fff8fa}
+}
+@media(forced-colors:active){
+ .electron-soft-rose,.electron-soft-rose .workspace-shell.card-soft{--rose-glass-panel:Canvas;--rose-glass-chrome:Canvas;--rose-glass-blur:none;--rose-glass-shadow:none;--rose-glass-border:CanvasText}
+ html.electron-native-glass,html.electron-native-glass body,html.electron-native-glass #root,html.electron-native-glass .electron-soft-rose .workspace-shell{background:Canvas}
+ .electron-soft-rose .workspace-shell :is(.widget-frame,.dock,.workspace-toolbar,.workspace-view-actions){color:CanvasText;forced-color-adjust:auto}
 }

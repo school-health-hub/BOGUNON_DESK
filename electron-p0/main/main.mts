@@ -21,7 +21,9 @@ import { ExcelService } from './purchase-excel.js';
 import { createExcelHandlers } from './purchase-excel-ipc.js';
 import { createPurchaseImportHandlers } from './purchase-import.js';
 import { createPurchaseClipboardHandler } from './purchase-clipboard.js';
-import { app, BrowserWindow, ipcMain, session, Menu, Tray, nativeImage, screen, dialog, clipboard, ClipboardItem, safeStorage, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, session, Menu, Tray, nativeImage, screen, dialog, clipboard, ClipboardItem, safeStorage, shell, nativeTheme } from 'electron';
+import { release } from 'node:os';
+import { resolveWindowMaterial } from './window-material.js';
 import { join } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
@@ -69,7 +71,11 @@ else {
   isolated.setPermissionCheckHandler(()=>false);
   isolated.on('will-download',event=>event.preventDefault());
   isolated.webRequest.onBeforeRequest((details,callback)=>callback({cancel:!resourceAllowed(details.url,renderer,dev ? new URL(dev).origin : undefined)}));
+  const material = resolveWindowMaterial({platform:process.platform,release:release(),
+    requested:app.commandLine.hasSwitch('desktop-glass'),
+    reducedTransparency:app.commandLine.hasSwitch('reduced-transparency'),highContrast:nativeTheme.shouldUseHighContrastColors});
   const window = new BrowserWindow({ title:PRODUCT_NAME,...fitBounds(desktop.bounds,screen.getAllDisplays().map(d=>d.workArea)),show:false,
+    backgroundMaterial:material.windowMaterial,backgroundColor:material.windowMaterial === 'acrylic' ? '#00000000' : '#fff8fa',
     webPreferences:{ preload:join(app.getAppPath(),'preload','preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webviewTag:false,session:isolated,webSecurity:true } });
   window.webContents.setWindowOpenHandler(()=>({action:'deny'}));
   window.webContents.on('will-navigate',event=>event.preventDefault());
@@ -108,7 +114,7 @@ else {
   for (const channel of ['p0:info','p0:read-settings','p0:write-settings']) ipcMain.handle(channel,async(event,...args: unknown[])=>{
     assertSender(event,window.webContents,url);
     if (args.length !== (channel === 'p0:write-settings' ? 1 : 0)) throw new Error('Invalid PoC IPC arguments');
-    if (channel === 'p0:info') return {appId:APP_ID,productName:PRODUCT_NAME,userData,sourceSha:meta.sourceSha,electron:process.versions.electron};
+    if (channel === 'p0:info') return {appId:APP_ID,productName:PRODUCT_NAME,userData,sourceSha:meta.sourceSha,electron:process.versions.electron,...material};
     if (channel === 'p0:read-settings') return store.read();
     return store.write(args[0]);
   });

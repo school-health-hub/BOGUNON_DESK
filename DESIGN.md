@@ -1,5 +1,11 @@
 # BOGUNON DESK Integrated Work Desk 디자인 시스템
 
+## Electron 2.0 Soft Rose material correction
+
+The earlier exclusion of glass effects is revoked for the Electron UI branch. Keep the existing Minimal Soft Rose palette and widget/layout/data contracts. Use translucent rose-tinted panels, restrained blur and an inset white rim: panel `rgb(255 253 254 / .78)`, chrome `rgb(255 249 252 / .84)`, border `rgb(138 63 91 / .17)`, blur `18px`, saturation `1.12`. Content text stays opaque and readable. Existing flat-card appearance, reduced-transparency preference and forced colors use opaque panels without blur.
+
+CSS glass, a native material request and actual desktop attachment are three separate capabilities. Only a Main-provided Acrylic configuration may select a transparent renderer canvas; ordinary windows retain their Soft Rose backdrop. An Acrylic request is not proof of composited Windows translucency and is not WorkerW attachment. The Electron baseline has no approved HWND parenting bridge: it must report ordinary-window mode and must not substitute always-on-top or claim icon-safe desktop attachment. Reuse the existing Tauri 9B topology/ownership/fallback contracts when that separate Native integration is implemented and verified.
+
 ## Desktop Surface Mode
 
 - 9B-1은 Windows `Progman` / `WorkerW` topology를 읽기만 하는 capability probe다. 앱 창의 parent, style, z-order, taskbar, decorations를 변경하지 않으며 desktop mode의 기본 상태는 일반 창이다.

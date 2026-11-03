@@ -79,6 +79,10 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   const [layout,setLayout] = useState(initial.layout);
   const [dock,setDock] = useState(initial.dock);
   const info=initial.info;
+  useEffect(()=>{
+    document.documentElement.classList.toggle('electron-native-glass',info.windowMaterial==='acrylic');
+    return()=>document.documentElement.classList.remove('electron-native-glass');
+  },[info.windowMaterial]);
   const [status,setStatus] = useState('불러오는 중');
   const [editing,setEditing] = useState(false), [panel,setPanel] = useState<DashboardEditorPanel>(null);
   const [selected,setSelected] = useState<string | null>(null), [active,setActive] = useState<DesktopActionId>('home');
@@ -103,7 +107,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   };
   return <WidgetSessionProvider><LocalWorkspaceProvider><PersistentMemoProvider><DesktopPanelProvider notify={setNotice} openInbox={()=>openTasks()} openBogunonTask={async id=>openTasks({id})} openQuickAddEventForDate={date=>openTasks({date})} openQuickAddFromMemo={title=>openTasks({title})} openQuickMemoUrl={async()=>excluded()} runDesktopAction={async id=>navigate(id)} workFolderFavorites={[]} openWorkFolderFavorite={async()=>excluded()}>
     <div hidden={newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen||financeOpen||adminOpen} style={{display:newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen||financeOpen||adminOpen?"none":undefined}} className={`app-shell workspace-shell ${editing?'is-edit-mode':'is-view-mode'} bg-${layout.appearance.background} card-${layout.appearance.cardStyle} corner-${layout.appearance.cornerStyle}`}>
-      <header className="rose-surface-header"><strong>BOGUNON DESK</strong><SurfaceDate/><span>Electron 전용 로컬 저장 · 운영 서비스·외부 금융 연결 없음</span></header>
+      <header className="rose-surface-header"><strong>BOGUNON DESK</strong><SurfaceDate/><span>내 업무와 일정을 함께 보는 데스크 · 일반 창 모드</span></header>
       <LocalWorkspaceStatus onOpen={()=>openTasks()}/>
       <DashboardToolbar activePanel={panel} isEditing={editing} onOpenPanel={p=>setPanel(panel===p?null:p)} onOpenQuickAdd={()=>openTasks()} onReset={()=>{if(window.confirm('PoC 배치만 기본값으로 되돌릴까요?'))setLayout(createDefaultDashboardLayout())}} onToggleEdit={()=>{setEditing(!editing);setPanel(null);setSelected(null);setActive('home')}}/>
       <main ref={ref} aria-label="보건실 업무 위젯 작업 공간" className={`dashboard workspace-dashboard${metrics.requiresScroll?' is-scrollable':''}${geometry.dense?' is-dense-desk':''}`}>
