@@ -62,4 +62,63 @@ API references: [CreateWindowExW](https://learn.microsoft.com/en-us/windows/win3
 
 ## Actual Windows results
 
-Pending exact-source isolated verification. This document does not claim a selected WorkerW or verified cleanup yet.
+Actual validated source: `b19badae897affbcd9d2b0c1ee67905f75e0a21a`.
+The later checkpoint adds only this report and safe evidence; no source changes inherit unexecuted runtime claims.
+
+**Windows cases: normal PASS; controlled Host-loss (exit 42) PASS.** Each used a fresh process and one own test
+window; failed/previous cases were not retried. EXE digest and source stability were checked around both cases.
+Host digest: `6f3d7f1f7d5de9c51e1ca59219d8a7283643f6df29e18ff8201a37702efc43c2`.
+
+### Candidate result: UNKNOWN / live admission BLOCKED
+
+15 WorkerW windows were classified in each case. Existing policy-qualified candidates: **0**.
+All 15 failed visibility and following-DefView-host Z-order conditions; 3 also failed Explorer process identity,
+and 1 failed nonempty-bounds qualification. All 15 had matching DPI/monitor observations for this test target;
+individual identities and topology were stable. Other predicate failure counts were zero. These are observations
+of this Windows session only; neither the count nor these relationships justify a universal Shell layout rule.
+No first/index-based candidate was selected, no WorkerW was generated/shown/reparented, no policy was relaxed.
+The normal case remained CandidateNotVerified. Preparing an eligible Shell target by mutation was outside approval.
+
+### Own test-window and baseline: PASS
+
+Actual creator PID/TID/creation/session/HWND and existing generation tag were verified. Duplicate creation and
+foreign Shell window capture were rejected. Actual GA_PARENT was DesktopRoot (separate actual handle is local).
+Window was hidden; rect [40,40,680,520], monitor bounds [0,0,1920,1080], work area [0,0,1920,1032], DPI **96**.
+Style **80674816**, extended style **256**, placement/show command **1**, and predecessor were recorded.
+These values describe an isolated test window, not the user's product Surface or a visible GUI validation.
+
+Normal close: own window destruction and subsequent identity-query rejection PASS; S-3 Window/registration
+lease release PASS. Host was not falsely released from inside its still-running process. Parent independently
+observed Host exit and old own-window absence. Controlled loss: CleanupUnknown recorded, no Window/lease release
+claimed; parent observed exit 42 and old window absence. Both cases had Host residual **0**, Electron before/after
+**0/0**. No Electron launch, product GUI, user profile or existing app changes were performed.
+
+Safe evidence: [native-05b-target-windows.json](evidence/native-05b-target-windows.json).
+Original and lossless raw baselines remain local under `E:\BOGUNON_DEV\qa\native-05b\run-uzuHf7`:
+`normal-LOCAL-BASELINE.json`, `host-loss-LOCAL-BASELINE.json`, `VERIFICATION.json`.
+This PC-local path is not assumed to exist on another PC. Raw baseline contents/IDs were not committed or pushed;
+only hashes and safe classification/lifecycle summaries are in Git. All original files remain preserved.
+
+### Validation and decision
+
+- Rust: **50 PASS**, including 47 existing regression tests and 3 pure classification tests; no unit test creates a window.
+- Test-target all-target Cargo check and library/binary Clippy -D warnings PASS; changed Rust rustfmt PASS.
+- Main TypeScript, runner node --check, diff and best-effort source/staged/report secret checks PASS/no matches.
+- Five independent review lanes PASS after making Host-loss assertions and per-case image-digest checks explicit.
+- Dedicated secret scanner/Miri/sanitizer proof remains unavailable; no FFI-soundness or whole-product QA claim.
+
+**NATIVE-05B: CONDITIONAL.** Own target, baseline and normal/abnormal lifecycle are validated, but an eligible
+WorkerW is not established. Actual attachment/SetParent is **NOT RUN**. Live cleanup remains **NotVerified**.
+A separately approved next step must first resolve the Shell candidate evidence without arbitrary HWND selection,
+then provide explicit one-shot approval, authenticated Main/live-target authority, icon/input/recovery qualification
+and actual attach/detach observations. No automatic attachment or execution permit was issued here.
+
+
+## Change inventory
+
+- WorkerW Cargo feature/binary declarations, module exports and provenance.
+- Existing observation_reader.rs: narrow pure classification wrapper/tests; original shell/candidate predicates unchanged.
+- New legacy/{test_window,test_target,target_evidence,classification_tests}.rs.
+- preflight_target.rs: consuming proof-scoped test resource settlement; preflight.rs feature module only.
+- src/bin/native05b-target.rs; scripts/electron-p0/native-05b-target.mjs.
+- This report and sanitized Windows evidence. No source under Electron product Main, Tauri, Finance or Cloud B changed.

@@ -1,0 +1,564 @@
+{
+  "sourceSha": "b19badae897affbcd9d2b0c1ee67905f75e0a21a",
+  "exeSha256": "6f3d7f1f7d5de9c51e1ca59219d8a7283643f6df29e18ff8201a37702efc43c2",
+  "results": [
+    {
+      "caseId": "normal",
+      "passed": true,
+      "status": 0,
+      "error": null,
+      "sourceStable": true,
+      "executableStable": true,
+      "hostResidual": 0,
+      "oldWindowGone": true,
+      "electronBefore": 0,
+      "electronAfter": 0,
+      "baselineSha256": "f028aea7025fe87361526b5e4d09dd274bcb3b56ce8574fe0b5fd370ef9ce6f0",
+      "summary": {
+        "attachment": "NOT_RUN",
+        "candidate": {
+          "rows": [
+            {
+              "checks": [
+                true,
+                true,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 0,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                false,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 1,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                true,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 2,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                true,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 3,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                false,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 4,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                true,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 5,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                true,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 6,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                true,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 7,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                true,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 8,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                true,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 9,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                true,
+                true,
+                false,
+                false,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 10,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                true,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 11,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                true,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 12,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                true,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 13,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                false,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 14,
+              "monitorMatches": true
+            }
+          ],
+          "selected": false,
+          "stable": true,
+          "status": "UNKNOWN"
+        },
+        "caseId": "normal",
+        "disappearanceRejected": true,
+        "duplicateRejected": true,
+        "executionAllowed": false,
+        "nativeCleanup": "NotVerified",
+        "preflightBlocker": "CandidateNotVerified",
+        "windowDestroyed": true,
+        "windowLeaseReleased": true,
+        "windowQaPassed": true,
+        "wrongWindowRejected": true
+      },
+      "stdoutBytes": 2849,
+      "stderrBytes": 0,
+      "stdoutSha256": "ec24a6a17ef335c6ed7fae64f754239a260320231ffb2976fde24f2f1457559b",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "caseId": "host-loss",
+      "passed": true,
+      "status": 42,
+      "error": null,
+      "sourceStable": true,
+      "executableStable": true,
+      "hostResidual": 0,
+      "oldWindowGone": true,
+      "electronBefore": 0,
+      "electronAfter": 0,
+      "baselineSha256": "dcd85fda54676b8b20593bde562da19afe88601b7c59d39aa1f031adc187893b",
+      "summary": {
+        "attachment": "NOT_RUN",
+        "candidate": {
+          "rows": [
+            {
+              "checks": [
+                true,
+                true,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 0,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                false,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 1,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                true,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 2,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                true,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 3,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                false,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 4,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                true,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 5,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                true,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 6,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                true,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 7,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                true,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 8,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                true,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 9,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                true,
+                true,
+                false,
+                false,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 10,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                true,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 11,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                true,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 12,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                true,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 13,
+              "monitorMatches": true
+            },
+            {
+              "checks": [
+                true,
+                false,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true
+              ],
+              "dpiMatches": true,
+              "identityStable": true,
+              "index": 14,
+              "monitorMatches": true
+            }
+          ],
+          "selected": false,
+          "stable": true,
+          "status": "UNKNOWN"
+        },
+        "caseId": "host-loss",
+        "disappearanceRejected": false,
+        "duplicateRejected": true,
+        "executionAllowed": false,
+        "nativeCleanup": "NotVerified",
+        "preflightBlocker": "CleanupUnknown",
+        "windowDestroyed": false,
+        "windowLeaseReleased": false,
+        "windowQaPassed": true,
+        "wrongWindowRejected": true
+      },
+      "stdoutBytes": 2849,
+      "stderrBytes": 0,
+      "stdoutSha256": "8b4918ec6b3fdc04046fcac0709c9e18e7943ef9ac15f39d6fc2c58fea34211c",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "attachment": "NOT_RUN",
+  "liveCleanup": "NOT_VERIFIED",
+  "rawOutput": "NOT_PERSISTED",
+  "rawBaseline": "LOCAL_ONLY"
+}
