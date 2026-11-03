@@ -42,7 +42,8 @@ import { assertSender, resourceAllowed } from './policy.js';
 import {runNativeMainQa} from './desktop-surface/native03/electron-qa.js';
 // Default product path never starts a Native Host. The isolated path precedes all product stores.
 if(app.commandLine.hasSwitch('native-surface-isolated-qa')){
-  try{await runNativeMainQa();}catch{console.error('NATIVE03_SETUP_REJECTED');app.exit(2);}
+  // Setup through setPath is synchronous; do not block ESM appCodeLoaded on app.whenReady().
+  void runNativeMainQa().catch(()=>{console.error('NATIVE03_SETUP_REJECTED');app.exit(2);});
 }else{
 if (app.commandLine.hasSwitch('no-sandbox') || app.commandLine.hasSwitch('disable-web-security')) throw new Error('Unsafe Electron launch flags denied');
 app.setName(PRODUCT_NAME);

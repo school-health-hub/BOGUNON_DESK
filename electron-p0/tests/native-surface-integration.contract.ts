@@ -5,6 +5,8 @@ import {installNativeQuitBoundary} from '../main/desktop-surface/native03/quit-b
 import {HostError} from '../main/desktop-surface/native02/errors.js';
 import type {LauncherSnapshot} from '../main/desktop-surface/native02/launcher.js';
 import type {HostPort} from '../main/desktop-surface/native03/main-session.js';
+import {readFileSync} from 'node:fs';
+import ts from 'typescript';
 
 test('disabled Main integration never constructs or starts a Host',async()=>{
   let constructed=false;
@@ -97,4 +99,16 @@ test('health rejection returns to ordinary window without restarting Host',async
   },()=>returned++);
   await session.start();await assert.rejects(session.checkHealth(),{code:'ExplorerChanged'});
   assert.equal(returned,2);assert.equal(constructed,1);await session.stop();
+});
+test('Main entry cannot top-level-await Electron ready through its isolated QA path',()=>{
+  const source=ts.createSourceFile('main.mts',readFileSync('electron-p0/main/main.mts','utf8'),ts.ScriptTarget.Latest,true);
+  const branch=source.statements.find(statement=>ts.isIfStatement(statement)
+    &&statement.expression.getText(source).includes('native-surface-isolated-qa'));
+  assert.ok(branch&&ts.isIfStatement(branch));let awaits=0;
+  const visit=(node:ts.Node):void=>{
+    if(ts.isFunctionLike(node))return;
+    if(ts.isAwaitExpression(node))awaits++;
+    ts.forEachChild(node,visit);
+  };
+  visit(branch.thenStatement);assert.equal(awaits,0,'Electron must finish ESM entry evaluation before ready');
 });
