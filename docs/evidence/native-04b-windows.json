@@ -1,0 +1,273 @@
+{
+  "sourceSha": "9ad3ef24fe9aa3d6679c78851e5af5cd3d473b8c",
+  "hostSha256": "d7fb3a81258c2d434b168c4c02ccc1d85bade375e9e52c7dcaab11e5b19e6732",
+  "electronSha256": "32e357fc856feadd1e51531f47811d2621483e5a58815eb4999154d7c9baea3b",
+  "results": [
+    {
+      "caseId": "normal",
+      "passed": true,
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "hostResidual": 0,
+      "stdoutBytes": 2,
+      "stderrBytes": 0,
+      "stdoutSha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "diagnostic": {
+        "schema": 1,
+        "sourceSha": "9ad3ef24fe9aa3d6679c78851e5af5cd3d473b8c",
+        "caseId": "normal",
+        "electron": "45.2.1",
+        "passed": true,
+        "error": null,
+        "authenticated": true,
+        "reports": [
+          {
+            "scope": "DryRun",
+            "sequence": 1,
+            "accepted": true,
+            "state": "ModelAttached",
+            "cleanup": "NotVerified",
+            "error": null,
+            "actualAttachmentVerified": false
+          },
+          {
+            "scope": "DryRun",
+            "sequence": 2,
+            "accepted": false,
+            "state": "ModelAttached",
+            "cleanup": "NotVerified",
+            "error": "Busy",
+            "actualAttachmentVerified": false
+          },
+          {
+            "scope": "DryRun",
+            "sequence": 3,
+            "accepted": true,
+            "state": "Detached",
+            "cleanup": "NotVerified",
+            "error": null,
+            "actualAttachmentVerified": false
+          },
+          {
+            "scope": "DryRun",
+            "sequence": 4,
+            "accepted": false,
+            "state": "Detached",
+            "cleanup": "NotVerified",
+            "error": "Retired",
+            "actualAttachmentVerified": false
+          }
+        ],
+        "ordinaryWindowAlive": true,
+        "normalWindowRequests": 2,
+        "elapsedMs": 46634,
+        "processExitVerified": true,
+        "nativeCleanup": "NotVerified",
+        "nativeAttachmentVerified": false,
+        "snapshot": {
+          "mode": "isolated-qa",
+          "host": {
+            "state": "CleanupUnknown",
+            "error": null,
+            "processExitVerified": true,
+            "forcedTermination": false,
+            "nativeCleanup": "NotVerified",
+            "nativeAttachmentVerified": false,
+            "normalWindowRequested": true
+          }
+        }
+      }
+    },
+    {
+      "caseId": "cancel",
+      "passed": true,
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "hostResidual": 0,
+      "stdoutBytes": 2,
+      "stderrBytes": 0,
+      "stdoutSha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "diagnostic": {
+        "schema": 1,
+        "sourceSha": "9ad3ef24fe9aa3d6679c78851e5af5cd3d473b8c",
+        "caseId": "cancel",
+        "electron": "45.2.1",
+        "passed": true,
+        "error": null,
+        "authenticated": true,
+        "reports": [
+          {
+            "scope": "DryRun",
+            "sequence": 1,
+            "accepted": true,
+            "state": "Preparing",
+            "cleanup": "NotVerified",
+            "error": null,
+            "actualAttachmentVerified": false
+          },
+          {
+            "scope": "DryRun",
+            "sequence": 2,
+            "accepted": true,
+            "state": "Detached",
+            "cleanup": "NotVerified",
+            "error": null,
+            "actualAttachmentVerified": false
+          },
+          {
+            "scope": "DryRun",
+            "sequence": 3,
+            "accepted": false,
+            "state": "Detached",
+            "cleanup": "NotVerified",
+            "error": "Retired",
+            "actualAttachmentVerified": false
+          }
+        ],
+        "ordinaryWindowAlive": true,
+        "normalWindowRequests": 2,
+        "elapsedMs": 37469,
+        "processExitVerified": true,
+        "nativeCleanup": "NotVerified",
+        "nativeAttachmentVerified": false,
+        "snapshot": {
+          "mode": "isolated-qa",
+          "host": {
+            "state": "CleanupUnknown",
+            "error": null,
+            "processExitVerified": true,
+            "forcedTermination": false,
+            "nativeCleanup": "NotVerified",
+            "nativeAttachmentVerified": false,
+            "normalWindowRequested": true
+          }
+        }
+      }
+    },
+    {
+      "caseId": "host-lost",
+      "passed": true,
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "hostResidual": 0,
+      "stdoutBytes": 2,
+      "stderrBytes": 0,
+      "stdoutSha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "diagnostic": {
+        "schema": 1,
+        "sourceSha": "9ad3ef24fe9aa3d6679c78851e5af5cd3d473b8c",
+        "caseId": "host-lost",
+        "electron": "45.2.1",
+        "passed": true,
+        "error": null,
+        "authenticated": true,
+        "reports": [
+          {
+            "scope": "DryRun",
+            "sequence": 1,
+            "accepted": true,
+            "state": "ModelAttached",
+            "cleanup": "NotVerified",
+            "error": null,
+            "actualAttachmentVerified": false
+          },
+          {
+            "scope": "DryRun",
+            "sequence": 2,
+            "accepted": true,
+            "state": "CleanupUnknown",
+            "cleanup": "CleanupUnknown",
+            "error": null,
+            "actualAttachmentVerified": false
+          },
+          {
+            "scope": "DryRun",
+            "sequence": 3,
+            "accepted": false,
+            "state": "CleanupUnknown",
+            "cleanup": "CleanupUnknown",
+            "error": "CleanupUnknown",
+            "actualAttachmentVerified": false
+          }
+        ],
+        "ordinaryWindowAlive": true,
+        "normalWindowRequests": 2,
+        "elapsedMs": 35263,
+        "processExitVerified": true,
+        "nativeCleanup": "NotVerified",
+        "nativeAttachmentVerified": false,
+        "snapshot": {
+          "mode": "isolated-qa",
+          "host": {
+            "state": "CleanupUnknown",
+            "error": null,
+            "processExitVerified": true,
+            "forcedTermination": false,
+            "nativeCleanup": "NotVerified",
+            "nativeAttachmentVerified": false,
+            "normalWindowRequested": true
+          }
+        }
+      }
+    },
+    {
+      "caseId": "foreign-window",
+      "passed": true,
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "hostResidual": 0,
+      "stdoutBytes": 2,
+      "stderrBytes": 0,
+      "stdoutSha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "diagnostic": {
+        "schema": 1,
+        "sourceSha": "9ad3ef24fe9aa3d6679c78851e5af5cd3d473b8c",
+        "caseId": "foreign-window",
+        "electron": "45.2.1",
+        "passed": true,
+        "error": null,
+        "authenticated": true,
+        "reports": [
+          {
+            "scope": "DryRun",
+            "sequence": 1,
+            "accepted": false,
+            "state": "Detached",
+            "cleanup": "NotVerified",
+            "error": "Owner",
+            "actualAttachmentVerified": false
+          }
+        ],
+        "ordinaryWindowAlive": true,
+        "normalWindowRequests": 2,
+        "elapsedMs": 21150,
+        "processExitVerified": true,
+        "nativeCleanup": "NotVerified",
+        "nativeAttachmentVerified": false,
+        "snapshot": {
+          "mode": "isolated-qa",
+          "host": {
+            "state": "CleanupUnknown",
+            "error": null,
+            "processExitVerified": true,
+            "forcedTermination": false,
+            "nativeCleanup": "NotVerified",
+            "nativeAttachmentVerified": false,
+            "normalWindowRequested": true
+          }
+        }
+      }
+    }
+  ],
+  "nativeAttachment": "NOT_RUN",
+  "nativeCleanup": "NOT_VERIFIED",
+  "rawOutput": "NOT_PERSISTED"
+}

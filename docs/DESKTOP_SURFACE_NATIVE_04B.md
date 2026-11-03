@@ -67,6 +67,50 @@ remain unimplemented and BLOCKED for NATIVE-05; no claim of actual Native cleanu
 
 ## Execution evidence
 
-Pending isolated Windows verification. Actual WorkerW attach/detach, Explorer changes, Acrylic,
+Validated implementation source: `9ad3ef24fe9aa3d6679c78851e5af5cd3d473b8c`.
+The later checkpoint changes only this document and the diagnostic summary.
+
+- Actual Windows Electron 45.2.1 Main -> approved headless Host -> authenticated DryRun: **4/4 PASS**.
+  Normal/duplicate/detach/retired, partial cancel/retired, fixture Host-loss/CleanupUnknown,
+  foreign synthetic window rejection. Each is a fresh process/profile; no retries.
+- Host and Electron residual process counts after all cases: **0 / 0**. Ordinary Main window
+  remained alive through each bounded Host shutdown. All nativeCleanup results remain NotVerified.
+- Rust channel tests: **14 PASS** (10 preserved + 4 bridge/wire tests); WorkerW: **37 PASS**.
+- Focused Node contracts: **81 PASS / 2 SKIP**. The two older opt-in Windows tests were not enabled;
+  this stage's four actual Electron cases are separate evidence, not fabricated skip replacements.
+- Main TypeScript and contract compilation PASS; locked offline all-target Cargo check PASS;
+  Host library/binaries and WorkerW default/Windows-feature library Clippy -D warnings PASS;
+  new/changed non-provenance Rust files rustfmt and git diff --check PASS.
+- Five independent review lanes completed. Receipt mismatch persistence was fixed and re-reviewed;
+  stale provenance wording was corrected. No live runtime approval is implied by their scope.
+- Source/staged/diagnostic summary best-effort secret/PII pattern checks: no matches.
+  Dedicated secret scanner was unavailable; heuristic inspection cannot prove absence of all PII.
+
+Safe diagnostic summary: [native-04b-windows.json](evidence/native-04b-windows.json), original bytes
+SHA-256 `6a6a7baeb0e4f19d154d3fe22ef5b1d825bcb07565a428044b31df01d097fb86`.
+Local original: `E:\BOGUNON_DEV\qa\native-04b\run-eOcBFd\VERIFICATION.json` (this PC only).
+Only this fixed-schema summary was copied; profiles, logs, cache, EXE and credentials were not uploaded.
+Raw process output was not persisted, only lengths and hashes. Existing QA evidence remains untouched.
+Host SHA-256: `d7fb3a81258c2d434b168c4c02ccc1d85bade375e9e52c7dcaab11e5b19e6732` (unsigned).
+All generated binaries, fresh profiles and temporary QA files remain on E:; none were deleted.
+
+**NATIVE-04B: PASS for authenticated DryRun integration and fail-closed evidence contracts only.**
+Actual WorkerW attach/detach, Explorer changes, Acrylic,
 real Surface HWND, icon/input coexistence, monitor/DPI runtime behavior and live OS cleanup: NOT RUN.
 Runtime readiness for actual attachment: BLOCKED pending NATIVE-05 approval and live evidence.
+
+
+## Changed files
+
+- Electron: `main/main.mts`, `main/desktop-surface/native02/launcher.ts`,
+  `main/desktop-surface/native04b/{dry-run,electron-qa}.ts` under `electron-p0/`.
+- Tests: `electron-p0/tests/native-surface-{dry-run,integration}.contract.ts`.
+- Local QA runner: `scripts/electron-p0/native-04b-windows.mjs`.
+- Channel Host: `tools/electron-native-channel-host/{Cargo.toml,Cargo.lock,upstream/lib.rs,src/workerw_channel.rs,src/bin/native04b-host.rs}`.
+- WorkerW: `tools/electron-native-workerw/{PROVENANCE.md,src/lib.rs,src/live_contract.rs,src/legacy/{mod,admission,dry_run}.rs}`.
+- This document and `docs/evidence/native-04b-windows.json`.
+
+NATIVE-05 requires separate explicit approval, real Host-owned HWND acquisition and observation,
+verified test environment/scope, actual permit issuance/consumption, live observer/receipt authority,
+full resource destruction/ledger proof and a recovery procedure. The DryRun bridge cannot enable
+any of these merely by changing a request mode or treating a model receipt as OS evidence.
