@@ -1,3 +1,5 @@
+import {FinanceProcess} from './finance-process.js';
+import {FinanceService,createFinanceHandlers} from './finance-ipc.js';
 import {AiService,createAiHandlers} from './ai-service.js';
 import {EncryptedAiVault} from './ai-vault.js';
 import {allowedAiUrl} from './ai-network.js';
@@ -80,6 +82,14 @@ else {
   const aiHandlers=createAiHandlers(window.webContents,url,aiService);
   for(const [action,handler] of Object.entries(aiHandlers))ipcMain.handle(`p2:ai:${action}`,handler);
   window.on('close',()=>aiService.dispose());window.webContents.on('will-navigate',()=>aiService.dispose());window.webContents.on('render-process-gone',()=>aiService.dispose());app.on('before-quit',()=>aiService.dispose());
+  const financeWorker=new FinanceProcess(app.isPackaged?join(process.resourcesPath,'my-finance-cli','my-finance-cli.exe'):join(app.getAppPath(),'../../tools/my-finance-cli/target/debug/my-finance-cli.exe'),join(userData,'work-data','my-finance'));
+  const financeService=new FinanceService({worker:financeWorker,protectedRoot:userData,
+   pickBackup:async()=>{const r=await dialog.showOpenDialog(window,{title:'MY FINANCE 암호화 백업 선택',properties:['openFile','dontAddToRecent'],filters:[{name:'암호화 백업',extensions:['bgfnbk']}]});return r.canceled?undefined:r.filePaths[0];},
+   saveBackup:async()=>{const r=await dialog.showSaveDialog(window,{title:'MY FINANCE 암호화 백업 새 파일 저장',defaultPath:'my-finance.bgfnbk',properties:['dontAddToRecent'],filters:[{name:'암호화 백업',extensions:['bgfnbk']}]});return r.canceled?undefined:r.filePath;},
+   reviewRestore:async()=>(await dialog.showMessageBox(window,{type:'warning',message:'검사한 암호화 백업을 Electron 금융 저장소에 복원할까요?',detail:'기존 Tauri 저장소는 변경하지 않습니다. 현재 상태와 이력이 다시 검사되며 복구 실패 시 원본을 보존합니다.',buttons:['취소','확인 후 복원'],defaultId:0,cancelId:0})).response===1});
+  const financeHandlers=createFinanceHandlers(window.webContents,url,financeService);
+  for(const [action,handler] of Object.entries(financeHandlers))ipcMain.handle(`p2:finance:${action}`,handler);
+  window.on('close',()=>{void financeService.close();});window.webContents.on('will-navigate',()=>{void financeService.close();});window.webContents.on('render-process-gone',()=>{void financeService.close();});
   const meta = JSON.parse(await readFile(join(app.getAppPath(),'build-meta.json'),'utf8')) as {sourceSha:string};
   for (const channel of ['p0:info','p0:read-settings','p0:write-settings']) ipcMain.handle(channel,async(event,...args: unknown[])=>{
     assertSender(event,window.webContents,url);
@@ -167,7 +177,7 @@ else {
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
-  const quit=()=>{if(quitting)return;quitting=true;officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([store.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
+  const quit=()=>{if(quitting)return;quitting=true;officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([financeService.close(),store.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
       {label:'창 열기',click:show},{label:'최소화',click:()=>window.minimize()},

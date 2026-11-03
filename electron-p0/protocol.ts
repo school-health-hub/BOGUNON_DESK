@@ -1,3 +1,4 @@
+import type {FinanceBridge} from './finance-protocol.js';
 import type {LocalTaskDocument,LocalTaskLoad} from './local-tasks.js';
 import type {InventoryQaApi} from './inventory-qa-protocol.js';
 export const NEWSLETTER_COMPATIBILITY_MESSAGE='이 프로젝트는 현재 버전에서 지원하지 않는 편집 요소를 포함하고 있습니다. 데이터 손실을 방지하기 위해 열기와 저장을 중단했습니다. 최신 버전에서 다시 열어 주세요.';
@@ -33,6 +34,7 @@ export type OfficialDocumentSave=Readonly<{title:string;body:string;attachments:
 export type OfficialDocumentImported=Readonly<{sourceName:string;format:"pdf"|"hwpx"|"odt";text:string}>;
 export type InventoryQaStatus = { mode: "local-qa"; authGateway: "reachable" | "unavailable"; inventoryConnection: "blocked"; persisted: false };
 export interface WorkBridge {
+ readonly finance?:FinanceBridge;
  readonly ai?:AiBridge;
  readonly tasks:Readonly<{load():Promise<IpcResult<LocalTaskLoad>>;save(document:LocalTaskDocument,expectedRevision:number):Promise<IpcResult<LocalTaskLoad>>}>;
   inventoryLocalQa?: { status: () => Promise<IpcResult<InventoryQaStatus>>; business?: InventoryQaApi };

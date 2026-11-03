@@ -1,0 +1,19 @@
+{
+  "sourceSha": "1b6a1383d93c649d448097991ffa2f86a467bde0",
+  "files": {
+    "src-tauri/src/my_finance_snapshot.rs": "d3de65bb91fc083037dee81bffc0fa021483b2fb9e4244a84f58785431105bc9",
+    "src-tauri/src/my_finance_backup.rs": "73c73094f0914243acb9851cb06b30df63289ae4fcc5e104973a475f04065cff",
+    "src-tauri/src/my_finance_codec.rs": "b48885d7d779322f664360d3c3f732739495d62951b78583c675e39607bb3199",
+    "src-tauri/src/my_finance_store.rs": "4eb580d0dc821c09443ec9716f05b5e90f5ce37cf261e8e5997add3c0d1f8f8e",
+    "src-tauri/src/my_finance_transfer.rs": "deb18362fba1950fad20d09ea31e8955e9b3c6fe93d989f058afc065461e1069",
+    "src-tauri/src/my_finance_store_tests.rs": "b6d7cdc422922d21cbb50e4a1678824a40f220fed513412bc6e99808d692bb1e",
+    "src-tauri/src/my_finance_restore_tests.rs": "f5d2add89ac73e6c06b5ec5a2b2240c03901738a58461d51f1c2b3395e643e08",
+    "src-tauri/src/my_finance_cross_pc_tests.rs": "fc42174ad334df4b17d2a810a9b28c39980ebd773875cd49c1f10fe7ec3bbcab",
+    "src-tauri/src/my_finance_transfer_tests.rs": "40d16f9923bd542888cd6c4a6985d6956e32212c1c66c4b67298e6e5366b43d1"
+  },
+  "testPathAdaptation": {
+    "file": "my_finance_cross_pc_tests.rs",
+    "from": "../../src/my-finance/fixtures/cross-pc-synthetic.json",
+    "to": "../../../src/my-finance/fixtures/cross-pc-synthetic.json"
+  }
+}

@@ -36,7 +36,16 @@
       }
     ],
     "icon": "src-tauri/icons/icon.ico",
-    "signAndEditExecutable": false
+    "signAndEditExecutable": false,
+    "extraResources": [
+      {
+        "from": "build/my-finance-cli",
+        "to": "my-finance-cli",
+        "filter": [
+          "my-finance-cli.exe"
+        ]
+      }
+    ]
   },
   "linux": {
     "target": "dir",

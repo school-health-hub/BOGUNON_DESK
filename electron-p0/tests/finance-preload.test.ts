@@ -1,0 +1,7 @@
+import {readFileSync} from 'node:fs';import {runInNewContext} from 'node:vm';import ts from 'typescript';import {it,expect,vi} from 'vitest';
+it('exposes only dedicated finance operations; no DB key, path or generic SQL/invoke API',async()=>{
+ const exposed:Record<string,any>={},invoke=vi.fn(async()=>({ok:true,data:null}));const code=ts.transpileModule(readFileSync('electron-p0/preload/preload.cts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;runInNewContext(code,{exports:{},process:{sandboxed:true,contextIsolated:true},require:(name:string)=>{if(name!=='electron')throw Error('Unexpected dependency');return {contextBridge:{exposeInMainWorld:(key:string,value:unknown)=>{exposed[key]=value;}},ipcRenderer:{invoke}};}});
+ const bridge=exposed.electronWork.finance;expect(Object.isFrozen(bridge)).toBe(true);expect(Object.keys(bridge).sort()).toEqual(['status','load','createIncome','updateIncome','deleteIncome','replacePhase2','exportBackup','selectBackup','inspectBackup','restoreBackup','cancelBackup','close'].sort());
+ for(const method of ['status','load','selectBackup','close']){await bridge[method]();expect(invoke.mock.calls.at(-1)).toEqual([`p2:finance:${method}`]);}
+ for(const method of ['createIncome','updateIncome','deleteIncome','replacePhase2','exportBackup','inspectBackup','restoreBackup','cancelBackup']){const input={synthetic:true};await bridge[method](input);expect(invoke.mock.calls.at(-1)).toEqual([`p2:finance:${method}`,input]);}
+});

@@ -44,3 +44,6 @@ release-output/
 /build/purchase-excel-cli/
 
 /build/official-document-cli/
+
+/tools/my-finance-cli/target/
+/build/my-finance-cli/

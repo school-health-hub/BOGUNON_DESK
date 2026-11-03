@@ -1,6 +1,7 @@
 import { spawn,execFileSync } from 'node:child_process';
 execFileSync(process.execPath,['scripts/electron-p0/build-excel.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['scripts/electron-p0/build-official-document.mjs'],{stdio:'inherit'});
+execFileSync(process.execPath,['scripts/electron-p0/build-finance.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['scripts/electron-p0/build.mjs'],{stdio:'inherit'});
 const vite=spawn(process.execPath,['node_modules/vite/bin/vite.js','--config','electron-p0/vite.config.ts'],{stdio:'inherit'});
 let electron;
