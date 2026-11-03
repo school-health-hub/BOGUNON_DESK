@@ -7,6 +7,12 @@ publish = false
 [features]
 default = []
 windows-adapter-skip-miri = ["dep:windows"]
+windows-observation-skip-miri = ["dep:windows"]
+
+[[bin]]
+name = "native05a-readonly"
+path = "src/bin/native05a-readonly.rs"
+required-features = ["windows-observation-skip-miri"]
 
 [dependencies]
 thiserror = "2"

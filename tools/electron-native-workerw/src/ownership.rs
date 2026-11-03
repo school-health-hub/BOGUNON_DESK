@@ -206,6 +206,22 @@ impl Ledger {
         }
     }
 
+    // NATIVE-05A read-only query; the original ownership transitions are unchanged.
+    pub(crate) fn reservation_matches(
+        &self,
+        attempt: Attempt,
+        host: u64,
+        window: u64,
+        lease: &BackendRegistrationLease,
+    ) -> bool {
+        self.attempt == attempt
+            && lease.attempt == attempt
+            && Rc::ptr_eq(&self.backend_registration, &lease.slot)
+            && self.slots[0] == Slot::Owned(host)
+            && self.slots[1] == Slot::Owned(window)
+            && self.backend_registration.get() == Slot::Owned(lease.identity)
+    }
+
     pub fn is_resolved(&self) -> bool {
         self.slots
             .iter()

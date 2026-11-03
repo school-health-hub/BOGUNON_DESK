@@ -11,3 +11,6 @@ pub use legacy::dry_run::{
     DryRunBinding, DryRunEngine, DryRunOperation, DryRunReport, DryRunRequest,
 };
 pub mod live_contract;
+pub mod preflight;
+#[cfg(all(windows, feature = "windows-observation-skip-miri"))]
+pub use legacy::live_read_only::observe_shell;
