@@ -17,7 +17,7 @@ tempfile = "=3.27.0"
 
 [target.'cfg(windows)'.dependencies]
 windows-dpapi = "=0.2.0"
-windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_System_JobObjects", "Win32_System_Threading"] }
+windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading"] }
 
 [profile.release]
 codegen-units = 1
