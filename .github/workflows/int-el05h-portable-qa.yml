@@ -21,6 +21,7 @@ jobs:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
       QA_REMAINING_ONLY: '1'
+      QA_FINAL_FILES: '1'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
