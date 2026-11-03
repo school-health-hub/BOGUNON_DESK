@@ -2,12 +2,12 @@ import {useEffect,useState} from 'react';
 import type {StudioDocument} from '../../../src/newsletter/studioDocument';
 import {parseStudioDocument,serializeStudioDocument} from '../../../src/newsletter/studioDocument';
 import type {IpcResult,NewsletterHead,NewsletterPreview,NewsletterProjectRecord,NewsletterRevision,NewsletterProjectsBridge} from '../../protocol';
-type Props={document?:StudioDocument;head:NewsletterHead|null;onLoaded:(r:NewsletterProjectRecord)=>void;onSaved:(r:NewsletterProjectRecord)=>void;onPreview:(p:NewsletterPreview|null)=>void};
+type Props={onBusyChange?:(busy:boolean)=>void;document?:StudioDocument;head:NewsletterHead|null;onLoaded:(r:NewsletterProjectRecord)=>void;onSaved:(r:NewsletterProjectRecord)=>void;onPreview:(p:NewsletterPreview|null)=>void};
 function data<T>(result:IpcResult<T>):T{if(!result.ok)throw Error(result.error.message);return result.data;}
-export function NewsletterProjectControls({document,head,onLoaded,onSaved,onPreview}:Props){
+export function NewsletterProjectControls({document,head,onLoaded,onSaved,onPreview,onBusyChange}:Props){
  const [id,setId]=useState(''),[ids,setIds]=useState<readonly string[]>([]),[history,setHistory]=useState<readonly NewsletterRevision[]>([]),[preview,setPreview]=useState<NewsletterPreview|null>(null),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
  const api:NewsletterProjectsBridge=window.electronWork.newsletter.projects;
- const run=async(fn:()=>Promise<void>)=>{setBusy(true);try{await fn();}catch(e){setMessage(e instanceof Error?e.message:'프로젝트 처리 실패');}finally{setBusy(false);}};
+ const run=async(fn:()=>Promise<void>)=>{setBusy(true);onBusyChange?.(true);try{await fn();}catch(e){setMessage(e instanceof Error?e.message:'프로젝트 처리 실패');}finally{setBusy(false);onBusyChange?.(false);}};
  useEffect(()=>{setId(document?.project.projectId??'');setPreview(null);setHistory([]);onPreview(null);},[document?.project.projectId]);
  useEffect(()=>{void api.list().then(r=>{if(r.ok)setIds(r.data);});},[]);
  const clear=()=>{setPreview(null);onPreview(null);};
