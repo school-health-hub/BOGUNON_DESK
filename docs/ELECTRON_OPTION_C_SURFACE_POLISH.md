@@ -33,7 +33,7 @@ An earlier existing INT-EL-05C run failed its bottom-scroll assertion at the bas
 
 ## Local evidence and limits
 
-`artifacts/option-c/` contains local before/after screenshots and build output; these ignored artifacts are not committed or uploaded. Before screenshots use empty data, after screenshots use the explicitly synthetic task. They demonstrate layout, not identical content or pixel-diff equivalence.
+`artifacts/option-c/` contains local before/after screenshots and build output. A reviewed representative subset is copied byte-for-byte into `docs/evidence/option-c-20261104/` for the school-PC handoff, with hashes/provenance in its manifest. Remaining ignored captures stay local. Before screenshots use empty data, after screenshots use the explicitly synthetic task. They demonstrate layout, not identical content or pixel-diff equivalence.
 
 125%/150% Electron zoom is renderer accessibility coverage, not an OS DPI transition test. Windows system DPI changes, latest Portable execution, and low-end-device performance remain NOT VERIFIED. WorkerW/SetParent/Explorer manipulation remain NOT RUN under OPTION C.
 

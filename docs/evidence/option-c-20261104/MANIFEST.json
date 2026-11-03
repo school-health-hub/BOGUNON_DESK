@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "5bd1c5c842fd16d49d2d220a141028dc5c96177d",
+  "baselineCommit": "195f3375e91348d2bbc7145b0e3743ca5f54385f",
+  "provenance": "Unmodified copies of local synthetic QA screenshots and production build log. Tests ran on the working patch subsequently committed as sourceCommit; build metadata itself recorded the base HEAD plus dirty state.",
+  "unitTestOriginalStdout": "Not saved as a standalone original file; reported terminal result 20 PASS, reproducible using tracked commands. Do not label a generated summary as original stdout.",
+  "inventory": [
+    {
+      "path": "artifacts/option-c/after-1440x900-1.25.png",
+      "bytes": 178743,
+      "lastWriteTimeUtc": "2026-11-03T22:20:35.5486151Z",
+      "sha256": "f46c0203c98ed987f7e71f56d9fdaed33495d9842c6f49557670c9a4353a9d22",
+      "transfer": "local-only-optional-reproducible-capture"
+    },
+    {
+      "path": "artifacts/option-c/after-1440x900-1.5.png",
+      "bytes": 83865,
+      "lastWriteTimeUtc": "2026-11-03T22:20:36.1320100Z",
+      "sha256": "2047d4d21bfa77c8700f4ccf800f020a1d3952755084a899e13fb3aac5676dd9",
+      "transfer": "local-only-optional-reproducible-capture"
+    },
+    {
+      "path": "artifacts/option-c/after-1440x900-1.png",
+      "bytes": 213386,
+      "lastWriteTimeUtc": "2026-11-03T22:20:34.2831065Z",
+      "sha256": "408b6cf1c8730789da03428d40aac89a28135ed90e883f0a058e1a738ea131a2",
+      "transfer": "local-only-optional-reproducible-capture"
+    },
+    {
+      "path": "artifacts/option-c/after-980x700-1.5.png",
+      "bytes": 31183,
+      "lastWriteTimeUtc": "2026-11-03T22:20:36.6465844Z",
+      "sha256": "8c5ee687605435d680020ffa5e6cfeec0bbc77f098db5fdc111952d51b6afcec",
+      "transfer": "local-only-optional-reproducible-capture"
+    },
+    {
+      "path": "artifacts/option-c/after-980x700-1.png",
+      "bytes": 143273,
+      "lastWriteTimeUtc": "2026-11-03T22:20:35.0984531Z",
+      "sha256": "d8d3d1f8d3eb8117fd0d6b0b4501beaa1e411b7a98819df80848d4ae994c7423",
+      "transfer": "tracked-evidence-copy"
+    },
+    {
+      "path": "artifacts/option-c/before-1440x900-1.25.png",
+      "bytes": 151644,
+      "lastWriteTimeUtc": "2026-11-03T17:00:31.6956324Z",
+      "sha256": "b013609c1a3e4e588595715456d93a409f29e379e00d6b7eac1fe3f70e044310",
+      "transfer": "local-only-optional-reproducible-capture"
+    },
+    {
+      "path": "artifacts/option-c/before-1440x900-1.5.png",
+      "bytes": 93205,
+      "lastWriteTimeUtc": "2026-11-03T17:00:31.8290598Z",
+      "sha256": "fc18938d68eea9e2319cef64ca3741b02ebec9635c49668b4833f045a11057c8",
+      "transfer": "local-only-optional-reproducible-capture"
+    },
+    {
+      "path": "artifacts/option-c/before-1440x900-1.png",
+      "bytes": 164569,
+      "lastWriteTimeUtc": "2026-11-03T17:00:31.3668850Z",
+      "sha256": "3a9a97ce9f413933ff3c5950151f7365e2510f9b2a7418b00e2fdbf2a4a877d2",
+      "transfer": "local-only-optional-reproducible-capture"
+    },
+    {
+      "path": "artifacts/option-c/before-980x700-1.5.png",
+      "bytes": 43600,
+      "lastWriteTimeUtc": "2026-11-03T17:00:31.9416880Z",
+      "sha256": "1a7cae29fbc927dcd8418fea91655b2be9f4d4e3021cb06bcad9acb9cb9bbfde",
+      "transfer": "local-only-optional-reproducible-capture"
+    },
+    {
+      "path": "artifacts/option-c/before-980x700-1.png",
+      "bytes": 101652,
+      "lastWriteTimeUtc": "2026-11-03T17:00:31.5166514Z",
+      "sha256": "069961bf29e8a8cb90e667884ec6e9d513918592afbcadf8e7b697e8e215e1d5",
+      "transfer": "tracked-evidence-copy"
+    },
+    {
+      "path": "artifacts/option-c/build.log",
+      "bytes": 4553,
+      "lastWriteTimeUtc": "2026-11-03T22:20:31.0148556Z",
+      "sha256": "ada2f932cd56afa406a3dd440dca452e1924b4d32db31820da5010ee14e31eba",
+      "transfer": "tracked-evidence-copy"
+    },
+    {
+      "path": "artifacts/option-c/final-5bd1c5c-1440.png",
+      "bytes": 213386,
+      "lastWriteTimeUtc": "2026-11-03T22:20:34.2831065Z",
+      "sha256": "408b6cf1c8730789da03428d40aac89a28135ed90e883f0a058e1a738ea131a2",
+      "transfer": "tracked-evidence-copy"
+    },
+    {
+      "path": "artifacts/option-c/final-5bd1c5c-settings-150.png",
+      "bytes": 26222,
+      "lastWriteTimeUtc": "2026-11-03T22:20:36.8882595Z",
+      "sha256": "f559a9e8f4af2cc21b2b1bebb73870d63011c3cda080e149b893195083d8fa32",
+      "transfer": "local-only-optional-reproducible-capture"
+    },
+    {
+      "path": "artifacts/option-c/settings-1440x900-1.25.png",
+      "bytes": 69527,
+      "lastWriteTimeUtc": "2026-11-03T22:20:35.8266817Z",
+      "sha256": "30839c3a733d9de6ee9eb087e225bd6541040cb24ab18dbab041f13bcc1dfe8d",
+      "transfer": "local-only-optional-reproducible-capture"
+    },
+    {
+      "path": "artifacts/option-c/settings-1440x900-1.5.png",
+      "bytes": 49087,
+      "lastWriteTimeUtc": "2026-11-03T22:20:36.3914155Z",
+      "sha256": "e16c529b47c2375ff7bdec8f408fd4ceee71bb29624bbdd9df1862a0b6c4ebe5",
+      "transfer": "local-only-optional-reproducible-capture"
+    },
+    {
+      "path": "artifacts/option-c/settings-1440x900-1.png",
+      "bytes": 165633,
+      "lastWriteTimeUtc": "2026-11-03T22:20:34.5999895Z",
+      "sha256": "f82552a0de0efba26d0bf843272705f82588e45e71650cffe6fa9687696b93e0",
+      "transfer": "local-only-optional-reproducible-capture"
+    },
+    {
+      "path": "artifacts/option-c/settings-980x700-1.5.png",
+      "bytes": 26222,
+      "lastWriteTimeUtc": "2026-11-03T22:20:36.8882595Z",
+      "sha256": "f559a9e8f4af2cc21b2b1bebb73870d63011c3cda080e149b893195083d8fa32",
+      "transfer": "local-only-optional-reproducible-capture"
+    },
+    {
+      "path": "artifacts/option-c/settings-980x700-1.png",
+      "bytes": 73019,
+      "lastWriteTimeUtc": "2026-11-03T22:20:35.3465522Z",
+      "sha256": "d07f26f7ae1091d28b854ae85fa4f931422cf99b756217a6d56724ee571fb4c1",
+      "transfer": "local-only-optional-reproducible-capture"
+    }
+  ]
+}
