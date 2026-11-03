@@ -1,68 +1,57 @@
-name: ELECTRON-P2E5B Purchase export
+name: Finance Windows default CLI compile only
 on:
-  push:
-    branches: [feature/electron-p0-dashboard, feature/electron-p1a-windows-installer, feature/electron-p1b-desktop-experience, feature/electron-p2d2-newsletter-export, feature/electron-p2e3-purchase-excel, feature/electron-p2e4-purchase-pdf, feature/electron-p2e5a-purchase-export, feature/electron-p2e5b-purchase-settlement]
   workflow_dispatch:
 permissions:
   contents: read
-concurrency:
-  group: electron-p0-${{ github.ref }}
-  cancel-in-progress: true
 jobs:
-  windows-poc:
+  finance-default-compile:
+    if: github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/ci/finance-win32-security-compile'
     runs-on: windows-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     env:
-      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      PRODUCT_SHA: d779e121b5abeb69887abf399bd9c08ad64d54fa
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          fetch-depth: 0
+          ref: d779e121b5abeb69887abf399bd9c08ad64d54fa
+          persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
-          cache: npm
-      - run: npm ci
-      - name: Rust Purchase import/export contracts and CLI build
-        run: |
-          rustup update stable --no-self-update
-          rustup default stable
-          node scripts/electron-p0/verify-excel-source.mjs
-          cargo test --locked --manifest-path tools/purchase-excel-cli/Cargo.toml
-          node scripts/electron-p0/build-excel.mjs --release
-          node scripts/electron-p0/check-excel-cli.mjs build/purchase-excel-cli/purchase-excel-cli.exe
-      - name: Source preservation, Newsletter IPC/output validation, Portable + NSIS and packaged UI
-        run: npm run electron:p0:ci:windows
-      - name: Record exact PoC artifact hash and signature (not a production release)
+      - name: Verify source and MSVC prerequisites
         shell: pwsh
         run: |
-          $files = @(Get-ChildItem release-electron-p0/*.exe)
-          if ($files.Count -ne 2) { throw 'Expected Portable and NSIS artifacts' }
-          $results = foreach ($file in $files) {
-            $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-            $signature = [string](Get-AuthenticodeSignature $file.FullName).Status
-            if ($signature -notin @('NotSigned','Valid')) { throw 'Unexpected signature state' }
-            "$hash  $($file.Name)" | Add-Content release-electron-p0/SHA256SUMS.txt
-            Write-Output "::notice title=ELECTRON_P1A_ARTIFACT::$($file.Name) SHA256=$hash signature=$signature"
-            @{file=$file.Name;sha256=$hash;signature=$signature}
-          }
-          @{scope='Electron P2E5B only';sourceSha=$env:GITHUB_SHA;files=@($results);qa=(Get-Content release-electron-p0/P1A-QA-RESULT.json -Raw | ConvertFrom-Json);productionDeployment=$false} | ConvertTo-Json -Depth 8 | Set-Content release-electron-p0/P0-BUILD-RESULT.json
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: ELECTRON-P2E5B-Windows-${{ github.sha }}
-          path: |
-            release-electron-p0/*.exe
-            release-electron-p0/SHA256SUMS.txt
-            release-electron-p0/P0-BUILD-RESULT.json
-            release-electron-p0/P1A-QA-RESULT.json
-          if-no-files-found: error
-          retention-days: 7
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+          if ((git rev-parse HEAD) -ne $env:PRODUCT_SHA -or (git status --porcelain)) { throw 'Product source identity mismatch' }
+          New-Item -ItemType Directory -Force compile-evidence | Out-Null
+          foreach ($tool in @('C:\Strawberry\perl\bin','C:\Program Files\NASM')) { if (Test-Path $tool) { $tool | Out-File -FilePath $env:GITHUB_PATH -Append } }
+          rustc --version
+          if ($LASTEXITCODE -ne 0) { throw 'Rust unavailable' }
+          cargo --version
+          if ($LASTEXITCODE -ne 0) { throw 'Cargo unavailable' }
+      - name: Compile using unmodified default product build script (no extra features)
+        shell: pwsh
+        run: |
+          node scripts/electron-p0/build-finance.mjs --release 2>&1 | Tee-Object compile-evidence/default-build.log
+          if ($LASTEXITCODE -ne 0) { throw 'Default Finance release compile failed' }
+          if (-not (Test-Path build/my-finance-cli/my-finance-cli.exe)) { throw 'Default product build output missing' }
+      - name: Locked Rust release check and effective Windows features
+        shell: pwsh
+        run: |
+          cargo check --locked --release --manifest-path tools/my-finance-cli/Cargo.toml 2>&1 | Tee-Object compile-evidence/cargo-check.log
+          if ($LASTEXITCODE -ne 0) { throw 'Locked Finance Rust check failed' }
+          cargo tree --locked --manifest-path tools/my-finance-cli/Cargo.toml -e features -i windows-sys@0.61.2 2>&1 | Tee-Object compile-evidence/windows-features.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Feature resolution failed' }
+          if (-not (Select-String -Path compile-evidence/windows-features.txt -Pattern 'Win32_Security' -Quiet)) { throw 'Win32_Security was not resolved from the product manifest' }
+          git diff --exit-code -- tools/my-finance-cli/Cargo.toml tools/my-finance-cli/Cargo.lock
+          if ($LASTEXITCODE -ne 0) { throw 'Cargo source/lock was unexpectedly modified' }
+          $dirty=@(git status --porcelain --untracked-files=no)
+          if ($dirty.Count -ne 0) { throw 'Tracked product file changed' }
+          @{sourceSha=$env:PRODUCT_SHA;qaSha=$env:GITHUB_SHA;defaultBuild='PASS';extraCargoFeatures=@();cargoCheck='PASS';cliSha256=(Get-FileHash build/my-finance-cli/my-finance-cli.exe -Algorithm SHA256).Hash.ToLowerInvariant();portableBuilt=$false;guiRun=$false;productionDeployment=$false} | ConvertTo-Json -Depth 4 | Set-Content compile-evidence/result.json
+      - name: Preserve compile evidence only
         if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: ELECTRON-P2E5B-UI-evidence-${{ github.run_id }}
-          path: |
-            artifacts/electron-p0-e2e/
-            release-electron-p0/P1A-QA-RESULT.json
-          if-no-files-found: ignore
+          name: Finance-default-Windows-compile-${{ github.run_id }}
+          path: compile-evidence/
           retention-days: 7
+          if-no-files-found: warn
