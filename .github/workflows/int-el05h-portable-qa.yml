@@ -1,4 +1,4 @@
-name: Integrated feature baseline Portable and focused Windows usage
+name: Integrated Portable remaining usage (reuse verified EXE)
 on:
   workflow_dispatch:
     inputs:
@@ -8,6 +8,7 @@ on:
         type: string
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: integrated-feature-portable
   cancel-in-progress: false
@@ -19,6 +20,7 @@ jobs:
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      QA_REMAINING_ONLY: '1'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -47,51 +49,33 @@ jobs:
       - name: Install locked dependencies only
         working-directory: product
         run: npm ci
-      - name: Existing three-CLI packaging with explicit Finance Win32 export feature
-        working-directory: product
+      - name: Verify immutable already-built Portable Artifact
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          Start-Transcript -Path (Join-Path $env:GITHUB_WORKSPACE 'diagnostic-output/windows-build.log')
-          try {
-            # QA build option only: fixed product source and Cargo files stay unchanged.
-            # Run 41606939989 proved CreateJobObjectW is gated behind Win32_Security.
-            node scripts/electron-p0/build-excel.mjs --release
-            if ($LASTEXITCODE -ne 0) { throw 'Purchase CLI build failed' }
-            node scripts/electron-p0/build-official-document.mjs --release
-            if ($LASTEXITCODE -ne 0) { throw 'Official CLI build failed' }
-            cargo build --locked --manifest-path tools/my-finance-cli/Cargo.toml --release --features windows-sys/Win32_Security
-            if ($LASTEXITCODE -ne 0) { throw 'Finance CLI build failed' }
-            New-Item -ItemType Directory -Force build/my-finance-cli | Out-Null
-            Copy-Item tools/my-finance-cli/target/release/my-finance-cli.exe build/my-finance-cli/my-finance-cli.exe
-            npm run electron:p0:build
-            if ($LASTEXITCODE -ne 0) { throw 'Electron build failed' }
-            node node_modules/electron-builder/out/cli/cli.js --config electron-p0/builder.json --win portable --x64 --publish never
-            if ($LASTEXITCODE -ne 0) { throw 'Portable packaging failed' }
-          } finally { Stop-Transcript }
-      - name: Actual ASAR graph, three CLI bytes, source and Portable manifest
-        run: node scripts/electron-p0/int-el05e-artifact.mjs product
-      - name: Record signature and synthetic fixture preparation
+          $a=gh api repos/school-health-hub/BOGUNON_DESK/actions/artifacts/13218936720 | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $a.expired -or $a.workflow_run.id -ne 41609316123 -or $a.digest -ne 'sha256:eca9fe8965beef92fdee1cf73377f5712e2634c5e64c5eb2f685dfa5cbdebf07') { throw 'Pinned Portable unavailable or changed' }
+          $a | ConvertTo-Json -Depth 8 | Set-Content diagnostic-output/source-artifact.json
+      - name: Reuse identical Portable only (no Rust or Electron build)
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: Integrated-Portable-9e22f7e-41609316123
+          run-id: 41609316123
+          repository: school-health-hub/BOGUNON_DESK
+          github-token: ${{ github.token }}
+          path: product/release-electron-p0
+      - name: Verify reused EXE and prepare existing synthetic fixtures
         shell: pwsh
         run: |
           $path='product/release-electron-p0/INTEGRATED-PORTABLE-MANIFEST.json'
           $manifest=Get-Content $path -Raw | ConvertFrom-Json
           $exe=Join-Path 'product/release-electron-p0' $manifest.portable.file
-          $manifest.portable.signature=[string](Get-AuthenticodeSignature $exe).Status
-          if ($manifest.portable.signature -notin @('NotSigned','Valid')) { throw 'Unexpected signature state' }
-          $manifest | ConvertTo-Json -Depth 12 | Set-Content $path -Encoding utf8
+          $signature=[string](Get-AuthenticodeSignature $exe).Status
+          if ($signature -ne $manifest.portable.signature -or (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant() -ne '6ed9fc79c8d85e68bd43f1b33ba8acee73a2284e4cff05d97802670a7b7afb10' -or $manifest.productSourceSha -ne '9e22f7e5666ffa73afc48a03ff2c844ea67bc0c9' -or $manifest.metadata.dirty) { throw 'Reused Portable identity mismatch' }
+          @{signature=$signature;sourceSha=$manifest.productSourceSha;sha256=$manifest.portable.sha256} | ConvertTo-Json | Set-Content diagnostic-output/reused-exe-identity.json
           node scripts/qa/int-el05h-ui.mjs --prepare
           if ($LASTEXITCODE -ne 0) { 'Synthetic newsletter fixture preparation failed; remaining GUI checks continue' | Set-Content diagnostic-output/fixture-preparation-warning.txt; $global:LASTEXITCODE=0 }
-      - name: Preserve the new Portable independently of GUI outcomes
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: Integrated-Portable-9e22f7e-${{ github.run_id }}
-          path: |
-            product/release-electron-p0/*.exe
-            product/release-electron-p0/INTEGRATED-PORTABLE-MANIFEST.json
-            product/release-electron-p0/SHA256SUMS.txt
-          if-no-files-found: warn
-          retention-days: 14
       - name: Actual Portable independent launch, owned HWND/CDP UI, restart and cleanup
         shell: pwsh
         run: ./scripts/qa/int-el05h-portable.ps1 -InputDirectory product/release-electron-p0 -OutputDirectory diagnostic-output

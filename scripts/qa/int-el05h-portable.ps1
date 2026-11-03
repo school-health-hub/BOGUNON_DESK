@@ -1,10 +1,10 @@
 param([Parameter(Mandatory=$true)][string]$InputDirectory,[Parameter(Mandatory=$true)][string]$OutputDirectory)
 $ErrorActionPreference='Stop'
 $sourceSha='9e22f7e5666ffa73afc48a03ff2c844ea67bc0c9'
-$expectedHash=$null
+$expectedHash='6ed9fc79c8d85e68bd43f1b33ba8acee73a2284e4cff05d97802670a7b7afb10'
 New-Item -ItemType Directory -Force $OutputDirectory | Out-Null
 $OutputDirectory=[IO.Path]::GetFullPath($OutputDirectory)
-$report=@{sourceSha=$sourceSha;qaSha=$env:GITHUB_SHA;newBuild=$true;sourceRun=$env:GITHUB_RUN_ID;phases=@();verdict='BLOCKED';physicalDpi='NOT RUN';fullFeatureQa='Focused integrated flows; not full regression'}
+$report=@{sourceSha=$sourceSha;qaSha=$env:GITHUB_SHA;newBuild=$false;sourceRun=41609316123;sourceArtifact=13218936720;phases=@();verdict='BLOCKED';physicalDpi='NOT RUN';fullFeatureQa='Focused integrated flows; not full regression'}
 $runRoot=Join-Path $env:RUNNER_TEMP ('int-el05h-'+[guid]::NewGuid().ToString())
 New-Item -ItemType Directory -Force $runRoot | Out-Null
 $script:testProfile=[guid]::NewGuid().ToString()
@@ -151,7 +151,8 @@ try{
  if($script:manifest.productSourceSha -ne $sourceSha -or $script:manifest.metadata.sourceSha -ne $sourceSha -or $script:manifest.metadata.dirty -ne $false){throw 'Original product metadata mismatch'}
  $exeFiles=@(Get-ChildItem -LiteralPath $InputDirectory -Recurse -File | Where-Object {$_.Name -eq $script:manifest.portable.file})
  if($exeFiles.Count -ne 1){throw 'Expected exactly one original Portable'}
- $script:exe=$exeFiles[0].FullName;$actual=Hash $script:exe;$expectedHash=$script:manifest.portable.sha256
+ $script:exe=$exeFiles[0].FullName;$actual=Hash $script:exe
+ if($script:manifest.portable.sha256 -ne $expectedHash){throw 'Pinned original Portable digest mismatch'}
  if($expectedHash -notmatch '^[a-f0-9]{64}$'){throw 'Invalid generated Portable hash'}
  if($actual -ne $expectedHash -or $script:manifest.portable.sha256 -ne $expectedHash){throw 'Original Portable hash mismatch'}
  $report.reused=@{file=$script:exe;sha256=$actual;signature=[string](Get-AuthenticodeSignature $script:exe).Status;sourceManifest=$script:manifest}
