@@ -2,8 +2,8 @@ import {test,expect,_electron as electron} from '@playwright/test';
 import {randomUUID,createHash} from 'node:crypto';
 import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import {join} from 'node:path';
-const source='b54bbe47aa9b8785b41900b2b06970d2f3e68e21';
-const output='artifacts/design04b';
+const source='036ff1e73a5cfdb6c0b16921aa04ebf804aed79a';
+const output='artifacts/design05';
 for(const [width,height] of [[1440,900],[1366,768],[1280,720],[980,700]]){
  test(`Soft Rose actual Windows Electron ${width}x${height}`,async()=>{
   test.setTimeout(150000);await mkdir(output,{recursive:true});
@@ -32,6 +32,15 @@ for(const [width,height] of [[1440,900],[1366,768],[1280,720],[980,700]]){
    evidence.surface=await page.evaluate(()=>({horizontalOverflow:document.documentElement.scrollWidth>innerWidth,background:getComputedStyle(document.querySelector('.workspace-shell')!).backgroundColor,frameBackground:getComputedStyle(document.querySelector('.widget-frame')!).backgroundColor,dockVisible:!!document.querySelector('.dock')}));
    expect.soft((evidence.surface as {horizontalOverflow:boolean}).horizontalOverflow).toBe(false);
    expect.soft((evidence.surface as {background:string}).background).toBe('rgb(255, 248, 250)');
+   evidence.paintAndOverflow=await page.evaluate(()=>{
+    const shell=document.querySelector('.workspace-shell')!,clock=document.querySelector('.date-card__time')!,summary=document.querySelector('.summary-card')!;
+    const measure=(el:Element)=>({scroll:el.scrollWidth,client:el.clientWidth,rect:el.getBoundingClientRect().toJSON()});
+    const range=document.createRange();range.selectNodeContents(clock);const glyphs=range.getBoundingClientRect(),box=clock.getBoundingClientRect();
+    return {material:getComputedStyle(shell,'::before').backgroundColor,materialImage:getComputedStyle(shell,'::before').backgroundImage,clock:measure(clock),clockGlyphsFit:glyphs.right<=box.right+1&&glyphs.left>=box.left-1,summary:measure(summary)};
+   });
+   const painted=evidence.paintAndOverflow as {material:string;materialImage:string;clock:{scroll:number;client:number};clockGlyphsFit:boolean;summary:{scroll:number;client:number}};
+   expect.soft(painted.material).toBe('rgb(255, 248, 250)');expect.soft(painted.materialImage).toBe('none');
+   expect.soft(painted.clock.scroll).toBeLessThanOrEqual(painted.clock.client+1);expect.soft(painted.clockGlyphsFit).toBe(true);expect.soft(painted.summary.scroll).toBeLessThanOrEqual(painted.summary.client+1);
    const dock=page.getByRole('navigation',{name:'주요 기능'});
    const tools=dock.getByRole('button',{name:'업무 도구',exact:true});await tools.click();
    const dialog=page.getByRole('dialog',{name:'업무 도구',exact:true});await expect(dialog).toBeVisible();await capture('tools');
@@ -43,6 +52,10 @@ for(const [width,height] of [[1440,900],[1366,768],[1280,720],[980,700]]){
    evidence.toolsBounds=await dialog.boundingBox();
    await page.keyboard.press('Escape');await expect(dialog).toHaveCount(0);await expect(tools).toBeFocused();
    const settings=dock.getByRole('button',{name:'설정',exact:true});await settings.click();const settingsDialog=page.getByRole('dialog',{name:'설정',exact:true});await expect(settingsDialog).toBeVisible();
+   evidence.inspector=await settingsDialog.evaluate(el=>{
+    const panel=el.querySelector('.workspace-editor-panel')!;return {opacity:getComputedStyle(panel).opacity,animation:getComputedStyle(panel).animationName,backdrop:getComputedStyle(panel).backdropFilter,buttons:[...panel.querySelectorAll('button')].filter(b=>b.offsetWidth>0).map(b=>({label:b.textContent,disabled:b.disabled,color:getComputedStyle(b).color,background:getComputedStyle(b).backgroundColor,opacity:getComputedStyle(b).opacity}))};
+   });
+   const inspector=evidence.inspector as {opacity:string;animation:string;backdrop:string};expect.soft(inspector.opacity).toBe('1');expect.soft(inspector.animation).toBe('none');expect.soft(inspector.backdrop).toBe('none');
    await capture('settings-screen');
    const categories=settingsDialog.getByRole('navigation',{name:'설정 카테고리'});
    for(const name of ['위젯','Dock','앱 정보','화면']){
