@@ -599,3 +599,16 @@ Excluded: `2a49b94` QA workflow and `scripts/electron-p0/int-el03b-artifact.mjs`
 Preservation: all13 widget identities, coordinates/minima/visibility/resize, settings and Dock versions, original work modules, Newsletter Guard/approval policy, Inventory JSON/Preview/Local QA and Main Transport/security remain intact. `src`, `src-tauri`, main entry, Preload and Protocol are unchanged against integration base. Only main/settings.ts's verified replacement behavior changes in Main.
 
 Validation must run on the new committed candidate SHA, not inherited source QA: Electron TypeScript/build, focused UI/storage/EPERM/security regressions and runtime ASAR graph. Reuse registered Windows visual workflow from separate QA tooling pinned to this candidate; do not add SHA-specific QA files to the product candidate. Previous Windows source checks/design user approval are provenance only. Native DPI, physical multi-monitor, native file dialogs/install/uninstall remain NOT RUN for integration.
+
+## Electron 로컬 물품관리 실사용 기능
+
+- 기준: `feature/electron-official-document-flow@e23ccffc419bfcd4a4c42f4b714ca0d326a9cf0b` (원격 보존 완료). 개발 브랜치: `feature/electron-inventory-practical`. Finder/Purchase 저장, Newsletter 새 작성, 로컬 업무, 공문 흐름을 조상 커밋으로 모두 포함한다.
+- 물품 등록·수정, 이름 검색/부족·만료 필터, 로트·유효기간, 입고·사용·폐기 및 변경 이력을 기존 로컬 화면에 연결했다. 만료·격리 재고는 사용할 수 없고 폐기는 가능하다. 차감은 선택 로트 또는 유효기간 순서로 처리한다. 기록이 있는 물품은 기본 단위 변경/삭제를 차단해 이력을 보존한다.
+- 새 저장소는 빈 상태로 시작하며 합성 재고를 자동 생성·저장하지 않는다. 기존 JSON은 자동 정리/이전하지 않는다. 이름·단위·권장 재고 등 v1 문서 구조와 파일명(`inventory.json`, `inventory.backup.json`)을 유지한다.
+- Main 고정 경로: Electron `userData/work-data/inventory`. 기존 `inventory.load/save`를 재사용하며 선택적 `expectedUpdatedAt` 인자를 추가했다. 큐·원자적 교체·이전 정상 파일 백업, 저장 충돌 거부, 안전 정수/날짜/합계 검증, 이력 수정 방지를 적용한다. 실패 시 화면의 기존 재고와 입력을 보존한다. 백업으로 읽은 경우는 원본·백업 보호를 위해 읽기 전용이다. 자동 복구/덮어쓰기는 하지 않는다.
+- 부족 또는 임의 구매 후보를 선택하고 전달용 규격·수량을 검토한 뒤 명시적으로 확인한다. 기존 Purchase 세션 품목 뒤에 한 번만 추가하며 단가는 비워 둔다. 기존 품의·정산 입력을 초기화하지 않는다. 구매 전달은 재고를 변경하거나 서버에 저장하지 않는다. 규격은 전달용 세션 값이며 JSON 필드를 추가하지 않았다.
+- 로컬 JSON / 합성 Preview / 개발 Local QA는 분리한다. Cloud B 연결 모듈·SQL/RPC/RLS, 서버·운영 DB, Finance, Tauri 및 Soft Rose Surface 디자인은 변경하지 않는다.
+- Cloud 검증: 관련 Vitest 21개 파일 **151 PASS**, 기존 Main/Preload ASAR 런타임 검사 **3 PASS**, Electron Main/Preload·Renderer·테스트 TypeScript 및 production build **PASS**. 기존 스크립트에 lint 명령은 없다. Windows GUI·실제 IPC·재실행·파일 권한/잠금은 **NOT RUN**이다. 자동 검증은 합성 자료와 격리 임시 디렉터리로 수행했다. Windows Actions/신규 QA workflow는 실행·추가하지 않았다.
+- 후속 집중 확인: 물품 등록→입고→사용/만료 폐기→앱 재실행 후 이력·재고 복원, 저장 실패/백업 보호, Purchase 기존 품목에 추가, 작은 창의 목록·상세·구매 검토 접근. 기존 기능 전체 Windows QA는 반복하지 않는다.
+
+변경 경로: `src/inventory-management/{InventoryWorkspace.tsx,model.ts,inventory.css}`, `electron-p0/main/{inventory-store.ts,main.mts}`, `electron-p0/{protocol.ts,preload/preload.cts}`, `electron-p0/renderer/{P0App.tsx,inventory-preview/InventoryHost.tsx,purchase/PurchaseSession.tsx,purchase/inventoryPurchase.ts}`, 관련 `electron-p0/tests/inventory-{model,store,workspace,preview-isolation,purchase,local-boundary}.test.{ts,tsx}`, 이 인계 문서. 새 기능 브랜치는 로컬 체크포인트로 보존하며 원격 push는 이번에 수행하지 않는다.

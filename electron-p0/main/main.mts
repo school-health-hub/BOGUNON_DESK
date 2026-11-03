@@ -25,7 +25,7 @@ import {createProjectHandler,PROJECT_ACTIONS} from './newsletter-project-ipc.js'
 import { createNewsletterSaveHandler } from './newsletter-json.js';
 import { MemoStore, createMemoHandlers } from './memo-ipc.js';
 import {EducationVideoLibraryStore,createEducationVideoHandlers} from './education-video-library.js';
-import {InventoryStore} from './inventory-store.js';
+import {InventoryStore,InventoryConflict} from './inventory-store.js';
 import { createSampleHandler, SAMPLE_SUMMARY_CHANNEL } from './sample-ipc.js';
 import { assertSender, resourceAllowed } from './policy.js';
 if (app.commandLine.hasSwitch('no-sandbox') || app.commandLine.hasSwitch('disable-web-security')) throw new Error('Unsafe Electron launch flags denied');
@@ -131,7 +131,7 @@ else {
   window.on('close',()=>inventoryQa.close());window.webContents.on('will-navigate',()=>inventoryQa.close());window.webContents.on('render-process-gone',()=>inventoryQa.close());
   ipcMain.handle('p2:inventory-local-qa:status',createInventoryQaStatusHandler(window.webContents,url,{packaged:app.isPackaged,devUrl:dev,optIn:process.env.INVENTORY_LOCAL_QA}));
   ipcMain.handle('p2:inventory:load',async(event,...args:unknown[])=>{try{assertSender(event,window.webContents,url);if(args.length)throw Error('Invalid input');return {ok:true,data:await inventoryStore.load()};}catch{return {ok:false,error:{code:'STORAGE_ERROR',message:'격리된 재고를 불러오지 못했습니다. 기존 파일은 유지됩니다.',retryable:true}};}});
-  ipcMain.handle('p2:inventory:save',async(event,document:unknown,...args:unknown[])=>{try{assertSender(event,window.webContents,url);if(args.length)throw Error('Invalid input');return {ok:true,data:await inventoryStore.save(document)};}catch{return {ok:false,error:{code:'STORAGE_ERROR',message:'재고 기록을 저장하지 못했습니다. 기존 파일은 유지됩니다.',retryable:true}};}});
+  ipcMain.handle('p2:inventory:save',async(event,document:unknown,...args:unknown[])=>{try{assertSender(event,window.webContents,url);if(args.length>1||(args.length===1&&args[0]!==null&&typeof args[0]!=='string'))throw Error('Invalid input');return {ok:true,data:await inventoryStore.save(document,args[0] as string|null|undefined)};}catch(error){return {ok:false,error:{code:error instanceof InventoryConflict?'CONFLICT':'STORAGE_ERROR',message:error instanceof InventoryConflict?'재고가 변경됐습니다. 다시 불러온 뒤 확인해 주세요.':'재고 기록을 저장하지 못했습니다. 기존 파일은 유지됩니다.',retryable:true}};}});
   ipcMain.handle('p2:newsletter:save-json',createNewsletterSaveHandler(window.webContents,url,{
    validate:async json=>{await callOwnedNewsletter('validateStoredNewsletter',{json,barrier:{ids:[],hashes:[]}},renderer,dev);},
    pick:async()=>{const r=await dialog.showSaveDialog(window,{title:'원고·디자인 JSON 저장',defaultPath:'newsletter.json',filters:[{name:'Newsletter JSON',extensions:['json']}]});return r.canceled?undefined:r.filePath;},

@@ -1,3 +1,4 @@
+import type {InventoryPurchaseRequest} from './purchase/inventoryPurchase';
 import {LocalWorkspaceStatus} from './local-tasks/LocalNotices';
 import {LocalWorkspaceProvider} from './adapters/workspace';
 import {LocalTasksPanel,type LocalTaskRequest} from './local-tasks/LocalTasksPanel';
@@ -60,6 +61,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   const [taskRequest,setTaskRequest]=useState<LocalTaskRequest|null>(null);
   const openTasks=(input:Omit<LocalTaskRequest,'key'>={})=>setTaskRequest({...input,key:crypto.randomUUID()});
   const [purchaseOpen,setPurchaseOpen]=useState(false);
+  const [purchaseIncoming,setPurchaseIncoming]=useState<InventoryPurchaseRequest|null>(null);
   const [newsletterOpen,setNewsletterOpen]=useState(false);
   const [newsletterLoaded,setNewsletterLoaded]=useState(false);
   const [educationVideoOpen,setEducationVideoOpen]=useState(false);
@@ -112,11 +114,11 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
       <div className="dock-zone"><AppDock activeActionId={active} dockLayout={dock} onAction={navigate}/></div>
     </div>
     {taskRequest&&<LocalTasksPanel request={taskRequest} onClose={()=>setTaskRequest(null)}/>}
-    <PurchaseSession open={purchaseOpen} onClose={()=>setPurchaseOpen(false)}/>
+    <PurchaseSession incoming={purchaseIncoming} onIncomingApplied={id=>setPurchaseIncoming(current=>current?.id===id?null:current)} open={purchaseOpen} onClose={()=>setPurchaseOpen(false)}/>
     <div hidden={!newsletterOpen} inert={!newsletterOpen} style={{display:newsletterOpen?undefined:"none"}}>{newsletterLoaded&&<Suspense fallback={<p role="status">소식지 불러오는 중…</p>}><NewsletterStudio onClose={()=>setNewsletterOpen(false)}/></Suspense>}</div>
     {educationVideoOpen&&<Suspense fallback={<main role="status">교육영상 Finder를 불러오는 중…</main>}><EducationVideoFinder onClose={()=>setEducationVideoOpen(false)}/></Suspense>}
     {officialDocumentOpen&&<Suspense fallback={<main role="status">공문작업실을 불러오는 중…</main>}><OfficialDocumentWorkspace onClose={()=>setOfficialDocumentOpen(false)}/></Suspense>}
     {import.meta.env.DEV&&inventoryQaOpen&&<InventoryLocalQa onClose={()=>setInventoryQaOpen(false)}/>}
-    {inventoryOpen&&<Suspense fallback={<main role="status">재고 관리를 불러오는 중…</main>}><InventoryHost mode={inventoryMode} onModeChange={setInventoryMode} onClose={()=>setInventoryOpen(false)}/></Suspense>}
+    {inventoryOpen&&<Suspense fallback={<main role="status">재고 관리를 불러오는 중…</main>}><InventoryHost onPurchase={lines=>{setPurchaseIncoming({id:crypto.randomUUID(),lines});setInventoryOpen(false);setPurchaseOpen(true);}} mode={inventoryMode} onModeChange={setInventoryMode} onClose={()=>setInventoryOpen(false)}/></Suspense>}
   </DesktopPanelProvider></PersistentMemoProvider></LocalWorkspaceProvider></WidgetSessionProvider>;
 }
