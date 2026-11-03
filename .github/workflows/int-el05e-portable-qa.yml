@@ -1,0 +1,173 @@
+name: INT-EL-05E pinned Portable and GUI QA
+on:
+  workflow_dispatch:
+    inputs:
+      expected_qa_sha:
+        description: Exact reviewed QA branch commit SHA
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: int-el05e-portable-qa
+  cancel-in-progress: false
+jobs:
+  windows:
+    if: github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/qa/int-el05e-portable' && github.sha == inputs.expected_qa_sha
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    defaults:
+      run:
+        working-directory: product
+    steps:
+      - name: QA tools at dispatched SHA
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ inputs.expected_qa_sha }}
+          persist-credentials: false
+      - name: Verify exact QA HEAD and prepare owned temp
+        working-directory: .
+        shell: pwsh
+        env:
+          EXPECTED_QA_SHA: ${{ inputs.expected_qa_sha }}
+        run: |
+          if ($env:EXPECTED_QA_SHA -notmatch '^[a-f0-9]{40}$') { throw 'Invalid QA SHA' }
+          if ((git rev-parse HEAD) -ne $env:EXPECTED_QA_SHA -or $env:GITHUB_SHA -ne $env:EXPECTED_QA_SHA) { throw 'QA SHA mismatch' }
+          if (git status --porcelain) { throw 'Dirty QA tools' }
+          "QA_PORTABLE_TEMP=$(Join-Path $env:RUNNER_TEMP 'int-el05e-portable')" >> $env:GITHUB_ENV
+      - name: Exact approved product
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: c06ce6a910002cc7658a5545e23e0d3ed914d377
+          path: product
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: product/package-lock.json
+      - name: Verify clean fixed source and tools
+        shell: pwsh
+        run: |
+          if ((git rev-parse HEAD) -ne 'c06ce6a910002cc7658a5545e23e0d3ed914d377') { throw 'Wrong product SHA' }
+          if (git status --porcelain) { throw 'Dirty source' }
+          New-Item -ItemType Directory -Force artifacts/int-el05e | Out-Null
+          rustc --version
+          cargo --version
+      - run: npm ci --no-audit --no-fund
+      - name: Existing Portable build, no installer or full suite
+        id: package
+        run: |
+          npm run electron:p0:package:win 2>&1 | Tee-Object artifacts/int-el05e/package.log
+          if ($LASTEXITCODE -ne 0) { throw 'Portable packaging failed' }
+      - name: Real ASAR dependency closure, native resources and hashes
+        id: inspect
+        run: |
+          node ../scripts/electron-p0/int-el05e-artifact.mjs . 2>&1 | Tee-Object artifacts/int-el05e/artifact-check.log
+          if ($LASTEXITCODE -ne 0) { throw 'Artifact integrity check failed' }
+      - name: Signature, isolated temp and QA test copy
+        id: prepare
+        shell: pwsh
+        run: |
+          $path = 'release-electron-p0/INT-EL-05E-MANIFEST.json'
+          $m = Get-Content $path -Raw | ConvertFrom-Json
+          $signature = [string](Get-AuthenticodeSignature (Join-Path 'release-electron-p0' $m.portable.file)).Status
+          if ($signature -notin @('NotSigned','Valid')) { throw "Invalid signature state: $signature" }
+          Write-Output "::notice title=INT_EL05E_ARTIFACT::file=$($m.portable.file) SHA256=$($m.portable.sha256) ASAR=$($m.asar.sha256) signature=$signature source=$($m.productSourceSha) dirty=$($m.metadata.dirty)"
+          $m.portable.signature = $signature
+          $m | ConvertTo-Json -Depth 12 | Set-Content $path -Encoding utf8
+          New-Item -ItemType Directory -Force $env:QA_PORTABLE_TEMP,artifacts/int-el05e | Out-Null
+          Copy-Item ../electron-p0/e2e/int-el05e-portable.e2e.ts electron-p0/e2e/int-el05e-portable.e2e.ts
+      - name: Renderer E2E only, not Portable GUI
+        id: renderer
+        env:
+          ELECTRON_P0_EXECUTABLE: ''
+        run: |
+          npx playwright test --config electron-p0/playwright.config.ts dashboard.e2e.ts --grep INT-EL-05C --reporter=list,github 2>&1 | Tee-Object artifacts/int-el05e/renderer-e2e.log
+          if ($LASTEXITCODE -ne 0) { throw 'Renderer E2E failed' }
+      - name: Preserve renderer evidence before the next Playwright run
+        if: always() && steps.inspect.outcome == 'success'
+        shell: pwsh
+        run: |
+          if (Test-Path artifacts/electron-p0-e2e) { Copy-Item artifacts/electron-p0-e2e artifacts/int-el05e/renderer-e2e -Recurse -Force }
+      - name: Actual Portable launcher GUI and graceful close (no unpacked fallback)
+        id: portable_smoke
+        if: always() && steps.prepare.outcome == 'success'
+        shell: pwsh
+        run: |
+          $m = Get-Content release-electron-p0/INT-EL-05E-MANIFEST.json -Raw | ConvertFrom-Json
+          $env:ELECTRON_P0_EXECUTABLE = (Resolve-Path (Join-Path release-electron-p0 $m.portable.file)).Path
+          $env:TEMP = $env:QA_PORTABLE_TEMP
+          $env:TMP = $env:QA_PORTABLE_TEMP
+          npx playwright test --config electron-p0/playwright.config.ts int-el05e-portable.e2e.ts --reporter=list,github 2>&1 | Tee-Object artifacts/int-el05e/portable-launch.log
+          if ($LASTEXITCODE -ne 0) { throw 'Actual Portable launch test failed' }
+      - name: Preserve actual Portable launch evidence
+        if: always() && steps.inspect.outcome == 'success'
+        shell: pwsh
+        run: |
+          if (Test-Path artifacts/electron-p0-e2e) { Copy-Item artifacts/electron-p0-e2e artifacts/int-el05e/portable-launch-e2e -Recurse -Force }
+      - name: Focused UI contract on the actual Portable launcher
+        id: portable_e2e
+        if: always() && steps.portable_smoke.outcome == 'success'
+        shell: pwsh
+        run: |
+          $m = Get-Content release-electron-p0/INT-EL-05E-MANIFEST.json -Raw | ConvertFrom-Json
+          $env:ELECTRON_P0_EXECUTABLE = (Resolve-Path (Join-Path release-electron-p0 $m.portable.file)).Path
+          $env:TEMP = $env:QA_PORTABLE_TEMP
+          $env:TMP = $env:QA_PORTABLE_TEMP
+          npx playwright test --config electron-p0/playwright.config.ts dashboard.e2e.ts --grep INT-EL-05C --reporter=list,github 2>&1 | Tee-Object artifacts/int-el05e/portable-ui.log
+          if ($LASTEXITCODE -ne 0) { throw 'Actual Portable focused UI failed' }
+      - name: Detect and clean only this job's product processes
+        id: cleanup
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts/int-el05e | Out-Null
+          $root = (Get-Location).Path.TrimEnd('\') + '\'
+          if (-not $env:QA_PORTABLE_TEMP) { $env:QA_PORTABLE_TEMP = Join-Path $env:RUNNER_TEMP 'int-el05e-portable' }
+          $temp = [IO.Path]::GetFullPath($env:QA_PORTABLE_TEMP).TrimEnd('\') + '\'
+          function OwnedProcesses {
+            @(Get-CimInstance Win32_Process | Where-Object {
+              $_.ExecutablePath -and ($_.ExecutablePath.StartsWith($root,[StringComparison]::OrdinalIgnoreCase) -or $_.ExecutablePath.StartsWith($temp,[StringComparison]::OrdinalIgnoreCase))
+            })
+          }
+          Start-Sleep -Seconds 2
+          $remaining = @(OwnedProcesses)
+          $record = @{normalCleanup=($remaining.Count -eq 0);forcedCleanup=$false;remaining=@($remaining | ForEach-Object {@{pid=$_.ProcessId;name=$_.Name}})}
+          if ($remaining.Count -gt 0) {
+            $record.forcedCleanup=$true
+            foreach ($p in $remaining) { Stop-Process -Id $p.ProcessId -Force -ErrorAction Continue }
+          }
+          $record.after = @(OwnedProcesses | ForEach-Object {@{pid=$_.ProcessId;name=$_.Name}})
+          Write-Output "::notice title=INT_EL05E_CLEANUP::$($record | ConvertTo-Json -Depth 8 -Compress)"
+          $record | ConvertTo-Json -Depth 8 | Set-Content artifacts/int-el05e/cleanup.json -Encoding utf8
+          if (-not $record.normalCleanup -or $record.after.Count -gt 0) { throw 'Normal process cleanup failed; fallback cleanup is not PASS' }
+      - name: Record independent outcomes (no inference from renderer PASS)
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts/int-el05e | Out-Null
+          @{sourceSha='c06ce6a910002cc7658a5545e23e0d3ed914d377';qaSha=$env:GITHUB_SHA;runUrl="https://github.com/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID";packaging='${{ steps.package.outcome }}';asar='${{ steps.inspect.outcome }}';rendererE2E='${{ steps.renderer.outcome }}';actualPortableGui='${{ steps.portable_smoke.outcome }}';portableFocusedUi='${{ steps.portable_e2e.outcome }}';cleanup='${{ steps.cleanup.outcome }}';physicalDpi='NOT RUN';nativeDialogs='NOT RUN';installUninstall='NOT RUN'} | ConvertTo-Json -Depth 6 | Set-Content artifacts/int-el05e/outcomes.json -Encoding utf8
+          $manifestPath = 'release-electron-p0/INT-EL-05E-MANIFEST.json'
+          if (Test-Path $manifestPath) {
+            $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
+            $manifest.windowsGui = if ('${{ steps.portable_smoke.outcome }}' -eq 'success' -and '${{ steps.portable_e2e.outcome }}' -eq 'success') { 'PASS' } elseif ('${{ steps.portable_smoke.outcome }}' -eq 'failure' -or '${{ steps.portable_e2e.outcome }}' -eq 'failure') { 'FAIL' } else { 'NOT RUN' }
+            $manifest | ConvertTo-Json -Depth 12 | Set-Content $manifestPath -Encoding utf8
+          }
+          Get-ChildItem artifacts/int-el05e -Recurse -File -Filter *.png | ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.FullName.Substring((Get-Location).Path.Length+1))" } | Set-Content artifacts/int-el05e/IMAGE-SHA256SUMS.txt -Encoding utf8
+      - name: Preserve QA executable, manifests, screenshots and failure traces
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: INT-EL-05E-c06ce6a-${{ github.sha }}
+          path: |
+            product/release-electron-p0/*.exe
+            product/release-electron-p0/INT-EL-05E-MANIFEST.json
+            product/release-electron-p0/SHA256SUMS.txt
+            product/artifacts/int-el05e/
+            product/artifacts/electron-p0-e2e/
+          if-no-files-found: warn
+          retention-days: 7
