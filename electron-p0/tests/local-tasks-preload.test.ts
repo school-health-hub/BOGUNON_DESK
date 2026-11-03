@@ -1,0 +1,6 @@
+import {readFileSync} from 'node:fs';import {runInNewContext} from 'node:vm';import ts from 'typescript';import {it,expect,vi} from 'vitest'
+it('exposes only typed task load/save and routes revision as an explicit argument',async()=>{
+ const exposed:Record<string,any>={},invoke=vi.fn(async()=>({ok:true,data:{}})),emitted=ts.transpileModule(readFileSync('electron-p0/preload/preload.cts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText
+ runInNewContext(emitted,{exports:{},process:{sandboxed:true,contextIsolated:true},require:(name:string)=>{if(name!=='electron')throw Error('Unexpected dependency');return {contextBridge:{exposeInMainWorld:(key:string,value:unknown)=>{exposed[key]=value}},ipcRenderer:{invoke}}}})
+ expect(Object.isFrozen(exposed.electronWork.tasks)).toBe(true);expect(Object.keys(exposed.electronWork.tasks)).toEqual(['load','save']);await exposed.electronWork.tasks.load('forged path');expect(invoke.mock.calls.at(-1)).toEqual(['p2:tasks:load']);const document={version:1,revision:0,tasks:[]};await exposed.electronWork.tasks.save(document,0);expect(invoke.mock.calls.at(-1)).toEqual(['p2:tasks:save',document,0]);expect(exposed.electronWork.invoke).toBeUndefined()
+})

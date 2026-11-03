@@ -1,5 +1,6 @@
-import type { WorkspaceDataState } from '../../../src/workspace-data/types';
-export function useWorkspaceData() {
-  const state: WorkspaceDataState = {status:'ready',data:{todayTasks:[],calendarEvents:[],weekSchedule:[],upcomingEvents:[],ddayItems:[],notifications:[],inboxItems:[],summary:{todayEventCount:0,todayTaskCount:0,incompleteTaskCount:0}}};
-  return {state,refresh:()=>{},setTaskCompleted:async()=> 'ignored' as const,setTaskActionState:async()=> 'ignored' as const,pendingTaskId:null,taskMutationError:null,taskActionStateError:null};
+import {useLocalWorkspace} from '../local-tasks/LocalWorkspaceProvider'
+export {LocalWorkspaceProvider} from '../local-tasks/LocalWorkspaceProvider'
+export function useWorkspaceData(){
+ const value=useLocalWorkspace()
+ return {state:value.state,refresh:()=>{void value.refresh()},setTaskCompleted:value.setTaskCompleted,setTaskActionState:async()=> 'ignored' as const,pendingTaskId:value.pendingTaskId??(value.busy||value.recovered?'local-tasks-unavailable':null),taskMutationError:value.error,taskActionStateError:null}
 }

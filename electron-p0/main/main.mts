@@ -1,3 +1,4 @@
+import {LocalTaskStore,createLocalTaskHandlers} from './local-tasks.js';
 import {createEducationVideoExport} from './education-video-export.js';
 import {InventoryQaService,inventoryQaHandler} from './inventory-qa-service.js';
 import {INVENTORY_QA_ACTIONS} from '../inventory-qa-protocol.js';
@@ -36,6 +37,7 @@ app.setPath('userData',userData);
 app.setPath('sessionData',join(userData,'chromium'));
 app.setAppUserModelId(APP_ID);
 const store = new SettingsStore(join(userData,'poc-settings'));
+const taskStore=new LocalTaskStore(join(userData,'work-data','local-tasks'));
 const memoStore=new MemoStore(join(userData,'work-data','quick-memo'));
 const educationVideoStore=new EducationVideoLibraryStore(join(userData,'work-data','education-video'));
 const inventoryStore=new InventoryStore(join(userData,'work-data','inventory'));
@@ -109,6 +111,8 @@ else {
   ipcMain.handle('p2:purchase:csv:cancel',purchaseImport.cancel);
   ipcMain.handle('p2:purchase:csv:map',purchaseImport.map);
   ipcMain.handle('p2:purchase:copy',createPurchaseClipboardHandler(window.webContents,url,content=>clipboard.write([new ClipboardItem({'text/plain':content.text,...(content.html?{'text/html':content.html}:{})})])));
+  const taskHandlers=createLocalTaskHandlers(window.webContents,url,taskStore);
+  ipcMain.handle('p2:tasks:load',taskHandlers.load);ipcMain.handle('p2:tasks:save',taskHandlers.save);
   ipcMain.handle(SAMPLE_SUMMARY_CHANNEL,createSampleHandler(window.webContents,url));
   const memoHandlers=createMemoHandlers(window.webContents,url,memoStore);
   ipcMain.handle('p2:memo:read',memoHandlers.read);
@@ -147,7 +151,7 @@ else {
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
-  const quit=()=>{if(quitting)return;quitting=true;officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([store.flush(),desktopStore.flush(),memoStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
+  const quit=()=>{if(quitting)return;quitting=true;officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([store.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
       {label:'창 열기',click:show},{label:'최소화',click:()=>window.minimize()},

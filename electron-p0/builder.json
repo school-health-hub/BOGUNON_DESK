@@ -10,6 +10,7 @@
     "preload/**",
     "protocol.js",
     "inventory-qa-protocol.js",
+    "local-tasks.js",
     "renderer/**",
     "build-meta.json",
     "package.json",

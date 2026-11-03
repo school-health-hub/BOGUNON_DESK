@@ -55,6 +55,7 @@ test('builder selection archives the complete Main/Preload relative runtime grap
   const graph=verifyRuntime(files,read);
   assert(graph.has('inventory-qa-protocol.js'),'Main must use the Inventory protocol');
   assert(graph.has('protocol.js'));
+  assert(graph.has('local-tasks.js'),'Task contract must ship with its Main store');
   for(const missing of graph){
    const broken=new Set(files);broken.delete(missing);
    assert.throws(()=>verifyRuntime(broken,read),/Missing packaged runtime module:/,`Missing ${missing} must fail`);
