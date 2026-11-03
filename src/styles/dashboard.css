@@ -819,8 +819,15 @@
 }
 
 @media (max-height: 720px) and (min-width: 821px) {
-  .workspace-shell { overflow-y: auto; }
-  .workspace-dashboard { min-height: 620px; }
+  .workspace-shell.is-view-mode,
+  .workspace-shell.is-edit-mode { display: grid; height: 100dvh; min-height: 0; grid-template-rows: minmax(0, 1fr) auto; overflow: hidden; }
+  .workspace-shell.is-view-mode .workspace-dashboard,
+  .workspace-shell.is-edit-mode .workspace-dashboard { min-height: 0; overflow-y: auto; padding-right: 10px; padding-bottom: 18px; padding-left: 10px; }
+  .workspace-shell.is-view-mode .workspace-grid,
+  .workspace-shell.is-edit-mode .workspace-grid { min-height: 620px; }
+  .workspace-shell.is-view-mode .dock-zone,
+  .workspace-shell.is-edit-mode .dock-zone { position: static; width: max-content; margin: 0 auto 10px; transform: none; }
+  .quick-launcher__actions > button > span:nth-child(2) { overflow: visible; text-overflow: clip; white-space: normal; word-break: keep-all; overflow-wrap: anywhere; }
   .quick-memo-editor.is-widget .quick-memo-count { display: none; }
   .quick-memo-editor.is-widget .quick-memo-actions { flex-wrap: nowrap; gap: 2px; }
   .quick-memo-editor.is-widget .quick-memo-actions button { gap: 2px; padding-inline: 2px; white-space: nowrap; }
@@ -1242,6 +1249,35 @@
   .workspace-shell .dock button:focus-visible { transform: none; }
   .quick-launcher__actions > button { transition: none; }
   .quick-launcher__actions > button:hover { transform: none; }
+}
+
+.workspace-shell.is-view-mode .workspace-dashboard.is-dense-desk .react-grid-item[data-widget-type="clock"] .widget-frame__body,
+.workspace-shell.is-view-mode .workspace-dashboard.is-dense-desk .react-grid-item[data-widget-type="clock"] .date-card { overflow: hidden; }
+.workspace-shell.is-view-mode .workspace-dashboard.is-dense-desk .react-grid-item[data-widget-type="clock"] .date-card > * { min-width: 0; max-width: 100%; }
+.workspace-shell.is-view-mode .workspace-dashboard.is-dense-desk .react-grid-item[data-widget-type="clock"] .date-card__date { white-space: normal; word-break: keep-all; overflow-wrap: normal; }
+.workspace-shell.is-view-mode .workspace-dashboard.is-dense-desk .react-grid-item[data-widget-type="clock"] .date-card__time { font-size: var(--text-xl); white-space: nowrap; }
+.workspace-shell.is-view-mode .workspace-dashboard.is-dense-desk .react-grid-item[data-widget-type="clock"] .date-card__time svg { display: none; }
+
+@media (max-height: 720px) and (min-width: 821px) {
+  .workspace-shell .quick-launcher__actions > button > span:nth-child(2) {
+    overflow: visible;
+    font-size: 12px;
+    text-overflow: clip;
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: normal;
+  }
+  .workspace-shell.is-view-mode .workspace-dashboard.is-dense-desk .widget-frame__body > .panel,
+  .workspace-shell.is-view-mode .workspace-dashboard.is-dense-desk .widget-frame__body > .widget-surface { overflow-x: hidden; overflow-y: auto; }
+  .workspace-shell.is-view-mode .react-grid-item[data-widget-type="clock"] .widget-frame__body,
+  .workspace-shell.is-view-mode .react-grid-item[data-widget-type="clock"] .date-card { overflow: hidden; }
+  .workspace-shell.is-view-mode .react-grid-item[data-widget-type="clock"] .date-card > * { min-width: 0; max-width: 100%; }
+  .workspace-shell.is-view-mode .react-grid-item[data-widget-type="clock"] .date-card__date { white-space: normal; word-break: keep-all; overflow-wrap: normal; }
+  .workspace-shell.is-view-mode .workspace-dashboard.is-dense-desk .react-grid-item[data-widget-type="clock"] .date-card__time { font-size: 18px; white-space: nowrap; }
+  .workspace-shell.is-view-mode .workspace-dashboard.is-dense-desk .react-grid-item[data-widget-type="clock"] .date-card__time svg { display: none; }
+  .workspace-shell.is-view-mode [data-widget-type="quick-memo"] fieldset { min-width: 0; max-width: 100%; padding: 0; border: 0; overflow-x: hidden !important; }
+  .workspace-shell.is-view-mode .quick-memo-editor.is-widget { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; overflow-x: hidden; }
+  .workspace-shell.is-view-mode .quick-memo-editor.is-widget textarea { box-sizing: border-box; max-width: 100%; overflow-x: hidden; overflow-y: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
 }
 
 .workspace-shell::after {

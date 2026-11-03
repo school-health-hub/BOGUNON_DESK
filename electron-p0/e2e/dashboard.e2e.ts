@@ -122,3 +122,62 @@ test('CLOUD-G0: one isolated Electron instance opens every integrated entry',asy
   await page.screenshot({path:'artifacts/electron-p0-e2e/cloud-g0-entries.png'});
  }finally{await app.close();}
 });
+
+test('INT-EL-04F: 980x700 dashboard and settings keyboard contract',async()=>{
+ const id=randomUUID(),app=await launch(id);
+ try{
+  const page=await app.firstWindow({timeout:10000});
+  await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setBounds({x:40,y:40,width:980,height:700}));
+  await expect.poll(()=>app.evaluate(({BrowserWindow})=>{const {width,height}=BrowserWindow.getAllWindows()[0].getBounds();return {width,height};})).toEqual({width:980,height:700});
+  const dashboard=page.getByRole('main',{name:'보건실 업무 위젯 작업 공간'}),dock=page.locator('.dock-zone');
+  await expect(dashboard).toBeVisible();await expect(dock).toBeVisible();
+  const compact=await page.evaluate(()=>{
+   const dashboard=document.querySelector<HTMLElement>('.workspace-dashboard')!,dock=document.querySelector<HTMLElement>('.dock-zone')!;
+   const label=document.querySelector<HTMLElement>('.quick-launcher__actions > button > span:nth-child(2)');
+   const dashboardRect=dashboard.getBoundingClientRect(),dockRect=dock.getBoundingClientRect();
+   return {dockPosition:getComputedStyle(dock).position,dashboardOverflow:getComputedStyle(dashboard).overflowY,dashboardBottom:dashboardRect.bottom,dockTop:dockRect.top,scrollHeight:dashboard.scrollHeight,clientHeight:dashboard.clientHeight,labelWhiteSpace:label?getComputedStyle(label).whiteSpace:null,labelWordBreak:label?getComputedStyle(label).wordBreak:null};
+  });
+  expect(compact.dockPosition).toBe('static');expect(compact.dashboardOverflow).toBe('auto');
+  expect(compact.dashboardBottom).toBeLessThanOrEqual(compact.dockTop);expect(compact.scrollHeight).toBeGreaterThan(compact.clientHeight);
+  if(compact.labelWhiteSpace!==null){expect(compact.labelWhiteSpace).toBe('normal');expect(compact.labelWordBreak).toBe('keep-all');}
+  const clockGeometry=await page.locator('[data-widget-type="clock"] .date-card').evaluate(element=>{const time=element.querySelector<HTMLElement>('.date-card__time')!,icon=time.querySelector<SVGElement>('svg');return {overflowX:getComputedStyle(element).overflowX,fontSize:getComputedStyle(time).fontSize,iconDisplay:icon?getComputedStyle(icon).display:null,timeClientWidth:time.clientWidth,timeScrollWidth:time.scrollWidth,text:time.textContent?.trim()};});console.log('INT_EL_04F_CLOCK '+JSON.stringify(clockGeometry));
+  expect(clockGeometry.overflowX).toBe('hidden');expect(clockGeometry.timeScrollWidth).toBeLessThanOrEqual(clockGeometry.timeClientWidth);expect(clockGeometry.text).toMatch(/^\d{2}:\d{2}:\d{2}$/);
+  await page.screenshot({path:'artifacts/electron-p0-e2e/int-el-04f-980x700.png'});
+  const reachedBottom=await dashboard.evaluate(element=>{element.scrollTop=element.scrollHeight;return element.scrollTop+element.clientHeight>=element.scrollHeight-1;});expect(reachedBottom).toBe(true);
+  const memoGeometry=await page.locator('[data-widget-type="quick-memo"] .panel').evaluate(element=>{const textarea=element.querySelector<HTMLTextAreaElement>('textarea')!,fieldset=element.querySelector<HTMLFieldSetElement>('fieldset')!;return {surfaceClientWidth:element.clientWidth,surfaceScrollWidth:element.scrollWidth,fieldsetClientWidth:fieldset.clientWidth,fieldsetScrollWidth:fieldset.scrollWidth,fieldsetOverflowX:getComputedStyle(fieldset).overflowX,fieldsetParent:fieldset.parentElement?.className,fieldsetMatches:fieldset.matches('.workspace-shell.is-view-mode [data-widget-type="quick-memo"] fieldset'),compactMedia:matchMedia('(max-height: 720px) and (min-width: 821px)').matches,textareaClientWidth:textarea.clientWidth,textareaScrollWidth:textarea.scrollWidth,textareaOverflowX:getComputedStyle(textarea).overflowX};});
+  const memoOverflow=await page.locator('[data-widget-type="quick-memo"]').evaluate(root=>Array.from(root.querySelectorAll<HTMLElement>('*')).map(element=>({tag:element.tagName,className:element.className,clientWidth:element.clientWidth,scrollWidth:element.scrollWidth,overflowX:getComputedStyle(element).overflowX})).filter(item=>item.scrollWidth>item.clientWidth||item.overflowX==='auto'||item.overflowX==='scroll'));
+  console.log('INT_EL_04F_MEMO '+JSON.stringify({memoGeometry,memoOverflow}));
+  expect(memoGeometry.fieldsetOverflowX).toBe('hidden');expect(memoGeometry.fieldsetScrollWidth).toBeLessThanOrEqual(memoGeometry.fieldsetClientWidth);expect(memoGeometry.textareaOverflowX).toBe('hidden');expect(memoGeometry.textareaScrollWidth).toBeLessThanOrEqual(memoGeometry.textareaClientWidth);expect(memoGeometry.surfaceScrollWidth).toBeLessThanOrEqual(memoGeometry.surfaceClientWidth);
+  const quickLaunch=page.locator('[data-widget-type="quick-launcher"]'),onlineHealth=quickLaunch.getByRole('button',{name:'온라인 보건실',exact:true});await onlineHealth.scrollIntoViewIfNeeded();await expect(onlineHealth).toBeVisible();
+  const labelGeometry=await onlineHealth.locator('span').nth(1).evaluate(element=>({clientWidth:element.clientWidth,scrollWidth:element.scrollWidth,textOverflow:getComputedStyle(element).textOverflow}));
+  expect(labelGeometry.scrollWidth).toBeLessThanOrEqual(labelGeometry.clientWidth);expect(labelGeometry.textOverflow).toBe('clip');
+  await onlineHealth.click();await expect(page.getByText('이 기능은 ELECTRON-P0 범위에 포함되지 않습니다.',{exact:false})).toBeVisible();await page.getByRole('button',{name:'닫기',exact:true}).click();
+  await page.screenshot({path:'artifacts/electron-p0-e2e/int-el-04f-980x700-lower-controls.png'});
+
+  const settingsLauncher=page.getByRole('button',{name:'설정',exact:true});await settingsLauncher.focus();await settingsLauncher.click();
+  const dialog=page.getByRole('dialog',{name:'PoC 설정'});await expect(dialog).toBeVisible();
+  await expect(page.locator('.p0-dashboard-background')).toHaveAttribute('inert','');await expect(page.locator('.p0-dashboard-background')).toHaveAttribute('aria-hidden','true');
+  await expect(dialog.getByRole('button',{name:'홈으로'})).toBeFocused();
+  await page.locator('[data-dock-item="settings"]').evaluate(element=>(element as HTMLButtonElement).focus());await expect(dialog.getByRole('button',{name:'홈으로'})).toBeFocused();
+  await page.screenshot({path:'artifacts/electron-p0-e2e/int-el-04f-settings-focus.png'});
+  await page.keyboard.press('Shift+Tab');await expect(dialog.getByRole('button',{name:'합성 IPC 확인'})).toBeFocused();
+  await page.keyboard.press('Tab');await expect(dialog.getByRole('button',{name:'홈으로'})).toBeFocused();
+  await page.keyboard.press('Escape');await expect(dialog).toHaveCount(0);await expect(settingsLauncher).toBeFocused();
+
+  await settingsLauncher.click();await page.getByRole('dialog',{name:'PoC 설정'}).getByRole('button',{name:'보건소식지 제작소'}).click();
+  await expect(page.getByRole('heading',{name:'보건소식지 제작소'})).toBeVisible();expect(await page.evaluate(()=>document.activeElement?.getAttribute('data-dock-item'))).not.toBe('settings');
+  await page.getByRole('button',{name:'보건 업무로'}).click();
+  for(const [dockName,dialogName] of [['빠른 메모','빠른 메모'],['업무 도구','업무 도구']] as const){
+   await page.getByRole('navigation',{name:'주요 기능'}).getByRole('button',{name:dockName,exact:true}).click();
+   const legacyDialog=page.getByRole('dialog',{name:dialogName});await expect(legacyDialog).not.toHaveAttribute('aria-modal','true');await expect(page.locator('.p0-dashboard-background')).not.toHaveAttribute('inert','');
+   await page.locator('[data-dock-item="home"]').evaluate(element=>(element as HTMLButtonElement).focus());await expect(page.locator('[data-dock-item="home"]')).toBeFocused();await legacyDialog.getByRole('button',{name:'홈으로'}).click();
+  }
+
+  await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setBounds({x:40,y:40,width:1440,height:900}));
+  await expect.poll(()=>app.evaluate(({BrowserWindow})=>{const {width,height}=BrowserWindow.getAllWindows()[0].getBounds();return {width,height};})).toEqual({width:1440,height:900});
+  expect(await page.evaluate(()=>getComputedStyle(document.querySelector<HTMLElement>('.dock-zone')!).position)).toBe('fixed');
+  const wideClock=await page.locator('[data-widget-type="clock"] .date-card').evaluate(element=>{const time=element.querySelector<HTMLElement>('.date-card__time')!,date=element.querySelector<HTMLElement>('.date-card__date')!;return {overflowX:getComputedStyle(element).overflowX,timeClientWidth:time.clientWidth,timeScrollWidth:time.scrollWidth,timeText:time.textContent?.trim(),dateClientWidth:date.clientWidth,dateScrollWidth:date.scrollWidth};});
+  expect(wideClock.overflowX).toBe('hidden');expect(wideClock.timeScrollWidth).toBeLessThanOrEqual(wideClock.timeClientWidth);expect(wideClock.timeText).toMatch(/^\d{2}:\d{2}:\d{2}$/);expect(wideClock.dateScrollWidth).toBeLessThanOrEqual(wideClock.dateClientWidth);
+  await page.screenshot({path:'artifacts/electron-p0-e2e/int-el-04f-1440x900.png'});
+ }finally{await app.close();}
+});
