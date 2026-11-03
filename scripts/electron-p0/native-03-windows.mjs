@@ -1,0 +1,59 @@
+import {execFileSync,spawnSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
+import {cp,mkdir,mkdtemp,readFile,realpath,symlink,writeFile} from 'node:fs/promises';
+import {join,resolve} from 'node:path';
+
+// Local isolated QA only. No CLI-supplied executable, profile, source SHA or native command.
+if(process.platform!=='win32'||process.argv.length!==2)throw Error('NATIVE03_WINDOWS_ONLY');
+const git=(...args)=>execFileSync('git',args,{encoding:'utf8'}).trim();
+const sourceSha=git('rev-parse','HEAD');
+if(git('branch','--show-current')!=='feature/electron-native-surface-main-integration'
+  ||git('status','--porcelain'))throw Error('NATIVE03_CLEAN_CHECKPOINT_REQUIRED');
+execFileSync('git',['merge-base','--is-ancestor','b9cd04b84bf5224c7ffd35bb8e38a93d67761694','HEAD']);
+const qaBase='E:\\BOGUNON_DEV\\qa\\native-03';await mkdir(qaBase,{recursive:true});
+const runRoot=await mkdtemp(join(qaBase,'run-'));
+const hostSource='E:\\BOGUNON_DEV\\qa\\native-02-target\\debug\\bogunon-surface-channel-host.exe';
+const hostSha256='0c84a7108c249733aeca2c0e8c5db86826d73cea8aacbb2e732eae177778e385';
+const hash=data=>createHash('sha256').update(data).digest('hex');
+if(hash(await readFile(hostSource))!==hostSha256)throw Error('NATIVE03_REVIEWED_HOST_DIGEST_REQUIRED');
+const dependencies=await realpath(resolve('node_modules'));
+const electron=join(dependencies,'electron','dist','electron.exe');
+const electronSha256=hash(await readFile(electron));
+const template=join(runRoot,'template');
+execFileSync(process.execPath,['node_modules/typescript/bin/tsc','-p','electron-p0/tsconfig.json',
+  '--outDir',template,'--noEmitOnError'],{stdio:'inherit'});
+await cp('electron-p0/package.json',join(template,'package.json'));
+const systemRoot=process.env.SystemRoot??'C:\\Windows';
+const ps=command=>execFileSync(join(systemRoot,'System32','WindowsPowerShell','v1.0','powershell.exe'),
+  ['-NoProfile','-NonInteractive','-Command',command],{encoding:'utf8',windowsHide:true,timeout:6000}).trim();
+const residual=()=>Number(ps("@(Get-CimInstance Win32_Process -Filter \"Name = 'bogunon-surface-channel-host.exe'\").Count"));
+if(residual()!==0)throw Error('NATIVE03_EXISTING_HOST_PRESERVED');
+const results=[];
+for(const caseId of ['normal','foreign-grant','unexpected-exit','quit-delay','missing-exe','digest-mismatch']){
+  const appRoot=join(runRoot,caseId);await mkdir(appRoot);await cp(template,appRoot,{recursive:true});
+  await symlink(dependencies,join(appRoot,'node_modules'),'junction');
+  await mkdir(join(appRoot,'native-surface'));
+  if(caseId!=='missing-exe')await cp(hostSource,join(appRoot,'native-surface','bogunon-surface-channel-host.exe'));
+  await writeFile(join(appRoot,'build-meta.json'),JSON.stringify({sourceSha}));
+  await writeFile(join(appRoot,'native-surface-qa.json'),JSON.stringify({sourceSha,hostSha256,caseId}));
+  for(const dir of ['temp','redirected-appdata','redirected-localappdata'])await mkdir(join(appRoot,dir));
+  const env={SystemRoot:systemRoot,WINDIR:systemRoot,TEMP:join(appRoot,'temp'),TMP:join(appRoot,'temp'),
+    APPDATA:join(appRoot,'redirected-appdata'),LOCALAPPDATA:join(appRoot,'redirected-localappdata')};
+  const child=spawnSync(electron,[appRoot,'--native-surface-isolated-qa'],
+    {env,windowsHide:true,encoding:'utf8',timeout:90000,maxBuffer:1024*1024});
+  let diagnostic;
+  try{diagnostic=JSON.parse(await readFile(join(appRoot,'native-surface-qa','RESULT.json'),'utf8'));}
+  catch{diagnostic={passed:false,error:'RESULT_MISSING'};}
+  const hostResidual=residual();
+  const passed=child.status===0&&diagnostic.passed===true&&diagnostic.sourceSha===sourceSha&&hostResidual===0;
+  const result={caseId,passed,status:child.status,signal:child.signal,error:child.error?.code??null,hostResidual,
+    stdoutBytes:Buffer.byteLength(child.stdout??''),stderrBytes:Buffer.byteLength(child.stderr??''),
+    stdoutSha256:hash(child.stdout??''),stderrSha256:hash(child.stderr??''),diagnostic};
+  results.push(result);
+  await writeFile(join(runRoot,'VERIFICATION.json'),JSON.stringify({sourceSha,hostSha256,electronSha256,results,
+    nativeAttachment:'NOT_RUN',nativeCleanup:'NOT_VERIFIED',rawOutput:'NOT_PERSISTED'},null,2));
+  console.log(JSON.stringify({caseId,passed,hostResidual,error:diagnostic.error}));
+  if(!passed)throw Error('NATIVE03_CASE_FAILED_NO_RETRY');
+}
+if(git('rev-parse','HEAD')!==sourceSha||git('status','--porcelain'))throw Error('NATIVE03_SOURCE_CHANGED');
+console.log(JSON.stringify({verdict:'PASS_PROCESS_IPC_ONLY',sourceSha,cases:results.length,evidence:runRoot}));

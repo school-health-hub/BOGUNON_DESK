@@ -39,6 +39,11 @@ import {EducationVideoLibraryStore,createEducationVideoHandlers} from './educati
 import {InventoryStore,InventoryConflict} from './inventory-store.js';
 import { createSampleHandler, SAMPLE_SUMMARY_CHANNEL } from './sample-ipc.js';
 import { assertSender, resourceAllowed } from './policy.js';
+import {runNativeMainQa} from './desktop-surface/native03/electron-qa.js';
+// Default product path never starts a Native Host. The isolated path precedes all product stores.
+if(app.commandLine.hasSwitch('native-surface-isolated-qa')){
+  try{await runNativeMainQa();}catch{console.error('NATIVE03_SETUP_REJECTED');app.exit(2);}
+}else{
 if (app.commandLine.hasSwitch('no-sandbox') || app.commandLine.hasSwitch('disable-web-security')) throw new Error('Unsafe Electron launch flags denied');
 app.setName(PRODUCT_NAME);
 const testRun = process.env.ELECTRON_P0_TEST_RUN;
@@ -227,4 +232,5 @@ else {
   app.on('window-all-closed',quit);
   await window.loadURL(url);
   }).catch((error: unknown)=>{ console.error('Electron P0 startup failed:', error instanceof Error ? error.message : 'unknown'); app.exit(1); });
+}
 }
