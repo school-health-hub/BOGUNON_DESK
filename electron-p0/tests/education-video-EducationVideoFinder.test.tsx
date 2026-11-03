@@ -5,9 +5,10 @@ import { EducationVideoFinder } from '../../src/education-video/EducationVideoFi
 import { searchMockVideos, type LibraryItem } from '../../src/education-video/model';
 const savedVideo=searchMockVideos({topic:'손씻기',target:'학생',minutes:10})[0];
 const saved:LibraryItem={...savedVideo,educationTitle:'교육A',target:'학생',schedule:'이번주',instructions:'확인',message:'교사 수정문',notes:'보호할 메모'};
+const exportFile=vi.fn<()=>Promise<{status:'saved';fileName:string}|{status:'canceled'}>>();
 const save=vi.fn(async(item:LibraryItem)=>({library:{version:1,items:[...([saved].filter(existing=>existing.videoId!==item.videoId)),item]},recovered:false}));
-vi.mock('../../src/education-video/library',()=>({nativeLibrary:false,libraryRepository:{load:async()=>({library:{version:1,items:[]},recovered:false}),save:(item:LibraryItem)=>save(item),export:async()=>'',import:async()=>({library:{version:1,items:[]},recovered:false}),recover:async()=>({library:{version:1,items:[]},recovered:true})}}));
-afterEach(()=>{cleanup();save.mockClear();});
+vi.mock('../../src/education-video/library',()=>({nativeLibrary:false,libraryRepository:{load:async()=>({library:{version:1,items:[]},recovered:false}),save:(item:LibraryItem)=>save(item),export:async()=>'',exportFile:()=>exportFile(),import:async()=>({library:{version:1,items:[]},recovered:false}),recover:async()=>({library:{version:1,items:[]},recovered:true})}}));
+afterEach(()=>{cleanup();save.mockClear();exportFile.mockReset();});
 const search=(topic:string)=>{fireEvent.change(screen.getByLabelText('교육 주제'),{target:{value:topic}});fireEvent.change(screen.getByLabelText('검색 대상'),{target:{value:'학생'}});fireEvent.click(screen.getByRole('button',{name:'Mock 영상 검색'}));};
 describe('Finder workflow',()=>{
  it('preserves notes and teacher message when selecting saved video again',async()=>{
@@ -46,4 +47,15 @@ describe('Finder workflow',()=>{
  expect(save.mock.calls[1][0].videoId).not.toBe(saved.videoId);
  expect(save.mock.calls[1][0].title).toContain('흡연예방');
  });
+});
+
+it('reports success only after native save completion and distinguishes cancel/error without a Blob download',async()=>{
+ let complete!:(value:{status:'saved';fileName:string})=>void;
+ exportFile.mockImplementationOnce(()=>new Promise(r=>{complete=r;})).mockResolvedValueOnce({status:'canceled'}).mockRejectedValueOnce(new Error('synthetic failure'));
+ render(<EducationVideoFinder onClose={()=>{}}/>);await waitFor(()=>expect(screen.getByRole('button',{name:'내보내기'})).toBeTruthy());
+ fireEvent.click(screen.getByRole('button',{name:'내보내기'}));await waitFor(()=>expect(exportFile).toHaveBeenCalledTimes(1));
+ expect(screen.getByRole('status').textContent).not.toContain('저장했습니다');expect((screen.getByRole('button',{name:'내보내기'}) as HTMLButtonElement).disabled).toBe(true);
+ complete({status:'saved',fileName:'synthetic.json'});await screen.findByText('라이브러리 JSON을 저장했습니다: synthetic.json');
+ fireEvent.click(screen.getByRole('button',{name:'내보내기'}));await screen.findByText('라이브러리 JSON 저장을 취소했습니다.');
+ fireEvent.click(screen.getByRole('button',{name:'내보내기'}));await screen.findByText('라이브러리 JSON을 저장하지 못했습니다. 기존 라이브러리는 유지됩니다.');expect(exportFile).toHaveBeenCalledTimes(3);expect(save).not.toHaveBeenCalled();
 });

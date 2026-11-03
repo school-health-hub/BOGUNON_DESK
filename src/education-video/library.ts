@@ -54,6 +54,7 @@ export const libraryRepository = {
         const incoming = parseLibrary(json);
         return unwrap<Loaded>(await window.electronWork.educationVideo.import(JSON.stringify(incoming)));
     },
+    exportFile: async (): Promise<import('../../electron-p0/protocol').EducationVideoFileExportResult> => unwrap(await window.electronWork.educationVideo.exportFile()),
     export: async (): Promise<string> => unwrap<string>(await window.electronWork.educationVideo.export()),
     recover: async (): Promise<Loaded> => unwrap<Loaded>(await window.electronWork.educationVideo.recover()),
 };

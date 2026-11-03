@@ -50,7 +50,7 @@ export function EducationVideoFinder({ onClose }: {
     const save = () => void run(async () => { if (!selected)
         return; const result = await libraryRepository.save({ ...selected, ...education, message, notes }); setLibrary(result.library); setNotice('독립 라이브러리에 저장했습니다.'); });
     const loadItem = (item: LibraryItem) => { setSelected(item); setEducation({ educationTitle: item.educationTitle, target: item.target, schedule: item.schedule, instructions: item.instructions }); setMessage(item.message); setNotes(item.notes); setConfirmed(false); setNotice('저장된 안내문과 메모를 불러왔습니다.'); };
-    const exportLibrary = () => void run(async () => { const json = await libraryRepository.export(); const url = URL.createObjectURL(new Blob([json], { type: 'application/json' })); const link = document.createElement('a'); link.href = url; link.download = 'education-video-library-v1.json'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); setNotice('라이브러리를 내보냈습니다.'); });
+    const exportLibrary = () => void run(async () => { try { const result = await libraryRepository.exportFile(); setNotice(result.status === 'saved' ? `라이브러리 JSON을 저장했습니다: ${result.fileName}` : '라이브러리 JSON 저장을 취소했습니다.'); } catch (error) { setNotice(error instanceof FinderInputError ? error.message : '라이브러리 JSON을 저장하지 못했습니다. 기존 라이브러리는 유지됩니다.'); } });
     const importLibrary = (file: File | undefined) => void run(async () => {
         if (!file)
             return;

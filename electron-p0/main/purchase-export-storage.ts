@@ -16,7 +16,7 @@ async function fingerprint(path:string):Promise<string|null>{
   return `${after.dev}:${after.ino}:${after.mode}:${after.size}:${after.mtimeMs}:${after.ctimeMs}:${hash.digest('hex')}`;
  }catch(e){if((e as NodeJS.ErrnoException).code==='ENOENT')return null;throw e;}finally{await file?.close();}
 }
-export async function writePurchaseExport(path:string,format:'csv'|'xlsx',bytes:Buffer,confirm:()=>Promise<boolean>,fresh:()=>void=()=>{},commit:typeof rename=rename):Promise<PurchaseExportResult>{
+export async function writeSelectedExport(path:string,format:'csv'|'xlsx'|'json',bytes:Buffer,confirm:()=>Promise<boolean>,fresh:()=>void=()=>{},commit:typeof rename=rename):Promise<PurchaseExportResult>{
  if(!isAbsolute(path)||extname(path).toLowerCase()!==`.${format}`||!bytes.length||bytes.length>32*1024*1024)throw Error('Invalid target');
  await parents(path);fresh();const before=await fingerprint(path);
  if(before!==null&&!await confirm())return {status:'canceled'};
@@ -29,3 +29,6 @@ export async function writePurchaseExport(path:string,format:'csv'|'xlsx',bytes:
   return {status:'saved',fileName:basename(path)};
  }finally{await unlink(temp).catch(()=>{});}
 }
+
+// Preserve the Purchase-only API; Finder reuses the same atomic writer with a validated JSON snapshot.
+export const writePurchaseExport=(path:string,format:'csv'|'xlsx',bytes:Buffer,confirm:()=>Promise<boolean>,fresh:()=>void=()=>{},commit:typeof rename=rename)=>writeSelectedExport(path,format,bytes,confirm,fresh,commit);

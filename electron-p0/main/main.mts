@@ -1,3 +1,4 @@
+import {createEducationVideoExport} from './education-video-export.js';
 import {InventoryQaService,inventoryQaHandler} from './inventory-qa-service.js';
 import {INVENTORY_QA_ACTIONS} from '../inventory-qa-protocol.js';
 import {createInventoryQaStatusHandler} from './inventory-local-qa.js';
@@ -117,6 +118,9 @@ else {
   ipcMain.handle('p2:education-video:save',educationVideoHandlers.save);
   ipcMain.handle('p2:education-video:import',educationVideoHandlers.import);
   ipcMain.handle('p2:education-video:export',educationVideoHandlers.export);
+  const educationVideoExport=createEducationVideoExport(window.webContents,url,educationVideoStore,{protectedRoot:userData,pick:async()=>{const r=await dialog.showSaveDialog(window,{title:'교육영상 라이브러리 JSON 저장',defaultPath:'education-video-library-v1.json',filters:[{name:'JSON',extensions:['json']}],properties:['dontAddToRecent']});return r.canceled?undefined:r.filePath;},confirm:async()=>(await dialog.showMessageBox(window,{type:'warning',message:'선택한 기존 JSON 파일을 덮어쓸까요?',detail:'저장 직전에 파일 변경 여부를 확인합니다. 기존 라이브러리와 백업은 변경하지 않습니다.',buttons:['취소','덮어쓰기'],defaultId:0,cancelId:0})).response===1});
+  ipcMain.handle('p2:education-video:export-file',educationVideoExport.handle);
+  window.webContents.on('will-navigate',()=>educationVideoExport.dispose());window.webContents.on('render-process-gone',()=>educationVideoExport.dispose());
   ipcMain.handle('p2:education-video:recover',educationVideoHandlers.recover);
   const inventoryQa=new InventoryQaService({readExecutionState:()=>({packaged:app.isPackaged,devUrl:dev,optIn:process.env.INVENTORY_LOCAL_QA})},()=>process.env.INVENTORY_LOCAL_QA_PUBLIC_KEY??'');
   for(const action of INVENTORY_QA_ACTIONS)ipcMain.handle(`p2:inventory-local-qa:${action}`,inventoryQaHandler(inventoryQa,action,window.webContents,url));
@@ -143,7 +147,7 @@ else {
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
-  const quit=()=>{if(quitting)return;quitting=true;officialFiles.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([store.flush(),desktopStore.flush(),memoStore.flush(),educationVideoStore.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
+  const quit=()=>{if(quitting)return;quitting=true;officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([store.flush(),desktopStore.flush(),memoStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
       {label:'창 열기',click:show},{label:'최소화',click:()=>window.minimize()},

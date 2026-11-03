@@ -45,11 +45,13 @@ export interface WorkBridge {
 export type EducationVideoLibraryItem=Readonly<{videoId:string;title:string;channelId:string;channelTitle:string;durationSeconds:number;url:string;source:'mock';educationTitle:string;target:string;schedule:string;instructions:string;message:string;notes:string}>;
 export type EducationVideoLibrary=Readonly<{version:1;items:readonly EducationVideoLibraryItem[]}>;
 export type EducationVideoLibraryLoad=Readonly<{library:EducationVideoLibrary;recovered:boolean}>;
+export type EducationVideoFileExportResult=Readonly<{status:'saved';fileName:string}|{status:'canceled'}>;
 export interface EducationVideoBridge {
  load():Promise<IpcResult<EducationVideoLibraryLoad>>;
  save(item:EducationVideoLibraryItem):Promise<IpcResult<EducationVideoLibraryLoad>>;
  import(json:string):Promise<IpcResult<EducationVideoLibraryLoad>>;
  export():Promise<IpcResult<string>>;
+ exportFile():Promise<IpcResult<EducationVideoFileExportResult>>;
  recover():Promise<IpcResult<EducationVideoLibraryLoad>>;
 }
 
