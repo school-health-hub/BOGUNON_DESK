@@ -5,7 +5,7 @@ export type AdminSystem=keyof typeof ADMIN_SYSTEMS;
 export const ADMIN_ENVIRONMENTS={school:'학교망',evpn:'eVPN'} as const;
 export type AdminEnvironment=keyof typeof ADMIN_ENVIRONMENTS;
 export type AdminAddresses=Readonly<Record<AdminSystem,string>>;
-export type AdminLauncher=Readonly<{environment:AdminEnvironment;evpn:AdminAddresses}>;
+export type AdminLauncher=Readonly<{environment:AdminEnvironment;evpn:AdminAddresses;entryUrl?:string}>;
 export type LeaveDraft=Readonly<{id:string;system:AdminSystem;kind:typeof LEAVE_KINDS[number];startDate:string;endDate:string;startTime:string;endTime:string;reason:string;text:string}>;
 export type AdminDocument=Readonly<{version:1;revision:number;systems:AdminAddresses;launcher?:AdminLauncher;templates:Readonly<Record<AdminSystem,string>>;drafts:readonly LeaveDraft[]}>;
 const DEFAULT_TEMPLATE='[{{유형}} 신청 검토용 초안]\n기간: {{시작일}} {{시작시간}} ~ {{종료일}} {{종료시간}}\n사유: {{사유}}\n\n기관 양식과 복무 규정을 확인한 뒤 직접 입력해 주세요.';
@@ -15,7 +15,7 @@ export const adminEnvironment=(document:AdminDocument):AdminEnvironment=>documen
 export const adminAddresses=(document:AdminDocument,environment:AdminEnvironment=adminEnvironment(document)):AdminAddresses=>environment==='school'?document.systems:(document.launcher?.evpn??{portal:'',neis:'',edufine:''});
 export function withAdminEnvironment(document:AdminDocument,environment:AdminEnvironment):AdminDocument{
  if(!Object.prototype.hasOwnProperty.call(ADMIN_ENVIRONMENTS,environment))throw Error('학교망 또는 eVPN을 선택해 주세요.');
- return {...document,launcher:{environment,evpn:adminAddresses(document,'evpn')}};
+ return {...document,launcher:{...document.launcher,environment,evpn:adminAddresses(document,'evpn')}};
 }
 const object=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const keys=(v:unknown,allowed:string[]):v is Record<string,unknown>=>object(v)&&Object.keys(v).sort().join(',')===allowed.sort().join(',');
@@ -45,7 +45,8 @@ export function renderLeaveDraft(template:string,draft:Omit<LeaveDraft,'text'>){
 export function validateAdminDocument(value:unknown):AdminDocument{
  if(!keys(value,['version','revision','systems','templates','drafts',...(object(value)&&Object.prototype.hasOwnProperty.call(value,'launcher')?['launcher']:[])])||value.version!==1||!Number.isSafeInteger(value.revision)||Number(value.revision)<0||!keys(value.systems,Object.keys(ADMIN_SYSTEMS))||!keys(value.templates,Object.keys(ADMIN_SYSTEMS))||!Array.isArray(value.drafts)||value.drafts.length>200)throw Error('학교 행정 저장 형식을 확인해 주세요.');
  if(Object.prototype.hasOwnProperty.call(value,'launcher')){
-  if(!keys(value.launcher,['environment','evpn'])||typeof value.launcher.environment!=='string'||!Object.prototype.hasOwnProperty.call(ADMIN_ENVIRONMENTS,value.launcher.environment)||!keys(value.launcher.evpn,Object.keys(ADMIN_SYSTEMS)))throw Error('학교망/eVPN 설정 형식을 확인해 주세요.');
+  if(!keys(value.launcher,['environment','evpn',...(object(value.launcher)&&Object.prototype.hasOwnProperty.call(value.launcher,'entryUrl')?['entryUrl']:[])])||typeof value.launcher.environment!=='string'||!Object.prototype.hasOwnProperty.call(ADMIN_ENVIRONMENTS,value.launcher.environment)||!keys(value.launcher.evpn,Object.keys(ADMIN_SYSTEMS)))throw Error('학교망/eVPN 설정 형식을 확인해 주세요.');
+  if(Object.prototype.hasOwnProperty.call(value.launcher,'entryUrl')&&(typeof value.launcher.entryUrl!=='string'||value.launcher.entryUrl!==''&&officialAdminUrl(value.launcher.entryUrl)!==value.launcher.entryUrl))throw Error('eVPN 접속 주소를 확인해 주세요.');
   for(const url of Object.values(value.launcher.evpn))if(typeof url!=='string'||url!==''&&officialAdminUrl(url)!==url)throw Error('eVPN 공식 주소를 확인해 주세요.');
  }
  for(const key of Object.keys(ADMIN_SYSTEMS)){const url=value.systems[key];if(typeof url!=='string'||url!==''&&officialAdminUrl(url)!==url)throw Error('공식 주소를 확인해 주세요.');validateAdminTemplate(value.templates[key]);}
@@ -60,6 +61,7 @@ export type AdminMapping=Readonly<{generation:number;headerRow:number;columns:re
 export type AdminSelection=Readonly<{reviewId:string;rowIndexes:readonly number[]}>;
 export type AdminBridge=Readonly<{
  close():Promise<IpcResult<null>>;load():Promise<IpcResult<AdminLoad>>;save(document:AdminDocument,expectedRevision:number):Promise<IpcResult<AdminLoad>>;
+ openEvpn():Promise<IpcResult<Readonly<{status:'launched'|'canceled'|'needs-configuration'}>>>;
  setEnvironment(environment:AdminEnvironment,expectedRevision:number):Promise<IpcResult<AdminLoad>>;
  openSystem(system:AdminSystem):Promise<IpcResult<Readonly<{status:'launched'|'canceled'}>|Readonly<{status:'needs-configuration';system:AdminSystem;environment:AdminEnvironment}>>>;
  copyDraft(draft:LeaveDraft):Promise<IpcResult<Readonly<{copied:boolean}>>>;

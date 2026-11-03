@@ -12,6 +12,7 @@
     "inventory-qa-protocol.js",
     "local-tasks.js",
     "admin-protocol.js",
+    "school-protocol.js",
     "renderer/**",
     "build-meta.json",
     "package.json",

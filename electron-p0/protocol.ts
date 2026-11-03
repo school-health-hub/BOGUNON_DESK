@@ -35,6 +35,7 @@ export type OfficialDocumentSave=Readonly<{title:string;body:string;attachments:
 export type OfficialDocumentImported=Readonly<{sourceName:string;format:"pdf"|"hwpx"|"odt";text:string}>;
 export type InventoryQaStatus = { mode: "local-qa"; authGateway: "reachable" | "unavailable"; inventoryConnection: "blocked"; persisted: false };
 export interface WorkBridge {
+  readonly school?: import('./school-protocol.js').SchoolBridge;
  readonly admin?:AdminBridge;
  readonly finance?:FinanceBridge;
  readonly ai?:AiBridge;

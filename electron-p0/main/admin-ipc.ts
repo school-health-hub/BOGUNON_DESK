@@ -32,6 +32,12 @@ export function createAdminHandlers(contents:Parameters<typeof assertSender>[1],
    if(adminEnvironment(latest)!==environment||adminAddresses(latest,environment)[system]!==target)throw new AdminActionError('선택 환경 또는 주소가 변경되어 실행하지 않았습니다. 현재 설정을 확인하고 다시 열어 주세요.');
    try{await ports.openExternal(target);}catch{throw new AdminActionError(`${ADMIN_ENVIRONMENTS[environment]} · ${ADMIN_SYSTEMS[system]} 브라우저 실행 요청에 실패했습니다. 등록 주소와 기본 브라우저를 확인하세요. 접속·로그인 오류는 해당 시스템 안내를 확인해 주세요.`);}fresh(event,token);return {status:'launched'};
   },true),
+  openEvpn:run(0,async(_args,event,token)=>{
+   const current=(await ports.store.load()).document,address=current.launcher?.entryUrl;fresh(event,token);if(!address)return {status:'needs-configuration'};
+   const target=officialAdminUrl(address);if(!await confirm(event,token,'등록한 eVPN 공식 접속 주소를 기본 브라우저로 열까요?',target+'\n실제 연결과 공식 인증서 로그인은 직접 진행합니다.'))return {status:'canceled'};
+   const latest=(await ports.store.load()).document;fresh(event,token);if(latest.launcher?.entryUrl!==target)throw new AdminActionError('eVPN 접속 주소가 변경되었습니다. 다시 확인해 주세요.');
+   try{await ports.openExternal(target);}catch{throw new AdminActionError('eVPN 브라우저 실행 요청에 실패했습니다. 기본 브라우저와 등록 주소를 확인하세요.');}fresh(event,token);return {status:'launched'};
+  },true),
   copyDraft:run(1,async(args,event,token)=>{const draft=validateLeaveDraft(args[0]);if(!await confirm(event,token,'복무 초안을 확인하고 클립보드에 복사할까요?',draft.text))return {copied:false};await ports.copy(draft.text);return {copied:true};},true),
   pickTable:run(0,async(_args,event,token)=>{
    const path=await ports.pick();fresh(event,token);if(!path)return null;let rows:string[][],sheetName='CSV';

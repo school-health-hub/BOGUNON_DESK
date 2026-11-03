@@ -1,3 +1,5 @@
+import {SchoolProfileStore,createSchoolHandlers} from './school-profile.js';
+import {allowedSchoolUrl} from './school-network.js';
 import {AdminStore} from './admin-store.js';
 import {createAdminHandlers} from './admin-ipc.js';
 import {FinanceProcess} from './finance-process.js';
@@ -47,6 +49,7 @@ const store = new SettingsStore(join(userData,'poc-settings'));
 const taskStore=new LocalTaskStore(join(userData,'work-data','local-tasks'));
 const memoStore=new MemoStore(join(userData,'work-data','quick-memo'));
 const educationVideoStore=new EducationVideoLibraryStore(join(userData,'work-data','education-video'));
+const schoolStore=new SchoolProfileStore(join(userData,'work-data','school-profile'));
 const adminStore=new AdminStore(join(userData,'work-data','school-admin'));
 const inventoryStore=new InventoryStore(join(userData,'work-data','inventory'));
 let quitting = false;
@@ -73,6 +76,14 @@ else {
   window.webContents.on('will-redirect',event=>event.preventDefault());
   window.webContents.on('will-attach-webview',event=>event.preventDefault());
   // API-only ephemeral network session, separate from the closed renderer session.
+  // Public NEIS school metadata only. No BOGUNON auth or renderer network access.
+  const schoolSession=session.fromPartition('neis-school-egress');
+  schoolSession.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));
+  schoolSession.setPermissionCheckHandler(()=>false);
+  schoolSession.webRequest.onBeforeRequest((details,callback)=>callback({cancel:!allowedSchoolUrl(details.url)}));
+  const schoolHandlers=createSchoolHandlers(window.webContents,url,{store:schoolStore,fetch:(target,init)=>schoolSession.fetch(target,init)});
+  for(const [action,handler] of Object.entries(schoolHandlers))if(action!=='dispose'&&action!=='flush')ipcMain.handle(`p2:school:${action}`,handler);
+  window.on('close',schoolHandlers.dispose);window.webContents.on('will-navigate',schoolHandlers.dispose);window.webContents.on('render-process-gone',schoolHandlers.dispose);app.on('before-quit',schoolHandlers.dispose);
   const aiSession=session.fromPartition('ai-api-egress');
   aiSession.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));
   aiSession.setPermissionCheckHandler(()=>false);
@@ -187,7 +198,7 @@ else {
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
-  const quit=()=>{if(quitting)return;quitting=true;adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([adminStore.flush(),financeService.close(),store.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
+  const quit=()=>{if(quitting)return;quitting=true;schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
       {label:'창 열기',click:show},{label:'최소화',click:()=>window.minimize()},
