@@ -15,3 +15,6 @@ Public upload expressly approved by the user.36PNG files are synthetic, unchange
 
 ## Status boundary
 A successful fresh remote-only inventory restore establishes HANDOFF READY for continuing this SoftRose source/review task without the original PC or external drive. It does not establish that the receiving school's Node/MSVC/Windows DPI/GUI were tested, nor does it transfer unrelated Finance WIP. Those are separate prerequisites/scope boundaries described in README.md.
+
+## Observed remote-restore finding
+The first fresh Windows remote clone detected a byte-hash mismatch in evidence-inventory.json: several text files had been staged before the package's byte-preserving attributes existed. The clone correctly rejected the package. The handoff-only tracked paths were re-added with the final attributes so raw evidence bytes, including existing CRLF, are stored unchanged. The SHA inventory was regenerated; the remote verification then must recheck every file. No product source or evidence-original file was altered by this correction.
