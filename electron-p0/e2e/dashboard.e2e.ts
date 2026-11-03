@@ -134,7 +134,7 @@ test('INT-EL-05C: Soft Rose independent Dock row, Settings handoff and nonmodal 
    const layout=await page.evaluate(()=>{const main=document.querySelector<HTMLElement>('.workspace-dashboard')!,dock=document.querySelector<HTMLElement>('.dock-zone')!,shell=document.querySelector<HTMLElement>('.workspace-shell')!;return {main:main.getBoundingClientRect().toJSON(),dock:dock.getBoundingClientRect().toJSON(),innerHeight,position:getComputedStyle(dock).position,scroll:getComputedStyle(main).overflowY,shellOverflow:shell.scrollWidth>innerWidth};});
    expect(layout.shellOverflow).toBe(false);expect(layout.scroll).toBe('auto');
    if(width===980){expect(layout.position).toBe('static');expect(layout.main.bottom).toBeLessThanOrEqual(layout.dock.top);expect(layout.dock.bottom).toBeLessThanOrEqual(layout.innerHeight);}
-   else expect(layout.position).toBe('fixed');
+   else {expect(layout.position).toBe('static');expect(layout.main.bottom).toBeLessThanOrEqual(layout.dock.top);}
    const main=page.locator('.workspace-dashboard');await main.evaluate(el=>{el.scrollTop=el.scrollHeight});expect(await main.evaluate(el=>el.scrollTop+el.clientHeight>=el.scrollHeight-1)).toBe(true);
    const memo=page.locator('[data-widget-type="quick-memo"]');await memo.scrollIntoViewIfNeeded();expect(await memo.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
    await main.evaluate(el=>{el.scrollTop=0});

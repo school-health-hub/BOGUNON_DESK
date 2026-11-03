@@ -5,6 +5,17 @@ import {cleanup,fireEvent,render,screen} from '@testing-library/react';
 import {SurfaceDialog} from '../renderer/SurfaceDialog';
 import {SurfaceSettings} from '../renderer/SurfaceSettings';
 afterEach(cleanup);
+it('keeps programmatic focus inside Settings while it is modal',()=>{
+ render(<><button>배경</button><SurfaceDialog title="설정" onClose={()=>{}}><input aria-label="설정 입력"/></SurfaceDialog></>);
+ screen.getByText('배경').focus();
+ expect(document.activeElement).toBe(screen.getByRole('button',{name:'설정 닫기'}));
+});
+it('closes only the active modal on Escape above an ordinary work panel',()=>{
+ const panelClose=vi.fn(),modalClose=vi.fn();
+ render(<><SurfaceDialog title="업무 도구" modal={false} onClose={panelClose}><button>업무 항목</button></SurfaceDialog><SurfaceDialog title="설정" onClose={modalClose}><button>설정 항목</button></SurfaceDialog></>);
+ fireEvent.keyDown(screen.getByRole('button',{name:'설정 닫기'}),{key:'Escape'});
+ expect(modalClose).toHaveBeenCalledTimes(1);expect(panelClose).not.toHaveBeenCalled();
+});
 it('contains keyboard focus, closes on Escape and restores the invoker without leaving background inert',()=>{
  function Host(){const [open,setOpen]=useState(false);return <><button onClick={()=>setOpen(true)}>설정 열기</button>{open&&<SurfaceDialog title="설정" onClose={()=>setOpen(false)}><button>마지막 항목</button></SurfaceDialog>}</>}
  const view=render(<Host/>),trigger=screen.getByText('설정 열기');trigger.focus();fireEvent.click(trigger);
