@@ -57,5 +57,48 @@ Microsoft API contracts used: [GetWindow](https://learn.microsoft.com/en-us/wind
 
 ## Windows observation evidence
 
-NOT RUN yet. Actual owned Surface target, live permit, attachment and live cleanup are NOT_VERIFIED/BLOCKED.
+Actual read-only Host source: `6a94312cd7de2c025e95eff911aa9a21ef240020`.
+One fresh headless test process ran successfully, exit 0; source stability verified. This is a logical isolated
+QA process/directory, not a separate Windows login account/VM. It only queried the current Shell; no window,
+ownership tag, profile or desktop hierarchy was created or changed by this program.
+
+- Explorer identity/session and Progman: observed and verified by the reused queries.
+- Topology: stable across two observations; WorkerW windows enumerated: **15**.
+- Eligible candidate count: **UNKNOWN / null**, not zero. The full reference-window query did not complete;
+  no unique candidate was qualified. The fixed blocker `NoUniqueEligibleWorker` means insufficient qualification
+  evidence, not proof that no usable WorkerW exists.
+- Reference window geometry/DPI compatibility: **NOT_VERIFIED** (false/unavailable in the report).
+- Host-owned Surface target, its ledger/lease, recovery baseline: **NOT_VERIFIED**; none was substituted.
+- Execution allowed: **false**. No execution permit or live owner reservation was issued.
+- Actual attachment, restoration and live cleanup receipt: **NOT RUN / NOT_VERIFIED**.
+- No automatic retry or further desktop experiment was performed. Query Host residual count after run: **0**.
+
+Evidence: [native-05a-readonly-windows.json](evidence/native-05a-readonly-windows.json).
+Local original: `E:\BOGUNON_DEV\qa\native-05a\run-X7OEhm\VERIFICATION.json` (this PC only).
+The safe fixed-schema report is preserved byte-for-byte; raw output was not persisted, only lengths/hashes.
+No EXE, profile, UDF, personal paths, credentials or user data were added to Git.
+
+Validation: **47 WorkerW Rust tests PASS** (37 existing + 10 new), **14 Channel Host tests PASS**.
+Main TypeScript PASS; locked all-target default/read-only/compile-only-adapter checks PASS; default and
+read-only library/binary Clippy -D warnings PASS; changed Rust rustfmt, runner node --check and diff PASS.
+Existing TypeScript/DryRun runtime results from NATIVE-04B are reused only for unchanged paths, not relabeled
+as a new real Main/Host execution. Whole frontend/Electron GUI/installer QA was not repeated.
+Five independent reviews PASS after fixing ownership transfer, cleanup replay/cancellation and evidence
+publication order. Best-effort source/staged/report secret-pattern checks found no matches; a dedicated
+secret scanner and Miri/sanitizers remain unavailable, with residual detection/FFI proof risk explicit.
+
+**NATIVE-05A: CONDITIONAL. Read-only observation and fail-closed assessment are implemented; actual live
+experiment readiness remains BLOCKED.** Required next evidence: actual creator-owned test Surface and S-3
+reservation transfer, complete geometry/DPI/anchor/candidate observations, separately approved session/permit
+issuer and live mutation/cleanup observation authority. No actual attachment should be attempted from this report.
 Read-only Shell observations alone cannot establish that NATIVE-05 attachment is ready.
+
+
+## Change inventory
+
+- `tools/electron-native-workerw/Cargo.toml`: isolated query-only feature/binary; no new dependency.
+- `src/legacy/{mod,live_read_only}.rs`: feature separation and read-only facade.
+- `src/{lib,live_contract,ownership,preflight,preflight_types,preflight_tests}.rs`: sealed binding/evidence, actual reservation transfer, query-only ledger validation and tests.
+- `src/bin/native05a-readonly.rs`: fixed-switch, exact-source diagnostic Host.
+- `scripts/electron-p0/native-05a-readonly.mjs`: one-shot bounded local validation and sanitized evidence.
+- Provenance, this report and the fixed-schema JSON evidence.
