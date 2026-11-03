@@ -1,6 +1,6 @@
 # WorkerW boundary provenance
 
-The following files are byte-preserved copies, not a merge of a historical feature branch:
+The following files originate as byte-preserved copies, not a merge of a historical feature branch. The narrowly scoped NATIVE-05A/05B local extensions are listed below:
 
 - `src/legacy/{model,machine,mock,tests,identity_tests,observation,observation_reader,read_only_process,read_only_topology,read_only_windows,worker_evidence,topology_evidence}.rs`: commit `c67f5bf1338b3f41c48c17d58ea57d956b48a82a`, `src-tauri/src/desktop_surface/lifecycle/`.
 - `src/lifecycle.rs` and the ownership state transitions in `src/ownership.rs`: commit `e4dfcbf7b987039b093d3d1dbb8bed69a3bfcc6e`, `src-surface-host/src/`.
@@ -14,3 +14,5 @@ This crate exposes no public live activation API. NATIVE-05A adds a headless que
 Full cleanup receipts remain the existing S-3/NATIVE-01 authority. A restored parent, closed Host process, released registration lease or successful Win32 return is not a full Native cleanup receipt. The new TypeScript contracts reuse the existing ledger to issue/consume **contract-only** receipts using synthetic runtime/browser evidence; no Windows receipt is synthesized here.
 
 NATIVE-05A adds one query-only `Ledger::reservation_matches` method to the local ownership copy. Original S-3 transitions, lease identity, Drop/quarantine behavior and original source worktrees remain unchanged. Other listed historical files remain byte-preserved. The new read-only feature does not enable the private NativeAdapter/write modules.
+
+NATIVE-05B adds a pure classification wrapper and tests to the local `observation_reader.rs` copy, preserving its original candidate checks. `windows-test-target-skip-miri` adds creator-owned ordinary test-window lifecycle and reuses the unchanged `OwnedSurface` tag/identity contract. Neither test-target nor observation features enable NativeAdapter/native_writes/SetParent. The original 9B/Tauri worktrees remain unchanged.

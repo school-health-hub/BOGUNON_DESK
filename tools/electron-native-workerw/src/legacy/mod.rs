@@ -29,7 +29,13 @@ mod observation;
     )
 ))]
 mod observation_reader;
-#[cfg(all(windows, feature = "windows-adapter-skip-miri"))]
+#[cfg(all(
+    windows,
+    any(
+        feature = "windows-adapter-skip-miri",
+        feature = "windows-test-target-skip-miri"
+    )
+))]
 mod owned;
 #[cfg(all(
     windows,
@@ -61,3 +67,11 @@ mod write_plan;
 
 #[cfg(all(windows, feature = "windows-observation-skip-miri"))]
 pub(crate) mod live_read_only;
+
+#[cfg(all(windows, feature = "windows-test-target-skip-miri"))]
+pub(crate) mod test_target;
+#[cfg(all(windows, feature = "windows-test-target-skip-miri"))]
+pub(crate) mod test_window;
+
+#[cfg(all(windows, feature = "windows-test-target-skip-miri"))]
+mod target_evidence;

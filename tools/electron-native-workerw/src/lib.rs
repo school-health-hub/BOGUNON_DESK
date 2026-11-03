@@ -14,3 +14,6 @@ pub mod live_contract;
 pub mod preflight;
 #[cfg(all(windows, feature = "windows-observation-skip-miri"))]
 pub use legacy::live_read_only::observe_shell;
+
+#[cfg(all(windows, feature = "windows-test-target-skip-miri"))]
+pub use legacy::test_target::run_target_qa;

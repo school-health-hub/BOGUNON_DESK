@@ -248,3 +248,7 @@ impl PreflightSession {
 #[cfg(test)]
 #[path = "preflight_tests.rs"]
 mod tests;
+
+#[cfg(all(windows,feature="windows-test-target-skip-miri"))]
+#[path="preflight_target.rs"]
+mod target;

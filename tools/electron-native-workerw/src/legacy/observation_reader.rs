@@ -148,3 +148,26 @@ impl<T, F: FnMut(T)> Drop for Lease<T, F> {
         }
     }
 }
+
+/// NATIVE-05B: Shell classification independent of the Host-only target-window reader.
+pub(super) fn classify_shell(
+    topology: &Topology,
+    expected: &[u16],
+    session: u32,
+) -> Result<(Option<WindowIdentity>, Vec<[bool; 8]>), QueryError> {
+    validate_shell(topology, expected, session)?;
+    let facts = topology
+        .workers
+        .iter()
+        .map(|w| evidence::checks(w, topology))
+        .collect();
+    match select_worker(topology) {
+        Ok(w) => Ok((Some(w.identity.clone()), facts)),
+        Err(QueryError::NoEligibleWorker | QueryError::AmbiguousWorker) => Ok((None, facts)),
+        Err(e) => Err(e),
+    }
+}
+
+#[cfg(test)]
+#[path = "classification_tests.rs"]
+mod classification_tests;
