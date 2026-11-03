@@ -1,0 +1,11 @@
+{
+  "extends":"./tsconfig.json",
+  "compilerOptions":{
+    "outDir":"../artifacts/native-01/compiled",
+    "noEmitOnError":true,
+    "noUncheckedIndexedAccess":true,
+    "exactOptionalPropertyTypes":true,
+    "verbatimModuleSyntax":true
+  },
+  "include":["main/desktop-surface/**/*.ts","tests/native-surface*.ts"]
+}
