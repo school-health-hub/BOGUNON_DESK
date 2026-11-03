@@ -37,6 +37,7 @@ jobs:
           if ($env:EXPECTED_QA_SHA -notmatch '^[a-f0-9]{40}$' -or (git rev-parse HEAD) -ne $env:EXPECTED_QA_SHA -or $env:GITHUB_SHA -ne $env:EXPECTED_QA_SHA) { throw 'QA SHA mismatch' }
           if ((git -C product rev-parse HEAD) -ne '9e22f7e5666ffa73afc48a03ff2c844ea67bc0c9' -or (git -C product status --porcelain)) { throw 'Product source mismatch/dirty' }
           New-Item -ItemType Directory -Force diagnostic-output | Out-Null
+          @{productSourceSha='9e22f7e5666ffa73afc48a03ff2c844ea67bc0c9';qaSha=$env:EXPECTED_QA_SHA;earlierBuildFailureRun=41606939989;financeBuildFeature='windows-sys/Win32_Security';productFilesModified=$false} | ConvertTo-Json | Set-Content diagnostic-output/build-identity.json
           foreach ($tool in @('C:\Strawberry\perl\bin','C:\Program Files\NASM')) { if (Test-Path $tool) { $tool | Out-File -FilePath $env:GITHUB_PATH -Append } }
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
@@ -46,9 +47,27 @@ jobs:
       - name: Install locked dependencies only
         working-directory: product
         run: npm ci
-      - name: Existing locked three-CLI Windows x64 Portable packaging
+      - name: Existing three-CLI packaging with explicit Finance Win32 export feature
         working-directory: product
-        run: npm run electron:p0:package:win
+        shell: pwsh
+        run: |
+          Start-Transcript -Path (Join-Path $env:GITHUB_WORKSPACE 'diagnostic-output/windows-build.log')
+          try {
+            # QA build option only: fixed product source and Cargo files stay unchanged.
+            # Run 41606939989 proved CreateJobObjectW is gated behind Win32_Security.
+            node scripts/electron-p0/build-excel.mjs --release
+            if ($LASTEXITCODE -ne 0) { throw 'Purchase CLI build failed' }
+            node scripts/electron-p0/build-official-document.mjs --release
+            if ($LASTEXITCODE -ne 0) { throw 'Official CLI build failed' }
+            cargo build --locked --manifest-path tools/my-finance-cli/Cargo.toml --release --features windows-sys/Win32_Security
+            if ($LASTEXITCODE -ne 0) { throw 'Finance CLI build failed' }
+            New-Item -ItemType Directory -Force build/my-finance-cli | Out-Null
+            Copy-Item tools/my-finance-cli/target/release/my-finance-cli.exe build/my-finance-cli/my-finance-cli.exe
+            npm run electron:p0:build
+            if ($LASTEXITCODE -ne 0) { throw 'Electron build failed' }
+            node node_modules/electron-builder/out/cli/cli.js --config electron-p0/builder.json --win portable --x64 --publish never
+            if ($LASTEXITCODE -ne 0) { throw 'Portable packaging failed' }
+          } finally { Stop-Transcript }
       - name: Actual ASAR graph, three CLI bytes, source and Portable manifest
         run: node scripts/electron-p0/int-el05e-artifact.mjs product
       - name: Record signature and synthetic fixture preparation
