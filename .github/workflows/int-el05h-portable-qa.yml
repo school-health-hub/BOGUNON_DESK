@@ -1,0 +1,62 @@
+name: INT-EL-05H original Portable usability QA
+on:
+  workflow_dispatch:
+    inputs:
+      expected_qa_sha:
+        description: Exact reviewed QA branch SHA
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: int-el05h-original-portable
+  cancel-in-progress: false
+jobs:
+  diagnostic:
+    if: github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/qa/int-el05h-portable-usability' && github.sha == inputs.expected_qa_sha
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ inputs.expected_qa_sha }}
+          persist-credentials: false
+      - name: Verify QA source and immutable original artifact metadata
+        shell: pwsh
+        env:
+          EXPECTED_QA_SHA: ${{ inputs.expected_qa_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ($env:EXPECTED_QA_SHA -notmatch '^[a-f0-9]{40}$' -or (git rev-parse HEAD) -ne $env:EXPECTED_QA_SHA -or $env:GITHUB_SHA -ne $env:EXPECTED_QA_SHA) { throw 'QA SHA mismatch' }
+          if (git status --porcelain) { throw 'Dirty QA source' }
+          $artifact = gh api repos/school-health-hub/BOGUNON_DESK/actions/artifacts/13203310491 | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $artifact.expired -or $artifact.workflow_run.id -ne 41573621249 -or $artifact.name -ne 'INT-EL-05E-c06ce6a-783113fcfa99d8b3f402d7b4abf7d2193bfc1543' -or $artifact.digest -ne 'sha256:5a72cc6ddc2487c12698b75893e9cd5c16cd5ec595e7ae663995e05a38c89158') { throw 'Original artifact unavailable/mismatched; do not run' }
+          New-Item -ItemType Directory -Force diagnostic-output | Out-Null
+          $artifact | ConvertTo-Json -Depth 8 | Set-Content diagnostic-output/source-artifact.json
+      - name: Download the original artifact only; failure blocks execution
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: INT-EL-05E-c06ce6a-783113fcfa99d8b3f402d7b4abf7d2193bfc1543
+          run-id: 41573621249
+          repository: school-health-hub/BOGUNON_DESK
+          github-token: ${{ github.token }}
+          path: original-artifact
+      - name: Install pinned QA client only (no browser or product build)
+        shell: pwsh
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+        run: |
+          npm install --prefix .qa-runtime --no-save --package-lock=false --ignore-scripts --no-audit --no-fund playwright@1.64.1
+          if ($LASTEXITCODE -ne 0) { throw 'QA client installation failed' }
+      - name: Independent Portable execution; no Playwright, install or rebuild
+        shell: pwsh
+        run: ./scripts/qa/int-el05h-portable.ps1 -InputDirectory original-artifact -OutputDirectory diagnostic-output
+      - name: Preserve diagnostic evidence only (original EXE stays in source artifact)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: INT-EL-05H-usability-${{ github.sha }}
+          path: diagnostic-output/
+          if-no-files-found: warn
+          retention-days: 7
