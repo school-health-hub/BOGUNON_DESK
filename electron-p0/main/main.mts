@@ -1,3 +1,6 @@
+import {AiService,createAiHandlers} from './ai-service.js';
+import {EncryptedAiVault} from './ai-vault.js';
+import {allowedAiUrl} from './ai-network.js';
 import {LocalTaskStore,createLocalTaskHandlers} from './local-tasks.js';
 import {createEducationVideoExport} from './education-video-export.js';
 import {InventoryQaService,inventoryQaHandler} from './inventory-qa-service.js';
@@ -12,7 +15,7 @@ import { ExcelService } from './purchase-excel.js';
 import { createExcelHandlers } from './purchase-excel-ipc.js';
 import { createPurchaseImportHandlers } from './purchase-import.js';
 import { createPurchaseClipboardHandler } from './purchase-clipboard.js';
-import { app, BrowserWindow, ipcMain, session, Menu, Tray, nativeImage, screen, dialog, clipboard, ClipboardItem } from 'electron';
+import { app, BrowserWindow, ipcMain, session, Menu, Tray, nativeImage, screen, dialog, clipboard, ClipboardItem, safeStorage } from 'electron';
 import { join } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
@@ -64,6 +67,19 @@ else {
   window.webContents.on('will-navigate',event=>event.preventDefault());
   window.webContents.on('will-redirect',event=>event.preventDefault());
   window.webContents.on('will-attach-webview',event=>event.preventDefault());
+  // API-only ephemeral network session, separate from the closed renderer session.
+  const aiSession=session.fromPartition('ai-api-egress');
+  aiSession.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));
+  aiSession.setPermissionCheckHandler(()=>false);
+  aiSession.webRequest.onBeforeRequest((details,callback)=>callback({cancel:!allowedAiUrl(details.url)}));
+  const aiService=new AiService({vault:new EncryptedAiVault(join(userData,'work-data','ai'),{
+   available:process.platform==='win32'&&safeStorage.isEncryptionAvailable(),encrypt:text=>safeStorage.encryptString(text),decrypt:bytes=>safeStorage.decryptString(bytes)}),
+   fetch:(target,init)=>aiSession.fetch(target,init),readClipboard:()=>clipboard.readText(),clearClipboard:async expected=>{if(await clipboard.readText()===expected)await clipboard.clear();},
+   reviewKey:async input=>(await dialog.showMessageBox(window,{type:'question',message:`클립보드의 ${input.provider==='openai'?'OpenAI':'Gemini'} API Key로 연결할까요?`,detail:`명시적으로 복사한 API Key만 사용해 주세요. 모델 목록 조회를 위해 해당 제공자에게 Key를 전송합니다. 연결 성공 후 클립보드에서 이 값을 지웁니다. ${input.remember?'Windows 암호화로 이 Electron 프로필에 저장하며 이전 저장 연결을 대체합니다.':'앱 메모리에서만 사용하며 이전 Electron 저장 연결은 제거합니다.'} Tauri 인증정보는 읽거나 변경하지 않습니다.`,buttons:['취소','API 연결'],defaultId:0,cancelId:0})).response===1,
+   reviewSend:async(request,connection)=>(await dialog.showMessageBox(window,{type:'warning',message:`${connection.provider} · ${connection.model}에 이 내용을 전송할까요?`,detail:`${request.tool} · API 사용 요금이 발생할 수 있습니다. 개인정보가 없는지 확인하세요.\n\n${request.prompt}`,buttons:['취소','확인 후 외부 전송'],defaultId:0,cancelId:0})).response===1});
+  const aiHandlers=createAiHandlers(window.webContents,url,aiService);
+  for(const [action,handler] of Object.entries(aiHandlers))ipcMain.handle(`p2:ai:${action}`,handler);
+  window.on('close',()=>aiService.dispose());window.webContents.on('will-navigate',()=>aiService.dispose());window.webContents.on('render-process-gone',()=>aiService.dispose());app.on('before-quit',()=>aiService.dispose());
   const meta = JSON.parse(await readFile(join(app.getAppPath(),'build-meta.json'),'utf8')) as {sourceSha:string};
   for (const channel of ['p0:info','p0:read-settings','p0:write-settings']) ipcMain.handle(channel,async(event,...args: unknown[])=>{
     assertSender(event,window.webContents,url);

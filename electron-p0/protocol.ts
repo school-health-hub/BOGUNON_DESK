@@ -33,6 +33,7 @@ export type OfficialDocumentSave=Readonly<{title:string;body:string;attachments:
 export type OfficialDocumentImported=Readonly<{sourceName:string;format:"pdf"|"hwpx"|"odt";text:string}>;
 export type InventoryQaStatus = { mode: "local-qa"; authGateway: "reachable" | "unavailable"; inventoryConnection: "blocked"; persisted: false };
 export interface WorkBridge {
+ readonly ai?:AiBridge;
  readonly tasks:Readonly<{load():Promise<IpcResult<LocalTaskLoad>>;save(document:LocalTaskDocument,expectedRevision:number):Promise<IpcResult<LocalTaskLoad>>}>;
   inventoryLocalQa?: { status: () => Promise<IpcResult<InventoryQaStatus>>; business?: InventoryQaApi };
  readonly officialDocument:Readonly<{pick():Promise<IpcResult<OfficialDocumentImported|null>>;save(document:OfficialDocumentSave):Promise<IpcResult<{fileName:string}|null>>;cancel():Promise<IpcResult<null>>}>;
@@ -84,3 +85,20 @@ export type NewsletterProjectsBridge=Readonly<{
  restore(request:Readonly<{token:string;expected:NewsletterHead}>):Promise<IpcResult<Readonly<{restored:boolean;record?:NewsletterProjectRecord}>>>;
 }>;
 export type NewsletterApprovalBarrier=Readonly<{ids:readonly string[];hashes:readonly string[]}>;
+
+// API connection contracts selectively reused from src/ai/types.ts; secrets stay in Main.
+export type AiProvider='openai'|'gemini';
+export type AiTool='official-document'|'newsletter'|'finder';
+export type AiModel=Readonly<{id:string;label:string}>;
+export type AiStatus=Readonly<{connected:boolean;provider:AiProvider|null;model:string|null;models:readonly AiModel[];stored:boolean;secureStorage:boolean;busy:boolean;chatGptSupported:false}>;
+export type AiConnect=Readonly<{provider:AiProvider;remember:boolean}>;
+export type AiRequest=Readonly<{tool:AiTool;prompt:string}>;
+export type AiBridge=Readonly<{
+ status():Promise<IpcResult<AiStatus>>;
+ connectFromClipboard(input:AiConnect):Promise<IpcResult<AiStatus|null>>;
+ restore():Promise<IpcResult<AiStatus>>;
+ selectModel(input:Readonly<{model:string}>):Promise<IpcResult<AiStatus>>;
+ disconnect():Promise<IpcResult<AiStatus>>;
+ cancel():Promise<IpcResult<null>>;
+ generate(input:AiRequest):Promise<IpcResult<Readonly<{text:string}>|null>>;
+}>;

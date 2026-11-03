@@ -1,14 +1,14 @@
 // Source: newsletter-studio 7e7336b0bf1bd8adf75710e85290e4cdfc7a8813. Electron host I/O only; design/editor/renderer remain unchanged.
 import {NewsletterProjectControls} from "../../electron-p0/renderer/adapters/NewsletterProjectControls"
 import type {NewsletterHead,NewsletterPreview,NewsletterProjectRecord} from "../../electron-p0/protocol"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { NewsletterDesignEditor } from "./rendering/NewsletterDesignEditor"
 import { addStudioAssetFiles, createStudioAssetResolver, parseStudioDocument, serializeStudioDocument, type StudioDocument } from "./studioDocument"
 import "./rendering/fonts/pretendard.css"
 import {createBlankNewsletter,newsletterSchoolTypes,type NewsletterSchoolType} from "./newDocument"
 import "./newsletter-studio.css"
 
-export function NewsletterStudio({ onClose }: { readonly onClose: () => void }) {
+export function NewsletterStudio({ onClose,renderAiTools }: { readonly onClose: () => void;readonly renderAiTools?:(text:string)=>ReactNode }) {
   const [creating,setCreating]=useState(false)
   const [month,setMonth]=useState(()=>{const now=new Date();return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`})
   const [schoolType,setSchoolType]=useState<NewsletterSchoolType>('coed-high')
@@ -63,6 +63,7 @@ export function NewsletterStudio({ onClose }: { readonly onClose: () => void }) 
       <button type="button" disabled={document === undefined || busy || projectBusy || creating || preview!==null} onClick={() => { if (document !== undefined) void perform(async () => { const result = await window.electronWork.newsletter.saveJson({json:serializeStudioDocument(document)}); if(!result.ok)throw new Error(result.error.message);setMessage(result.data.saved?"원고·디자인 JSON을 저장했습니다.":"JSON 저장을 취소했습니다."); }) }}>원고·디자인 JSON 저장</button>
       <label>이미지 원본 연결<input aria-label="이미지 원본 연결" type="file" multiple accept="image/png,image/jpeg,image/webp" disabled={document === undefined || busy || projectBusy || creating || preview!==null} onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ""; if (document !== undefined) void perform(async () => { setImages(await addStudioAssetFiles(document.design, images, files)); setMessage(`${files.length}개 이미지의 SHA-256을 확인했습니다. 승인 상태는 변경하지 않았습니다.`) }) }} /></label>
     </header>
+    {renderAiTools?.(shown===undefined?'':shown.project.title+'\n\n'+shown.project.canonicalCopy.sections.map(section=>section.userEdit?.text??section.aiGenerated.text).join('\n\n'))}
     {creating&&<form className="newsletter-file-toolbar" aria-label="새 소식지 작성" onSubmit={event=>{event.preventDefault();if(!busy&&!projectBusy)startNew()}}>
       <label>작성 월<input aria-label="작성 월" type="month" required value={month} disabled={busy||projectBusy} onChange={event=>setMonth(event.target.value)}/></label>
       <label>학교 유형<select aria-label="학교 유형" value={schoolType} disabled={busy||projectBusy} onChange={event=>setSchoolType(event.target.value as NewsletterSchoolType)}>{Object.entries(newsletterSchoolTypes).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>

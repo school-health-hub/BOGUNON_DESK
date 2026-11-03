@@ -1,0 +1,29 @@
+// @vitest-environment jsdom
+import {afterEach,it,expect,vi} from 'vitest';
+import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
+import {AiAssistant,AiSettings} from '../renderer/ai/AiTools';
+import type {AiStatus} from '../protocol';
+const status:AiStatus={connected:true,provider:'openai',model:'gpt-synthetic',models:[{id:'gpt-synthetic',label:'계정 합성 모델'}],stored:false,secureStorage:false,busy:false,chatGptSupported:false};
+const ok=<T,>(data:T)=>({ok:true as const,data});
+afterEach(()=>{cleanup();vi.restoreAllMocks();vi.unstubAllGlobals();});
+function api(){const bridge={status:vi.fn(async()=>ok(status)),generate:vi.fn(async()=>ok({text:'합성 AI 응답'})),cancel:vi.fn(async()=>ok(null)),connectFromClipboard:vi.fn(async()=>ok(status)),restore:vi.fn(async()=>ok(status)),selectModel:vi.fn(async()=>ok(status)),disconnect:vi.fn(async()=>ok({...status,connected:false}))};vi.stubGlobal('electronWork',{ai:bridge});return bridge;}
+function openAndReview(){fireEvent.click(screen.getByText('AI 작성 보조 · 외부 전송 전 확인'));fireEvent.click(screen.getByRole('button',{name:'현재 작업 내용 검토용으로 가져오기'}));fireEvent.click(screen.getByRole('checkbox'));}
+it('never auto-sends source data and requires review before explicit API request',async()=>{
+ const bridge=api(),settings=vi.fn();render(<AiAssistant tool="official-document" source="합성 공문 원고" onSettings={settings}/>);expect(bridge.generate).not.toHaveBeenCalled();expect((screen.getByLabelText('AI 전송 내용') as HTMLTextAreaElement).value).toBe('');openAndReview();fireEvent.click(screen.getByRole('button',{name:'검토 후 AI 요청'}));await screen.findByDisplayValue('합성 AI 응답');expect(bridge.generate).toHaveBeenCalledWith({tool:'official-document',prompt:'합성 공문 원고'});expect((screen.getByLabelText('AI 전송 내용') as HTMLTextAreaElement).value).toBe('합성 공문 원고');expect((screen.getByRole('checkbox') as HTMLInputElement).checked).toBe(false);fireEvent.click(screen.getByRole('button',{name:'공통 AI 연결 설정'}));expect(settings).toHaveBeenCalledTimes(1);
+});
+it.each(['newsletter','finder'] as const)('%s reuses the common API but cannot change source data/revisions/library',async tool=>{
+ const bridge=api(),source='합성 편집 원고';render(<AiAssistant tool={tool} source={source} onSettings={()=>{}}/>);openAndReview();fireEvent.click(screen.getByRole('button',{name:'검토 후 AI 요청'}));await screen.findByDisplayValue('합성 AI 응답');expect(bridge.generate).toHaveBeenCalledWith({tool,prompt:source});expect((screen.getByLabelText('AI 전송 내용') as HTMLTextAreaElement).value).toBe(source);expect(Object.keys(window.electronWork)).toEqual(['ai']);
+});
+it('blocks detected PII and resets consent when text changes',()=>{
+ api();render(<AiAssistant tool="finder" source="합성" onSettings={()=>{}}/>);openAndReview();fireEvent.change(screen.getByLabelText('AI 전송 내용'),{target:{value:'이름: 홍길동 연락처: 010-1234-5678'}});expect((screen.getByRole('checkbox') as HTMLInputElement).checked).toBe(false);expect((screen.getByRole('checkbox') as HTMLInputElement).disabled).toBe(true);expect((screen.getByRole('button',{name:'검토 후 AI 요청'}) as HTMLButtonElement).disabled).toBe(true);
+});
+it('preserves prior response on failure and ignores cancelled late output',async()=>{
+ const bridge=api();render(<AiAssistant tool="finder" source="합성" onSettings={()=>{}}/>);openAndReview();fireEvent.click(screen.getByRole('button',{name:'검토 후 AI 요청'}));await screen.findByDisplayValue('합성 AI 응답');bridge.generate.mockRejectedValueOnce(Error('합성 연결 실패'));fireEvent.click(screen.getByRole('checkbox'));fireEvent.click(screen.getByRole('button',{name:'검토 후 AI 요청'}));await screen.findByText('합성 연결 실패');expect(screen.getByDisplayValue('합성 AI 응답')).toBeTruthy();
+ let resolve!:(value:ReturnType<typeof ok<{text:string}>>)=>void;bridge.generate.mockImplementationOnce(()=>new Promise(r=>{resolve=r;}));fireEvent.click(screen.getByRole('checkbox'));fireEvent.click(screen.getByRole('button',{name:'검토 후 AI 요청'}));fireEvent.click(screen.getByRole('button',{name:'AI 요청 취소'}));resolve(ok({text:'늦은 응답'}));await waitFor(()=>expect(bridge.cancel).toHaveBeenCalledTimes(1));expect(screen.queryByDisplayValue('늦은 응답')).toBeNull();
+});
+it('uses Main-only clipboard connection, account models and explicit disconnect without a key field',async()=>{
+ const bridge=api();render(<AiSettings/>);await screen.findByText('openai · gpt-synthetic 연결됨');expect(screen.queryByRole('textbox')).toBeNull();expect(screen.queryByDisplayValue('synthetic-api-key')).toBeNull();expect((screen.getByRole('checkbox') as HTMLInputElement).disabled).toBe(true);fireEvent.change(screen.getByLabelText('AI 제공자'),{target:{value:'gemini'}});fireEvent.click(screen.getByRole('button',{name:'클립보드 API Key로 연결'}));await waitFor(()=>expect(bridge.connectFromClipboard).toHaveBeenCalledWith({provider:'gemini',remember:false}));await screen.findByText(/API 계정 모델 목록을 확인/);expect(screen.getByRole('option',{name:'계정 합성 모델'})).toBeTruthy();expect(screen.getByRole('heading',{name:/ChatGPT 계정.*미지원/})).toBeTruthy();fireEvent.click(screen.getByRole('button',{name:'로그아웃·저장 연결 삭제'}));await waitFor(()=>expect(bridge.disconnect).toHaveBeenCalledTimes(1));
+});
+it('cancels only the owned request when the originating workspace is hidden or unmounted',async()=>{
+ const bridge=api();bridge.generate.mockImplementationOnce(()=>new Promise(()=>{}));const view=render(<AiAssistant tool="newsletter" source="합성" onSettings={()=>{}}/>);openAndReview();fireEvent.click(screen.getByRole('button',{name:'검토 후 AI 요청'}));view.rerender(<AiAssistant active={false} tool="newsletter" source="합성" onSettings={()=>{}}/>);await waitFor(()=>expect(bridge.cancel).toHaveBeenCalledTimes(1));view.unmount();expect(bridge.cancel).toHaveBeenCalledTimes(1);
+});

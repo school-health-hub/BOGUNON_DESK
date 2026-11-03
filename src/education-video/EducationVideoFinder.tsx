@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { ArrowLeft, Download, Library as LibraryIcon, Search, Upload } from 'lucide-react';
 import { copyMessage, createMessage, filterVideos, FinderInputError, searchMockVideos, validateConditions, type Conditions, type Education, type Library, type LibraryItem, type Video } from './model';
 import { libraryRepository, nativeLibrary } from './library';
@@ -6,8 +6,9 @@ import { VideoResults } from './VideoResults';
 import { MessageEditor } from './MessageEditor';
 import './finder.css';
 const emptyEducation: Education = { educationTitle: '', target: '', schedule: '', instructions: '' };
-export function EducationVideoFinder({ onClose }: {
+export function EducationVideoFinder({ onClose,renderAiTools }: {
     readonly onClose: () => void;
+    readonly renderAiTools?:(text:string)=>ReactNode;
 }) {
     const [conditions, setConditions] = useState<Conditions>({ topic: '', target: '', minutes: 10 });
     const [searched, setSearched] = useState<Conditions | null>(null);
@@ -70,6 +71,7 @@ export function EducationVideoFinder({ onClose }: {
  </div><span className="ev-mock-badge">합성 Mock 전용</span></header>
  <div className="ev-mock-note"><strong>실제 YouTube 검색 결과가 아닙니다.</strong>
  모든 제목·채널·영상 ID·공식 채널 예시는 합성 데이터입니다. 링크는 실제 영상으로 확인되지 않았으며, 안내문에도 Mock 표시가 포함됩니다.</div>
+ {renderAiTools?.([education.educationTitle,education.target,education.schedule,education.instructions,message].filter(Boolean).join('\n'))}
  <section className="ev-search" aria-labelledby="ev-search-heading">
  <div className="ev-section-heading"><div><span className="ev-step">01</span><h2 id="ev-search-heading">교육 조건</h2></div></div>
  <form onSubmit={e => { e.preventDefault(); search(); }}>
@@ -78,7 +80,7 @@ export function EducationVideoFinder({ onClose }: {
  <label>희망 영상 길이(분)<input type="number" min={1} max={180} value={conditions.minutes} onChange={e => setConditions({ ...conditions, minutes: Number(e.target.value) })}/></label>
  <button className="ev-primary" type="submit"><Search size={17}/>Mock 영상 검색</button>
  </form></section>
- <p role="status" className="ev-notice">{notice || '검색과 안내문 생성은 외부 API 없이 동작합니다.'}</p>
+ <p role="status" className="ev-notice">{notice || 'Mock 검색과 기본 안내문은 로컬에서 동작합니다. AI 보조는 전송 전 별도 확인합니다.'}</p>
  <div className="ev-layout"><div>
  <div className="ev-filters" aria-label="영상 길이 범위">
  {[{ value: 3, label: '희망 길이 ±3분' }, { value: 5, label: '±5분' }, { value: null, label: '전체 보기 (12개)' }].map(option => <button type="button" key={option.label} aria-pressed={windowMinutes === option.value} onClick={() => setWindow(option.value)}>{option.label}</button>)}<span>가까운 길이순</span>
