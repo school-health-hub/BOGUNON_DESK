@@ -126,7 +126,9 @@ function Phase([string]$Name,[string[]]$LaunchArgs){
  if($Name -eq 'endpoint' -and $state.endpoint.reachable -and $state.endpoint.ownerVerified){
   $env:INT_EL05H_ENDPOINT="http://127.0.0.1:$port";$env:INT_EL05H_OUTPUT=$OutputDirectory;$env:INT_EL05H_PROFILE=$testProfile
   $env:INT_EL05H_HWND=[string]$window.Handle;$env:INT_EL05H_PID=[string]$window.Pid;$env:INT_EL05H_APP_PATH=$child.path
-  & node scripts/qa/int-el05h-ui.mjs | ForEach-Object {Write-Host $_}
+  if(-not $state.nodeInspector.reachable -or -not $state.nodeInspector.ownerVerified){throw 'Owned loopback Node inspector unavailable; do not infer download events'}
+  $env:INT_EL07B_INSPECTOR="http://127.0.0.1:$nodePort"
+  & node scripts/qa/int-el07b-finder.mjs | ForEach-Object {Write-Host $_}
   $state.uiExitCode=$LASTEXITCODE
   $state.ui=Get-Content (Join-Path $OutputDirectory 'ui-results.json') -Raw | ConvertFrom-Json
  }
@@ -152,9 +154,9 @@ try{
  $script:exe=$exeFiles[0].FullName;$actual=Hash $script:exe
  if($actual -ne $expectedHash -or $script:manifest.portable.sha256 -ne $expectedHash){throw 'Original Portable hash mismatch'}
  $report.reused=@{file=$script:exe;sha256=$actual;signature=[string](Get-AuthenticodeSignature $script:exe).Status;sourceManifest=$script:manifest}
- $listener=[Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback,0);$listener.Start();$port=([Net.IPEndPoint]$listener.LocalEndpoint).Port;$listener.Stop()
- $debug=Phase 'endpoint' @("--remote-debugging-port=$port",'--remote-debugging-address=127.0.0.1')
- $report.verdict=if($debug.status -eq 'PASS' -and $debug.extractionCleaned -and $debug.ui.verdict -eq 'PASS'){'PASS'}else{'CONDITIONAL'}
+ $listener=[Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback,0);$nodeListener=[Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback,0);$listener.Start();$nodeListener.Start();$port=([Net.IPEndPoint]$listener.LocalEndpoint).Port;$nodePort=([Net.IPEndPoint]$nodeListener.LocalEndpoint).Port;$listener.Stop();$nodeListener.Stop()
+ $debug=Phase 'endpoint' @("--remote-debugging-port=$port",'--remote-debugging-address=127.0.0.1',"--inspect=127.0.0.1:$nodePort")
+ $report.verdict=if($debug.status -eq 'PASS' -and $debug.extractionCleaned){if($debug.ui.verdict -in @('PASS','FAIL','BLOCKED')){$debug.ui.verdict}else{'BLOCKED'}}else{'BLOCKED'}
 }catch{$report.failure=$_.Exception.Message;Record $report.failure}
 finally{
  $remaining=@(Processes);$report.forcedCleanup=$false
@@ -162,7 +164,7 @@ finally{
  $report.remainingBeforeCleanup=$remaining;$report.remainingAfterCleanup=@(Processes)
  $report | ConvertTo-Json -Depth 30 | Set-Content (Join-Path $OutputDirectory 'diagnostic.json') -Encoding utf8
  $summary=@{verdict=$report.verdict;exeHash=$report.reused.sha256;forcedCleanup=$report.forcedCleanup;remaining=$report.remainingAfterCleanup.Count;phases=@($report.phases | ForEach-Object {@{status=$_.status;directPid=$_.directPid;windowPid=$_.window.Pid;title=$_.window.Title;appHash=$_.actualAppSha256;asarHash=$_.asarSha256;gracefulClose=$_.gracefulClose;extractionCleaned=$_.extractionCleaned;uiVerdict=$_.ui.verdict}})}
- Write-Output "::notice title=INT_EL05H_PROCESS::$($summary | ConvertTo-Json -Depth 10 -Compress)"
+ Write-Output "::notice title=INT_EL07B_PROCESS::$($summary | ConvertTo-Json -Depth 10 -Compress)"
 
 }
 if($report.verdict -ne 'PASS'){exit 1}
