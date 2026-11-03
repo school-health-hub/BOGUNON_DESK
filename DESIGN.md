@@ -1,5 +1,15 @@
 # BOGUNON DESK Integrated Work Desk 디자인 시스템
 
+## OPTION C — Electron Soft Rose usability
+
+- Preserve saved widget coordinates, sizes, visibility, appearance IDs and all data contracts.
+- Electron-only material tokens: rose glass `rgb(255 253 253 / 86%)`, rim `rgb(233 221 226 / 90%)`, blur `12px`, ink `#243246`, secondary `#626874`; opaque fallback `#fffdfd`.
+- This is compositing inside an ordinary Electron window, not desktop transparency or WorkerW attachment.
+- Reserve separate dashboard and Dock rows at every viewport size. Dashboard owns workspace scrolling; widget overflow remains available for dense content. The compact header reserves 64px (92px below 820 CSS px), edit controls 116px.
+- Existing Flat style and `prefers-reduced-transparency: reduce` disable backdrop blur and use the opaque fallback. No new persisted appearance settings.
+- Modal settings sit above nonmodal work panels. Header/close stays reachable, content scrolls, narrow category navigation wraps. Keyboard focus remains inside the active modal and returns to its visible invoker.
+- Validate 980×700 and 1440×900 content viewports, plus 125%/150% Electron zoom. Zoom is a renderer accessibility simulation, not proof of Windows OS DPI transitions.
+
 ## Desktop Surface Mode
 
 - 9B-1은 Windows `Progman` / `WorkerW` topology를 읽기만 하는 capability probe다. 앱 창의 parent, style, z-order, taskbar, decorations를 변경하지 않으며 desktop mode의 기본 상태는 일반 창이다.
