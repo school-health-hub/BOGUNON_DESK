@@ -125,7 +125,8 @@ function Phase([string]$Name,[string[]]$LaunchArgs){
  }
  if($Name -eq 'endpoint' -and $state.endpoint.reachable -and $state.endpoint.ownerVerified){
   $env:INT_EL05H_ENDPOINT="http://127.0.0.1:$port";$env:INT_EL05H_OUTPUT=$OutputDirectory;$env:INT_EL05H_PROFILE=$testProfile
-  & node scripts/qa/int-el05h-ui.mjs
+  $env:INT_EL05H_HWND=[string]$window.Handle;$env:INT_EL05H_PID=[string]$window.Pid;$env:INT_EL05H_APP_PATH=$child.path
+  & node scripts/qa/int-el05h-ui.mjs | ForEach-Object {Write-Host $_}
   $state.uiExitCode=$LASTEXITCODE
   $state.ui=Get-Content (Join-Path $OutputDirectory 'ui-results.json') -Raw | ConvertFrom-Json
  }
@@ -164,4 +165,5 @@ finally{
  Write-Output "::notice title=INT_EL05H_PROCESS::$($summary | ConvertTo-Json -Depth 10 -Compress)"
 
 }
-if($report.verdict -eq 'BLOCKED'){exit 1}
+if($report.verdict -ne 'PASS'){exit 1}
+exit 0

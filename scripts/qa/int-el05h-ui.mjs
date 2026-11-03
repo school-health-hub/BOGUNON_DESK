@@ -1,3 +1,4 @@
+import {spawnSync} from 'node:child_process';
 import {createRequire} from 'node:module';
 import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
@@ -9,8 +10,58 @@ await mkdir(out,{recursive:true});
 const report={sourceSha:'c06ce6a910002cc7658a5545e23e0d3ed914d377',connection:'NOT RUN',checks:[],images:[],errors:[]};
 const assert=(value,message)=>{if(!value)throw Error(message)};
 let browser,page;
-const check=async(name,fn)=>{try{await fn();report.checks.push({name,status:'PASS'})}catch(e){report.checks.push({name,status:'FAIL',error:e.message});if(page)await capture('failure-'+name).catch(()=>{});}finally{console.log('::notice title=INT_EL05H_CHECK::'+JSON.stringify(report.checks.at(-1)))}};
-async function capture(name){const file=name+'.png',path=join(out,file);await page.screenshot({path});report.images.push({file,sha256:createHash('sha256').update(await readFile(path)).digest('hex'),renderer:await page.evaluate(()=>({width:innerWidth,height:innerHeight,dpr:devicePixelRatio}))});}
+const check=async(name,fn)=>{try{await resetDashboard();await fn();report.checks.push({name,status:'PASS'})}catch(e){report.checks.push({name,status:'FAIL',error:e.message});if(page)await capture('failure-'+name).catch(()=>{});}finally{console.log('::notice title=INT_EL05H_CHECK::'+JSON.stringify(report.checks.at(-1)))}};
+async function resetDashboard(){
+ const dialog=page.getByRole('dialog');
+ if(await dialog.count()){
+  const close=dialog.getByRole('button',{name:/^(설정|빠른 메모|업무 도구) 닫기$/});
+  if(await close.count())await close.first().click();
+ }
+ for(const label of ['보건 업무로','품의 도우미 닫기']){
+  const back=page.getByRole('button',{name:label,exact:true});
+  if(await back.count()&&await back.first().isVisible())await back.first().click();
+ }
+ await visible(page.getByRole('navigation',{name:'주요 기능'}));
+}
+async function capture(name){const file=name+'.png',path=join(out,file);await page.screenshot({path});report.images.push({file,sha256:createHash('sha256').update(await readFile(path)).digest('hex'),native:resizeOwnedWindow(),renderer:await page.evaluate(()=>({width:innerWidth,height:innerHeight,dpr:devicePixelRatio}))});}
+// CDP is used only for renderer interaction. Native HWND/PID identity is checked on every measurement/resize.
+function resizeOwnedWindow(width=0,height=0){
+ const script=`
+$ErrorActionPreference='Stop'
+Add-Type -TypeDefinition @'
+using System; using System.Runtime.InteropServices;
+public static class QaWindow {
+ [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left,Top,Right,Bottom; }
+ [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h,out uint pid);
+ [DllImport("user32.dll")] public static extern bool IsWindow(IntPtr h);
+ [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h,out RECT r);
+ [DllImport("user32.dll")] public static extern bool GetClientRect(IntPtr h,out RECT r);
+ [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h,IntPtr after,int x,int y,int width,int height,uint flags);
+ [DllImport("user32.dll")] public static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
+}
+'@
+[void][QaWindow]::SetThreadDpiAwarenessContext([IntPtr](-4))
+$handle=[IntPtr]([long]$env:INT_EL05H_HWND);[uint32]$owner=0
+if(-not [QaWindow]::IsWindow($handle)){throw 'Identified Portable HWND no longer exists'}
+[void][QaWindow]::GetWindowThreadProcessId($handle,[ref]$owner)
+if($owner -ne [uint32]$env:INT_EL05H_PID){throw 'HWND PID mismatch'}
+$process=Get-CimInstance Win32_Process -Filter "ProcessId=$owner"
+if(-not $process -or $process.ExecutablePath -ne $env:INT_EL05H_APP_PATH){throw 'Owned Portable executable mismatch'}
+$width=[int]$env:QA_WIDTH;$height=[int]$env:QA_HEIGHT
+if($width -gt 0){
+ if(-not [QaWindow]::SetWindowPos($handle,[IntPtr]::Zero,0,0,$width,$height,0x14)){throw 'SetWindowPos failed'}
+ Start-Sleep -Milliseconds 350
+}
+$outer=[QaWindow+RECT]::new();$client=[QaWindow+RECT]::new()
+if(-not [QaWindow]::GetWindowRect($handle,[ref]$outer) -or -not [QaWindow]::GetClientRect($handle,[ref]$client)){throw 'Native window measurement failed'}
+$result=@{pid=$owner;hwnd=$handle.ToInt64();outer=@{width=$outer.Right-$outer.Left;height=$outer.Bottom-$outer.Top};client=@{width=$client.Right-$client.Left;height=$client.Bottom-$client.Top}}
+if($width -gt 0 -and ($result.outer.width -ne $width -or $result.outer.height -ne $height)){throw "Native resize mismatch: $($result | ConvertTo-Json -Compress)"}
+$result | ConvertTo-Json -Compress
+`;
+ const result=spawnSync('pwsh',['-NoProfile','-NonInteractive','-Command',script],{encoding:'utf8',timeout:15000,env:{...process.env,QA_WIDTH:String(width),QA_HEIGHT:String(height)}});
+ assert(!result.error&&result.status===0,'Native HWND resize/measurement failed: '+(result.error?.message||result.stderr));
+ return JSON.parse(result.stdout.trim());
+}
 async function visible(locator){await locator.waitFor({state:'visible',timeout:10000})}
 async function focus(locator){assert(await locator.evaluate(el=>el===document.activeElement),'Expected focus')}
 try{
@@ -19,17 +70,17 @@ try{
  const pages=browser.contexts().flatMap(c=>c.pages());
  page=pages.find(p=>p.url().includes('/resources/app.asar/renderer/index.html'));
  assert(page,'Exact extracted Portable renderer target required');
+ page.setDefaultTimeout(7000);
  page.on('pageerror',e=>report.errors.push(e.message));
  const info=await page.evaluate(()=>window.electronP0.info());
  assert(info.sourceSha===report.sourceSha,'Product SHA mismatch');assert(info.userData.includes(process.env.INT_EL05H_PROFILE),'Isolated profile required');
  report.connection='PASS';report.info=info;
  const dock=page.getByRole('navigation',{name:'주요 기능'});
  await visible(dock);
- const session=await browser.newBrowserCDPSession();const target=await page.context().newCDPSession(page);const {targetInfo}=await target.send('Target.getTargetInfo');const {windowId}=await session.send('Browser.getWindowForTarget',{targetId:targetInfo.targetId});
+
  const settings=()=>dock.getByRole('button',{name:'설정',exact:true});
  for(const [width,height] of [[980,700],[1440,900]])await check('layout-'+width,async()=>{
-  await session.send('Browser.setWindowBounds',{windowId,bounds:{windowState:'normal',left:0,top:0,width,height}});
-  await page.waitForFunction(({w,h})=>outerWidth===w&&outerHeight===h,{w:width,h:height},{timeout:5000});
+  report['native'+width]=resizeOwnedWindow(width,height);
   await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
   const layout=await page.evaluate(()=>{const m=document.querySelector('.workspace-dashboard'),d=document.querySelector('.dock-zone'),s=document.querySelector('.workspace-shell');return {main:m.getBoundingClientRect().toJSON(),dock:d.getBoundingClientRect().toJSON(),position:getComputedStyle(d).position,scroll:getComputedStyle(m).overflowY,overflow:s.scrollWidth>innerWidth,outer:{width:outerWidth,height:outerHeight},renderer:{width:innerWidth,height:innerHeight}}});
   report['layout'+width]=layout;
@@ -74,7 +125,9 @@ try{
 finally{
  report.verdict=report.fatal?'BLOCKED':report.checks.length===6&&report.checks.every(c=>c.status==='PASS')&&report.errors.length===0?'PASS':'CONDITIONAL';
  await writeFile(join(out,'ui-results.json'),JSON.stringify(report,null,2));
- console.log('::notice title=INT_EL05H_UI::'+JSON.stringify({connection:report.connection,verdict:report.verdict,fatal:report.fatal,checks:report.checks,errors:report.errors,images:report.images}));
+ console.log('::notice title=INT_EL05I_UI::'+JSON.stringify({connection:report.connection,verdict:report.verdict,fatal:report.fatal,checks:report.checks,errors:report.errors}));
+ for(const image of report.images)console.log('::notice title=INT_EL05I_IMAGE::'+JSON.stringify(image));
+ for(const width of [980,1440])console.log('::notice title=INT_EL05I_LAYOUT::'+JSON.stringify({width,native:report['native'+width],layout:report['layout'+width],scroll:report['scroll'+width],tasks:report['taskNames'+width]}));
  if(browser)await browser.close();
 }
 if(report.verdict!=='PASS')process.exitCode=1;
