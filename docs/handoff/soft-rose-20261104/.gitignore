@@ -1,0 +1,2 @@
+# Publish only explicitly reviewed, synthetic handoff logs in this package.
+!evidence/**/*.log

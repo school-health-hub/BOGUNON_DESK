@@ -1,0 +1,42 @@
+{
+  "surface": "production renderer in Chrome, memory-only Electron bridge; not Portable QA",
+  "results": [
+    {
+      "width": 980,
+      "height": 700,
+      "panels": [
+        {
+          "className": "panel weather-panel",
+          "text": "오늘의 날씨\n날씨·급식은 이 Electron 실행본에 연결되어 있지 않습니다.",
+          "width": 140,
+          "scrollWidth": 140
+        },
+        {
+          "className": "panel meal-panel",
+          "text": "오늘의 급식\n날씨·급식은 이 Electron 실행본에 연결되어 있지 않습니다.",
+          "width": 219,
+          "scrollWidth": 219
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "panels": [
+        {
+          "className": "panel weather-panel",
+          "text": "오늘의 날씨\n날씨·급식은 이 Electron 실행본에 연결되어 있지 않습니다.",
+          "width": 216,
+          "scrollWidth": 216
+        },
+        {
+          "className": "panel meal-panel",
+          "text": "오늘의 급식\n날씨·급식은 이 Electron 실행본에 연결되어 있지 않습니다.",
+          "width": 332,
+          "scrollWidth": 332
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

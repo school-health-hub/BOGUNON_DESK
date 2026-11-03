@@ -1,0 +1,146 @@
+
+ RUN  v5.0.1 <SOURCE_CHECKOUT>
+
+ ❯ electron-p0/tests/widget-state-notices.test.tsx (11 tests | 1 failed) 167ms
+   × shows a disconnected notice in both real widgets when the unchanged adapters return signedOut 53ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  electron-p0/tests/widget-state-notices.test.tsx > shows a disconnected notice in both real widgets when the unchanged adapters return signedOut
+TestingLibraryElementError: Unable to find an element with the text: 날씨·급식은 이 Electron 실행본에 연결되어 있지 않습니다.. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <section
+      class="panel weather-panel"
+    >
+      <header
+        class="panel__header"
+      >
+        <div
+          class="panel__title-wrap"
+        >
+          <span
+            aria-hidden="true"
+            class="panel__icon"
+          >
+            <svg
+              aria-hidden="true"
+              class="lucide lucide-cloud-sun"
+              fill="none"
+              height="17"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="17"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12 2v2"
+              />
+              <path
+                d="m4.93 4.93 1.41 1.41"
+              />
+              <path
+                d="M20 12h2"
+              />
+              <path
+                d="m19.07 4.93-1.41 1.41"
+              />
+              <path
+                d="M15.947 12.65a4 4 0 0 0-5.925-4.128"
+              />
+              <path
+                d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"
+              />
+            </svg>
+          </span>
+          <h2
+            class="panel__title"
+          >
+            오늘의 날씨
+          </h2>
+        </div>
+      </header>
+      <div
+        class="workspace-data-notice is-signedOut"
+        role="status"
+      >
+        로컬 업무를 불러오지 못했습니다. 업무 도구에서 다시 불러와 주세요. 기존 파일은 유지됩니다.
+      </div>
+    </section>
+    <section
+      class="panel meal-panel"
+    >
+      <header
+        class="panel__header"
+      >
+        <div
+          class="panel__title-wrap"
+        >
+          <span
+            aria-hidden="true"
+            class="panel__icon"
+          >
+            <svg
+              aria-hidden="true"
+              class="lucide lucide-utensils lucide-fork-knife"
+              fill="none"
+              height="17"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="17"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"
+              />
+              <path
+                d="M7 2v20"
+              />
+              <path
+                d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"
+              />
+            </svg>
+          </span>
+          <h2
+            class="panel__title"
+          >
+            오늘의 급식
+          </h2>
+        </div>
+      </header>
+      <div
+        class="workspace-data-notice is-signedOut"
+        role="status"
+      >
+        로컬 업무를 불러오지 못했습니다. 업무 도구에서 다시 불러와 주세요. 기존 파일은 유지됩니다.
+      </div>
+    </section>
+  </div>
+</body>
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:109:15
+ ❯ electron-p0/tests/widget-state-notices.test.tsx:37:16
+     35|  render(<><WeatherWidget/><MealWidget/></>)
+     36|  // Then: connection state is visible, without a local-storage error.
+     37|  expect(screen.getAllByText('날씨·급식은 이 Electron 실행본에 연결되어 있지 않습니다.')).t…
+       |                ^
+     38|  expect(screen.queryByText(/로컬 업무를 불러오지 못했습니다/)).toBeNull()
+     39|  expect(document.querySelectorAll('.is-signedOut')).toHaveLength(2)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 10 passed (11)
+   Start at  01:14:05
+   Duration  9.02s (environment 88%, import 7%, transform 4%, tests 2%)
+

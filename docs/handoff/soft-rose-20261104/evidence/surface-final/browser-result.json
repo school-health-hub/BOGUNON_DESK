@@ -1,0 +1,143 @@
+{
+  "surface": "Chrome production renderer; memory-only bridge; Windows OS DPI not changed",
+  "results": [
+    {
+      "width": 980,
+      "height": 700,
+      "scale": 1,
+      "metrics": {
+        "dashboardBottom": 608,
+        "dockTop": 616,
+        "dockBottom": 688,
+        "firstCardTop": 86,
+        "bodyWidth": 980,
+        "viewport": 980,
+        "blur": "blur(10px)",
+        "fill": "rgba(255, 253, 253, 0.86)"
+      },
+      "editSafety": {
+        "toolbarBottom": 55,
+        "dashboardTop": 112
+      },
+      "settingsKeyboard": true,
+      "reducedEffects": true,
+      "storedGeometryUnchanged": true,
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "scale": 1,
+      "metrics": {
+        "dashboardBottom": 808,
+        "dockTop": 816,
+        "dockBottom": 888,
+        "firstCardTop": 90,
+        "bodyWidth": 1440,
+        "viewport": 1440,
+        "blur": "blur(10px)",
+        "fill": "rgba(255, 253, 253, 0.86)"
+      },
+      "editSafety": {
+        "toolbarBottom": 55,
+        "dashboardTop": 112
+      },
+      "settingsKeyboard": true,
+      "reducedEffects": true,
+      "storedGeometryUnchanged": true,
+      "errors": []
+    },
+    {
+      "width": 980,
+      "height": 700,
+      "scale": 1.25,
+      "metrics": {
+        "dashboardBottom": 608,
+        "dockTop": 616,
+        "dockBottom": 688,
+        "firstCardTop": 86,
+        "bodyWidth": 980,
+        "viewport": 980,
+        "blur": "blur(10px)",
+        "fill": "rgba(255, 253, 253, 0.86)"
+      },
+      "editSafety": {
+        "toolbarBottom": 55,
+        "dashboardTop": 112
+      },
+      "settingsKeyboard": true,
+      "reducedEffects": true,
+      "storedGeometryUnchanged": true,
+      "errors": []
+    },
+    {
+      "width": 980,
+      "height": 700,
+      "scale": 1.5,
+      "metrics": {
+        "dashboardBottom": 608,
+        "dockTop": 616,
+        "dockBottom": 688,
+        "firstCardTop": 86,
+        "bodyWidth": 980,
+        "viewport": 980,
+        "blur": "blur(10px)",
+        "fill": "rgba(255, 253, 253, 0.86)"
+      },
+      "editSafety": {
+        "toolbarBottom": 55,
+        "dashboardTop": 112
+      },
+      "settingsKeyboard": true,
+      "reducedEffects": true,
+      "storedGeometryUnchanged": true,
+      "errors": []
+    },
+    {
+      "width": 784,
+      "height": 560,
+      "scale": 1.25,
+      "metrics": {
+        "dashboardBottom": 468,
+        "dockTop": 476,
+        "dockBottom": 548,
+        "firstCardTop": 134,
+        "bodyWidth": 784,
+        "viewport": 784,
+        "blur": "blur(10px)",
+        "fill": "rgba(255, 253, 253, 0.86)"
+      },
+      "editSafety": {
+        "toolbarBottom": 110,
+        "dashboardTop": 116
+      },
+      "settingsKeyboard": true,
+      "reducedEffects": true,
+      "storedGeometryUnchanged": true,
+      "errors": []
+    },
+    {
+      "width": 653,
+      "height": 467,
+      "scale": 1.5,
+      "metrics": {
+        "dashboardBottom": 375,
+        "dockTop": 383,
+        "dockBottom": 455,
+        "firstCardTop": 134,
+        "bodyWidth": 653,
+        "viewport": 653,
+        "blur": "blur(10px)",
+        "fill": "rgba(255, 253, 253, 0.86)"
+      },
+      "editSafety": {
+        "toolbarBottom": 110,
+        "dashboardTop": 116
+      },
+      "settingsKeyboard": true,
+      "reducedEffects": true,
+      "storedGeometryUnchanged": true,
+      "errors": []
+    }
+  ]
+}

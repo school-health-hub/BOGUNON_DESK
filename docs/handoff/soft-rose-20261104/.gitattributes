@@ -1,0 +1,4 @@
+# Preserve published evidence bytes across Windows autocrlf checkouts.
+* -text whitespace=cr-at-eol
+# Keep original capture-script terminal blank lines as evidence.
+evidence/** whitespace=cr-at-eol,-blank-at-eof,-blank-at-eol
