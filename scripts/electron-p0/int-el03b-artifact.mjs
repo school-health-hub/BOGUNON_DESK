@@ -4,7 +4,7 @@ import {resolve,join,posix,normalize} from 'node:path';
 import {createRequire} from 'node:module';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
-const sourceSha='1720be78368f0be135995b4d92072f25346a5df5';
+const sourceSha='52b080226f70c142c342e03cd5e0329a4eba2181';
 const root=resolve(process.argv[2]??'product');
 const run=(command,args)=>execFileSync(command,args,{cwd:root,encoding:'utf8'}).trim();
 assert.equal(run('git',['rev-parse','HEAD']),sourceSha);
