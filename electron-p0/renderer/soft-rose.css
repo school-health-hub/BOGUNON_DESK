@@ -65,3 +65,25 @@
 .electron-soft-rose .workspace-shell.is-edit-mode .rose-surface-header{top:68px}
 .electron-soft-rose .workspace-shell.is-edit-mode{padding-top:132px}
 .electron-soft-rose .workspace-shell .workspace-data-notice:not(.is-error),.electron-soft-rose .workspace-shell .weather-state,.electron-soft-rose .workspace-shell .meal-state{opacity:1;color:#626874}
+
+/* DESIGN-05: the material pseudo-element must follow the selected existing surface. */
+.electron-soft-rose .workspace-shell::before{background:inherit}
+/* Embedded inspectors are ordinary content, not floating translucent palettes. */
+.electron-soft-rose .rose-settings .workspace-editor-panel{animation:none;opacity:1;filter:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+.electron-soft-rose .rose-settings :is(legend,h2,strong,label){color:#243246}
+.electron-soft-rose .rose-settings :is(p,small,.workspace-editor-panel__intro){color:#626874;opacity:1}
+.electron-soft-rose .rose-settings button:not(:disabled){opacity:1;color:#243246;background:#fffdfd;border-color:#8a7680}
+.electron-soft-rose .rose-settings button:is(.is-selected,[aria-pressed=true]):not(:disabled){color:#8a3f5b;background:#f7dce4;border-color:#8a3f5b}
+.electron-soft-rose .rose-settings button:disabled{color:#626874;background:#f1ecee;border:1px dashed #8a7680;cursor:not-allowed}
+.electron-soft-rose .rose-settings input{accent-color:#8a3f5b;color:#243246}
+.electron-soft-rose .rose-settings .widget-library article p{white-space:normal;overflow-wrap:anywhere}
+/* Keep stored grid geometry; only shrink anonymous flex/grid minimums within widgets. */
+.electron-soft-rose .workspace-shell .react-grid-item :is(.date-card,.date-card__body,.summary-card,.summary-stats,.summary-stats>div){min-width:0;max-width:100%;box-sizing:border-box}
+@media(max-width:1050px){
+ .electron-soft-rose .workspace-shell:is(.is-view-mode,.is-edit-mode) .react-grid-item[data-widget-type=clock] .date-card__time{font-size:24px;line-height:1.25;gap:0;white-space:nowrap;font-variant-numeric:tabular-nums}
+ .electron-soft-rose .workspace-shell .react-grid-item[data-widget-type=clock] .date-card__time svg{display:none}
+ .electron-soft-rose .workspace-shell .react-grid-item[data-widget-type=clock] .date-card__date{white-space:normal;overflow-wrap:anywhere}
+ .electron-soft-rose .workspace-shell:is(.is-view-mode,.is-edit-mode) .react-grid-item[data-widget-type=today-summary] .summary-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 8px;justify-content:stretch}
+ .electron-soft-rose .workspace-shell:is(.is-view-mode,.is-edit-mode) .react-grid-item[data-widget-type=today-summary] .summary-stats>div{display:flex;flex-wrap:wrap;gap:4px;align-content:start}
+ .electron-soft-rose .workspace-shell .react-grid-item[data-widget-type=today-summary] .summary-stats :is(strong,span){white-space:normal;overflow-wrap:anywhere}
+}
