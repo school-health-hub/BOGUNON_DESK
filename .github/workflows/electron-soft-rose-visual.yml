@@ -1,4 +1,4 @@
-name: DESIGN-05 Soft Rose Windows Visual QA
+name: DESIGN-06 Soft Rose Windows Visual QA
 on:
   workflow_dispatch:
 permissions:
@@ -8,7 +8,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   visual:
-    if: github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/qa/design05-soft-rose-visual-fix'
+    if: github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/qa/design06-integration-visual'
     runs-on: windows-latest
     timeout-minutes: 20
     steps:
@@ -19,7 +19,7 @@ jobs:
       - name: Fixed product, isolated checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: 036ff1e73a5cfdb6c0b16921aa04ebf804aed79a
+          ref: 9f6a3c8b2111c250c56bea03b8333ee3e9988bbf
           path: product
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
@@ -31,13 +31,19 @@ jobs:
         working-directory: product
         shell: pwsh
         run: |
-          if ((git rev-parse HEAD) -ne '036ff1e73a5cfdb6c0b16921aa04ebf804aed79a') { throw 'Wrong product SHA' }
+          if ((git rev-parse HEAD) -ne '9f6a3c8b2111c250c56bea03b8333ee3e9988bbf') { throw 'Wrong product SHA' }
           if (git status --porcelain) { throw 'Dirty product checkout' }
       - run: npm ci --no-audit --no-fund
         working-directory: product
       - name: Existing Electron build, no Rust or packaging QA
         working-directory: product
         run: npm run electron:p0:build
+      - name: Windows settings preservation and EPERM regressions
+        working-directory: product
+        run: npx vitest run --maxWorkers=2 electron-p0/tests/settings-replacement.test.ts electron-p0/tests/settings.test.ts
+      - name: Windows formal ASAR runtime graph check
+        working-directory: product
+        run: node --test scripts/electron-p0/runtime-package.test.mjs
       - name: Copy QA-only test after clean product build
         shell: pwsh
         run: Copy-Item electron-p0/e2e/soft-rose-visual.e2e.ts product/electron-p0/e2e/soft-rose-visual.e2e.ts
@@ -50,9 +56,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: DESIGN-05-Windows-Visual-${{ github.sha }}
+          name: DESIGN-06-Windows-Visual-${{ github.sha }}
           path: |
-            product/artifacts/design05/
+            product/artifacts/design06/
             product/artifacts/electron-p0-e2e/
           retention-days: 7
           if-no-files-found: warn

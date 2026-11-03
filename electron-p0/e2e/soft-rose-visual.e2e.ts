@@ -2,8 +2,8 @@ import {test,expect,_electron as electron} from '@playwright/test';
 import {randomUUID,createHash} from 'node:crypto';
 import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import {join} from 'node:path';
-const source='036ff1e73a5cfdb6c0b16921aa04ebf804aed79a';
-const output='artifacts/design05';
+const source='9f6a3c8b2111c250c56bea03b8333ee3e9988bbf';
+const output='artifacts/design06';
 for(const [width,height] of [[1440,900],[1366,768],[1280,720],[980,700]]){
  test(`Soft Rose actual Windows Electron ${width}x${height}`,async()=>{
   test.setTimeout(150000);await mkdir(output,{recursive:true});
