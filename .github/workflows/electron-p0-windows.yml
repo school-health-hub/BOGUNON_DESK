@@ -120,6 +120,19 @@ jobs:
             Copy-Item "$root/*" "source/build/$cli/" -Recurse
           }
           [ordered]@{originRun=41791377272;nativeSourceSha='b9a0a1b3893c2f45eeeed7278b86442e415dc159';productSha=$env:TD2_PRODUCT_SHA;nativeSourceUnchanged=$true;hashes=$hashes;dpapiAndLoopback='REUSED from original Windows run'} | ConvertTo-Json -Depth 4 | Set-Content "$env:TD2_EVIDENCE_ROOT/native-reuse.json"
+      - name: Use canonical Git bytes for LF-sensitive extraction build inputs
+        run: |
+          $ErrorActionPreference='Stop'
+          $files=@(git -C source ls-files src-tauri/src/record_helper_import)
+          git -C source -c core.autocrlf=false checkout-index -f -- $files
+          if($LASTEXITCODE -ne 0){throw 'Canonical extraction checkout failed'}
+          foreach($file in $files){
+            $actual=(git -C source hash-object --no-filters $file).Trim()
+            $expected=(git -C source rev-parse "HEAD:$file").Trim()
+            if($actual -cne $expected){throw 'Extraction input differs from immutable Git blob'}
+          }
+          if(git -C source status --porcelain){throw 'Product checkout modified'}
+          [ordered]@{policy='canonical LF Git bytes for src-tauri/src/record_helper_import only';reason='fixed product build.rs performs LF-sensitive import stripping';productCodeChanged=$false;blobHashesVerified=$true} | ConvertTo-Json | Set-Content "$env:TD2_EVIDENCE_ROOT/checkout-policy.json"
       - name: Build fifth Windows CLI, synthetic fixtures and new Portable
         working-directory: source
         run: |
