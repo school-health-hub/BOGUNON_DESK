@@ -10,7 +10,7 @@ async function copyPackage(name,fromRequire=require){
  seen.set(name,pkg.version);const dest=join(root,'node_modules',name);await mkdir(dest,{recursive:true});
  if(name==='tesseract.js-core'){
   for(const file of ['package.json','LICENSE','README.md','tesseract-core-lstm.js','tesseract-core-lstm.wasm','tesseract-core-simd-lstm.js','tesseract-core-simd-lstm.wasm'])await cp(join(source,file),join(dest,file));
- }else await cp(source,dest,{recursive:true,filter:path=>!path.slice(source.length).split(/[\\/]/).some(part=>(['node_modules','.git','test','tests','examples'].includes(part)||(part==='dist'&&name==='tesseract.js')))});
+ }else await cp(source,dest,{recursive:true,filter:path=>!path.slice(source.length).split(/[\\/]/).some(part=>(['node_modules','.git','test','tests','examples','.npmignore','.gitkeep','.travis.yml'].includes(part)||(part==='dist'&&name==='tesseract.js')))});
  const childRequire=createRequire(join(source,'package.json'));
  for(const dep of Object.keys(pkg.dependencies??{}))await copyPackage(dep,childRequire);
 }

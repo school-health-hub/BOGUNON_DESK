@@ -1,3 +1,6 @@
+import {realpathSync} from 'node:fs';
+import {qaProfilePaths} from './qa-profile.js';
+import {tmpdir} from 'node:os';
 import {FinderSearchService,createFinderSearchHandlers} from './finder-search.js';
 import {EncryptedYoutubeVault} from './finder-vault.js';
 import {allowedYoutubeUrl} from './finder-youtube.js';
@@ -52,9 +55,11 @@ if (app.commandLine.hasSwitch('no-sandbox') || app.commandLine.hasSwitch('disabl
 app.setName(PRODUCT_NAME);
 const testRun = process.env.ELECTRON_P0_TEST_RUN;
 if (testRun && !/^[a-f0-9-]{36}$/.test(testRun)) throw new Error('Invalid PoC test run');
-const userData = testRun ? join(app.getPath('appData'),PROFILE_NAME,'test-runs',testRun) : join(app.getPath('appData'),PROFILE_NAME);
+const qaPaths=qaProfilePaths({enabled:process.env.ELECTRON_P0_QA_PROFILE,root:process.env.ELECTRON_P0_QA_ROOT,runId:testRun,tempRoot:process.env.RUNNER_TEMP??tmpdir(),defaultAppData:app.getPath('appData'),profileName:PROFILE_NAME});
+if(qaPaths.qa){if(realpathSync(qaPaths.root!).toLowerCase()!==qaPaths.root!.toLowerCase())throw Error('QA root must not use a redirected filesystem path');app.setPath('appData',qaPaths.appData);}
+const userData=qaPaths.userData;
 app.setPath('userData',userData);
-app.setPath('sessionData',join(userData,'chromium'));
+app.setPath('sessionData',qaPaths.sessionData);
 app.setAppUserModelId(APP_ID);
 const store = new SettingsStore(join(userData,'poc-settings'));
 const taskStore=new LocalTaskStore(join(userData,'work-data','local-tasks'));
@@ -123,7 +128,7 @@ else {
   for (const channel of ['p0:info','p0:read-settings','p0:write-settings']) ipcMain.handle(channel,async(event,...args: unknown[])=>{
     assertSender(event,window.webContents,url);
     if (args.length !== (channel === 'p0:write-settings' ? 1 : 0)) throw new Error('Invalid PoC IPC arguments');
-    if (channel === 'p0:info') return {appId:APP_ID,productName:PRODUCT_NAME,userData,sourceSha:meta.sourceSha,electron:process.versions.electron};
+    if (channel === 'p0:info') return {appId:APP_ID,productName:PRODUCT_NAME,userData,sourceSha:meta.sourceSha,electron:process.versions.electron,...(qaPaths.qa?{qaProfile:{root:qaPaths.root,appData:app.getPath('appData'),sessionData:app.getPath('sessionData'),stores:['poc-settings','work-data/local-tasks','work-data/quick-memo','work-data/education-video','work-data/school-profile','work-data/school-admin','work-data/inventory','work-data/ai','work-data/chatgpt','work-data/my-finance','work-data/youtube-search','work-data/newsletter-projects','work-data/official-import-tmp','work-data/purchase-import-tmp'].map(p=>join(userData,p))}}:{})};
     if (channel === 'p0:read-settings') return store.read();
     return store.write(args[0]);
   });

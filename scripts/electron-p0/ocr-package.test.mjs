@@ -8,6 +8,7 @@ test('actual electron-builder extraResources selection includes every offline ru
  const matchers=getFileMatchers(config,'extraResources',resolve('/tmp/ocr-resources'),{defaultSrc:process.cwd(),macroExpander:v=>v,customBuildOptions:config.win,globalOutDir:resolve('release-electron-p0')});
  const matcher=matchers.find(m=>m.from===root);assert(matcher,'Missing OCR resources mapping');const filter=matcher.createFilter();
  for(const entry of manifest.files){const file=join(root,entry.file);assert(filter(file,await stat(file)),`Builder omitted ${entry.file}`);}
+ assert(!manifest.files.some(f=>f.file.split('/').some(p=>['.npmignore','.gitkeep','.travis.yml'].includes(p))));
  assert(manifest.files.some(f=>f.file.endsWith('kor.traineddata.gz')));assert(manifest.files.some(f=>f.file.endsWith('eng.traineddata.gz')));assert(manifest.bytes<20*1024*1024);
 });
 test('real staged offline Korean/English OCR reads synthetic cart prices/options and bounding-box evidence',async()=>{
