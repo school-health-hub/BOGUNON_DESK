@@ -1,7 +1,10 @@
 name: Final integrated Portable Windows QA
-run-name: Final integrated Portable / 5ae8528 / ${{ github.run_id }}
+run-name: Final integrated 5-CLI Portable / 5cfdee0 / ${{ github.run_id }}
 
 on:
+  push:
+    branches: [qa/final-integrated-windows]
+    paths: ['.github/workflows/electron-p0-windows.yml', 'scripts/qa/td2-soft-rose-portable.mjs']
   workflow_dispatch:
 
 permissions:
@@ -14,7 +17,7 @@ concurrency:
 
 jobs:
   portable-gui:
-    if: github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/qa/final-integrated-windows' && github.run_attempt == 1
+    if: (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/qa/final-integrated-windows' && github.run_attempt == 1
     runs-on: windows-2022
     timeout-minutes: 40
     defaults:
@@ -24,12 +27,12 @@ jobs:
       CI: 'true'
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       TD2_CONTROLLER_BASE_SHA: b085e8b7c7a5ec1bd6c7ba54cc689fcf11dbc2cc
-      TD2_PRODUCT_SHA: 5ae8528f47a4d83b6d23cef240b210a7d420ad21
+      TD2_PRODUCT_SHA: 5cfdee00765d5ab11a9076028b4e6e4c1afc5292
     steps:
       - name: Checkout immutable approved product
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: 5ae8528f47a4d83b6d23cef240b210a7d420ad21
+          ref: 5cfdee00765d5ab11a9076028b4e6e4c1afc5292
           path: source
           persist-credentials: false
           fetch-depth: 0
@@ -93,11 +96,11 @@ jobs:
       - name: Reuse exact native binaries without rebuilding unchanged source
         run: |
           $ErrorActionPreference='Stop'
-          git -C source diff --exit-code b9a0a1b3893c2f45eeeed7278b86442e415dc159 HEAD -- tools src-tauri
+          git -C source diff --exit-code b9a0a1b3893c2f45eeeed7278b86442e415dc159 HEAD -- tools/chatgpt-auth-cli tools/purchase-excel-cli tools/official-document-cli tools/my-finance-cli src-tauri
           if($LASTEXITCODE -ne 0){throw 'Native source changed; reuse forbidden'}
           $old=@(Get-ChildItem prior-portable/*.exe)
           $priorMeta=Get-Content prior-evidence/portable.json -Raw|ConvertFrom-Json
-          if($old.Count -ne 1 -or $priorMeta.sourceSha -cne $env:TD2_PRODUCT_SHA -or (Get-FileHash $old[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant() -cne $priorMeta.sha256){throw 'Same-product Portable hash mismatch'}
+          if($old.Count -ne 1 -or $priorMeta.sourceSha -cne '5ae8528f47a4d83b6d23cef240b210a7d420ad21' -or (Get-FileHash $old[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant() -cne $priorMeta.sha256){throw 'Same-product Portable hash mismatch'}
           7z x $old[0].FullName "-o$env:TD2_ROOT/prior-container" -y | Out-Null
           if($LASTEXITCODE -ne 0){throw 'Prior Portable extraction failed'}
           $archive=@(Get-ChildItem "$env:TD2_ROOT/prior-container" -Recurse -Filter app-64.7z)
@@ -117,16 +120,17 @@ jobs:
             Copy-Item "$root/*" "source/build/$cli/" -Recurse
           }
           [ordered]@{originRun=41791377272;nativeSourceSha='b9a0a1b3893c2f45eeeed7278b86442e415dc159';productSha=$env:TD2_PRODUCT_SHA;nativeSourceUnchanged=$true;hashes=$hashes;dpapiAndLoopback='REUSED from original Windows run'} | ConvertTo-Json -Depth 4 | Set-Content "$env:TD2_EVIDENCE_ROOT/native-reuse.json"
-      - name: Typecheck source and reuse byte-identical Portable
+      - name: Build fifth Windows CLI, synthetic fixtures and new Portable
         working-directory: source
         run: |
           npm run electron:p0:build
           if($LASTEXITCODE -ne 0){throw 'Electron build failed'}
-          New-Item -ItemType Directory release-electron-p0/win-unpacked -Force | Out-Null
-          Copy-Item "$env:TD2_ROOT/prior-app/*" release-electron-p0/win-unpacked/ -Recurse
-          Copy-Item ../prior-portable/*.exe release-electron-p0/
-          node -e "const a=require('@electron/asar');const m=JSON.parse(a.extractFile('release-electron-p0/win-unpacked/resources/app.asar','build-meta.json'));if(m.sourceSha!==process.env.TD2_PRODUCT_SHA||m.dirty)throw Error('Reused product SHA mismatch');"
-          if($LASTEXITCODE -ne 0){throw 'Reused Portable source gate failed'}
+          node scripts/electron-p0/build-record.mjs --release
+          if($LASTEXITCODE -ne 0){throw 'Record CLI Windows build failed'}
+          cargo test --release --locked --manifest-path tools/record-helper-cli/Cargo.toml writes_only_synthetic_electron_integration_fixtures
+          if($LASTEXITCODE -ne 0){throw 'Synthetic record fixtures failed'}
+          npx electron-builder --config electron-p0/builder.json --win portable --x64 --publish never
+          if($LASTEXITCODE -ne 0){throw '5-CLI Portable build failed'}
       - name: Record Portable and actual Windows DPI
         run: |
           $ErrorActionPreference='Stop'
@@ -148,7 +152,7 @@ jobs:
       - name: Verify packaged runtime, resources and source
         working-directory: source
         run: |
-          node --test scripts/electron-p0/runtime-package.test.mjs scripts/electron-p0/chatgpt-package.test.mjs
+          node --test scripts/electron-p0/runtime-package.test.mjs scripts/electron-p0/chatgpt-package.test.mjs scripts/electron-p0/record-package.test.mjs
           if($LASTEXITCODE -ne 0){throw 'Packaged contract tests failed'}
           node scripts/electron-p0/check-ocr-package.mjs
           if($LASTEXITCODE -ne 0){throw 'Staged OCR integrity failed'}
@@ -166,7 +170,7 @@ jobs:
           node --input-type=module -e "import {recognizeImage,verifyOcrRuntime} from './build/electron-p0-app/main/purchase-image-ocr.js';import {resolve} from 'node:path';import {writeFileSync} from 'node:fs';const root=resolve('release-electron-p0/win-unpacked/resources/purchase-ocr');await verifyOcrRuntime(root);const lines=await recognizeImage(root,resolve('electron-p0/tests/fixtures/purchase-image/synthetic-cart.png'),new AbortController().signal,90000,resolve('release-electron-p0/win-unpacked/BOGUNON DESK ELECTRON P0.exe'));if(!lines.some(l=>l.text.includes('24,000')))throw Error('Packaged OCR synthetic price missing');writeFileSync(process.env.TD2_EVIDENCE_ROOT+'/packaged-ocr.json',JSON.stringify({sourceSha:process.env.TD2_PRODUCT_SHA,verdict:'PASS',synthetic:true,worker:'packaged Electron + offline packaged WASM/models',lineCount:lines.length}));"
           if($LASTEXITCODE -ne 0){throw 'Packaged OCR verification/execution failed'}
           $resources='release-electron-p0/win-unpacked/resources'
-          foreach($cli in @('purchase-excel-cli','official-document-cli','my-finance-cli','chatgpt-auth-cli')) {
+          foreach($cli in @('purchase-excel-cli','official-document-cli','my-finance-cli','chatgpt-auth-cli','record-helper-cli')) {
             $file=Join-Path $resources "$cli/$cli.exe"
             if(!(Test-Path $file)){throw "Missing packaged native CLI: $cli"}
             "$((Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant())  $cli.exe" | Add-Content "$env:TD2_EVIDENCE_ROOT/NATIVE-SHA256.txt"
@@ -175,6 +179,25 @@ jobs:
           if($manifest.sourceSha -cne 'b9a0a1b3893c2f45eeeed7278b86442e415dc159' -or $manifest.dirty){throw 'Native source provenance mismatch'}
           node -e "const {createPackageFromStreams}=require('@electron/asar');const asar=require('@electron/asar');const p='release-electron-p0/win-unpacked/resources/app.asar';const fs=require('fs');const meta=JSON.parse(asar.extractFile(p,'build-meta.json'));if(meta.sourceSha!==process.env.TD2_PRODUCT_SHA)throw Error('ASAR source mismatch');for(const f of ['purchase-ai-protocol.js','ai-image-capabilities.json'])asar.extractFile(p,f);fs.writeFileSync(process.env.TD2_EVIDENCE_ROOT+'/asar-source.json',JSON.stringify(meta));"
           if($LASTEXITCODE -ne 0){throw 'ASAR provenance/resource verification failed'}
+      - name: Real packaged record extraction by format without content logs
+        working-directory: source
+        run: |
+          $probe=@'
+          import {RecordHelperProcess} from './build/electron-p0-app/main/record-helper-process.js';
+          import {writeFileSync} from 'node:fs';import {resolve,join} from 'node:path';
+          const worker=new RecordHelperProcess(resolve('release-electron-p0/win-unpacked/resources/record-helper-cli/record-helper-cli.exe'));
+          const results={};
+          for(const file of ['synthetic.pdf','synthetic.hwp','compressed.hwp','synthetic.hwpx','synthetic.docx','protected.hwp']){
+            const batch=await worker.run(resolve('build/record-helper-fixtures',file),new AbortController().signal);
+            const denied=file==='protected.hwp';const passed=denied?batch.reports.length===0&&batch.failures.length===1:batch.reports.length===1&&batch.reports[0].text.length>0;
+            results[file]={verdict:passed?'PASS':'FAIL',expected:denied?'unsupported failure':'text extraction',reports:batch.reports.length,failures:batch.failures.length};if(!passed)throw Error('Packaged record format contract failed');
+          }
+          await worker.flush();writeFileSync(join(process.env.TD2_EVIDENCE_ROOT,'record-formats.json'),JSON.stringify({sourceSha:process.env.TD2_PRODUCT_SHA,platform:process.platform,execution:'actual packaged PE via RecordHelperProcess',synthetic:true,results},null,2));
+          '@
+          '/source-record-probe.mjs' | Add-Content .git/info/exclude
+          $probe | Set-Content source-record-probe.mjs
+          node source-record-probe.mjs
+          if($LASTEXITCODE -ne 0){throw 'Packaged record extraction failed'}
       - name: Prove profile isolation and cleanup after injected exception
         working-directory: source
         run: |
@@ -209,7 +232,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: success() || failure()
         with:
-          name: final-integrated-portable-5ae8528-${{ github.run_id }}
+          name: parity-5cli-portable-5cfdee0-${{ github.run_id }}
           path: source/release-electron-p0/*.exe
           if-no-files-found: ignore
           retention-days: 14
