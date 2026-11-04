@@ -1,68 +1,123 @@
-name: ELECTRON-P2E5B Purchase export
+name: TD2 Soft Rose Portable Windows GUI QA
+run-name: TD2 Soft Rose Portable GUI / b085e8b / ${{ github.run_id }}
+
 on:
-  push:
-    branches: [feature/electron-p0-dashboard, feature/electron-p1a-windows-installer, feature/electron-p1b-desktop-experience, feature/electron-p2d2-newsletter-export, feature/electron-p2e3-purchase-excel, feature/electron-p2e4-purchase-pdf, feature/electron-p2e5a-purchase-export, feature/electron-p2e5b-purchase-settlement]
   workflow_dispatch:
+
 permissions:
   contents: read
+
 concurrency:
-  group: electron-p0-${{ github.ref }}
-  cancel-in-progress: true
+  group: td2-soft-rose-portable-gui
+  cancel-in-progress: false
+
 jobs:
-  windows-poc:
-    runs-on: windows-latest
-    timeout-minutes: 35
+  portable-gui:
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/codex/td2-soft-rose-windows-gui-qa' && github.run_attempt == 1
+    runs-on: windows-2022
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: pwsh
     env:
+      CI: 'true'
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      TD2_PRODUCT_SHA: b085e8b7c7a5ec1bd6c7ba54cc689fcf11dbc2cc
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Checkout immutable approved product
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
+          ref: b085e8b7c7a5ec1bd6c7ba54cc689fcf11dbc2cc
+          path: source
+          persist-credentials: false
           fetch-depth: 0
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      - name: Checkout QA controller
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          path: controller
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
           cache: npm
-      - run: npm ci
-      - name: Rust Purchase import/export contracts and CLI build
+          cache-dependency-path: source/package-lock.json
+      - name: Verify immutable source and QA-only controller
         run: |
-          rustup update stable --no-self-update
-          rustup default stable
-          node scripts/electron-p0/verify-excel-source.mjs
-          cargo test --locked --manifest-path tools/purchase-excel-cli/Cargo.toml
-          node scripts/electron-p0/build-excel.mjs --release
-          node scripts/electron-p0/check-excel-cli.mjs build/purchase-excel-cli/purchase-excel-cli.exe
-      - name: Source preservation, Newsletter IPC/output validation, Portable + NSIS and packaged UI
-        run: npm run electron:p0:ci:windows
-      - name: Record exact PoC artifact hash and signature (not a production release)
-        shell: pwsh
+          $ErrorActionPreference='Stop'
+          $source=(git -C source rev-parse HEAD).Trim()
+          if($source -cne $env:TD2_PRODUCT_SHA){throw 'Approved product SHA mismatch'}
+          if(git -C source status --porcelain){throw 'Approved product checkout is dirty'}
+          $allowed=@('.github/workflows/electron-p0-windows.yml','scripts/qa/td2-soft-rose-portable.mjs','scripts/qa/td2-window.ps1')
+          $changed=@(git -C controller diff --name-only $env:TD2_PRODUCT_SHA HEAD)
+          foreach($path in $changed){if($path -notin $allowed){throw "Non-QA controller change: $path"}}
+          if($changed.Count -ne 3){throw 'Expected exactly three QA controller files'}
+          $root=Join-Path $env:RUNNER_TEMP "td2-portable-$env:GITHUB_RUN_ID"
+          New-Item -ItemType Directory "$root/evidence","$root/temp","$root/npm-cache","$root/f-drive" | Out-Null
+          if(Get-PSDrive F -ErrorAction SilentlyContinue){throw 'F drive is already assigned on runner'}
+          subst F: "$root/f-drive"
+          if($LASTEXITCODE -ne 0){throw 'Could not create isolated F drive'}
+          New-Item -ItemType Directory 'F:\BOGUNON_QA\qa-profile','F:\BOGUNON_QA\temp' | Out-Null
+          "TD2_ROOT=$root" >> $env:GITHUB_ENV
+          "TD2_EVIDENCE_ROOT=$root/evidence" >> $env:GITHUB_ENV
+          "TEMP=$root/temp" >> $env:GITHUB_ENV
+          "TMP=$root/temp" >> $env:GITHUB_ENV
+          "npm_config_cache=$root/npm-cache" >> $env:GITHUB_ENV
+          "ELECTRON_P0_QA_ROOT=F:\BOGUNON_QA\qa-profile" >> $env:GITHUB_ENV
+          [ordered]@{
+            productSha=$source;controllerSha=(git -C controller rev-parse HEAD).Trim();workflowSha='${{ github.workflow_sha }}'
+            runner='windows-2022';runId=$env:GITHUB_RUN_ID;attempt=$env:GITHUB_RUN_ATTEMPT
+          }|ConvertTo-Json|Set-Content "$root/evidence/provenance.json"
+      - name: Install locked dependencies
+        working-directory: source
+        run: npm ci
+      - name: Focused profile and design contracts
+        working-directory: source
+        run: npx vitest run electron-p0/tests/profile-paths.test.ts electron-p0/tests/soft-rose-glass-contract.test.ts
+      - name: Build approved Portable once
+        working-directory: source
+        run: npm run electron:p0:package:win
+      - name: Record Portable and actual Windows DPI
         run: |
-          $files = @(Get-ChildItem release-electron-p0/*.exe)
-          if ($files.Count -ne 2) { throw 'Expected Portable and NSIS artifacts' }
-          $results = foreach ($file in $files) {
-            $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-            $signature = [string](Get-AuthenticodeSignature $file.FullName).Status
-            if ($signature -notin @('NotSigned','Valid')) { throw 'Unexpected signature state' }
-            "$hash  $($file.Name)" | Add-Content release-electron-p0/SHA256SUMS.txt
-            Write-Output "::notice title=ELECTRON_P1A_ARTIFACT::$($file.Name) SHA256=$hash signature=$signature"
-            @{file=$file.Name;sha256=$hash;signature=$signature}
+          $ErrorActionPreference='Stop'
+          $portable=@(Get-ChildItem source/release-electron-p0/*.exe -File)
+          if($portable.Count -ne 1){throw 'Expected exactly one Portable EXE'}
+          $hash=(Get-FileHash $portable[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $($portable[0].Name)"|Set-Content "$env:TD2_EVIDENCE_ROOT/PORTABLE-SHA256.txt"
+          "TD2_PORTABLE_EXE=$($portable[0].FullName)" >> $env:GITHUB_ENV
+          "TD2_EXPECTED_SOURCE_SHA=$env:TD2_PRODUCT_SHA" >> $env:GITHUB_ENV
+          $desktop=Get-ItemProperty 'HKCU:\Control Panel\Desktop'
+          $metrics=Get-ItemProperty 'HKCU:\Control Panel\Desktop\WindowMetrics'
+          $dpi=[ordered]@{
+            appliedDpi=$metrics.AppliedDPI;logPixels=$desktop.LogPixels;win8DpiScaling=$desktop.Win8DpiScaling
+            dpi100=if($metrics.AppliedDPI -eq 96){'VERIFIED'}else{'NOT VERIFIED'}
+            dpi125='NOT VERIFIED';dpi150='NOT VERIFIED';emulationUsed=$false
           }
-          @{scope='Electron P2E5B only';sourceSha=$env:GITHUB_SHA;files=@($results);qa=(Get-Content release-electron-p0/P1A-QA-RESULT.json -Raw | ConvertFrom-Json);productionDeployment=$false} | ConvertTo-Json -Depth 8 | Set-Content release-electron-p0/P0-BUILD-RESULT.json
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: ELECTRON-P2E5B-Windows-${{ github.sha }}
-          path: |
-            release-electron-p0/*.exe
-            release-electron-p0/SHA256SUMS.txt
-            release-electron-p0/P0-BUILD-RESULT.json
-            release-electron-p0/P1A-QA-RESULT.json
-          if-no-files-found: error
-          retention-days: 7
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+          $dpi|ConvertTo-Json|Set-Content "$env:TD2_EVIDENCE_ROOT/windows-dpi.json"
+          [ordered]@{sourceSha=$env:TD2_PRODUCT_SHA;file=$portable[0].Name;bytes=$portable[0].Length;sha256=$hash;signature=[string](Get-AuthenticodeSignature $portable[0].FullName).Status}|ConvertTo-Json|Set-Content "$env:TD2_EVIDENCE_ROOT/portable.json"
+      - name: Run actual Portable and capture Electron GUI
+        working-directory: source
+        run: node ../controller/scripts/qa/td2-soft-rose-portable.mjs 2>&1 | Tee-Object "$env:TD2_EVIDENCE_ROOT/portable-gui.log"
+      - name: Verify clean shutdown and finalize evidence
         if: always()
+        run: |
+          $ErrorActionPreference='Stop'
+          $remaining=@(Get-CimInstance Win32_Process|Where-Object{$_.Name -like 'BOGUNON*' -or $_.ExecutablePath -like 'F:\BOGUNON_QA\*'})
+          [ordered]@{count=$remaining.Count;processes=@($remaining|Select-Object ProcessId,Name,ExecutablePath)}|ConvertTo-Json -Depth 4|Set-Content "$env:TD2_EVIDENCE_ROOT/process-cleanup.json"
+          if($remaining.Count){throw 'Residual BOGUNON QA process detected'}
+          $files=@(Get-ChildItem $env:TD2_EVIDENCE_ROOT -Recurse -File|Where-Object Name -ne 'SHA256SUMS.txt'|Sort-Object FullName)
+          @($files|ForEach-Object{"$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.FullName.Substring($env:TD2_EVIDENCE_ROOT.Length+1).Replace('\','/'))"})|Set-Content "$env:TD2_EVIDENCE_ROOT/SHA256SUMS.txt"
+          '## TD2 Soft Rose Portable Windows GUI QA' >> $env:GITHUB_STEP_SUMMARY
+          "Product SHA: ``$env:TD2_PRODUCT_SHA``" >> $env:GITHUB_STEP_SUMMARY
+          'The Portable EXE itself was launched. 1280×800 and 1440×900 captures are in the artifact.' >> $env:GITHUB_STEP_SUMMARY
+          '125% and 150% remain NOT VERIFIED unless the recorded Windows OS DPI proves otherwise; no zoom/device emulation was used.' >> $env:GITHUB_STEP_SUMMARY
+      - name: Upload Portable GUI evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: ELECTRON-P2E5B-UI-evidence-${{ github.run_id }}
-          path: |
-            artifacts/electron-p0-e2e/
-            release-electron-p0/P1A-QA-RESULT.json
-          if-no-files-found: ignore
-          retention-days: 7
+          name: td2-soft-rose-portable-gui-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/td2-portable-${{ github.run_id }}/evidence/
+          if-no-files-found: error
+          retention-days: 14
