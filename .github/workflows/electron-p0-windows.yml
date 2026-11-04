@@ -22,6 +22,7 @@ jobs:
     env:
       CI: 'true'
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      TD2_CONTROLLER_BASE_SHA: b085e8b7c7a5ec1bd6c7ba54cc689fcf11dbc2cc
       TD2_PRODUCT_SHA: 2f4e4027adc8f586086999514db2924c9c14b1c2
     steps:
       - name: Checkout immutable approved product
@@ -51,7 +52,7 @@ jobs:
           if($source -cne $env:TD2_PRODUCT_SHA){throw 'Approved product SHA mismatch'}
           if(git -C source status --porcelain){throw 'Approved product checkout is dirty'}
           $allowed=@('.github/workflows/electron-p0-windows.yml','scripts/qa/td2-soft-rose-portable.mjs','scripts/qa/td2-window.ps1')
-          $changed=@(git -C controller diff --name-only $env:TD2_PRODUCT_SHA HEAD)
+          $changed=@(git -C controller diff --name-only $env:TD2_CONTROLLER_BASE_SHA HEAD)
           foreach($path in $changed){if($path -notin $allowed){throw "Non-QA controller change: $path"}}
           if($changed.Count -ne 3){throw 'Expected exactly three QA controller files'}
           $root=Join-Path $env:RUNNER_TEMP "td2-portable-$env:GITHUB_RUN_ID"
