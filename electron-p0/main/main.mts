@@ -1,4 +1,6 @@
 import {RecordHelperProcess} from './record-helper-process.js';
+import {WorkFoldersStore} from './work-folders.js';
+import {createWorkFolderHandlers} from './work-folders-ipc.js';
 import {createRecordHelperHandlers} from './record-helper-ipc.js';
 import {createFinderCompatHandlers} from './finder-compat-ipc.js';
 import {PurchaseSettingsStore,createPurchaseSettingsHandlers} from './purchase-settings.js';
@@ -69,6 +71,7 @@ const store = new SettingsStore(join(userData,'poc-settings'));
 const purchaseSettingsStore=new PurchaseSettingsStore(join(userData,'work-data','purchase-settings'));
 const taskStore=new LocalTaskStore(join(userData,'work-data','local-tasks'));
 const memoStore=new MemoStore(join(userData,'work-data','quick-memo'));
+const workFoldersStore=new WorkFoldersStore(join(userData,'work-data','work-folders'));
 const educationVideoStore=new EducationVideoLibraryStore(join(userData,'work-data','education-video'));
 const schoolStore=new SchoolProfileStore(join(userData,'work-data','school-profile'));
 const adminStore=new AdminStore(join(userData,'work-data','school-admin'));
@@ -138,7 +141,7 @@ else {
   for (const channel of ['p0:info','p0:read-settings','p0:write-settings']) ipcMain.handle(channel,async(event,...args: unknown[])=>{
     assertSender(event,window.webContents,url);
     if (args.length !== (channel === 'p0:write-settings' ? 1 : 0)) throw new Error('Invalid PoC IPC arguments');
-    if (channel === 'p0:info') return {appId:APP_ID,productName:PRODUCT_NAME,userData,sourceSha:meta.sourceSha,electron:process.versions.electron,...(qaPaths.qa?{qaProfile:{root:qaPaths.root,appData:app.getPath('appData'),sessionData:app.getPath('sessionData'),stores:['poc-settings','work-data/local-tasks','work-data/purchase-settings','work-data/quick-memo','work-data/education-video','work-data/school-profile','work-data/school-admin','work-data/inventory','work-data/ai','work-data/chatgpt','work-data/my-finance','work-data/youtube-search','work-data/newsletter-projects','work-data/official-import-tmp','work-data/purchase-import-tmp'].map(p=>join(userData,p))}}:{})};
+    if (channel === 'p0:info') return {appId:APP_ID,productName:PRODUCT_NAME,userData,sourceSha:meta.sourceSha,electron:process.versions.electron,...(qaPaths.qa?{qaProfile:{root:qaPaths.root,appData:app.getPath('appData'),sessionData:app.getPath('sessionData'),stores:['poc-settings','work-data/local-tasks','work-data/purchase-settings','work-data/quick-memo','work-data/work-folders','work-data/education-video','work-data/school-profile','work-data/school-admin','work-data/inventory','work-data/ai','work-data/chatgpt','work-data/my-finance','work-data/youtube-search','work-data/newsletter-projects','work-data/official-import-tmp','work-data/purchase-import-tmp'].map(p=>join(userData,p))}}:{})};
     if (channel === 'p0:read-settings') return store.read();
     return store.write(args[0]);
   });
@@ -224,6 +227,14 @@ else {
   ipcMain.handle('p2:tasks:load',taskHandlers.load);ipcMain.handle('p2:tasks:save',taskHandlers.save);
   ipcMain.handle(SAMPLE_SUMMARY_CHANNEL,createSampleHandler(window.webContents,url));
   const memoHandlers=createMemoHandlers(window.webContents,url,memoStore);
+  const workFolderHandlers=createWorkFolderHandlers(window.webContents,url,workFoldersStore,{
+   pick:async()=>{const r=await dialog.showOpenDialog(window,{title:'로컬 업무 폴더 등록',properties:['openDirectory','dontAddToRecent']});return r.canceled?undefined:r.filePaths[0];},
+   openPath:path=>shell.openPath(path),openExternal:target=>shell.openExternal(target),
+   confirmRemove:async name=>(await dialog.showMessageBox(window,{type:'question',message:`${name} 즐겨찾기를 해제할까요?`,detail:'등록 목록에서만 제거하며 실제 폴더와 파일은 삭제하지 않습니다.',buttons:['취소','등록 해제'],defaultId:0,cancelId:0})).response===1,
+  });
+  for(const action of ['load','pick','rename','remove','reorder','open'] as const)ipcMain.handle(`p2:work-folders:${action}`,workFolderHandlers[action]);
+  ipcMain.handle('p2:memo:open-url',workFolderHandlers.openMemoUrl);
+  window.on('closed',()=>workFolderHandlers.dispose());window.webContents.on('will-navigate',()=>workFolderHandlers.dispose());window.webContents.on('render-process-gone',()=>workFolderHandlers.dispose());
   ipcMain.handle('p2:memo:read',memoHandlers.read);
   ipcMain.handle('p2:memo:write',memoHandlers.write);
   const finderSession=session.fromPartition('youtube-search-egress');
@@ -277,7 +288,7 @@ else {
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
-  const quit=()=>{if(quitting)return;quitting=true;recordHandlers.dispose();finderCompat.dispose();finderV2Export.dispose();finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([recordHandlers.flush(),finderSearch.flush(),finderV2Export.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
+  const quit=()=>{if(quitting)return;quitting=true;workFolderHandlers.dispose();recordHandlers.dispose();finderCompat.dispose();finderV2Export.dispose();finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([workFoldersStore.flush(),recordHandlers.flush(),finderSearch.flush(),finderV2Export.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
       {label:'창 열기',click:show},{label:'최소화',click:()=>window.minimize()},

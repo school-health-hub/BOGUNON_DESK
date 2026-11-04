@@ -1,0 +1,10 @@
+.p0-work-folders .work-folders-panel { width:100%; max-height:none; border:0; box-shadow:none; background:transparent; }
+.p0-work-folders .work-folders-panel__list { overflow:visible; }
+.p0-work-folders .work-folders-panel__header { padding-inline:0; }
+.p0-work-folders .work-folder-row { grid-template-columns:24px minmax(0,1fr) auto; }
+.p0-work-folders .work-folder-row > div { min-width:0; overflow-wrap:anywhere; }
+.p0-work-folders .work-folder-row > .p0-work-folder-actions { grid-column:2 / -1; display:flex; flex-direction:row; flex-wrap:wrap; gap:8px; }
+.p0-work-folder-actions p { width:100%; }
+.p0-work-folder-actions form { display:flex; flex-wrap:wrap; gap:8px; width:100%; align-items:end; }
+.p0-work-folder-actions input { width:100%; min-width:0; }
+.p0-work-folder-actions button { min-height:36px; }
