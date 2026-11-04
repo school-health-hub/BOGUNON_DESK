@@ -27,6 +27,9 @@ describe("TD2 Soft Rose Glass design contract", () => {
       "[data-widget-type=monthly-calendar] .calendar-panel{overflow:visible}",
     );
     expect(styleSheet).toContain(
+      ".workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item[data-widget-type=monthly-calendar] .calendar-cell{grid-template-rows:minmax(0,1fr)!important;padding-block:0!important;overflow:visible!important}",
+    );
+    expect(styleSheet).toContain(
       "[data-widget-type=quick-memo] fieldset{box-sizing:border-box;height:auto!important;overflow:visible!important}",
     );
     expect(styleSheet).toContain(

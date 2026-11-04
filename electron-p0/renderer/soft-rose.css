@@ -145,6 +145,7 @@
  .electron-soft-rose .workspace-shell .react-grid-item[data-widget-type=today-summary] .summary-card{padding-block:6px}
  .electron-soft-rose .workspace-shell .react-grid-item[data-widget-type=monthly-calendar] .calendar-panel{overflow:visible}
  .electron-soft-rose .workspace-shell .react-grid-item[data-widget-type=monthly-calendar] .calendar-grid{min-height:0}
+ .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item[data-widget-type=monthly-calendar] .calendar-cell{grid-template-rows:minmax(0,1fr)!important;padding-block:0!important;overflow:visible!important}
  .electron-soft-rose .workspace-shell .react-grid-item[data-widget-type=quick-memo] fieldset{box-sizing:border-box;height:auto!important;overflow:visible!important}
  .electron-soft-rose .workspace-shell .react-grid-item[data-widget-type=quick-memo] .quick-memo-editor.is-widget textarea{min-height:46px}
  .electron-soft-rose .workspace-shell .react-grid-item[data-widget-type=quick-launcher] .quick-launcher{overflow:hidden;padding-block:4px}
