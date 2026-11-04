@@ -79,17 +79,25 @@ jobs:
       - name: Download previously verified native payload
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: final-integrated-portable-f3b303e-41789550793
-          run-id: 41789550793
+          name: final-integrated-portable-5ae8528-41791377272
+          run-id: 41791377272
           github-token: ${{ github.token }}
           path: prior-portable
+      - name: Download matching immutable Portable hash evidence
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: td2-soft-rose-portable-gui-41791377272-1
+          run-id: 41791377272
+          github-token: ${{ github.token }}
+          path: prior-evidence
       - name: Reuse exact native binaries without rebuilding unchanged source
         run: |
           $ErrorActionPreference='Stop'
           git -C source diff --exit-code b9a0a1b3893c2f45eeeed7278b86442e415dc159 HEAD -- tools src-tauri
           if($LASTEXITCODE -ne 0){throw 'Native source changed; reuse forbidden'}
           $old=@(Get-ChildItem prior-portable/*.exe)
-          if($old.Count -ne 1){throw 'Prior Portable missing'}
+          $priorMeta=Get-Content prior-evidence/portable.json -Raw|ConvertFrom-Json
+          if($old.Count -ne 1 -or $priorMeta.sourceSha -cne $env:TD2_PRODUCT_SHA -or (Get-FileHash $old[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant() -cne $priorMeta.sha256){throw 'Same-product Portable hash mismatch'}
           7z x $old[0].FullName "-o$env:TD2_ROOT/prior-container" -y | Out-Null
           if($LASTEXITCODE -ne 0){throw 'Prior Portable extraction failed'}
           $archive=@(Get-ChildItem "$env:TD2_ROOT/prior-container" -Recurse -Filter app-64.7z)
@@ -108,14 +116,17 @@ jobs:
             New-Item -ItemType Directory "source/build/$cli" -Force | Out-Null
             Copy-Item "$root/*" "source/build/$cli/" -Recurse
           }
-          [ordered]@{originRun=41789550793;nativeSourceSha='b9a0a1b3893c2f45eeeed7278b86442e415dc159';productSha=$env:TD2_PRODUCT_SHA;nativeSourceUnchanged=$true;hashes=$hashes;dpapiAndLoopback='REUSED from original Windows run'} | ConvertTo-Json -Depth 4 | Set-Content "$env:TD2_EVIDENCE_ROOT/native-reuse.json"
-      - name: Build changed app and Portable once
+          [ordered]@{originRun=41791377272;nativeSourceSha='b9a0a1b3893c2f45eeeed7278b86442e415dc159';productSha=$env:TD2_PRODUCT_SHA;nativeSourceUnchanged=$true;hashes=$hashes;dpapiAndLoopback='REUSED from original Windows run'} | ConvertTo-Json -Depth 4 | Set-Content "$env:TD2_EVIDENCE_ROOT/native-reuse.json"
+      - name: Typecheck source and reuse byte-identical Portable
         working-directory: source
         run: |
           npm run electron:p0:build
           if($LASTEXITCODE -ne 0){throw 'Electron build failed'}
-          npx electron-builder --config electron-p0/builder.json --win portable --x64 --publish never
-          if($LASTEXITCODE -ne 0){throw 'Portable build failed'}
+          New-Item -ItemType Directory release-electron-p0/win-unpacked -Force | Out-Null
+          Copy-Item "$env:TD2_ROOT/prior-app/*" release-electron-p0/win-unpacked/ -Recurse
+          Copy-Item ../prior-portable/*.exe release-electron-p0/
+          node -e "const a=require('@electron/asar');const m=JSON.parse(a.extractFile('release-electron-p0/win-unpacked/resources/app.asar','build-meta.json'));if(m.sourceSha!==process.env.TD2_PRODUCT_SHA||m.dirty)throw Error('Reused product SHA mismatch');"
+          if($LASTEXITCODE -ne 0){throw 'Reused Portable source gate failed'}
       - name: Record Portable and actual Windows DPI
         run: |
           $ErrorActionPreference='Stop'

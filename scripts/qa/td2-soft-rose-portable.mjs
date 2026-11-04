@@ -196,12 +196,13 @@ try{
   });
   result.moduleButtons=await dock.getByRole('button').allTextContents();
   result.moduleGui={};
-  const reset=async()=>{await page.reload();await dock.waitFor({state:'visible'});};
+  const reset=async()=>{await page.reload();await dock.waitFor({state:'visible'});const setup=page.getByRole('dialog',{name:'학교 초기 설정'});await setup.waitFor({state:'visible',timeout:10000});await setup.getByRole('button',{name:'나중에 설정'}).click();};
   const modules=[['school-admin','학교 행정 업무 도우미'],['finance','MY FINANCE · 암호화 로컬'],['purchase','품의 도우미 · 세션 전용'],['finder','교육영상 Finder · 합성 Mock'],['official','공문작업실 · 로컬 초안'],['inventory','물품관리 — 로컬 저장']];
   for(const [name,label] of modules){
     try{await reset();await dock.getByRole('button',{name:'업무 도구',exact:true}).click();await page.getByRole('button',{name:label,exact:true}).click({timeout:10000});await page.waitForTimeout(1000);await page.screenshot({path:join(screenshots,`module-${name}.png`)});result.moduleGui[name]='PASS: opened and captured only; remaining functional flows NOT RUN';}
     catch{result.moduleGui[name]='FAIL: could not open/capture';}
   }
+  if(Object.values(result.moduleGui).some(v=>v.startsWith('FAIL')))throw Error('Module GUI open failed; see moduleGui evidence');
   await reset();
   const synthetic=await page.evaluate(async()=>{
     const w=window.electronWork;const current=await w.inventory.load();if(!current.ok||current.data.document!==null)throw Error('Expected empty isolated inventory');
