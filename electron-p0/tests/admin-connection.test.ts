@@ -17,3 +17,9 @@ it('suppresses automatic OS certificate selection only during active Main probes
  client.denyCertificate(event,{},target,[],callback);client.denyCertificate(event,null,'https://unrelated.go.kr/',[],callback);expect(callback).toHaveBeenCalledOnce();release(response());await pending;client.denyCertificate(event,null,target,[],callback);expect(callback).toHaveBeenCalledOnce();
  const failing=createAdminProbeClient(async()=>{throw Error('private');});await expect(failing.fetch(target,{method:'HEAD'})).rejects.toThrow();failing.denyCertificate(event,null,target,[],callback);expect(callback).toHaveBeenCalledOnce();
 });
+
+it('accepts confirmed portal/Gangwon URLs and only the exact Gyeongbuk eVPN host',()=>{
+ const allowed=['https://sen.eduptl.kr/','https://evpn.gbe.kr/','https://klefedu.gwe.go.kr/'];
+ for(const value of allowed){expect(safeAdminLaunchUrl(value)).toBe(value);expect(allowedAdminProbeUrl(value)).toBe(true);const document=validateAdminDocument({...emptyAdmin(),systems:{portal:allowed[0],neis:'',edufine:allowed[2]},launcher:{environment:'school',evpn:{portal:'',neis:'',edufine:''},entryUrl:allowed[1]}});expect(document.launcher?.entryUrl).toBe(allowed[1]);}
+ for(const value of ['https://gbe.kr/','https://other.gbe.kr/','https://child.evpn.gbe.kr/','https://evpn.gbe.kr.evil.test/','https://sen.edupti.kr/','http://evpn.gbe.kr/','https://evpn.gbe.kr:8443/','https://user:password@evpn.gbe.kr/','https://evpn.gbe.kr/?token=secret'])expect(allowedAdminProbeUrl(value)).toBe(false);
+});

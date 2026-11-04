@@ -14,7 +14,7 @@
 ## Main / Preload 보안
 
 - 기존 sender window/frame/URL 및 인자 수 검사를 유지한다. 새 IPC는 `p2:admin:checkSystem(system)` 하나이며 `system`은 `portal | neis | edufine | evpn`뿐이다. Renderer가 URL·경로·HTTP 옵션을 지정할 수 없다.
-- `safeAdminLaunchUrl`은 HTTPS, 기존 기관 도메인 범위(`*.go.kr`, `*.edu.kr`, `eduptl.kr`, `k-eduplus.kr` 및 하위 도메인), 유효한 DNS label만 허용한다. 사용자정보·비기본 포트·query·fragment·제어문자·역슬래시·인코딩된 경로 구분자는 거부한다. 도메인 형식만으로 개별 기관의 공식성을 보증하지 않는다.
+- `safeAdminLaunchUrl`은 HTTPS, 기존 기관 도메인 범위(`*.go.kr`, `*.edu.kr`, `eduptl.kr`, `k-eduplus.kr` 및 하위 도메인, 정확한 예외 `evpn.gbe.kr`), 유효한 DNS label만 허용한다. 사용자정보·비기본 포트·query·fragment·제어문자·역슬래시·인코딩된 경로 구분자는 거부한다. 도메인 형식만으로 개별 기관의 공식성을 보증하지 않는다.
 - 구형 JSON 검증 함수 `officialAdminUrl`은 유지했다. 예전에 허용됐던 주소도 읽기/무관한 초안 저장에서 사라지지 않는다. 새 주소와 실제 실행은 엄격하게 검사한다. 자동 마이그레이션·초기화는 없다.
 - 별도 비영구 Electron session `admin-launcher-check`에서 HEAD만 허용한다. permission과 다운로드를 차단하며 Renderer의 기존 닫힌 네트워크 정책은 바꾸지 않는다. `credentials:omit`, `cache:no-store`, `redirect:manual`, 요청 본문 없음. 활성 Main probe 출처에만 한정한 client-certificate 거부 핸들러로 OS 인증서 자동 선택을 막고 NTLM 자격증명 자동 사용도 허용하지 않는다. 다른 기능의 인증 경로는 변경하지 않는다. 학교 프로필·원고·Excel·비밀번호를 보내지 않는다.
 - 전체 확인 제한 8초, 최대 HEAD 4회, 동일 출처의 안전한 HTTPS 이동만 제한적으로 따라간다. 다른 출처·query·fragment 이동은 따라가지 않는다. 로그인 경로는 인증 요구 안내일 뿐 로그인 성공이 아니다. 응답 본문은 사용하지 않고 취소한다. 원본 Location/query나 서버 오류 내용은 Renderer/로그에 반환하지 않는다.
@@ -62,3 +62,12 @@ Cloud 집중 검증은 합성 URL·모의 HTTP 응답으로 상태·동의·리�
 - `node --test scripts/electron-p0/runtime-package.test.mjs`: **3 PASS**, 새 shared/Main 모듈을 포함한 실제 builder 선택 규칙의 ASAR 런타임 의존성 검사.
 - `git diff --check`: PASS. Windows GUI/Portable/실제 학교망·인증서 로그인/NEIS 실검색은 **NOT RUN**.
 - 판정: **CONDITIONAL** — 구현 및 Cloud 검증 완료, 기관별 공식 주소 대조와 Windows/학교망 실접속 확인 필요.
+
+## 주소 표기 대조 및 사용자 확인 반영 (2026-11-04)
+
+- 업무포털은 `*.eduptl.kr`(끝 글자 l)이며 기사에 기재된 `*.edupti.kr`(i) 패턴을 생성하거나 허용하지 않는다. 기존 eduptl 지원은 유지한다.
+- 경북 eVPN은 `https://evpn.gbe.kr/`. 사용자가 확인했고, `https://www.gbe.kr/main/main.do` 경상북도교육청 공식 공개 페이지의 링크와 대조했다. 공개 eVPN 진입 문서 응답은 실제 인증·학교망 접근 성공을 의미하지 않는다. 기존 도메인 범위에서 빠져 있던 **이 정확한 호스트만** JSON 등록 및 Main 실행/HEAD 검사에 허용한다. `gbe.kr` 전체나 다른 하위 도메인을 허용하지 않는다.
+- 강원 K-에듀파인은 사용자 확인 주소 `https://klefedu.gwe.go.kr/`이다. 기존 go.kr 범위에서 저장·실행 가능하다. 앞서 블로그/기사의 `klef.gwe`/`klef.kwe`를 이 주소의 검증 근거로 대신 사용하지 않는다. 이 세 주소 유형을 혼동하지 않는다.
+- 참고 자료: `https://m.blog.naver.com/licaoyuan/223149264163`, `https://m.blog.naver.com/licaoyuan/223144714096`, `https://edujb.com/news/articleView.html?idxno=3584`. 보조 자료의 표기 불일치가 있어 목록 전체를 검증된 기본값으로 자동 등록하지 않았다.
+- 저장 스키마·기존 주소·학교 프로필을 마이그레이션/초기화하거나 덮어쓰지 않는다. 새 주소를 쓰려면 기존 주소 설정에서 사용자가 명시적으로 등록·저장한다. 실제 로그인·접속은 계속 NOT RUN이다.
+- 주소 보완 검증: 관련 Vitest 5개 파일 **51 PASS**, Electron Main/Renderer/tests TypeScript 및 production build **PASS**, diff·변경 범위·비밀정보/바이너리 검사 PASS. 이전 77 PASS와 별도의 이번 집중 검증 결과다.

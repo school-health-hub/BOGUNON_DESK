@@ -21,10 +21,11 @@ const object=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&
 const keys=(v:unknown,allowed:string[]):v is Record<string,unknown>=>object(v)&&Object.keys(v).sort().join(',')===allowed.sort().join(',');
 const text=(v:unknown,max:number,required=true):v is string=>typeof v==='string'&&v.length<=max&&(!required||!!v.trim())&&!/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(v);
 export const authSecret=/(?:비밀번호|password|api[ _-]?key|access[ _-]?token|refresh[ _-]?token)\s*[:=]\s*\S+|\bBearer\s+[A-Za-z0-9._-]+|\bsk-[A-Za-z0-9_-]{20,}/i;
+// Gyeongbuk eVPN is the exact official exception; do not allow arbitrary *.gbe.kr.
 export function officialAdminUrl(value:string):string{
  if(!text(value,2000))throw Error('공식 HTTPS 기본 주소를 입력해 주세요.');
  let url:URL;try{url=new URL(value);}catch{throw Error('공식 HTTPS 주소 형식을 확인해 주세요.');}
- if(url.protocol!=='https:'||url.port||url.username||url.password||url.search||url.hash||!/^[a-z0-9.-]+$/.test(url.hostname)||!['go.kr','edu.kr','eduptl.kr','k-eduplus.kr'].some(domain=>url.hostname.endsWith('.'+domain)||['eduptl.kr','k-eduplus.kr'].includes(domain)&&url.hostname===domain))throw Error('기관 공식 HTTPS 기본 주소만 지원합니다. 계정·토큰·검색 매개변수가 포함된 주소는 저장하지 않습니다.');
+ if(url.protocol!=='https:'||url.port||url.username||url.password||url.search||url.hash||!/^[a-z0-9.-]+$/.test(url.hostname)||!(url.hostname==='evpn.gbe.kr'||['go.kr','edu.kr','eduptl.kr','k-eduplus.kr'].some(domain=>url.hostname.endsWith('.'+domain)||['eduptl.kr','k-eduplus.kr'].includes(domain)&&url.hostname===domain)))throw Error('기관 공식 HTTPS 기본 주소만 지원합니다. 계정·토큰·검색 매개변수가 포함된 주소는 저장하지 않습니다.');
  return url.href;
 }
 // Stricter execution boundary, deliberately separate from legacy JSON validation.
