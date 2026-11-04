@@ -12,7 +12,9 @@ export default defineConfig({root,base:'./',envDir:root,envPrefix:'ELECTRON_P0_P
     // Context providers must retain one module identity on Windows as well as POSIX.
     if(modules.filter(p=>p.endsWith('/electron-p0/renderer/adapters/PersistentMemo.tsx')).length!==1)this.error('PersistentMemo must have exactly one canonical module identity');
     if(modules.filter(p=>p.endsWith('/electron-p0/renderer/local-tasks/LocalWorkspaceProvider.tsx')).length!==1)this.error('LocalWorkspaceProvider must retain one canonical module identity');
-    const forbidden=modules.filter(p=>/tesseract\.js|@tesseract\.js-data|\/node_modules\/pngjs\/|@tauri-apps|@supabase|\/src\/inventory-management\/connection\/|\/src\/(auth|ai|chatgpt|purchase|record-helper)\//.test(p));
+    const forbidden=modules.filter(p=>/tesseract\.js|@tesseract\.js-data|\/node_modules\/pngjs\/|@tauri-apps|@supabase|\/src\/inventory-management\/connection\/|\/src\/(auth|ai|chatgpt|purchase)\//.test(p));
+    const recordAllowed=new Set(['deidentification.ts','privacyGuard.ts','promptBuilder.ts','recordHelperAiService.ts','recordHelperWorkspace.ts','recordHelperClipboard.ts']);
+    forbidden.push(...modules.filter(p=>p.includes('/src/record-helper/')&&!recordAllowed.has(p.slice(p.lastIndexOf('/')+1))));
     const financeAllowed=new Set(['FinanceScreen.tsx','FinanceConfirmation.tsx','FinanceTransfer.tsx','Phase2Workspace.tsx','IncomeForm.tsx','domain.ts','presentation.ts','finance.css']);
     forbidden.push(...modules.filter(p=>p.includes('/src/my-finance/')&&!financeAllowed.has(p.slice(p.lastIndexOf('/')+1))));
     if(forbidden.length)this.error(`Forbidden production dependency in PoC: ${forbidden.join(', ')}`);

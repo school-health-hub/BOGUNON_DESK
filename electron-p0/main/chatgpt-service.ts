@@ -53,11 +53,24 @@ export class ChatGptService{
  async generate(input:unknown){
   if(!object(input)||Object.keys(input).sort().join(',')!=='prompt,tool')throw Error('AI 요청 내용을 확인해 주세요.');
   validateAiRequest({tool:input.tool==='connection-test'?'finder':input.tool,prompt:input.prompt});const request=input as ChatGptRequest;
+  return this.generateText(request);
+ }
+ // Main-only Record path: its structured packet has already passed the Record privacy/approval gate.
+ async generateRecord(prompt:string,signal:AbortSignal){if(typeof prompt!=='string'||Buffer.byteLength(prompt)>65536||!prompt.trim())throw Error('Invalid reviewed packet');return this.generateText({tool:'record-helper',prompt},signal);}
+ private generateText(request:ChatGptRequest,outerSignal?:AbortSignal){
   return this.run(async(s,e)=>{const {accountId,model}=this.state;if(!accountId||!model||!this.state.planUsageEnabled||!this.state.models.some(m=>m.id===model)||this.state.phase!=='ready')throw new ChatGptError('permissionDenied');
-   if(!await this.review(request,model))return null;this.check(s,e);
+   if(outerSignal?.aborted)throw new ChatGptError('cancelled');
+   const abort=()=>this.cancel();outerSignal?.addEventListener('abort',abort,{once:true});
+   try{
+   const approved=await new Promise<boolean>((resolve,reject)=>{
+    const canceled=()=>reject(new ChatGptError('cancelled'));s.addEventListener('abort',canceled,{once:true});
+    this.review(request,model).then(v=>{s.removeEventListener('abort',canceled);resolve(v);},error=>{s.removeEventListener('abort',canceled);reject(error);});if(s.aborted)canceled();
+   });
+   if(!approved)return null;this.check(s,e);
    const result=await this.invoke('generate',s,e,{model,prompt:request.prompt,accountId});
    if(!object(result)||result.accountId!==accountId||typeof result.text!=='string'||!result.text.trim()||result.text.length>60000)throw new ChatGptError('invalidResponse');
    this.state={...this.state,textCallVerified:true,notice:'선택 계정·모델의 텍스트 호출이 완료되었습니다.'};return {text:result.text};
+   }finally{outerSignal?.removeEventListener('abort',abort);}
   });
  }
  imageContext():ImageAiConnection|null{const s=this.state;return !this.controller&&s.phase==='ready'&&s.planUsageEnabled&&s.accountId?{provider:'chatgpt',connectionId:`${s.accountId}:${this.imageVersion}`,models:[...s.models]}:null;}

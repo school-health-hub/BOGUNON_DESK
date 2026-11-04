@@ -11,6 +11,7 @@ import { RecordHelperReportList } from "./RecordHelperReportList";
 import type { RecordHelperChatGptPlanAvailability } from "../../../record-helper/recordHelperAiService";
 
 type RecordHelperWorkspaceViewProps = {
+  readonly editableDraft?:boolean;
   readonly dispatch: Dispatch<RecordHelperWorkspaceAction>;
   readonly workspace: RecordHelperWorkspace;
   readonly aiAvailability: RecordHelperChatGptPlanAvailability;
@@ -48,7 +49,7 @@ function RecordHelperImportFeedback({ workspace }: { readonly workspace: RecordH
   );
 }
 
-export function RecordHelperWorkspaceView({ dispatch, workspace, aiAvailability, onOpenAiSettings, onPrepareAiDraft, onCancelAiDraft, onRemoveReport, onClearAll }: RecordHelperWorkspaceViewProps) {
+export function RecordHelperWorkspaceView({ editableDraft=false, dispatch, workspace, aiAvailability, onOpenAiSettings, onPrepareAiDraft, onCancelAiDraft, onRemoveReport, onClearAll }: RecordHelperWorkspaceViewProps) {
   const report = selectedReport(workspace);
   const navigation = report === null ? null : getRecordHelperReportNavigation(workspace.reports, report.id);
 
@@ -75,6 +76,7 @@ export function RecordHelperWorkspaceView({ dispatch, workspace, aiAvailability,
         <RecordHelperImportFeedback workspace={workspace} />
         {report !== null && navigation !== null && (
           <RecordHelperReportDetail
+            onDraftChange={editableDraft?(reportId,draft)=>dispatch({type:"updateAiDraft",reportId,draft}):undefined}
             report={report}
             currentIndex={navigation.currentIndex}
             totalCount={navigation.totalCount}

@@ -108,6 +108,15 @@
         "chatgpt-auth-cli",
         "manifest.json"
       ]
+    },
+    {
+      "from": "build/record-helper-cli",
+      "to": "record-helper-cli",
+      "filter": [
+        "record-helper-cli.exe",
+        "record-helper-cli",
+        "manifest.json"
+      ]
     }
   ],
   "beforePack": "./scripts/electron-p0/check-excel-package.cjs"

@@ -56,6 +56,7 @@ export type RecordHelperReportNavigation = {
 };
 
 export type RecordHelperWorkspaceAction =
+  | { readonly type:"updateAiDraft";readonly reportId:string;readonly draft:string }
   | { readonly type: "beginImport"; readonly requestId: number }
   | {
       readonly type: "resolveImport";
@@ -236,6 +237,8 @@ export const reduceRecordHelperWorkspace = (
         ),
       };
     }
+    case "updateAiDraft":
+      return {...state,reports:state.reports.map(r=>r.id===action.reportId?{...r,aiDraft:action.draft.slice(0,60000),activeAiRequestId:null,aiStatus:"success",aiError:null}:r)};
     case "storeReviewedSanitizedPacket":
       if (!reportExists(state.reports, action.reportId)) return state;
       return {

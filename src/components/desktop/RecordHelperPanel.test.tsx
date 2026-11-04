@@ -5,7 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createRecordHelperReportId, type RecordHelperWorkspace } from "../../record-helper/recordHelperWorkspace";
 import { RecordHelperPanel } from "./RecordHelperPanel";
-import recordHelperPanelSource from "./RecordHelperPanel.tsx?raw";
+import recordHelperPanelSource from "./RecordHelperWorkspacePanel.tsx?raw";
 
 const { generateTextMock } = vi.hoisted(() => ({
   generateTextMock: vi.fn<(prompt: string) => Promise<string>>(),

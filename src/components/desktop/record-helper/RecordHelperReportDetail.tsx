@@ -10,6 +10,7 @@ import { RecordHelperFormatBadge } from "./RecordHelperFormatBadge";
 import type { RecordHelperChatGptPlanAvailability } from "../../../record-helper/recordHelperAiService";
 
 type RecordHelperReportDetailProps = {
+  readonly onDraftChange?:(reportId:string,draft:string)=>void;
   readonly report: RecordHelperReport;
   readonly currentIndex: number;
   readonly totalCount: number;
@@ -64,7 +65,7 @@ const aiDraftHeading = (report: RecordHelperReport): string => {
   }
 };
 
-export function RecordHelperReportDetail({
+export function RecordHelperReportDetail({onDraftChange,
   report,
   currentIndex,
   totalCount,
@@ -157,7 +158,7 @@ export function RecordHelperReportDetail({
           <p>화면 반영만 중단되며 이미 전송된 요청은 회수되지 않습니다.</p>
         </div>}
         {report.aiStatus === "error" && <div className="record-helper-ai-result__error"><strong>오류</strong><p role="alert">{report.aiError}</p></div>}
-        {hasDraft && <div className="record-helper-ai-result__draft">
+        {(hasDraft||(onDraftChange&&report.aiStatus==="success")) && <div className="record-helper-ai-result__draft">
           <div className="record-helper-ai-result__draft-heading">
             <strong>{aiDraftHeading(report)}</strong>
             <button type="button" onClick={() => void copyDraft()}>
@@ -165,7 +166,7 @@ export function RecordHelperReportDetail({
             </button>
           </div>
           <p>AI가 작성한 초안입니다. 실제 학생부 입력 전 교사가 사실관계와 표현을 확인해야 합니다.</p>
-          <pre className="record-helper-ai-result__content">{report.aiDraft}</pre>
+          <>{onDraftChange?<label>AI 초안 직접 수정<textarea aria-label="AI 초안 직접 수정" maxLength={60000} value={report.aiDraft} onChange={e=>onDraftChange(report.id,e.target.value)}/></label>:<pre className="record-helper-ai-result__content">{report.aiDraft}</pre>}</>
           {copyFeedback?.reportId === report.id && copyFeedback.draft === report.aiDraft && (
             <p className={`record-helper-ai-result__copy-status is-${copyFeedback.result.status}`} role={copyFeedback.result.status === "error" ? "alert" : "status"} aria-live="polite">
               {copyFeedback.result.message}

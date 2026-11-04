@@ -35,6 +35,7 @@ export type OfficialDocumentSave=Readonly<{title:string;body:string;attachments:
 export type OfficialDocumentImported=Readonly<{sourceName:string;format:"pdf"|"hwpx"|"odt";text:string}>;
 export type InventoryQaStatus = { mode: "local-qa"; authGateway: "reachable" | "unavailable"; inventoryConnection: "blocked"; persisted: false };
 export interface WorkBridge {
+ readonly recordHelper?:import('./record-helper-protocol.js').RecordHelperBridge;
  readonly chatgpt?:import('./chatgpt-protocol.js').ChatGptBridge;
   readonly school?: import('./school-protocol.js').SchoolBridge;
  readonly admin?:AdminBridge;

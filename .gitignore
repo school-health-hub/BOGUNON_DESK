@@ -52,3 +52,7 @@ release-output/
 
 /tools/chatgpt-auth-cli/target/
 /build/chatgpt-auth-cli/
+
+/tools/record-helper-cli/target/
+/build/record-helper-cli/
+/build/record-helper-fixtures/
