@@ -1,5 +1,5 @@
 name: Final integrated Portable Windows QA
-run-name: Final integrated Portable / 0e51d0a / ${{ github.run_id }}
+run-name: Final integrated Portable / f3b303e / ${{ github.run_id }}
 
 on:
   workflow_dispatch:
@@ -24,12 +24,12 @@ jobs:
       CI: 'true'
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       TD2_CONTROLLER_BASE_SHA: b085e8b7c7a5ec1bd6c7ba54cc689fcf11dbc2cc
-      TD2_PRODUCT_SHA: 0e51d0ae5acd0585b001a35f45ddfc05a97bb363
+      TD2_PRODUCT_SHA: f3b303ef83149c5b946978d98ce205a3621d125a
     steps:
       - name: Checkout immutable approved product
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: 0e51d0ae5acd0585b001a35f45ddfc05a97bb363
+          ref: f3b303ef83149c5b946978d98ce205a3621d125a
           path: source
           persist-credentials: false
           fetch-depth: 0
@@ -187,7 +187,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: success() || failure()
         with:
-          name: final-integrated-portable-0e51d0a-${{ github.run_id }}
+          name: final-integrated-portable-f3b303e-${{ github.run_id }}
           path: source/release-electron-p0/*.exe
           if-no-files-found: ignore
           retention-days: 14
