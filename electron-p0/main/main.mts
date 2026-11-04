@@ -22,10 +22,10 @@ import { createExcelHandlers } from './purchase-excel-ipc.js';
 import { createPurchaseImportHandlers } from './purchase-import.js';
 import { createPurchaseClipboardHandler } from './purchase-clipboard.js';
 import { app, BrowserWindow, ipcMain, session, Menu, Tray, nativeImage, screen, dialog, clipboard, ClipboardItem, safeStorage, shell } from 'electron';
-import { join } from 'node:path';
+import { join,win32 } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
-import { APP_ID, PRODUCT_NAME, PROFILE_NAME } from '../protocol.js';
+import { APP_ID, PRODUCT_NAME } from '../protocol.js';
 import { desktopDefaults, validateDesktop, fitBounds, type DesktopState } from './desktop.js';
 import { SettingsStore } from './settings.js';
 import { createNewsletterExportHandler, generateInOwnedWindow, callOwnedNewsletter } from './newsletter-export.js';
@@ -37,13 +37,18 @@ import {EducationVideoLibraryStore,createEducationVideoHandlers} from './educati
 import {InventoryStore,InventoryConflict} from './inventory-store.js';
 import { createSampleHandler, SAMPLE_SUMMARY_CHANNEL } from './sample-ipc.js';
 import { assertSender, resourceAllowed } from './policy.js';
+import {approvedQaRoot,prepareProfilePaths,resolveProfilePaths} from './profile-paths.js';
 if (app.commandLine.hasSwitch('no-sandbox') || app.commandLine.hasSwitch('disable-web-security')) throw new Error('Unsafe Electron launch flags denied');
 app.setName(PRODUCT_NAME);
 const testRun = process.env.ELECTRON_P0_TEST_RUN;
-if (testRun && !/^[a-f0-9-]{36}$/.test(testRun)) throw new Error('Invalid PoC test run');
-const userData = testRun ? join(app.getPath('appData'),PROFILE_NAME,'test-runs',testRun) : join(app.getPath('appData'),PROFILE_NAME);
-app.setPath('userData',userData);
-app.setPath('sessionData',join(userData,'chromium'));
+const qaRoot=process.env.ELECTRON_P0_QA_ROOT;
+const profilePaths=qaRoot===undefined
+  ?resolveProfilePaths({defaultAppData:app.getPath('appData'),platform:process.platform,...(testRun===undefined?{}:{testRun})})
+  :prepareProfilePaths({approvedQaRoot:approvedQaRoot(),qaRoot,testRun:testRun??'',pathApi:win32});
+if(profilePaths.qa)app.setPath('appData',profilePaths.appData);
+app.setPath('userData',profilePaths.userData);
+app.setPath('sessionData',profilePaths.sessionData);
+const userData=profilePaths.userData;
 app.setAppUserModelId(APP_ID);
 const store = new SettingsStore(join(userData,'poc-settings'));
 const taskStore=new LocalTaskStore(join(userData,'work-data','local-tasks'));
