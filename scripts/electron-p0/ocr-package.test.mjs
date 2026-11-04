@@ -11,6 +11,7 @@ test('actual electron-builder extraResources selection includes every offline ru
  for(const entry of manifest.files){const file=join(root,entry.file);assert(filter(file,await stat(file)),`Builder omitted ${entry.file}`);}
  const metadataNames=new Set(excludedNames.split(','));const metadataExts=[...excludedExts.split(','),'pdb'];
  assert(!manifest.files.some(f=>f.file.split('/').some(p=>metadataNames.has(p)||p.startsWith('._')||metadataExts.some(ext=>p.endsWith('.'+ext)))));
+ for(const name of ['tesseract-core.js','tesseract-core.wasm','tesseract-core-simd.js','tesseract-core-simd.wasm'])assert(manifest.files.some(f=>f.file==='node_modules/tesseract.js-core/'+name));
  assert(manifest.files.some(f=>f.file.endsWith('kor.traineddata.gz')));assert(manifest.files.some(f=>f.file.endsWith('eng.traineddata.gz')));assert(manifest.bytes<20*1024*1024);
 });
 test('actual builder directory copy preserves every manifested OCR dependency',async()=>{
@@ -19,6 +20,7 @@ test('actual builder directory copy preserves every manifested OCR dependency',a
  const matchers=getFileMatchers(config,'extraResources',dest,{defaultSrc:process.cwd(),macroExpander:v=>v,customBuildOptions:config.win,globalOutDir:resolve('release-electron-p0')});
  await copyFiles(matchers.filter(m=>m.from===root||m.from===join(root,'node_modules')),null,false);
  await verifyOcrRuntime(join(dest,'purchase-ocr'));
+ const recognized=await recognizeImage(join(dest,'purchase-ocr'),resolve('electron-p0/tests/fixtures/purchase-image/synthetic-cart.png'),new AbortController().signal);assert(recognized.some(l=>l.text.includes('24,000')),'Self-contained copied OCR failed');
  for(const entry of manifest.files)assert.equal(createHash('sha256').update(await readFile(join(dest,'purchase-ocr',entry.file))).digest('hex'),entry.sha256);
  }finally{await rm(dest,{recursive:true,force:true});}
 });

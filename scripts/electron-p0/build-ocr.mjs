@@ -13,7 +13,7 @@ async function copyPackage(name,fromRequire=require){
  if(seen.has(name)){if(seen.get(name)!==pkg.version)throw Error('Conflicting OCR dependency versions');return;}
  seen.set(name,pkg.version);const dest=join(root,'node_modules',name);await mkdir(dest,{recursive:true});
  if(name==='tesseract.js-core'){
-  for(const file of ['package.json','LICENSE','README.md','tesseract-core-lstm.js','tesseract-core-lstm.wasm','tesseract-core-simd-lstm.js','tesseract-core-simd-lstm.wasm'])await cp(join(source,file),join(dest,file));
+  for(const file of ['package.json','LICENSE','README.md','tesseract-core.js','tesseract-core.wasm','tesseract-core-simd.js','tesseract-core-simd.wasm'])await cp(join(source,file),join(dest,file));
  }else await cp(source,dest,{recursive:true,filter:path=>!path.slice(source.length).split(/[\\/]/).some(part=>(['node_modules','.git','test','tests','examples'].includes(part)||isMetadata(part)||(part==='dist'&&name==='tesseract.js')))});
  const childRequire=createRequire(join(source,'package.json'));
  for(const dep of Object.keys(pkg.dependencies??{}))await copyPackage(dep,childRequire);
