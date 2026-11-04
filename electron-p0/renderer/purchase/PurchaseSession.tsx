@@ -1,5 +1,6 @@
 import {inventoryPurchaseItems,type InventoryPurchaseRequest} from './inventoryPurchase';
 import {reconcilePurchaseSettlement} from './purchase/purchaseSettlement';
+import {PurchaseImageImport} from './PurchaseImageImport';
 import { PurchaseImportControls } from './PurchaseImportControls';
 import { useEffect, useRef, useState } from 'react';
 import { PurchaseHelperPanel } from './components/desktop/PurchaseHelperPanel';
@@ -27,7 +28,7 @@ export function PurchaseSession({open,onClose,incoming,onIncomingApplied}:{reado
  },[open,incoming,onEdit,onIncomingApplied]);
  return <div hidden={!open} inert={!open} style={{display:open?undefined:'none'}}>
   {open&&<PurchaseHelperPanel settlement={settlement} onSettlementChange={setSettlement} editing={editing} columns={columns} draft={draft} draftTemplates={draftTemplates}
-   fileControls={<><label>가져오기 형식<select aria-label="가져오기 형식" value={format} onChange={e=>setFormat(e.target.value as "csv"|"excel"|"pdf")}><option value="csv">CSV</option><option value="excel">XLSX/XLS</option><option value="pdf">텍스트 PDF</option></select></label><PurchaseImportControls key={format} format={format} items={editing.items} onNotice={setNotice} onApply={(items,replace)=>{const incoming=appendPurchaseItemsWithSessionIds([],items,()=>`electron-session-${sequence.current++}`);onEdit({type:replace?'replace':'append',items:incoming});if(replace){onDraftChange(null);setSettlement(null);}}}/></>}
+   fileControls={<><label>가져오기 형식<select aria-label="가져오기 형식" value={format} onChange={e=>setFormat(e.target.value as "csv"|"excel"|"pdf")}><option value="csv">CSV</option><option value="excel">XLSX/XLS</option><option value="pdf">텍스트 PDF</option></select></label><PurchaseImportControls key={format} format={format} items={editing.items} onNotice={setNotice} onApply={(items,replace)=>{const incoming=appendPurchaseItemsWithSessionIds([],items,()=>`electron-session-${sequence.current++}`);onEdit({type:replace?'replace':'append',items:incoming});if(replace){onDraftChange(null);setSettlement(null);}}}/><PurchaseImageImport items={editing.items} onNotice={setNotice} onApply={(items,replace)=>{const incoming=appendPurchaseItemsWithSessionIds([],items,()=>`electron-session-${sequence.current++}`);onEdit({type:replace?'replace':'append',items:incoming});if(replace){onDraftChange(null);setSettlement(null);}}}/></>}
    onAddItem={()=>onEdit({type:'append',items:[createEmptyPurchaseItem(`electron-session-${sequence.current++}`)]})}
    onEdit={onEdit} onColumnsChange={onColumnsChange} onDraftChange={onDraftChange} onDraftTemplatesChange={onDraftTemplatesChange}
    onClose={onClose} onNotice={setNotice}/>}

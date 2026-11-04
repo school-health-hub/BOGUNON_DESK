@@ -1,3 +1,5 @@
+import {createImageImportHandlers} from './purchase-image-ipc.js';
+import {recognizeImage,verifyOcrRuntime} from './purchase-image-ocr.js';
 import {SchoolProfileStore,createSchoolHandlers} from './school-profile.js';
 import {allowedSchoolUrl} from './school-network.js';
 import {AdminStore} from './admin-store.js';
@@ -127,6 +129,15 @@ else {
    review:async(message,text)=>(await dialog.showMessageBox(window,{type:'question',message,detail:'인증정보와 개인정보가 없는지 검토하세요. 로그인 자동화·실제 신청·상신은 하지 않습니다.\n\n'+text,buttons:['취소','확인 후 진행'],defaultId:0,cancelId:0})).response===1});
   for(const [action,handler] of Object.entries(adminHandlers))if(action!=='dispose'&&action!=='flush')ipcMain.handle(`p2:admin:${action}`,handler);
   window.on('close',adminHandlers.dispose);window.webContents.on('will-navigate',adminHandlers.dispose);window.webContents.on('render-process-gone',adminHandlers.dispose);
+  const ocrRuntime=app.isPackaged?join(process.resourcesPath,'purchase-ocr'):join(app.getAppPath(),'../purchase-ocr');
+  const imageImport=createImageImportHandlers(window.webContents,url,{
+   tempRoot:app.getPath('temp'),ready:()=>verifyOcrRuntime(ocrRuntime),
+   select:async()=>{const r=await dialog.showOpenDialog(window,{title:'장바구니 이미지 선택 — 합성 자료만 사용',properties:['openFile','multiSelections','dontAddToRecent'],filters:[{name:'JPG/JPEG/PNG',extensions:['jpg','jpeg','png']}]});return r.canceled?undefined:r.filePaths;},
+   decode:bytes=>{const image=nativeImage.createFromBuffer(bytes);if(image.isEmpty())throw Error('이미지를 해독하지 못했습니다.');const size=image.getSize(),scale=Math.min(240/size.width,160/size.height,1);return {...size,png:image.toPNG(),thumbnail:image.resize({width:Math.max(1,Math.round(size.width*scale)),height:Math.max(1,Math.round(size.height*scale)),quality:'good'}).toDataURL()};},
+   recognize:(path,signal)=>recognizeImage(ocrRuntime,path,signal),
+  });
+  ipcMain.handle('p2:purchase:images:pick',imageImport.pick);ipcMain.handle('p2:purchase:images:analyze',imageImport.analyze);ipcMain.handle('p2:purchase:images:cancel',imageImport.cancel);
+  window.on('close',imageImport.dispose);window.webContents.on('will-navigate',imageImport.dispose);window.webContents.on('render-process-gone',imageImport.dispose);app.on('before-quit',imageImport.dispose);
   const purchaseExport=createPurchaseExportHandler(window.webContents,url,{review:async summary=>(await dialog.showMessageBox(window,{type:'question',message:'선택 품목·수량·단가·합계를 확인하고 출력할까요?',detail:summary,buttons:['취소','확인 후 저장 위치 선택'],defaultId:0,cancelId:0})).response===1,generate:(request,signal)=>excelService.generateExport(request,signal),pick:async format=>{const r=await dialog.showSaveDialog(window,{title:'구매 품목 출력 저장',defaultPath:purchaseExportFileName(format),filters:[{name:format==='csv'?'CSV':'Excel',extensions:[format]}],properties:['dontAddToRecent']});return r.canceled?undefined:r.filePath;},confirm:async()=>(await dialog.showMessageBox(window,{type:'warning',message:'선택한 기존 파일을 덮어쓸까요?',detail:'저장 직전에 변경 여부를 다시 확인합니다. 다른 프로그램에서 편집 중이면 취소하고 새 파일로 저장해 주세요.',buttons:['취소','덮어쓰기'],defaultId:0,cancelId:0})).response===1});
   ipcMain.handle('p2:purchase:export',purchaseExport.handle);
   window.on('close',purchaseExport.dispose);app.on('before-quit',purchaseExport.dispose);
@@ -198,7 +209,7 @@ else {
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
-  const quit=()=>{if(quitting)return;quitting=true;schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
+  const quit=()=>{if(quitting)return;quitting=true;imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
       {label:'창 열기',click:show},{label:'최소화',click:()=>window.minimize()},

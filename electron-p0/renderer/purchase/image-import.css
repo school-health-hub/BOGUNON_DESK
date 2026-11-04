@@ -1,0 +1,18 @@
+.purchase-image-import { flex-basis:100%; min-width:0; box-sizing:border-box; overflow-wrap:anywhere; border:1px solid #e9dde2; border-radius:16px; padding:12px; background:#fffdfd; color:#243246; }
+.purchase-image-import p { margin:8px 0; font-size:13px; overflow-wrap:anywhere; }
+.purchase-image-import button { display:inline-flex; align-items:center; gap:6px; margin:4px; }
+.purchase-image-sources { display:flex; gap:12px; list-style:none; overflow:auto; padding:4px; }
+.purchase-image-sources li { flex:0 0 180px; display:grid; gap:4px; overflow-wrap:anywhere; }
+.purchase-image-sources img { width:176px; height:130px; object-fit:contain; border:1px solid #e9dde2; background:white; }
+.purchase-image-review { max-height:65vh; overflow:auto; padding:8px; }
+.purchase-image-row { min-width:0; margin:12px 0; padding:12px; border:1px solid #8a7680; border-radius:12px; }
+.purchase-image-fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr)); gap:10px; }
+.purchase-image-fields label { display:grid; gap:4px; }
+.purchase-image-fields input { box-sizing:border-box; width:100%; min-width:0; border:1px solid #8a7680; border-radius:8px; padding:8px; background:#fffdfd; color:#243246; }
+.purchase-image-import .image-review-warning { color:#71344a; background:#fff0f4; padding:8px 8px 8px 24px; border-radius:8px; }
+.purchase-image-import button:focus-visible,.purchase-image-import input:focus-visible,.purchase-image-import select:focus-visible,.purchase-image-import summary:focus-visible { outline:3px solid #8a3f5b; outline-offset:3px; }
+.purchase-image-import button:disabled { background:#eee8eb; color:#626874; cursor:not-allowed; }
+
+/* Keep the existing Purchase header/tabs/footer reachable while the review grows. */
+.purchase-helper-panel__toolbar:has(> .purchase-image-import.is-open) { min-height:120px; max-height:min(50dvh,360px); overflow-y:auto; align-items:flex-start; }
+.purchase-image-import.is-open .purchase-image-review { max-height:none; overflow:visible; }

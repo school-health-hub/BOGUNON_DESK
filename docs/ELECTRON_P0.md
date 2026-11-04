@@ -687,3 +687,12 @@ Validation must run on the new committed candidate SHA, not inherited source QA:
 - 기능별 진입점·계보·미지원 범위·기존 데이터 보존·이번 집중 49건/ASAR 3건/타입·빌드 결과 및 다음 Windows 실행본 준비 절차는 [ELECTRON_FEATURE_BASELINE.md](ELECTRON_FEATURE_BASELINE.md)에 정리했다. 최초 build 전 Finance 검사 1건의 ENOENT와 build 후 해당 파일만 재검증한 결과도 구분한다.
 - 이번 변경은 문서 2개뿐이며 제품 소스·저장 schema·IPC·암호화·디자인·workflow를 변경하지 않는다. 새 Portable·Windows GUI·설치 QA·Actions는 **NOT RUN**. 과거 QA 결과를 새 실행본의 PASS로 승계하지 않는다.
 - 해당 통합 브랜치만 일반 commit/push하며 기존 기능 브랜치·worktree·WIP·main을 보존한다. 판정 **CONDITIONAL — 통합 소스·Cloud 빌드 확인 / Windows 실행본 생성·실사용 확인 대기**.
+
+## Purchase IMAGE-IMPORT P1 — 기능 브랜치 (2026-11-04)
+
+- 기준 `195f3375e91348d2bbc7145b0e3743ca5f54385f`, 브랜치 `feature/electron-purchase-image-import`.
+- Main 소유 JPG/JPEG/PNG 다중 선택 → 오프라인 kor/eng OCR → 이미지별 근거/중복/가격 검토 → 승인한 품목만 기존 Purchase 목록에 추가/확인 후 교체. 기존 출력 엔진은 유지한다.
+- 실제 Cloud OCR와 CSV/XLSX·정산·에듀파인 출력 연결 검증 완료. 집중 Vitest 50 PASS + Node OCR/ASAR/자원 검사 7 PASS, Electron 타입·build PASS.
+- OCR 자원 약 14.7MiB를 extraResources에 선별 배포하고 무결성/오프라인 guard를 적용한다. Windows 실제 패키징·GUI는 NOT RUN이며 기존 Portable/통합 기준을 변경하지 않는다.
+- **CONDITIONAL**. 기존 `verify-excel-source.mjs`의 `is_total_row` 대조 실패는 기준본 동일 문제로 별도 기록했다.
+- 구현 경계·라이선스·테스트·P2: [IMAGE_IMPORT_P1.md](purchase/IMAGE_IMPORT_P1.md).

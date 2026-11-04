@@ -9,6 +9,7 @@
     "main/**",
     "preload/**",
     "protocol.js",
+    "purchase-image-protocol.js",
     "inventory-qa-protocol.js",
     "local-tasks.js",
     "admin-protocol.js",
@@ -79,6 +80,13 @@
       "filter": [
         "official-document-cli.exe",
         "official-document-cli"
+      ]
+    },
+    {
+      "from": "build/purchase-ocr",
+      "to": "purchase-ocr",
+      "filter": [
+        "**/*"
       ]
     }
   ],

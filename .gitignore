@@ -47,3 +47,5 @@ release-output/
 
 /tools/my-finance-cli/target/
 /build/my-finance-cli/
+
+/build/purchase-ocr/

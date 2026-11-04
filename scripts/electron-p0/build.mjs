@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { mkdir,copyFile,writeFile } from 'node:fs/promises';
 const run=(args)=>execFileSync(process.execPath,args,{stdio:'inherit'});
+run(['scripts/electron-p0/build-ocr.mjs']);
 run(['node_modules/typescript/bin/tsc','-p','electron-p0/tsconfig.json']);
 run(['node_modules/typescript/bin/tsc','-p','electron-p0/tsconfig.renderer.json']);
 run(['node_modules/typescript/bin/tsc','-p','electron-p0/tsconfig.tests.json']);
