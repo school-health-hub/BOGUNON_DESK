@@ -8,6 +8,10 @@ const MIN_VIEWPORT_FILL_ROWS = 9;
 export const DESKTOP_WORKSPACE_VERTICAL_RESERVATION = 142;
 const LOW_HEIGHT_WORKSPACE_VERTICAL_RESERVATION = 108;
 const LOW_HEIGHT_VIEWPORT_MAX = 720;
+const PORTABLE_DENSE_VERTICAL_RESERVATION = 227;
+const COMPACT_PORTABLE_DENSE_VERTICAL_RESERVATION = 237;
+const COMPACT_PORTABLE_CONTENT_VIEWPORT_MAX = 735;
+const PORTABLE_CONTENT_VIEWPORT_MAX = 835;
 
 export const RESET_DASHBOARD_CONFIRMATION = "현재 데스크 배치를 기본 데스크형으로 되돌릴까요?\n\n계정 설정과 업무 데이터는 그대로 유지됩니다.";
 
@@ -43,7 +47,11 @@ export const calculateDashboardGridMetrics = (
     : DESKTOP_WORKSPACE_VERTICAL_RESERVATION;
   const availableHeight = denseGeometry === undefined
     ? Math.max(520, viewportHeight - verticalReservation)
-    : Math.max(1, viewportHeight - 180);
+    : Math.max(1, viewportHeight - (viewportHeight <= COMPACT_PORTABLE_CONTENT_VIEWPORT_MAX
+      ? COMPACT_PORTABLE_DENSE_VERTICAL_RESERVATION
+      : viewportHeight <= PORTABLE_CONTENT_VIEWPORT_MAX
+        ? PORTABLE_DENSE_VERTICAL_RESERVATION
+        : 180));
   const rowHeight = denseGeometry === undefined ? Math.max(
     44,
     Math.floor((availableHeight - margin * (sizingRowCount - 1)) / sizingRowCount),

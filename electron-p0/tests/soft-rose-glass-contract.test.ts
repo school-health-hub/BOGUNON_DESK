@@ -24,7 +24,7 @@ describe("TD2 Soft Rose Glass design contract", () => {
       "@media(max-width:1300px) and (min-width:901px) and (max-height:820px)",
     );
     expect(styleSheet).toContain(
-      "[data-widget-type=monthly-calendar] .calendar-panel{overflow:hidden}",
+      "[data-widget-type=monthly-calendar] .calendar-panel{overflow:visible}",
     );
     expect(styleSheet).toContain(
       "[data-widget-type=quick-memo] fieldset{box-sizing:border-box;height:auto!important;overflow:visible!important}",
@@ -34,6 +34,15 @@ describe("TD2 Soft Rose Glass design contract", () => {
     );
     expect(styleSheet).toContain(
       ".quick-launcher__folders{flex-shrink:0;overflow:visible;padding-top:0}",
+    );
+  });
+
+  it("fits the real Portable content viewports without workspace or calendar scrolling", () => {
+    expect(styleSheet).toContain(
+      ".workspace-shell .workspace-dashboard{height:100%;min-height:0;overflow:auto;padding-block:17px 0",
+    );
+    expect(styleSheet).toContain(
+      ".workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .calendar-grid{min-height:0}",
     );
   });
 
