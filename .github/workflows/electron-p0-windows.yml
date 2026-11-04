@@ -1,5 +1,5 @@
 name: Final integrated Portable Windows QA
-run-name: Final integrated Portable / f3b303e / ${{ github.run_id }}
+run-name: Final integrated Portable / 5ae8528 / ${{ github.run_id }}
 
 on:
   workflow_dispatch:
@@ -24,12 +24,12 @@ jobs:
       CI: 'true'
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       TD2_CONTROLLER_BASE_SHA: b085e8b7c7a5ec1bd6c7ba54cc689fcf11dbc2cc
-      TD2_PRODUCT_SHA: f3b303ef83149c5b946978d98ce205a3621d125a
+      TD2_PRODUCT_SHA: 5ae8528f47a4d83b6d23cef240b210a7d420ad21
     steps:
       - name: Checkout immutable approved product
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: f3b303ef83149c5b946978d98ce205a3621d125a
+          ref: 5ae8528f47a4d83b6d23cef240b210a7d420ad21
           path: source
           persist-credentials: false
           fetch-depth: 0
@@ -114,11 +114,8 @@ jobs:
         run: |
           npm run electron:p0:build
           if($LASTEXITCODE -ne 0){throw 'Electron build failed'}
-          New-Item -ItemType Directory release-electron-p0/win-unpacked -Force | Out-Null
-          Copy-Item "$env:TD2_ROOT/prior-app/*" release-electron-p0/win-unpacked/ -Recurse
-          Copy-Item ../prior-portable/*.exe release-electron-p0/
-          node -e "const a=require('@electron/asar');const m=JSON.parse(a.extractFile('release-electron-p0/win-unpacked/resources/app.asar','build-meta.json'));if(m.sourceSha!==process.env.TD2_PRODUCT_SHA||m.dirty)throw Error('Reused product SHA mismatch');"
-          if($LASTEXITCODE -ne 0){throw 'Reused Portable source gate failed'}
+          npx electron-builder --config electron-p0/builder.json --win portable --x64 --publish never
+          if($LASTEXITCODE -ne 0){throw 'Portable build failed'}
       - name: Record Portable and actual Windows DPI
         run: |
           $ErrorActionPreference='Stop'
@@ -201,7 +198,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: success() || failure()
         with:
-          name: final-integrated-portable-f3b303e-${{ github.run_id }}
+          name: final-integrated-portable-5ae8528-${{ github.run_id }}
           path: source/release-electron-p0/*.exe
           if-no-files-found: ignore
           retention-days: 14
