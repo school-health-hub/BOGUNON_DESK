@@ -2,7 +2,7 @@ import {useEffect,useRef,useState} from 'react';
 import type {PurchaseCsvSelection} from '../../protocol';
 import type {PurchaseColumnMapping,PurchaseItem,PurchaseImportTemplate} from './purchase/types';
 import {purchaseImportFieldIds,purchaseImportFieldLabels} from './purchase/types';
-export function PurchaseImportControls({items,onApply,onNotice,format="csv",templates=[],onTemplatesChange,settingsBusy=false}:{readonly templates?:readonly PurchaseImportTemplate[];readonly onTemplatesChange?:(templates:readonly PurchaseImportTemplate[])=>Promise<boolean>;readonly settingsBusy?:boolean;readonly format?:"csv"|"excel"|"pdf";readonly items:readonly PurchaseItem[];readonly onApply:(items:readonly PurchaseItem[],replace:boolean)=>void;readonly onNotice:(message:string)=>void}){
+export function PurchaseImportControls({items,onApply,onNotice,format="csv",templates=[],onTemplatesChange,settingsBusy=false,dropRequest,onDropSettled}:{readonly dropRequest?:{token:string;sourceId:string;requestId:string};readonly onDropSettled?:(consumed:boolean)=>void;readonly templates?:readonly PurchaseImportTemplate[];readonly onTemplatesChange?:(templates:readonly PurchaseImportTemplate[])=>Promise<boolean>;readonly settingsBusy?:boolean;readonly format?:"csv"|"excel"|"pdf";readonly items:readonly PurchaseItem[];readonly onApply:(items:readonly PurchaseItem[],replace:boolean)=>void;readonly onNotice:(message:string)=>void}){
  const label=format==='csv'?"CSV":format==='pdf'?'PDF':'Excel';
  const api=window.electronWork.purchase;
  const bridge=format==='csv'?{pick:()=>api.pickCsv(),cancel:()=>api.cancelCsv(),map:api.mapCsv}:format==='pdf'?{pick:()=>api.pickPdf(),cancel:()=>api.cancelPdf(),map:api.mapPdf}:{pick:()=>api.pickExcel(),cancel:()=>api.cancelExcel(),map:api.mapExcel};
@@ -12,10 +12,11 @@ export function PurchaseImportControls({items,onApply,onNotice,format="csv",temp
  const sequence=useRef(0),snapshot=useRef(''),live=useRef(items);live.current=items;
  const cancel=()=>{++sequence.current;setSelection(null);setRemember(false);setTemplateName('');setBusy(false);void bridge.cancel().catch(()=>{});};
  useEffect(()=>()=>{++sequence.current;void bridge.cancel().catch(()=>{});},[]);
- const pick=async()=>{
+ const pick=async(request?:typeof dropRequest)=>{
+  if(request&&selection&&!window.confirm('현재 파일 검토를 새 드롭 파일로 바꿀까요? 기존 구매 품목·품의 원고는 유지합니다.')){onDropSettled?.(false);return;}
   const token=++sequence.current;snapshot.current=JSON.stringify(live.current);setBusy(true);setSelection(null);setReplace(false);setRemember(false);setTemplateName('');
   try{
-   const reply=await bridge.pick();
+   const reply=request?await window.electronWork.fileDrop!.purchase({token:request.token,sourceId:request.sourceId}):await bridge.pick();
    if(token!==sequence.current)return;
    if(!reply.ok){onNotice(reply.error.message);return;}
    if(!reply.data)return;
@@ -24,8 +25,9 @@ export function PurchaseImportControls({items,onApply,onNotice,format="csv",temp
    setSelection(reply.data);const candidate=reply.data.result.candidates[0];setHeader(candidate?.headerOptions.find(o=>o.recommended)?.rowIndex??0);setMapping({});
    if(!reply.data.result.items.length&&!candidate)onNotice('가져올 품목이 없습니다. 기존 품목을 보존했습니다.');
   }catch{if(token===sequence.current)onNotice(`${label} 연결에 실패했습니다. 기존 품목은 보존됩니다.`);}
-  finally{if(token===sequence.current)setBusy(false);}
+  finally{if(token===sequence.current)setBusy(false);if(request)onDropSettled?.(true);}
  };
+ const seenDrop=useRef('');useEffect(()=>{if(dropRequest&&seenDrop.current!==dropRequest.requestId){seenDrop.current=dropRequest.requestId;void pick(dropRequest);}},[dropRequest?.requestId]);
  const map=async()=>{
   const candidate=selection?.result.candidates[0];if(!candidate||!selection)return;
   const token=sequence.current;setBusy(true);

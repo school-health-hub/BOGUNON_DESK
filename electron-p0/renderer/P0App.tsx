@@ -1,3 +1,5 @@
+import {GlobalFileDrop} from './file-drop/GlobalFileDrop';
+import type {DropDelivery,DropTarget} from '../file-drop-protocol';
 import {useWorkFolders,WorkFoldersContent,openMemoUrl} from './work-folders/WorkFolders';
 import {SchoolProfileProvider,SchoolInitialSetup,SchoolProfileSettings} from './school-profile/SchoolProfile';
 import {AiSettings,AiAssistant} from './ai/AiTools';
@@ -65,6 +67,7 @@ export function P0App() {
 }
 function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:DockLayout;info:P0Info}}) {
   const folders=useWorkFolders();
+  const [dropped,setDropped]=useState<DropDelivery>();
   const [adminOpen,setAdminOpen]=useState(false);
   const [financeOpen,setFinanceOpen]=useState(false);
   const [aiSettingsOpen,setAiSettingsOpen]=useState(false);
@@ -98,6 +101,13 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
     void window.electronP0.writeSettings({version:1,dashboard:layout,dock}).then(()=>{if(active)setStatus('PoC 설정 저장됨')}).catch(()=>{if(active)setStatus('저장 실패 — 현재 배치를 유지하고 다시 시도해 주세요')});
     return ()=>{active=false};
   },[layout,dock]);
+  const dropBlocked=(target:DropTarget)=>{
+    if(financeOpen||adminOpen||newsletterOpen||educationVideoOpen||inventoryOpen||inventoryQaOpen||aiSettingsOpen||taskRequest||active==='settings'||active==='work-folder')return '현재 작업 화면을 먼저 닫아 주세요. 기존 자료를 자동으로 닫거나 바꾸지 않습니다.';
+    if(recordOpen&&target!=='record-helper'||officialDocumentOpen&&target!=='official-document'||purchaseOpen&&target!=='purchase-helper')return '현재 작업실을 먼저 정리하거나 닫아 주세요. 다른 작업은 자동으로 폐기하지 않습니다.';
+    return null;
+  };
+  const clearDropped=()=>{if(dropped)void window.electronWork.fileDrop?.cancel({token:dropped.token});setDropped(undefined);};
+  const receiveDrop=(value:DropDelivery)=>{if(dropBlocked(value.target)){void window.electronWork.fileDrop?.cancel({token:value.token});return;}setDropped(value);setActive('home');setPanel(null);setEditing(false);if(value.target==='record-helper')setRecordOpen(true);else if(value.target==='official-document')setOfficialDocumentOpen(true);else setPurchaseOpen(true);};
   const excluded=()=>setNotice('이 기능은 ELECTRON-P0 범위에 포함되지 않습니다. 로그인·업무·금융 데이터에 연결하지 않습니다.');
   const navigate=(id:DesktopActionId)=>{
     if(id==='record-helper'){setActive('home');setRecordOpen(true);return;}
@@ -130,12 +140,13 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
     {adminOpen&&<Suspense fallback={<p role="status">학교 행정 업무를 불러오는 중…</p>}><SchoolAdmin onClose={()=>setAdminOpen(false)}/></Suspense>}
     {financeOpen&&<Suspense fallback={<p role="status">MY FINANCE를 불러오는 중…</p>}><FinanceHost onClose={()=>setFinanceOpen(false)}/></Suspense>}
     {taskRequest&&<LocalTasksPanel request={taskRequest} onClose={()=>setTaskRequest(null)}/>}
-    <PurchaseSession incoming={purchaseIncoming} onIncomingApplied={id=>setPurchaseIncoming(current=>current?.id===id?null:current)} open={purchaseOpen} onClose={()=>setPurchaseOpen(false)}/>
+    <PurchaseSession dropped={dropped?.target==='purchase-helper'?dropped:undefined} onDropFilesDone={ids=>{if(!dropped)return;const files=dropped.files.filter(f=>!ids.includes(f.id));if(!files.length)void window.electronWork.fileDrop?.cancel({token:dropped.token});setDropped(current=>current?.token===dropped.token?(files.length?{...current,files}:undefined):current);}} incoming={purchaseIncoming} onIncomingApplied={id=>setPurchaseIncoming(current=>current?.id===id?null:current)} open={purchaseOpen} onClose={()=>{if(dropped?.target==='purchase-helper')clearDropped();setPurchaseOpen(false);}}/>
     <div hidden={!newsletterOpen} inert={!newsletterOpen} style={{display:newsletterOpen?undefined:"none"}}>{newsletterLoaded&&<Suspense fallback={<p role="status">소식지 불러오는 중…</p>}><NewsletterStudio renderAiTools={text=><AiAssistant active={newsletterOpen} tool="newsletter" source={text} onSettings={()=>setAiSettingsOpen(true)}/>} onClose={()=>setNewsletterOpen(false)}/></Suspense>}</div>
-    {recordOpen&&<Suspense fallback={<main role="status">생기부 도우미를 불러오는 중…</main>}><RecordHelperHost settingsOpen={aiSettingsOpen} onOpenAiSettings={()=>setAiSettingsOpen(true)} onClose={()=>setRecordOpen(false)}/></Suspense>}
+    {recordOpen&&<Suspense fallback={<main role="status">생기부 도우미를 불러오는 중…</main>}><RecordHelperHost dropped={dropped?.target==='record-helper'?dropped:undefined} onDropDone={()=>setDropped(current=>current?.token===dropped?.token?undefined:current)} settingsOpen={aiSettingsOpen} onOpenAiSettings={()=>setAiSettingsOpen(true)} onClose={()=>{if(dropped?.target==='record-helper')clearDropped();setRecordOpen(false);}}/></Suspense>}
     {educationVideoOpen&&<Suspense fallback={<main role="status">교육영상 Finder를 불러오는 중…</main>}><EducationVideoFinder compatBridge={window.electronWork.educationVideo.compat} searchBridge={window.electronWork.educationVideo.searchProvider} renderAiTools={text=><AiAssistant tool="finder" source={text} onSettings={()=>setAiSettingsOpen(true)}/>} onClose={()=>setEducationVideoOpen(false)}/></Suspense>}
-    {officialDocumentOpen&&<Suspense fallback={<main role="status">공문작업실을 불러오는 중…</main>}><OfficialDocumentWorkspace renderAiTools={text=><AiAssistant tool="official-document" source={text} onSettings={()=>setAiSettingsOpen(true)}/>} onClose={()=>setOfficialDocumentOpen(false)}/></Suspense>}
+    {officialDocumentOpen&&<Suspense fallback={<main role="status">공문작업실을 불러오는 중…</main>}><OfficialDocumentWorkspace dropped={dropped?.target==='official-document'?dropped:undefined} onDropDone={()=>setDropped(current=>current?.token===dropped?.token?undefined:current)} renderAiTools={text=><AiAssistant tool="official-document" source={text} onSettings={()=>setAiSettingsOpen(true)}/>} onClose={()=>{if(dropped?.target==='official-document')clearDropped();setOfficialDocumentOpen(false);}}/></Suspense>}
     {import.meta.env.DEV&&inventoryQaOpen&&<InventoryLocalQa onClose={()=>setInventoryQaOpen(false)}/>}
     {inventoryOpen&&<Suspense fallback={<main role="status">재고 관리를 불러오는 중…</main>}><InventoryHost onPurchase={lines=>{setPurchaseIncoming({id:crypto.randomUUID(),lines});setInventoryOpen(false);setPurchaseOpen(true);}} mode={inventoryMode} onModeChange={setInventoryMode} onClose={()=>setInventoryOpen(false)}/></Suspense>}
+    <GlobalFileDrop blocked={dropBlocked} onDeliver={receiveDrop}/>
   </DesktopPanelProvider></PersistentMemoProvider></LocalWorkspaceProvider></WidgetSessionProvider>;
 }

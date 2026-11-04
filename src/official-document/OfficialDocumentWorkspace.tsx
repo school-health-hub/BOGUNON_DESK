@@ -11,10 +11,10 @@ import {blankOfficialDraft,importedOfficialDraft,officialDraftSnapshot,officialD
 import './official-document.css';
 
 type Mode='create'|'summary';
-export function OfficialDocumentWorkspace({onClose,renderAiTools}:{readonly onClose:()=>void;readonly renderAiTools?:(text:string)=>ReactNode}){
+export function OfficialDocumentWorkspace({onClose,renderAiTools,dropped,onDropDone}:{readonly onClose:()=>void;readonly renderAiTools?:(text:string)=>ReactNode;readonly dropped?:import('../../electron-p0/file-drop-protocol').DropDelivery;readonly onDropDone?:()=>void}){
  const generation=useRef(0);
  const [busy,setBusy]=useState(false);
- const files=window.electronWork?.officialDocument;
+ const work=window.electronWork,files=work?.officialDocument;
  const [mode,setMode]=useState<Mode>('create');
  const [input,setInput]=useState<OfficialDocumentInput>(()=>createEmptyOfficialDocumentInput());
  const [draft,setDraft]=useState<OfficialDocumentDraft|null>(null);
@@ -29,8 +29,8 @@ export function OfficialDocumentWorkspace({onClose,renderAiTools}:{readonly onCl
   if(!files||busy)return;
   if(source.trim()&&!window.confirm('현재 원문을 가져온 텍스트로 바꿀까요?'))return;
   const token=++generation.current;setBusy(true);
-  try{const r=await files.pick();if(token!==generation.current)return;if(!r.ok){setNotice(r.error.message);return;}if(r.data){setSource(r.data.text);setSourceName(r.data.sourceName);setMode('summary');setNotice(`${r.data.sourceName} 텍스트를 가져왔습니다. 원본 서식·표 구조는 보존하지 않습니다. 편집하려면 ‘가져온 원문으로 편집’을 눌러 주세요.`);}else setNotice('가져오기를 취소했습니다. 기존 원문과 원고는 유지했습니다.');}
-  catch{setNotice('가져오지 못했습니다. 기존 원문은 유지했습니다.');}finally{setBusy(false);}
+  try{const r=dropped?await work!.fileDrop!.official({token:dropped.token}):await files.pick();if(token!==generation.current)return;if(!r.ok){setNotice(r.error.message);return;}if(r.data){setSource(r.data.text);setSourceName(r.data.sourceName);setMode('summary');setNotice(`${r.data.sourceName} 텍스트를 가져왔습니다. 원본 서식·표 구조는 보존하지 않습니다. 편집하려면 ‘가져온 원문으로 편집’을 눌러 주세요.`);}else setNotice('가져오기를 취소했습니다. 기존 원문과 원고는 유지했습니다.');}
+  catch{setNotice('가져오지 못했습니다. 기존 원문은 유지했습니다.');}finally{setBusy(false);if(dropped)onDropDone?.();}
  };
  const saveFile=async()=>{
   if(!files||!draft||busy)return;
@@ -54,7 +54,7 @@ export function OfficialDocumentWorkspace({onClose,renderAiTools}:{readonly onCl
  return <main className="od-workspace">
   <header className="od-header"><div><button type="button" disabled={busy} onClick={close}><ArrowLeft size={16}/>보건 업무로</button><span>BOGUNON DESK · ELECTRON LOCAL</span><h1>공문작업실</h1><p>검증된 로컬 생성 규칙으로 초안을 만들고 직접 검토하세요.</p></div><span className="od-local">로컬 편집 · AI 전송은 별도 확인</span></header>
   {renderAiTools?.(mode==='summary'?buildSummaryPrompt(source):draft?draft.title+'\n\n'+draft.body:buildCreatePrompt(input))}
-  {files&&<div className="od-actions"><button type="button" disabled={busy} onClick={()=>void importFile()}>PDF/HWPX/ODT 가져오기</button></div>}
+  {files&&<div className="od-actions"><button type="button" disabled={busy} onClick={()=>void importFile()}>{dropped?`드롭 파일 가져오기 · ${dropped.files[0]?.name}`:'PDF/HWPX/ODT 가져오기'}</button>{dropped&&<button type="button" disabled={busy} onClick={()=>{void work?.fileDrop?.cancel({token:dropped.token});onDropDone?.();}}>드롭 파일 취소</button>}</div>}
   <nav className="od-tabs" aria-label="공문 작업"><button type="button" aria-pressed={mode==='create'} onClick={()=>setMode('create')}>신규 공문 작성</button><button type="button" aria-pressed={mode==='summary'} onClick={()=>setMode('summary')}>공문 핵심정리</button></nav>
   {!privacy.isSafe&&<div className="od-warning" role="alert">개인정보 가능 항목: {privacy.findings.join(', ')}. 실제 자료를 입력하지 말고 내용을 다시 확인해 주세요.</div>}
   <p className="od-status" role="status">{notice}</p>{busy&&<button type="button" onClick={()=>{generation.current++;void files?.cancel();setNotice('파일 처리를 취소했습니다. 기존 원문과 편집 원고는 유지했습니다.');}}>파일 처리 취소</button>}

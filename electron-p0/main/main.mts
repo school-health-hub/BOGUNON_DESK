@@ -1,3 +1,4 @@
+import {DropSelections,createFileDropHandlers} from './file-drop.js';
 import {RecordHelperProcess} from './record-helper-process.js';
 import {WorkFoldersStore} from './work-folders.js';
 import {createWorkFolderHandlers} from './work-folders-ipc.js';
@@ -120,8 +121,9 @@ else {
   const chatgptProcess=new ChatGptProcess(app.isPackaged?join(process.resourcesPath,'chatgpt-auth-cli','chatgpt-auth-cli.exe'):join(app.getAppPath(),'../../tools/chatgpt-auth-cli/target/debug/chatgpt-auth-cli.exe'),join(userData,'work-data','chatgpt'),target=>shell.openExternal(target));
   const chatgptService=new ChatGptService(chatgptProcess,async(request,model)=>(await dialog.showMessageBox(window,{type:'warning',message:`ChatGPT 요금제 · ${model}에 이 내용을 전송할까요?`,detail:`${request.tool} · ChatGPT plan/credits 한도가 적용됩니다. API Key로 자동 전환하지 않습니다. 개인정보를 넣지 마세요.\n\n${request.prompt}`,buttons:['취소','확인 후 외부 전송'],defaultId:0,cancelId:0})).response===1);
   for(const [action,handler] of Object.entries(createChatGptHandlers(window.webContents,url,chatgptService)))ipcMain.handle(`p2:chatgpt:${action}`,handler);
+  const dropSelections=new DropSelections();
   const recordProcess=new RecordHelperProcess(app.isPackaged?join(process.resourcesPath,'record-helper-cli',process.platform==='win32'?'record-helper-cli.exe':'record-helper-cli'):join(app.getAppPath(),'../../build/record-helper-cli',process.platform==='win32'?'record-helper-cli.exe':'record-helper-cli'));
-  const recordHandlers=createRecordHelperHandlers(window.webContents,url,{extractor:recordProcess,chatgpt:chatgptService,pick:async()=>{const r=await dialog.showOpenDialog(window,{title:'활동보고서 선택 · 세션 메모리 전용',properties:['openFile','multiSelections','dontAddToRecent'],filters:[{name:'활동보고서 PDF/HWP/HWPX/DOCX',extensions:['pdf','hwp','hwpx','docx']}]});return r.canceled?undefined:r.filePaths;}});
+  const recordHandlers=createRecordHelperHandlers(window.webContents,url,{extractor:recordProcess,chatgpt:chatgptService,pick:async()=>{const dropped=dropSelections.take('record');if(dropped)return dropped;const r=await dialog.showOpenDialog(window,{title:'활동보고서 선택 · 세션 메모리 전용',properties:['openFile','multiSelections','dontAddToRecent'],filters:[{name:'활동보고서 PDF/HWP/HWPX/DOCX',extensions:['pdf','hwp','hwpx','docx']}]});return r.canceled?undefined:r.filePaths;}});
   for(const [action,handler] of Object.entries(recordHandlers))if(action!=='dispose'&&action!=='flush')ipcMain.handle(`p2:record:${action}`,handler);
   window.on('closed',()=>recordHandlers.dispose());window.webContents.on('will-navigate',()=>recordHandlers.dispose());window.webContents.on('render-process-gone',()=>recordHandlers.dispose());
 
@@ -141,14 +143,14 @@ else {
   for (const channel of ['p0:info','p0:read-settings','p0:write-settings']) ipcMain.handle(channel,async(event,...args: unknown[])=>{
     assertSender(event,window.webContents,url);
     if (args.length !== (channel === 'p0:write-settings' ? 1 : 0)) throw new Error('Invalid PoC IPC arguments');
-    if (channel === 'p0:info') return {appId:APP_ID,productName:PRODUCT_NAME,userData,sourceSha:meta.sourceSha,electron:process.versions.electron,...(qaPaths.qa?{qaProfile:{root:qaPaths.root,appData:app.getPath('appData'),sessionData:app.getPath('sessionData'),stores:['poc-settings','work-data/local-tasks','work-data/purchase-settings','work-data/quick-memo','work-data/work-folders','work-data/education-video','work-data/school-profile','work-data/school-admin','work-data/inventory','work-data/ai','work-data/chatgpt','work-data/my-finance','work-data/youtube-search','work-data/newsletter-projects','work-data/official-import-tmp','work-data/purchase-import-tmp'].map(p=>join(userData,p))}}:{})};
+    if (channel === 'p0:info') return {appId:APP_ID,productName:PRODUCT_NAME,userData,sourceSha:meta.sourceSha,electron:process.versions.electron,...(qaPaths.qa?{qaProfile:{root:qaPaths.root,appData:app.getPath('appData'),sessionData:app.getPath('sessionData'),stores:['poc-settings','work-data/local-tasks','work-data/purchase-settings','work-data/quick-memo','work-data/work-folders','work-data/drop-import-tmp','work-data/education-video','work-data/school-profile','work-data/school-admin','work-data/inventory','work-data/ai','work-data/chatgpt','work-data/my-finance','work-data/youtube-search','work-data/newsletter-projects','work-data/official-import-tmp','work-data/purchase-import-tmp'].map(p=>join(userData,p))}}:{})};
     if (channel === 'p0:read-settings') return store.read();
     return store.write(args[0]);
   });
   for(const [action,handler] of Object.entries(createPurchaseSettingsHandlers(window.webContents,url,purchaseSettingsStore)))ipcMain.handle(`p2:purchase:settings:${action}`,handler);
   const officialService=new OfficialDocumentService(app.isPackaged?join(process.resourcesPath,'official-document-cli',process.platform==='win32'?'official-document-cli.exe':'official-document-cli'):join(app.getAppPath(),'../../tools/official-document-cli/target/debug',process.platform==='win32'?'official-document-cli.exe':'official-document-cli'),join(userData,'work-data','official-import-tmp'));
   const officialFiles=createOfficialDocumentHandlers(window.webContents,url,{service:officialService,
-   pick:async()=>{const r=await dialog.showOpenDialog(window,{title:'합성 공문 가져오기',properties:['openFile'],filters:[{name:'공문 PDF/HWPX/ODT',extensions:['pdf','hwpx','odt']}]});return r.canceled?undefined:r.filePaths[0];},
+   pick:async()=>{const dropped=dropSelections.take('official');if(dropped)return dropped[0];const r=await dialog.showOpenDialog(window,{title:'합성 공문 가져오기',properties:['openFile'],filters:[{name:'공문 PDF/HWPX/ODT',extensions:['pdf','hwpx','odt']}]});return r.canceled?undefined:r.filePaths[0];},
    save:async()=>{const r=await dialog.showSaveDialog(window,{title:'검토한 공문을 새 ODT로 저장',defaultPath:'공문_초안.odt',filters:[{name:'OpenDocument Text',extensions:['odt']}],properties:['dontAddToRecent']});return r.canceled?undefined:r.filePath;},
    review:async()=>(await dialog.showMessageBox(window,{type:'question',message:'미리보기와 개인정보 경고를 확인하고 승인 템플릿으로 저장할까요?',detail:'새 파일만 저장합니다. 기존 파일을 선택하면 덮어쓰지 않고 거절합니다. 원본 서식과 표 구조 보존은 지원하지 않습니다.',buttons:['취소','검토 후 저장'],defaultId:0,cancelId:0})).response===1});
   ipcMain.handle('p2:official-document:pick',officialFiles.pick);ipcMain.handle('p2:official-document:save',officialFiles.save);ipcMain.handle('p2:official-document:cancel',officialFiles.cancel);
@@ -176,7 +178,7 @@ else {
   let purchaseAi:PurchaseAiService|undefined;
   const imageImport=createImageImportHandlers(window.webContents,url,{
    tempRoot:app.getPath('temp'),onInvalidate:()=>purchaseAi?.cancel(),ready:()=>verifyOcrRuntime(ocrRuntime),
-   select:async()=>{const r=await dialog.showOpenDialog(window,{title:'장바구니 이미지 선택 — 합성 자료만 사용',properties:['openFile','multiSelections','dontAddToRecent'],filters:[{name:'JPG/JPEG/PNG',extensions:['jpg','jpeg','png']}]});return r.canceled?undefined:r.filePaths;},
+   select:async()=>{const dropped=dropSelections.take('images');if(dropped)return dropped;const r=await dialog.showOpenDialog(window,{title:'장바구니 이미지 선택 — 합성 자료만 사용',properties:['openFile','multiSelections','dontAddToRecent'],filters:[{name:'JPG/JPEG/PNG',extensions:['jpg','jpeg','png']}]});return r.canceled?undefined:r.filePaths;},
    decode:bytes=>{const image=nativeImage.createFromBuffer(bytes);if(image.isEmpty())throw Error('이미지를 해독하지 못했습니다.');const size=image.getSize(),scale=Math.min(240/size.width,160/size.height,1);return {...size,png:image.toPNG(),perceptualHash:perceptualHash(image.resize({width:9,height:8}).toBitmap()),thumbnail:image.resize({width:Math.max(1,Math.round(size.width*scale)),height:Math.max(1,Math.round(size.height*scale)),quality:'good'}).toDataURL()};},
    recognize:(path,signal,options)=>recognizeImage(ocrRuntime,path,signal,undefined,undefined,options),
    preview:(bytes,region)=>{const image=nativeImage.createFromBuffer(bytes).crop({x:region[0],y:region[1],width:region[2]-region[0],height:region[3]-region[1]});if(image.isEmpty())throw Error('Invalid image crop');const size=image.getSize();let scale=Math.min(1,1600/Math.max(size.width,size.height));for(let i=0;i<4;i++){const url=image.resize({width:Math.max(1,Math.round(size.width*scale)),height:Math.max(1,Math.round(size.height*scale)),quality:'best'}).toDataURL();if(url.length<=4*1024*1024)return url;scale*=.65;}throw Error('Preview limit');},
@@ -207,8 +209,8 @@ else {
    const dispose=()=>{preview.dispose();output.dispose();};window.on('close',dispose);app.on('before-quit',dispose);
    return {dispose,flush:()=>output.flush()};
   });
-  const excelHandlers=createExcelHandlers(window.webContents,url,async()=>{const r=await dialog.showOpenDialog(window,{title:'Purchase Helper Excel 가져오기',properties:['openFile'],filters:[{name:'Excel',extensions:['xlsx','xls']}]});return r.canceled?undefined:r.filePaths[0];},excelService);
-  const pdfHandlers=createExcelHandlers(window.webContents,url,async()=>{const r=await dialog.showOpenDialog(window,{title:'Purchase Helper PDF 가져오기',properties:['openFile'],filters:[{name:'텍스트 PDF',extensions:['pdf']}]});return r.canceled?undefined:r.filePaths[0];},{analyze:(path,signal)=>excelService.analyzePdf(path,signal),map:(...args)=>excelService.map(...args)},'PDF');
+  const excelHandlers=createExcelHandlers(window.webContents,url,async()=>{const dropped=dropSelections.take('excel');if(dropped)return dropped[0];const r=await dialog.showOpenDialog(window,{title:'Purchase Helper Excel 가져오기',properties:['openFile'],filters:[{name:'Excel',extensions:['xlsx','xls']}]});return r.canceled?undefined:r.filePaths[0];},excelService);
+  const pdfHandlers=createExcelHandlers(window.webContents,url,async()=>{const dropped=dropSelections.take('pdf');if(dropped)return dropped[0];const r=await dialog.showOpenDialog(window,{title:'Purchase Helper PDF 가져오기',properties:['openFile'],filters:[{name:'텍스트 PDF',extensions:['pdf']}]});return r.canceled?undefined:r.filePaths[0];},{analyze:(path,signal)=>excelService.analyzePdf(path,signal),map:(...args)=>excelService.map(...args)},'PDF');
   ipcMain.handle('p2:purchase:pdf:pick',pdfHandlers.pick);
   ipcMain.handle('p2:purchase:pdf:cancel',pdfHandlers.cancel);
   ipcMain.handle('p2:purchase:pdf:map',pdfHandlers.map);
@@ -218,7 +220,16 @@ else {
   ipcMain.handle('p2:purchase:excel:map',excelHandlers.map);
   window.on('close',excelHandlers.dispose);
   app.on('before-quit',excelHandlers.dispose);
-  const purchaseImport=createPurchaseImportHandlers(window.webContents,url,async()=>{const result=await dialog.showOpenDialog(window,{title:'Purchase Helper CSV 가져오기',properties:['openFile'],filters:[{name:'CSV',extensions:['csv']}]});return result.canceled?undefined:result.filePaths[0];});
+  const purchaseImport=createPurchaseImportHandlers(window.webContents,url,async()=>{const dropped=dropSelections.take('csv');if(dropped)return dropped[0];const result=await dialog.showOpenDialog(window,{title:'Purchase Helper CSV 가져오기',properties:['openFile'],filters:[{name:'CSV',extensions:['csv']}]});return result.canceled?undefined:result.filePaths[0];});
+  const fileDrop=createFileDropHandlers(window.webContents,url,join(userData,'work-data','drop-import-tmp'),dropSelections,{
+   official:event=>officialFiles.pick(event) as Promise<import('../protocol.js').IpcResult<import('../protocol.js').OfficialDocumentImported|null>>,
+   record:event=>recordHandlers.pick(event),
+   purchase:(kind,event)=>kind==='csv'?purchaseImport.pick(event):kind==='pdf'?pdfHandlers.pick(event):excelHandlers.pick(event),
+   images:event=>imageImport.pick(event),
+   cancelImport:kind=>{if(kind==='record')void recordHandlers.cancelImport({sender:window.webContents,senderFrame:window.webContents.mainFrame});else if(kind==='official')officialFiles.dispose();else if(kind==='images')imageImport.dispose();else if(kind==='csv')void purchaseImport.cancel({sender:window.webContents,senderFrame:window.webContents.mainFrame});else if(kind==='pdf')pdfHandlers.dispose();else if(kind==='excel')excelHandlers.dispose();},
+  },result=>{if(!window.webContents.isDestroyed())window.webContents.send('p2:drop:offer',result);});
+  for(const action of ['stage','status','approve','cancel','official','record','purchase','images'] as const)ipcMain.handle(`p2:drop:${action}`,fileDrop[action]);
+  window.on('closed',()=>fileDrop.dispose());window.webContents.on('will-navigate',()=>fileDrop.dispose());window.webContents.on('render-process-gone',()=>fileDrop.dispose());
   ipcMain.handle('p2:purchase:csv:pick',purchaseImport.pick);
   ipcMain.handle('p2:purchase:csv:cancel',purchaseImport.cancel);
   ipcMain.handle('p2:purchase:csv:map',purchaseImport.map);
@@ -288,7 +299,7 @@ else {
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
-  const quit=()=>{if(quitting)return;quitting=true;workFolderHandlers.dispose();recordHandlers.dispose();finderCompat.dispose();finderV2Export.dispose();finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([workFoldersStore.flush(),recordHandlers.flush(),finderSearch.flush(),finderV2Export.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
+  const quit=()=>{if(quitting)return;quitting=true;fileDrop.dispose();workFolderHandlers.dispose();recordHandlers.dispose();finderCompat.dispose();finderV2Export.dispose();finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([fileDrop.flush(),workFoldersStore.flush(),recordHandlers.flush(),finderSearch.flush(),finderV2Export.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
       {label:'창 열기',click:show},{label:'최소화',click:()=>window.minimize()},

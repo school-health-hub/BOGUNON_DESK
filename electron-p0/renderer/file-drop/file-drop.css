@@ -1,0 +1,7 @@
+.p0-file-drop-content .file-drop-router { width:100%; max-height:none; border:0; box-shadow:none; background:transparent; }
+.p0-file-drop-content .file-drop-router > header { display:none; }
+.p0-file-drop-content .file-drop-router__routes { overflow:visible; }
+.p0-file-drop-content .file-drop-router__routes button[aria-pressed="true"] { outline:2px solid var(--rose-primary,#8a3f5b); outline-offset:2px; }
+.p0-file-drop-actions { display:flex; flex-wrap:wrap; gap:12px; justify-content:flex-end; position:sticky; bottom:-1px; padding:12px 0; background:var(--widget-bg,#fffdfd); }
+.p0-file-drop-hint { position:fixed; inset:24px; z-index:1000; pointer-events:none; display:grid; place-items:center; background:var(--widget-bg,#fffdfd); border:2px dashed var(--accent); border-radius:18px; }
+.p0-file-drop-content, .p0-file-drop-content + ul { min-width:0; overflow-wrap:anywhere; }

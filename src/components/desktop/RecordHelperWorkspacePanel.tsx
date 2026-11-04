@@ -32,6 +32,8 @@ export type RecordHelperWorkspacePanelProps = {
   readonly onCancelImport?:()=>void;
   readonly onRefreshConnection?:()=>void;
   readonly electronSession?:boolean;
+  readonly importLabel?:string;
+  readonly onCancelDropped?:()=>void;
   readonly importReports: ImportReports;
   readonly initialImportBatch?: RecordHelperImportBatch | null;
   readonly onInitialImportConsumed?: () => void;
@@ -65,7 +67,7 @@ const createWorkspaceFailure = (failure: RecordHelperImportBatch["failures"][num
 });
 
 export function RecordHelperWorkspacePanel({
-  chatGpt,onGenerateReviewed,onCancelAi,onDiscardWork,onCancelImport,onRefreshConnection,electronSession=false,
+  chatGpt,onGenerateReviewed,onCancelAi,onDiscardWork,onCancelImport,onRefreshConnection,electronSession=false,importLabel,onCancelDropped,
   importReports,
   initialImportBatch = null,
   onInitialImportConsumed,
@@ -254,9 +256,10 @@ export function RecordHelperWorkspacePanel({
               onClick={() => void addReports()}
             >
               <FilePlus2 size={16} aria-hidden="true" />
-              {workspace.importStatus === "importing" ? "가져오는 중" : "활동보고서 파일 추가"}
+              {workspace.importStatus === "importing" ? "가져오는 중" : importLabel??"활동보고서 파일 추가"}
             </button>
             {workspace.importStatus==='importing'&&onCancelImport&&<button type="button" onClick={()=>{const requestId=requestIdRef.current++;onCancelImport();dispatch({type:'resolveImport',requestId,reports:[],failures:[]});}}>가져오기 취소</button>}
+            {onCancelDropped&&<button type="button" disabled={workspace.importStatus==='importing'} onClick={onCancelDropped}>드롭 파일 취소</button>}
             {onRefreshConnection&&<button type="button" onClick={onRefreshConnection}>ChatGPT 연결 상태 새로고침</button>}
             <span>PDF · HWP/HWPX · DOCX</span>
             <small>HWP 5.x 일반/압축 문서</small>

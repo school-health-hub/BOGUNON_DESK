@@ -1,0 +1,20 @@
+import type {IpcResult,OfficialDocumentImported,PurchaseCsvSelection} from './protocol.js';
+import type {RecordImportBatch} from './record-helper-protocol.js';
+import type {ImageSelection} from './purchase-image-protocol.js';
+export type DropTarget='purchase-helper'|'official-document'|'record-helper';
+export type DropKind='csv'|'xls'|'xlsx'|'pdf'|'png'|'jpg'|'jpeg'|'odt'|'hwpx'|'hwp'|'docx';
+export type DropFile=Readonly<{id:string;name:string;kind:DropKind;bytes:number}>;
+export type DropCandidate=Readonly<{target:DropTarget;label:string;description:string;enabled:boolean;recommended:boolean;reason:string|null}>;
+export type DropOffer=Readonly<{token:string;files:readonly DropFile[];candidates:readonly DropCandidate[]}>;
+export type DropDelivery=Readonly<{token:string;target:DropTarget;files:readonly DropFile[]}>;
+export type DropRequest=Readonly<{token:string}>;
+export type FileDropBridge=Readonly<{
+ status():Promise<IpcResult<DropOffer|null>>;
+ onOffer(listener:(result:IpcResult<DropOffer>)=>void):()=>void;
+ approve(request:DropRequest&Readonly<{target:DropTarget;approved:true}>):Promise<IpcResult<DropDelivery>>;
+ cancel(request:DropRequest):Promise<IpcResult<null>>;
+ official(request:DropRequest):Promise<IpcResult<OfficialDocumentImported|null>>;
+ record(request:DropRequest):Promise<IpcResult<RecordImportBatch|null>>;
+ purchase(request:DropRequest&Readonly<{sourceId:string}>):Promise<IpcResult<PurchaseCsvSelection|null>>;
+ images(request:DropRequest):Promise<IpcResult<ImageSelection|null>>;
+}>;

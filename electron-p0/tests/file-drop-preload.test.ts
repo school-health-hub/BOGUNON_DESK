@@ -1,0 +1,16 @@
+import {it,expect,vi} from 'vitest';import {readFileSync} from 'node:fs';import {runInNewContext} from 'node:vm';import ts from 'typescript';
+function boot(){
+ const exposed:Record<string,any>={},listeners:Record<string,Function>={},channels:Record<string,Function>={},invoke=vi.fn(async()=>({ok:true,data:null})),getPathForFile=vi.fn((file:{native?:string})=>file.native??''),on=vi.fn((key:string,callback:Function)=>{channels[key]=callback;}),removeListener=vi.fn();
+ const code=ts.transpileModule(readFileSync('electron-p0/preload/preload.cts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+ runInNewContext(code,{exports:{},process:{sandboxed:true,contextIsolated:true,isMainFrame:true},window:{addEventListener:(name:string,callback:Function)=>{listeners[name]=callback;}},document:{},require:(name:string)=>{if(name!=='electron')throw Error();return {contextBridge:{exposeInMainWorld:(key:string,value:unknown)=>{exposed[key]=value;}},ipcRenderer:{invoke,on,removeListener},webUtils:{getPathForFile}};}});
+ const drop=(files:any[],trusted=true,types=['Files'])=>{const e={isTrusted:trusted,dataTransfer:{files,types},preventDefault:vi.fn(),stopImmediatePropagation:vi.fn()};listeners.drop(e);return e;};return {exposed,listeners,channels,invoke,getPathForFile,on,removeListener,drop};
+}
+it('captures a trusted native File drop in isolated preload and sends paths only through the private Main channel',()=>{
+ const c=boot(),e=c.drop([{native:'/synthetic/a.csv'},{native:'/synthetic/b.pdf'}]);expect(e.preventDefault).toHaveBeenCalled();expect(e.stopImmediatePropagation).toHaveBeenCalled();expect(c.invoke).toHaveBeenCalledExactlyOnceWith('p2:drop:stage',['/synthetic/a.csv','/synthetic/b.pdf']);expect(c.exposed.electronWork.fileDrop.stage).toBeUndefined();expect(c.exposed.electronWork.fileDrop.getPathForFile).toBeUndefined();expect(Object.isFrozen(c.exposed.electronWork.fileDrop)).toBe(true);
+});
+it('rejects synthetic DOM drops and non-native/missing paths; never opens URLs or reads arbitrary files',()=>{
+ const c=boot();c.drop([{native:'/forged.csv'}],false);c.drop([],true,['text/uri-list']);expect(c.invoke).not.toHaveBeenCalled();expect(c.getPathForFile).not.toHaveBeenCalled();c.drop([{name:'fake.csv',path:'/renderer-forged.csv'}]);expect(c.invoke).toHaveBeenLastCalledWith('p2:drop:stage',[]);expect(c.exposed.electronWork.fileDrop.readFile).toBeUndefined();expect(c.exposed.electronWork.fileDrop.exec).toBeUndefined();
+});
+it('exposes only named token operations and removes the exact offer listener on unsubscribe',async()=>{
+ const c=boot(),api=c.exposed.electronWork.fileDrop,listener=vi.fn(),stop=api.onOffer(listener),offer={ok:true,data:{token:'opaque',files:[{name:'合成.pdf'}]}};c.channels['p2:drop:offer']({},offer);expect(listener).toHaveBeenCalledExactlyOnceWith(offer);stop();expect(c.removeListener).toHaveBeenCalledExactlyOnceWith('p2:drop:offer',c.channels['p2:drop:offer']);await api.approve({token:'opaque',target:'record-helper',approved:true});expect(c.invoke).toHaveBeenLastCalledWith('p2:drop:approve',{token:'opaque',target:'record-helper',approved:true});expect(Object.keys(api)).toEqual(['status','onOffer','approve','cancel','official','record','purchase','images']);
+});
