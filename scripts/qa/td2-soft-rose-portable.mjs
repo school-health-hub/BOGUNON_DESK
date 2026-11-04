@@ -29,6 +29,7 @@ const result={
   captures:[],
   actionability:{quickMemo:false,tools:false},
   shutdown:{browserCloseSent:false,wrapperExited:false},
+  violations:[],
   verdict:'FAIL',
   error:null,
 };
@@ -116,6 +117,7 @@ try{
     const layout=await page.evaluate(()=>{
       const dashboard=document.querySelector('.workspace-dashboard');
       const dock=document.querySelector('.dock-zone');
+      const calendar=document.querySelector('[data-widget-type="monthly-calendar"]');
       if(!(dashboard instanceof HTMLElement)||!(dock instanceof HTMLElement))throw new Error('Dashboard or Dock missing');
       const mainRect=dashboard.getBoundingClientRect();
       const dockRect=dock.getBoundingClientRect();
@@ -124,17 +126,23 @@ try{
         innerWidth,innerHeight,outerWidth,outerHeight,
         documentOverflow:document.documentElement.scrollWidth>innerWidth+1,
         dashboardOverflow:dashboard.scrollWidth>dashboard.clientWidth+2,
+        workspaceVerticalOverflow:dashboard.scrollHeight>dashboard.clientHeight+2,
+        calendarNestedScroll:calendar instanceof HTMLElement&&[calendar,...calendar.querySelectorAll('*')].some(element=>{
+          if(!(element instanceof HTMLElement))return false;
+          const overflowY=getComputedStyle(element).overflowY;
+          return (overflowY==='auto'||overflowY==='scroll')&&element.scrollHeight>element.clientHeight+2;
+        }),
         scrollBottomReachable:dashboard.scrollTop+dashboard.clientHeight>=dashboard.scrollHeight-2,
         dockVisible:dockRect.width>0&&dockRect.height>0&&dockRect.top<innerHeight&&dockRect.bottom<=innerHeight+1,
         overlap:mainRect.bottom>dockRect.top+1,
       };
     });
-    if(layout.documentOverflow||layout.dashboardOverflow||!layout.scrollBottomReachable||!layout.dockVisible||layout.overlap){
-      throw new Error(`Layout contract failed at ${width}x${height}: ${JSON.stringify(layout)}`);
-    }
     await page.locator('.workspace-dashboard').evaluate(element=>{element.scrollTop=0;});
     const screenshot=await page.screenshot({path:join(screenshots,`td2-${width}x${height}.png`)});
     result.captures.push({requested:{width,height},nativeBounds,png:pngSize(screenshot),layout});
+    if(layout.documentOverflow||layout.dashboardOverflow||layout.workspaceVerticalOverflow||layout.calendarNestedScroll||!layout.scrollBottomReachable||!layout.dockVisible||layout.overlap){
+      result.violations.push(`Layout contract failed at ${width}x${height}: ${JSON.stringify(layout)}`);
+    }
   }
 
   const dock=page.getByRole('navigation',{name:'주요 기능'});
@@ -155,6 +163,7 @@ try{
   await closeBrowser();
   await waitForWrapperExit();
   result.shutdown.wrapperExited=true;
+  if(result.violations.length)throw new Error(result.violations.join('\n'));
   result.verdict='PASS';
 }catch(error){
   result.error=error instanceof Error?error.stack??error.message:String(error);
@@ -163,4 +172,5 @@ try{
   await closeBrowser();
   if(browser){try{await browser.close();}catch{}}
   await writeFile(join(evidenceRoot,'portable-gui-result.json'),JSON.stringify(result,null,2));
+  console.log(JSON.stringify(result));
 }
