@@ -123,9 +123,14 @@ jobs:
       - name: Use canonical Git bytes for LF-sensitive extraction build inputs
         run: |
           $ErrorActionPreference='Stop'
+          git -C source config --local core.autocrlf input
+          git -C source config --local core.eol lf
           'src-tauri/src/record_helper_import/** text eol=lf' | Add-Content source/.git/info/attributes
           node -e "const cp=require('child_process'),fs=require('fs'),path=require('path'),crypto=require('crypto');const files=cp.execFileSync('git',['-C','source','ls-files','src-tauri/src/record_helper_import'],{encoding:'utf8'}).trim().split(/\r?\n/);for(const file of files){const bytes=cp.execFileSync('git',['-C','source','show','HEAD:'+file]);fs.writeFileSync(path.join('source',file),bytes);const digest=crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0')).update(bytes).digest('hex');const expected=cp.execFileSync('git',['-C','source','rev-parse','HEAD:'+file],{encoding:'utf8'}).trim();if(digest!==expected)throw Error('Canonical extraction blob mismatch');}"
           if($LASTEXITCODE -ne 0){throw 'Canonical extraction checkout/hash verification failed'}
+          git -C source add --renormalize -- src-tauri/src/record_helper_import
+          git -C source diff --cached --exit-code HEAD
+          if($LASTEXITCODE -ne 0){throw 'Canonical checkout changed the product index tree'}
           $state=@(git -C source status --porcelain)
           $state | Set-Content "$env:TD2_EVIDENCE_ROOT/checkout-state.txt"
           if($state.Count){$state | Write-Output;throw 'Product checkout modified'}
