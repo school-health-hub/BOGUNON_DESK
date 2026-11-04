@@ -62,6 +62,7 @@ jobs:
           New-Item -ItemType Directory 'F:\BOGUNON_QA\qa-profile','F:\BOGUNON_QA\temp' | Out-Null
           "TD2_ROOT=$root" >> $env:GITHUB_ENV
           "TD2_EVIDENCE_ROOT=$root/evidence" >> $env:GITHUB_ENV
+          "TD2_PRODUCT_ROOT=${{ github.workspace }}/source" >> $env:GITHUB_ENV
           "TEMP=$root/temp" >> $env:GITHUB_ENV
           "TMP=$root/temp" >> $env:GITHUB_ENV
           "npm_config_cache=$root/npm-cache" >> $env:GITHUB_ENV

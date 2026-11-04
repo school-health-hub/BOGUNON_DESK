@@ -1,7 +1,7 @@
-import {chromium} from '@playwright/test';
 import {execFileSync,spawn} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
 import {mkdir,writeFile} from 'node:fs/promises';
+import {createRequire} from 'node:module';
 import {dirname,join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
@@ -9,7 +9,10 @@ const expectedSha=process.env.TD2_EXPECTED_SOURCE_SHA;
 const executable=process.env.TD2_PORTABLE_EXE;
 const evidenceRoot=process.env.TD2_EVIDENCE_ROOT;
 const qaRoot=process.env.ELECTRON_P0_QA_ROOT;
-if(!expectedSha||!executable||!evidenceRoot||!qaRoot)throw new Error('Missing TD2 QA environment');
+const productRoot=process.env.TD2_PRODUCT_ROOT;
+if(!expectedSha||!executable||!evidenceRoot||!qaRoot||!productRoot)throw new Error('Missing TD2 QA environment');
+const requireFromProduct=createRequire(join(resolve(productRoot),'package.json'));
+const {chromium}=requireFromProduct('@playwright/test');
 
 const qaRun=randomUUID();
 const port=19227;
