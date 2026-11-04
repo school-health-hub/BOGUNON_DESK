@@ -1,3 +1,5 @@
+import {ChatGptProcess} from './chatgpt-process.js';
+import {ChatGptService,createChatGptHandlers} from './chatgpt-service.js';
 import {perceptualHash} from './purchase-image-preview.js';
 import {createImageImportHandlers} from './purchase-image-ipc.js';
 import {recognizeImage,verifyOcrRuntime} from './purchase-image-ocr.js';
@@ -91,11 +93,15 @@ else {
   aiSession.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));
   aiSession.setPermissionCheckHandler(()=>false);
   aiSession.webRequest.onBeforeRequest((details,callback)=>callback({cancel:!allowedAiUrl(details.url)}));
-  const aiService=new AiService({vault:new EncryptedAiVault(join(userData,'work-data','ai'),{
+  const aiService=new AiService({chatGptSupported:process.platform==='win32',vault:new EncryptedAiVault(join(userData,'work-data','ai'),{
    available:process.platform==='win32'&&safeStorage.isEncryptionAvailable(),encrypt:text=>safeStorage.encryptString(text),decrypt:bytes=>safeStorage.decryptString(bytes)}),
    fetch:(target,init)=>aiSession.fetch(target,init),readClipboard:()=>clipboard.readText(),clearClipboard:async expected=>{if(await clipboard.readText()===expected)await clipboard.clear();},
    reviewKey:async input=>(await dialog.showMessageBox(window,{type:'question',message:`클립보드의 ${input.provider==='openai'?'OpenAI':'Gemini'} API Key로 연결할까요?`,detail:`명시적으로 복사한 API Key만 사용해 주세요. 모델 목록 조회를 위해 해당 제공자에게 Key를 전송합니다. 연결 성공 후 클립보드에서 이 값을 지웁니다. ${input.remember?'Windows 암호화로 이 Electron 프로필에 저장하며 이전 저장 연결을 대체합니다.':'앱 메모리에서만 사용하며 이전 Electron 저장 연결은 제거합니다.'} Tauri 인증정보는 읽거나 변경하지 않습니다.`,buttons:['취소','API 연결'],defaultId:0,cancelId:0})).response===1,
    reviewSend:async(request,connection)=>(await dialog.showMessageBox(window,{type:'warning',message:`${connection.provider} · ${connection.model}에 이 내용을 전송할까요?`,detail:`${request.tool} · API 사용 요금이 발생할 수 있습니다. 개인정보가 없는지 확인하세요.\n\n${request.prompt}`,buttons:['취소','확인 후 외부 전송'],defaultId:0,cancelId:0})).response===1});
+  const chatgptProcess=new ChatGptProcess(app.isPackaged?join(process.resourcesPath,'chatgpt-auth-cli','chatgpt-auth-cli.exe'):join(app.getAppPath(),'../../tools/chatgpt-auth-cli/target/debug/chatgpt-auth-cli.exe'),join(userData,'work-data','chatgpt'),target=>shell.openExternal(target));
+  const chatgptService=new ChatGptService(chatgptProcess,async(request,model)=>(await dialog.showMessageBox(window,{type:'warning',message:`ChatGPT 요금제 · ${model}에 이 내용을 전송할까요?`,detail:`${request.tool} · ChatGPT plan/credits 한도가 적용됩니다. API Key로 자동 전환하지 않습니다. 개인정보를 넣지 마세요.\n\n${request.prompt}`,buttons:['취소','확인 후 외부 전송'],defaultId:0,cancelId:0})).response===1);
+  for(const [action,handler] of Object.entries(createChatGptHandlers(window.webContents,url,chatgptService)))ipcMain.handle(`p2:chatgpt:${action}`,handler);
+  window.on('close',()=>chatgptService.dispose());window.webContents.on('will-navigate',()=>chatgptService.dispose());window.webContents.on('render-process-gone',()=>chatgptService.dispose());app.on('before-quit',()=>chatgptService.dispose());
   const aiHandlers=createAiHandlers(window.webContents,url,aiService);
   for(const [action,handler] of Object.entries(aiHandlers))ipcMain.handle(`p2:ai:${action}`,handler);
   window.on('close',()=>aiService.dispose());window.webContents.on('will-navigate',()=>aiService.dispose());window.webContents.on('render-process-gone',()=>aiService.dispose());app.on('before-quit',()=>aiService.dispose());
@@ -212,7 +218,7 @@ else {
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
-  const quit=()=>{if(quitting)return;quitting=true;imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
+  const quit=()=>{if(quitting)return;quitting=true;chatgptService.dispose();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([chatgptService.flush(),imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
       {label:'창 열기',click:show},{label:'최소화',click:()=>window.minimize()},

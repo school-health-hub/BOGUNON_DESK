@@ -10,6 +10,7 @@
     "preload/**",
     "protocol.js",
     "purchase-image-protocol.js",
+    "chatgpt-protocol.js",
     "inventory-qa-protocol.js",
     "local-tasks.js",
     "admin-protocol.js",
@@ -87,6 +88,15 @@
       "to": "purchase-ocr",
       "filter": [
         "**/*"
+      ]
+    },
+    {
+      "from": "build/chatgpt-auth-cli",
+      "to": "chatgpt-auth-cli",
+      "filter": [
+        "chatgpt-auth-cli.exe",
+        "chatgpt-auth-cli",
+        "manifest.json"
       ]
     }
   ],

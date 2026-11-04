@@ -1,3 +1,4 @@
+import {ChatGptSettings} from './ChatGptSettings';
 import {useEffect,useRef,useState} from 'react';
 import type {AiBridge,AiProvider,AiStatus,AiTool,IpcResult} from '../../protocol';
 import {evaluateOfficialDocumentOutbound} from '../../../src/official-document/officialDocumentAiService';
@@ -23,31 +24,33 @@ export function AiSettings(){
   <p>조회된 모델이라도 텍스트 호출 권한·지원 여부는 실제 요청에서 확인합니다. 연결 확인은 유료 생성 성공을 의미하지 않습니다.</p>
   <button type="button" disabled={busy} onClick={()=>void run(async()=>read(await api.disconnect()))}>로그아웃·저장 연결 삭제</button>{busy&&<button type="button" onClick={()=>void api.cancel()}>AI 연결 요청 취소</button>}
   <p role="status">{notice}</p>
-  <h3>ChatGPT 계정·요금제 연결 — 미지원</h3><p>기존 Tauri의 별도 로그인·요금제 호출 기반 코드는 보존했습니다. 현재 Electron용 승인된 로그인 경로와 요금제 사용 권한을 확인하지 못해 비활성 상태입니다. 구독 계정을 API Key로 대신 사용하거나 인증을 우회하지 않습니다.</p>
+  <ChatGptSettings/>
  </section>;
 }
 export function AiAssistant({tool,source,onSettings,active=true}:{tool:AiTool;source:string;onSettings:()=>void;active?:boolean}){
  const api:AiBridge|undefined=window.electronWork?.ai;
+ const [route,setRoute]=useState<'api'|'chatgpt'>('api');
+ const chatgpt=window.electronWork?.chatgpt;
  const [prompt,setPrompt]=useState(''),[text,setText]=useState(''),[confirmed,setConfirmed]=useState(false),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false);
- const epoch=useRef(0),mounted=useRef(true),owned=useRef(false);
- useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;epoch.current++;if(owned.current)void api?.cancel();};},[api]);
- useEffect(()=>{if(!active&&owned.current){epoch.current++;owned.current=false;void api?.cancel();setBusy(false);setConfirmed(false);}},[active,api]);
+ const epoch=useRef(0),mounted=useRef(true),owned=useRef(false),cancelOwned=useRef<()=>void>(()=>{});
+ useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;epoch.current++;if(owned.current)cancelOwned.current();};},[api]);
+ useEffect(()=>{if(!active&&owned.current){epoch.current++;owned.current=false;cancelOwned.current();setBusy(false);setConfirmed(false);}},[active,api]);
  const evaluation=evaluateOfficialDocumentOutbound(prompt);
  const send=async()=>{
   if(!active||!api||busy||!confirmed||!evaluation.canConfirm)return;
-  const token=++epoch.current;owned.current=true;setBusy(true);setNotice('Main에서 제공자·모델과 전송 내용을 최종 확인해 주세요.');
-  try{const result=read(await api.generate({tool,prompt}));if(!mounted.current||token!==epoch.current)return;
+  const token=++epoch.current;owned.current=true;cancelOwned.current=()=>{void (route==='chatgpt'?chatgpt!:api).cancel();};setBusy(true);setNotice('Main에서 제공자·모델과 전송 내용을 최종 확인해 주세요.');
+  try{const result=read(await (route==='chatgpt'?chatgpt!:api).generate({tool,prompt}));if(!mounted.current||token!==epoch.current)return;
    if(result){setText(result.text);setNotice('AI 응답을 받았습니다. 사실·개인정보를 검토한 뒤 필요한 부분만 복사해 기존 편집기에 반영하세요.');}else setNotice('외부 전송을 취소했습니다. 기존 원고와 이전 응답은 유지됩니다.');
   }catch(error){if(mounted.current&&token===epoch.current)setNotice(error instanceof Error?error.message:'AI 요청에 실패했습니다. 기존 원고는 유지됩니다.');}
   finally{if(mounted.current&&token===epoch.current){owned.current=false;setBusy(false);setConfirmed(false);}}
  };
  if(!api)return null;
- return <details className="electron-ai"><summary>AI 작성 보조 · 외부 전송 전 확인</summary><button type="button" disabled={busy} onClick={onSettings}>공통 AI 연결 설정</button><p>자동 전송·자동 저장·원고 자동 교체는 하지 않습니다. 실제 학생·학교 개인정보를 넣지 마세요.</p>
+ return <details className="electron-ai"><summary>AI 작성 보조 · 외부 전송 전 확인</summary>{chatgpt&&<label>텍스트 AI 연결<select aria-label="텍스트 AI 연결" disabled={busy} value={route} onChange={e=>{setRoute(e.target.value as 'api'|'chatgpt');setConfirmed(false);}}><option value="api">OpenAI / Gemini API Key</option><option value="chatgpt">ChatGPT 계정·요금제</option></select></label>}<button type="button" disabled={busy} onClick={onSettings}>공통 AI 연결 설정</button><p>자동 전송·자동 저장·원고 자동 교체는 하지 않습니다. 실제 학생·학교 개인정보를 넣지 마세요.</p>
   <button type="button" disabled={busy||!source.trim()} onClick={()=>{if(prompt&&!window.confirm('작성 중인 전송 내용을 현재 원고로 바꿀까요?'))return;setPrompt(source);setConfirmed(false);}}>현재 작업 내용 검토용으로 가져오기</button>
   <label>AI 전송 내용<textarea aria-label="AI 전송 내용" rows={8} maxLength={60000} disabled={busy} value={prompt} onChange={e=>{setPrompt(e.target.value);setConfirmed(false);}}/></label><p>{evaluation.bytes.toLocaleString()} / 65,536 bytes · {officialDocumentPrivacyNotice}</p>
   {!evaluation.canConfirm&&prompt&&<p role="alert">{evaluation.findings.length?'개인정보 가능 항목: '+evaluation.findings.join(', '):'빈 내용 또는 전송 크기 제한을 확인해 주세요.'}</p>}
   <label><input type="checkbox" checked={confirmed} disabled={busy||!evaluation.canConfirm} onChange={e=>setConfirmed(e.target.checked)}/>내용을 검토했고 개인정보가 없으며 선택한 외부 제공자에게 전송하는 데 동의합니다.</label>
-  <button type="button" disabled={busy||!confirmed||!evaluation.canConfirm} onClick={()=>void send()}>검토 후 AI 요청</button>{busy&&<button type="button" onClick={()=>{epoch.current++;owned.current=false;setBusy(false);setConfirmed(false);void api.cancel();setNotice('취소를 요청했습니다. 이미 전송된 내용은 회수할 수 없습니다. 원고는 유지됩니다.');}}>AI 요청 취소</button>}
+  <button type="button" disabled={busy||!confirmed||!evaluation.canConfirm} onClick={()=>void send()}>검토 후 AI 요청</button>{busy&&<button type="button" onClick={()=>{epoch.current++;owned.current=false;setBusy(false);setConfirmed(false);void (route==='chatgpt'?chatgpt!:api).cancel();setNotice('취소를 요청했습니다. 이미 전송된 내용은 회수할 수 없습니다. 원고는 유지됩니다.');}}>AI 요청 취소</button>}
   <p role="status">{notice}</p>{text&&<><label>AI 응답 · 검토용<textarea aria-label="AI 응답" rows={8} readOnly value={text}/></label><button type="button" onClick={()=>void navigator.clipboard.writeText(text).then(()=>setNotice('검토용 응답을 복사했습니다.'),()=>setNotice('복사하지 못했습니다. 응답을 직접 선택해 주세요.'))}>AI 응답 복사</button></>}
  </details>;
 }

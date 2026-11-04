@@ -49,3 +49,6 @@ release-output/
 /build/my-finance-cli/
 
 /build/purchase-ocr/
+
+/tools/chatgpt-auth-cli/target/
+/build/chatgpt-auth-cli/

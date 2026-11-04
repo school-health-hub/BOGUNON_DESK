@@ -35,6 +35,7 @@ export type OfficialDocumentSave=Readonly<{title:string;body:string;attachments:
 export type OfficialDocumentImported=Readonly<{sourceName:string;format:"pdf"|"hwpx"|"odt";text:string}>;
 export type InventoryQaStatus = { mode: "local-qa"; authGateway: "reachable" | "unavailable"; inventoryConnection: "blocked"; persisted: false };
 export interface WorkBridge {
+ readonly chatgpt?:import('./chatgpt-protocol.js').ChatGptBridge;
   readonly school?: import('./school-protocol.js').SchoolBridge;
  readonly admin?:AdminBridge;
  readonly finance?:FinanceBridge;
@@ -95,7 +96,7 @@ export type NewsletterApprovalBarrier=Readonly<{ids:readonly string[];hashes:rea
 export type AiProvider='openai'|'gemini';
 export type AiTool='official-document'|'newsletter'|'finder';
 export type AiModel=Readonly<{id:string;label:string}>;
-export type AiStatus=Readonly<{connected:boolean;provider:AiProvider|null;model:string|null;models:readonly AiModel[];stored:boolean;secureStorage:boolean;busy:boolean;chatGptSupported:false}>;
+export type AiStatus=Readonly<{connected:boolean;provider:AiProvider|null;model:string|null;models:readonly AiModel[];stored:boolean;secureStorage:boolean;busy:boolean;chatGptSupported:boolean}>;
 export type AiConnect=Readonly<{provider:AiProvider;remember:boolean}>;
 export type AiRequest=Readonly<{tool:AiTool;prompt:string}>;
 export type AiBridge=Readonly<{

@@ -1,0 +1,30 @@
+[package]
+name = "chatgpt-auth-cli"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+build = "build.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync"] }
+atomic-write-file = "0.3.1"
+base64 = "0.22"
+jsonwebtoken = { version = "10", features = ["rust_crypto"] }
+rand = "0.9"
+sha2 = "0.10"
+uuid = { version = "1", features = ["v4", "serde"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-dpapi = "0.2.0"
+
+[dev-dependencies]
+rsa = "0.9"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

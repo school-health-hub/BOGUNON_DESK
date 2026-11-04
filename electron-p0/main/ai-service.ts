@@ -13,7 +13,7 @@ export function validateAiRequest(value:unknown):AiRequest{
  if(!keys(value,['tool','prompt'])||!(['official-document','newsletter','finder'] as unknown[]).includes(value.tool)||typeof value.prompt!=='string'||!value.prompt.trim()||value.prompt.length>60000||Buffer.byteLength(value.prompt)>65536||value.prompt.includes('\0'))throw new AiError(INPUT_ERROR);
  if(!inspectOfficialDocumentPrivacy(value.prompt).isSafe)throw new AiError('개인정보 가능 항목이 있습니다. 제거한 뒤 다시 확인해 주세요.');return {tool:value.tool as AiRequest['tool'],prompt:value.prompt};
 }
-type Dependencies={vault:AiVault;fetch:AiFetch;readClipboard:()=>Promise<string>;clearClipboard:(expected:string)=>Promise<void>;reviewKey:(input:AiConnect)=>Promise<boolean>;reviewSend:(request:AiRequest,connection:Readonly<{provider:string;model:string}>)=>Promise<boolean>;timeoutMs?:number};
+type Dependencies={chatGptSupported?:boolean;vault:AiVault;fetch:AiFetch;readClipboard:()=>Promise<string>;clearClipboard:(expected:string)=>Promise<void>;reviewKey:(input:AiConnect)=>Promise<boolean>;reviewSend:(request:AiRequest,connection:Readonly<{provider:string;model:string}>)=>Promise<boolean>;timeoutMs?:number};
 export class AiService{
  private connection:AiCredential|null=null;
  private models:AiModel[]=[];
@@ -23,7 +23,7 @@ export class AiService{
  private epoch=0;
  private controller:AbortController|null=null;
  constructor(private readonly deps:Dependencies){}
- async status():Promise<AiStatus>{return {connected:this.connection!==null,provider:this.connection?.provider??null,model:this.connection?.model??null,models:[...this.models],stored:await this.deps.vault.exists(),secureStorage:this.deps.vault.available,busy:this.controller!==null,chatGptSupported:false};}
+ async status():Promise<AiStatus>{return {connected:this.connection!==null,provider:this.connection?.provider??null,model:this.connection?.model??null,models:[...this.models],stored:await this.deps.vault.exists(),secureStorage:this.deps.vault.available,busy:this.controller!==null,chatGptSupported:this.deps.chatGptSupported??false};}
  private check(signal:AbortSignal,epoch:number){if(signal.aborted||epoch!==this.epoch)throw new AiError(AI_ERROR.cancelled);}
  private async run<T>(work:(signal:AbortSignal,epoch:number,network:<R>(work:()=>Promise<R>)=>Promise<R>)=>Promise<T>):Promise<T>{
   if(this.controller)throw new AiError('다른 AI 요청이 진행 중입니다. 완료하거나 취소해 주세요.');
