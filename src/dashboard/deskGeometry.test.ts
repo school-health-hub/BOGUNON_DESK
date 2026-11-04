@@ -7,7 +7,7 @@ import { parseDashboardLayoutValue } from "./storage";
 import { calculateDashboardGridMetrics, applyPreset } from "../components/dashboard/dashboardCanvasSupport";
 
 describe("dense desk geometry", () => {
-  it.each([[1366,768,5,48,12,588],[1600,900,5,61,12,718],[1920,1080,5,77,14,896]])("fits bounded real slots at %i pixels", (width,height,calendarRows,rowHeight,margin,contentHeight) => {
+  it.each([[1366,768,5,43,12,538],[1600,900,5,61,12,718],[1920,1080,5,77,14,896]])("fits bounded real slots at %i pixels", (width,height,calendarRows,rowHeight,margin,contentHeight) => {
     const geometry = resolveDeskGeometry(createDefaultDashboardLayout(), width);
     const visible = geometry.widgets.filter((widget) => widget.visible);
     const calendar = visible.find((widget) => widget.type === "monthly-calendar");
@@ -22,6 +22,12 @@ describe("dense desk geometry", () => {
     for (const [index,left] of visible.entries()) for (const right of visible.slice(index+1)) {
       expect(left.x < right.x+right.w && left.x+left.w > right.x && left.y < right.y+right.h && left.y+left.h > right.y).toBe(false);
     }
+  });
+  it.each([[1424,835,50,608],[1264,735,39,498]])("fits the actual Portable content viewport at %ix%i", (width,height,rowHeight,contentHeight) => {
+    const geometry = resolveDeskGeometry(createDefaultDashboardLayout(), width);
+    const visible = geometry.widgets.filter((widget) => widget.visible);
+    const metrics = calculateDashboardGridMetrics(height, Math.max(...visible.map((widget) => widget.y + widget.h)), geometry);
+    expect(metrics).toMatchObject({ rowHeight, contentHeight, requiresScroll: false });
   });
   it("recognizes canonical geometry independently of appearance, order and empty settings", () => {
     const layout = createDefaultDashboardLayout();
