@@ -108,7 +108,7 @@ else {
   schoolSession.webRequest.onBeforeRequest((details,callback)=>callback({cancel:!allowedSchoolUrl(details.url)}));
   const schoolHandlers=createSchoolHandlers(window.webContents,url,{store:schoolStore,fetch:(target,init)=>schoolSession.fetch(target,init)});
   for(const [action,handler] of Object.entries(schoolHandlers))if(action!=='dispose'&&action!=='flush')ipcMain.handle(`p2:school:${action}`,handler);
-  window.on('close',schoolHandlers.dispose);window.webContents.on('will-navigate',schoolHandlers.dispose);window.webContents.on('render-process-gone',schoolHandlers.dispose);app.on('before-quit',schoolHandlers.dispose);
+  window.on('closed',schoolHandlers.dispose);window.webContents.on('will-navigate',schoolHandlers.dispose);window.webContents.on('render-process-gone',schoolHandlers.dispose);app.on('before-quit',schoolHandlers.dispose);
   const aiSession=session.fromPartition('ai-api-egress');
   aiSession.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));
   aiSession.setPermissionCheckHandler(()=>false);
@@ -127,10 +127,10 @@ else {
   for(const [action,handler] of Object.entries(recordHandlers))if(action!=='dispose'&&action!=='flush')ipcMain.handle(`p2:record:${action}`,handler);
   window.on('closed',()=>recordHandlers.dispose());window.webContents.on('will-navigate',()=>recordHandlers.dispose());window.webContents.on('render-process-gone',()=>recordHandlers.dispose());
 
-  window.on('close',()=>chatgptService.dispose());window.webContents.on('will-navigate',()=>chatgptService.dispose());window.webContents.on('render-process-gone',()=>chatgptService.dispose());app.on('before-quit',()=>chatgptService.dispose());
+  window.on('closed',()=>chatgptService.dispose());window.webContents.on('will-navigate',()=>chatgptService.dispose());window.webContents.on('render-process-gone',()=>chatgptService.dispose());app.on('before-quit',()=>chatgptService.dispose());
   const aiHandlers=createAiHandlers(window.webContents,url,aiService);
   for(const [action,handler] of Object.entries(aiHandlers))ipcMain.handle(`p2:ai:${action}`,handler);
-  window.on('close',()=>aiService.dispose());window.webContents.on('will-navigate',()=>aiService.dispose());window.webContents.on('render-process-gone',()=>aiService.dispose());app.on('before-quit',()=>aiService.dispose());
+  window.on('closed',()=>aiService.dispose());window.webContents.on('will-navigate',()=>aiService.dispose());window.webContents.on('render-process-gone',()=>aiService.dispose());app.on('before-quit',()=>aiService.dispose());
   const financeWorker=new FinanceProcess(app.isPackaged?join(process.resourcesPath,'my-finance-cli','my-finance-cli.exe'):join(app.getAppPath(),'../../tools/my-finance-cli/target/debug/my-finance-cli.exe'),join(userData,'work-data','my-finance'));
   const financeService=new FinanceService({worker:financeWorker,protectedRoot:userData,
    pickBackup:async()=>{const r=await dialog.showOpenDialog(window,{title:'MY FINANCE 암호화 백업 선택',properties:['openFile','dontAddToRecent'],filters:[{name:'암호화 백업',extensions:['bgfnbk']}]});return r.canceled?undefined:r.filePaths[0];},
@@ -138,7 +138,7 @@ else {
    reviewRestore:async()=>(await dialog.showMessageBox(window,{type:'warning',message:'검사한 암호화 백업을 Electron 금융 저장소에 복원할까요?',detail:'기존 Tauri 저장소는 변경하지 않습니다. 현재 상태와 이력이 다시 검사되며 복구 실패 시 원본을 보존합니다.',buttons:['취소','확인 후 복원'],defaultId:0,cancelId:0})).response===1});
   const financeHandlers=createFinanceHandlers(window.webContents,url,financeService);
   for(const [action,handler] of Object.entries(financeHandlers))ipcMain.handle(`p2:finance:${action}`,handler);
-  window.on('close',()=>{void financeService.close();});window.webContents.on('will-navigate',()=>{void financeService.close();});window.webContents.on('render-process-gone',()=>{void financeService.close();});
+  window.on('closed',()=>{void financeService.close();});window.webContents.on('will-navigate',()=>{void financeService.close();});window.webContents.on('render-process-gone',()=>{void financeService.close();});
   const meta = JSON.parse(await readFile(join(app.getAppPath(),'build-meta.json'),'utf8')) as {sourceSha:string};
   for (const channel of ['p0:info','p0:read-settings','p0:write-settings']) ipcMain.handle(channel,async(event,...args: unknown[])=>{
     assertSender(event,window.webContents,url);
@@ -154,7 +154,7 @@ else {
    save:async()=>{const r=await dialog.showSaveDialog(window,{title:'검토한 공문을 새 ODT로 저장',defaultPath:'공문_초안.odt',filters:[{name:'OpenDocument Text',extensions:['odt']}],properties:['dontAddToRecent']});return r.canceled?undefined:r.filePath;},
    review:async()=>(await dialog.showMessageBox(window,{type:'question',message:'미리보기와 개인정보 경고를 확인하고 승인 템플릿으로 저장할까요?',detail:'새 파일만 저장합니다. 기존 파일을 선택하면 덮어쓰지 않고 거절합니다. 원본 서식과 표 구조 보존은 지원하지 않습니다.',buttons:['취소','검토 후 저장'],defaultId:0,cancelId:0})).response===1});
   ipcMain.handle('p2:official-document:pick',officialFiles.pick);ipcMain.handle('p2:official-document:save',officialFiles.save);ipcMain.handle('p2:official-document:cancel',officialFiles.cancel);
-  window.on('close',officialFiles.dispose);app.on('before-quit',officialFiles.dispose);
+  window.on('closed',officialFiles.dispose);app.on('before-quit',officialFiles.dispose);
   const excelService=new ExcelService(app.isPackaged?join(process.resourcesPath,'purchase-excel-cli','purchase-excel-cli.exe'):join(app.getAppPath(),'../../tools/purchase-excel-cli/target/debug',process.platform==='win32'?'purchase-excel-cli.exe':'purchase-excel-cli'),join(userData,'work-data','purchase-import-tmp'));
   const adminProbeSession=session.fromPartition('admin-launcher-check');
   adminProbeSession.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));adminProbeSession.setPermissionCheckHandler(()=>false);
@@ -173,7 +173,7 @@ else {
    openExternal:target=>shell.openExternal(target,{activate:true}),copy:text=>clipboard.writeText(text),
    review:async(message,text)=>(await dialog.showMessageBox(window,{type:'question',message,detail:'인증정보와 개인정보가 없는지 검토하세요. 로그인 자동화·실제 신청·상신은 하지 않습니다.\n\n'+text,buttons:['취소','확인 후 진행'],defaultId:0,cancelId:0})).response===1});
   for(const [action,handler] of Object.entries(adminHandlers))if(action!=='dispose'&&action!=='flush')ipcMain.handle(`p2:admin:${action}`,handler);
-  window.on('close',adminHandlers.dispose);window.webContents.on('will-navigate',adminHandlers.dispose);window.webContents.on('render-process-gone',adminHandlers.dispose);
+  window.on('closed',adminHandlers.dispose);window.webContents.on('will-navigate',adminHandlers.dispose);window.webContents.on('render-process-gone',adminHandlers.dispose);
   const ocrRuntime=app.isPackaged?join(process.resourcesPath,'purchase-ocr'):join(app.getAppPath(),'../purchase-ocr');
   let purchaseAi:PurchaseAiService|undefined;
   const imageImport=createImageImportHandlers(window.webContents,url,{
@@ -190,13 +190,13 @@ else {
    redact:(bytes,boxes)=>{const image=nativeImage.createFromBuffer(bytes);if(image.isEmpty())throw Error('Invalid image');const {width,height}=image.getSize();const copy=redactBitmap(image.toBitmap(),width,height,boxes);return {png:nativeImage.createFromBitmap(copy,{width,height,scaleFactor:1}).toPNG(),width,height};},
    review:async prepared=>(await dialog.showMessageBox(window,{type:'warning',message:`${prepared.provider} · ${prepared.model}에 이미지 ${prepared.images.length}장을 전송할까요?`,detail:'실제 학생·교직원·학교 개인정보나 배송지·연락처가 없는지 전송본을 확인하세요. API 이용료 또는 ChatGPT plan/credits 사용이 발생할 수 있습니다. 이미 전송된 이미지는 취소해도 회수되지 않습니다. 자동 재시도·다른 제공자 전환은 하지 않습니다.\n\n'+prepared.images.map((image,i)=>`${i+1}. ${image.name} · 가림 ${image.redactions}곳 · SHA-256 ${image.sha256}`).join('\n'),buttons:['취소','확인 후 이미지 전송'],defaultId:0,cancelId:0})).response===1});
   for(const [action,handler] of Object.entries(createPurchaseAiHandlers(window.webContents,url,purchaseAi)))ipcMain.handle(`p2:purchase:images:ai:${action}`,handler);
-  window.on('close',()=>purchaseAi?.dispose());window.webContents.on('will-navigate',()=>purchaseAi?.dispose());window.webContents.on('render-process-gone',()=>purchaseAi?.dispose());app.on('before-quit',()=>purchaseAi?.dispose());
+  window.on('closed',()=>purchaseAi?.dispose());window.webContents.on('will-navigate',()=>purchaseAi?.dispose());window.webContents.on('render-process-gone',()=>purchaseAi?.dispose());app.on('before-quit',()=>purchaseAi?.dispose());
   ipcMain.handle('p2:purchase:images:preview',imageImport.preview);
   ipcMain.handle('p2:purchase:images:pick',imageImport.pick);ipcMain.handle('p2:purchase:images:analyze',imageImport.analyze);ipcMain.handle('p2:purchase:images:cancel',imageImport.cancel);
-  window.on('close',imageImport.dispose);window.webContents.on('will-navigate',imageImport.dispose);window.webContents.on('render-process-gone',imageImport.dispose);app.on('before-quit',imageImport.dispose);
+  window.on('closed',imageImport.dispose);window.webContents.on('will-navigate',imageImport.dispose);window.webContents.on('render-process-gone',imageImport.dispose);app.on('before-quit',imageImport.dispose);
   const purchaseExport=createPurchaseExportHandler(window.webContents,url,{review:async summary=>(await dialog.showMessageBox(window,{type:'question',message:'선택 품목·수량·단가·합계를 확인하고 출력할까요?',detail:summary,buttons:['취소','확인 후 저장 위치 선택'],defaultId:0,cancelId:0})).response===1,generate:(request,signal)=>excelService.generateExport(request,signal),pick:async format=>{const r=await dialog.showSaveDialog(window,{title:'구매 품목 출력 저장',defaultPath:purchaseExportFileName(format),filters:[{name:format==='csv'?'CSV':'Excel',extensions:[format]}],properties:['dontAddToRecent']});return r.canceled?undefined:r.filePath;},confirm:async()=>(await dialog.showMessageBox(window,{type:'warning',message:'선택한 기존 파일을 덮어쓸까요?',detail:'저장 직전에 변경 여부를 다시 확인합니다. 다른 프로그램에서 편집 중이면 취소하고 새 파일로 저장해 주세요.',buttons:['취소','덮어쓰기'],defaultId:0,cancelId:0})).response===1});
   ipcMain.handle('p2:purchase:export',purchaseExport.handle);
-  window.on('close',purchaseExport.dispose);app.on('before-quit',purchaseExport.dispose);
+  window.on('closed',purchaseExport.dispose);app.on('before-quit',purchaseExport.dispose);
   const specialOutputs=(['settlement','edufine'] as const).map(kind=>{
    const preview=createSpecialPreview(window.webContents,url,kind,excelService);
    const output=createPurchaseExportHandler<SpecialOutput>(window.webContents,url,{
@@ -206,7 +206,7 @@ else {
     confirm:async()=>(await dialog.showMessageBox(window,{type:'warning',message:'선택한 기존 XLSX를 덮어쓸까요?',detail:'저장 직전에 변경을 다시 검사합니다. 외부 편집 중이면 새 파일을 선택해 주세요.',buttons:['취소','덮어쓰기'],defaultId:0,cancelId:0})).response===1,
    },{validate:value=>validateSpecialOutput(value,kind),summary:specialSummary});
    ipcMain.handle(`p2:purchase:${kind}:preview`,preview.handle);ipcMain.handle(`p2:purchase:${kind}:export`,output.handle);
-   const dispose=()=>{preview.dispose();output.dispose();};window.on('close',dispose);app.on('before-quit',dispose);
+   const dispose=()=>{preview.dispose();output.dispose();};window.on('closed',dispose);app.on('before-quit',dispose);
    return {dispose,flush:()=>output.flush()};
   });
   const excelHandlers=createExcelHandlers(window.webContents,url,async()=>{const dropped=dropSelections.take('excel');if(dropped)return dropped[0];const r=await dialog.showOpenDialog(window,{title:'Purchase Helper Excel 가져오기',properties:['openFile'],filters:[{name:'Excel',extensions:['xlsx','xls']}]});return r.canceled?undefined:r.filePaths[0];},excelService);
@@ -214,11 +214,11 @@ else {
   ipcMain.handle('p2:purchase:pdf:pick',pdfHandlers.pick);
   ipcMain.handle('p2:purchase:pdf:cancel',pdfHandlers.cancel);
   ipcMain.handle('p2:purchase:pdf:map',pdfHandlers.map);
-  window.on('close',pdfHandlers.dispose);app.on('before-quit',pdfHandlers.dispose);
+  window.on('closed',pdfHandlers.dispose);app.on('before-quit',pdfHandlers.dispose);
   ipcMain.handle('p2:purchase:excel:pick',excelHandlers.pick);
   ipcMain.handle('p2:purchase:excel:cancel',excelHandlers.cancel);
   ipcMain.handle('p2:purchase:excel:map',excelHandlers.map);
-  window.on('close',excelHandlers.dispose);
+  window.on('closed',excelHandlers.dispose);
   app.on('before-quit',excelHandlers.dispose);
   const purchaseImport=createPurchaseImportHandlers(window.webContents,url,async()=>{const dropped=dropSelections.take('csv');if(dropped)return dropped[0];const result=await dialog.showOpenDialog(window,{title:'Purchase Helper CSV 가져오기',properties:['openFile'],filters:[{name:'CSV',extensions:['csv']}]});return result.canceled?undefined:result.filePaths[0];});
   const fileDrop=createFileDropHandlers(window.webContents,url,join(userData,'work-data','drop-import-tmp'),dropSelections,{
@@ -258,7 +258,7 @@ else {
    reviewSearch:async(query,page)=>(await dialog.showMessageBox(window,{type:'warning',message:`YouTube 공식 API로 교육영상을 검색할까요? (${page}/3페이지)`,detail:`전송할 검색어: ${query}\n\n검색어에 학생·교직원 개인정보가 없는지 확인하세요. 보관함·메모·원고는 전송하지 않습니다. YouTube Data API 할당량이 사용됩니다. 자동 추가 검색·다른 제공자 전환은 없습니다.`,buttons:['취소','검색어 외부 전송'],defaultId:0,cancelId:0})).response===1,
    openExternal:target=>shell.openExternal(target,{activate:true}),library:async()=>(await educationVideoStore.load()).library});
   for(const [action,handler] of Object.entries(createFinderSearchHandlers(window.webContents,url,finderSearch)))ipcMain.handle(`p2:education-video:search:${action}`,handler);
-  window.on('close',()=>finderSearch.dispose());window.webContents.on('will-navigate',()=>finderSearch.dispose());window.webContents.on('render-process-gone',()=>finderSearch.dispose());app.on('before-quit',()=>finderSearch.dispose());
+  window.on('closed',()=>finderSearch.dispose());window.webContents.on('will-navigate',()=>finderSearch.dispose());window.webContents.on('render-process-gone',()=>finderSearch.dispose());app.on('before-quit',()=>finderSearch.dispose());
   const educationVideoHandlers=createEducationVideoHandlers(window.webContents,url,educationVideoStore);
   ipcMain.handle('p2:education-video:load',educationVideoHandlers.load);
   ipcMain.handle('p2:education-video:save',educationVideoHandlers.save);
@@ -276,7 +276,7 @@ else {
 
   const inventoryQa=new InventoryQaService({readExecutionState:()=>({packaged:app.isPackaged,devUrl:dev,optIn:process.env.INVENTORY_LOCAL_QA})},()=>process.env.INVENTORY_LOCAL_QA_PUBLIC_KEY??'');
   for(const action of INVENTORY_QA_ACTIONS)ipcMain.handle(`p2:inventory-local-qa:${action}`,inventoryQaHandler(inventoryQa,action,window.webContents,url));
-  window.on('close',()=>inventoryQa.close());window.webContents.on('will-navigate',()=>inventoryQa.close());window.webContents.on('render-process-gone',()=>inventoryQa.close());
+  window.on('closed',()=>inventoryQa.close());window.webContents.on('will-navigate',()=>inventoryQa.close());window.webContents.on('render-process-gone',()=>inventoryQa.close());
   ipcMain.handle('p2:inventory-local-qa:status',createInventoryQaStatusHandler(window.webContents,url,{packaged:app.isPackaged,devUrl:dev,optIn:process.env.INVENTORY_LOCAL_QA}));
   ipcMain.handle('p2:inventory:load',async(event,...args:unknown[])=>{try{assertSender(event,window.webContents,url);if(args.length)throw Error('Invalid input');return {ok:true,data:await inventoryStore.load()};}catch{return {ok:false,error:{code:'STORAGE_ERROR',message:'격리된 재고를 불러오지 못했습니다. 기존 파일은 유지됩니다.',retryable:true}};}});
   ipcMain.handle('p2:inventory:save',async(event,document:unknown,...args:unknown[])=>{try{assertSender(event,window.webContents,url);if(args.length>1||(args.length===1&&args[0]!==null&&typeof args[0]!=='string'))throw Error('Invalid input');return {ok:true,data:await inventoryStore.save(document,args[0] as string|null|undefined)};}catch(error){return {ok:false,error:{code:error instanceof InventoryConflict?'CONFLICT':'STORAGE_ERROR',message:error instanceof InventoryConflict?'재고가 변경됐습니다. 다시 불러온 뒤 확인해 주세요.':'재고 기록을 저장하지 못했습니다. 기존 파일은 유지됩니다.',retryable:true}};}});
@@ -293,13 +293,15 @@ else {
   }));
   const projects=new NewsletterProjects(join(userData,'work-data','newsletter-projects'),async(json,barrier)=>{const normalized=await callOwnedNewsletter('validateStoredNewsletter',{json,barrier},renderer,dev);if(typeof normalized!=='string')throw Error('Invalid validated document');return normalized;});
   for(const action of PROJECT_ACTIONS)ipcMain.handle(`p2:newsletter:projects:${action}`,createProjectHandler(action,window.webContents,url,projects,async info=>(await dialog.showMessageBox(window,{type:'warning',message:'미리 본 revision으로 원고를 복구할까요?',detail:`프로젝트 ${info.projectId} · 현재 revision ${info.currentRevision}\nrevision ${info.sourceRevision} 내용을 새 revision ${info.currentRevision+1}로 복구합니다.\n현재 편집 내용은 선택한 revision으로 대체됩니다. 기존 저장 이력은 보존하며 출력 승인 권한은 부여하지 않습니다.`,buttons:['취소','확인 후 복구'],defaultId:0,cancelId:0})).response===1));
+  // A prevented close only hides this live window. Terminal service cleanup
+  // observes 'closed' (or quit/security disposal), never a tray-hide request.
   const show=()=>{if(window.isMinimized())window.restore();window.show();window.focus();};
   const persist=async()=>{
     try{await desktopStore.write(desktop);return true;}
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
-  const quit=()=>{if(quitting)return;quitting=true;fileDrop.dispose();workFolderHandlers.dispose();recordHandlers.dispose();finderCompat.dispose();finderV2Export.dispose();finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([fileDrop.flush(),workFoldersStore.flush(),recordHandlers.flush(),finderSearch.flush(),finderV2Export.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
+  const quit=()=>{if(quitting)return;quitting=true;fileDrop.dispose();workFolderHandlers.dispose();recordHandlers.dispose();finderCompat.dispose();finderV2Export.dispose();finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();aiService.dispose();inventoryQa.close();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([fileDrop.flush(),workFoldersStore.flush(),recordHandlers.flush(),finderSearch.flush(),finderV2Export.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
       {label:'창 열기',click:show},{label:'최소화',click:()=>window.minimize()},

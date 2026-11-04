@@ -4,6 +4,16 @@ import type {EducationVideoLibrary,IpcResult} from '../protocol.js';import {asse
 import type {YoutubeVault} from './finder-vault.js';
 import {FINDER_ERRORS,FinderSearchError,searchYoutube,validVideoId,validYoutubeKey,validateFinderConditions,type YoutubeFetch} from './finder-youtube.js';
 type Ports={vault:YoutubeVault;fetch:YoutubeFetch;readClipboard:()=>string|Promise<string>;clearClipboard:(expected:string)=>Promise<void>;reviewKey:(remember:boolean)=>Promise<boolean>;reviewSearch:(query:string,page:number)=>Promise<boolean>;openExternal:(url:string)=>Promise<void>;library:()=>Promise<EducationVideoLibrary>;timeoutMs?:number};
+// Cancel the owned wait, not an unrelated OS dialog. A late answer cannot start
+// a request or write a key after cancellation; no new timeout or approval bypass.
+function waitForApproval(signal:AbortSignal,ask:()=>Promise<boolean>):Promise<boolean>{
+ return new Promise((resolve,reject)=>{
+  const cancel=()=>{signal.removeEventListener('abort',cancel);reject(new FinderSearchError(FINDER_ERRORS.cancel));};
+  if(signal.aborted){cancel();return;}signal.addEventListener('abort',cancel,{once:true});
+  try{ask().then(value=>{signal.removeEventListener('abort',cancel);resolve(value);},error=>{signal.removeEventListener('abort',cancel);reject(error);});}
+  catch(error){signal.removeEventListener('abort',cancel);reject(error);}
+ });
+}
 export class FinderSearchService{
  private key:string|undefined;private busy=false;private disposed=false;private generation=0;private controller:AbortController|undefined;
  private pageState:{fingerprint:string;page:number;cursor:string;token:string;seen:Set<string>}|undefined;
@@ -15,11 +25,11 @@ export class FinderSearchService{
   const pending=(async()=>{try{return await task(signal,token);}finally{this.busy=false;this.controller=undefined;}})();this.pending.add(pending);void pending.finally(()=>this.pending.delete(pending)).catch(()=>{});return pending;
  }
  async status():Promise<FinderSearchStatus>{return {provider:'youtube-data-v3',configured:!!this.key&&!this.disposed,secureStorage:this.ports.vault.available,saved:await this.ports.vault.exists()};}
- connect(input:unknown){return this.operation(async(_signal,token)=>{
+ connect(input:unknown){return this.operation(async(signal,token)=>{
   if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).join(',')!=='remember'||typeof (input as {remember:unknown}).remember!=='boolean')throw new FinderSearchError(FINDER_ERRORS.invalid);const remember=(input as {remember:boolean}).remember;
   if(remember&&!this.ports.vault.available)throw new FinderSearchError('Windows 보안 저장을 사용할 수 없습니다. 이 실행 동안만 연결해 주세요.');
   const key=(await this.ports.readClipboard()).trim();this.fresh(token);if(!validYoutubeKey(key))throw new FinderSearchError(FINDER_ERRORS.key);
-  if(!await this.ports.reviewKey(remember))throw new FinderSearchError(FINDER_ERRORS.cancel);this.fresh(token);
+  if(!await waitForApproval(signal,()=>this.ports.reviewKey(remember)))throw new FinderSearchError(FINDER_ERRORS.cancel);this.fresh(token);
   // Configuration only: do not spend quota or claim API access has been verified.
   if(remember)await this.ports.vault.write(key);else await this.ports.vault.clear();this.fresh(token);this.key=key;this.pageState=undefined;this.known.clear();await this.ports.clearClipboard(key).catch(()=>{});this.fresh(token);return this.status();
  });}
@@ -30,7 +40,7 @@ export class FinderSearchService{
   const conditions=validateFinderConditions(v.conditions),fingerprint=JSON.stringify(conditions);if(!this.key)throw new FinderSearchError(FINDER_ERRORS.key);const key=this.key;
   const previous=this.pageState;let page=1,pageToken:string|undefined,seen=new Set<string>();
   if(v.cursor!==undefined){if(typeof v.cursor!=='string'||!previous||previous.cursor!==v.cursor||previous.fingerprint!==fingerprint||previous.page>=3)throw new FinderSearchError('추가 검색이 만료됐습니다. 조건을 확인하고 새로 검색해 주세요.');page=previous.page+1;pageToken=previous.token;seen=new Set(previous.seen);}
-  if(!await this.ports.reviewSearch(conditions.topic+' '+conditions.target,page))throw new FinderSearchError(FINDER_ERRORS.cancel);this.fresh(token);let timedOut=false;const timer=setTimeout(()=>{timedOut=true;this.controller?.abort();},this.ports.timeoutMs??15000);
+  if(!await waitForApproval(signal,()=>this.ports.reviewSearch(conditions.topic+' '+conditions.target,page)))throw new FinderSearchError(FINDER_ERRORS.cancel);this.fresh(token);let timedOut=false;const timer=setTimeout(()=>{timedOut=true;this.controller?.abort();},this.ports.timeoutMs??15000);
   try{const result=await searchYoutube(this.ports.fetch,key,conditions,signal,pageToken);this.fresh(token);const videos=result.videos.filter(v=>!seen.has(v.videoId));for(const video of result.videos)seen.add(video.videoId);
    const nextCursor=page<3&&result.nextToken&&result.nextToken!==pageToken?randomUUID():null;this.pageState=nextCursor?{fingerprint,page,cursor:nextCursor,token:result.nextToken!,seen}:undefined;
    for(const video of videos)this.known.set(video.videoId,video);while(this.known.size>100)this.known.delete(this.known.keys().next().value!);return {videos,nextCursor,page,omitted:result.omitted};
