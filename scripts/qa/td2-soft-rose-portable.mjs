@@ -42,6 +42,8 @@ const launch=()=>spawn(executable,[`--remote-debugging-port=${port}`],{
   stdio:['ignore','pipe','pipe'],
   windowsHide:false,
 });
+const osAppData=execFileSync('pwsh',['-NoProfile','-NonInteractive','-Command',"[Environment]::GetFolderPath('ApplicationData')"],{env:{...process.env,APPDATA:isolatedAppData},encoding:'utf8'}).trim();
+if(resolve(osAppData).toLowerCase()!==resolve(isolatedAppData).toLowerCase())throw Error('BLOCKED before launch: Windows appData does not use the isolated root; no GUI QA permitted');
 let child=launch();
 child.stdout.on('data',chunk=>process.stdout.write(chunk));
 child.stderr.on('data',chunk=>process.stderr.write(chunk));
@@ -96,6 +98,7 @@ const setWindowBounds=(width,height)=>{
 try{
   await waitForCdp();
   browser=await chromium.connectOverCDP(`http://127.0.0.1:${port}`);
+  browserSession=await browser.newBrowserCDPSession();
   const context=browser.contexts()[0];
   if(!context)throw new Error('Portable Electron exposed no browser context');
   const page=context.pages().find(candidate=>candidate.url().startsWith('file:'))??context.pages()[0];

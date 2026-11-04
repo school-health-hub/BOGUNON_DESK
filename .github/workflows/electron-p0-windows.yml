@@ -91,8 +91,11 @@ jobs:
         working-directory: source
         run: |
           node --test scripts/electron-p0/runtime-package.test.mjs scripts/electron-p0/chatgpt-package.test.mjs
+          if($LASTEXITCODE -ne 0){throw 'Packaged contract tests failed'}
           node scripts/electron-p0/check-ocr-package.mjs
+          if($LASTEXITCODE -ne 0){throw 'Staged OCR integrity failed'}
           node --input-type=module -e "import {recognizeImage,verifyOcrRuntime} from './build/electron-p0-app/main/purchase-image-ocr.js';import {resolve} from 'node:path';import {writeFileSync} from 'node:fs';const root=resolve('release-electron-p0/win-unpacked/resources/purchase-ocr');await verifyOcrRuntime(root);const lines=await recognizeImage(root,resolve('electron-p0/tests/fixtures/purchase-image/synthetic-cart.png'),new AbortController().signal,90000,resolve('release-electron-p0/win-unpacked/BOGUNON DESK ELECTRON P0.exe'));if(!lines.some(l=>l.text.includes('24,000')))throw Error('Packaged OCR synthetic price missing');writeFileSync(process.env.TD2_EVIDENCE_ROOT+'/packaged-ocr.json',JSON.stringify({sourceSha:process.env.TD2_PRODUCT_SHA,verdict:'PASS',synthetic:true,worker:'packaged Electron + offline packaged WASM/models',lineCount:lines.length}));"
+          if($LASTEXITCODE -ne 0){throw 'Packaged OCR verification/execution failed'}
           $resources='release-electron-p0/win-unpacked/resources'
           foreach($cli in @('purchase-excel-cli','official-document-cli','my-finance-cli','chatgpt-auth-cli')) {
             $file=Join-Path $resources "$cli/$cli.exe"
@@ -102,6 +105,7 @@ jobs:
           $manifest=Get-Content "$resources/chatgpt-auth-cli/manifest.json" -Raw|ConvertFrom-Json
           if($manifest.sourceSha -cne $env:TD2_PRODUCT_SHA -or $manifest.dirty){throw 'Native source provenance mismatch'}
           node -e "const {createPackageFromStreams}=require('@electron/asar');const asar=require('@electron/asar');const p='release-electron-p0/win-unpacked/resources/app.asar';const fs=require('fs');const meta=JSON.parse(asar.extractFile(p,'build-meta.json'));if(meta.sourceSha!==process.env.TD2_PRODUCT_SHA)throw Error('ASAR source mismatch');for(const f of ['purchase-ai-protocol.js','ai-image-capabilities.json'])asar.extractFile(p,f);fs.writeFileSync(process.env.TD2_EVIDENCE_ROOT+'/asar-source.json',JSON.stringify(meta));"
+          if($LASTEXITCODE -ne 0){throw 'ASAR provenance/resource verification failed'}
       - name: Record Portable and actual Windows DPI
         run: |
           $ErrorActionPreference='Stop'
