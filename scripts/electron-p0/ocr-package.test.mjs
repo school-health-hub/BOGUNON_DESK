@@ -1,6 +1,6 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';
 import {readFile,mkdtemp,cp,rm,stat,writeFile} from 'node:fs/promises';import {join,resolve} from 'node:path';import {tmpdir} from 'node:os';import {execFileSync} from 'node:child_process';
-import {getFileMatchers} from 'app-builder-lib/out/fileMatcher.js';
+import {getFileMatchers,excludedNames,excludedExts} from 'app-builder-lib/out/fileMatcher.js';
 import {verifyOcrRuntime,recognizeImage} from '../../build/electron-p0-app/main/purchase-image-ocr.js';
 const root=resolve('build/purchase-ocr'),manifest=JSON.parse(await readFile(join(root,'manifest.json'),'utf8'));
 test('actual electron-builder extraResources selection includes every offline runtime dependency, WASM and both traineddata files',async()=>{
@@ -8,7 +8,8 @@ test('actual electron-builder extraResources selection includes every offline ru
  const matchers=getFileMatchers(config,'extraResources',resolve('/tmp/ocr-resources'),{defaultSrc:process.cwd(),macroExpander:v=>v,customBuildOptions:config.win,globalOutDir:resolve('release-electron-p0')});
  const matcher=matchers.find(m=>m.from===root);assert(matcher,'Missing OCR resources mapping');const filter=matcher.createFilter();
  for(const entry of manifest.files){const file=join(root,entry.file);assert(filter(file,await stat(file)),`Builder omitted ${entry.file}`);}
- assert(!manifest.files.some(f=>f.file.split('/').some(p=>['.npmignore','.gitkeep','.travis.yml'].includes(p))));
+ const metadataNames=new Set(excludedNames.split(','));const metadataExts=[...excludedExts.split(','),'pdb'];
+ assert(!manifest.files.some(f=>f.file.split('/').some(p=>metadataNames.has(p)||p.startsWith('._')||metadataExts.some(ext=>p.endsWith('.'+ext)))));
  assert(manifest.files.some(f=>f.file.endsWith('kor.traineddata.gz')));assert(manifest.files.some(f=>f.file.endsWith('eng.traineddata.gz')));assert(manifest.bytes<20*1024*1024);
 });
 test('real staged offline Korean/English OCR reads synthetic cart prices/options and bounding-box evidence',async()=>{
