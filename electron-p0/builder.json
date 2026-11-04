@@ -94,6 +94,13 @@
       ]
     },
     {
+      "from": "build/purchase-ocr/node_modules",
+      "to": "purchase-ocr/node_modules",
+      "filter": [
+        "**/*"
+      ]
+    },
+    {
       "from": "build/chatgpt-auth-cli",
       "to": "chatgpt-auth-cli",
       "filter": [
