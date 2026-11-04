@@ -11,6 +11,7 @@ import {
 } from "../../purchase/types";
 
 type Props = {
+  readonly settingsBusy?:boolean;
   readonly columns: readonly PurchaseOutputColumnId[];
   readonly draft: PurchaseDraft;
   readonly items: readonly PurchaseItem[];
@@ -18,7 +19,7 @@ type Props = {
   readonly templates: readonly PurchaseDraftTemplate[];
   readonly onChange: (draft: PurchaseDraft) => void;
   readonly onNotice: (message: string) => void;
-  readonly onTemplatesChange: (templates: readonly PurchaseDraftTemplate[]) => void;
+  readonly onTemplatesChange: (templates: readonly PurchaseDraftTemplate[]) => void|Promise<boolean>;
 };
 
 const detailLabels: Readonly<Record<PurchaseDraftDetailFieldId, string>> = {
@@ -40,7 +41,7 @@ const createRuntimeTemplate = (draft: PurchaseDraft): PurchaseDraftTemplate => (
 
 const writeClipboard = (content: {readonly text:string;readonly html:string}, rich:boolean) => writePurchaseClipboard({text:content.text, html:rich?content.html:""});
 
-export function PurchaseDraftEditor({ columns, draft, items, outputReady, templates, onChange, onNotice, onTemplatesChange }: Props) {
+export function PurchaseDraftEditor({ settingsBusy=false, columns, draft, items, outputReady, templates, onChange, onNotice, onTemplatesChange }: Props) {
   const [templateName, setTemplateName] = useState("");
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const hasSelectedItems = items.some((item) => item.selected);
@@ -73,7 +74,7 @@ export function PurchaseDraftEditor({ columns, draft, items, outputReady, templa
       includeAttachment: next.includeAttachment,
     });
   };
-  const saveTemplate = (): void => {
+  const saveTemplate = async (): Promise<void> => {
     const name = templateName.trim();
     if (name === "" || name.length > 40) {
       onNotice("템플릿 이름은 1~40자로 입력해 주세요.");
@@ -92,8 +93,7 @@ export function PurchaseDraftEditor({ columns, draft, items, outputReady, templa
       attachmentPhrase: draft.attachmentPhrase,
       includeAttachment: draft.includeAttachment,
     };
-    onTemplatesChange([...templates, saved]);
-    update({ templateId: saved.id });
+    if(await onTemplatesChange([...templates, saved])===false){onNotice("템플릿을 저장하지 못했습니다. 기존 설정과 원고를 유지합니다.");return;}
     setTemplateName("");
     setIsSavingTemplate(false);
     onNotice("품의문 템플릿을 저장했습니다.");
@@ -120,14 +120,16 @@ export function PurchaseDraftEditor({ columns, draft, items, outputReady, templa
           <label>문서 템플릿
             <select aria-label="품의문 템플릿" value={draft.templateId} onChange={(event) => applyTemplate(event.target.value)}>
               <option value={defaultPurchaseDraftTemplate.id}>{defaultPurchaseDraftTemplate.name}</option>
+              {draft.templateId!==defaultPurchaseDraftTemplate.id&&!templates.some(t=>t.id===draft.templateId)&&<option value={draft.templateId}>현재 원고 형식 · 저장된 템플릿 없음</option>}
               {templates.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
             </select>
           </label>
-          <button type="button" onClick={() => setIsSavingTemplate((current) => !current)}><Save size={14} /> 템플릿 저장</button>
+          <button type="button" disabled={settingsBusy} onClick={() => setIsSavingTemplate((current) => !current)}><Save size={14} /> 템플릿 저장</button>
         </div>
-        {isSavingTemplate && <div className="purchase-draft-template-save"><input aria-label="품의문 템플릿 이름" maxLength={40} placeholder="예: 행정실 기본 양식" value={templateName} onChange={(event) => setTemplateName(event.target.value)} /><button type="button" onClick={saveTemplate}>저장</button></div>}
+        {isSavingTemplate && <div className="purchase-draft-template-save"><input aria-label="품의문 템플릿 이름" maxLength={40} placeholder="예: 행정실 기본 양식" value={templateName} onChange={(event) => setTemplateName(event.target.value)} /><button type="button" disabled={settingsBusy} onClick={()=>void saveTemplate()}>저장</button><button type="button" onClick={()=>setIsSavingTemplate(false)}>취소</button></div>}
         {isSavingTemplate && <div className="purchase-draft-patterns"><label>제목 형식<input aria-label="품의문 제목 형식" maxLength={160} value={draft.titlePattern} onChange={(event) => update({ titlePattern: event.target.value })} /><small>{"{{title}}"} 위치에 현재 품의 제목이 들어갑니다.</small></label><label>도입 문구 형식<textarea aria-label="품의문 도입 문구 형식" rows={2} maxLength={160} value={draft.introPattern} onChange={(event) => update({ introPattern: event.target.value })} /><small>{"{{purpose}}"} 위치에 현재 구매 목적이 들어갑니다.</small></label></div>}
-        {templates.length > 0 && <div className="purchase-draft-template-list" aria-label="저장된 품의문 템플릿">{templates.map((entry) => <span key={entry.id}><b>{entry.name}</b><button type="button" aria-label={`${entry.name} 템플릿 삭제`} onClick={() => { if (window.confirm(`'${entry.name}' 품의문 템플릿을 삭제할까요?`)) { onTemplatesChange(templates.filter((templateEntry) => templateEntry.id !== entry.id)); if (draft.templateId === entry.id) applyTemplate(defaultPurchaseDraftTemplate.id); } }}><Trash2 size={13} /></button></span>)}</div>}
+        {templates.some(t=>t.id===draft.templateId)&&<button type="button" disabled={settingsBusy} onClick={async()=>{const selected=templates.find(t=>t.id===draft.templateId);if(!selected||!window.confirm(`'${selected.name}' 템플릿을 현재 원고 형식으로 수정할까요? 원고 내용은 변경하지 않습니다.`))return;const name=templateName.trim()||selected.name;if(name.length>40){onNotice('템플릿 이름은 1~40자로 입력해 주세요.');return;}if(await onTemplatesChange(templates.map(t=>t.id===selected.id?{...createRuntimeTemplate(draft),id:selected.id,name}:t))!==false)onNotice('품의문 템플릿을 수정했습니다.');}}>선택 템플릿 수정 저장</button>}
+        {templates.length > 0 && <div className="purchase-draft-template-list" aria-label="저장된 품의문 템플릿">{templates.map((entry) => <span key={entry.id}><b>{entry.name}</b><button type="button" disabled={settingsBusy} aria-label={`${entry.name} 템플릿 삭제`} onClick={async () => { if (window.confirm(`'${entry.name}' 품의문 템플릿을 삭제할까요?`)) { await onTemplatesChange(templates.filter((templateEntry) => templateEntry.id !== entry.id)); } }}><Trash2 size={13} /></button></span>)}</div>}
         <label>품의 제목<input value={draft.title} onChange={(event) => update({ title: event.target.value })} /></label>
         <label>구매 목적<textarea rows={3} value={draft.purpose} onChange={(event) => update({ purpose: event.target.value })} /></label>
         <label>구매내용<input value={draft.purchaseSummary} onChange={(event) => update({ purchaseSummary: event.target.value })} /></label>

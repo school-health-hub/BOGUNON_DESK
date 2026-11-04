@@ -18,6 +18,9 @@ import { PurchaseEditableInput } from "./PurchaseEditableInput";
 import { PurchaseItemNameDialog } from "./PurchaseItemNameDialog";
 type Props = {
  readonly fileControls?:ReactNode;
+ readonly importSettings?:ReactNode;
+ readonly settingsStatus?:ReactNode;
+ readonly settingsBusy?:boolean;
  readonly settlement:PurchaseSettlement|null;
  readonly onSettlementChange:(value:PurchaseSettlement|null)=>void;
  readonly editing: PurchaseEditingState;
@@ -26,9 +29,9 @@ type Props = {
  readonly draftTemplates: readonly PurchaseDraftTemplate[];
  readonly onAddItem: () => void;
  readonly onEdit: Dispatch<PurchaseItemAction>;
- readonly onColumnsChange: (columns: readonly PurchaseOutputColumnId[]) => void;
+ readonly onColumnsChange: (columns: readonly PurchaseOutputColumnId[]) => void|Promise<boolean>;
  readonly onDraftChange: (draft: PurchaseDraft | null) => void;
- readonly onDraftTemplatesChange: (templates: readonly PurchaseDraftTemplate[]) => void;
+ readonly onDraftTemplatesChange: (templates: readonly PurchaseDraftTemplate[]) => void|Promise<boolean>;
  readonly onClose: () => void;
  readonly onNotice: (message: string) => void;
 };
@@ -40,7 +43,7 @@ const formatNumber = (value: number | null): string => value === null ? "" : Str
 const signedMoney = (value: number): string => `${value > 0 ? "+" : ""}${value.toLocaleString("ko-KR")}원`;
 const issueLabels: Readonly<Record<string, string>> = { missingName: "품명 필요", invalidQuantity: "수량 확인", invalidUnitPrice: "단가 확인", amountMismatch: "금액 불일치" };
 const reviewFilterLabels: Readonly<Record<PurchaseReviewFilter, string>> = { all: "전체", error: "오류", mismatch: "불일치", needsReview: "확인 필요" };
-export function PurchaseHelperPanel({ fileControls, settlement,onSettlementChange, editing, columns, draft, draftTemplates, onAddItem, onEdit, onColumnsChange, onDraftChange, onDraftTemplatesChange, onClose, onNotice }: Props) {
+export function PurchaseHelperPanel({ fileControls, importSettings, settingsStatus, settingsBusy=false, settlement,onSettlementChange, editing, columns, draft, draftTemplates, onAddItem, onEdit, onColumnsChange, onDraftChange, onDraftTemplatesChange, onClose, onNotice }: Props) {
   const { items } = editing;
   const [bulkOpen, setBulkOpen] = useState(false);
   const bulkTriggerRef = useRef<HTMLButtonElement>(null);
@@ -56,6 +59,7 @@ export function PurchaseHelperPanel({ fileControls, settlement,onSettlementChang
   }, [bulkOpen]);
   const [activeView, setActiveView] = useState<"items" | "draft" | "settlement">("items");
   const [busy,setBusy] = useState(false);
+  const [showTemplates,setShowTemplates]=useState(false);
   const [isColumnEditorOpen, setIsColumnEditorOpen] = useState(false);
   const [columnDraft, setColumnDraft] = useState<readonly PurchaseOutputColumnId[]>(columns);
   const [rowFilter, setRowFilter] = useState<PurchaseReviewFilter>("all");
@@ -119,9 +123,11 @@ export function PurchaseHelperPanel({ fileControls, settlement,onSettlementChang
           {fileControls ?? <button type="button" disabled>파일 가져오기</button>}
           <button type="button" onClick={onAddItem}><Plus size={16} /> 품목 추가</button>
           <button type="button" onClick={() => void startNew()}><RotateCcw size={16} /> 새 작업</button>
-          <button type="button" disabled title="가져오기 템플릿 영구 저장 미지원"><Settings2 size={16} /> 가져오기 설정</button>
+          <button type="button" disabled={!importSettings||settingsBusy} onClick={()=>setShowTemplates(v=>!v)}><Settings2 size={16} /> 가져오기 설정</button>
           <span>{selectedCount}개 선택 · {total.toLocaleString("ko-KR")}원</span>
         </div>
+        {settingsStatus}
+        {showTemplates&&importSettings}
         <div className="purchase-helper-tabs" role="tablist" aria-label="품의 도우미 단계"><button type="button" role="tab" aria-selected={activeView === "items"} onClick={() => setActiveView("items")}>품목내역</button><button type="button" role="tab" aria-selected={activeView === "draft"} onClick={() => setActiveView("draft")}>품의문 작성</button><button type="button" role="tab" aria-selected={activeView==="settlement"} onClick={()=>{if(!readiness.ready){onNotice("입력 오류와 금액 불일치를 먼저 확인해 주세요.");return;}if(settlement===null)onSettlementChange(createPurchaseSettlement(items));setActiveView("settlement");}}>구매결과</button></div>
         {selectedCount > 0 && !readiness.ready && <div className="purchase-helper-readiness" role="status"><strong>최종 활용 전 확인이 필요합니다.</strong><span>{readiness.blockingCount > 0 && `입력 오류 ${readiness.blockingCount}건`}{readiness.blockingCount > 0 && readiness.unreviewedMismatchCount > 0 && " · "}{readiness.unreviewedMismatchCount > 0 && `금액 불일치 확인 ${readiness.unreviewedMismatchCount}건`}</span><button type="button" onClick={() => { setActiveView("items"); setRowFilter("needsReview"); }}>문제 행 확인</button></div>}
         {activeView === "items" ? <>
@@ -150,9 +156,9 @@ export function PurchaseHelperPanel({ fileControls, settlement,onSettlementChang
               <td><div className="purchase-helper-row-actions"><button type="button" aria-label={`${originalIndex + 1}행 위로 이동`} disabled={rowFilter !== "all" || originalIndex === 0} onClick={() => onEdit({ type: "move", id: item.id, delta: -1 })}><ArrowUp size={13}/></button><button type="button" aria-label={`${originalIndex + 1}행 아래로 이동`} disabled={rowFilter !== "all" || originalIndex === items.length - 1} onClick={() => onEdit({ type: "move", id: item.id, delta: 1 })}><ArrowDown size={13}/></button><button type="button" aria-label={`${originalIndex + 1}행 삭제`} onClick={() => onEdit({ type: "remove", id: item.id })}><Trash2 size={13}/></button></div></td>
             </tr>)}</tbody></table>
         </div>
-        <section className="purchase-helper-columns"><button type="button" onClick={() => { setColumnDraft(columns); setIsColumnEditorOpen((current) => !current); }}>출력 컬럼 설정</button>{isColumnEditorOpen && <div className="purchase-helper-column-editor"><strong>출력 열</strong>{purchaseOutputColumnIds.map((column) => { const shown = columnDraft.includes(column); return <div className="purchase-helper-column" key={column}><label><input type="checkbox" checked={shown} disabled={column === "name"} onChange={(event) => setColumnDraft(normalizePurchaseOutputColumns(event.target.checked ? [...columnDraft, column] : columnDraft.filter((value) => value !== column)))} />{purchaseOutputColumnLabels[column]}</label>{shown && <span><button type="button" aria-label={`${purchaseOutputColumnLabels[column]} 왼쪽 이동`} onClick={() => moveColumn(column, -1)}>←</button><button type="button" aria-label={`${purchaseOutputColumnLabels[column]} 오른쪽 이동`} onClick={() => moveColumn(column, 1)}>→</button></span>}</div>; })}<button type="button" onClick={() => { onColumnsChange(columnDraft); setIsColumnEditorOpen(false); }}>저장</button></div>}</section>
+        <fieldset className="purchase-helper-columns" disabled={settingsBusy} style={{border:0,borderTop:'1px solid var(--divider)',margin:0,minWidth:0}}><button type="button" disabled={settingsBusy} onClick={() => { setColumnDraft(columns); setIsColumnEditorOpen((current) => !current); }}>출력 컬럼 설정</button>{isColumnEditorOpen && <div className="purchase-helper-column-editor"><strong>출력 열</strong>{purchaseOutputColumnIds.map((column) => { const shown = columnDraft.includes(column); return <div className="purchase-helper-column" key={column}><label><input type="checkbox" checked={shown} disabled={column === "name"} onChange={(event) => setColumnDraft(normalizePurchaseOutputColumns(event.target.checked ? [...columnDraft, column] : columnDraft.filter((value) => value !== column)))} />{purchaseOutputColumnLabels[column]}</label>{shown && <span><button type="button" aria-label={`${purchaseOutputColumnLabels[column]} 왼쪽 이동`} onClick={() => moveColumn(column, -1)}>←</button><button type="button" aria-label={`${purchaseOutputColumnLabels[column]} 오른쪽 이동`} onClick={() => moveColumn(column, 1)}>→</button></span>}</div>; })}<button type="button" onClick={async () => { if(await onColumnsChange(columnDraft)!==false)setIsColumnEditorOpen(false); }}>저장</button><button type="button" onClick={()=>setIsColumnEditorOpen(false)}>취소</button></div>}</fieldset>
         <footer className="purchase-helper-panel__footer"><p>파일과 품목내역은 이 작업 중에만 메모리에 유지되며 클라우드에 저장되지 않습니다.</p><div><button type="button" disabled={selectedCount === 0 || busy || !readiness.ready} onClick={() => void copy()}><ClipboardCopy size={15}/> 표 복사</button><button type="button" disabled={selectedCount===0||busy||!readiness.ready} onClick={()=>void exportRows("csv")}>CSV 저장</button><button type="button" disabled={selectedCount===0||busy||!readiness.ready} onClick={()=>void exportRows("xlsx")}>XLSX 저장</button><button type="button" disabled={busy||!selectedCount||!readiness.ready||edufinePreview.preparing} onClick={()=>void edufinePreview.open("edufine")}>에듀파인용 Excel</button></div></footer>
-        </> : activeView === "draft" ? draft === null ? <section className="purchase-draft-empty"><strong>선택한 품목으로 품의문을 작성합니다.</strong><p>품목을 선택하면 합계·구매처·예산항목을 바탕으로 초안을 만듭니다.</p><button type="button" disabled={selectedCount === 0 || !readiness.ready} onClick={() => onDraftChange(createPurchaseDraft(items))}>품의문 초안 만들기</button></section> : <PurchaseDraftEditor columns={columns} draft={draft} items={items} outputReady={readiness.ready} templates={draftTemplates} onChange={onDraftChange} onNotice={onNotice} onTemplatesChange={onDraftTemplatesChange} /> : settlement===null?null:<PurchaseSettlementEditor items={items} outputReady={readiness.ready} settlement={settlement} onChange={onSettlementChange} onNotice={onNotice}/>}
+        </> : activeView === "draft" ? draft === null ? <section className="purchase-draft-empty"><strong>선택한 품목으로 품의문을 작성합니다.</strong><p>품목을 선택하면 합계·구매처·예산항목을 바탕으로 초안을 만듭니다.</p><button type="button" disabled={selectedCount === 0 || !readiness.ready} onClick={() => onDraftChange(createPurchaseDraft(items))}>품의문 초안 만들기</button></section> : <PurchaseDraftEditor settingsBusy={settingsBusy} columns={columns} draft={draft} items={items} outputReady={readiness.ready} templates={draftTemplates} onChange={onDraftChange} onNotice={onNotice} onTemplatesChange={onDraftTemplatesChange} /> : settlement===null?null:<PurchaseSettlementEditor items={items} outputReady={readiness.ready} settlement={settlement} onChange={onSettlementChange} onNotice={onNotice}/>}
 
         {edufinePreview.snapshot!==null&&<PurchaseOutputPreviewDialog snapshot={edufinePreview.snapshot} currentKey={edufinePreview.currentKey} busy={edufinePreview.outputting} onClose={edufinePreview.close} onOutput={()=>void edufinePreview.output()}/>}
         {nameDialogItem !== undefined && <PurchaseItemNameDialog itemName={nameDialogItem.name} rowNumber={nameDialogRowNumber} onCancel={closeNameDialog} onSave={(name) => { update(nameDialogItem.id, { name }); closeNameDialog(); }} />}
