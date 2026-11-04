@@ -73,6 +73,9 @@ const parseTask = (input: QuickAddTaskInput): QuickTaskCreateValues => {
   };
 };
 
+// Pure validation shared with the Electron local adapter; no account or repository call.
+export const validateQuickAddTask = parseTask;
+
 const parseEvent = (input: QuickAddEventInput): QuickEventCreateValues => {
   if (!isQuickAddArea(input.area)) throw new QuickAddValidationError("일정 영역을 확인해 주세요.");
   return {

@@ -1,0 +1,13 @@
+.p0-calculator .calculator-panel { width:100%; max-height:none; border:0; box-shadow:none; background:transparent; overflow:visible; }
+.p0-calculator .calculator-panel > header, .p0-quick-add > header { display:none; }
+.p0-command-palette .command-palette { width:100%; max-height:none; border:0; box-shadow:none; background:transparent; overflow:visible; }
+.p0-command-palette .command-palette__results { max-height:45dvh; overflow:auto; }
+.p0-quick-add.quick-add-panel { position:static; width:100%; max-height:none; border:0; box-shadow:none; background:transparent; overflow:visible; }
+.p0-quick-add form { overflow:visible; }
+.p0-quick-add .quick-add-panel__actions, .p0-calculator .calculator-panel > footer { position:sticky; bottom:0; background:var(--widget-bg,#fffdfd); padding-block:12px; }
+.p0-quick-add input, .p0-quick-add select { min-width:0; max-width:100%; }
+.rose-dialog:has(.p0-calculator) { width:min(480px,calc(100vw - 32px)); }
+.rose-dialog:has(.p0-command-palette) { width:min(640px,calc(100vw - 32px)); }
+.rose-dialog:has(.p0-quick-add) { width:min(480px,calc(100vw - 32px)); }
+
+.p0-calculator .calculator-panel__body { overflow:visible; }

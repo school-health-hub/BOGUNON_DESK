@@ -1,5 +1,5 @@
 import { Calculator, Copy, Delete, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import {
   createCalculatorState,
   pressBackspace,
@@ -32,6 +32,7 @@ type CalculatorPanelProps = {
   readonly initialDate: string;
   readonly onClose: () => void;
   readonly onNotice: (message: string) => void;
+  readonly embedded?:boolean;
 };
 
 const parseNumber = (value: string): number | null => {
@@ -43,7 +44,8 @@ const parseNumber = (value: string): number | null => {
 const operatorLabels: Readonly<Record<CalculatorOperator, string>> = { "+": "+", "-": "−", multiply: "×", divide: "÷" };
 const isCalculatorOperator = (value: string): value is CalculatorOperator => value === "+" || value === "-" || value === "multiply" || value === "divide";
 
-export function CalculatorPanel({ initialDate, onClose, onNotice }: CalculatorPanelProps) {
+export function CalculatorPanel({ initialDate, onClose, onNotice,embedded=false }: CalculatorPanelProps) {
+  const panel=useRef<HTMLElement>(null);
   const [tab, setTab] = useState<CalculatorTab>("basic");
   const [calculator, setCalculator] = useState(createCalculatorState);
   const [percentageMode, setPercentageMode] = useState<PercentageMode>("part");
@@ -83,16 +85,18 @@ export function CalculatorPanel({ initialDate, onClose, onNotice }: CalculatorPa
 
   const copyText = tab === "basic"
     ? calculator.error ? null : calculator.display
-    : tab === "percentage" ? percentageResult
+    : tab === "percentage" ? percentageResult==="계산할 수 없습니다."?null:percentageResult
       : tab === "date" && dateResult.status === "ready" ? `날짜 차이 ${dateResult.days}일 · 양끝 날짜 포함 ${dateResult.inclusiveDays}일`
-        : tab === "unit" ? unitResult : null;
+        : tab === "unit" ? unitResult==="변환할 수 없습니다."?null:unitResult : null;
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if(event.defaultPrevented||event.isComposing||event.ctrlKey||event.metaKey||event.altKey)return;
+      if(embedded){for(let node:HTMLElement|null=panel.current;node;node=node.parentElement)if(node.inert||node.hidden)return;}
       if (event.key === "Escape") { onClose(); return; }
       if (tab !== "basic") return;
       const target = event.target;
-      if (target instanceof HTMLInputElement || target instanceof HTMLSelectElement) return;
+      if (target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement || target instanceof HTMLElement&&target.isContentEditable) return;
       if (/^\d$/.test(event.key)) setCalculator((current) => pressDigit(current, event.key));
       else if (event.key === ".") setCalculator(pressDecimal);
       else if (event.key === "+") setCalculator((current) => pressOperator(current, "+"));
@@ -107,7 +111,7 @@ export function CalculatorPanel({ initialDate, onClose, onNotice }: CalculatorPa
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, tab]);
+  }, [onClose, tab,embedded]);
 
   const copyResult = async (): Promise<void> => {
     if (copyText === null) return;
@@ -128,8 +132,8 @@ export function CalculatorPanel({ initialDate, onClose, onNotice }: CalculatorPa
   };
 
   return (
-    <div className="calculator-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <section className="calculator-panel" role="dialog" aria-modal="true" aria-label="업무 계산기">
+    <div className={embedded?"p0-calculator":"calculator-backdrop"} onMouseDown={embedded?undefined:(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <section ref={panel} className="calculator-panel" role={embedded?undefined:"dialog"} aria-modal={embedded?undefined:true} aria-label="업무 계산기">
         <header>
           <div className="calculator-panel__title-icon"><Calculator size={18} /></div>
           <div><strong>업무 계산기</strong><span>계산·퍼센트·날짜·단위 변환</span></div>

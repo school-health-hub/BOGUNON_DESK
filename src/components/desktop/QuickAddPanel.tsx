@@ -44,6 +44,9 @@ type QuickAddPanelProps = {
   readonly isSaving: boolean;
   readonly onClose: () => void;
   readonly onSubmit: (input: QuickAddInput) => Promise<void>;
+  readonly storageMode?:'bogunon'|'electron-local';
+  readonly saveEnabled?:boolean;
+  readonly embedded?:boolean;
 };
 
 export function QuickAddPanel({
@@ -59,28 +62,31 @@ export function QuickAddPanel({
   isSaving,
   onClose,
   onSubmit,
+  storageMode='bogunon',saveEnabled=true,embedded=false,
 }: QuickAddPanelProps) {
-  const [kind, setKind] = useState<"task" | "event">(initialKind);
+  const local=storageMode==='electron-local';
+  const [kind, setKind] = useState<"task" | "event">(local?'task':initialKind);
   const [task, setTask] = useState(() => ({
     ...createInitialTaskInput(initialDate),
     title: initialTaskTitle,
-    area: initialTaskArea,
-    category: initialTaskCategory,
+    area: local?'healthWork':initialTaskArea,
+    category: local&&!['training','studentHealthScreening','event','officialDocument'].includes(initialTaskCategory)?'officialDocument':initialTaskCategory,
     priority: initialTaskPriority,
     dueDate: initialTaskDueDate,
   }));
   const [event, setEvent] = useState(() => createInitialEventInput(initialDate));
   const pending = useRef(false);
   const isAuthPending = authStatus === "loading" || authStatus === "signingIn" || authStatus === "signingOut";
-  const canSave = authStatus === "signedIn" && !isAuthPending && !isSaving;
+  const canSave = saveEnabled && !isSaving && (local || authStatus === "signedIn" && !isAuthPending);
 
   useEffect(() => {
     const closeOnEscape = (keyboardEvent: KeyboardEvent) => {
+      if(embedded||keyboardEvent.defaultPrevented)return;
       if (keyboardEvent.key === "Escape" && !isSaving) onClose();
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [isSaving, onClose]);
+  }, [isSaving, onClose,embedded]);
 
   const submit = async (formEvent: FormEvent<HTMLFormElement>): Promise<void> => {
     formEvent.preventDefault();
@@ -94,22 +100,23 @@ export function QuickAddPanel({
   };
 
   return (
-    <aside className="quick-add-panel" aria-label="빠른 추가">
+    <aside className={`quick-add-panel${embedded?' p0-quick-add':''}`} aria-label="빠른 추가">
       <header>
         <div className="quick-add-panel__title-icon"><CalendarPlus size={17} /></div>
-        <div><strong>빠른 추가</strong><span>BOGUNON에 바로 저장합니다.</span></div>
+        <div><strong>빠른 추가</strong><span>{local?'이 Electron 앱의 로컬 업무로 저장합니다.':'BOGUNON에 바로 저장합니다.'}</span></div>
         <button type="button" aria-label="빠른 추가 닫기" disabled={isSaving} onClick={onClose}><X size={16} /></button>
       </header>
 
       <div className="quick-add-panel__tabs" role="tablist" aria-label="추가할 항목 종류">
-        <button className={kind === "task" ? "is-active" : ""} type="button" role="tab" aria-selected={kind === "task"} onClick={() => setKind("task")}>업무</button>
-        <button className={kind === "event" ? "is-active" : ""} type="button" role="tab" aria-selected={kind === "event"} onClick={() => setKind("event")}>일정</button>
+        <button disabled={isSaving} className={kind === "task" ? "is-active" : ""} type="button" role="tab" aria-selected={kind === "task"} onClick={() => setKind("task")}>업무</button>
+        <button disabled={local||isSaving} title={local?'독립 일정·서버 일정 저장은 지원하지 않습니다.':undefined} className={kind === "event" ? "is-active" : ""} type="button" role="tab" aria-selected={kind === "event"} onClick={() => setKind("event")}>일정</button>
       </div>
 
       <form onSubmit={(formEvent) => void submit(formEvent)}>
         <label>
           <span>{kind === "task" ? "업무 제목" : "일정 제목"}</span>
           <input
+            disabled={isSaving}
             autoFocus
             required
             maxLength={120}
@@ -125,6 +132,7 @@ export function QuickAddPanel({
         <label>
           <span>{kind === "task" ? "수행일" : "날짜"}</span>
           <input
+            disabled={isSaving}
             required
             type="date"
             value={kind === "task" ? task.date : event.date}
@@ -139,6 +147,7 @@ export function QuickAddPanel({
           <label>
             <span>마감일 (선택)</span>
             <input
+            disabled={isSaving}
               type="date"
               value={task.dueDate}
               onChange={(changeEvent) => {
@@ -149,9 +158,10 @@ export function QuickAddPanel({
             <small className="quick-add-panel__date-help">제출·회신 등 실제 마감일이 있을 때만 입력하세요.</small>
           </label>
         )}
-        <label>
+        {!local&&<label>
           <span>영역</span>
           <select
+            disabled={isSaving}
             value={kind === "task" ? task.area : event.area}
             onChange={(changeEvent) => {
               const value = changeEvent.currentTarget.value;
@@ -162,21 +172,21 @@ export function QuickAddPanel({
           >
             {(kind === "task" ? areaOptions : [areaOptions[1], areaOptions[0], areaOptions[2], areaOptions[3]]).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
           </select>
-        </label>
+        </label>}
         {kind === "task" && (
           <>
             <label>
-              <span>업무 카테고리</span>
-              <select value={task.category} onChange={(changeEvent) => {
+              <span>{local?'업무 분류':'업무 카테고리'}</span>
+              <select disabled={isSaving} value={task.category} onChange={(changeEvent) => {
                 const value = changeEvent.currentTarget.value;
                 if (isQuickAddTaskCategory(value)) setTask((current) => ({ ...current, category: value }));
               }}>
-                {categoryOptions.map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+                {(local?[['training','교육'],['studentHealthScreening','검진'],['event','행사'],['officialDocument','보고']]:categoryOptions).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
               </select>
             </label>
             <label>
               <span>우선순위</span>
-              <select value={task.priority} onChange={(changeEvent) => {
+              <select disabled={isSaving} value={task.priority} onChange={(changeEvent) => {
                 const value = changeEvent.currentTarget.value;
                 if (isQuickAddTaskPriority(value)) setTask((current) => ({ ...current, priority: value }));
               }}>
@@ -186,9 +196,10 @@ export function QuickAddPanel({
           </>
         )}
 
-        {authStatus === "signedOut" && <p className="quick-add-panel__auth">저장하려면 Google 계정을 연결해 주세요.</p>}
+        {!local&&authStatus === "signedOut" && <p className="quick-add-panel__auth">저장하려면 Google 계정을 연결해 주세요.</p>}
+        {local&&<p>날짜가 있는 로컬 업무만 저장합니다. 독립 일정·시간 일정·서버 동기화·계정 연결은 지원하지 않습니다.</p>}
         {error !== null && <p className="quick-add-panel__error" role="alert">{error}</p>}
-        <p className="quick-add-panel__helper">상세 기록이나 개인정보가 필요한 내용은 BOGUNON에서 관리하세요.</p>
+        <p className="quick-add-panel__helper">{local?'학생·교직원 개인정보와 건강정보는 입력하지 마세요.':'상세 기록이나 개인정보가 필요한 내용은 BOGUNON에서 관리하세요.'}</p>
         <div className="quick-add-panel__actions">
           <button type="button" disabled={isSaving} onClick={onClose}>취소</button>
           <button className="is-primary" type="submit" disabled={!canSave}>{isSaving ? "저장 중..." : "저장"}</button>

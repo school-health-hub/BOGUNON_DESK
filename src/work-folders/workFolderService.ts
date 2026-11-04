@@ -5,19 +5,7 @@ const unavailable = (): never => {
   throw new Error("업무 폴더는 Tauri 앱에서 사용할 수 있습니다.");
 };
 
-export const filterWorkFolderFavorites = (
-  favorites: readonly WorkFolderFavorite[],
-  query: string,
-): readonly WorkFolderFavorite[] => {
-  const normalized = query.trim().toLocaleLowerCase();
-  if (normalized === "") return [];
-  return favorites.filter((favorite) => {
-    const pathParts = favorite.path.split(/[\\/]/);
-    const basename = pathParts[pathParts.length - 1] ?? "";
-    return favorite.name.toLocaleLowerCase().includes(normalized)
-      || basename.toLocaleLowerCase().includes(normalized);
-  });
-};
+export {filterWorkFolderFavorites} from "./filterWorkFolderFavorites";
 
 export const workFolderService = {
   load: async (): Promise<readonly WorkFolderFavorite[]> => (

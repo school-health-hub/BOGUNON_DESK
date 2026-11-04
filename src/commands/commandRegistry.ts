@@ -64,10 +64,10 @@ const assertNever = (value: never): never => {
   throw new TypeError(`지원하지 않는 command kind: ${String(value)}`);
 };
 
-export const filterCommands = (query: string): readonly CommandDefinition[] => {
+export const filterCommands = (query: string, definitions: readonly CommandDefinition[] = commandDefinitions): readonly CommandDefinition[] => {
   const target = normalized(query);
-  if (target.length === 0) return commandDefinitions;
-  return commandDefinitions.filter((command) => normalized([
+  if (target.length === 0) return definitions;
+  return definitions.filter((command) => normalized([
     command.label,
     command.description,
     ...command.keywords,
