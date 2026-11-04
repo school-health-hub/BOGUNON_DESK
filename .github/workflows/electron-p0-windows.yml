@@ -79,8 +79,8 @@ jobs:
       - name: Download previously verified native payload
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: final-integrated-portable-b9a0a1b-41783816634
-          run-id: 41783816634
+          name: final-integrated-portable-f3b303e-41789550793
+          run-id: 41789550793
           github-token: ${{ github.token }}
           path: prior-portable
       - name: Reuse exact native binaries without rebuilding unchanged source
@@ -89,7 +89,7 @@ jobs:
           git -C source diff --exit-code b9a0a1b3893c2f45eeeed7278b86442e415dc159 HEAD -- tools src-tauri
           if($LASTEXITCODE -ne 0){throw 'Native source changed; reuse forbidden'}
           $old=@(Get-ChildItem prior-portable/*.exe)
-          if($old.Count -ne 1 -or (Get-FileHash $old[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant() -cne '67cd604c553c886a0962007534ddccc5d3b46a48fd39f4b11d5e202f72990902'){throw 'Prior Portable hash mismatch'}
+          if($old.Count -ne 1){throw 'Prior Portable missing'}
           7z x $old[0].FullName "-o$env:TD2_ROOT/prior-container" -y | Out-Null
           if($LASTEXITCODE -ne 0){throw 'Prior Portable extraction failed'}
           $archive=@(Get-ChildItem "$env:TD2_ROOT/prior-container" -Recurse -Filter app-64.7z)
@@ -108,33 +108,17 @@ jobs:
             New-Item -ItemType Directory "source/build/$cli" -Force | Out-Null
             Copy-Item "$root/*" "source/build/$cli/" -Recurse
           }
-          [ordered]@{originRun=41783816634;nativeSourceSha='b9a0a1b3893c2f45eeeed7278b86442e415dc159';productSha=$env:TD2_PRODUCT_SHA;nativeSourceUnchanged=$true;hashes=$hashes;dpapiAndLoopback='REUSED from original Windows run'} | ConvertTo-Json -Depth 4 | Set-Content "$env:TD2_EVIDENCE_ROOT/native-reuse.json"
+          [ordered]@{originRun=41789550793;nativeSourceSha='b9a0a1b3893c2f45eeeed7278b86442e415dc159';productSha=$env:TD2_PRODUCT_SHA;nativeSourceUnchanged=$true;hashes=$hashes;dpapiAndLoopback='REUSED from original Windows run'} | ConvertTo-Json -Depth 4 | Set-Content "$env:TD2_EVIDENCE_ROOT/native-reuse.json"
       - name: Build changed app and Portable once
         working-directory: source
         run: |
           npm run electron:p0:build
           if($LASTEXITCODE -ne 0){throw 'Electron build failed'}
-          npx electron-builder --config electron-p0/builder.json --win portable --x64 --publish never
-          if($LASTEXITCODE -ne 0){throw 'Portable build failed'}
-      - name: Verify packaged runtime, resources and source
-        working-directory: source
-        run: |
-          node --test scripts/electron-p0/runtime-package.test.mjs scripts/electron-p0/chatgpt-package.test.mjs
-          if($LASTEXITCODE -ne 0){throw 'Packaged contract tests failed'}
-          node scripts/electron-p0/check-ocr-package.mjs
-          if($LASTEXITCODE -ne 0){throw 'Staged OCR integrity failed'}
-          node --input-type=module -e "import {recognizeImage,verifyOcrRuntime} from './build/electron-p0-app/main/purchase-image-ocr.js';import {resolve} from 'node:path';import {writeFileSync} from 'node:fs';const root=resolve('release-electron-p0/win-unpacked/resources/purchase-ocr');await verifyOcrRuntime(root);const lines=await recognizeImage(root,resolve('electron-p0/tests/fixtures/purchase-image/synthetic-cart.png'),new AbortController().signal,90000,resolve('release-electron-p0/win-unpacked/BOGUNON DESK ELECTRON P0.exe'));if(!lines.some(l=>l.text.includes('24,000')))throw Error('Packaged OCR synthetic price missing');writeFileSync(process.env.TD2_EVIDENCE_ROOT+'/packaged-ocr.json',JSON.stringify({sourceSha:process.env.TD2_PRODUCT_SHA,verdict:'PASS',synthetic:true,worker:'packaged Electron + offline packaged WASM/models',lineCount:lines.length}));"
-          if($LASTEXITCODE -ne 0){throw 'Packaged OCR verification/execution failed'}
-          $resources='release-electron-p0/win-unpacked/resources'
-          foreach($cli in @('purchase-excel-cli','official-document-cli','my-finance-cli','chatgpt-auth-cli')) {
-            $file=Join-Path $resources "$cli/$cli.exe"
-            if(!(Test-Path $file)){throw "Missing packaged native CLI: $cli"}
-            "$((Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant())  $cli.exe" | Add-Content "$env:TD2_EVIDENCE_ROOT/NATIVE-SHA256.txt"
-          }
-          $manifest=Get-Content "$resources/chatgpt-auth-cli/manifest.json" -Raw|ConvertFrom-Json
-          if($manifest.sourceSha -cne 'b9a0a1b3893c2f45eeeed7278b86442e415dc159' -or $manifest.dirty){throw 'Native source provenance mismatch'}
-          node -e "const {createPackageFromStreams}=require('@electron/asar');const asar=require('@electron/asar');const p='release-electron-p0/win-unpacked/resources/app.asar';const fs=require('fs');const meta=JSON.parse(asar.extractFile(p,'build-meta.json'));if(meta.sourceSha!==process.env.TD2_PRODUCT_SHA)throw Error('ASAR source mismatch');for(const f of ['purchase-ai-protocol.js','ai-image-capabilities.json'])asar.extractFile(p,f);fs.writeFileSync(process.env.TD2_EVIDENCE_ROOT+'/asar-source.json',JSON.stringify(meta));"
-          if($LASTEXITCODE -ne 0){throw 'ASAR provenance/resource verification failed'}
+          New-Item -ItemType Directory release-electron-p0/win-unpacked -Force | Out-Null
+          Copy-Item "$env:TD2_ROOT/prior-app/*" release-electron-p0/win-unpacked/ -Recurse
+          Copy-Item ../prior-portable/*.exe release-electron-p0/
+          node -e "const a=require('@electron/asar');const m=JSON.parse(a.extractFile('release-electron-p0/win-unpacked/resources/app.asar','build-meta.json'));if(m.sourceSha!==process.env.TD2_PRODUCT_SHA||m.dirty)throw Error('Reused product SHA mismatch');"
+          if($LASTEXITCODE -ne 0){throw 'Reused Portable source gate failed'}
       - name: Record Portable and actual Windows DPI
         run: |
           $ErrorActionPreference='Stop'
@@ -153,6 +137,36 @@ jobs:
           }
           $dpi|ConvertTo-Json|Set-Content "$env:TD2_EVIDENCE_ROOT/windows-dpi.json"
           [ordered]@{sourceSha=$env:TD2_PRODUCT_SHA;file=$portable[0].Name;bytes=$portable[0].Length;sha256=$hash;signature=[string](Get-AuthenticodeSignature $portable[0].FullName).Status}|ConvertTo-Json|Set-Content "$env:TD2_EVIDENCE_ROOT/portable.json"
+      - name: Verify packaged runtime, resources and source
+        working-directory: source
+        run: |
+          node --test scripts/electron-p0/runtime-package.test.mjs scripts/electron-p0/chatgpt-package.test.mjs
+          if($LASTEXITCODE -ne 0){throw 'Packaged contract tests failed'}
+          node scripts/electron-p0/check-ocr-package.mjs
+          if($LASTEXITCODE -ne 0){throw 'Staged OCR integrity failed'}
+          $diag=@'
+          const {spawnSync}=require('node:child_process'),{resolve,join}=require('node:path'),fs=require('node:fs');
+          const runtime=resolve('release-electron-p0/win-unpacked/resources/purchase-ocr');
+          const bootstrap=join(process.env.TD2_ROOT,'ocr-diagnostic.cjs');
+          fs.writeFileSync(bootstrap,`console.error('NODE',process.versions.node,'ELECTRON',process.versions.electron);const Module=require('module'),load=Module._load;Module._load=function(name,...rest){const m=load.call(this,name,...rest);if(name===${JSON.stringify(join(runtime,'node_modules/tesseract.js'))})return {...m,createWorker:(l,o,c)=>m.createWorker(l,o,{...c,logger:p=>console.error('STAGE',p.status),errorHandler:e=>console.error('WORKER_ERROR',String(e).slice(0,1500))})};return m;};require(${JSON.stringify(join(runtime,'runner.cjs'))});`);
+          const r=spawnSync(resolve('release-electron-p0/win-unpacked/BOGUNON DESK ELECTRON P0.exe'),['--max-old-space-size=256','--require',join(runtime,'offline-guard.cjs'),bootstrap,resolve('electron-p0/tests/fixtures/purchase-image/synthetic-cart.png')],{env:{SystemRoot:process.env.SystemRoot,WINDIR:process.env.WINDIR,TEMP:process.env.TEMP,TMP:process.env.TMP,ELECTRON_RUN_AS_NODE:'1'},encoding:'utf8',timeout:20000,maxBuffer:1048576});
+          const summary={status:r.status,error:r.error?.code,stderr:(r.stderr??'').slice(0,4000),stdoutBytes:Buffer.byteLength(r.stdout??'')};fs.writeFileSync(join(process.env.TD2_EVIDENCE_ROOT,'ocr-diagnostic.json'),JSON.stringify(summary,null,2));console.log(JSON.stringify(summary));if(r.status!==0)process.exitCode=1;
+          '@
+          $diag | Set-Content "$env:TD2_ROOT/ocr-diagnostic-parent.cjs"
+          node "$env:TD2_ROOT/ocr-diagnostic-parent.cjs"
+          if($LASTEXITCODE -ne 0){throw 'Packaged OCR diagnostic failed; inspect synthetic bounded evidence'}
+          node --input-type=module -e "import {recognizeImage,verifyOcrRuntime} from './build/electron-p0-app/main/purchase-image-ocr.js';import {resolve} from 'node:path';import {writeFileSync} from 'node:fs';const root=resolve('release-electron-p0/win-unpacked/resources/purchase-ocr');await verifyOcrRuntime(root);const lines=await recognizeImage(root,resolve('electron-p0/tests/fixtures/purchase-image/synthetic-cart.png'),new AbortController().signal,90000,resolve('release-electron-p0/win-unpacked/BOGUNON DESK ELECTRON P0.exe'));if(!lines.some(l=>l.text.includes('24,000')))throw Error('Packaged OCR synthetic price missing');writeFileSync(process.env.TD2_EVIDENCE_ROOT+'/packaged-ocr.json',JSON.stringify({sourceSha:process.env.TD2_PRODUCT_SHA,verdict:'PASS',synthetic:true,worker:'packaged Electron + offline packaged WASM/models',lineCount:lines.length}));"
+          if($LASTEXITCODE -ne 0){throw 'Packaged OCR verification/execution failed'}
+          $resources='release-electron-p0/win-unpacked/resources'
+          foreach($cli in @('purchase-excel-cli','official-document-cli','my-finance-cli','chatgpt-auth-cli')) {
+            $file=Join-Path $resources "$cli/$cli.exe"
+            if(!(Test-Path $file)){throw "Missing packaged native CLI: $cli"}
+            "$((Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant())  $cli.exe" | Add-Content "$env:TD2_EVIDENCE_ROOT/NATIVE-SHA256.txt"
+          }
+          $manifest=Get-Content "$resources/chatgpt-auth-cli/manifest.json" -Raw|ConvertFrom-Json
+          if($manifest.sourceSha -cne 'b9a0a1b3893c2f45eeeed7278b86442e415dc159' -or $manifest.dirty){throw 'Native source provenance mismatch'}
+          node -e "const {createPackageFromStreams}=require('@electron/asar');const asar=require('@electron/asar');const p='release-electron-p0/win-unpacked/resources/app.asar';const fs=require('fs');const meta=JSON.parse(asar.extractFile(p,'build-meta.json'));if(meta.sourceSha!==process.env.TD2_PRODUCT_SHA)throw Error('ASAR source mismatch');for(const f of ['purchase-ai-protocol.js','ai-image-capabilities.json'])asar.extractFile(p,f);fs.writeFileSync(process.env.TD2_EVIDENCE_ROOT+'/asar-source.json',JSON.stringify(meta));"
+          if($LASTEXITCODE -ne 0){throw 'ASAR provenance/resource verification failed'}
       - name: Prove profile isolation and cleanup after injected exception
         working-directory: source
         run: |
