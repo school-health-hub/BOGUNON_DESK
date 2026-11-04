@@ -1,7 +1,7 @@
 /* Electron-only theme: no layout IDs, persisted appearance enums or business styles changed. */
-.electron-soft-rose{--rose-glass:rgb(255 253 253 / 86%);--rose-rim:rgb(233 221 226 / 90%);--rose-blur:12px;--rose-opaque:#fffdfd;--rose-top:64px;--rose-gap:12px}
-.electron-soft-rose .workspace-shell,.electron-soft-rose .rose-dialog{--desk-bg:#fff8fa;--workspace-bg:#fff8fa;--widget-bg:#fffdfd;--text-primary:#243246;--text-secondary:#626874;--text-muted:#626874;--border:#e9dde2;--divider:#e9dde2;--accent:#8a3f5b;--accent-hover:#713149;--accent-soft:#f7dce4;--control-border:#8a7680;--accent-border:#8a7680;color:#243246;background:#fff8fa}
-.electron-soft-rose .workspace-shell.bg-blue-gray{background:#fff8fa}
+.electron-soft-rose{--rose-glass:linear-gradient(145deg,rgb(255 255 255 / 82%),rgb(255 246 250 / 68%));--rose-rim:rgb(255 255 255 / 70%);--rose-blur:18px;--rose-opaque:#fff9fb;--rose-top:64px;--rose-gap:12px;--rose-contact-shadow:0 2px 5px rgb(77 41 58 / 12%);--rose-float-shadow:0 18px 42px rgb(75 40 62 / 20%);--rose-top-highlight:inset 0 1px 0 rgb(255 255 255 / 88%);--rose-desktop:radial-gradient(circle at 12% 8%,rgb(255 223 232 / 72%) 0,transparent 34%),radial-gradient(circle at 88% 86%,rgb(180 130 158 / 32%) 0,transparent 38%),linear-gradient(138deg,#d9a9b8 0%,#bd8299 48%,#8f6078 100%)}
+.electron-soft-rose .workspace-shell,.electron-soft-rose .rose-dialog{--desk-bg:#c991a5;--workspace-bg:#c991a5;--widget-bg:#fff9fb;--text-primary:#243246;--text-secondary:#626874;--text-muted:#626874;--border:rgb(255 255 255 / 62%);--divider:rgb(128 83 104 / 18%);--accent:#8a3f5b;--accent-hover:#713149;--accent-soft:#f7dce4;--control-border:#8a7680;--accent-border:#8a7680;color:#243246}
+.electron-soft-rose .workspace-shell.bg-blue-gray{background:var(--rose-desktop)}
 .electron-soft-rose .workspace-shell{padding-top:76px;padding-bottom:120px}
 .electron-soft-rose .rose-surface-header{position:absolute;top:12px;left:24px;right:24px;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;padding-right:240px;color:#243246;font-size:15px;min-height:40px}
 .electron-soft-rose .rose-surface-header span{font-size:12px;color:#626874}
@@ -39,18 +39,18 @@
 @media(max-width:1050px){.electron-soft-rose .rose-surface-header{padding-right:190px;font-size:14px}.electron-soft-rose .rose-surface-header span{max-width:420px}.electron-soft-rose .workspace-shell{padding-top:100px}.electron-soft-rose .rose-settings{grid-template-columns:100px minmax(0,1fr);gap:16px}}
 @media(max-height:740px){.electron-soft-rose .rose-overlay{padding:16px}.electron-soft-rose .rose-dialog{max-height:calc(100dvh - 32px)}.electron-soft-rose .rose-dialog-header{padding:12px 20px}.electron-soft-rose .rose-dialog-content{padding:20px}}
 
-.electron-soft-rose{background:#fff8fa}
+.electron-soft-rose{background:#9a667e}
 .electron-soft-rose .workspace-shell::after{background:none}
-.electron-soft-rose .workspace-shell.bg-white{background:#fffdfd}
-.electron-soft-rose .workspace-shell.bg-warm-gray{background:#faf6f2}
-.electron-soft-rose .workspace-shell.bg-mint{background:#f0f8f5}
-.electron-soft-rose .workspace-shell.bg-lavender{background:#f7f3fb}
+.electron-soft-rose .workspace-shell.bg-white{background:radial-gradient(circle at 18% 10%,rgb(255 226 235 / 72%),transparent 38%),linear-gradient(145deg,#efd5de,#c99aab 58%,#a9788f)}
+.electron-soft-rose .workspace-shell.bg-warm-gray{background:radial-gradient(circle at 15% 10%,rgb(255 232 224 / 66%),transparent 38%),linear-gradient(145deg,#e7c9c5,#c89a9c 58%,#9f747f)}
+.electron-soft-rose .workspace-shell.bg-mint{background:radial-gradient(circle at 15% 10%,rgb(232 255 248 / 65%),transparent 38%),linear-gradient(145deg,#c7e0d8,#a9c3bd 56%,#7e9b9a)}
+.electron-soft-rose .workspace-shell.bg-lavender{background:radial-gradient(circle at 15% 10%,rgb(247 233 255 / 68%),transparent 38%),linear-gradient(145deg,#dbc6e4,#b59aba 56%,#89758f)}
 .electron-soft-rose .workspace-shell :is(.widget-frame.is-viewing,.widget-frame.is-editing){background:#fffdfd;border:1px solid #e9dde2;border-radius:18px;box-shadow:0 3px 12px #24324608;backdrop-filter:none}
 .electron-soft-rose .workspace-shell.card-flat .widget-frame{box-shadow:none}
 .electron-soft-rose .workspace-shell.card-soft .widget-frame{box-shadow:0 5px 18px #24324612}
 .electron-soft-rose .workspace-shell.corner-compact .widget-frame{border-radius:12px}
-.electron-soft-rose .workspace-shell :is(.workspace-view-actions,.dock){background:#fffdfd;border-color:#e9dde2;backdrop-filter:none;-webkit-backdrop-filter:none}
-.electron-soft-rose .workspace-shell .dock__icon{background:transparent;color:inherit}
+.electron-soft-rose .workspace-shell :is(.workspace-view-actions,.dock){background:linear-gradient(145deg,rgb(255 255 255 / 68%),rgb(255 235 243 / 52%));border-color:rgb(255 255 255 / 66%);box-shadow:var(--rose-top-highlight),var(--rose-contact-shadow),0 16px 38px rgb(72 38 57 / 24%);backdrop-filter:blur(20px) saturate(135%);-webkit-backdrop-filter:blur(20px) saturate(135%)}
+.electron-soft-rose .workspace-shell .dock__icon{color:inherit;border:1px solid rgb(255 255 255 / 62%);box-shadow:inset 0 1px 0 rgb(255 255 255 / 82%),0 4px 9px rgb(72 38 57 / 16%)}
 .electron-soft-rose .workspace-shell .dock__active-indicator{background:#8a3f5b}
 .electron-soft-rose .workspace-shell .workspace-view-actions{top:12px;right:24px}
 .electron-soft-rose .workspace-shell .workspace-dashboard{min-height:0;scroll-padding-bottom:120px}
@@ -113,8 +113,13 @@
 .electron-soft-rose .workspace-shell .dock-zone{position:static;inset:auto;width:max-content;max-width:calc(100% - 32px);margin:0 auto 10px;transform:none}
 .electron-soft-rose .rose-surface-header{column-gap:14px}
 .electron-soft-rose .rose-surface-header span{line-height:1.5;overflow-wrap:anywhere}
-.electron-soft-rose .workspace-shell:is(.is-view-mode,.is-edit-mode) .react-grid-item[data-widget-type] .widget-frame:is(.is-viewing,.is-editing){background:var(--rose-glass);border-color:var(--rose-rim);backdrop-filter:blur(var(--rose-blur));-webkit-backdrop-filter:blur(var(--rose-blur))}
-.electron-soft-rose .workspace-shell :is(.workspace-view-actions,.dock){background:var(--rose-glass);backdrop-filter:blur(var(--rose-blur));-webkit-backdrop-filter:blur(var(--rose-blur))}
+.electron-soft-rose .workspace-shell:is(.is-view-mode,.is-edit-mode) .react-grid-item[data-widget-type] .widget-frame:is(.is-viewing,.is-editing){background:var(--rose-glass);border-color:var(--rose-rim);box-shadow:var(--rose-top-highlight),var(--rose-contact-shadow),var(--rose-float-shadow);backdrop-filter:blur(var(--rose-blur)) saturate(132%);-webkit-backdrop-filter:blur(var(--rose-blur)) saturate(132%)}
+.electron-soft-rose .workspace-shell .react-grid-item[data-widget-type=weather] .widget-frame:is(.is-viewing,.is-editing){background:linear-gradient(145deg,rgb(255 255 255 / 68%),rgb(233 216 231 / 62%));border-color:rgb(255 255 255 / 72%)}
+.electron-soft-rose .workspace-shell .react-grid-item[data-widget-type=quick-memo] .widget-frame:is(.is-viewing,.is-editing){background:linear-gradient(145deg,rgb(255 253 239 / 84%),rgb(255 235 228 / 70%));border-color:rgb(255 247 224 / 76%)}
+.electron-soft-rose .workspace-shell :is(.workspace-view-actions,.dock){backdrop-filter:blur(20px) saturate(135%);-webkit-backdrop-filter:blur(20px) saturate(135%)}
+.electron-soft-rose .workspace-shell .dock{padding:7px 10px;border-radius:20px}
+.electron-soft-rose .workspace-shell .dock button{border-radius:12px;transition:color 140ms ease-out,background-color 140ms ease-out,transform 140ms ease-out}
+.electron-soft-rose .workspace-shell .dock button:hover{transform:translateY(-2px)}
 .electron-soft-rose .workspace-shell .widget-frame__body{min-width:0;min-height:0;scrollbar-width:thin}
 .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .calendar-grid{min-height:240px}
 .electron-soft-rose .workspace-shell .widget-frame__body :is(.panel__title,.task-title,.upcoming-list p,.dday-list span,.week-grid article p){min-width:0;word-break:keep-all;overflow-wrap:anywhere}
@@ -135,6 +140,18 @@
 .electron-soft-rose .rose-dialog-header>button{flex-shrink:0}
 @supports not (backdrop-filter:blur(1px)){.electron-soft-rose{--rose-glass:var(--rose-opaque)}}
 @media(prefers-reduced-transparency:reduce){.electron-soft-rose{--rose-glass:var(--rose-opaque);--rose-blur:0px}}
+@media(max-width:1300px) and (min-width:901px) and (max-height:820px){
+ .electron-soft-rose .workspace-shell .widget-frame__body>:is(.panel,.widget-surface){box-sizing:border-box}
+ .electron-soft-rose .workspace-shell .react-grid-item[data-widget-type=today-summary] .summary-card{padding-block:6px}
+ .electron-soft-rose .workspace-shell .react-grid-item[data-widget-type=monthly-calendar] .calendar-panel{overflow:hidden}
+ .electron-soft-rose .workspace-shell .react-grid-item[data-widget-type=monthly-calendar] .calendar-grid{min-height:217px}
+ .electron-soft-rose .workspace-shell .react-grid-item[data-widget-type=quick-memo] fieldset{box-sizing:border-box;height:auto!important;overflow:visible!important}
+ .electron-soft-rose .workspace-shell .react-grid-item[data-widget-type=quick-memo] .quick-memo-editor.is-widget textarea{min-height:46px}
+ .electron-soft-rose .workspace-shell .react-grid-item[data-widget-type=quick-launcher] .quick-launcher{overflow:hidden;padding-block:4px}
+ .electron-soft-rose .workspace-shell .react-grid-item[data-widget-type=quick-launcher] .quick-launcher__actions{gap:2px}
+ .electron-soft-rose .workspace-shell .react-grid-item[data-widget-type=quick-launcher] .quick-launcher__actions>button{min-height:32px;padding-block:2px}
+ .electron-soft-rose .workspace-shell .is-dense-desk .quick-launcher__folders{flex-shrink:0;overflow:visible;padding-top:0}
+}
 @media(max-width:820px){
  .electron-soft-rose{--rose-top:92px}
  .electron-soft-rose .rose-surface-header{left:16px;right:16px;padding-right:0;top:50px;min-height:32px;font-size:13px}

@@ -3,12 +3,33 @@
 ## OPTION C — Electron Soft Rose usability
 
 - Preserve saved widget coordinates, sizes, visibility, appearance IDs and all data contracts.
-- Electron-only material tokens: rose glass `rgb(255 253 253 / 86%)`, rim `rgb(233 221 226 / 90%)`, blur `12px`, ink `#243246`, secondary `#626874`; opaque fallback `#fffdfd`.
+- Electron-only material tokens: warm translucent glass gradient, white rim `rgb(255 255 255 / 70%)`, blur `18px`, ink `#243246`, secondary `#626874`; opaque fallback `#fff9fb`.
 - This is compositing inside an ordinary Electron window, not desktop transparency or WorkerW attachment.
-- Reserve separate dashboard and Dock rows at every viewport size. Dashboard owns workspace scrolling; widget overflow remains available for dense content. The compact header reserves 64px (92px below 820 CSS px), edit controls 116px.
+- Reserve separate dashboard and Dock rows at every viewport size. Dashboard owns workspace scrolling; dense content may scroll only where the widget contract explicitly requires it, never as a 1280×800 layout workaround. The compact header reserves 64px (92px below 820 CSS px), edit controls 116px.
 - Existing Flat style and `prefers-reduced-transparency: reduce` disable backdrop blur and use the opaque fallback. No new persisted appearance settings.
 - Modal settings sit above nonmodal work panels. Header/close stays reachable, content scrolls, narrow category navigation wraps. Keyboard focus remains inside the active modal and returns to its visible invoker.
 - Validate 980×700 and 1440×900 content viewports, plus 125%/150% Electron zoom. Zoom is a renderer accessibility simulation, not proof of Windows OS DPI transitions.
+
+### TD2 Soft Rose Glass — approved Electron P0 standard
+
+- This is the formally approved visual standard for the Electron P0 dashboard. The approval covers the rendered design at 1280×800 and 1440×900; it does not constitute Windows Portable or OS-level DPI approval.
+- The approved visual reference is a desktop of distinct frosted objects over a visibly tonal backdrop. BOGUNON translates that depth into rose and mauve rather than copying the reference's teal palette.
+- The desktop backdrop uses a restrained diagonal plum-to-dusty-rose gradient with two soft ambient highlights. It must remain light enough for a daytime work surface while providing enough chroma and value contrast for translucent panels to read as glass.
+- Default widget glass uses a translucent warm-white gradient, an upper white highlight, a cool-rose rim, 18px backdrop blur with mild saturation, and two-part shadows: a tight contact shadow plus a broad mauve cast shadow.
+- Work-heavy widgets retain the highest opacity. Information widgets may be slightly clearer, while memo and weather keep their existing semantic tints. Text contrast remains based on ink `#243246` and muted ink `#626874`.
+- The Dock is a single raised glass shelf. Icon tiles keep their existing action identities but add a contained highlight and contact shadow; permanent labels are not introduced.
+- Flat appearance and reduced-transparency preferences continue to use an opaque fallback. Material changes must not alter saved grid geometry, widget IDs, Electron IPC, QA isolation, or native attachment policy.
+- The 1280×800 layout must keep calendar, memo, quick-launcher actions, and Dock controls reachable without reintroducing card-internal scrolling. The 1440×900 composition must retain its approved spacing and visual balance.
+
+#### Prohibited visual regressions
+
+- Do not return to a flat white or pale-pink page background or opaque white web-dashboard cards.
+- Do not remove the frosted-glass blur, translucent rim, upper highlight, layered shadow, or raised glass Dock treatment.
+- Do not turn the Dock into a plain text-button list or silently change the approved rose/mauve palette, card spacing, or shadow hierarchy.
+- Do not solve small-screen layout pressure by hiding work content, excessively shrinking text, or restoring nested card scrollbars.
+- Preserve existing widget functions and identities whenever the material or responsive layout is changed.
+
+The approved screenshots and their SHA-256 inventory are recorded in [`docs/evidence/td2-soft-rose-glass/MANIFEST.md`](docs/evidence/td2-soft-rose-glass/MANIFEST.md). The third-party TD2 reference remains outside the repository because redistribution rights have not been established.
 
 ## Desktop Surface Mode
 
