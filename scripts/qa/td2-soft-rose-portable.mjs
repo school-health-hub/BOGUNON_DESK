@@ -234,9 +234,9 @@ try{
   await choose(Object.values(paths));await page.getByRole('button',{name:'활동보고서 파일 추가',exact:true}).click();
   await page.getByText('5개 보고서',{exact:true}).waitFor({state:'visible',timeout:45000});
   await page.getByRole('alert',{name:'가져오지 못한 파일'}).waitFor({state:'visible'});
-  await page.locator('.record-helper-workspace__list').getByText('synthetic.pdf',{exact:true}).click();await page.getByLabel('학생 구분',{exact:true}).fill('합성A');await page.getByLabel('교사 메모/관찰 내용',{exact:true}).fill('RECORD_QA_TRANSIENT_A');
-  await page.locator('.record-helper-workspace__list').getByText('synthetic.docx',{exact:true}).click();await page.getByLabel('학생 구분',{exact:true}).fill('합성B');await page.getByLabel('교사 메모/관찰 내용',{exact:true}).fill('RECORD_QA_TRANSIENT_B');
-  await page.locator('.record-helper-workspace__list').getByText('synthetic.pdf',{exact:true}).click();if(await page.getByLabel('교사 메모/관찰 내용',{exact:true}).inputValue()!=='RECORD_QA_TRANSIENT_A')throw Error('Student workspace isolation failed');
+  await page.locator('.record-helper-workspace__list').getByText('synthetic.pdf',{exact:true}).click();await page.getByLabel('학생 구분',{exact:true}).fill('합성A');await page.locator('.record-helper-detail__memo textarea').fill('RECORD_QA_TRANSIENT_A');
+  await page.locator('.record-helper-workspace__list').getByText('synthetic.docx',{exact:true}).click();await page.getByLabel('학생 구분',{exact:true}).fill('합성B');await page.locator('.record-helper-detail__memo textarea').fill('RECORD_QA_TRANSIENT_B');
+  await page.locator('.record-helper-workspace__list').getByText('synthetic.pdf',{exact:true}).click();if(await page.locator('.record-helper-detail__memo textarea').inputValue()!=='RECORD_QA_TRANSIENT_A')throw Error('Student workspace isolation failed');
   await page.getByRole('button',{name:'ChatGPT 요금제로 초안 작성',exact:true}).click();const approval=page.getByRole('dialog',{name:'AI 전송 내용 확인'});await approval.waitFor({state:'visible'});
   if(!(await approval.getByLabel('비식별 활동보고서').isVisible())||!(await approval.getByRole('button',{name:'확인 후 전송'}).isVisible()))throw Error('AI review gate missing');
   await approval.getByRole('button',{name:'취소',exact:true}).first().click();
