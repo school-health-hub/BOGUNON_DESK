@@ -36,12 +36,13 @@ const result={
 
 const isolatedAppData=join(qaRoot,'appdata'),isolatedLocalAppData=join(qaRoot,'localappdata');
 await mkdir(isolatedAppData,{recursive:true});await mkdir(isolatedLocalAppData,{recursive:true});
-const child=spawn(executable,[`--remote-debugging-port=${port}`],{
+const launch=()=>spawn(executable,[`--remote-debugging-port=${port}`],{
   cwd:process.cwd(),
   env:{...process.env,APPDATA:isolatedAppData,LOCALAPPDATA:isolatedLocalAppData,ELECTRON_P0_TEST_RUN:qaRun,ELECTRON_P0_QA_ROOT:qaRoot,ELECTRON_P0_DEV_URL:''},
   stdio:['ignore','pipe','pipe'],
   windowsHide:false,
 });
+let child=launch();
 child.stdout.on('data',chunk=>process.stdout.write(chunk));
 child.stderr.on('data',chunk=>process.stderr.write(chunk));
 
@@ -165,12 +166,36 @@ try{
   // Read-only packaged IPC checks: never sign in or make provider requests.
   result.packagedIpc=await page.evaluate(async()=>{
     const w=window.electronWork;
-    const calls={finder:()=>w.educationVideo.searchProvider.status(),ai:()=>w.ai.status(),inventory:()=>w.inventory.load(),school:()=>w.school.load(),admin:()=>w.admin.load(),purchaseAi:()=>w.purchase.images.ai.connections()};
+    const calls={chatgpt:()=>w.chatgpt.status(),finance:()=>w.finance.status(),finder:()=>w.educationVideo.searchProvider.status(),ai:()=>w.ai.status(),inventory:()=>w.inventory.load(),school:()=>w.school.load(),admin:()=>w.admin.load(),purchaseAi:()=>w.purchase.images.ai.connections()};
     const out={};
     for(const [name,call] of Object.entries(calls)){const r=await call();if(!r.ok)throw Error('Packaged IPC failed: '+name);out[name]='PASS (status/load only; no service calls)';}
     return out;
   });
   result.moduleButtons=await dock.getByRole('button').allTextContents();
+  result.moduleGui={};
+  const reset=async()=>{await page.reload();await dock.waitFor({state:'visible'});};
+  const modules=[['school-admin','학교 행정 업무 도우미'],['finance','MY FINANCE · 암호화 로컬'],['purchase','품의 도우미 · 세션 전용'],['finder','교육영상 Finder · 합성 Mock'],['official','공문작업실 · 로컬 초안'],['inventory','물품관리 — 로컬 저장']];
+  for(const [name,label] of modules){
+    try{await reset();await dock.getByRole('button',{name:'업무 도구',exact:true}).click();await page.getByRole('button',{name:label,exact:true}).click({timeout:10000});await page.waitForTimeout(1000);await page.screenshot({path:join(screenshots,`module-${name}.png`)});result.moduleGui[name]='PASS: opened and captured only; remaining functional flows NOT RUN';}
+    catch{result.moduleGui[name]='FAIL: could not open/capture';}
+  }
+  await reset();
+  const synthetic=await page.evaluate(async()=>{
+    const w=window.electronWork;const current=await w.inventory.load();if(!current.ok||current.data.document!==null)throw Error('Expected empty isolated inventory');
+    const doc={version:1,items:[{itemId:'qa-item',name:'합성 QA 물품',baseUnit:'개',recommendedStock:2}],lots:[],movements:[],updatedAt:new Date().toISOString()};
+    const save=await w.inventory.save(doc,null);if(!save.ok)throw Error('Synthetic inventory save failed');return save.data.document.updatedAt;
+  });
+  result.inventoryPersistence='saved; restart pending';
+  await closeBrowser();await waitForWrapperExit();await browser.close();browser=undefined;browserSession=undefined;
+  result.shutdown.browserCloseSent=false;child=launch();child.stdout.on('data',()=>{});child.stderr.on('data',()=>{});
+  await waitForCdp();browser=await chromium.connectOverCDP(`http://127.0.0.1:${port}`);browserSession=await browser.newBrowserCDPSession();
+  const restoredPage=browser.contexts()[0].pages().find(p=>p.url().startsWith('file:'));
+  await restoredPage.waitForLoadState('domcontentloaded');
+  await restoredPage.waitForFunction(()=>!!window.electronWork);
+  const restored=await restoredPage.evaluate(async()=>{const info=await window.electronP0.info();const r=await window.electronWork.inventory.load();return {userData:info.userData,ok:r.ok&&r.data.document?.items.some(i=>i.itemId==='qa-item')};});
+  if(!restored.ok||restored.userData!==result.actualUserData)throw Error('Isolated inventory restart failed');
+  result.inventoryPersistence='PASS: synthetic item saved and restored across actual Portable restart';
+
   await closeBrowser();
   await waitForWrapperExit();
   result.shutdown.wrapperExited=true;
