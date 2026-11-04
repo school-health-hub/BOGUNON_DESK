@@ -18,7 +18,9 @@
     "renderer/**",
     "build-meta.json",
     "package.json",
-    "tray.png"
+    "tray.png",
+    "purchase-ai-protocol.js",
+    "ai-image-capabilities.json"
   ],
   "asar": true,
   "npmRebuild": false,

@@ -58,7 +58,10 @@ export async function generateAiText(fetcher:AiFetch,provider:AiProvider,key:str
  const url=provider==='openai'?'https://api.openai.com/v1/responses':`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
  // Responses reasoning models can reject temperature. Leave provider default for OpenAI.
  const body=provider==='openai'?{model,input:prompt}:{contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.2}};
- const result=await aiJson(fetcher,url,provider,key,signal,body);if(!object(result))throw new AiError(AI_ERROR.invalid);
+ const result=await aiJson(fetcher,url,provider,key,signal,body);return extractAiText(provider,result);
+}
+export function extractAiText(provider:AiProvider,result:unknown):string{
+ if(!object(result))throw new AiError(AI_ERROR.invalid);
  let texts:unknown[]=[];
  if(provider==='openai'){
   if(result.error||result.status&&result.status!=='completed'||!Array.isArray(result.output))throw new AiError(AI_ERROR.invalid);

@@ -12,7 +12,7 @@ Main. The only intermediate event is an authorization URL; Main validates it and
 the system browser. Neither this event nor tokens enter Renderer. All error output is
 replaced with fixed codes. Token echoes in public results are rejected inside Rust.
 
-Actions: state, signIn, models, generate, acknowledge, disconnect. Unknown fields and
+Actions: state, signIn, models, generate, generateImages, acknowledge, disconnect. Unknown fields and
 actions fail closed. Generate binds the hashed registration identity, checks current
 account models and granted direct-plan scope and requires response.completed. Main
 confirms tool/model/prompt before generation. No API-key fallback or automatic retries.
@@ -20,7 +20,8 @@ confirms tool/model/prompt before generation. No API-key fallback or automatic r
 Storage: Electron-only work-data/chatgpt, original DPAPI user-scope encrypted registration
 and credential formats; stable opaque host ID. No Tauri data read/import. A saved
 registration binds one user/workspace; reauthentication with a different identity is
-rejected. Multiple saved ChatGPT accounts and image requests are not implemented here.
+rejected. Multiple saved ChatGPT accounts are not implemented. Purchase image requests use the
+separate bounded generateImages adapter; the original OAuth/DPAPI/text core is unchanged.
 Selected model and successful-call indicator are session-local and reset on restart.
 OpenAI/Gemini remain the existing single active API connection, independent of ChatGPT.
 

@@ -9,17 +9,23 @@ import type {IpcResult} from '../protocol.js';
 type Event=Parameters<typeof assertSender>[0];
 type Owned=ImageSelection&{root:string;paths:readonly string[];controller:AbortController;result?:ImageAnalysis;resultKey?:string;previewWork?:Promise<void>;running?:Promise<IpcResult<ImageAnalysis|null>>};
 type Decoder=(bytes:Buffer)=>{width:number;height:number;png:Buffer;thumbnail:string;perceptualHash?:string};
-export function createImageImportHandlers(contents:Parameters<typeof assertSender>[1],url:string,deps:{select:()=>Promise<readonly string[]|undefined>;tempRoot:string;decode:Decoder;recognize:(path:string,signal:AbortSignal,options?:ImageOcrOptions)=>Promise<readonly OcrLine[]>;ready:()=>Promise<void>;preview?:(bytes:Buffer,region:ImageBox)=>string}){
+export function createImageImportHandlers(contents:Parameters<typeof assertSender>[1],url:string,deps:{select:()=>Promise<readonly string[]|undefined>;tempRoot:string;decode:Decoder;recognize:(path:string,signal:AbortSignal,options?:ImageOcrOptions)=>Promise<readonly OcrLine[]>;ready:()=>Promise<void>;onInvalidate?:()=>void;preview?:(bytes:Buffer,region:ImageBox)=>string}){
  let generation=0,picking=false,current:Owned|undefined,pickingWork:Promise<void>|undefined;const cleanup=new Set<Promise<void>>();
  const allowed=(e:Event)=>{try{assertSender(e,contents,url);return true;}catch{return false;}};
  const fail=(code:'FORBIDDEN'|'INVALID_INPUT'|'INTERNAL_ERROR',message='이미지를 분석하지 못했습니다. 기존 구매 품목은 보존했습니다.'):IpcResult<never>=>({ok:false,error:{code,message,retryable:code==='INTERNAL_ERROR'}});
- const dispose=()=>{generation++;const old=current;current=undefined;if(old){old.controller.abort();const task=Promise.all([old.running,old.previewWork]).catch(()=>{}).then(()=>rm(old.root,{recursive:true,force:true,maxRetries:3,retryDelay:100})).catch(()=>{});cleanup.add(task);void task.finally(()=>cleanup.delete(task));}};
- return {dispose,flush:async()=>{await Promise.all([pickingWork,...cleanup]);},
+ const dispose=()=>{deps.onInvalidate?.();generation++;const old=current;current=undefined;if(old){old.controller.abort();const task=Promise.all([old.running,old.previewWork]).catch(()=>{}).then(()=>rm(old.root,{recursive:true,force:true,maxRetries:3,retryDelay:100})).catch(()=>{});cleanup.add(task);void task.finally(()=>cleanup.delete(task));}};
+ return {dispose,
+  isCurrent:(token:string)=>current?.token===token,
+  readSource:async(token:string,sourceId:string)=>{
+   const owned=current,gen=generation;if(!owned||owned.token!==token||owned.running||owned.previewWork)throw Error('Invalid image session');const index=owned.sources.findIndex(s=>s.id===sourceId);if(index<0)throw Error('Invalid source');
+   let done!:()=>void;owned.previewWork=new Promise<void>(resolve=>{done=resolve;});
+   try{const meta=await lstat(owned.paths[index]);if(!meta.isFile()||meta.isSymbolicLink()||meta.size>48*1024*1024)throw Error('Invalid source');const bytes=await readFile(owned.paths[index]);if(bytes.length>48*1024*1024||gen!==generation)throw Error('Stale source');return {source:owned.sources[index],bytes};}finally{done();owned.previewWork=undefined;}
+  },flush:async()=>{await Promise.all([pickingWork,...cleanup]);},
   cancel:async(e:Event,...args:unknown[]):Promise<IpcResult<null>>=>{if(!allowed(e))return fail('FORBIDDEN');if(args.length)return fail('INVALID_INPUT');dispose();return {ok:true,data:null};},
   pick:async(e:Event,...args:unknown[]):Promise<IpcResult<ImageSelection|null>>=>{
    if(!allowed(e))return fail('FORBIDDEN');if(args.length||picking)return fail('INVALID_INPUT');dispose();picking=true;let finish!:()=>void;const operation=new Promise<void>(resolve=>{finish=resolve;});pickingWork=operation;const gen=generation;let root:string|undefined;
    try{
-    try{await deps.ready();}catch{throw Error('오프라인 OCR 구성파일을 찾거나 검증하지 못했습니다. 앱 패키지를 확인해 주세요.');}if(gen!==generation)return {ok:true,data:null};
+    if(gen!==generation)return {ok:true,data:null};
     const selected=await deps.select();if(gen!==generation||!allowed(e)||!selected?.length)return {ok:true,data:null};
     if(selected.length>LIMIT.files)throw Error('최대 10장까지 선택할 수 있습니다.');
     root=await mkdtemp(join(deps.tempRoot,'bogunon-purchase-images-'));const sources=[],paths=[];let total=0;
@@ -52,7 +58,7 @@ export function createImageImportHandlers(contents:Parameters<typeof assertSende
    if(!allowed(e))return fail('FORBIDDEN');const request=args[0] as {token?:unknown;settings?:unknown};
    if(args.length!==1||!request||typeof request!=='object'||!['token','settings,token'].includes(Object.keys(request).sort().join(','))||!current||request.token!==current.token)return fail('INVALID_INPUT');
    const owned=current,gen=generation;let settings;try{settings=processingSettings(request.settings,owned.sources);}catch{return fail('INVALID_INPUT');}const resultKey=JSON.stringify(settings);if(owned.running)return fail('INVALID_INPUT');if(owned.result&&owned.resultKey===resultKey)return {ok:true,data:owned.result};owned.result=undefined;owned.controller=new AbortController();
-   const run=async():Promise<IpcResult<ImageAnalysis|null>>=>{const timer=setTimeout(()=>owned.controller.abort(),LIMIT.batchMs);try{
+   const run=async():Promise<IpcResult<ImageAnalysis|null>>=>{try{await deps.ready();}catch{return fail('INTERNAL_ERROR','오프라인 OCR 구성파일을 찾거나 검증하지 못했습니다. 앱 패키지를 확인해 주세요.');}const timer=setTimeout(()=>owned.controller.abort(),LIMIT.batchMs);try{
     const results=[];
     for(const [i,path] of owned.paths.entries()){
      if(gen!==generation||!allowed(e))return {ok:true,data:null};if(owned.controller.signal.aborted)throw Error('이미지 분석 시간 제한을 초과했습니다.');

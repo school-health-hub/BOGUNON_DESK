@@ -6,7 +6,7 @@ export async function coreHashes(root='src-tauri/src/chatgpt',prefix=''){
  const hashes={};for(const entry of await readdir(join(root,prefix),{withFileTypes:true})){const name=prefix?`${prefix}/${entry.name}`:entry.name;if(entry.isDirectory())Object.assign(hashes,await coreHashes(root,name));else if(name.endsWith('.rs'))hashes[name]=sha(await readFile(join(root,name)));}return hashes;
 }
 export async function adapterHashes(){
- const result={};for(const name of ['Cargo.toml','Cargo.lock','build.rs','src/main.rs'])result[name]=sha(await readFile(join('tools/chatgpt-auth-cli',name)));return result;
+ const result={};for(const name of ['Cargo.toml','Cargo.lock','build.rs','src/main.rs','src/images.rs'])result[name]=sha(await readFile(join('tools/chatgpt-auth-cli',name)));result['image-capabilities.json']=sha(await readFile('electron-p0/ai-image-capabilities.json'));return result;
 }
 export async function verifyChatGptPackage(root='build/chatgpt-auth-cli',platform=process.platform){
  const manifest=JSON.parse(await readFile(join(root,'manifest.json'),'utf8'));

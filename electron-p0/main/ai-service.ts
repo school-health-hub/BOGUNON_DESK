@@ -1,3 +1,6 @@
+import type {ImageAiConnection} from '../purchase-ai-protocol.js';
+import {generateApiImages} from './ai-image-network.js';
+import {supportsImage,type OutboundImage} from './ai-image-contract.js';
 import type {AiConnect,AiRequest,AiStatus,AiModel,IpcResult} from '../protocol.js';
 import type {AiCredential,AiVault} from './ai-vault.js';
 import {validAiKey} from './ai-vault.js';
@@ -21,6 +24,7 @@ export class AiService{
  private credentialQueue:Promise<unknown>=Promise.resolve();
  private credentialWork<T>(work:()=>Promise<T>):Promise<T>{const operation=this.credentialQueue.then(work);this.credentialQueue=operation.catch(()=>{});return operation;}
  private epoch=0;
+ private imageVersion=0;
  private controller:AbortController|null=null;
  constructor(private readonly deps:Dependencies){}
  async status():Promise<AiStatus>{return {connected:this.connection!==null,provider:this.connection?.provider??null,model:this.connection?.model??null,models:[...this.models],stored:await this.deps.vault.exists(),secureStorage:this.deps.vault.available,busy:this.controller!==null,chatGptSupported:this.deps.chatGptSupported??false};}
@@ -42,14 +46,14 @@ export class AiService{
    const credential={provider:input.provider,key,model:models[0].id};
    if(input.remember){await this.credentialWork(async()=>{this.check(signal,epoch);await this.deps.vault.write(credential);});this.check(signal,epoch);}
    else {await this.credentialWork(async()=>{this.check(signal,epoch);await this.deps.vault.clear();});this.check(signal,epoch);}
-   this.connection=credential;this.models=models;this.remembered=input.remember;await this.deps.clearClipboard(clipboard);this.check(signal,epoch);
+   this.imageVersion++;this.connection=credential;this.models=models;this.remembered=input.remember;await this.deps.clearClipboard(clipboard);this.check(signal,epoch);
    return {...await this.status(),busy:false};
   });
  }
  restore(){return this.run(async(signal,epoch,network)=>{
   const credential=await this.deps.vault.read();this.check(signal,epoch);if(!credential)throw new AiError('저장된 API 연결이 없습니다.');
   const models=await network(()=>discoverAiModels(this.deps.fetch,credential.provider,credential.key,signal));this.check(signal,epoch);if(models.some(m=>m.id.includes(credential.key)||m.label.includes(credential.key)))throw new AiError(AI_ERROR.invalid);
-  this.connection={...credential,model:models.some(m=>m.id===credential.model)?credential.model:models[0].id};this.models=models;this.remembered=true;
+  this.imageVersion++;this.connection={...credential,model:models.some(m=>m.id===credential.model)?credential.model:models[0].id};this.models=models;this.remembered=true;
   return {...await this.status(),busy:false};
  });}
  selectModel(value:unknown){
@@ -66,9 +70,17 @@ export class AiService{
    if(text.includes(connection.key))throw new AiError(AI_ERROR.invalid);return {text};
   });
  }
+ imageContext():ImageAiConnection|null{return this.connection&&!this.controller?{provider:this.connection.provider,connectionId:`${this.connection.provider}:${this.imageVersion}`,models:[...this.models]}:null;}
+ async generateImages(expected:string,model:string,prompt:string,images:readonly OutboundImage[],outerSignal:AbortSignal){
+  if(this.imageContext()?.connectionId!==expected)throw new AiError('AI 연결이 변경되었습니다.');
+  return this.run(async(signal,epoch)=>{const c=this.connection;if(!c||!this.models.some(m=>m.id===model)||!supportsImage(c.provider,model)||outerSignal.aborted)throw new AiError('이미지 모델·권한을 확인해 주세요.');
+   const abort=()=>this.cancel();outerSignal.addEventListener('abort',abort,{once:true});
+   try{const text=await generateApiImages(this.deps.fetch,c.provider,c.key,model,prompt,images,signal);this.check(signal,epoch);return text;}finally{outerSignal.removeEventListener('abort',abort);}
+  });
+ }
  cancel(){this.epoch++;this.controller?.abort();return null;}
- async disconnect(){this.cancel();this.connection=null;this.models=[];this.remembered=false;try{await this.credentialWork(()=>this.deps.vault.clear());}catch{throw new AiError('세션 연결은 해제했지만 저장된 인증정보를 삭제하지 못했습니다. 앱 설정에서 다시 해제해 주세요.');}return this.status();}
- dispose(){this.cancel();this.connection=null;this.models=[];this.remembered=false;}
+ async disconnect(){this.imageVersion++;this.cancel();this.connection=null;this.models=[];this.remembered=false;try{await this.credentialWork(()=>this.deps.vault.clear());}catch{throw new AiError('세션 연결은 해제했지만 저장된 인증정보를 삭제하지 못했습니다. 앱 설정에서 다시 해제해 주세요.');}return this.status();}
+ dispose(){this.imageVersion++;this.cancel();this.connection=null;this.models=[];this.remembered=false;}
 }
 export function createAiHandlers(contents:{mainFrame:unknown;getURL():string},url:string,service:AiService){
  const wrap=<T>(count:number,fn:(input:unknown)=>Promise<T>|T)=>async(event:{sender:unknown;senderFrame:unknown},...args:unknown[]):Promise<IpcResult<T>>=>{

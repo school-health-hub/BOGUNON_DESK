@@ -19,7 +19,7 @@ export class ChatGptProcess implements ChatGptRunner{
  async run(request:Record<string,unknown>,signal:AbortSignal):Promise<unknown>{
   if(!this.available)throw new ChatGptError('unsupportedPlatform');
   if(this.pending)throw new ChatGptError('busy');
-  const bytes=Buffer.from(JSON.stringify(request)+'\n');if(bytes.length>70000)throw new ChatGptError('input');
+  const bytes=Buffer.from(JSON.stringify(request)+'\n');if(bytes.length>(request.action==='generateImages'?12*1024*1024:70000))throw new ChatGptError('input');
   const info=await lstat(this.executable).catch(()=>null);if(!info?.isFile()||info.isSymbolicLink())throw new ChatGptError('missingRuntime');
   if(signal.aborted)throw new ChatGptError('cancelled');
   const operation=this.start(bytes,request.action==='signIn',signal);this.pending=operation;

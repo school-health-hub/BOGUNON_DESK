@@ -37,10 +37,17 @@ fn copy(source: &Path, target: &Path) {
         if text.contains("tauri::async_runtime::block_on") {
             text = text.replace("tauri::async_runtime::block_on", "crate::test_block_on");
         }
+        if name == "plan.rs" {
+            text.push_str(
+                "\ninclude!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/src/images.rs\"));\n",
+            );
+        }
         fs::write(output, text).unwrap();
     }
 }
 fn main() {
+    println!("cargo:rerun-if-changed=src/images.rs");
+    println!("cargo:rerun-if-changed=../../electron-p0/ai-image-capabilities.json");
     copy(
         Path::new("../../src-tauri/src/chatgpt"),
         &Path::new(&env::var("OUT_DIR").unwrap()).join("chatgpt"),

@@ -13,6 +13,7 @@ export type OcrLine = {readonly text:string;readonly confidence:number;readonly 
 export type ImageOcrResult = {readonly sourceId:string;readonly status:'success'|'error';readonly lines:readonly OcrLine[];readonly message:string|null;readonly processing?:ImageOcrOptions};
 export type ImageAnalysis = {readonly token:string;readonly results:readonly ImageOcrResult[]};
 export type ImageImportApi = Readonly<{
+ readonly ai?:import('./purchase-ai-protocol.js').PurchaseImageAiApi;
  pick():Promise<import('./protocol.js').IpcResult<ImageSelection|null>>;
  analyze(request:{readonly token:string;readonly settings?:readonly ImageProcessing[]}):Promise<import('./protocol.js').IpcResult<ImageAnalysis|null>>;
  preview(request:ImagePreviewRequest):Promise<import('./protocol.js').IpcResult<ImagePreview|null>>;

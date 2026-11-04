@@ -1,3 +1,5 @@
+import type {ImageAiConnection} from '../purchase-ai-protocol.js';
+import {supportsImage,type OutboundImage} from './ai-image-contract.js';
 import type {ChatGptStatus,ChatGptRequest} from '../chatgpt-protocol.js';
 import type {IpcResult} from '../protocol.js';
 import {assertSender} from './policy.js';
@@ -11,6 +13,7 @@ export class ChatGptService{
  private state:ChatGptStatus;
  private controller:AbortController|null=null;
  private epoch=0;
+ private imageVersion=0;
  constructor(private readonly runner:ChatGptRunner,private readonly review:(request:ChatGptRequest,model:string)=>Promise<boolean>){this.state=initial(runner.available);}
  private accept(value:unknown){
   if(!object(value)||!object(value.connection))throw new ChatGptError('invalidResponse');const c=value.connection;
@@ -35,7 +38,7 @@ export class ChatGptService{
  private async invoke(action:string,signal:AbortSignal,epoch:number,extra:Record<string,unknown>={}){const data=await this.runner.run({action,...extra},signal);this.check(signal,epoch);return data;}
  snapshot():ChatGptStatus{return {...this.state,busy:!!this.controller,phase:this.controller&&this.state.phase==='authenticating'?'authenticating':this.state.phase,models:[...this.state.models]};}
  async status(){if(!this.runner.available||this.controller)return this.snapshot();return this.run(async(s,e)=>{const phase=this.state.phase,notice=this.state.notice;this.accept(await this.invoke('state',s,e));if(phase==='reauthentication-required'||this.state.accountId&&['usage-limit','temporary-error','permission-required'].includes(phase))this.state={...this.state,phase,notice};return this.snapshot();}).then(()=>this.snapshot());}
- async signIn(){return this.run(async(s,e)=>{this.state={...this.state,phase:'authenticating'};this.accept(await this.invoke('signIn',s,e));return null;}).then(()=>this.snapshot());}
+ async signIn(){return this.run(async(s,e)=>{this.imageVersion++;this.state={...this.state,phase:'authenticating'};this.accept(await this.invoke('signIn',s,e));return null;}).then(()=>this.snapshot());}
  async refreshModels(){return this.run(async(s,e)=>{
   // User explicitly requested refresh. Native checks saved scopes and may refresh a token.
   const result=await this.invoke('models',s,e);if(!object(result)||!Array.isArray(result.models)||result.models.length>500)throw new ChatGptError('invalidResponse');
@@ -46,7 +49,7 @@ export class ChatGptService{
  }).then(()=>this.snapshot());}
  async selectModel(input:unknown){if(!object(input)||Object.keys(input).join(',')!=='model'||typeof input.model!=='string'||this.controller||!this.state.models.some(m=>m.id===input.model))throw Error('조회한 ChatGPT 모델을 선택해 주세요.');this.state={...this.state,model:input.model,textCallVerified:false};return this.snapshot();}
  async acknowledge(){return this.run(async(s,e)=>{this.accept(await this.invoke('acknowledge',s,e));}).then(()=>this.snapshot());}
- async disconnect(){return this.run(async(s,e)=>{this.accept(await this.invoke('disconnect',s,e));}).then(()=>this.snapshot());}
+ async disconnect(){return this.run(async(s,e)=>{this.imageVersion++;this.accept(await this.invoke('disconnect',s,e));}).then(()=>this.snapshot());}
  async generate(input:unknown){
   if(!object(input)||Object.keys(input).sort().join(',')!=='prompt,tool')throw Error('AI 요청 내용을 확인해 주세요.');
   validateAiRequest({tool:input.tool==='connection-test'?'finder':input.tool,prompt:input.prompt});const request=input as ChatGptRequest;
@@ -57,8 +60,16 @@ export class ChatGptService{
    this.state={...this.state,textCallVerified:true,notice:'선택 계정·모델의 텍스트 호출이 완료되었습니다.'};return {text:result.text};
   });
  }
+ imageContext():ImageAiConnection|null{const s=this.state;return !this.controller&&s.phase==='ready'&&s.planUsageEnabled&&s.accountId?{provider:'chatgpt',connectionId:`${s.accountId}:${this.imageVersion}`,models:[...s.models]}:null;}
+ async generateImages(expected:string,model:string,prompt:string,images:readonly OutboundImage[],outerSignal:AbortSignal){
+  if(this.imageContext()?.connectionId!==expected)throw new ChatGptError('accountChanged');
+  return this.run(async(s,e)=>{const accountId=this.state.accountId;if(!accountId||!this.state.planUsageEnabled||!this.state.models.some(m=>m.id===model)||!supportsImage('chatgpt',model)||outerSignal.aborted)throw new ChatGptError('permissionDenied');
+   const abort=()=>this.cancel();outerSignal.addEventListener('abort',abort,{once:true});
+   try{const result=await this.invoke('generateImages',s,e,{accountId,model,prompt,images});if(!object(result)||result.accountId!==accountId||typeof result.text!=='string'||Buffer.byteLength(result.text)>65536)throw new ChatGptError('invalidResponse');return result.text;}finally{outerSignal.removeEventListener('abort',abort);}
+  });
+ }
  cancel(){this.epoch++;this.controller?.abort();this.state={...this.state,notice:errors.cancelled};return null;}
- dispose(){this.cancel();this.runner.dispose();}
+ dispose(){this.imageVersion++;this.cancel();this.runner.dispose();}
  flush(){return this.runner.flush();}
 }
 export function createChatGptHandlers(contents:Parameters<typeof assertSender>[1],url:string,service:ChatGptService){

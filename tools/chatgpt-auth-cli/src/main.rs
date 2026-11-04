@@ -30,6 +30,12 @@ enum Request {
         prompt: String,
         account_id: String,
     },
+    GenerateImages {
+        model: String,
+        prompt: String,
+        account_id: String,
+        images: Vec<chatgpt::plan::ElectronImage>,
+    },
     Disconnect {},
     Acknowledge {},
 }
@@ -126,6 +132,40 @@ async fn execute(storage: &DefaultChatGptStorage, request: Request) -> Result<Va
                 })?;
             Ok(json!({"models":models,"state":state(storage)?}))
         }
+        Request::GenerateImages {
+            model,
+            prompt,
+            account_id,
+            images,
+        } => {
+            if identity(storage)?.as_deref() != Some(&account_id)
+                || prompt.is_empty()
+                || prompt.len() > 65536
+            {
+                return Err("accountChanged".into());
+            }
+            let transport = chatgpt::plan::ReqwestPlanTransport::new().map_err(|_| "connection")?;
+            let text = chatgpt::plan::generate_electron_images(
+                storage,
+                &transport,
+                &guard,
+                timestamp()?,
+                &model,
+                &prompt,
+                &images,
+            )
+            .await
+            .map_err(|e| {
+                serde_json::to_string(&e.code)
+                    .unwrap_or_default()
+                    .trim_matches('"')
+                    .to_owned()
+            })?;
+            if text.len() > 65536 {
+                return Err("invalidResponse".into());
+            }
+            Ok(json!({"text":text,"accountId":account_id}))
+        }
         Request::Generate {
             model,
             prompt,
@@ -199,13 +239,16 @@ async fn run() -> Result<Value, String> {
     let mut bytes = Vec::new();
     io::stdin()
         .lock()
-        .take(70001)
+        .take(12 * 1024 * 1024 + 1)
         .read_until(b'\n', &mut bytes)
         .map_err(|_| "input")?;
-    if bytes.len() > 70000 || !bytes.ends_with(b"\n") {
+    if bytes.len() > 12 * 1024 * 1024 || !bytes.ends_with(b"\n") {
         return Err("input".into());
     }
     let request: Request = serde_json::from_slice(&bytes).map_err(|_| "input")?;
+    if !matches!(&request, Request::GenerateImages { .. }) && bytes.len() > 70000 {
+        return Err("input".into());
+    }
     if !cfg!(windows) {
         return Err("unsupportedPlatform".into());
     }

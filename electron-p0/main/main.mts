@@ -1,3 +1,5 @@
+import {redactBitmap} from './purchase-ai-images.js';
+import {PurchaseAiService,createPurchaseAiHandlers} from './purchase-ai-service.js';
 import {ChatGptProcess} from './chatgpt-process.js';
 import {ChatGptService,createChatGptHandlers} from './chatgpt-service.js';
 import {perceptualHash} from './purchase-image-preview.js';
@@ -137,13 +139,22 @@ else {
   for(const [action,handler] of Object.entries(adminHandlers))if(action!=='dispose'&&action!=='flush')ipcMain.handle(`p2:admin:${action}`,handler);
   window.on('close',adminHandlers.dispose);window.webContents.on('will-navigate',adminHandlers.dispose);window.webContents.on('render-process-gone',adminHandlers.dispose);
   const ocrRuntime=app.isPackaged?join(process.resourcesPath,'purchase-ocr'):join(app.getAppPath(),'../purchase-ocr');
+  let purchaseAi:PurchaseAiService|undefined;
   const imageImport=createImageImportHandlers(window.webContents,url,{
-   tempRoot:app.getPath('temp'),ready:()=>verifyOcrRuntime(ocrRuntime),
+   tempRoot:app.getPath('temp'),onInvalidate:()=>purchaseAi?.cancel(),ready:()=>verifyOcrRuntime(ocrRuntime),
    select:async()=>{const r=await dialog.showOpenDialog(window,{title:'장바구니 이미지 선택 — 합성 자료만 사용',properties:['openFile','multiSelections','dontAddToRecent'],filters:[{name:'JPG/JPEG/PNG',extensions:['jpg','jpeg','png']}]});return r.canceled?undefined:r.filePaths;},
    decode:bytes=>{const image=nativeImage.createFromBuffer(bytes);if(image.isEmpty())throw Error('이미지를 해독하지 못했습니다.');const size=image.getSize(),scale=Math.min(240/size.width,160/size.height,1);return {...size,png:image.toPNG(),perceptualHash:perceptualHash(image.resize({width:9,height:8}).toBitmap()),thumbnail:image.resize({width:Math.max(1,Math.round(size.width*scale)),height:Math.max(1,Math.round(size.height*scale)),quality:'good'}).toDataURL()};},
    recognize:(path,signal,options)=>recognizeImage(ocrRuntime,path,signal,undefined,undefined,options),
    preview:(bytes,region)=>{const image=nativeImage.createFromBuffer(bytes).crop({x:region[0],y:region[1],width:region[2]-region[0],height:region[3]-region[1]});if(image.isEmpty())throw Error('Invalid image crop');const size=image.getSize();let scale=Math.min(1,1600/Math.max(size.width,size.height));for(let i=0;i<4;i++){const url=image.resize({width:Math.max(1,Math.round(size.width*scale)),height:Math.max(1,Math.round(size.height*scale)),quality:'best'}).toDataURL();if(url.length<=4*1024*1024)return url;scale*=.65;}throw Error('Preview limit');},
   });
+  purchaseAi=new PurchaseAiService({images:imageImport,backends:{
+   openai:{context:()=>{const c=aiService.imageContext();return c?.provider==='openai'?c:null;},generate:(...args)=>aiService.generateImages(...args)},
+   gemini:{context:()=>{const c=aiService.imageContext();return c?.provider==='gemini'?c:null;},generate:(...args)=>aiService.generateImages(...args)},
+   chatgpt:{context:()=>chatgptService.imageContext(),generate:(...args)=>chatgptService.generateImages(...args)}},
+   redact:(bytes,boxes)=>{const image=nativeImage.createFromBuffer(bytes);if(image.isEmpty())throw Error('Invalid image');const {width,height}=image.getSize();const copy=redactBitmap(image.toBitmap(),width,height,boxes);return {png:nativeImage.createFromBitmap(copy,{width,height,scaleFactor:1}).toPNG(),width,height};},
+   review:async prepared=>(await dialog.showMessageBox(window,{type:'warning',message:`${prepared.provider} · ${prepared.model}에 이미지 ${prepared.images.length}장을 전송할까요?`,detail:'실제 학생·교직원·학교 개인정보나 배송지·연락처가 없는지 전송본을 확인하세요. API 이용료 또는 ChatGPT plan/credits 사용이 발생할 수 있습니다. 이미 전송된 이미지는 취소해도 회수되지 않습니다. 자동 재시도·다른 제공자 전환은 하지 않습니다.\n\n'+prepared.images.map((image,i)=>`${i+1}. ${image.name} · 가림 ${image.redactions}곳 · SHA-256 ${image.sha256}`).join('\n'),buttons:['취소','확인 후 이미지 전송'],defaultId:0,cancelId:0})).response===1});
+  for(const [action,handler] of Object.entries(createPurchaseAiHandlers(window.webContents,url,purchaseAi)))ipcMain.handle(`p2:purchase:images:ai:${action}`,handler);
+  window.on('close',()=>purchaseAi?.dispose());window.webContents.on('will-navigate',()=>purchaseAi?.dispose());window.webContents.on('render-process-gone',()=>purchaseAi?.dispose());app.on('before-quit',()=>purchaseAi?.dispose());
   ipcMain.handle('p2:purchase:images:preview',imageImport.preview);
   ipcMain.handle('p2:purchase:images:pick',imageImport.pick);ipcMain.handle('p2:purchase:images:analyze',imageImport.analyze);ipcMain.handle('p2:purchase:images:cancel',imageImport.cancel);
   window.on('close',imageImport.dispose);window.webContents.on('will-navigate',imageImport.dispose);window.webContents.on('render-process-gone',imageImport.dispose);app.on('before-quit',imageImport.dispose);
@@ -218,7 +229,7 @@ else {
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
-  const quit=()=>{if(quitting)return;quitting=true;chatgptService.dispose();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([chatgptService.flush(),imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
+  const quit=()=>{if(quitting)return;quitting=true;purchaseAi?.dispose();chatgptService.dispose();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([chatgptService.flush(),imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
       {label:'창 열기',click:show},{label:'최소화',click:()=>window.minimize()},
