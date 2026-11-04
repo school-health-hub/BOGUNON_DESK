@@ -14,7 +14,7 @@ export function validateEducationVideoLibrary(value:unknown):EducationVideoLibra
  const seen=new Set<string>();
  const items=value.items.map((item:unknown):EducationVideoLibraryItem=>{
   if(!record(item)||Object.keys(item).some(key=>!fields.includes(key as typeof fields[number]))||fields.some(key=>!(key in item)))throw Error('Invalid education video item');
-  if(typeof item.videoId!=='string'||!/^[A-Za-z0-9_-]{11}$/.test(item.videoId)||seen.has(item.videoId)||item.source!=='mock'||typeof item.durationSeconds!=='number'||!Number.isInteger(item.durationSeconds)||item.durationSeconds<1||item.durationSeconds>86400)throw Error('Invalid education video item');
+  if(typeof item.videoId!=='string'||!/^[A-Za-z0-9_-]{11}$/.test(item.videoId)||seen.has(item.videoId)||(item.source!=='mock'&&item.source!=='youtube')||typeof item.durationSeconds!=='number'||!Number.isInteger(item.durationSeconds)||item.durationSeconds<1||item.durationSeconds>86400)throw Error('Invalid education video item');
   for(const key of fields)if(key!=='durationSeconds'&&key!=='source'&&!safeText(item[key],key==='url'?200:20000))throw Error('Invalid education video item');
   const url=new URL(String(item.url));
   if(url.protocol!=='https:'||url.hostname!=='www.youtube.com'||url.pathname!=='/watch'||url.hash||url.username||url.password||url.port||url.searchParams.toString()!==`v=${item.videoId}`)throw Error('Invalid education video URL');

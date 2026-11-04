@@ -2,7 +2,7 @@ import { FinderInputError, safeVideoUrl, type Library, type LibraryItem } from '
 const fields = ['videoId', 'title', 'channelId', 'channelTitle', 'url', 'educationTitle', 'target', 'schedule', 'instructions', 'message', 'notes'] as const;
 const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
 const parseItem = (input: unknown): LibraryItem => {
-    if (!isObject(input) || fields.some(key => typeof input[key] !== 'string' || String(input[key]).length > 20000) || input.source !== 'mock' || typeof input.durationSeconds !== 'number' || !Number.isInteger(input.durationSeconds) || input.durationSeconds < 1 || input.durationSeconds > 86400)
+    if (!isObject(input) || fields.some(key => typeof input[key] !== 'string' || String(input[key]).length > 20000) || (input.source!=='mock'&&input.source!=='youtube') || typeof input.durationSeconds !== 'number' || !Number.isInteger(input.durationSeconds) || input.durationSeconds < 1 || input.durationSeconds > 86400)
         throw new FinderInputError('라이브러리 항목 형식이 올바르지 않습니다.');
     const stringField = (name: typeof fields[number]): string => { const value = input[name]; if (typeof value !== 'string')
         throw new FinderInputError('잘못된 문자열입니다.'); return value; };
@@ -11,7 +11,7 @@ const parseItem = (input: unknown): LibraryItem => {
         throw new FinderInputError('라이브러리 영상 URL이 올바르지 않습니다.');
     if (Object.keys(input).some(key => ![...fields, 'source', 'durationSeconds'].some(allowed => allowed === key)))
         throw new FinderInputError('허용되지 않은 필드가 있습니다. 인증 정보는 저장할 수 없습니다.');
-    return { videoId: stringField('videoId'), title: stringField('title'), channelId: stringField('channelId'), channelTitle: stringField('channelTitle'), url, durationSeconds: input.durationSeconds, source: 'mock', educationTitle: stringField('educationTitle'), target: stringField('target'), schedule: stringField('schedule'), instructions: stringField('instructions'), message: stringField('message'), notes: stringField('notes') };
+    return { videoId: stringField('videoId'), title: stringField('title'), channelId: stringField('channelId'), channelTitle: stringField('channelTitle'), url, durationSeconds: input.durationSeconds, source: input.source as 'mock'|'youtube', educationTitle: stringField('educationTitle'), target: stringField('target'), schedule: stringField('schedule'), instructions: stringField('instructions'), message: stringField('message'), notes: stringField('notes') };
 };
 export const parseLibrary = (json: string): Library => {
     if (new TextEncoder().encode(json).length > 2 * 1024 * 1024)

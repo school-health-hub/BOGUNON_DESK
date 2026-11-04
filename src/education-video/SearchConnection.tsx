@@ -1,0 +1,12 @@
+import {useEffect,useState} from 'react';
+import type {FinderSearchBridge,FinderSearchStatus} from '../../electron-p0/finder-search-protocol';
+export function SearchConnection({bridge,onStatus,onBusy,disabled=false}:{bridge:FinderSearchBridge;onStatus:(value:FinderSearchStatus)=>void;onBusy:(busy:boolean)=>void;disabled?:boolean}){
+ const [status,setStatus]=useState<FinderSearchStatus|null>(null),[remember,setRemember]=useState(false),[busy,setBusy]=useState(false),[notice,setNotice]=useState('검색 연결 설정을 읽는 중…');
+ useEffect(()=>{let active=true;void bridge.status().then(result=>{if(!active)return;if(result.ok){setStatus(result.data);setRemember(result.data.secureStorage);onStatus(result.data);setNotice('');}else setNotice(result.error.message);}).catch(()=>{if(active)setNotice('검색 연결 설정을 불러오지 못했습니다.');});return()=>{active=false;};},[bridge]);
+ const run=async(action:()=>ReturnType<FinderSearchBridge['status']>)=>{if(busy||disabled)return;setBusy(true);onBusy(true);try{const result=await action();if(!result.ok){setNotice(result.error.message);return;}setStatus(result.data);onStatus(result.data);setNotice(result.data.configured?'YouTube Key를 설정했습니다. 실제 API 이용 권한은 검색 요청에서 확인합니다.':'YouTube 검색 연결을 해제했습니다. 보관함·메모와 기존 AI 연결은 유지됩니다.');}catch{setNotice('YouTube 연결 설정을 완료하지 못했습니다.');}finally{setBusy(false);onBusy(false);}};
+ return <details className="ev-search-connection"><summary>YouTube 검색 API 연결 설정</summary><p>Google Cloud에서 YouTube Data API v3를 활성화한 API Key가 필요합니다. Gemini Key·ChatGPT 연결은 자동 재사용하지 않습니다.</p>
+ <p>{status?.configured?'Key 설정됨 · 검색 권한 미확인':'YouTube Key 미설정'} · API 할당량과 키 제한은 Google Cloud Console에서 확인하세요.</p>
+ <p>전용 Key를 클립보드에 복사한 뒤 등록하세요. 키는 화면에 표시하지 않으며 Electron Main에서 관리합니다.</p>
+ <label className="ev-confirm"><input type="checkbox" checked={remember} disabled={busy||disabled||!status?.secureStorage} onChange={e=>setRemember(e.target.checked)}/>Windows 보안 저장으로 재실행 후에도 사용</label>{status&&!status.secureStorage&&<p>현재 환경은 보안 저장을 지원하지 않아 실행 중 메모리 연결만 가능합니다.</p>}
+ <div className="ev-actions"><button type="button" disabled={busy||disabled||!status} onClick={()=>void run(()=>bridge.connectFromClipboard({remember}))}>클립보드에서 YouTube Key 등록</button><button type="button" disabled={busy||disabled||!status?.saved||!status.secureStorage} onClick={()=>void run(()=>bridge.restore())}>저장된 YouTube Key 불러오기</button><button type="button" disabled={busy||disabled||!status?.configured&&!status?.saved} onClick={()=>void run(()=>bridge.disconnect())}>YouTube 연결 해제</button></div><p>{notice}</p></details>;
+}

@@ -10,7 +10,7 @@ export type Video = {
     readonly channelTitle: string;
     readonly durationSeconds: number;
     readonly url: string;
-    readonly source: 'mock';
+    readonly source: 'mock' | 'youtube';
 };
 export type Education = {
     readonly educationTitle: string;
@@ -87,7 +87,7 @@ export const createMessage = (education: Education, video: Video | null): {
         missing.push('올바른 영상 URL');
     if (missing.length || !video)
         return { text: '', missing };
-    return { text: ['[합성 Mock QA · 실제 영상 링크가 아닙니다]', '', '[' + education.educationTitle.trim() + ' 안내]', '', '대상: ' + education.target.trim(), '교육 일시 또는 시청 기간: ' + education.schedule.trim(), '', '시청 영상: ' + video.title, '영상 URL: ' + video.url, '', '안내사항', education.instructions.trim()].join(String.fromCharCode(10)), missing: [] };
+    return { text: [...(video.source==='mock'?['[합성 Mock QA · 실제 영상 링크가 아닙니다]', '']:[]), '[' + education.educationTitle.trim() + ' 안내]', '', '대상: ' + education.target.trim(), '교육 일시 또는 시청 기간: ' + education.schedule.trim(), '', '시청 영상: ' + video.title, '영상 URL: ' + video.url, '', '안내사항', education.instructions.trim()].join(String.fromCharCode(10)), missing: [] };
 };
 export const copyMessage = async (text: string, confirmed: boolean, write: (value: string) => Promise<void>): Promise<string> => {
     if (!confirmed || !text.trim())

@@ -15,3 +15,9 @@ it('handles every clipboard rejection without leaking details', async () => { co
 } let called = false; await copyMessage('text', false, async () => { called = true; }); expect(called).toBe(false); expect(await copyMessage('text', true, async () => { })).toBe('안내문을 복사했습니다.'); });
 it('rejects zero and overflow duration', () => { expect(durationSeconds('PT0S')).toBeNull(); expect(durationSeconds('PT999999999999999999999999H')).toBeNull(); });
 it('uses stable per-query fixture identities', () => { const a = searchMockVideos({ topic: '손씻기', target: '학생', minutes: 10 }); const b = searchMockVideos({ topic: '흡연예방', target: '학생', minutes: 10 }); expect(a[0].videoId).not.toBe(b[0].videoId); expect(a[0].videoId).toBe(searchMockVideos({ topic: '손씻기', target: '학생', minutes: 10 })[0].videoId); });
+
+it('keeps real-video messages free of Mock labels while preserving the existing template and URL guard',()=>{
+ const video={...searchMockVideos({topic:'합성 교육',target:'학생',minutes:10})[0],videoId:'QaVideo0001',url:'https://www.youtube.com/watch?v=QaVideo0001',source:'youtube' as const,title:'합성 응답 교육 영상'};
+ const education={educationTitle:'교사 작성 교육명',target:'학생',schedule:'이번 주',instructions:'교사가 검토'};
+ const result=createMessage(education,video);expect(result.missing).toEqual([]);expect(result.text).not.toContain('합성 Mock QA');expect(result.text).toContain(video.url);expect(result.text).toContain('교사가 검토');expect(createMessage(education,{...video,url:'https://evil.test'}).missing).toContain('올바른 영상 URL');
+});

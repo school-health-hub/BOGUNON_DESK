@@ -1,3 +1,6 @@
+import {FinderSearchService,createFinderSearchHandlers} from './finder-search.js';
+import {EncryptedYoutubeVault} from './finder-vault.js';
+import {allowedYoutubeUrl} from './finder-youtube.js';
 import {allowedAdminProbeUrl,inspectAdminConnection,createAdminProbeClient} from './admin-connection.js';
 import {redactBitmap} from './purchase-ai-images.js';
 import {PurchaseAiService,createPurchaseAiHandlers} from './purchase-ai-service.js';
@@ -207,6 +210,17 @@ else {
   const memoHandlers=createMemoHandlers(window.webContents,url,memoStore);
   ipcMain.handle('p2:memo:read',memoHandlers.read);
   ipcMain.handle('p2:memo:write',memoHandlers.write);
+  const finderSession=session.fromPartition('youtube-search-egress');
+  finderSession.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));finderSession.setPermissionCheckHandler(()=>false);finderSession.on('will-download',event=>event.preventDefault());
+  finderSession.webRequest.onBeforeRequest((details,callback)=>callback({cancel:details.method!=='GET'||!allowedYoutubeUrl(details.url)}));
+  const finderSearch=new FinderSearchService({vault:new EncryptedYoutubeVault(join(userData,'work-data','youtube-search'),{
+   available:process.platform==='win32'&&safeStorage.isEncryptionAvailable(),encrypt:text=>safeStorage.encryptString(text),decrypt:bytes=>safeStorage.decryptString(bytes)}),
+   fetch:(target,init)=>finderSession.fetch(target,init),readClipboard:()=>clipboard.readText(),clearClipboard:async expected=>{if((await clipboard.readText()).trim()===expected)await clipboard.clear();},
+   reviewKey:async remember=>(await dialog.showMessageBox(window,{type:'question',message:'클립보드의 Key를 YouTube Data API v3 전용으로 등록할까요?',detail:`Google Cloud에서 YouTube Data API v3를 활성화하고 키 제한을 확인하세요. Gemini API 연결과 별도입니다. 지금은 Key만 등록하며 실제 검색·이용 권한 확인은 하지 않습니다. ${remember?'Windows 보안 저장에 암호화합니다.':'이 실행 동안 메모리에서만 사용하며 이전 YouTube 저장 Key는 제거합니다.'} 기존 AI Key는 변경하지 않습니다.`,buttons:['취소','Key 등록'],defaultId:0,cancelId:0})).response===1,
+   reviewSearch:async(query,page)=>(await dialog.showMessageBox(window,{type:'warning',message:`YouTube 공식 API로 교육영상을 검색할까요? (${page}/3페이지)`,detail:`전송할 검색어: ${query}\n\n검색어에 학생·교직원 개인정보가 없는지 확인하세요. 보관함·메모·원고는 전송하지 않습니다. YouTube Data API 할당량이 사용됩니다. 자동 추가 검색·다른 제공자 전환은 없습니다.`,buttons:['취소','검색어 외부 전송'],defaultId:0,cancelId:0})).response===1,
+   openExternal:target=>shell.openExternal(target,{activate:true}),library:async()=>(await educationVideoStore.load()).library});
+  for(const [action,handler] of Object.entries(createFinderSearchHandlers(window.webContents,url,finderSearch)))ipcMain.handle(`p2:education-video:search:${action}`,handler);
+  window.on('close',()=>finderSearch.dispose());window.webContents.on('will-navigate',()=>finderSearch.dispose());window.webContents.on('render-process-gone',()=>finderSearch.dispose());app.on('before-quit',()=>finderSearch.dispose());
   const educationVideoHandlers=createEducationVideoHandlers(window.webContents,url,educationVideoStore);
   ipcMain.handle('p2:education-video:load',educationVideoHandlers.load);
   ipcMain.handle('p2:education-video:save',educationVideoHandlers.save);
@@ -241,7 +255,7 @@ else {
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
-  const quit=()=>{if(quitting)return;quitting=true;purchaseAi?.dispose();chatgptService.dispose();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([chatgptService.flush(),imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
+  const quit=()=>{if(quitting)return;quitting=true;finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([finderSearch.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
       {label:'창 열기',click:show},{label:'최소화',click:()=>window.minimize()},

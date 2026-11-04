@@ -25,3 +25,10 @@ describe('Electron education video library',()=>{
   expect(await readFile(join(root,'library.json'),'utf8')).toBe('SYNTHETIC CORRUPT');
  });
 });
+
+it('round-trips mixed actual/mock results without losing existing notes, imports or backup bytes',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'finder-real-library-'));const store=new EducationVideoLibraryStore(root);const legacy=item();await store.save(legacy);const oldBytes=await readFile(join(root,'library.json'));
+ const actual={...item('QaVideo0001'),source:'youtube' as const,title:'합성 응답 기반 실제 출처 영상',channelId:'UC'+'x'.repeat(22),notes:'직접 작성한 보존 메모',message:'편집한 보존 원고'};await store.save(actual);expect(await readFile(join(root,'library.backup.json'))).toEqual(oldBytes);
+ const json=await store.export();const {parseLibrary}=await import('../../src/education-video/library');const parsed=parseLibrary(json);expect(parsed.items).toEqual([legacy,actual]);const fresh=new EducationVideoLibraryStore(join(root,'new'));await fresh.import(json);expect((await fresh.load()).library).toEqual(parsed);
+ await store.import(JSON.stringify({version:1,items:[{...actual,notes:'덮어쓰면 안 됨',message:'대체 원고'}]}));expect((await store.load()).library.items[1]).toEqual(actual);await expect(store.import(JSON.stringify({version:1,items:[{...actual,source:'unknown'}]}))).rejects.toThrow();expect(parseLibrary(await store.export()).items[1].notes).toBe(actual.notes);
+});
