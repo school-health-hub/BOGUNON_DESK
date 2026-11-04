@@ -1,3 +1,4 @@
+import {createFinderCompatHandlers} from './finder-compat-ipc.js';
 import {PurchaseSettingsStore,createPurchaseSettingsHandlers} from './purchase-settings.js';
 import {realpathSync} from 'node:fs';
 import {qaProfilePaths} from './qa-profile.js';
@@ -238,6 +239,12 @@ else {
   ipcMain.handle('p2:education-video:export-file',educationVideoExport.handle);
   window.webContents.on('will-navigate',()=>educationVideoExport.dispose());window.webContents.on('render-process-gone',()=>educationVideoExport.dispose());
   ipcMain.handle('p2:education-video:recover',educationVideoHandlers.recover);
+  const finderCompat=createFinderCompatHandlers(window.webContents,url,educationVideoStore,{pick:async()=>{const r=await dialog.showOpenDialog(window,{title:'Finder V1/V2 JSON 선택 · 검토 후 적용',filters:[{name:'Finder JSON',extensions:['json']}],properties:['openFile','dontAddToRecent']});return r.canceled?undefined:r.filePaths[0];}});
+  for(const [action,handler] of Object.entries(finderCompat))if(action!=='dispose'&&action!=='flush')ipcMain.handle(`p2:education-video:compat:${action}`,handler);
+  const finderV2Export=createEducationVideoExport(window.webContents,url,educationVideoStore,{version:2,protectedRoot:userData,pick:async()=>{const r=await dialog.showSaveDialog(window,{title:'Finder V2 원본·교사·AI 기록 JSON 저장',defaultPath:'education-video-library-v2.json',filters:[{name:'JSON',extensions:['json']}],properties:['dontAddToRecent']});return r.canceled?undefined:r.filePath;},confirm:async()=>(await dialog.showMessageBox(window,{type:'warning',message:'선택한 기존 V2 JSON 파일을 덮어쓸까요?',buttons:['취소','덮어쓰기'],defaultId:0,cancelId:0})).response===1});
+  ipcMain.handle('p2:education-video:compat:exportV2File',finderV2Export.handle);
+  window.on('closed',()=>{finderCompat.dispose();finderV2Export.dispose();});window.webContents.on('will-navigate',()=>{finderCompat.dispose();finderV2Export.dispose();});window.webContents.on('render-process-gone',()=>{finderCompat.dispose();finderV2Export.dispose();});
+
   const inventoryQa=new InventoryQaService({readExecutionState:()=>({packaged:app.isPackaged,devUrl:dev,optIn:process.env.INVENTORY_LOCAL_QA})},()=>process.env.INVENTORY_LOCAL_QA_PUBLIC_KEY??'');
   for(const action of INVENTORY_QA_ACTIONS)ipcMain.handle(`p2:inventory-local-qa:${action}`,inventoryQaHandler(inventoryQa,action,window.webContents,url));
   window.on('close',()=>inventoryQa.close());window.webContents.on('will-navigate',()=>inventoryQa.close());window.webContents.on('render-process-gone',()=>inventoryQa.close());
@@ -263,7 +270,7 @@ else {
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
-  const quit=()=>{if(quitting)return;quitting=true;finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([finderSearch.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
+  const quit=()=>{if(quitting)return;quitting=true;finderCompat.dispose();finderV2Export.dispose();finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([finderSearch.flush(),finderV2Export.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
       {label:'창 열기',click:show},{label:'최소화',click:()=>window.minimize()},

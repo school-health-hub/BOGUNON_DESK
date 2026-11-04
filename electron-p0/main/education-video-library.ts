@@ -1,6 +1,13 @@
-import {mkdir,open,readFile,rename,unlink} from 'node:fs/promises';
+import {lstat} from 'node:fs/promises';
+import {dirname,parse} from 'node:path';
+import {createHash} from 'node:crypto';
+import {SettingsStore} from './settings.js';
+import type {LibraryV2,V2Load,FinderV2Edit} from '../finder-v2-protocol.js';
+import {validateLibraryV2,validateTeacher,fields as assertFields} from './finder-v2/validate.js';
+import {parseAiMetadata} from './finder-v2/aiLibraryMetadata.js';
+import {applyCandidateRecord,parseCandidateRecord} from './finder-v2/candidateRecord.js';
+import {parseRecommendationReason} from './finder-v2/recommendationReason.js';
 import {join} from 'node:path';
-import {randomUUID} from 'node:crypto';
 import type {EducationVideoLibrary,EducationVideoLibraryItem,IpcResult} from '../protocol.js';
 import {assertSender} from './policy.js';
 
@@ -26,47 +33,83 @@ export function validateEducationVideoLibrary(value:unknown):EducationVideoLibra
  return library;
 }
 
+export class FinderLibraryConflict extends Error{}
 export class EducationVideoLibraryStore{
  private queue:Promise<void>=Promise.resolve();
- constructor(private readonly root:string){}
- private path(name='library.json'){return join(this.root,name);}
- private async readNamed(name:string):Promise<EducationVideoLibrary>{
-  const bytes=await readFile(this.path(name));if(bytes.length>MAX_BYTES)throw Error('Oversized education video library');
-  return validateEducationVideoLibrary(JSON.parse(bytes.toString('utf8')));
+ private v1:SettingsStore<EducationVideoLibrary>;
+ private v1Backup:SettingsStore<EducationVideoLibrary>;
+ private v2:SettingsStore<LibraryV2>;
+ private v2Backup:SettingsStore<LibraryV2>;
+ constructor(private readonly root:string,private readonly writePrimary?:(name:string,value:EducationVideoLibrary|LibraryV2)=>Promise<void>){
+  this.v1=new SettingsStore(root,'library.json',validateEducationVideoLibrary,MAX_BYTES);
+  this.v1Backup=new SettingsStore(root,'library.backup.json',validateEducationVideoLibrary,MAX_BYTES);
+  this.v2=new SettingsStore(root,'library-v2.json',validateLibraryV2,MAX_BYTES);
+  this.v2Backup=new SettingsStore(root,'library-v2.backup.json',validateLibraryV2,MAX_BYTES);
  }
- async load():Promise<{library:EducationVideoLibrary;recovered:boolean}>{
-  try{return {library:await this.readNamed('library.json'),recovered:false};}
-  catch(error){
-   if((error as NodeJS.ErrnoException).code==='ENOENT')return {library:{version:1,items:[]},recovered:false};
-   try{return {library:await this.readNamed('library.backup.json'),recovered:true};}
-   catch{throw Error('Education video library could not be read; original files preserved');}
-  }
+ private async safe(){
+  for(let p=this.root;p!==parse(p).root;p=dirname(p)){try{const x=await lstat(p);if(x.isSymbolicLink()||!x.isDirectory())throw Error('Unsafe Finder folder');}catch(e){if((e as NodeJS.ErrnoException).code!=='ENOENT')throw e;}}
+  for(const name of ['library.json','library.backup.json','library-v2.json','library-v2.backup.json']){try{const x=await lstat(join(this.root,name));if(x.isSymbolicLink()||!x.isFile()||x.nlink!==1)throw Error('Unsafe Finder file');}catch(e){if((e as NodeJS.ErrnoException).code!=='ENOENT')throw e;}}
  }
- private writeFile(name:string,library:EducationVideoLibrary):Promise<void>{
-  const operation=this.queue.then(async()=>{
-   await mkdir(this.root,{recursive:true,mode:0o700});const temp=this.path(`${name}-${randomUUID()}.tmp`);
-   try{const file=await open(temp,'wx',0o600);try{await file.writeFile(JSON.stringify(library));await file.sync();}finally{await file.close();}await rename(temp,this.path(name));}
-   catch{await unlink(temp).catch(()=>{});throw Error('Education video library was not saved');}
-  });this.queue=operation.catch(()=>{});return operation;
+ private async read<T>(primary:SettingsStore<T>,backup:SettingsStore<T>,empty:T):Promise<{library:T;recovered:boolean}>{
+  await this.safe();
+  try{const library=await primary.read();if(library)return {library,recovered:false};const fallback=await backup.read();return fallback?{library:fallback,recovered:true}:{library:empty,recovered:false};}
+  catch{const library=await backup.read();if(library)return {library,recovered:true};throw Error('Finder original files unreadable; preserved');}
  }
- async write(library:unknown):Promise<{library:EducationVideoLibrary;recovered:boolean}>{
-  const safe=validateEducationVideoLibrary(library);const current=await this.load();
-  if(current.library.items.length)await this.writeFile('library.backup.json',current.library);
-  await this.writeFile('library.json',safe);return {library:safe,recovered:false};
+ load(){return this.read(this.v1,this.v1Backup,{version:1,items:[]});}
+ private readV2(){return this.read(this.v2,this.v2Backup,{version:2,entries:[]});}
+ async snapshot(){
+  const [v1,v2]=await Promise.all([this.load(),this.readV2()]);
+  const fingerprint=createHash('sha256').update(JSON.stringify([v1.library,v2.library])).digest('hex');
+  return {v1,v2,fingerprint};
  }
- async save(item:unknown){const safeItem=validateEducationVideoLibrary({version:1,items:[item]}).items[0];const current=await this.load();return this.write({version:1,items:[...current.library.items.filter(row=>row.videoId!==safeItem.videoId),safeItem]});}
- async import(json:unknown){if(typeof json!=='string'||Buffer.byteLength(json)>MAX_BYTES)throw Error('Invalid education video import');const incoming=validateEducationVideoLibrary(JSON.parse(json));const current=await this.load();return this.write({version:1,items:[...current.library.items,...incoming.items.filter(item=>!current.library.items.some(row=>row.videoId===item.videoId))]});}
+ async loadV2():Promise<V2Load>{const s=await this.snapshot();return {...s.v2,fingerprint:s.fingerprint};}
+ private mutate<T>(action:()=>Promise<T>):Promise<T>{const job=this.queue.then(action);this.queue=job.then(()=>{},()=>{});return job;}
+ private writable(s:Awaited<ReturnType<EducationVideoLibraryStore['snapshot']>>){if(s.v1.recovered||s.v2.recovered)throw Error('Recovered Finder backup is read only');}
+ private async commitV1(value:EducationVideoLibrary,previous:EducationVideoLibrary,fresh=()=>{}){
+  const safe=validateEducationVideoLibrary(value);if(previous.items.length)await this.v1Backup.write(previous);
+  fresh();await (this.writePrimary?this.writePrimary('library.json',safe):this.v1.write(safe));return {library:safe,recovered:false};
+ }
+ private async commitV2(value:LibraryV2,previous:LibraryV2,fresh=()=>{}){
+  const safe=validateLibraryV2(value);if(previous.entries.length)await this.v2Backup.write(previous);
+  fresh();await (this.writePrimary?this.writePrimary('library-v2.json',safe):this.v2.write(safe));return this.loadV2();
+ }
+ async write(value:unknown){const safe=validateEducationVideoLibrary(value);return this.mutate(async()=>{const s=await this.snapshot();this.writable(s);if(safe.items.some(i=>s.v2.library.entries.some(e=>e.videoId===i.videoId)))throw new FinderLibraryConflict();return this.commitV1(safe,s.v1.library);});}
+ async save(value:unknown){const item=validateEducationVideoLibrary({version:1,items:[value]}).items[0];return this.mutate(async()=>{const s=await this.snapshot();this.writable(s);if(s.v2.library.entries.some(e=>e.videoId===item.videoId))throw new FinderLibraryConflict('V2 data preserved');return this.commitV1({version:1,items:[...s.v1.library.items.filter(e=>e.videoId!==item.videoId),item]},s.v1.library);});}
+ async import(json:unknown){
+  if(typeof json!=='string'||Buffer.byteLength(json)>MAX_BYTES)throw Error('Invalid import');const incoming=validateEducationVideoLibrary(JSON.parse(json));
+  return this.mutate(async()=>{const s=await this.snapshot();this.writable(s);const ids=new Set([...s.v1.library.items,...s.v2.library.entries].map(e=>e.videoId));return this.commitV1({version:1,items:[...s.v1.library.items,...incoming.items.filter(e=>!ids.has(e.videoId))]},s.v1.library);});
+ }
+ async importReviewed(incoming:EducationVideoLibrary|LibraryV2,selectedIds:readonly string[],expected:string,fresh=()=>{}){
+  const safe=incoming.version===1?validateEducationVideoLibrary(incoming):validateLibraryV2(incoming);
+  return this.mutate(async()=>{fresh();const s=await this.snapshot();this.writable(s);fresh();if(s.fingerprint!==expected)throw new FinderLibraryConflict();
+   const rows=safe.version===1?safe.items:safe.entries,chosen=new Set(selectedIds),existing=new Set([...s.v1.library.items,...s.v2.library.entries].map(e=>e.videoId));
+   if(!chosen.size||chosen.size!==selectedIds.length||selectedIds.some(id=>existing.has(id)||!rows.some(e=>e.videoId===id)))throw new FinderLibraryConflict();
+   if(safe.version===1)await this.commitV1({version:1,items:[...s.v1.library.items,...safe.items.filter(e=>chosen.has(e.videoId))]},s.v1.library,fresh);
+   else await this.commitV2({version:2,entries:[...s.v2.library.entries,...safe.entries.filter(e=>chosen.has(e.videoId))]},s.v2.library,fresh);
+   return {added:chosen.size,skipped:rows.length-chosen.size,v1:(await this.load()).library,v2:await this.loadV2()};
+  });
+ }
+ async editV2(value:unknown):Promise<V2Load>{
+  assertFields(value,['videoId','expectedFingerprint','teacher'],['candidateRecord','recommendationReason']);const request=structuredClone(value) as FinderV2Edit;validateTeacher(request.teacher);
+  return this.mutate(async()=>{const s=await this.snapshot();this.writable(s);if(s.fingerprint!==request.expectedFingerprint)throw new FinderLibraryConflict();const entry=s.v2.library.entries.find(e=>e.videoId===request.videoId);if(!entry)throw new FinderLibraryConflict();
+   let next={...entry,teacher:request.teacher};
+   if(request.candidateRecord!==undefined){const record=parseCandidateRecord({...request.candidateRecord,savedAt:new Date().toISOString()});next={...next,candidateRecord:record,...(entry.ai?{ai:applyCandidateRecord(parseAiMetadata(entry.ai,entry.videoId,Date.now()),record)}:{})};}
+   if(request.recommendationReason!==undefined)next={...next,recommendationReason:parseRecommendationReason(request.recommendationReason)};
+   return this.commitV2({version:2,entries:s.v2.library.entries.map(e=>e.videoId===next.videoId?next:e)},s.v2.library);
+  });
+ }
  async export(){return JSON.stringify((await this.load()).library,null,2);}
- async recover(){const library=await this.readNamed('library.backup.json');await this.writeFile('library.json',library);return {library,recovered:true};}
+ async exportV2(){return JSON.stringify((await this.loadV2()).library);}
+ recover(){return this.mutate(async()=>{await this.safe();const library=await this.v1Backup.read();if(!library)throw Error('No backup');await this.v1.write(library);return {library,recovered:true};});}
  flush(){return this.queue;}
 }
 
 type Event={sender:unknown;senderFrame:unknown};
 const ok=<T>(data:T):IpcResult<T>=>({ok:true,data});
-const failure=(code:'FORBIDDEN'|'INVALID_INPUT'|'STORAGE_ERROR',message:string):IpcResult<never>=>({ok:false,error:{code,message,retryable:code==='STORAGE_ERROR'}});
+const failure=(code:'FORBIDDEN'|'INVALID_INPUT'|'STORAGE_ERROR'|'CONFLICT',message:string):IpcResult<never>=>({ok:false,error:{code,message,retryable:code==='STORAGE_ERROR'}});
 export function createEducationVideoHandlers(webContents:unknown,url:string,store:EducationVideoLibraryStore){
  const allowed=(event:Event)=>{try{assertSender(event as never,webContents as never,url);return true;}catch{return false;}};
- const run=async<T>(event:Event,args:unknown[],action:()=>Promise<T>):Promise<IpcResult<T>>=>{if(!allowed(event))return failure('FORBIDDEN','허용되지 않은 요청입니다.');try{if(args.length)throw Error('INVALID_INPUT');return ok(await action());}catch(error){return failure(error instanceof Error&&error.message==='INVALID_INPUT'?'INVALID_INPUT':'STORAGE_ERROR','교육영상 라이브러리 작업을 완료하지 못했습니다. 기존 파일은 유지됩니다.');}};
+ const run=async<T>(event:Event,args:unknown[],action:()=>Promise<T>):Promise<IpcResult<T>>=>{if(!allowed(event))return failure('FORBIDDEN','허용되지 않은 요청입니다.');try{if(args.length)throw Error('INVALID_INPUT');return ok(await action());}catch(error){return failure(error instanceof FinderLibraryConflict?'CONFLICT':error instanceof Error&&error.message==='INVALID_INPUT'?'INVALID_INPUT':'STORAGE_ERROR',error instanceof FinderLibraryConflict?'기존 V2 자료 또는 보관함 변경을 확인해 주세요. V2 편집에서 수정할 수 있으며 기존 자료는 유지했습니다.':'교육영상 라이브러리 작업을 완료하지 못했습니다. 기존 파일은 유지됩니다.');}};
  return {
   load:(event:Event,...args:unknown[])=>run(event,args,()=>store.load()),
   save:(event:Event,item:unknown,...args:unknown[])=>run(event,args,()=>store.save(item)),

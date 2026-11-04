@@ -56,6 +56,7 @@ export type EducationVideoLibrary=Readonly<{version:1;items:readonly EducationVi
 export type EducationVideoLibraryLoad=Readonly<{library:EducationVideoLibrary;recovered:boolean}>;
 export type EducationVideoFileExportResult=Readonly<{status:'saved';fileName:string}|{status:'canceled'}>;
 export interface EducationVideoBridge {
+ readonly compat?:import('./finder-v2-protocol.js').FinderCompatBridge;
  readonly searchProvider?:import('./finder-search-protocol.js').FinderSearchBridge;
  load():Promise<IpcResult<EducationVideoLibraryLoad>>;
  save(item:EducationVideoLibraryItem):Promise<IpcResult<EducationVideoLibraryLoad>>;

@@ -1,11 +1,12 @@
 import {isAbsolute,relative,sep,extname} from 'node:path';
 import type {EducationVideoFileExportResult,IpcResult} from '../protocol.js';
 import {assertSender} from './policy.js';
+import {validateLibraryV2} from './finder-v2/validate.js';
 import {EducationVideoLibraryStore,validateEducationVideoLibrary} from './education-video-library.js';
 import {writeSelectedExport,ExportConflict} from './purchase-export-storage.js';
 
 // Renderer supplies no JSON or paths: Main exports only its validated, isolated library.
-export function createEducationVideoExport(contents:Parameters<typeof assertSender>[1],url:string,store:EducationVideoLibraryStore,ports:{protectedRoot:string;pick:()=>Promise<string|undefined>;confirm:()=>Promise<boolean>;write?:typeof writeSelectedExport}){
+export function createEducationVideoExport(contents:Parameters<typeof assertSender>[1],url:string,store:EducationVideoLibraryStore,ports:{version?:1|2;protectedRoot:string;pick:()=>Promise<string|undefined>;confirm:()=>Promise<boolean>;write?:typeof writeSelectedExport}){
  let pending:Promise<IpcResult<EducationVideoFileExportResult>>|undefined,disposed=false;
  const abort=new AbortController();
  const waitDialog=<T>(operation:Promise<T>):Promise<T>=>new Promise((resolve,reject)=>{
@@ -23,7 +24,7 @@ export function createEducationVideoExport(contents:Parameters<typeof assertSend
    if(pending)return Promise.resolve(failure('STORAGE_ERROR'));
    const task=async():Promise<IpcResult<EducationVideoFileExportResult>>=>{
     try{
-     const library=validateEducationVideoLibrary(JSON.parse(await store.export()));
+     const library=ports.version===2?validateLibraryV2(JSON.parse(await store.exportV2())):validateEducationVideoLibrary(JSON.parse(await store.export()));
      let json=JSON.stringify(library,null,2);
      // Preserve importability for valid libraries near the existing size limit.
      if(Buffer.byteLength(json)>2*1024*1024)json=JSON.stringify(library);

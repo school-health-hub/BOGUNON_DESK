@@ -1,3 +1,5 @@
+import type {FinderCompatBridge} from '../../electron-p0/finder-v2-protocol';
+import {FinderCompatibility} from '../../electron-p0/renderer/finder/FinderCompatibility';
 import type {FinderSearchBridge,FinderSearchStatus} from '../../electron-p0/finder-search-protocol';
 import {SearchConnection} from './SearchConnection';
 import { useEffect, useState, useRef, type ReactNode } from 'react';
@@ -8,8 +10,9 @@ import { VideoResults } from './VideoResults';
 import { MessageEditor } from './MessageEditor';
 import './finder.css';
 const emptyEducation: Education = { educationTitle: '', target: '', schedule: '', instructions: '' };
-export function EducationVideoFinder({ onClose,renderAiTools,searchBridge }: {
+export function EducationVideoFinder({ onClose,renderAiTools,searchBridge,compatBridge }: {
     readonly onClose: () => void;
+    readonly compatBridge?:FinderCompatBridge;
     readonly searchBridge?:FinderSearchBridge;
     readonly renderAiTools?:(text:string)=>ReactNode;
 }) {
@@ -113,9 +116,10 @@ export function EducationVideoFinder({ onClose,renderAiTools,searchBridge }: {
  <p className="ev-muted">{nativeLibrary ? '이 PC의 education-video 전용 JSON 저장소에 보관합니다.' : '브라우저 QA 모드: 이 브라우저의 localStorage만 사용합니다. 네이티브 파일 저장·복구 보장이 아닙니다.'}</p>
  <div className="ev-actions">
  <button type="button" disabled={busy} onClick={exportLibrary}><Download size={16}/>내보내기</button>
- <label className="ev-import"><Upload size={16}/>가져오기<input type="file" accept=".json,application/json" disabled={busy} onChange={e => { importLibrary(e.target.files?.[0]); e.target.value = ''; }}/></label>
+ {!compatBridge&&<label className="ev-import"><Upload size={16}/>가져오기<input type="file" accept=".json,application/json" disabled={busy} onChange={e => { importLibrary(e.target.files?.[0]); e.target.value = ''; }}/></label>}
  <button type="button" disabled={busy} onClick={() => void run(async () => { const result = await libraryRepository.recover(); setLibrary(result.library); setNotice('백업에서 복구했습니다.'); })}>백업 복구</button>
  </div>
+ {compatBridge&&<FinderCompatibility bridge={compatBridge} onV1Changed={setLibrary}/>}
  {library.items.length === 0 ? <p className="ev-empty-inline">저장한 영상이 없습니다. 안내문을 작성한 뒤 저장해 주세요.</p> : <ul>{library.items.map(item => <li key={item.videoId}><div><strong>{item.educationTitle || item.title}</strong><p>{item.schedule} · {item.target}</p></div><button type="button" onClick={() => loadItem(item)}>불러오기</button></li>)}</ul>}
  </section></div>
  <MessageEditor onOpen={selected&&searchBridge?()=>openOriginal(selected):undefined} education={education} video={selected} message={message} notes={notes} confirmed={confirmed} onEducation={changeEducation} onMessage={value => { setMessage(value); setConfirmed(false); }} onNotes={setNotes} onConfirm={setConfirmed} onGenerate={generate} onCopy={() => void copyMessage(message, confirmed, value => navigator.clipboard.writeText(value)).then(setNotice)} onSave={save}/>

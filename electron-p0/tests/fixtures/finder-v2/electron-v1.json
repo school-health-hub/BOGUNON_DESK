@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "videoId": "EVmock00001",
+      "title": "합성 Mock 영상",
+      "channelId": "mock-channel",
+      "channelTitle": "합성 채널",
+      "durationSeconds": 600,
+      "url": "https://www.youtube.com/watch?v=EVmock00001",
+      "source": "mock",
+      "educationTitle": "합성 보건교육",
+      "target": "합성 대상",
+      "schedule": "합성 기간",
+      "instructions": "합성 안내사항",
+      "message": "보존할 합성 안내문",
+      "notes": "보존할 합성 메모"
+    },
+    {
+      "videoId": "QaVideo0001",
+      "title": "합성 API 응답 영상",
+      "channelId": "UCxxxxxxxxxxxxxxxxxxxxxx",
+      "channelTitle": "합성 API 채널",
+      "durationSeconds": 700,
+      "url": "https://www.youtube.com/watch?v=QaVideo0001",
+      "source": "youtube",
+      "educationTitle": "합성 보건교육",
+      "target": "합성 대상",
+      "schedule": "합성 기간",
+      "instructions": "합성 안내사항",
+      "message": "보존할 합성 안내문",
+      "notes": "보존할 합성 메모"
+    }
+  ]
+}

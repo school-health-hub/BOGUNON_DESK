@@ -1,0 +1,84 @@
+{
+  "version": 2,
+  "entries": [
+    {
+      "videoId": "FVsyn000001",
+      "teacher": {
+        "educationTitle": "합성 보건교육",
+        "target": "합성 대상",
+        "schedule": "합성 기간",
+        "instructions": "합성 안내사항",
+        "message": "보존할 합성 안내문",
+        "notes": "보존할 합성 메모"
+      },
+      "provider": {
+        "title": "합성 원본 영상",
+        "channelId": "synthetic-channel",
+        "channelTitle": "합성 제공자",
+        "durationSeconds": null,
+        "url": "https://www.youtube.com/watch?v=FVsyn000001",
+        "source": "synthetic-mock",
+        "official": false,
+        "officialEvidence": null,
+        "synthetic": true,
+        "fetchedAt": "2026-11-04T00:00:00.000Z",
+        "expiresAt": "2026-11-20T00:00:00.000Z"
+      },
+      "ai": {
+        "videoId": "FVsyn000001",
+        "url": "https://www.youtube.com/watch?v=FVsyn000001",
+        "title": "교사 확인 합성 영상",
+        "publisher": null,
+        "durationSeconds": null,
+        "description": "합성 공개 소개정보",
+        "relevance": "합성 교육 관련성",
+        "reason": "합성 AI 분석 근거",
+        "sources": [
+          {
+            "url": "https://www.youtube.com/watch?v=FVsyn000001",
+            "title": "합성 출처"
+          }
+        ],
+        "checkedAt": "2026-11-04T00:00:00.000Z",
+        "needsReview": true,
+        "provenance": "web-search-verified",
+        "metadataVerification": {
+          "title": "teacher-confirmed",
+          "publisher": "unverified",
+          "durationSeconds": "unverified"
+        }
+      },
+      "candidateRecord": {
+        "provenance": "web-search-verified",
+        "title": "교사 확인 합성 영상",
+        "publisher": null,
+        "durationSeconds": null,
+        "metadataVerification": {
+          "title": "teacher-confirmed",
+          "publisher": "unverified",
+          "durationSeconds": "unverified"
+        },
+        "savedAt": "2026-11-04T00:00:00.000Z"
+      },
+      "recommendationReason": {
+        "status": "ai-generated",
+        "text": "합성 추천 이유"
+      }
+    },
+    {
+      "videoId": "FVsyn000002",
+      "teacher": {
+        "educationTitle": "합성 보건교육",
+        "target": "합성 대상",
+        "schedule": "합성 기간",
+        "instructions": "합성 안내사항",
+        "message": "보존할 합성 안내문",
+        "notes": "제공자 메타데이터가 없어도 교사 메모 보존"
+      },
+      "provider": null,
+      "recommendationReason": {
+        "status": "deleted"
+      }
+    }
+  ]
+}
