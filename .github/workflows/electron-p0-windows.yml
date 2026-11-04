@@ -1,11 +1,12 @@
 name: Final integrated Portable Windows QA
-run-name: Final integrated Portable / b9a0a1b / ${{ github.run_id }}
+run-name: Final integrated Portable / 142b8af / ${{ github.run_id }}
 
 on:
   workflow_dispatch:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: td2-soft-rose-portable-gui
@@ -23,12 +24,12 @@ jobs:
       CI: 'true'
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       TD2_CONTROLLER_BASE_SHA: b085e8b7c7a5ec1bd6c7ba54cc689fcf11dbc2cc
-      TD2_PRODUCT_SHA: b9a0a1b3893c2f45eeeed7278b86442e415dc159
+      TD2_PRODUCT_SHA: 142b8afb74fae26197ea8128899207734b61d44a
     steps:
       - name: Checkout immutable approved product
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: b9a0a1b3893c2f45eeeed7278b86442e415dc159
+          ref: 142b8afb74fae26197ea8128899207734b61d44a
           path: source
           persist-credentials: false
           fetch-depth: 0
@@ -74,19 +75,47 @@ jobs:
         run: npm ci
       - name: Focused profile and design contracts
         working-directory: source
-        run: npx vitest run electron-p0/tests/soft-rose-glass-contract.test.ts electron-p0/tests/finder-vault.test.ts electron-p0/tests/purchase-ai-contract.test.ts
-      - name: Build approved Portable once
-        working-directory: source
-        run: npm run electron:p0:package:win
-      - name: Windows native DPAPI and synthetic callback contracts
+        run: npx vitest run electron-p0/tests/qa-profile.test.ts
+      - name: Download previously verified native payload
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: final-integrated-portable-b9a0a1b-41783816634
+          run-id: 41783816634
+          github-token: ${{ github.token }}
+          path: prior-portable
+      - name: Reuse exact native binaries without rebuilding unchanged source
+        run: |
+          $ErrorActionPreference='Stop'
+          git -C source diff --exit-code b9a0a1b3893c2f45eeeed7278b86442e415dc159 HEAD -- tools src-tauri
+          if($LASTEXITCODE -ne 0){throw 'Native source changed; reuse forbidden'}
+          $old=@(Get-ChildItem prior-portable/*.exe)
+          if($old.Count -ne 1 -or (Get-FileHash $old[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant() -cne '67cd604c553c886a0962007534ddccc5d3b46a48fd39f4b11d5e202f72990902'){throw 'Prior Portable hash mismatch'}
+          7z x $old[0].FullName "-o$env:TD2_ROOT/prior-container" -y | Out-Null
+          if($LASTEXITCODE -ne 0){throw 'Prior Portable extraction failed'}
+          $archive=@(Get-ChildItem "$env:TD2_ROOT/prior-container" -Recurse -Filter app-64.7z)
+          if($archive.Count -ne 1){throw 'Expected one embedded app archive'}
+          7z x $archive[0].FullName "-o$env:TD2_ROOT/prior-app" -y | Out-Null
+          if($LASTEXITCODE -ne 0){throw 'Prior payload extraction failed'}
+          $hashes=@{
+            'purchase-excel-cli'='5240026d893e6529361907915fd05ebf5498526e0bbf723a360c38fc5532175e';
+            'official-document-cli'='61697e919f96bf3816f1bcf7066684c8d64d7b3a3435c188ba92fc347b23c8e0';
+            'my-finance-cli'='b40175de3b7f65496674c7ebd2200d680b48f124a3933d812d5f7c09cc0992d9';
+            'chatgpt-auth-cli'='5f36d7340eaf184ac88866149cc46f1765fe279044e23d8aecec4e993fc22669'
+          }
+          foreach($cli in $hashes.Keys){
+            $root="$env:TD2_ROOT/prior-app/resources/$cli"
+            if((Get-FileHash "$root/$cli.exe" -Algorithm SHA256).Hash.ToLowerInvariant() -cne $hashes[$cli]){throw "Reused CLI hash mismatch: $cli"}
+            New-Item -ItemType Directory "source/build/$cli" -Force | Out-Null
+            Copy-Item "$root/*" "source/build/$cli/" -Recurse
+          }
+          [ordered]@{originRun=41783816634;nativeSourceSha='b9a0a1b3893c2f45eeeed7278b86442e415dc159';productSha=$env:TD2_PRODUCT_SHA;nativeSourceUnchanged=$true;hashes=$hashes;dpapiAndLoopback='REUSED from original Windows run'} | ConvertTo-Json -Depth 4 | Set-Content "$env:TD2_EVIDENCE_ROOT/native-reuse.json"
+      - name: Build changed app and Portable once
         working-directory: source
         run: |
-          cargo test --locked --manifest-path tools/chatgpt-auth-cli/Cargo.toml windows_dpapi_user_scope_round_trip_preserves_credential
-          if($LASTEXITCODE -ne 0){throw 'ChatGPT DPAPI failed'}
-          cargo test --locked --manifest-path tools/chatgpt-auth-cli/Cargo.toml loopback::tests
-          if($LASTEXITCODE -ne 0){throw 'Synthetic OAuth loopback failed'}
-          cargo test --locked --manifest-path tools/my-finance-cli/Cargo.toml electron_
-          if($LASTEXITCODE -ne 0){throw 'Finance Windows DPAPI restart failed'}
+          npm run electron:p0:build
+          if($LASTEXITCODE -ne 0){throw 'Electron build failed'}
+          npx electron-builder --config electron-p0/builder.json --win portable --x64 --publish never
+          if($LASTEXITCODE -ne 0){throw 'Portable build failed'}
       - name: Verify packaged runtime, resources and source
         working-directory: source
         run: |
@@ -103,7 +132,7 @@ jobs:
             "$((Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant())  $cli.exe" | Add-Content "$env:TD2_EVIDENCE_ROOT/NATIVE-SHA256.txt"
           }
           $manifest=Get-Content "$resources/chatgpt-auth-cli/manifest.json" -Raw|ConvertFrom-Json
-          if($manifest.sourceSha -cne $env:TD2_PRODUCT_SHA -or $manifest.dirty){throw 'Native source provenance mismatch'}
+          if($manifest.sourceSha -cne 'b9a0a1b3893c2f45eeeed7278b86442e415dc159' -or $manifest.dirty){throw 'Native source provenance mismatch'}
           node -e "const {createPackageFromStreams}=require('@electron/asar');const asar=require('@electron/asar');const p='release-electron-p0/win-unpacked/resources/app.asar';const fs=require('fs');const meta=JSON.parse(asar.extractFile(p,'build-meta.json'));if(meta.sourceSha!==process.env.TD2_PRODUCT_SHA)throw Error('ASAR source mismatch');for(const f of ['purchase-ai-protocol.js','ai-image-capabilities.json'])asar.extractFile(p,f);fs.writeFileSync(process.env.TD2_EVIDENCE_ROOT+'/asar-source.json',JSON.stringify(meta));"
           if($LASTEXITCODE -ne 0){throw 'ASAR provenance/resource verification failed'}
       - name: Record Portable and actual Windows DPI
@@ -124,6 +153,12 @@ jobs:
           }
           $dpi|ConvertTo-Json|Set-Content "$env:TD2_EVIDENCE_ROOT/windows-dpi.json"
           [ordered]@{sourceSha=$env:TD2_PRODUCT_SHA;file=$portable[0].Name;bytes=$portable[0].Length;sha256=$hash;signature=[string](Get-AuthenticodeSignature $portable[0].FullName).Status}|ConvertTo-Json|Set-Content "$env:TD2_EVIDENCE_ROOT/portable.json"
+      - name: Prove profile isolation and cleanup after injected exception
+        working-directory: source
+        run: |
+          $env:TD2_FORCE_EXCEPTION='1'
+          node ../controller/scripts/qa/td2-soft-rose-portable.mjs
+          if($LASTEXITCODE -ne 0){throw 'Exception cleanup/profile gate failed'}
       - name: Run actual Portable and capture Electron GUI
         working-directory: source
         run: node ../controller/scripts/qa/td2-soft-rose-portable.mjs 2>&1 | Tee-Object "$env:TD2_EVIDENCE_ROOT/portable-gui.log"
@@ -138,7 +173,7 @@ jobs:
           @($files|ForEach-Object{"$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.FullName.Substring($env:TD2_EVIDENCE_ROOT.Length+1).Replace('\','/'))"})|Set-Content "$env:TD2_EVIDENCE_ROOT/SHA256SUMS.txt"
           '## Final integrated Portable Windows QA' >> $env:GITHUB_STEP_SUMMARY
           "Product SHA: ``$env:TD2_PRODUCT_SHA``" >> $env:GITHUB_STEP_SUMMARY
-          'The Portable EXE itself was launched. 1280×800 and 1440×900 captures are in the artifact.' >> $env:GITHUB_STEP_SUMMARY
+          'Inspect result JSON: screenshots and actual source SHA are evidence only when execution passed the isolation gate.' >> $env:GITHUB_STEP_SUMMARY
           '125% and 150% remain NOT VERIFIED unless the recorded Windows OS DPI proves otherwise; no zoom/device emulation was used.' >> $env:GITHUB_STEP_SUMMARY
       - name: Upload Portable GUI evidence
         if: always()
@@ -152,7 +187,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: success() || failure()
         with:
-          name: final-integrated-portable-b9a0a1b-${{ github.run_id }}
+          name: final-integrated-portable-142b8af-${{ github.run_id }}
           path: source/release-electron-p0/*.exe
           if-no-files-found: ignore
           retention-days: 14

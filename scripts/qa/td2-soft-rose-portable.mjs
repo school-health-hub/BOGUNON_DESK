@@ -38,16 +38,33 @@ const isolatedAppData=join(qaRoot,'appdata'),isolatedLocalAppData=join(qaRoot,'l
 await mkdir(isolatedAppData,{recursive:true});await mkdir(isolatedLocalAppData,{recursive:true});
 const launch=()=>spawn(executable,[`--remote-debugging-port=${port}`],{
   cwd:process.cwd(),
-  env:{...process.env,APPDATA:isolatedAppData,LOCALAPPDATA:isolatedLocalAppData,ELECTRON_P0_TEST_RUN:qaRun,ELECTRON_P0_QA_ROOT:qaRoot,ELECTRON_P0_DEV_URL:''},
+  env:{...process.env,APPDATA:isolatedAppData,LOCALAPPDATA:isolatedLocalAppData,ELECTRON_P0_QA_PROFILE:'1',ELECTRON_P0_TEST_RUN:qaRun,ELECTRON_P0_QA_ROOT:qaRoot,ELECTRON_P0_DEV_URL:''},
   stdio:['ignore','pipe','pipe'],
   windowsHide:false,
 });
-const osAppData=execFileSync('pwsh',['-NoProfile','-NonInteractive','-Command',"[Environment]::GetFolderPath('ApplicationData')"],{env:{...process.env,APPDATA:isolatedAppData},encoding:'utf8'}).trim();
-if(resolve(osAppData).toLowerCase()!==resolve(isolatedAppData).toLowerCase())throw Error('BLOCKED before launch: Windows appData does not use the isolated root; no GUI QA permitted');
 let child=launch();
 child.stdout.on('data',chunk=>process.stdout.write(chunk));
 child.stderr.on('data',chunk=>process.stderr.write(chunk));
 
+const ownedPids=new Set([child.pid]);
+const psQuote=v=>"'"+v.replaceAll("'","''")+"'";
+const ownedSnapshot=()=>{
+ const script=`$all=@(Get-CimInstance Win32_Process);$ids=[System.Collections.Generic.HashSet[int]]::new();foreach($i in @(${[...ownedPids].join(',')})){[void]$ids.Add($i)};do{$added=$false;foreach($p in $all){if($ids.Contains([int]$p.ParentProcessId)-and !$ids.Contains([int]$p.ProcessId)){[void]$ids.Add([int]$p.ProcessId);$added=$true}}}while($added);$root=${psQuote(resolve(process.env.TEMP)+'\\')};$exe=${psQuote(resolve(executable))};@($all|Where-Object{($_.ExecutablePath -and ($_.ExecutablePath.StartsWith($root,[StringComparison]::OrdinalIgnoreCase)-or $_.ExecutablePath -eq $exe))-and ($ids.Contains([int]$_.ProcessId)-or $_.Name -like 'BOGUNON*')}|Select-Object ProcessId,ParentProcessId,ExecutablePath,CreationDate)|ConvertTo-Json -Compress`;
+ const raw=execFileSync('pwsh',['-NoProfile','-NonInteractive','-Command',script],{encoding:'utf8'}).trim();const v=raw?JSON.parse(raw):[];const rows=Array.isArray(v)?v:[v];for(const p of rows)ownedPids.add(p.ProcessId);return rows;
+};
+const cleanupOwned=async()=>{
+ await closeBrowser();
+ let remaining=ownedSnapshot();result.shutdown.beforeCleanup=remaining;
+ for(let i=0;i<5&&remaining.length;i++){await delay(500);remaining=ownedSnapshot();}
+ result.shutdown.forced=remaining.length>0;
+ for(const p of remaining){
+  const script=`$p=Get-CimInstance Win32_Process -Filter 'ProcessId=${p.ProcessId}';if($p -and [datetime]$p.CreationDate -eq [datetime] ${psQuote(p.CreationDate)}){Stop-Process -Id ${p.ProcessId} -Force -ErrorAction Stop}`;
+  execFileSync('pwsh',['-NoProfile','-NonInteractive','-Command',script],{encoding:'utf8'});
+ }
+ for(let i=0;i<10;i++){remaining=ownedSnapshot();if(!remaining.length)break;await delay(500);}
+ result.shutdown.remaining=remaining;result.shutdown.zeroResidual=remaining.length===0;
+ if(remaining.length)throw Error('Owned QA process cleanup failed');
+};
 let browser;
 let browserSession;
 const delay=ms=>new Promise(resolveDelay=>setTimeout(resolveDelay,ms));
@@ -110,9 +127,12 @@ try{
 
   const info=await page.evaluate(()=>window.electronP0.info());
   if(info.sourceSha!==expectedSha)throw new Error(`Source SHA mismatch: ${info.sourceSha}`);
-  const expectedUserData=join(isolatedAppData,'BOGUNON-DESK-ELECTRON-P0','test-runs',qaRun).toLowerCase();
+  const expectedUserData=join(qaRoot,'test-runs',qaRun,'user-data').toLowerCase();
   if(info.userData.toLowerCase()!==expectedUserData)throw new Error(`Unexpected userData: ${info.userData}`);
   result.actualUserData=info.userData;
+  if(!info.qaProfile||resolve(info.qaProfile.root).toLowerCase()!==resolve(qaRoot).toLowerCase()||resolve(info.qaProfile.appData).toLowerCase()!==resolve(qaRoot,'app-data').toLowerCase()||resolve(info.qaProfile.sessionData).toLowerCase()!==resolve(info.userData,'chromium').toLowerCase()||!info.qaProfile.stores.every(p=>resolve(p).toLowerCase().startsWith(resolve(info.userData).toLowerCase()+'\\')))throw Error('Sensitive QA storage paths escaped isolated profile');
+  result.profileIsolation={verdict:'PASS',...info.qaProfile,userData:info.userData};
+  if(process.env.TD2_FORCE_EXCEPTION==='1')throw Error('injected QA exception after profile proof');
   result.devicePixelRatio=await page.evaluate(()=>devicePixelRatio);
 
   browserSession=await browser.newBrowserCDPSession();
@@ -190,7 +210,7 @@ try{
   });
   result.inventoryPersistence='saved; restart pending';
   await closeBrowser();await waitForWrapperExit();await browser.close();browser=undefined;browserSession=undefined;
-  result.shutdown.browserCloseSent=false;child=launch();child.stdout.on('data',()=>{});child.stderr.on('data',()=>{});
+  result.shutdown.browserCloseSent=false;child=launch();ownedPids.add(child.pid);child.stdout.on('data',()=>{});child.stderr.on('data',()=>{});
   await waitForCdp();browser=await chromium.connectOverCDP(`http://127.0.0.1:${port}`);browserSession=await browser.newBrowserCDPSession();
   const restoredPage=browser.contexts()[0].pages().find(p=>p.url().startsWith('file:'));
   await restoredPage.waitForLoadState('domcontentloaded');
@@ -206,10 +226,12 @@ try{
   result.remaining=['Existing small-card/Quick Memo/Launcher PARTIAL requires manual review','OS DPI 125/150 NOT RUN','Actual credentials, paid AI, YouTube requests and school login NOT RUN'];
 }catch(error){
   result.error=error instanceof Error?error.stack??error.message:String(error);
-  throw error;
+  result.verdict=process.env.TD2_FORCE_EXCEPTION==='1'&&String(error).includes('injected QA exception')?'EXPECTED_EXCEPTION':'FAIL';
 }finally{
-  await closeBrowser();
+  try{await cleanupOwned();if(result.verdict==='EXPECTED_EXCEPTION')result.verdict='PASS_EXCEPTION_CLEANUP';}
+  catch(error){result.cleanupError=String(error);result.verdict='FAIL';}
   if(browser){try{await browser.close();}catch{}}
-  await writeFile(join(evidenceRoot,'portable-gui-result.json'),JSON.stringify(result,null,2));
+  await writeFile(join(evidenceRoot,process.env.TD2_FORCE_EXCEPTION==='1'?'exception-cleanup-result.json':'portable-gui-result.json'),JSON.stringify(result,null,2));
   console.log(JSON.stringify(result));
 }
+if(result.verdict==='FAIL')throw Error('Portable QA failed; see bounded evidence result');
