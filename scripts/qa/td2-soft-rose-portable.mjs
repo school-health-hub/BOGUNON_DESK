@@ -206,12 +206,11 @@ try{
   if(Object.values(result.moduleGui).some(v=>v.startsWith('FAIL')))throw Error('Module GUI open failed; see moduleGui evidence');
   await reset();
   // QA-only loopback Main inspector. Picker substitution is synthetic, never Explorer drag-and-drop.
-  const WebSocket=requireFromProduct('ws');
   const nodeInfo=await (await fetch('http://127.0.0.1:19228/json/list')).json();
   mainWs=new WebSocket(nodeInfo[0].webSocketDebuggerUrl);
-  await new Promise((ok,bad)=>{mainWs.once('open',ok);mainWs.once('error',bad);});
+  await new Promise((ok,bad)=>{mainWs.addEventListener('open',ok,{once:true});mainWs.addEventListener('error',bad,{once:true});});
   let seq=0;const replies=new Map();
-  mainWs.on('message',bytes=>{const message=JSON.parse(bytes.toString());if(replies.has(message.id)){replies.get(message.id)(message);replies.delete(message.id);}});
+  mainWs.addEventListener('message',event=>{const message=JSON.parse(event.data);if(replies.has(message.id)){replies.get(message.id)(message);replies.delete(message.id);}});
   const mainEval=async expression=>{
     const id=++seq;const response=await new Promise((ok,bad)=>{const timer=setTimeout(()=>{replies.delete(id);bad(Error('Bounded QA Main probe timeout'));},45000);replies.set(id,m=>{clearTimeout(timer);ok(m);});mainWs.send(JSON.stringify({id,method:'Runtime.evaluate',params:{expression,awaitPromise:true,returnByValue:true}}));});
     if(response.error||response.result?.exceptionDetails)throw Error('QA Main probe failed (content omitted)');return response.result?.result?.value;
