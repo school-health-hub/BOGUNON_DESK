@@ -235,9 +235,9 @@ try{
   await choose(Object.values(paths));await page.getByRole('button',{name:'활동보고서 파일 추가',exact:true}).click();
   await page.getByText('5개 보고서',{exact:true}).waitFor({state:'visible',timeout:45000});
   await page.getByRole('alert',{name:'가져오지 못한 파일'}).waitFor({state:'visible'});
-  await page.getByText('synthetic.pdf',{exact:true}).click();await page.getByLabel('학생 구분',{exact:true}).fill('합성A');await page.getByLabel('교사 메모/관찰 내용',{exact:true}).fill('RECORD_QA_TRANSIENT_A');
-  await page.getByText('synthetic.docx',{exact:true}).click();await page.getByLabel('학생 구분',{exact:true}).fill('합성B');await page.getByLabel('교사 메모/관찰 내용',{exact:true}).fill('RECORD_QA_TRANSIENT_B');
-  await page.getByText('synthetic.pdf',{exact:true}).click();if(await page.getByLabel('교사 메모/관찰 내용',{exact:true}).inputValue()!=='RECORD_QA_TRANSIENT_A')throw Error('Student workspace isolation failed');
+  await page.locator('.record-helper-workspace__list').getByText('synthetic.pdf',{exact:true}).click();await page.getByLabel('학생 구분',{exact:true}).fill('합성A');await page.getByLabel('교사 메모/관찰 내용',{exact:true}).fill('RECORD_QA_TRANSIENT_A');
+  await page.locator('.record-helper-workspace__list').getByText('synthetic.docx',{exact:true}).click();await page.getByLabel('학생 구분',{exact:true}).fill('합성B');await page.getByLabel('교사 메모/관찰 내용',{exact:true}).fill('RECORD_QA_TRANSIENT_B');
+  await page.locator('.record-helper-workspace__list').getByText('synthetic.pdf',{exact:true}).click();if(await page.getByLabel('교사 메모/관찰 내용',{exact:true}).inputValue()!=='RECORD_QA_TRANSIENT_A')throw Error('Student workspace isolation failed');
   await page.getByRole('button',{name:'ChatGPT 요금제로 초안 작성',exact:true}).click();const approval=page.getByRole('dialog',{name:'AI 전송 내용 확인'});await approval.waitFor({state:'visible'});
   if(!(await approval.getByLabel('비식별 활동보고서').isVisible())||!(await approval.getByRole('button',{name:'확인 후 전송'}).isVisible()))throw Error('AI review gate missing');
   await approval.getByRole('button',{name:'취소',exact:true}).first().click();
@@ -271,6 +271,7 @@ try{
     const save=await w.inventory.save(doc,null);if(!save.ok)throw Error('Synthetic inventory save failed');return save.data.document.updatedAt;
   });
   result.inventoryPersistence='saved; restart pending';
+  if(mainWs){mainWs.close();mainWs=undefined;await delay(200);}
   await closeBrowser();await waitForWrapperExit();await browser.close();browser=undefined;browserSession=undefined;
   result.shutdown.browserCloseSent=false;child=launch();ownedPids.add(child.pid);child.stdout.on('data',()=>{});child.stderr.on('data',()=>{});
   await waitForCdp();browser=await chromium.connectOverCDP(`http://127.0.0.1:${port}`);browserSession=await browser.newBrowserCDPSession();
@@ -293,6 +294,7 @@ try{
   result.error=error instanceof Error?error.stack??error.message:String(error);
   result.verdict=process.env.TD2_FORCE_EXCEPTION==='1'&&String(error).includes('injected QA exception')?'EXPECTED_EXCEPTION':'FAIL';
 }finally{
+  if(mainWs){try{mainWs.close();mainWs=undefined;}catch{}}
   try{await cleanupOwned();if(result.verdict==='EXPECTED_EXCEPTION')result.verdict='PASS_EXCEPTION_CLEANUP';}
   catch(error){result.cleanupError=String(error);result.verdict='FAIL';}
   if(mainWs){try{mainWs.close();}catch{}}
