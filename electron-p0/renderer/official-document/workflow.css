@@ -1,0 +1,7 @@
+.od-ai-workflow{max-width:1600px;margin:0 auto 16px;padding:16px;border:1px solid var(--border);border-radius:var(--radius-widget,16px);background:var(--widget-bg,#fffdfd);min-width:0;overflow-wrap:anywhere}
+.od-ai-workflow fieldset{min-width:0}.od-ai-workflow label{display:block;margin:8px 0}.od-ai-workflow input[type=checkbox]{width:auto}.od-ai-workflow button{white-space:normal;overflow-wrap:anywhere}
+.od-ai-actions{display:flex;flex-wrap:wrap;gap:8px}.od-ai-result,.od-task-review{margin-top:16px;padding-top:12px;border-top:1px solid var(--border)}
+.od-ai-confirm-embedded .official-document-ai-confirm{width:100%;max-height:none;overflow:visible;box-shadow:none;border:0;padding:0;background:transparent}
+.od-ai-confirm-embedded .official-document-ai-confirm>header{display:none}.od-ai-confirm-embedded textarea{width:100%;min-height:180px;max-width:100%;box-sizing:border-box}
+.od-ai-confirm-embedded footer{display:flex;flex-wrap:wrap;gap:8px;position:sticky;bottom:0;padding:12px;background:var(--widget-bg,#fffdfd)}
+.od-ai-confirm-embedded button{min-height:40px}.od-ai-confirm-embedded :focus-visible{outline:3px solid var(--accent);outline-offset:2px}

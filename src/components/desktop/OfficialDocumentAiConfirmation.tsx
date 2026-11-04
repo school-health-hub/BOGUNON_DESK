@@ -18,10 +18,12 @@ export function OfficialDocumentAiConfirmation({
   confirmation,
   onCancel,
   onConfirm,
+  embedded=false,
 }: {
   readonly confirmation: OfficialDocumentAiConfirmationData;
   readonly onCancel: () => void;
   readonly onConfirm: (result: OfficialDocumentAiConfirmationResult) => void;
+  readonly embedded?:boolean;
 }) {
   const [outboundText, setOutboundText] = useState(confirmation.outboundText);
   const sentRef = useRef(false);
@@ -40,16 +42,18 @@ export function OfficialDocumentAiConfirmation({
     onConfirm({ outboundText });
   };
   useEffect(() => {
+    if(embedded)return;
     previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const focusFrame = window.requestAnimationFrame(() => cancelButtonRef.current?.focus());
     return () => {
       window.cancelAnimationFrame(focusFrame);
       previousFocusRef.current?.focus();
     };
-  }, []);
+  }, [embedded]);
   return (
-    <div className="official-document-ai-confirm-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel(); }}>
-      <section className="official-document-ai-confirm" role="dialog" aria-modal="true" aria-labelledby="official-document-ai-confirm-title" onKeyDown={(event) => {
+    <div className={embedded?'od-ai-confirm-embedded':'official-document-ai-confirm-backdrop'} onMouseDown={(event) => { if (!embedded&&event.target === event.currentTarget) onCancel(); }}>
+      <section className="official-document-ai-confirm" role={embedded?undefined:'dialog'} aria-modal={embedded?undefined:true} aria-labelledby="official-document-ai-confirm-title" onKeyDown={(event) => {
+        if(embedded)return;
         if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); onCancel(); return; }
         if (event.key !== "Tab") return;
         const focusable = event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])');
