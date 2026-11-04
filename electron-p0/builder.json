@@ -20,7 +20,8 @@
     "package.json",
     "tray.png",
     "purchase-ai-protocol.js",
-    "ai-image-capabilities.json"
+    "ai-image-capabilities.json",
+    "admin-connection.js"
   ],
   "asar": true,
   "npmRebuild": false,

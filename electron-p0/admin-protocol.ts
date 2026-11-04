@@ -27,6 +27,11 @@ export function officialAdminUrl(value:string):string{
  if(url.protocol!=='https:'||url.port||url.username||url.password||url.search||url.hash||!/^[a-z0-9.-]+$/.test(url.hostname)||!['go.kr','edu.kr','eduptl.kr','k-eduplus.kr'].some(domain=>url.hostname.endsWith('.'+domain)||['eduptl.kr','k-eduplus.kr'].includes(domain)&&url.hostname===domain))throw Error('기관 공식 HTTPS 기본 주소만 지원합니다. 계정·토큰·검색 매개변수가 포함된 주소는 저장하지 않습니다.');
  return url.href;
 }
+// Stricter execution boundary, deliberately separate from legacy JSON validation.
+export function safeAdminLaunchUrl(value:string):string{
+ if(value!==value.trim()||/[\u0000-\u0020\u007f\\]/.test(value)||/%(?:0[0-9a-f]|1[0-9a-f]|7f|2f|5c)/i.test(value))throw Error('실행할 HTTPS 주소를 확인해 주세요. 제어문자·역슬래시·인코딩된 경로 구분자는 지원하지 않습니다.');
+ const canonical=officialAdminUrl(value),url=new URL(canonical);if(url.hostname.length>253||url.hostname.split('.').some(label=>!/^([a-z0-9]|[a-z0-9][a-z0-9-]{0,61}[a-z0-9])$/.test(label)))throw Error('기관 호스트 이름을 확인해 주세요.');return canonical;
+}
 export function validAdminDate(value:string){return /^\d{4}-\d{2}-\d{2}$/.test(value)&&Number(value.slice(0,4))>=1900&&!Number.isNaN(Date.parse(value+'T00:00:00Z'))&&new Date(value+'T00:00:00Z').toISOString().slice(0,10)===value;}
 const tokens=['유형','시작일','종료일','시작시간','종료시간','사유'];
 export function validateAdminTemplate(value:unknown):string{
@@ -59,11 +64,13 @@ export type AdminColumn=Readonly<{label:string;sourceColumn:number;type:'text'|'
 export type AdminReview=Readonly<{id:string;generation:number;headers:readonly string[];rows:readonly Readonly<{sourceRow:number;values:readonly string[];issues:readonly string[]}>[]}>;
 export type AdminMapping=Readonly<{generation:number;headerRow:number;columns:readonly AdminColumn[]}>;
 export type AdminSelection=Readonly<{reviewId:string;rowIndexes:readonly number[]}>;
+export type AdminLaunchResult=Readonly<{status:'launched'|'canceled'|'blocked';connection?:import('./admin-connection.js').AdminConnectionCheck}>;
 export type AdminBridge=Readonly<{
  close():Promise<IpcResult<null>>;load():Promise<IpcResult<AdminLoad>>;save(document:AdminDocument,expectedRevision:number):Promise<IpcResult<AdminLoad>>;
- openEvpn():Promise<IpcResult<Readonly<{status:'launched'|'canceled'|'needs-configuration'}>>>;
+ openEvpn():Promise<IpcResult<AdminLaunchResult|Readonly<{status:'needs-configuration'}>>>;
+ checkSystem?(system:AdminSystem|'evpn'):Promise<IpcResult<import('./admin-connection.js').AdminConnectionCheck|Readonly<{state:'needs-configuration';message:string}>>>;
  setEnvironment(environment:AdminEnvironment,expectedRevision:number):Promise<IpcResult<AdminLoad>>;
- openSystem(system:AdminSystem):Promise<IpcResult<Readonly<{status:'launched'|'canceled'}>|Readonly<{status:'needs-configuration';system:AdminSystem;environment:AdminEnvironment}>>>;
+ openSystem(system:AdminSystem):Promise<IpcResult<AdminLaunchResult|Readonly<{status:'needs-configuration';system:AdminSystem;environment:AdminEnvironment}>>>;
  copyDraft(draft:LeaveDraft):Promise<IpcResult<Readonly<{copied:boolean}>>>;
  pickTable():Promise<IpcResult<AdminTable|null>>;cancel():Promise<IpcResult<null>>;
  mapTable(input:AdminMapping):Promise<IpcResult<AdminReview>>;

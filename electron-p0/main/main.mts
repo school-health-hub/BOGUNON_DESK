@@ -1,3 +1,4 @@
+import {allowedAdminProbeUrl,inspectAdminConnection,createAdminProbeClient} from './admin-connection.js';
 import {redactBitmap} from './purchase-ai-images.js';
 import {PurchaseAiService,createPurchaseAiHandlers} from './purchase-ai-service.js';
 import {ChatGptProcess} from './chatgpt-process.js';
@@ -131,7 +132,18 @@ else {
   ipcMain.handle('p2:official-document:pick',officialFiles.pick);ipcMain.handle('p2:official-document:save',officialFiles.save);ipcMain.handle('p2:official-document:cancel',officialFiles.cancel);
   window.on('close',officialFiles.dispose);app.on('before-quit',officialFiles.dispose);
   const excelService=new ExcelService(app.isPackaged?join(process.resourcesPath,'purchase-excel-cli','purchase-excel-cli.exe'):join(app.getAppPath(),'../../tools/purchase-excel-cli/target/debug',process.platform==='win32'?'purchase-excel-cli.exe':'purchase-excel-cli'),join(userData,'work-data','purchase-import-tmp'));
+  const adminProbeSession=session.fromPartition('admin-launcher-check');
+  adminProbeSession.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));adminProbeSession.setPermissionCheckHandler(()=>false);
+  adminProbeSession.on('will-download',event=>event.preventDefault());
+  adminProbeSession.webRequest.onBeforeRequest((details,callback)=>callback({cancel:details.method!=='HEAD'||!allowedAdminProbeUrl(details.url)}));
+  adminProbeSession.allowNTLMCredentialsForDomains('');
+  const adminProbe=createAdminProbeClient((target,init)=>adminProbeSession.fetch(target,init));
+  app.on('select-client-certificate',adminProbe.denyCertificate);
+  const releaseAdminProbe=()=>app.removeListener('select-client-certificate',adminProbe.denyCertificate);
+  window.on('closed',releaseAdminProbe);app.on('will-quit',releaseAdminProbe);
   const adminHandlers=createAdminHandlers(window.webContents,url,{store:adminStore,excel:excelService,protectedRoot:userData,
+   school:async()=>(await schoolStore.load()).document.school,
+   inspect:(target,signal)=>inspectAdminConnection(adminProbe.fetch,target,signal),
    pick:async()=>{const r=await dialog.showOpenDialog(window,{title:'학교 행정 검토용 CSV/XLSX 선택',properties:['openFile','dontAddToRecent'],filters:[{name:'검토용 표',extensions:['csv','xlsx']}]});return r.canceled?undefined:r.filePaths[0];},
    save:async()=>{const r=await dialog.showSaveDialog(window,{title:'학교 행정 검토용 CSV 저장',defaultPath:'학교행정_검토용.csv',properties:['dontAddToRecent'],filters:[{name:'검토용 CSV',extensions:['csv']}]});return r.canceled?undefined:r.filePath;},
    openExternal:target=>shell.openExternal(target,{activate:true}),copy:text=>clipboard.writeText(text),

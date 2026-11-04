@@ -45,3 +45,23 @@ it('keeps the previous selected environment and draft if saving the switch fails
  const ctx=await setup();try{vi.spyOn(ctx.api,'setEnvironment').mockResolvedValueOnce({ok:false,error:{code:'STORAGE_ERROR',message:'합성 환경 저장 실패',retryable:true}});render(<SchoolAdmin onClose={()=>{}}/>);await screen.findByText(/로컬 설정을 불러왔습니다/);fireEvent.change(screen.getByLabelText('신청 사유'),{target:{value:'합성 보호 원고'}});fireEvent.click(screen.getByRole('button',{name:'eVPN'}));await screen.findByText('합성 환경 저장 실패');expect(screen.getByRole('button',{name:'학교망'}).getAttribute('aria-pressed')).toBe('true');expect((screen.getByLabelText('신청 사유') as HTMLTextAreaElement).value).toBe('합성 보호 원고');expect((await ctx.store.load()).document.launcher).toBeUndefined();
  }finally{cleanup();ctx.handlers.dispose();await rm(ctx.root,{recursive:true,force:true});}
 });
+
+it('shows separate network/auth guidance and preserves unsaved work when checks fail or launch is blocked',async()=>{
+ const ctx=await setup();try{
+  vi.spyOn(ctx.api,'checkSystem').mockResolvedValue({ok:true,data:{state:'access-denied',httpStatus:403,redirects:0,message:'합성 서버 접근 거부 · 인증 성공이 아닙니다.'}});
+  vi.spyOn(ctx.api,'openSystem').mockResolvedValue({ok:true,data:{status:'blocked',connection:{state:'redirect-blocked',redirects:1,message:'합성 위험 이동 차단'}}});
+  render(<SchoolAdmin onClose={()=>{}}/>);await screen.findByText(/로컬 설정을 불러왔습니다/);expect(screen.getByText(/NEIS 공개 학교 검색은 교직원 업무용/)).toBeTruthy();expect(screen.getByText(/^학교 내부 교육망용 주소/)).toBeTruthy();
+  fireEvent.change(screen.getByLabelText('신청 사유'),{target:{value:'합성 미저장 보존'}});fireEvent.click(screen.getByRole('button',{name:'검토용 초안 만들기'}));
+  fireEvent.click(screen.getByRole('button',{name:'나이스 주소 연결 확인'}));await screen.findByText('합성 서버 접근 거부 · 인증 성공이 아닙니다.');expect(ctx.api.checkSystem).toHaveBeenCalledWith('neis');expect(ctx.openExternal).not.toHaveBeenCalled();expect((screen.getByLabelText('복무 검토 본문') as HTMLTextAreaElement).value).toContain('합성 미저장 보존');
+  fireEvent.click(screen.getByRole('button',{name:'나이스 열기'}));await screen.findByText(/안전하지 않은 이동 또는 반복 리디렉션을 차단/);expect(screen.queryByText(/브라우저 실행 요청을 완료/)).toBeNull();
+  fireEvent.click(screen.getByRole('button',{name:'eVPN'}));await screen.findByText(/^학교 밖에서는 기관 eVPN/);expect((screen.getByLabelText('신청 사유') as HTMLTextAreaElement).value).toBe('합성 미저장 보존');expect((await ctx.store.load()).document.drafts).toHaveLength(0);
+ }finally{cleanup();ctx.handlers.dispose();await ctx.store.flush();await rm(ctx.root,{recursive:true,force:true});}
+});
+
+it('checks saved URLs only and sends missing/edited addresses to configuration without losing inputs',async()=>{
+ const ctx=await setup();try{
+  const check=vi.spyOn(ctx.api,'checkSystem').mockResolvedValue({ok:true,data:{state:'needs-configuration',message:'합성 주소 미등록'}});render(<SchoolAdmin onClose={()=>{}}/>);await screen.findByText(/로컬 설정을 불러왔습니다/);
+  fireEvent.change(screen.getByLabelText('신청 사유'),{target:{value:'합성 사유 유지'}});fireEvent.click(screen.getByRole('button',{name:'나이스 주소 연결 확인'}));await screen.findByText('합성 주소 미등록');await waitFor(()=>expect(document.activeElement).toBe(screen.getByLabelText('나이스 공식 주소')));
+  fireEvent.change(screen.getByLabelText('나이스 공식 주소'),{target:{value:'https://unsaved.synthetic.neis.go.kr/'}});fireEvent.click(screen.getByRole('button',{name:'나이스 주소 연결 확인'}));await screen.findByText('수정한 주소를 먼저 저장한 뒤 연결을 확인해 주세요.');expect(check).toHaveBeenCalledTimes(1);expect((screen.getByLabelText('신청 사유') as HTMLTextAreaElement).value).toBe('합성 사유 유지');expect((await ctx.store.load()).document.systems.neis).toBe('');
+ }finally{cleanup();ctx.handlers.dispose();await ctx.store.flush();await rm(ctx.root,{recursive:true,force:true});}
+});

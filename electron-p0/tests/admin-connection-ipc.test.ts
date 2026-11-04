@@ -1,0 +1,39 @@
+import {it,expect,vi} from 'vitest';
+import {mkdtemp,rm,readFile} from 'node:fs/promises';import {tmpdir} from 'node:os';import {join} from 'node:path';
+import {AdminStore} from '../main/admin-store';import {createAdminHandlers,type AdminPorts} from '../main/admin-ipc';
+import {emptyAdmin} from '../admin-protocol';import {ADMIN_CONNECTION_MESSAGES,type AdminConnectionCheck,type AdminConnectionState} from '../admin-connection';
+const target='https://synthetic.eduptl.kr/',entry='https://evpn.synthetic.go.kr/';
+const checked=(state:AdminConnectionState):AdminConnectionCheck=>({state,redirects:0,message:ADMIN_CONNECTION_MESSAGES[state]});
+async function setup(){
+ const root=await mkdtemp(join(tmpdir(),'admin-connection-')),store=new AdminStore(root);await store.save({...emptyAdmin(),systems:{portal:target,neis:target,edufine:target},launcher:{environment:'school',evpn:{portal:target+'remote',neis:'',edufine:''},entryUrl:entry}},0);
+ const frame={},contents={mainFrame:frame,getURL:()=> 'file:///synthetic/index.html'},event={sender:contents,senderFrame:frame};
+ const review=vi.fn(async(_message:string,_text:string)=>true),inspect=vi.fn(async(_url:string,_signal:AbortSignal)=>checked('reachable')),openExternal=vi.fn(async(_url:string)=>{});
+ let school={officeCode:'B10',officeName:'합성교육청',schoolCode:'1000001',schoolName:'합성학교'};
+ const ports:AdminPorts={store,protectedRoot:root,excel:{table:vi.fn(),review:vi.fn()},pick:async()=>undefined,save:async()=>undefined,copy:async()=>{},review,inspect,openExternal,school:async()=>school};
+ const handlers=createAdminHandlers(contents,contents.getURL(),ports);
+ return {root,store,event,review,inspect,openExternal,handlers,changeSchool:()=>{school={...school,schoolCode:'1000002'};},cleanup:async()=>{handlers.dispose();await store.flush();await rm(root,{recursive:true,force:true});}};
+}
+it('does not send any request before native approval, or on cancel/forged IPC',async()=>{
+ const h=await setup();try{h.review.mockResolvedValue(false);expect(await h.handlers.openSystem(h.event,'portal')).toMatchObject({data:{status:'canceled'}});expect(await h.handlers.checkSystem(h.event,'portal')).toMatchObject({data:{state:'canceled'}});expect((await h.handlers.checkSystem({...h.event,senderFrame:{}},'portal')).ok).toBe(false);expect((await h.handlers.checkSystem(h.event,'https://evil.test/')).ok).toBe(false);expect((await h.handlers.checkSystem(h.event,'portal','extra')).ok).toBe(false);expect((await h.handlers.checkSystem({...h.event,sender:{...h.event.sender}},'portal')).ok).toBe(false);expect(h.inspect).not.toHaveBeenCalled();expect(h.openExternal).not.toHaveBeenCalled();}finally{await h.cleanup();}
+});
+it('checks only the stored environment URL and leaves JSON bytes unchanged',async()=>{
+ const h=await setup();try{const before=await readFile(join(h.root,'admin.json'));expect(await h.handlers.checkSystem(h.event,'portal')).toMatchObject({data:{state:'reachable'}});expect(h.inspect).toHaveBeenCalledWith(target,expect.any(AbortSignal));expect(h.openExternal).not.toHaveBeenCalled();expect(await readFile(join(h.root,'admin.json'))).toEqual(before);expect(h.review.mock.calls[0][1]).not.toContain('합성학교');await h.handlers.checkSystem(h.event,'evpn');expect(h.inspect).toHaveBeenLastCalledWith(entry,expect.any(AbortSignal));}finally{await h.cleanup();}
+});
+it.each(['redirect-blocked','redirect-limit'] as const)('blocks browser dispatch after %s without weakening download policy',async state=>{
+ const h=await setup();try{h.inspect.mockResolvedValue(checked(state));expect(await h.handlers.openSystem(h.event,'neis')).toMatchObject({data:{status:'blocked',connection:{state}}});expect(await h.handlers.openEvpn(h.event)).toMatchObject({data:{status:'blocked'}});expect(h.openExternal).not.toHaveBeenCalled();}finally{await h.cleanup();}
+});
+it.each(['access-denied','timeout','network-error','method-unsupported','redirect-review'] as const)('requires a second confirmation for %s and opens only the original URL',async state=>{
+ const h=await setup();try{h.inspect.mockResolvedValue(checked(state));h.review.mockResolvedValueOnce(true).mockResolvedValueOnce(false);expect(await h.handlers.openSystem(h.event,'portal')).toMatchObject({data:{status:'canceled',connection:{state}}});expect(h.openExternal).not.toHaveBeenCalled();h.review.mockResolvedValue(true);expect(await h.handlers.openSystem(h.event,'portal')).toMatchObject({data:{status:'launched',connection:{state}}});expect(h.openExternal).toHaveBeenCalledExactlyOnceWith(target);}finally{await h.cleanup();}
+});
+it('keeps authentication-required distinct from authenticated success and sanitizes OS errors',async()=>{
+ const h=await setup();try{h.inspect.mockResolvedValue(checked('authentication-required'));expect(await h.handlers.openEvpn(h.event)).toMatchObject({data:{status:'launched',connection:{state:'authentication-required'}}});expect(h.openExternal).toHaveBeenCalledWith(entry);h.openExternal.mockRejectedValueOnce(Error('PRIVATE SYSTEM PATH'));const result=await h.handlers.openSystem(h.event,'portal');expect(result).toMatchObject({ok:false,error:{message:expect.stringContaining('브라우저 실행 요청에 실패')}});expect(JSON.stringify(result)).not.toContain('PRIVATE');}finally{await h.cleanup();}
+});
+it('rejects changes to school/environment/URL during review and during network checks',async()=>{
+ const h=await setup();try{h.review.mockImplementationOnce(async()=>{h.changeSchool();return true;});expect(await h.handlers.openSystem(h.event,'portal')).toMatchObject({ok:false,error:{message:expect.stringContaining('학교 프로필이 변경')}});expect(h.openExternal).not.toHaveBeenCalled();h.inspect.mockImplementationOnce(async()=>{const current=(await h.store.load()).document;await h.store.setEnvironment('evpn',current.revision);return checked('reachable');});expect(await h.handlers.openSystem(h.event,'portal')).toMatchObject({ok:false,error:{message:expect.stringContaining('환경 또는 주소가 변경')}});expect(h.openExternal).not.toHaveBeenCalled();h.review.mockImplementationOnce(async()=>{const current=(await h.store.load()).document;await h.store.setEnvironment('school',current.revision);return true;});const count=h.inspect.mock.calls.length;expect((await h.handlers.checkSystem(h.event,'portal')).ok).toBe(false);expect(h.inspect).toHaveBeenCalledTimes(count);}finally{await h.cleanup();}
+});
+it('aborts in-flight checks on close and discards late results',async()=>{
+ const h=await setup();try{let release!:(value:AdminConnectionCheck)=>void;h.inspect.mockImplementationOnce(async(_url,signal)=>{expect(signal.aborted).toBe(false);return new Promise(resolve=>{release=resolve;});});const pending=h.handlers.openSystem(h.event,'portal');await vi.waitFor(()=>expect(h.inspect).toHaveBeenCalledOnce());const signal=h.inspect.mock.calls[0][1];await h.handlers.close(h.event);expect(signal.aborted).toBe(true);release(checked('reachable'));expect((await pending).ok).toBe(false);expect(h.openExternal).not.toHaveBeenCalled();}finally{await h.cleanup();}
+});
+it('preserves legacy address bytes for draft saves but refuses unsafe new addresses and launch',async()=>{
+ const h=await setup();try{const current=(await h.store.load()).document;await h.store.save({...current,systems:{...current.systems,portal:target+'a%2Fb'}},current.revision);const legacy=(await h.store.load()).document;expect(await h.handlers.save(h.event,legacy,legacy.revision)).toMatchObject({ok:true});expect((await h.store.load()).document.systems.portal).toBe(target+'a%2Fb');expect((await h.handlers.openSystem(h.event,'portal')).ok).toBe(false);expect(h.inspect).not.toHaveBeenCalled();const latest=(await h.store.load()).document;expect((await h.handlers.save(h.event,{...latest,systems:{...latest.systems,portal:target+'a%0a'}},latest.revision)).ok).toBe(false);expect(h.openExternal).not.toHaveBeenCalled();}finally{await h.cleanup();}
+});
