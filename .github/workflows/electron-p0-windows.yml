@@ -1,5 +1,5 @@
 name: TD2 Soft Rose Portable Windows GUI QA
-run-name: TD2 Soft Rose Portable GUI / b085e8b / ${{ github.run_id }}
+run-name: TD2 Soft Rose Portable GUI / 2f4e402 / ${{ github.run_id }}
 
 on:
   workflow_dispatch:
@@ -22,12 +22,12 @@ jobs:
     env:
       CI: 'true'
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      TD2_PRODUCT_SHA: b085e8b7c7a5ec1bd6c7ba54cc689fcf11dbc2cc
+      TD2_PRODUCT_SHA: 2f4e4027adc8f586086999514db2924c9c14b1c2
     steps:
       - name: Checkout immutable approved product
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: b085e8b7c7a5ec1bd6c7ba54cc689fcf11dbc2cc
+          ref: 2f4e4027adc8f586086999514db2924c9c14b1c2
           path: source
           persist-credentials: false
           fetch-depth: 0
