@@ -16,3 +16,9 @@
 /* Keep the existing Purchase header/tabs/footer reachable while the review grows. */
 .purchase-helper-panel__toolbar:has(> .purchase-image-import.is-open) { min-height:120px; max-height:min(50dvh,360px); overflow-y:auto; align-items:flex-start; }
 .purchase-image-import.is-open .purchase-image-review { max-height:none; overflow:visible; }
+.image-evidence-view { border:1px solid #8a7680; border-radius:12px; padding:12px; margin:12px 0; background:#fffdfd; }
+.image-evidence-view header,.image-evidence-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; }
+.image-evidence-view svg { display:block; width:100%; max-height:50dvh; background:white; border:1px solid #e9dde2; }
+.purchase-image-sources label { display:flex; flex-wrap:wrap; gap:4px; align-items:center; }
+.purchase-image-fields small { color:#626874; }
+.purchase-image-fields input:disabled { background:#eee8eb; color:#626874; }

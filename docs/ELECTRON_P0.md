@@ -696,3 +696,11 @@ Validation must run on the new committed candidate SHA, not inherited source QA:
 - OCR 자원 약 14.7MiB를 extraResources에 선별 배포하고 무결성/오프라인 guard를 적용한다. Windows 실제 패키징·GUI는 NOT RUN이며 기존 Portable/통합 기준을 변경하지 않는다.
 - **CONDITIONAL**. 기존 `verify-excel-source.mjs`의 `is_total_row` 대조 실패는 기준본 동일 문제로 별도 기록했다.
 - 구현 경계·라이선스·테스트·P2: [IMAGE_IMPORT_P1.md](purchase/IMAGE_IMPORT_P1.md).
+
+## Purchase IMAGE-IMPORT P2 — 기능 브랜치 (2026-11-04)
+
+- 기준 `9e8632f0a7c205d2e896a832d5f339e6ec30d5ba`, 브랜치 `feature/electron-purchase-image-import-p2`.
+- 2열/혼합 OCR 줄·단어 좌표 분리, 할인 전/적용 단가 구분, 제한된 전처리·회전 및 원본 좌표 환산, 유사/겹침 후보, 순서 재배치·Main 소유 원본 영역 확대를 구현했다. 원본/기존 목록/출력 계약은 유지한다.
+- 실제 합성 OCR·중복·CSV/XLSX/정산/에듀파인 연결 포함 집중 Vitest 53 PASS + Node 7 PASS, Electron 타입·build PASS.
+- **CONDITIONAL**: 14px 가격 오인식 등 미지원 사례는 수동 검토/차단하며 Windows 실기기는 NOT RUN. 기존 `is_total_row` 이슈는 별도 유지한다. Portable/workflow/통합 기준을 갱신하지 않는다.
+- 자세한 범위·실제 사례·한계: [IMAGE_IMPORT_P2.md](purchase/IMAGE_IMPORT_P2.md).

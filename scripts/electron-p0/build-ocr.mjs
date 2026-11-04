@@ -15,6 +15,7 @@ async function copyPackage(name,fromRequire=require){
  for(const dep of Object.keys(pkg.dependencies??{}))await copyPackage(dep,childRequire);
 }
 await copyPackage('tesseract.js');
+await copyPackage('pngjs');
 await mkdir(join(root,'data'),{recursive:true});
 for(const lang of ['kor','eng']){
  const source=dirname(require.resolve('@tesseract.js-data/'+lang+'/package.json'));
@@ -23,7 +24,7 @@ for(const lang of ['kor','eng']){
  await cp(join(source,'README.md'),join(root,'data',lang+'-README.md'));
 }
 await cp('electron-p0/ocr/licenses',join(root,'licenses'),{recursive:true});
-for(const file of ['runner.cjs','offline-guard.cjs'])await cp(join('electron-p0/ocr',file),join(root,file));
+for(const file of ['runner.cjs','offline-guard.cjs','preprocess.cjs'])await cp(join('electron-p0/ocr',file),join(root,file));
 const files=[];async function scan(dir){for(const name of await readdir(dir)){const file=join(dir,name),s=await stat(file);if(s.isDirectory())await scan(file);else files.push({file:relative(root,file).replaceAll('\\','/'),bytes:s.size,sha256:createHash('sha256').update(await readFile(file)).digest('hex')});}}
 await scan(root);
 await writeFile(join(root,'manifest.json'),JSON.stringify({engine:'Tesseract.js',version:seen.get('tesseract.js'),coreVersion:seen.get('tesseract.js-core'),engineLicense:'Apache-2.0',languagePackages:{kor:'1.0.0',eng:'1.0.0'},languagePackageLicense:'MIT (npm metadata); upstream traineddata Apache-2.0',offline:true,network:'disabled in child and worker threads',languages:['kor','eng'],files,bytes:files.reduce((sum,f)=>sum+f.bytes,0)},null,2));

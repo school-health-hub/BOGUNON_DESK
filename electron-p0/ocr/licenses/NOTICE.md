@@ -7,3 +7,5 @@
 - npm package wrapper provenance: https://github.com/naptha/tessdata (authors are retained in the copied package metadata).
 - All transitive package versions and licenses are retained in staged package.json/license files. package-lock.json locks npm integrity; build manifest records the actual distributed file SHA-256 values.
 - No approved mascot, production image, school document or user data is part of the OCR distribution.
+
+P2 preprocessing uses pngjs 7.0.0 (MIT). The exact package metadata/license is copied with the runtime. Preprocessing is bounded to owned normalized PNG buffers; no new OCR engine or network model source is introduced.

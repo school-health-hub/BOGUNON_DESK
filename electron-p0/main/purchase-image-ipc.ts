@@ -1,18 +1,19 @@
-import {mkdtemp,lstat,open,writeFile,rm} from 'node:fs/promises';
+import {mkdtemp,lstat,open,writeFile,rm,readFile} from 'node:fs/promises';
 import {basename,extname,isAbsolute,join} from 'node:path';
 import {randomUUID,createHash} from 'node:crypto';
+import {processingSettings,previewRegion,ocrOptions} from './purchase-image-preview.js';
 import {assertSender} from './policy.js';
 import {imageDimensions} from './purchase-image-files.js';
-import {IMAGE_IMPORT_LIMITS as LIMIT,type ImageSelection,type ImageAnalysis,type OcrLine} from '../purchase-image-protocol.js';
+import {IMAGE_IMPORT_LIMITS as LIMIT,type ImageSelection,type ImageAnalysis,type OcrLine,type ImageOcrOptions,type ImageBox,type ImagePreview} from '../purchase-image-protocol.js';
 import type {IpcResult} from '../protocol.js';
 type Event=Parameters<typeof assertSender>[0];
-type Owned=ImageSelection&{root:string;paths:readonly string[];controller:AbortController;result?:ImageAnalysis;running?:Promise<IpcResult<ImageAnalysis|null>>};
-type Decoder=(bytes:Buffer)=>{width:number;height:number;png:Buffer;thumbnail:string};
-export function createImageImportHandlers(contents:Parameters<typeof assertSender>[1],url:string,deps:{select:()=>Promise<readonly string[]|undefined>;tempRoot:string;decode:Decoder;recognize:(path:string,signal:AbortSignal)=>Promise<readonly OcrLine[]>;ready:()=>Promise<void>}){
+type Owned=ImageSelection&{root:string;paths:readonly string[];controller:AbortController;result?:ImageAnalysis;resultKey?:string;previewWork?:Promise<void>;running?:Promise<IpcResult<ImageAnalysis|null>>};
+type Decoder=(bytes:Buffer)=>{width:number;height:number;png:Buffer;thumbnail:string;perceptualHash?:string};
+export function createImageImportHandlers(contents:Parameters<typeof assertSender>[1],url:string,deps:{select:()=>Promise<readonly string[]|undefined>;tempRoot:string;decode:Decoder;recognize:(path:string,signal:AbortSignal,options?:ImageOcrOptions)=>Promise<readonly OcrLine[]>;ready:()=>Promise<void>;preview?:(bytes:Buffer,region:ImageBox)=>string}){
  let generation=0,picking=false,current:Owned|undefined,pickingWork:Promise<void>|undefined;const cleanup=new Set<Promise<void>>();
  const allowed=(e:Event)=>{try{assertSender(e,contents,url);return true;}catch{return false;}};
  const fail=(code:'FORBIDDEN'|'INVALID_INPUT'|'INTERNAL_ERROR',message='이미지를 분석하지 못했습니다. 기존 구매 품목은 보존했습니다.'):IpcResult<never>=>({ok:false,error:{code,message,retryable:code==='INTERNAL_ERROR'}});
- const dispose=()=>{generation++;const old=current;current=undefined;if(old){old.controller.abort();const task=Promise.resolve(old.running).catch(()=>{}).then(()=>rm(old.root,{recursive:true,force:true,maxRetries:3,retryDelay:100})).catch(()=>{});cleanup.add(task);void task.finally(()=>cleanup.delete(task));}};
+ const dispose=()=>{generation++;const old=current;current=undefined;if(old){old.controller.abort();const task=Promise.all([old.running,old.previewWork]).catch(()=>{}).then(()=>rm(old.root,{recursive:true,force:true,maxRetries:3,retryDelay:100})).catch(()=>{});cleanup.add(task);void task.finally(()=>cleanup.delete(task));}};
  return {dispose,flush:async()=>{await Promise.all([pickingWork,...cleanup]);},
   cancel:async(e:Event,...args:unknown[]):Promise<IpcResult<null>>=>{if(!allowed(e))return fail('FORBIDDEN');if(args.length)return fail('INVALID_INPUT');dispose();return {ok:true,data:null};},
   pick:async(e:Event,...args:unknown[]):Promise<IpcResult<ImageSelection|null>>=>{
@@ -31,25 +32,34 @@ export function createImageImportHandlers(contents:Parameters<typeof assertSende
      const header=imageDimensions(bytes),decoded=deps.decode(bytes);if(!((decoded.width===header.width&&decoded.height===header.height)||(decoded.width===header.height&&decoded.height===header.width))||!decoded.png.length||decoded.png.length>48*1024*1024||!/^data:image\/png;base64,/.test(decoded.thumbnail)||decoded.thumbnail.length>120000)throw Error('손상되었거나 너무 큰 이미지입니다.');
      total+=decoded.png.length;if(total>LIMIT.batchBytes)throw Error('선택 이미지의 전체 메모리 제한을 초과했습니다.');
      const id=randomUUID(),owned=join(root,id+'.png');await writeFile(owned,decoded.png,{flag:'wx',mode:0o600});paths.push(owned);
-     sources.push({id,order:order+1,name:basename(path).replace(/[\x00-\x1f]/g,'').slice(0,160),width:decoded.width,height:decoded.height,thumbnail:decoded.thumbnail,sha256:createHash('sha256').update(bytes).digest('hex'),warning:header.width<600?'작은 이미지입니다. 인식 결과를 자세히 확인해 주세요.':null});
+     sources.push({id,order:order+1,name:basename(path).replace(/[\x00-\x1f]/g,'').slice(0,160),width:decoded.width,height:decoded.height,thumbnail:decoded.thumbnail,sha256:createHash('sha256').update(bytes).digest('hex'),...(decoded.perceptualHash&&/^[a-f0-9]{16}$/.test(decoded.perceptualHash)?{perceptualHash:decoded.perceptualHash}:{}),warning:header.width<600?'작은 이미지입니다. 인식 결과를 자세히 확인해 주세요.':null});
     }
     if(gen!==generation||!allowed(e))return {ok:true,data:null};
     current={token:randomUUID(),sources,root,paths,controller:new AbortController()};root=undefined;return {ok:true,data:{token:current.token,sources:current.sources}};
    }catch(error){return gen!==generation?{ok:true,data:null}:fail('INVALID_INPUT',error instanceof Error&&/^(최대|로컬 |파일은|선택한 |분석 중|손상|선택 이미지|이미지를|PNG\/JPEG|오프라인)/.test(error.message)?error.message:'이미지 파일을 읽거나 검증하지 못했습니다. 기존 품목은 유지합니다.');}
    finally{try{if(root)await rm(root,{recursive:true,force:true,maxRetries:3,retryDelay:100});}finally{picking=false;finish();if(pickingWork===operation)pickingWork=undefined;}}
   },
+  preview:async(e:Event,...args:unknown[]):Promise<IpcResult<ImagePreview|null>>=>{
+   if(!allowed(e))return fail('FORBIDDEN');const r=args[0] as {token?:unknown;sourceId?:unknown;region?:unknown};
+   if(args.length!==1||!r||typeof r!=='object'||!['sourceId,token','region,sourceId,token'].includes(Object.keys(r).sort().join(','))||!current||r.token!==current.token||!deps.preview||current.previewWork||current.running)return fail('INVALID_INPUT');
+   const owned=current,gen=generation,index=owned.sources.findIndex(s=>s.id===r.sourceId);if(index<0)return fail('INVALID_INPUT');const source=owned.sources[index];let region:ImageBox;
+   try{region=previewRegion(r.region,source.width,source.height);}catch{return fail('INVALID_INPUT');}
+   let done!:()=>void;owned.previewWork=new Promise<void>(resolve=>{done=resolve;});
+   try{const stat=await lstat(owned.paths[index]);if(!stat.isFile()||stat.isSymbolicLink()||stat.size>48*1024*1024)throw Error('Invalid preview');const bytes=await readFile(owned.paths[index]);if(bytes.length>48*1024*1024)throw Error('Invalid preview');const dataUrl=deps.preview(bytes,region);if(!/^data:image\/png;base64,/.test(dataUrl)||dataUrl.length>4*1024*1024)throw Error('Invalid preview');if(gen!==generation||!allowed(e))return {ok:true,data:null};return {ok:true,data:{sourceId:source.id,region,dataUrl}};}
+   catch{return gen!==generation?{ok:true,data:null}:fail('INTERNAL_ERROR','원본 보기를 완료하지 못했습니다. 기존 품목은 유지합니다.');}finally{done();owned.previewWork=undefined;}
+  },
   analyze:async(e:Event,...args:unknown[]):Promise<IpcResult<ImageAnalysis|null>>=>{
-   if(!allowed(e))return fail('FORBIDDEN');const request=args[0] as {token?:unknown};
-   if(args.length!==1||!request||typeof request!=='object'||Object.keys(request).join(',')!=='token'||!current||request.token!==current.token)return fail('INVALID_INPUT');
-   const owned=current,gen=generation;if(owned.running)return fail('INVALID_INPUT');if(owned.result)return {ok:true,data:owned.result};
+   if(!allowed(e))return fail('FORBIDDEN');const request=args[0] as {token?:unknown;settings?:unknown};
+   if(args.length!==1||!request||typeof request!=='object'||!['token','settings,token'].includes(Object.keys(request).sort().join(','))||!current||request.token!==current.token)return fail('INVALID_INPUT');
+   const owned=current,gen=generation;let settings;try{settings=processingSettings(request.settings,owned.sources);}catch{return fail('INVALID_INPUT');}const resultKey=JSON.stringify(settings);if(owned.running)return fail('INVALID_INPUT');if(owned.result&&owned.resultKey===resultKey)return {ok:true,data:owned.result};owned.result=undefined;owned.controller=new AbortController();
    const run=async():Promise<IpcResult<ImageAnalysis|null>>=>{const timer=setTimeout(()=>owned.controller.abort(),LIMIT.batchMs);try{
     const results=[];
     for(const [i,path] of owned.paths.entries()){
      if(gen!==generation||!allowed(e))return {ok:true,data:null};if(owned.controller.signal.aborted)throw Error('이미지 분석 시간 제한을 초과했습니다.');
-     try{const lines=await deps.recognize(path,owned.controller.signal);results.push({sourceId:owned.sources[i].id,status:'success' as const,lines,message:lines.length?null:'읽을 수 있는 텍스트가 없습니다. 직접 검토해 주세요.'});}
+     try{const lines=await deps.recognize(path,owned.controller.signal,ocrOptions(settings[i]));results.push({sourceId:owned.sources[i].id,status:'success' as const,lines,processing:ocrOptions(settings[i]),message:lines.length?null:'읽을 수 있는 텍스트가 없습니다. 직접 검토해 주세요.'});}
      catch{if(owned.controller.signal.aborted)throw Error('이미지 분석이 중단되었습니다.');results.push({sourceId:owned.sources[i].id,status:'error' as const,lines:[],message:'이 이미지의 OCR을 완료하지 못했습니다. 다른 이미지 결과는 유지합니다.'});}
     }
-    if(gen!==generation||!allowed(e))return {ok:true,data:null};owned.result={token:owned.token,results};return {ok:true,data:owned.result};
+    if(gen!==generation||!allowed(e))return {ok:true,data:null};owned.result={token:owned.token,results};owned.resultKey=resultKey;return {ok:true,data:owned.result};
    }catch{return gen!==generation?{ok:true,data:null}:fail('INTERNAL_ERROR');}finally{clearTimeout(timer);}};
    owned.running=run();try{return await owned.running;}finally{owned.running=undefined;}
   },

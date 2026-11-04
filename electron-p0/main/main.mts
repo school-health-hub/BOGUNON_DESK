@@ -1,3 +1,4 @@
+import {perceptualHash} from './purchase-image-preview.js';
 import {createImageImportHandlers} from './purchase-image-ipc.js';
 import {recognizeImage,verifyOcrRuntime} from './purchase-image-ocr.js';
 import {SchoolProfileStore,createSchoolHandlers} from './school-profile.js';
@@ -133,9 +134,11 @@ else {
   const imageImport=createImageImportHandlers(window.webContents,url,{
    tempRoot:app.getPath('temp'),ready:()=>verifyOcrRuntime(ocrRuntime),
    select:async()=>{const r=await dialog.showOpenDialog(window,{title:'장바구니 이미지 선택 — 합성 자료만 사용',properties:['openFile','multiSelections','dontAddToRecent'],filters:[{name:'JPG/JPEG/PNG',extensions:['jpg','jpeg','png']}]});return r.canceled?undefined:r.filePaths;},
-   decode:bytes=>{const image=nativeImage.createFromBuffer(bytes);if(image.isEmpty())throw Error('이미지를 해독하지 못했습니다.');const size=image.getSize(),scale=Math.min(240/size.width,160/size.height,1);return {...size,png:image.toPNG(),thumbnail:image.resize({width:Math.max(1,Math.round(size.width*scale)),height:Math.max(1,Math.round(size.height*scale)),quality:'good'}).toDataURL()};},
-   recognize:(path,signal)=>recognizeImage(ocrRuntime,path,signal),
+   decode:bytes=>{const image=nativeImage.createFromBuffer(bytes);if(image.isEmpty())throw Error('이미지를 해독하지 못했습니다.');const size=image.getSize(),scale=Math.min(240/size.width,160/size.height,1);return {...size,png:image.toPNG(),perceptualHash:perceptualHash(image.resize({width:9,height:8}).toBitmap()),thumbnail:image.resize({width:Math.max(1,Math.round(size.width*scale)),height:Math.max(1,Math.round(size.height*scale)),quality:'good'}).toDataURL()};},
+   recognize:(path,signal,options)=>recognizeImage(ocrRuntime,path,signal,undefined,undefined,options),
+   preview:(bytes,region)=>{const image=nativeImage.createFromBuffer(bytes).crop({x:region[0],y:region[1],width:region[2]-region[0],height:region[3]-region[1]});if(image.isEmpty())throw Error('Invalid image crop');const size=image.getSize();let scale=Math.min(1,1600/Math.max(size.width,size.height));for(let i=0;i<4;i++){const url=image.resize({width:Math.max(1,Math.round(size.width*scale)),height:Math.max(1,Math.round(size.height*scale)),quality:'best'}).toDataURL();if(url.length<=4*1024*1024)return url;scale*=.65;}throw Error('Preview limit');},
   });
+  ipcMain.handle('p2:purchase:images:preview',imageImport.preview);
   ipcMain.handle('p2:purchase:images:pick',imageImport.pick);ipcMain.handle('p2:purchase:images:analyze',imageImport.analyze);ipcMain.handle('p2:purchase:images:cancel',imageImport.cancel);
   window.on('close',imageImport.dispose);window.webContents.on('will-navigate',imageImport.dispose);window.webContents.on('render-process-gone',imageImport.dispose);app.on('before-quit',imageImport.dispose);
   const purchaseExport=createPurchaseExportHandler(window.webContents,url,{review:async summary=>(await dialog.showMessageBox(window,{type:'question',message:'선택 품목·수량·단가·합계를 확인하고 출력할까요?',detail:summary,buttons:['취소','확인 후 저장 위치 선택'],defaultId:0,cancelId:0})).response===1,generate:(request,signal)=>excelService.generateExport(request,signal),pick:async format=>{const r=await dialog.showSaveDialog(window,{title:'구매 품목 출력 저장',defaultPath:purchaseExportFileName(format),filters:[{name:format==='csv'?'CSV':'Excel',extensions:[format]}],properties:['dontAddToRecent']});return r.canceled?undefined:r.filePath;},confirm:async()=>(await dialog.showMessageBox(window,{type:'warning',message:'선택한 기존 파일을 덮어쓸까요?',detail:'저장 직전에 변경 여부를 다시 확인합니다. 다른 프로그램에서 편집 중이면 취소하고 새 파일로 저장해 주세요.',buttons:['취소','덮어쓰기'],defaultId:0,cancelId:0})).response===1});
