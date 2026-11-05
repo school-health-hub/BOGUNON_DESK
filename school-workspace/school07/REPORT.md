@@ -89,7 +89,7 @@ Admin/Teacher 관리·입고·사용·조정·폐기. Assistant 기본 재고 �
 
 ## 12. 자율 수정
 
-기본값 seed의 owner FORCE RLS, 지원강사 물품 행 잠금, fixture actor 식별, CSS 선언, 실제 DB UI 대기시간, 새 Preload 목록, REST 다중 멤버 fixture, child public wrapper 지문 범위를 최소 수정했다. 각 결함의 실질적 수정1회, 보안 약화 없음. QA_FIX_LOG.md 및 예비 실패 로그 보존. 기존13 오류/네트워크403은 별도 환경·기준 문제로 분리했다.
+기본값 seed의 owner FORCE RLS, 지원강사 물품 행 잠금, fixture actor 식별, CSS 선언, 실제 DB UI 대기시간, 새 Preload 목록, REST 다중 멤버 fixture, child public wrapper 지문 범위를 최소 수정했다. 각 결함의 실질적 수정은1회이며 비활성 물품의 SQL/UI 보강은2회, 보안 약화 없음. QA_FIX_LOG.md 및 예비 실패 로그 보존. 기존13 오류/네트워크403은 별도 환경·기준 문제로 분리했다.
 
 ## 13. Git commit/push
 
