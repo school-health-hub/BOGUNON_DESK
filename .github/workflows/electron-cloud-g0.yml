@@ -7,6 +7,119 @@ permissions:
   contents: read
   actions: read
 jobs:
+  instructor02-db:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/instructor02-actions-qa'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: source
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 002a095f238a505b284f3af4f8a46ca101207411
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: source/package-lock.json
+      - run: npm ci
+      - run: npm run electron:p0:build
+      - name: Existing SCHOOL-05 and Instructor synthetic database contracts only
+        run: bash school-workspace/school05/run-local.sh
+        env:
+          SCHOOL05_REGRESSION: '0'
+          SCHOOL05_BROWSER: '0'
+      - name: Verify owned container cleanup and immutable product
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p school-workspace/school05/evidence
+          git rev-parse HEAD > school-workspace/school05/evidence/source-sha.txt
+          git status --porcelain > school-workspace/school05/evidence/source-status.txt
+          if docker inspect bogunon-school05-pg >/dev/null 2>&1; then
+            echo 'FAIL: owned container remains' | tee school-workspace/school05/evidence/cleanup.txt
+            exit 1
+          fi
+          echo 'PASS: owned container absent; no other containers or volumes changed by cleanup' > school-workspace/school05/evidence/cleanup.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: Instructor02-linux-db-${{ github.run_id }}
+          path: |
+            source/school-workspace/school05/evidence/db-apply.log
+            source/school-workspace/school05/evidence/db-isolation.txt
+            source/school-workspace/school05/evidence/new-tests.json
+            source/school-workspace/school05/evidence/new-tests.log
+            source/school-workspace/school05/evidence/source-sha.txt
+            source/school-workspace/school05/evidence/source-status.txt
+            source/school-workspace/school05/evidence/cleanup.txt
+          retention-days: 30
+
+  instructor02-windows:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/instructor02-actions-qa'
+    runs-on: windows-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: source
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: controller
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 002a095f238a505b284f3af4f8a46ca101207411
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: source/package-lock.json
+      - name: Dedicated disposable runner paths
+        run: |
+          $root=Join-Path $env:RUNNER_TEMP ('td2-portable-instructor02-'+[guid]::NewGuid())
+          New-Item -ItemType Directory -Path $root,"$root/evidence","$root/temp","$root/profile" | Out-Null
+          "TD2_ROOT=$root" >> $env:GITHUB_ENV
+          "TD2_EVIDENCE_ROOT=$root/evidence" >> $env:GITHUB_ENV
+          "ELECTRON_P0_QA_ROOT=$root/profile" >> $env:GITHUB_ENV
+          "TEMP=$root/temp" >> $env:GITHUB_ENV
+          "TMP=$root/temp" >> $env:GITHUB_ENV
+          "TD2_PRODUCT_ROOT=$pwd" >> $env:GITHUB_ENV
+      - run: npm ci
+      - run: npm run electron:p0:build
+      - name: Existing isolated native Windows PostgreSQL helper (not local PC Docker)
+        run: |
+          & ./scripts/qa/school05-native-pg.ps1 -Action Start
+          & "$env:SCHOOL05_PG_BIN/psql.exe" -X -w -q -v ON_ERROR_STOP=1 -h 127.0.0.1 -p $env:SCHOOL05_PG_PORT -U postgres -d school01a -f school-workspace/instructors/sql/candidate.sql
+          if($LASTEXITCODE -ne 0){throw 'Instructor schema application failed'}
+          node scripts/qa/school05-build-native-provider.mjs
+          if($LASTEXITCODE -ne 0){throw 'Native QA provider build failed'}
+      - name: Actual Windows Electron focused Instructor UI and synthetic output
+        run: node ../controller/scripts/qa/instructor02-windows.mjs
+      - name: Stop only owned PostgreSQL; record source and residual processes
+        if: always()
+        run: |
+          if($env:SCHOOL05_PG_DATA){& ./scripts/qa/school05-native-pg.ps1 -Action Stop}
+          if($env:TD2_EVIDENCE_ROOT){
+            git rev-parse HEAD | Set-Content "$env:TD2_EVIDENCE_ROOT/source-sha.txt"
+            git status --porcelain | Set-Content "$env:TD2_EVIDENCE_ROOT/source-status.txt"
+            $processes=@(Get-CimInstance Win32_Process | Where-Object {$_.ExecutablePath -and ($_.ExecutablePath.StartsWith("$env:TD2_ROOT\",[StringComparison]::OrdinalIgnoreCase) -or $_.ExecutablePath.StartsWith("$env:TD2_PRODUCT_ROOT\node_modules\electron\",[StringComparison]::OrdinalIgnoreCase))})
+            [ordered]@{ownedProcessesRemaining=$processes.Count;ownedDbStopped=!(Test-Path "$env:SCHOOL05_PG_DATA/postmaster.pid");runnerTemporaryFiles='Disposable hosted runner only; profile and DB excluded from evidence';localPcChanged=$false}|ConvertTo-Json|Set-Content "$env:TD2_EVIDENCE_ROOT/cleanup.json"
+            if($processes.Count){throw 'Owned QA processes remain'}
+          }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: Instructor02-windows-output-${{ github.run_id }}
+          path: ${{ env.TD2_EVIDENCE_ROOT }}
+          retention-days: 30
+
   integration:
     if: github.ref == 'refs/heads/codex/cloud-g0-integration-stabilization'
     runs-on: windows-latest
