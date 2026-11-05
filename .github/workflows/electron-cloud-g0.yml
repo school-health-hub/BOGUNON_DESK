@@ -13,7 +13,7 @@ permissions:
   actions: read
 jobs:
   instructor02-db:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/instructor02-actions-qa' && !inputs.windows_only
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/qa/instructor-preview-print' && !inputs.windows_only
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
@@ -22,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: 002a095f238a505b284f3af4f8a46ca101207411
+          ref: 243ae95e69483dfbe8d2438c41f858577d748048
           path: source
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
@@ -69,7 +69,7 @@ jobs:
           retention-days: 30
 
   instructor02-windows:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/instructor02-actions-qa'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/qa/instructor-preview-print'
     runs-on: windows-latest
     timeout-minutes: 25
     defaults:
@@ -83,7 +83,7 @@ jobs:
           persist-credentials: false
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: 002a095f238a505b284f3af4f8a46ca101207411
+          ref: 243ae95e69483dfbe8d2438c41f858577d748048
           path: source
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
