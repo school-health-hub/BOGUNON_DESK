@@ -226,10 +226,10 @@ try{
     return true;
   });
   result.stability={basis:'actual Windows Portable + renderer/Main IPC; synthetic files; Main consent injected where stated',trayIconClick:'NOT RUN: native tray icon gesture unavailable',nativeConsent:'NOT RUN: actual OS confirmation interaction; Main response is QA-controlled',externalSystems:'NOT RUN'};
-  const checks=async(name,fn)=>{try{await fn();result.stability[name]={...(result.stability[name]??{}),verdict:'PASS'};}catch(e){result.stability[name]={...(result.stability[name]??{}),verdict:'FAIL',error:String(e).split('\n')[0].slice(0,220)};}};
+  const checks=async(name,fn)=>{try{await fn();result.stability[name]={...(result.stability[name]??{}),verdict:'PASS'};}catch(e){result.stability[name]={...(result.stability[name]??{}),verdict:'FAIL',error:String(e).split('\n')[0].slice(0,220)};}finally{await writeFile(join(evidenceRoot,'stability-checkpoint.json'),JSON.stringify(result,null,2));}};
   const reload=async()=>{await page.reload();await dock.waitFor();const d=page.getByRole('dialog',{name:'학교 초기 설정'});if(await d.isVisible())await d.getByRole('button',{name:'나중에 설정'}).click();};
   const tool=async(label)=>{await reload();await dock.getByRole('button',{name:'업무 도구',exact:true}).click();await page.getByRole('button',{name:label,exact:true}).click();};
-  page.on('dialog',dialog=>dialog.accept());
+  page.on('dialog',dialog=>{void dialog.accept().catch(error=>{result.dialogHandlingErrors??=[];result.dialogHandlingErrors.push(String(error).split('\n')[0].slice(0,160));});});
   const userRoot=result.actualUserData;
   const {createHash}=await import('node:crypto');
   const digest=async file=>createHash('sha256').update(await readFile(file)).digest('hex');

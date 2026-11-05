@@ -82,15 +82,15 @@ jobs:
       - name: Download previously verified native payload
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: parity-5cli-portable-5cfdee0-41854402237
-          run-id: 41854402237
+          name: stability-portable-166df05-41945083034
+          run-id: 41945083034
           github-token: ${{ github.token }}
           path: prior-portable
       - name: Download matching immutable Portable hash evidence
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: td2-soft-rose-portable-gui-41854402237-1
-          run-id: 41854402237
+          name: td2-soft-rose-portable-gui-41945083034-1
+          run-id: 41945083034
           github-token: ${{ github.token }}
           path: prior-evidence
       - name: Reuse exact native binaries without rebuilding unchanged source
@@ -100,7 +100,7 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Native source changed; reuse forbidden'}
           $old=@(Get-ChildItem prior-portable/*.exe)
           $priorMeta=Get-Content prior-evidence/portable.json -Raw|ConvertFrom-Json
-          if($old.Count -ne 1 -or $priorMeta.sourceSha -cne '5cfdee00765d5ab11a9076028b4e6e4c1afc5292' -or (Get-FileHash $old[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant() -cne $priorMeta.sha256){throw 'Same-product Portable hash mismatch'}
+          if($old.Count -ne 1 -or $priorMeta.sourceSha -cne '166df05dd45402cb1a7526c9ae824ec11fcdb579' -or (Get-FileHash $old[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant() -cne $priorMeta.sha256){throw 'Same-product Portable hash mismatch'}
           7z x $old[0].FullName "-o$env:TD2_ROOT/prior-container" -y | Out-Null
           if($LASTEXITCODE -ne 0){throw 'Prior Portable extraction failed'}
           $archive=@(Get-ChildItem "$env:TD2_ROOT/prior-container" -Recurse -Filter app-64.7z)
@@ -120,7 +120,7 @@ jobs:
             New-Item -ItemType Directory "source/build/$cli" -Force | Out-Null
             Copy-Item "$root/*" "source/build/$cli/" -Recurse
           }
-          [ordered]@{originRun=41854402237;nativeSourceSha='b9a0a1b3893c2f45eeeed7278b86442e415dc159';productSha=$env:TD2_PRODUCT_SHA;nativeSourceUnchanged=$true;hashes=$hashes;dpapiAndLoopback='REUSED from original Windows run'} | ConvertTo-Json -Depth 4 | Set-Content "$env:TD2_EVIDENCE_ROOT/native-reuse.json"
+          [ordered]@{originRun=41945083034;nativeSourceSha='b9a0a1b3893c2f45eeeed7278b86442e415dc159';productSha=$env:TD2_PRODUCT_SHA;nativeSourceUnchanged=$true;hashes=$hashes;dpapiAndLoopback='REUSED from original Windows run'} | ConvertTo-Json -Depth 4 | Set-Content "$env:TD2_EVIDENCE_ROOT/native-reuse.json"
       - name: Use canonical Git bytes for LF-sensitive extraction build inputs
         run: |
           $ErrorActionPreference='Stop'
@@ -136,13 +136,15 @@ jobs:
           $state | Set-Content "$env:TD2_EVIDENCE_ROOT/checkout-state.txt"
           if($state.Count){$state | Write-Output;throw 'Product checkout modified'}
           [ordered]@{policy='canonical LF Git bytes for src-tauri/src/record_helper_import only';reason='fixed product build.rs performs LF-sensitive import stripping';productCodeChanged=$false;blobHashesVerified=$true} | ConvertTo-Json | Set-Content "$env:TD2_EVIDENCE_ROOT/checkout-policy.json"
-      - name: Build fifth Windows CLI, synthetic fixtures and new Portable
+      - name: Reuse verified same-SHA Portable and compile QA API helpers
         working-directory: source
         run: |
           npm run electron:p0:build
           if($LASTEXITCODE -ne 0){throw 'Electron build failed'}
-          npx electron-builder --config electron-p0/builder.json --win portable --x64 --publish never
-          if($LASTEXITCODE -ne 0){throw '5-CLI Portable build failed'}
+          New-Item -ItemType Directory release-electron-p0/win-unpacked -Force | Out-Null
+          Copy-Item "$env:TD2_ROOT/prior-app/*" release-electron-p0/win-unpacked -Recurse
+          Copy-Item ../prior-portable/*.exe release-electron-p0/
+          [ordered]@{originRun=41945083034;sourceSha=$env:TD2_PRODUCT_SHA;rebuilt=$false;sha256=(Get-Content ../prior-evidence/portable.json -Raw|ConvertFrom-Json).sha256}|ConvertTo-Json|Set-Content "$env:TD2_EVIDENCE_ROOT/portable-reuse.json"
       - name: Record Portable and actual Windows DPI
         run: |
           $ErrorActionPreference='Stop'
@@ -215,8 +217,12 @@ jobs:
         if: always()
         run: |
           $ErrorActionPreference='Stop'
-          $remaining=@(Get-CimInstance Win32_Process|Where-Object{$_.Name -like 'BOGUNON*' -or $_.ExecutablePath -like "$env:TD2_ROOT/*"})
-          [ordered]@{count=$remaining.Count;processes=@($remaining|Select-Object ProcessId,Name,ExecutablePath)}|ConvertTo-Json -Depth 4|Set-Content "$env:TD2_EVIDENCE_ROOT/process-cleanup.json"
+          $ownedRoot=[IO.Path]::GetFullPath("$env:TD2_ROOT/temp")+'\'
+          $before=@(Get-CimInstance Win32_Process|Where-Object{$_.ExecutablePath -and $_.ExecutablePath.StartsWith($ownedRoot,[StringComparison]::OrdinalIgnoreCase) -and $_.Name -like 'BOGUNON*'})
+          foreach($owned in $before){$current=Get-CimInstance Win32_Process -Filter "ProcessId=$($owned.ProcessId)";if($current -and $current.CreationDate -eq $owned.CreationDate -and $current.ExecutablePath -eq $owned.ExecutablePath){Stop-Process -Id $current.ProcessId -Force -ErrorAction SilentlyContinue}}
+          if($before.Count){Start-Sleep -Seconds 2}
+          $remaining=@(Get-CimInstance Win32_Process|Where-Object{$_.ExecutablePath -and $_.ExecutablePath.StartsWith($ownedRoot,[StringComparison]::OrdinalIgnoreCase) -and $_.Name -like 'BOGUNON*'})
+          [ordered]@{count=$remaining.Count;emergencyCleanupCount=$before.Count;processes=@($remaining|Select-Object ProcessId,Name,ExecutablePath)}|ConvertTo-Json -Depth 4|Set-Content "$env:TD2_EVIDENCE_ROOT/process-cleanup.json"
           if($remaining.Count){throw 'Residual BOGUNON QA process detected'}
           $files=@(Get-ChildItem $env:TD2_EVIDENCE_ROOT -Recurse -File|Where-Object Name -ne 'SHA256SUMS.txt'|Sort-Object FullName)
           @($files|ForEach-Object{"$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.FullName.Substring($env:TD2_EVIDENCE_ROOT.Length+1).Replace('\','/'))"})|Set-Content "$env:TD2_EVIDENCE_ROOT/SHA256SUMS.txt"
