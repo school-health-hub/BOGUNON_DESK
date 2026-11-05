@@ -1,0 +1,35 @@
+{
+  "base_sha": "9934ff56d462c4748956c7fa5b7111f7a1a92c26",
+  "branch": "feature/school-01b-auth-adapters",
+  "final_judgement": "CONDITIONAL",
+  "auth_tests": {
+    "PASS": 59,
+    "FAIL": 0,
+    "source": "REAL local code and SDK, MOCK provider/HTTP/RPC/safeStorage"
+  },
+  "existing_selected_regressions": {
+    "PASS": 100,
+    "FAIL": 0
+  },
+  "historical_sql_tests": {
+    "PASS": 34,
+    "FAIL": 0,
+    "rerun": false,
+    "scope": "SCHOOL-01A local PostgreSQL synthetic only"
+  },
+  "auth_typecheck": "PASS",
+  "auth_emit_build_and_import": "PASS",
+  "electron_build": "PASS",
+  "root_build": "FAIL; same 13 diagnostics on clean exact-SHA baseline",
+  "lint_script": "ABSENT / NOT RUN",
+  "typecheck_script": "ABSENT / explicit tsc executed",
+  "production_connections_in_this_stage": false,
+  "windows_dpapi_oauth_postgrest": "NOT RUN",
+  "new_ui_and_existing_entrypoint_wiring": "NOT IMPLEMENTED / deliberately opt-in module seams",
+  "node_and_npm": {
+    "node": "v24.19.0",
+    "npm": "11.9.0"
+  },
+  "package_json_sha256": "39bb8b4b32aba2d61df2fd1b7a2bc8a376a114b3e9e307f720940ff017105f22",
+  "package_lock_sha256": "ee55a8d6c03c7951ea5c0208c639af43c63f8a712f126cc3514f0d25357e31f2"
+}

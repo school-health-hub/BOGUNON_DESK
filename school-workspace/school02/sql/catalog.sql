@@ -1,0 +1,6 @@
+SELECT jsonb_build_object(
+ 'classification','LOCAL DB metadata, not hosted Supabase',
+ 'roles',(SELECT jsonb_agg(jsonb_build_object('name',rolname,'bypass_rls',rolbypassrls,'login',rolcanlogin)) FROM pg_roles WHERE rolname IN('ws_runtime','ws_authz_reader','ws_owner')),
+ 'tables',(SELECT jsonb_agg(jsonb_build_object('table',c.relname,'owner',r.rolname,'rls',c.relrowsecurity,'force_rls',c.relforcerowsecurity,'authenticated_select',has_table_privilege('authenticated',c.oid,'SELECT'))) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace JOIN pg_roles r ON r.oid=c.relowner WHERE n.nspname='workspace' AND c.relkind='r'),
+ 'functions',(SELECT jsonb_agg(jsonb_build_object('schema',n.nspname,'function',p.proname,'owner',r.rolname,'definer',p.prosecdef,'config',p.proconfig,'authenticated_execute',has_function_privilege('authenticated',p.oid,'EXECUTE'),'anon_execute',has_function_privilege('anon',p.oid,'EXECUTE'))) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_roles r ON r.oid=p.proowner WHERE (n.nspname='workspace_private' AND p.proname LIKE 's02_%') OR(n.nspname='public' AND(p.proname LIKE 'ws_s02_%' OR p.proname='ws_v1_request_join'))),
+ 'policies',(SELECT jsonb_agg(jsonb_build_object('table',tablename,'policy',policyname,'command',cmd,'roles',roles)) FROM pg_policies WHERE schemaname='workspace'));

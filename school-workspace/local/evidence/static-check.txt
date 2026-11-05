@@ -1,0 +1,2 @@
+PASS static scope: no legacy tables/functions, no public-wide ACL mutation, 10 RPC wrappers, local database guard
+NOT VERIFIED: collision with hosted catalog, managed role ownership/grants, provider/RPC HTTP/JWT behavior

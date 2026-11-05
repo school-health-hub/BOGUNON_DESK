@@ -1,0 +1,28 @@
+{
+  "result": "PASS",
+  "classification": "LOCAL DB + BROWSER + MOCK Auth/cipher/IPC; no hosted/Windows",
+  "archive_extraction_crc": "PASS",
+  "manifest_entries_verified": 524,
+  "source_paths_compared": 175,
+  "source_mismatches": [],
+  "first_restore_full_expanded_schema_regression": {
+    "school04": 22,
+    "school03": 21,
+    "school02": 22,
+    "browser": 15,
+    "strict_typecheck": "PASS",
+    "electron_build": "PASS"
+  },
+  "final_compact_ui_restore": {
+    "school04": 22,
+    "browser": 15,
+    "strict_typecheck": "PASS",
+    "electron_build": "PASS"
+  },
+  "regression_dependency_reuse": "SQL/Auth/SCHOOL02/SCHOOL03 unchanged in final UI-only delta; see ui-only-delta.json",
+  "failures": 0,
+  "unique_new_scenarios_not_summed": true,
+  "windows_real": "NOT RUN",
+  "hosted_supabase": "NOT RUN",
+  "dependencies": "same exact package-lock/node_modules cache; npm ci documented for external restore"
+}

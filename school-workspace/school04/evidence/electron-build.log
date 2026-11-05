@@ -1,0 +1,61 @@
+
+> school-health-desk@0.2.1 electron:p0:build
+> node scripts/electron-p0/build.mjs
+
+Offline OCR: 200 files, 16.5 MiB
+vite v8.3.0 building client environment for production...
+transforming...
+✓ 2447 modules transformed.
+rendering chunks...
+computing gzip size...
+build/electron-p0-app/renderer/export-worker.html                                     0.57 kB │ gzip:     0.32 kB
+build/electron-p0-app/renderer/index.html                                             0.90 kB │ gzip:     0.48 kB
+build/electron-p0-app/renderer/p0-renderer-boundary.json                              9.35 kB │ gzip:     2.03 kB
+build/electron-p0-app/renderer/assets/pretendard-latin-400-normal-BhrLQoBv.woff2    765.89 kB
+build/electron-p0-app/renderer/assets/pretendard-latin-500-normal-Dw2vNklR.woff2    778.43 kB
+build/electron-p0-app/renderer/assets/pretendard-latin-600-normal-ClEDdoZU.woff2    785.85 kB
+build/electron-p0-app/renderer/assets/pretendard-latin-700-normal-BYNivUXw.woff2    791.15 kB
+build/electron-p0-app/renderer/assets/pretendard-latin-400-normal-D5CgADJ9.woff   1,115.06 kB
+build/electron-p0-app/renderer/assets/pretendard-latin-500-normal-Cs2k_Pp2.woff   1,123.69 kB
+build/electron-p0-app/renderer/assets/pretendard-latin-600-normal-SXfe8JY8.woff   1,126.26 kB
+build/electron-p0-app/renderer/assets/pretendard-latin-700-normal-DD7wHHNl.woff   1,129.62 kB
+build/electron-p0-app/renderer/assets/PretendardVariable-CJuje-Rk.woff2           2,057.68 kB
+build/electron-p0-app/renderer/assets/FinanceHost-VeG_7Kvy.css                        0.86 kB │ gzip:     0.33 kB
+build/electron-p0-app/renderer/assets/OfficialDocumentWorkspace-BMP5nlSU.css          2.86 kB │ gzip:     0.97 kB
+build/electron-p0-app/renderer/assets/SchoolAdmin-_4MMcW-f.css                        3.20 kB │ gzip:     1.07 kB
+build/electron-p0-app/renderer/assets/InventoryWorkspace-XNtWOOG2.css                 5.33 kB │ gzip:     1.48 kB
+build/electron-p0-app/renderer/assets/EducationVideoFinder-DG_bAlI9.css               6.69 kB │ gzip:     1.76 kB
+build/electron-p0-app/renderer/assets/NewsletterStudio-1FHPdGTb.css                  11.22 kB │ gzip:     2.61 kB
+build/electron-p0-app/renderer/assets/InventoryHost-WB8bgWiE.css                     12.56 kB │ gzip:     2.44 kB
+build/electron-p0-app/renderer/assets/FinanceScreen-C9y-jez1.css                     14.20 kB │ gzip:     3.34 kB
+build/electron-p0-app/renderer/assets/app-CQI61_e1.css                              264.81 kB │ gzip:    38.31 kB
+build/electron-p0-app/renderer/assets/arrow-left-P1vQRIEM.js                          0.20 kB │ gzip:     0.19 kB
+build/electron-p0-app/renderer/assets/triangle-alert-CVbnK7Ko.js                      0.33 kB │ gzip:     0.25 kB
+build/electron-p0-app/renderer/assets/modulepreload-polyfill-BIgaVKhB.js              1.38 kB │ gzip:     0.75 kB
+build/electron-p0-app/renderer/assets/FinanceHost-Dmwwbpqt.js                         1.96 kB │ gzip:     1.09 kB
+build/electron-p0-app/renderer/assets/createLucideIcon-BZr5NZmW.js                    3.15 kB │ gzip:     1.52 kB
+build/electron-p0-app/renderer/assets/jsx-runtime-DOMNITCc.js                         8.24 kB │ gzip:     3.12 kB
+build/electron-p0-app/renderer/assets/InventoryHost-BwSRwsVY.js                       8.78 kB │ gzip:     3.10 kB
+build/electron-p0-app/renderer/assets/InventoryManagementPanel-DpgHiP0e.js           15.58 kB │ gzip:     4.89 kB
+build/electron-p0-app/renderer/assets/InventoryWorkspace-D6KwZ9Iv.js                 17.19 kB │ gzip:     5.40 kB
+build/electron-p0-app/renderer/assets/OfficialDocumentWorkspace-BCz2sCPQ.js          20.35 kB │ gzip:     7.47 kB
+build/electron-p0-app/renderer/assets/SchoolAdmin-BWev9IqG.js                        21.04 kB │ gzip:     6.98 kB
+build/electron-p0-app/renderer/assets/RecordHelperHost-CDYUdSUe.js                   33.40 kB │ gzip:     9.79 kB
+build/electron-p0-app/renderer/assets/EducationVideoFinder-CArrPrFX.js               33.62 kB │ gzip:    10.91 kB
+build/electron-p0-app/renderer/assets/FinanceScreen-BimC3Cbo.js                      49.00 kB │ gzip:    13.86 kB
+build/electron-p0-app/renderer/assets/NewsletterStudio-DZTDakFJ.js                   58.28 kB │ gzip:    17.10 kB
+build/electron-p0-app/renderer/assets/app-DA-en53h.js                               626.30 kB │ gzip:   186.26 kB
+build/electron-p0-app/renderer/assets/svgRenderer-DQH-7BL-.js                     2,500.56 kB │ gzip: 1,760.73 kB
+build/electron-p0-app/renderer/assets/exportWorker-B-Jglfqe.js                    3,171.15 kB │ gzip: 2,235.98 kB
+
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 1.22s
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice

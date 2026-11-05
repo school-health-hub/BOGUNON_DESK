@@ -1,0 +1,2 @@
+Remote integration/electron-feature-baseline read directly at start:166df05dd45402cb1a7526c9ae824ec11fcdb579
+Same as SCHOOL02 base, no new integration delta. Branch feature/school-03-shared-tasks in independent no-hardlinks clone. No rebase/reset/merge.

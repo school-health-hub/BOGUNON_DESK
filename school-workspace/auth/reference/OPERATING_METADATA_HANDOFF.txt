@@ -1,0 +1,65 @@
+SCHOOL-01B 운영 메타데이터 증거 반영 및 현재 상태
+반영일: 2026-11-05 Asia/Seoul
+대상: BogunOn / xxownwxxajzrviuvvfiu
+
+증거 출처: 사용자가 전달한 ChatGPT BOGUNON Supabase 연결의 직접 운영 메타데이터
+READ-ONLY 감사 결과. Codex가 이번 차례에 직접 재조회한 결과는 아니다. 원시 SQL
+결과/카탈로그 export는 전달받지 않았으므로 출처를 ‘사용자 인계 감사 증거’로 기록한다.
+전달된 VERIFIED 판정은 해당 메타데이터 범위에서 반영하며 동작 검증으로 확대하지 않는다.
+
+VERIFIED — 운영 메타데이터 인계
+- PostgreSQL 17.6
+- 기존 public RLS 정책 232개
+- public SECURITY DEFINER 함수 20개
+- 기존 authenticated 실행권한 경고 함수 19개
+- 신규 workspace/workspace_private 스키마 없음
+- 신규 ws_runtime/ws_authz_reader 역할 없음
+- auth.sessions 및 auth.users 소유자 supabase_auth_admin
+- authenticated/anon의 auth.sessions 직접 SELECT 불가
+- 기존 public.tasks/events/medication_items의 사용자별 RLS
+- 기존 SECURITY DEFINER 20개 모두 고정 빈 search_path 설정
+
+NEEDS REVIEW / NOT VERIFIED — 실제 호환성 및 동작
+- 신규 전용 최소권한 역할에 auth.sessions 접근을 부여할 수 있는지
+- hosted PostgREST public invoker wrapper -> private 함수 실행 계약
+- 기존 함수 본문의 소유권·인가 검증 및 신규 Workspace 도달성
+- 실제 Auth provider/redirect 설정
+- 실제 JWT 서명 검증, 세션 만료, 권한 회수 동작
+- public.ws_v1_* 정확한 이름 충돌, managed role 생성/소유권 가능성
+마지막 항목은 이번 인계에 근거가 없어 추가 미확인 항목으로 유지한다.
+
+설계에 미치는 영향
+1. private namespace와 지정 runtime/reader 역할이 아직 없다는 관측은 신규 객체와의
+   해당 이름 충돌이 현재 없다는 메타데이터 근거다. 향후 DDL 실행 가능성/성공을
+   증명하지 않으며 운영 생성 권한을 부여받은 것도 아니다.
+2. 로컬과 운영의 PostgreSQL17.6 일치는 엔진 버전 정합 근거다. hosted role/Auth/
+   PostgREST 호환성 PASS를 뜻하지 않는다.
+3. auth.users/sessions는 supabase_auth_admin 소유다. 일반 authenticated/anon의
+   sessions 직접 SELECT 차단을 유지하며 신규 reader GRANT 가능성을 별도로 검토한다.
+   client에 sessions 원시 권한을 주거나 postgres/service_role로 우회하지 않는다.
+4. 고정 빈 search_path는 함수 객체 해석 경계의 긍정적 사실이지만 함수 내부 인가나
+   RLS 우회 안전성까지 증명하지 않는다. 기존 19개 함수의 수정/일괄 REVOKE/호출을
+   하지 않고, owns_project·receive_medication 등과 신규 Workspace 연계를 금지한다.
+5. 기존 개인 테이블의 사용자별 RLS는 기존 기능을 그대로 보호할 근거다. 공동 테이블로
+   전환/정책 확대/개인자료 자동 업로드를 허용하는 근거로 사용하지 않는다.
+
+판정 갱신
+- SCHOOL-01A: CONDITIONAL 유지. 34 PASS / 0 FAIL은 로컬 합성 환경에만 해당.
+- SCHOOL-01B 운영 메타데이터 단계: VERIFIED(전달받은 외부 감사 범위).
+- SCHOOL-01B 남은 호환성·동작 단계: NEEDS REVIEW / NOT VERIFIED.
+- 과거 ‘운영 감사 실행 BLOCKED’는 당시 Codex 연결의 권한 오류 이력으로 보존하되,
+  다른 연결에서 완료된 메타데이터 감사까지 계속 차단됐다고 표시하지 않는다.
+- 현재 Codex 연결 권한은 이번 차례에 재시험하지 않았다. 연결 가능/불가능을 새로
+  단정하지 않으며, 후속 직접 감사가 필요하면 사용 연결의 적법한 읽기 권한부터 확인한다.
+
+다음 허용 범위
+남은 항목의 READ-ONLY metadata/문서/정적 코드 검토와 검증 계획 수립.
+메타데이터만으로 입증할 수 없는 GRANT 실행/실제 인증·세션 동작은 미검증으로 남긴다.
+운영 migration/DDL/DML/GRANT/REVOKE/Auth 변경/RPC 실행/배포는 별도 승인 전 금지.
+Electron/Web 인증 어댑터 구현도 이번 인계에 의해 승인되지 않는다.
+
+보존
+SCHOOL-01A 원본 SQL·테스트·34개 결과·기존 ZIP은 수정하지 않았다.
+본 파일과 SCHOOL_01B_METADATA_HANDOFF_20261105.json만 새 인계 기록으로 추가한다.
+과거 PRESERVATION_RESULT/READONLY_SCOPE/ZIP의 BLOCKED 문구는 당시 기록이며,
+현재 상태 판단에는 이 후속 기록을 우선 적용한다. commit/push/PR/merge/배포 없음.

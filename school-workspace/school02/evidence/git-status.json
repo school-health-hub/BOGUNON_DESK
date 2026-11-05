@@ -1,0 +1,27 @@
+{
+  "original": {
+    "branch": "work",
+    "sha": "b44c6c64995738af13a969352b4ccdac87af16e9",
+    "status": ""
+  },
+  "A": {
+    "branch": "feature/school-01a-local-rls",
+    "sha": "38b45c2a762224f0af976026519b3d47463e4454",
+    "status": "?? school-workspace/\n"
+  },
+  "B": {
+    "branch": "feature/school-01b-auth-adapters",
+    "sha": "9934ff56d462c4748956c7fa5b7111f7a1a92c26",
+    "status": "?? school-workspace/\n"
+  },
+  "C": {
+    "branch": "feature/school-01c-integrated-contract",
+    "sha": "166df05dd45402cb1a7526c9ae824ec11fcdb579",
+    "status": " M electron-p0/renderer/P0App.tsx\n?? electron-p0/renderer/school-workspace-dev/\n?? school-workspace/\n"
+  },
+  "SCHOOL02": {
+    "branch": "feature/school-02-school-membership",
+    "sha": "166df05dd45402cb1a7526c9ae824ec11fcdb579",
+    "status": " M electron-p0/renderer/P0App.tsx\n?? electron-p0/renderer/school-workspace-dev/\n?? school-workspace/\n"
+  }
+}

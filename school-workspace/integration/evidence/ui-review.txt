@@ -1,0 +1,3 @@
+React checklist applied: state immutable snapshot subscription, no side-effect authentication on mount, labelled controls, live safe status, focus-visible, responsive layout, no raw errors/tokens, no browser/server imports.
+Mobile active screenshot visually inspected. Chromium covers 390x844 and980x700, all4 auth states and logout.
+Desktop Electron entry is a gated MOCK preview; real Windows GUI NOT RUN.

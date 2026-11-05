@@ -1,0 +1,64 @@
+{
+  "record_type": "SCHOOL-01B operational metadata handoff",
+  "recorded_date": "2026-11-05",
+  "timezone": "Asia/Seoul",
+  "project_id": "xxownwxxajzrviuvvfiu",
+  "provenance": {
+    "source": "user-provided audit handoff from ChatGPT BOGUNON Supabase connection",
+    "claimed_method": "direct project metadata READ-ONLY queries",
+    "verified_by_this_codex_turn": false,
+    "raw_query_outputs_or_catalog_export_supplied": false,
+    "scope": "metadata only"
+  },
+  "verified_in_handoff": {
+    "postgres_version": "17.6",
+    "public_rls_policy_count": 232,
+    "public_security_definer_count": 20,
+    "authenticated_execute_warning_count": 19,
+    "workspace_schema_exists": false,
+    "workspace_private_schema_exists": false,
+    "ws_runtime_role_exists": false,
+    "ws_authz_reader_role_exists": false,
+    "auth_sessions_owner": "supabase_auth_admin",
+    "auth_users_owner": "supabase_auth_admin",
+    "authenticated_auth_sessions_direct_select": false,
+    "anon_auth_sessions_direct_select": false,
+    "existing_user_scoped_rls_tables": [
+      "public.tasks",
+      "public.events",
+      "public.medication_items"
+    ],
+    "all_20_public_security_definer_search_path": "fixed empty search_path"
+  },
+  "not_verified": [
+    "ability to grant minimal auth.sessions access to new dedicated roles",
+    "hosted PostgREST public invoker wrapper -> private function execution",
+    "existing function body ownership/authorization checks and Workspace reachability",
+    "actual Auth provider and redirect settings",
+    "actual JWT signature verification, session expiry, permission revocation behavior",
+    "public.ws_v1_* exact-name collisions and managed role creation/ownership feasibility"
+  ],
+  "invariants": {
+    "school01a_tests": {
+      "pass": 34,
+      "fail": 0,
+      "scope": "local PostgreSQL synthetic only"
+    },
+    "reuse_existing_warning_functions": false,
+    "production_changes_authorized": false,
+    "production_rpc_calls_authorized": false,
+    "electron_web_auth_adapter_implementation_authorized": false
+  },
+  "status": {
+    "operational_metadata_evidence": "VERIFIED via external audit handoff",
+    "overall_hosted_compatibility": "NOT VERIFIED",
+    "next_step": "remaining READ-ONLY compatibility review; no operational changes",
+    "previous_codex_access_denial": "historical connector-specific evidence, not current project-wide audit BLOCKED status",
+    "current_codex_connection_access": "NOT RETESTED in this turn"
+  },
+  "historical_artifacts_unchanged": [
+    "SCHOOL-01A original SQL/tests/results",
+    "original 21-file ZIP",
+    "31-file preservation ZIP"
+  ]
+}

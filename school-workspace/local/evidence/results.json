@@ -1,0 +1,220 @@
+{
+  "scope": "Standalone PostgreSQL 17.6 + synthetic Auth schema; not hosted Supabase/Auth/PostgREST",
+  "base_sha": "38b45c2a762224f0af976026519b3d47463e4454",
+  "branch": "feature/school-01a-local-rls",
+  "pass": 34,
+  "fail": 0,
+  "not_run": [
+    "Hosted Supabase auth.sessions grants",
+    "JWT signature verification",
+    "GoTrue refresh",
+    "PostgREST routing",
+    "Electron/Web adapters"
+  ],
+  "tests": [
+    {
+      "test": "01_t01",
+      "status": "PASS",
+      "detail": "anon EXECUTE denied (42501); missing claims authenticated caller denied",
+      "seconds": 0.198
+    },
+    {
+      "test": "02_t02",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.097
+    },
+    {
+      "test": "03_t03",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.109
+    },
+    {
+      "test": "04_t04",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.434
+    },
+    {
+      "test": "05_t05",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.107
+    },
+    {
+      "test": "06_t06",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.204
+    },
+    {
+      "test": "07_t07",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.307
+    },
+    {
+      "test": "08_t08",
+      "status": "PASS",
+      "detail": "separate sessions; observed advisory lock wait; one commit, one last_admin rejection; 1 admin remains",
+      "seconds": 1.732
+    },
+    {
+      "test": "09_t09",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.348
+    },
+    {
+      "test": "10_t10",
+      "status": "PASS",
+      "detail": "epoch 1 history retained; epoch 2 assistant has no old handover allow",
+      "seconds": 0.691
+    },
+    {
+      "test": "11_t11",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.315
+    },
+    {
+      "test": "12_t12",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.382
+    },
+    {
+      "test": "13_t13",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.591
+    },
+    {
+      "test": "14_t14",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.526
+    },
+    {
+      "test": "15_t15",
+      "status": "PASS",
+      "detail": "unchanged old JWT/session fails membership check; separate session denylist blocks bootstrap and context",
+      "seconds": 0.736
+    },
+    {
+      "test": "16_t16",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.451
+    },
+    {
+      "test": "17_t17",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.534
+    },
+    {
+      "test": "18_t18",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.556
+    },
+    {
+      "test": "19_t19",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.427
+    },
+    {
+      "test": "20_t20",
+      "status": "PASS",
+      "detail": "13 FORCE-RLS tables; runtime/authz reader non-owner NOLOGIN/NOBYPASSRLS; invoker public wrappers",
+      "seconds": 0.482
+    },
+    {
+      "test": "21_t21",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.397
+    },
+    {
+      "test": "22_t22",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.436
+    },
+    {
+      "test": "23_t23",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.31
+    },
+    {
+      "test": "24_t24",
+      "status": "PASS",
+      "detail": "RLS defense in depth filters B rows even for runtime role; owner injection only for this negative probe",
+      "seconds": 0.192
+    },
+    {
+      "test": "25_t25",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.331
+    },
+    {
+      "test": "26_t26",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.536
+    },
+    {
+      "test": "27_t27",
+      "status": "PASS",
+      "detail": "bootstrap creates only own account; repeat does not create a membership",
+      "seconds": 0.706
+    },
+    {
+      "test": "28_t28",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.448
+    },
+    {
+      "test": "29_t29",
+      "status": "PASS",
+      "detail": "forced audit permission failure rolls back member version, role history, receipt atomically",
+      "seconds": 0.696
+    },
+    {
+      "test": "30_t30",
+      "status": "PASS",
+      "detail": "parallel independent requests same UUID return same result; exactly one mutation/audit/receipt",
+      "seconds": 0.312
+    },
+    {
+      "test": "31_t31",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.507
+    },
+    {
+      "test": "32_t32",
+      "status": "PASS",
+      "detail": "no valid admin => fail closed even before recovery-state scheduler runs",
+      "seconds": 0.185
+    },
+    {
+      "test": "33_t33",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.428
+    },
+    {
+      "test": "34_t34",
+      "status": "PASS",
+      "detail": "synthetic Auth deletion leaves account tombstone, school memberships/terms intact",
+      "seconds": 0.405
+    }
+  ]
+}

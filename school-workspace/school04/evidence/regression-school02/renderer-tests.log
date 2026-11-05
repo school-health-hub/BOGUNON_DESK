@@ -1,0 +1,12 @@
+
+ RUN  v5.0.1 /workspace/work/school-02/repo
+
+ ✓ school-workspace/school02/tests/client.test.ts > MOCK network/Renderer hygiene only, no DB or Windows > HTTP401 clears shared view and gives explicit expired-session state 31ms
+ ✓ school-workspace/school02/tests/client.test.ts > MOCK network/Renderer hygiene only, no DB or Windows > Renderer drops even a successful late school response after logout 1ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  02:03:16
+   Duration  459ms (transform 78%, tests 11%, import 10%, worker 1%)
+
+JSON report written to /workspace/work/school-02/repo/school-workspace/school02/evidence/renderer-tests.json

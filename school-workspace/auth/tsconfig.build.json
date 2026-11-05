@@ -1,0 +1,6 @@
+{
+ "extends":"./tsconfig.json",
+ "compilerOptions":{"noEmit":false,"rootDir":"../..","outDir":"../../build/school-workspace-auth","declaration":true},
+ "include":["common/**/*.ts","server/**/*.ts","electron/**/*.ts","web/**/*.ts"],
+ "exclude":["tests"]
+}

@@ -1,0 +1,12 @@
+{
+  "result": "PASS",
+  "actual_secret_patterns_found": [],
+  "forbidden_files": [],
+  "excluded": [
+    ".git",
+    "node_modules",
+    ".env",
+    "build artifacts"
+  ],
+  "fixtures": "synthetic only; no real hosted sessions created"
+}

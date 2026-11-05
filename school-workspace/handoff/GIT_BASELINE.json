@@ -1,0 +1,38 @@
+{
+  "tested_base_sha": "38b45c2a762224f0af976026519b3d47463e4454",
+  "tested_branch": "feature/school-01a-local-rls",
+  "source_commit_subject": "fix(electron): preserve Finder and window services across tray hide",
+  "source_parent_sha": "af52921c96b9b24b5dd5f49cc133471e634d2420",
+  "design_base_sha": "af52921c96b9b24b5dd5f49cc133471e634d2420",
+  "tested_is_direct_child_of_design_base": true,
+  "commits_ahead_of_design_base": 1,
+  "source_changes": [
+    {
+      "additions": "65",
+      "deletions": "0",
+      "path": "docs/STABILITY-01-TRAY-FINDER.md"
+    },
+    {
+      "additions": "13",
+      "deletions": "3",
+      "path": "electron-p0/main/finder-search.ts"
+    },
+    {
+      "additions": "17",
+      "deletions": "15",
+      "path": "electron-p0/main/main.mts"
+    },
+    {
+      "additions": "122",
+      "deletions": "0",
+      "path": "electron-p0/tests/tray-finder-lifecycle.test.tsx"
+    }
+  ],
+  "uncommitted_tracked_product_diff": "",
+  "staged_diff": "",
+  "latest_remote_at_handoff": "9934ff56d462c4748956c7fa5b7111f7a1a92c26",
+  "latest_remote_parent": "38b45c2a762224f0af976026519b3d47463e4454",
+  "latest_remote_subject": "feat(electron): restore independent local calendar with safe event persistence",
+  "latest_not_applied_to_tested_branch": true,
+  "git_history_changed_by_handoff": false
+}

@@ -1,0 +1,6 @@
+No user_metadata/email/local profile authorization. No service_role or runtime role token to client.
+Workspace table SELECT/UPDATE denied to authenticated/anon; new table FORCE RLS. Public wrappers invoker; private reader/runtime nonowner NOBYPASSRLS. Fixed empty search_path and narrow EXECUTE grants.
+General private request_join bypass removed for authenticated in SCHOOL02 local extension; original A file preserved.
+Live session + school membership rechecked by server. Self request metadata is not shared-content approval.
+Actual auth.sessions hosted grants, provider/JWT/PostgREST are NOT VERIFIED. Existing19 warning functions untouched.
+No clinical/student free-text fields. No profile/local data upload path.

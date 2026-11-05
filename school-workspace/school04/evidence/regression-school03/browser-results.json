@@ -1,0 +1,76 @@
+{
+  "checks": [
+    {
+      "name": "teacher creates and assigns actual shared task",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth"
+    },
+    {
+      "name": "assigned assistant saves IN_PROGRESS",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth"
+    },
+    {
+      "name": "teacher sees saved status after authorized refresh",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth"
+    },
+    {
+      "name": "assistant saves DONE; no editor or reopen controls",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth"
+    },
+    {
+      "name": "mobile-assistant-done",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth",
+      "overflow": false,
+      "smallControls": 0
+    },
+    {
+      "name": "other assistant can read but cannot complete someone else task",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth"
+    },
+    {
+      "name": "school B sees no school A tasks",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth"
+    },
+    {
+      "name": "teacher edits existing task using current version",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth"
+    },
+    {
+      "name": "teacher reads structural history without saved body snapshots",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth"
+    },
+    {
+      "name": "desktop-teacher-980x700",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth",
+      "overflow": false,
+      "smallControls": 0
+    },
+    {
+      "name": "server rejects synthetic sensitive marker without success claim",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth"
+    },
+    {
+      "name": "network failure never claims save success; personal notice remains",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth"
+    },
+    {
+      "name": "logout removes entire shared board",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth"
+    }
+  ],
+  "realHosted": "NOT RUN",
+  "windowsReal": "NOT RUN",
+  "count": 13
+}

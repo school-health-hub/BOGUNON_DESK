@@ -1,0 +1,18 @@
+--- SCHOOL-01B/school-workspace/auth/web/bff-adapter.ts
++++ SCHOOL-01C/school-workspace/auth/web/bff-adapter.ts
+@@ -121,6 +121,15 @@
+     }
+     return { setCookies: [cookie(SESSION_COOKIE,'',0),cookie(FLOW_COOKIE,'',0)], remoteRevocation };
+   }
++  /** SCHOOL-01C: server-only bootstrap/self-membership seam before a school is selected. */
++  async runAccountRequest<T>(req:BffRequest,work:(accessToken:string,signal:AbortSignal)=>Promise<T>):Promise<T> {
++    const {key,record}=await this.session(req),scope=this.scope(key);
++    return scope.run(async signal=>{
++      const value=await work(record.secret.accessToken,signal);
++      if(!await this.store.get(key))throw new WorkspaceAuthError('STALE_RESPONSE');
++      return value;
++    });
++  }
+   async switchSchool(req: BffRequest, schoolId: string, rpc: (accessToken: string) => WorkspaceRpcPort): Promise<WorkspaceMembershipContext> {
+     const { key } = await this.session(req);
+     const record = await this.store.withLock(key, async () => {

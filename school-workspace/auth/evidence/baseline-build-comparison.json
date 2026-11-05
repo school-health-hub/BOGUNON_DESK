@@ -1,0 +1,22 @@
+{
+  "base_sha": "9934ff56d462c4748956c7fa5b7111f7a1a92c26",
+  "current_error_count": 13,
+  "clean_baseline_error_count": 13,
+  "same_diagnostics": true,
+  "diagnostics": [
+    "electron-p0/renderer/adapters/NewsletterProjectControls.tsx(9,44): error TS2339: Property 'electronWork' does not exist on type 'Window & typeof globalThis'.",
+    "src/education-video/library.ts(51,68): error TS2339: Property 'electronWork' does not exist on type 'Window & typeof globalThis'.",
+    "src/education-video/library.ts(52,85): error TS2339: Property 'electronWork' does not exist on type 'Window & typeof globalThis'.",
+    "src/education-video/library.ts(55,44): error TS2339: Property 'electronWork' does not exist on type 'Window & typeof globalThis'.",
+    "src/education-video/library.ts(57,127): error TS2339: Property 'electronWork' does not exist on type 'Window & typeof globalThis'.",
+    "src/education-video/library.ts(58,70): error TS2339: Property 'electronWork' does not exist on type 'Window & typeof globalThis'.",
+    "src/education-video/library.ts(59,71): error TS2339: Property 'electronWork' does not exist on type 'Window & typeof globalThis'.",
+    "src/inventory-management/InventoryWorkspace.tsx(12,53): error TS2339: Property 'electronWork' does not exist on type 'Window & typeof globalThis'.",
+    "src/inventory-management/InventoryWorkspace.tsx(18,160): error TS2339: Property 'electronWork' does not exist on type 'Window & typeof globalThis'.",
+    "src/newsletter/NewsletterStudio.tsx(63,216): error TS2339: Property 'electronWork' does not exist on type 'Window & typeof globalThis'.",
+    "src/official-document/OfficialDocumentWorkspace.tsx(19,20): error TS2339: Property 'electronWork' does not exist on type 'Window & typeof globalThis'.",
+    "src/official-document/officialDocumentSession.ts(11,78): error TS2739: Type '{ mode: \"create\"; createInput: OfficialDocumentInput; revisionInput: { original: string; request: string; }; revisionSourceName: null; summaryOriginal: string; summarySourceName: null; ... 5 more ...; activeAiRequestId: null; }' is missing the following properties from type 'OfficialDocumentSession': touchedCreateFields, selectedReference, appliedReference",
+    "src/official-document/officialDocumentSession.ts(129,26): error TS2345: Argument of type '{ readonly type: \"selectReference\"; readonly reference: OfficialDocumentReference | null; } | { readonly type: \"applyReference\"; readonly reference: OfficialDocumentReference; readonly input: OfficialDocumentInput; }' is not assignable to parameter of type 'never'."
+  ],
+  "tracked_product_changes": ""
+}

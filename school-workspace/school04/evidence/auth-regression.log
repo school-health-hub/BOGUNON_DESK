@@ -1,0 +1,69 @@
+
+ RUN  v5.0.1 /workspace/work/school-04/repo
+
+ ✓ school-workspace/auth/tests/web-and-rpc.test.ts > Web BFF — MOCK Auth/store/RPC, REAL state/cookie/CSRF/concurrency logic > sets host-only Secure HttpOnly SameSite cookies with random opaque handles and no Auth tokens 14ms
+ ✓ school-workspace/auth/tests/web-and-rpc.test.ts > Web BFF — MOCK Auth/store/RPC, REAL state/cookie/CSRF/concurrency logic > binds OAuth to the initiating browser cookie as well as state/flow 6ms
+ ✓ school-workspace/auth/tests/web-and-rpc.test.ts > Web BFF — MOCK Auth/store/RPC, REAL state/cookie/CSRF/concurrency logic > rejects expired callback 2ms
+ ✓ school-workspace/auth/tests/web-and-rpc.test.ts > Web BFF — MOCK Auth/store/RPC, REAL state/cookie/CSRF/concurrency logic > blocks cross-Origin, missing CSRF and non-POST requests before refresh 3ms
+ ✓ school-workspace/auth/tests/web-and-rpc.test.ts > Web BFF — MOCK Auth/store/RPC, REAL state/cookie/CSRF/concurrency logic > refreshes once for simultaneous requests, including two adapter instances sharing the store 2ms
+ ✓ school-workspace/auth/tests/web-and-rpc.test.ts > Web BFF — MOCK Auth/store/RPC, REAL state/cookie/CSRF/concurrency logic > logout wins over an in-flight refresh without recreating the session 2ms
+ ✓ school-workspace/auth/tests/web-and-rpc.test.ts > Web BFF — MOCK Auth/store/RPC, REAL state/cookie/CSRF/concurrency logic > a replacement login invalidates the old handle and uses same Auth UUID contract 2ms
+ ✓ school-workspace/auth/tests/web-and-rpc.test.ts > Web BFF — MOCK Auth/store/RPC, REAL state/cookie/CSRF/concurrency logic > logout cancels an unfinished OAuth exchange 1ms
+ ✓ school-workspace/auth/tests/web-and-rpc.test.ts > Web BFF — MOCK Auth/store/RPC, REAL state/cookie/CSRF/concurrency logic > expires the BFF hard session, regardless of Auth refresh availability 1ms
+ ✓ school-workspace/auth/tests/web-and-rpc.test.ts > Web BFF — MOCK Auth/store/RPC, REAL state/cookie/CSRF/concurrency logic > rejects identity changes on refresh and invalidates the session 2ms
+ ✓ school-workspace/auth/tests/web-and-rpc.test.ts > Web BFF — MOCK Auth/store/RPC, REAL state/cookie/CSRF/concurrency logic > does not let a test memory store run in production mode 1ms
+ ✓ school-workspace/auth/tests/web-and-rpc.test.ts > Web BFF — MOCK Auth/store/RPC, REAL state/cookie/CSRF/concurrency logic > pending membership blocks common Workspace access without locking the independent account 4ms
+ ✓ school-workspace/auth/tests/web-and-rpc.test.ts > Web BFF — MOCK Auth/store/RPC, REAL state/cookie/CSRF/concurrency logic > rejects old school response after school switch across two BFF instances 2ms
+ ✓ school-workspace/auth/tests/web-and-rpc.test.ts > Web BFF — MOCK Auth/store/RPC, REAL state/cookie/CSRF/concurrency logic > discards old business response after school switch or logout 2ms
+ ✓ school-workspace/auth/tests/web-and-rpc.test.ts > Web BFF — MOCK Auth/store/RPC, REAL state/cookie/CSRF/concurrency logic > permission denial clears approved-school context until server revalidation 3ms
+ ✓ school-workspace/auth/tests/web-and-rpc.test.ts > Web BFF — MOCK Auth/store/RPC, REAL state/cookie/CSRF/concurrency logic > remote logout failure is explicitly unconfirmed after local deletion 1ms
+ ✓ school-workspace/auth/tests/web-and-rpc.test.ts > late cross-instance school denial cannot override the newer school selection 1ms
+ ✓ school-workspace/auth/tests/web-and-rpc.test.ts > common DTO/RPC contract and response generation — MOCK server responses > lists the seven SCHOOL-01A RPC names exactly 1ms
+ ✓ school-workspace/auth/tests/web-and-rpc.test.ts > common DTO/RPC contract and response generation — MOCK server responses > rejects PENDING/non-role/mismatched school context from a transport 1ms
+ ✓ school-workspace/auth/tests/web-and-rpc.test.ts > common DTO/RPC contract and response generation — MOCK server responses > cancels the old request and rejects late success, even when transport ignores AbortSignal 1ms
+ ✓ school-workspace/auth/tests/web-and-rpc.test.ts > common DTO/RPC contract and response generation — MOCK server responses > late old failure cannot erase a newer school context 0ms
+ ✓ school-workspace/auth/tests/web-and-rpc.test.ts > BFF provider cancellation disposes the private pending flow 1ms
+ ✓ school-workspace/auth/tests/sdk-and-boundaries.test.ts > official supabase-js SDK wiring — REAL SDK, MOCK HTTP, NO operational network > generates official PKCE S256 challenge without a network request 50ms
+ ✓ school-workspace/auth/tests/sdk-and-boundaries.test.ts > official supabase-js SDK wiring — REAL SDK, MOCK HTTP, NO operational network > exchanges a code through official SDK with private verifier using mocked token endpoint 14ms
+ ✓ school-workspace/auth/tests/sdk-and-boundaries.test.ts > official supabase-js SDK wiring — REAL SDK, MOCK HTTP, NO operational network > offline default never falls back to global fetch on exchange 4ms
+ ✓ school-workspace/auth/tests/sdk-and-boundaries.test.ts > official supabase-js SDK wiring — REAL SDK, MOCK HTTP, NO operational network > rejects private/legacy keys and malformed origin before SDK construction 1ms
+ ✓ school-workspace/auth/tests/sdk-and-boundaries.test.ts > static platform boundaries > common DTOs and sandbox Preload do not import server, Node crypto/fs, Tauri or token storage 9ms
+ ✓ school-workspace/auth/tests/sdk-and-boundaries.test.ts > SCHOOL-01A seven RPCs — REAL SDK request encoding, MOCK HTTP only > uses user Authorization, publishable key, exact SQL parameter names and response DTO allowlists 49ms
+ ✓ school-workspace/auth/tests/sdk-and-boundaries.test.ts > SCHOOL-01A seven RPCs — REAL SDK request encoding, MOCK HTTP only > rejects secret keys, extra actor/role arguments, and already cancelled RPC requests 1ms
+ ✓ school-workspace/auth/tests/sdk-and-boundaries.test.ts > SCHOOL-01A seven RPCs — REAL SDK request encoding, MOCK HTTP only > maps server 403 to safe denial without returning SQL or token details 2ms
+ ✓ school-workspace/auth/tests/sdk-and-boundaries.test.ts > SCHOOL-01A seven RPCs — REAL SDK request encoding, MOCK HTTP only > rejects legacy service_role JWTs and synthetic markers in SERVER mode before HTTP 1ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > signed out -> signing in -> authenticated; opens only system browser and returns UUID summary 16ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > rejects mismatched ws_state without exchanging code 3ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > rejects mismatched ws_flow without exchanging code 2ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > rejects callback target https://evil.invalid/callback 1ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > rejects callback target bogunon-desk://other/callback 1ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > rejects callback target bogunon-desk://workspace-auth/callback#fragment 1ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > rejects duplicate query parameters and code/error ambiguity 3ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > expires flow before code exchange 2ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > consumes callbacks synchronously before asynchronous exchange, preventing concurrent replay 18ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > clears encrypted session and Workspace caches on account switch 4ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > fails closed if safeStorage encryption is unavailable; never writes plaintext 6ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > sanitizes encryption errors and disk replacement failures 2ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > rejects corrupt restored session and deletes it without leaking raw exception 1ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > restores unexpired secure session without reauth, refreshes expired session through provider 1ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > rejects refresh that unexpectedly changes user identity 1ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > logout wins against a slow code exchange, with no session resurrection 1ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > logout during a slow vault write removes the late secret 1ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > Auth server failure does not call or gate unrelated local functionality 1ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > clears Workspace on permission denial while retaining separate account login 1ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > refuses arbitrary browser destinations from a bad provider 1ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > isolated FileSessionBlob persists encrypted bytes and rejects symlink targets 22ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > never persists on non-Windows platforms 1ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > real assertSender guards sender/frame/origin and IPC exposes only four fixed operations 2ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > reports unconfirmed remote logout while keeping local state signed out 1ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > real existing LocalTaskStore remains writable through Auth failure and logout 7ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > a failed local deletion is reported, never a successful logout claim 1ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > clears a partially completed vault write before reporting storage failure 1ms
+ ✓ school-workspace/auth/tests/electron.test.ts > Electron Main adapter — MOCK Auth/safeStorage, REAL state/IPC/file boundaries > valid provider cancellation ends the flow without exchanging or leaking provider text 1ms
+
+ Test Files  3 passed (3)
+      Tests  59 passed (59)
+   Start at  03:32:37
+   Duration  627ms (transform 52%, tests 26%, import 20%, worker 2%)
+
+JSON report written to /workspace/work/school-04/repo/school-workspace/school04/evidence/auth-regression.json

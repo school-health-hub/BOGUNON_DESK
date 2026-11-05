@@ -1,0 +1,14 @@
+{
+  "result": "PASS",
+  "restored_into": "separate exact-base clone",
+  "base_sha": "9934ff56d462c4748956c7fa5b7111f7a1a92c26",
+  "auth_tests": {
+    "PASS": 59,
+    "FAIL": 0
+  },
+  "unique_auth_test_count": 59,
+  "not_counted_twice": true,
+  "dependencies": "same locked installed node_modules made available locally; package instructions use npm ci",
+  "tracked_product_diff_after_restore": "none",
+  "operating_network": false
+}

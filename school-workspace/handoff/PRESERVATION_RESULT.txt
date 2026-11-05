@@ -1,0 +1,80 @@
+SCHOOL-01A 결과 보존 및 SCHOOL-01B 인계 완료 보고
+작성일: 2026-11-05 Asia/Seoul
+판정: 결과물 보존 READY / 운영 READ-ONLY 감사 실행 BLOCKED(대상 접근권한)
+
+1. 결과물 보존
+기존 미커밋 SQL·테스트·34개 최종 로그·빈 DB migration 적용 기록·카탈로그·최종
+보고서를 확인했다. 기존 ZIP 21개 파일 전부 현재 파일과 byte-for-byte 일치,
+ZIP CRC 및 기존 manifest의 SHA-256 검증 통과. 원본 21개 파일은 수정하지 않았다.
+33PASS/1FAIL의 수정 전 기록과 최종 34PASS/0FAIL 기록을 구분해 그대로 보존한다.
+34PASS는 PostgreSQL17.6+합성 Auth만 의미하며 운영 Supabase PASS가 아니다.
+이번 작업은 보존 검증이며 DB 재시험이나 결과 재생성을 하지 않았다.
+
+2. 하나의 새 인계 패키지
+원래 school-workspace/local/ 구조의 21개 파일을 전부 유지하고, 상대경로 복원법,
+Git 근거/변경 파일 목록, 원본 ZIP 대조 결과, SCHOOL-01B READ-ONLY 범위,
+민감정보 검사 요약, 전체 payload 해시와 검증 스크립트를 추가했다.
+코드·SQL·테스트는 원본과 동일하며 인계 문서만 새 파일로 추가했다.
+
+복원: ZIP을 새 빈 폴더에 해제 -> 그 폴더에서 python3 VERIFY_PACKAGE.py
+실행: bash school-workspace/local/run.sh
+필요 도구: Docker 로컬 daemon, Python3, Bash. Digest 고정 PostgreSQL image 사용.
+이전 Cloud 디렉터리나 Git 저장소가 없어도 테스트를 실행할 수 있다.
+상세 조건/실행 시 증거 덮어쓰기 주의는 school-workspace/handoff/README_RESTORE.txt.
+
+기존 ZIP에 상대경로 run.sh/테스트/SQL/로그/기준·브랜치·최종보고서는 모두 있었다.
+보강점은 명시적인 새 환경 복원 안내, 파일단위 변경 목록, 최신 Git 관계,
+향후 READ-ONLY 감사 진입조건이다. migration/auth 적용 *.log 2개는 Git ignore
+대상이나 ZIP에는 들어 있다. 향후 승인된 Git 보존에서 이 두 파일 누락에 유의.
+이번에 ignore 정책/index를 변경하거나 commit하지 않았다.
+빈 DB 근거는 새 tmpfs 컨테이너 생성·재사용거부 script와 실제 migration/fixture
+적용 로그·최종 catalog·테스트 로그다. 해당 실행의 별도 before-schema snapshot과
+container ID 기록은 없으므로 독립적인 서명 검증이나 존재하지 않는 증거로 확대하지 않는다.
+
+3. Git SHA 관계
+설계 기준 af52921c96b9b24b5dd5f49cc133471e634d2420
+SCHOOL-01A 기준 38b45c2a762224f0af976026519b3d47463e4454
+후자는 전자의 직접 자식(1커밋)이며 당시 integration/electron-feature-baseline 기준이다.
+커밋 제목: fix(electron): preserve Finder and window services across tray hide
+차이: 4파일, 217추가/18삭제
+- docs/STABILITY-01-TRAY-FINDER.md                  +65/-0
+- electron-p0/main/finder-search.ts                 +13/-3
+- electron-p0/main/main.mts                         +17/-15
+- electron-p0/tests/tray-finder-lifecycle.test.tsx    +122/-0
+이는 기준 커밋의 기존 변경이며 SCHOOL-01A 작업 중 제품을 바꾼 diff가 아니다.
+
+현재 전용 feature/school-01a-local-rls HEAD는 그대로 38b45c2...다.
+tracked/staged 제품 파일 변경 없음. 새 school-workspace/ 파일들만 미커밋 상태.
+원본 work 저장소 HEAD b44c6c64995738af13a969352b4ccdac87af16e9도 그대로 clean.
+이번 보존 작업은 rebase/reset/merge/commit/push/PR/배포를 수행하지 않았다.
+
+인계 확인 시 원격 integration/electron-feature-baseline은
+9934ff56d462c4748956c7fa5b7111f7a1a92c26으로 한 커밋 더 진행됐다.
+제목: feat(electron): restore independent local calendar with safe event persistence
+parent는38b45c2..., 24개 파일 변경. 이 최신 변경을 검증 브랜치에 가져오지 않았다.
+SCHOOL-01B에서 최신 소스를 참고할 경우 로컬 개인 일정과 공동 일정 경계를 별도로
+검토하고, 검증된 SCHOOL-01A SHA와 최신 SHA를 혼동하지 않아야 한다.
+
+4. 운영 Supabase 미확인 항목
+대상 xxownwxxajzrviuvvfiu의 current_database/current_user/version만 요청한 최소
+SELECT도 현재 연결 계정에 접근권한이 없어 거부됐다. 다른 프로젝트를 사용하지 않았다.
+- 실제 SQL namespace·RLS/GRANT/default privilege/role 생성·소유권 호환성
+- auth.sessions 실제 열/소유권/최소 열 GRANT·보안 helper 가능성
+- 실제 JWT 검증/GoTrue/PKCE·callback·세션회전·PostgREST RPC 계약
+- 기존 19 postgres SECURITY DEFINER의 내부 인가·동적 SQL·Workspace 도달성
+- Electron Main/Web BFF 어댑터 구현의 설정·저장·네트워크 선행조건
+모두 운영 호환성 미확인. 이전 실사의 함수 목록·owner·ACL 인계는 유지하되
+이번 재측정 또는 내부 안전성 검증으로 표기하지 않는다.
+
+5. SCHOOL-01B 착수 가능 여부
+사전자료·범위·체크리스트 준비는 READY. 실제 hosted READ-ONLY 감사 실행은
+적법한 대상 프로젝트 읽기 접근이 갖춰져야 가능하다. 현재는 접근권한 BLOCKED.
+감사 첫 단계는 metadata/설정의 읽기 및 소스 검토만으로 제한한다.
+운영 migration/DDL/DML/RPC시험/GRANT/REVOKE/Auth설정 변경 금지.
+기존 함수 일괄권한철회 및 owns_project/receive_medication 재사용 금지.
+Electron/Web 로그인 구현, SCHOOL-02/03 UI, 배포는 이번 인계/감사 범위 밖이다.
+추후 변경이 필요한 발견사항은 근거·위험·별도 승인 필요 작업으로만 보고한다.
+
+비밀키/접속 DSN/실제 로그인정보/실제 사용자 데이터는 패키지에 넣지 않았다.
+민감정보 pattern 점검 및 파일목록 검사를 수행하고 합성 fixture와 실제정보를 구분했다.
+패키지는 원본 SQL/테스트·기록을 인계하는 자료이지 운영 적용 승인 산출물이 아니다.

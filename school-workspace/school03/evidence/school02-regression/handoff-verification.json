@@ -1,0 +1,26 @@
+[
+  {
+    "stage": "A",
+    "filename": "BOGUNON_DESK_SCHOOL_01A_TO_01B_HANDOFF.zip",
+    "sha256": "764cc84ed91196dc933c293da59f1f9128349f11f12cadfe4c9e6787dc10cca1",
+    "files_in_zip": 31,
+    "manifest": "PASS"
+  },
+  {
+    "stage": "B",
+    "filename": "BOGUNON_DESK_SCHOOL_01B_AUTH_CODE_TESTS_EVIDENCE.zip",
+    "sha256": "d57d458bfe1905bb9dc08fb5f402cb9b4470f8f6559dc14cbf4cd937b5c36b49",
+    "files_in_zip": 80,
+    "manifest": "PASS"
+  },
+  {
+    "stage": "C",
+    "filename": "BOGUNON_DESK_SCHOOL_01C_CODE_SQL_TESTS_EVIDENCE.zip",
+    "sha256": "cd853c9b880a9c3ecfad8b9bc0ebe975ca654be9e2da6bce50ad08ec59eb5011",
+    "files_in_zip": 146,
+    "manifest": "PASS",
+    "intentional_changes_to_restored_files": [
+      "electron-p0/renderer/P0App.tsx"
+    ]
+  }
+]

@@ -1,0 +1,199 @@
+BOGUNON DESK SCHOOL-01A DB·RLS 로컬 합성 검증 결과
+작성일: 2026-11-05 Asia/Seoul
+최종 판정: CONDITIONAL
+로컬 필수 계약: 15/15 PASS. 최종 확장 테스트: 34 PASS / 0 FAIL.
+실제 Supabase 운영 호환성 및 Auth/PostgREST 통합은 NOT RUN.
+
+1. 작업 기준 및 환경
+원격 integration/electron-feature-baseline 시작 확인 SHA:
+38b45c2a762224f0af976026519b3d47463e4454
+이전 설계 SHA af52921c96b9b24b5dd5f49cc133471e634d2420보다 1커밋 앞선다.
+차이: Finder·트레이 안정화 관련 문서/Main/Finder/테스트 4개 파일.
+계정·학교·Workspace DB 설계와 직접 충돌하는 변경은 확인되지 않았다.
+
+사용자가 현재 연결 환경 안의 완전 분리 작업공간 사용을 승인했다.
+별도 Cloud C 머신이라고 표시하지 않는다.
+기존 저장소: /workspace/BOGUNON_DESK, work 브랜치, b44c6c64995738af13a969352b4ccdac87af16e9, clean 유지.
+독립 저장소: /workspace/work/school-01a/repo
+전용 브랜치: feature/school-01a-local-rls
+새 브랜치 HEAD: 위 원격 기준 SHA, 커밋 없이 미추적 신규 파일만 존재.
+기존 통합 브랜치/원본 작업 트리에 직접 수정하지 않았다.
+
+로컬 DB: PostgreSQL 17.6, Docker 이미지 postgres:17.6-bookworm
+digest: sha256:f3bd19c606e442c3d7bdfa8002e03fe260a1023351e0ea4598032022b68dd6e3
+컨테이너: network none, host 포트 없음, listen_addresses='', tmpfs 데이터.
+운영 DB URL/키/자격증명을 읽거나 사용하지 않았다. 운영 및 배루리 프로젝트에
+조회·DDL·DML·RPC 요청을 보내지 않았다. 로컬 DB는 검증 후 제거했다.
+
+2. 신규 파일
+school-workspace/local/
+  supabase/migrations/20261105000027_school01a_workspace_local.sql
+  tests/auth_fixture.sql
+  tests/fixtures.sql
+  tests/run.py
+  tests/catalog.sql
+  tests/static_check.py
+  run.sh
+  README.txt
+  SCHOOL_01A_RESULT.txt
+  .gitignore
+  evidence/results.json
+  evidence/pre_fix_results.json
+  evidence/test-output.txt
+  evidence/auth-fixture-apply.log
+  evidence/migration-apply.log
+  evidence/catalog.json
+  evidence/isolation.txt
+  evidence/image-digest.txt
+  evidence/static-check.txt
+  evidence/manifest.json
+
+실행: bash school-workspace/local/run.sh
+로컬 Docker socket+Python3+Bash만 필요. 이미지 다운로드 외 네트워크 사용 없음.
+기존 동명 컨테이너는 재사용/삭제하지 않고 중단한다. 생성한 컨테이너만 정리.
+SQL은 school01a DB 이름과 빈 workspace namespace를 요구하는 LOCAL PROTOTYPE.
+운영 migration으로 승인된 파일이 아니며 운영에 적용하면 안 된다.
+
+3. 구현 DB 객체
+workspace 테이블 13개:
+accounts, schools, school_memberships, membership_terms, join_requests,
+first_admin_requests, role_permission_defaults, membership_permission_overrides,
+role_change_history, audit_entries, command_receipts, admin_transfers,
+revoked_sessions.
+
+공개 RPC 10개:
+ws_v1_bootstrap, ws_v1_get_context, ws_v1_request_join, ws_v1_decide_join,
+ws_v1_set_member_role, ws_v1_set_membership_state, ws_v1_leave_school,
+ws_v1_propose_admin_change, ws_v1_accept_admin_change,
+ws_v1_revoke_current_session.
+
+roles: ws_owner(DDL), ws_runtime(목적별 명령), ws_authz_reader(인가 metadata).
+세 역할 모두 NOLOGIN/NOBYPASSRLS/non-superuser.
+ws_runtime과 ws_authz_reader는 Workspace 테이블 소유자가 아니다.
+35개 신규 함수 중 공개 10개는 모두 SECURITY INVOKER.
+비노출 definer 17개는 ws_runtime 또는 ws_authz_reader 소유이며 search_path=''.
+postgres 소유 Workspace definer나 service_role 우회는 없다.
+RLS 정책 30개, 테이블 13개 모두 ENABLE/FORCE RLS.
+public에는 신규 테이블을 만들지 않았다. 같은 학교 복합 FK와 참여 epoch를 사용.
+
+4. RLS·GRANT 실행 확인
+클라이언트는 LOGIN school_client -> SET ROLE authenticated 경로로 호출했다.
+school_client는 runtime/owner/reader 역할의 member가 아니며 runtime으로 SET ROLE
+할 수 없다. 미인증 시험은 별도 school_anon -> anon 경로를 사용했다.
+공개 invoker -> 비노출 purpose definer -> 비소유 runtime -> RLS로 실제 실행됐다.
+invoker와 원시 테이블 GRANT 부족을 postgres/service_role 실행으로 우회하지 않았다.
+원시 SELECT/UPDATE, auth.sessions 읽기, 내부 actor helper 호출, audit UPDATE/DELETE,
+runtime role 자체의 audit 수정·삭제도 거부됨을 확인했다.
+Runtime RLS 방어층 시험에서는 학교 A claims로 학교 B SELECT가 0행, UPDATE도
+0행이었다. 이 시험의 role 주입은 명시적인 로컬 방어층 probe이며 일반 RPC 성공
+증거는 school_client로만 수집했다.
+
+5. 필수 15개 시나리오
+번호 | 결과 | 최종 evidence test
+01 미인증 공동 데이터 거부             PASS 01_t01
+02 PENDING 공동 데이터 거부            PASS 02_t02
+03 학교 A -> B 데이터 거부             PASS 03_t03
+04 지원강사 관리자 RPC 거부            PASS 04_t04
+05 사용자 자기 승인 거부               PASS 05_t05 + 28_t28
+06 관리자 2명 동시 운영                PASS 06_t06 + 17_t17
+07 마지막 관리자 탈퇴·강등 거부        PASS 07_t07
+08 동시 관리자 강등 경합               PASS 08_t08
+09 정지·만료 접근 거부                 PASS 09_t09
+10 재가입 이전 권한 자동 복원 금지     PASS 10_t10
+11 다른 학교 membership ID 참조 거부   PASS 11_t11
+12 원시 SELECT/UPDATE 거부             PASS 12_t12
+13 감사 수정·삭제 거부                 PASS 13_t13
+14 request_id 중복 처리 방어           PASS 14_t14 + 30_t30
+15 회수 후 이전 세션 접근 거부         PASS 15_t15 + 25_t25
+
+서로 다른 합성 사용자 10명 이상, 학교 3개, 별도 세션을 사용했다.
+초기 관리자 재직 확인은 합성 fixture뿐이며 실제 기관 검증 완료를 의미하지 않는다.
+동시 강등: 별도 두 DB 연결에서 advisory lock 대기를 관측, 한 요청 commit,
+다른 요청 last_admin 거부, 유효 관리자 1명 유지.
+병렬 동일 request_id: 동일 결과, 변경·audit·receipt 각 1개만 생성.
+회수: JWT와 auth.sessions 행이 그대로 남아 있어도 멤버십 회수 후 조회 거부.
+별도 세션 denylist 후 bootstrap과 context도 거부.
+
+6. 추가 실행 결과
+16 가입 승인 및 stale version 거부
+17 교사 후보 수락 후 공동관리자 추가, 지원강사 후보 거부
+18 관리자 이관 시 기존 관리자 강등과 양측 이력
+19 잘못된 수락자/만료된 제안 거부
+20 실제 owner/role flags/RLS/invoker·definer 경계 확인
+21 만료 claims/익명 Auth/없어진 session 거부
+22 Workspace 계정 정지/학교 복구 잠금 거부
+23 학교 canonical 중복·pending role·기간 CHECK 제약
+24 runtime 역할에서도 교차 학교 RLS 필터 확인
+25 회수된 관리자의 과거 receipt 재접근 차단
+26 conflict 때 version/history/receipt 변경 없음
+27 신규 account bootstrap와 중복 방지·멤버십 자동생성 없음
+28 관리자 자기승인·직접 admin 승격·admin 가입 희망값 거부
+29 audit INSERT 권한을 강제로 제거하면 전체 쓰기 rollback
+30 실제 병렬 동일 request_id 멱등성
+31 최근 로그인 조건·다른 사용자 session_id·sessions 원시 조회 거부
+32 유효 관리자 자연 만료시 fail closed
+33 제안자 권한 회수 후 관리자 승격 수락 거부
+34 합성 Auth 삭제 후 actor tombstone/학교 기록 유지
+위 19개 추가 시나리오 모두 PASS. 최종 총 34 PASS/0 FAIL.
+SQL fresh apply PASS, Python compile/Bash syntax PASS, static scope check PASS.
+정적 검사는 실행/운영 보안감사의 대체가 아니다.
+
+7. 발견·수정한 문제 및 남은 차이
+추가 bootstrap 테스트가 신규 account의 RLS 거부를 발견했다. 기존 fixture 계정의
+통과만으로 처음 사용자의 계정 생성이 검증되지 않았음을 확인했다.
+SELECT 정책이 생성 전 actor ID를 요구한 것이 원인. 본인 auth.uid와 live session을
+기준으로 수정했다. pre_fix_results.json에 33PASS/1FAIL을 보존하고 빈 DB에서
+migration과 전체 테스트를 재실행하여 최종 34PASS/0FAIL로 확인했다.
+
+참여 epoch는 별도 membership_terms FK로 보존한다. 재가입시 새 term을 생성하고
+이전 override를 현재 권한에 합치지 않는다. 과거 term/override 이력은 유지한다.
+학교별 advisory transaction lock은 작은 학교의 정확성을 우선하는 직렬화 방식.
+성능 최적화/대규모 학교 부하는 이번 검증 대상이 아니다.
+
+설계 전체 중 최소범위 밖의 부분:
+- 실제 기관 최초 관리자 확인/운영자 승인·분실복구: fixture만, 실행 기능 아님.
+- pending 사용자용 상세 상태/구성원 UI DTO는 SCHOOL-02에서 보완.
+- 초대, 일반 개별권한 변경 RPC, 보존 job, 긴급복구 reconciliation은 미구현.
+- receipt는 이 최소 명령의 enum·UUID 등 구조적 입력만 JSON 보관.
+  업무 본문 입력 확장 전 hash/redaction·retention 계약을 보완해야 함.
+- 학생 본문·약품 대상자 입력 API 자체를 만들지 않음. 일반 자유텍스트 개인정보
+  탐지기가 구현/검증됐다고 주장하지 않음.
+- 최근 인증은 합성 session.created_at 기준이며 MFA/provider 재인증 증명이 아님.
+
+8. 실제 Supabase 미확인 / NOT RUN
+로컬 PostgreSQL은 실제 RLS/GRANT/FK/트랜잭션 엔진을 검증했지만 hosted Auth가 아니다.
+최신 CLI3은 host의 읽기 전용 /home/agent/.supabase 생성 오류, CLI2.81.3 npm
+postinstall 실패를 확인. CLI3 binary를 격리 컨테이너에서 실행하여 migration new로
+SQL 파일을 생성했다. 전체 Supabase stack(GoTrue/PostgREST 등)은 실행하지 않았다.
+이 차이를 독립 PostgreSQL+합성 Auth 검증으로 명시한다.
+
+NOT RUN:
+- 실제 xxownwxxajzrviuvvfiu의 auth.sessions schema/최소권한 GRANT 가능성
+- hosted ws_owner/runtime/reader 생성·소유권·Data API ACL 동작
+- JWT 서명/issuer/audience의 실제 gateway 검증 및 GoTrue refresh/logout
+- PostgREST 공개 wrapper 라우팅/HTTP 오류 매핑/POST audit 동작
+- 운영 기존 68테이블/232정책과 신규 namespace의 실충돌 검사
+- 기존 19 postgres SECURITY DEFINER 함수의 본문/인가/신규 영역 도달성 감사
+- Electron/Web 로그인 어댑터, 실제 Windows/브라우저 QA(명시적 범위 제외)
+- 실제 기관 재직 확인·개인정보 고지/국외저장/보존·복구 운영 정책
+
+9. 기존 제품 영향·Git
+Electron/Tauri 제품 코드, 개인 저장/암호화·Finance/Inventory/포털·AI·Dashboard/Dock,
+native CLI 5개/OCR/Windows QA 프로필·WorkerW 제외 상태를 변경하지 않았다.
+public.tasks/events/profiles/medication_*를 공동 테이블로 전환하지 않았다.
+기존 owns_project/receive_medication 등 19 경고 함수 재사용·호출·수정·일괄 REVOKE 없음.
+개인자료/실제 학교·학생·사용자 데이터를 조회하거나 업로드하지 않았다.
+
+Git 상태: 별도 feature 브랜치에 ?? school-workspace/만 존재.
+tracked 제품 파일 diff 없음. git diff --check PASS.
+기존 /workspace/BOGUNON_DESK는 여전히 clean이며 기존 HEAD 유지.
+commit/push/PR/merge/workflow/배포/Portable 빌드 없음.
+SQL·테스트·결과는 미커밋 파일과 다운로드 archive로 보존한다.
+
+10. SCHOOL-01B 착수 판정
+CONDITIONAL: 로컬 학교·관리자·회수 계약의 필수 검증은 통과했다.
+다음 단계가 기존 함수/hosted 권한 호환성의 READ-ONLY 감사라면 착수 근거가 있다.
+대상 프로젝트에 적법한 읽기 접근을 마련해 auth.sessions/role/grants/public 함수
+도달성을 검증하고 운영 정책 미결정을 정리해야 한다. SCHOOL-01B 범위를 별도로
+정한 뒤 진행하며, 이번 결과로 운영 DDL·Auth 변경·배포나 SCHOOL-02/03 UI 착수를
+자동 승인하지 않는다.

@@ -1,0 +1,28 @@
+{
+  "verdict": "CONDITIONAL",
+  "base_sha": "166df05dd45402cb1a7526c9ae824ec11fcdb579",
+  "integration": {
+    "LOCAL_DB_with_MOCK_AUTH": 26,
+    "MOCK_UI": 4,
+    "fail": 0
+  },
+  "auth_regression": {
+    "pass": 59,
+    "fail": 0,
+    "classification": "MOCK / REAL SDK + MOCK HTTP"
+  },
+  "existing_regression": {
+    "pass": 101,
+    "fail": 0
+  },
+  "browser": {
+    "pass": 8,
+    "classification": "MOCK UI + REAL Chromium"
+  },
+  "strict_types": "PASS",
+  "electron_build": "PASS",
+  "root_build": "FAIL (13 unchanged baseline errors)",
+  "hosted": "NOT RUN",
+  "windows_runtime": "NOT RUN",
+  "school02": "isolated UI work CONDITIONAL"
+}

@@ -1,0 +1,5 @@
+import{useRef,useState}from'react';import{createRoot}from'react-dom/client';import{SchoolWorkspace}from'./SchoolWorkspace.js';import{SchoolClientStore}from'../core/client-store.js';import{createLocalBffBridge}from'./network.js';
+function LocalHarness(){const[fixture,setFixture]=useState(11),ref=useRef(fixture);ref.current=fixture;const[store]=useState(()=>new SchoolClientStore(createLocalBffBridge(()=>ref.current)));
+ return <><div style={{maxWidth:1040,margin:'12px auto',padding:'0 16px'}}><label>합성 검증 계정 <select aria-label="합성 검증 계정" style={{minHeight:48}} value={fixture} onChange={e=>{setFixture(Number(e.target.value));if(store.snapshot().workspace.phase!=='signed_out')void store.command('logout');}}>{[[11,'신규 교사'],[12,'신규 지원강사'],[13,'신규 계정 13'],[1,'학교 A 관리자'],[2,'학교 A 공동관리자'],[3,'두 학교 보건교사'],[4,'학교 A 지원강사'],[6,'학교 B 관리자']].map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></label></div><SchoolWorkspace store={store} connected client={location.pathname.endsWith('desktop.html')?'electron':'web'}/></>;
+}
+createRoot(document.getElementById('root')!).render(<LocalHarness/>);

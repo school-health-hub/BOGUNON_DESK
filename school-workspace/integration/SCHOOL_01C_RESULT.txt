@@ -1,0 +1,126 @@
+BOGUNON DESK SCHOOL-01C 통합 계약 검증 결과
+2026-11-05 · 최종 판정 CONDITIONAL
+
+1. 기준 SHA 및 작업 브랜치
+원격 integration/electron-feature-baseline 시작 시 SHA: 166df05dd45402cb1a7526c9ae824ec11fcdb579.
+독립 작업공간: /workspace/work/school-01c/repo
+작업 브랜치: feature/school-01c-integrated-contract. HEAD는 위 기준 SHA이며 신규 커밋 없음.
+이전 B 기준 9934ff56d462c4748956c7fa5b7111f7a1a92c26보다 2개 커밋 앞섬, 22개 파일 차이.
+학교 주소·업무포털 연결과 Windows Quick Add 모듈 이름 구분 변경이다. 신규 Workspace 인증 코드와 충돌 없음.
+기존 A/B 및 원본 작업공간 보존. rebase/reset/merge 없음. latest-base-comparison.txt와 git-status.json 참조.
+
+2. SCHOOL-01A/B 자료 복원
+A 인계 ZIP과 B Auth ZIP의 Manifest 및 인벤토리 검증 완료. B ZIP은 전체 80개 항목, Manifest 대상 79개.
+B ZIP에서 school-workspace 상대경로만 복원했다. A SQL·테스트 원본은 바이트 단위 동일.
+B 원본 대비 의도적 수정은 auth/web/bff-adapter.ts의 runAccountRequest 메서드 1개다.
+학교 선택 전 bootstrap/self-status가 필요하지만 B runWorkspace는 선택된 학교를 요구했기 때문이다.
+원본 A/B ZIP도 prior-handoffs에 포함하여 원본과 C 적응 코드를 분리 보존한다.
+A의 34 PASS / 0 FAIL은 보존된 과거 로컬 DB 결과이고 이번 C에서 재실행한 34건으로 세지 않는다.
+B의 59건은 C 작업공간에서 재실행해 통과했다. handoff-verification.json과 adaptation diff 참조.
+
+3. 통합 구현 파일
+school-workspace/integration/core/workspace.ts: 공통 상태 전이, generation/abort, 현재 사용자·멤버십 재검증.
+server/platform-ports.ts: Electron Main / Web BFF 어댑터를 공통 Coordinator와 연결.
+server/local-db.ts: 합성 Auth registry와 실제 로컬 PostgreSQL RPC transport. 원격 URL 입력 없음.
+server/dev-ipc.ts: 개발 전용 명시적 IPC·Preload 계약, 기존 sender/frame/URL 검증 사용, 토큰 비노출.
+sql/local-status.sql: 본인 소속의 상태만 반환하는 로컬 전용 메타데이터 RPC. 공유 컨텍스트를 허용하지 않음.
+sql/multi-school-fixture.sql: 동일 계정 A 교사/B 지원강사 합성 소속.
+dev-ui/*: 공통 최소 화면, MOCK 미리보기, 모바일·작은 PC 진입 HTML.
+tests/*, run-local-db.sh, browser-check.mjs: 실제 DB·합성 UI·Chromium 재현 테스트.
+electron-p0/renderer/P0App.tsx: 2줄 개발 전용 진입점 추가.
+electron-p0/renderer/school-workspace-dev/SchoolWorkspaceDevEntry.tsx: 합성 미리보기.
+전체 상대경로 목록은 evidence/file-list.json과 패키지 Manifest 참조.
+
+4. 인증 → RPC → 멤버십 연결
+B 실제 AuthAdapter 클래스 → C 플랫폼 port → 공통 Coordinator → B DTO 검증 → C 로컬 SQL transport
+→ A의 public ws_v1 RPC → ws_runtime/reader와 실제 RLS → 합성 학교 데이터의 흐름을 검증했다.
+Auth 공급자·callback 발급·세션 저장용 cipher는 MOCK, DB·RLS·RPC는 LOCAL DB다.
+JWT 서명을 검증한 hosted Auth 결과가 아니다. local registry에 등록된 정확한 토큰만 신뢰 게이트웨이로 취급한다.
+일반 RPC는 school_client 로그인으로 authenticated 역할에 진입하며 postgres/service_role로 성공을 우회하지 않는다.
+postgres 사용은 DDL, fixture, 검사와 명시적 상태 변경 주입에 한정한다.
+7개 ws_v1 계약을 재사용한다. C에서 실제 DB로 bootstrap/get_context/set_member_role/set_membership_state를 실행했다.
+request_join/decide_join/leave_school은 A 원본 및 B DTO 계약을 보존하며 C 신규 UI에서 새로 end-to-end 실행한 것으로 세지 않는다.
+
+로그인 전/중/학교 미선택/pending/approved/정지/소속 만료/복구 잠금/세션 만료/네트워크 오류를 구분한다.
+클라이언트 역할 표시와 서버 인가를 분리하며 매 명령 전 사용자 및 DB 멤버십·컨텍스트를 다시 확인한다.
+학교 전환/계정 변경/로그아웃은 generation 변경과 abort로 이전 응답 및 메모리 컨텍스트를 무효화한다.
+승인되지 않은 상태에는 공동 RPC를 허용하지 않으며 서버도 별도로 거부한다.
+A get_context가 pending 등에서 공유 자료를 거부하는 동작은 유지했다. C 상태 RPC는 self-status만 보완한다.
+이 RPC는 ws_c_membership_status라는 로컬 실험 이름이며 운영 도입·이름·DTO 승인이 완료된 migration이 아니다.
+
+5. Electron 개발용 진입점
+P0App에 import.meta.env.DEV 및 ELECTRON_P0_PUBLIC_SCHOOL01C_DEV=1 두 조건의 진입점만 추가했다.
+Dashboard/Dock 디자인·개인 저장소·기존 Main/Preload 동작은 교체하지 않았다.
+화면은 우리 보건실, 연결 상태, 로그인/로그아웃, 현재 학교/역할, 승인 대기 및 준비 안내로 제한한다.
+실제 앱 진입 화면은 브라우저용 합성 미리보기다. 실제 Windows OAuth 로그인 UI 연동을 주장하지 않는다.
+Main → 전용 IPC → 실제 로컬 DB 연결은 합성 IPC 이벤트를 이용한 통합 테스트로 별도 검증했다.
+개발 IPC는 운영 Main/Preload에 등록하지 않았다. 원시 HTTP/SQL/파일 IPC 및 토큰 반환 API 없음.
+Electron 빌드 통과, production renderer chunk에서 C 미리보기·합성 토큰·로컬 DB transport 제외 확인.
+실제 Windows 실행·DPAPI·OS callback·설치형 앱 GUI 검증은 NOT RUN이다.
+
+6. Web 모바일 인증 진입점
+390×844 모바일과 980×700 PC의 합성 화면에서 로그인·학교 선택·승인/대기·세션 만료·접근 거부·로그아웃 확인.
+밝은 바탕, 네이비 상태, 둥근 카드와 절제된 로즈 색상, 46px 이상 조작 영역 및 focus 표시를 사용했다.
+개발용 합성 자료임을 명시하고 API·토큰·내부 오류를 노출하지 않는다. 횡스크롤 및 브라우저 오류 없음.
+스크린샷을 실제 확인했다. 화면 검증은 MOCK UI + 실제 Chromium이며 UI에서 BFF 서버나 DB를 호출한 결과가 아니다.
+BFF → 실제 로컬 DB 경로는 별도 headless 통합 테스트에서 검증했다.
+실제 세션 저장소·호스팅·도메인·웹 배포는 미구현/미검증이다. 메모리 저장소는 테스트 전용이다.
+
+7. 테스트 PASS / FAIL / NOT RUN
+C 통합 30 PASS / 0 FAIL: LOCAL DB 통합 스위트 26건 + MOCK UI jsdom 4건.
+26건에는 암호화 실패·토큰 위조처럼 DB 호출 전에 차단하는 MOCK 경계 검증도 포함한다.
+B 인증 어댑터 회귀 59 PASS / 0 FAIL: MOCK 및 실제 SDK + MOCK HTTP 경계 검증.
+기존 기능 선택 회귀 101 PASS / 0 FAIL: B의 100건에 최신 통합의 기존 테스트 1건 증가.
+실제 Chromium 화면 검사 8 PASS / 0 FAIL: 모두 MOCK UI, 외부 네트워크 차단.
+C strict TypeScript PASS. Electron build PASS. git diff --check PASS.
+전체 루트 build FAIL: 기존 13개 오류 동일, 신규 오류 0. 없는 lint/typecheck npm script는 NOT RUN.
+이 수치들은 서로 다른 검증 층이며 모두 DB 통합 테스트로 합산하지 않는다.
+
+필수 15개 시나리오와 근거
+1 합성 로그인→bootstrap→학교 선택: Electron/Web LOCAL DB 테스트.
+2 pending 공동 접근 차단: 클라이언트와 직접 LOCAL DB RPC 양쪽 거부.
+3 active 교사 정상 접근: Electron/Web LOCAL DB 컨텍스트/권한 응답.
+4 지원강사 관리자 API 거부: 실제 SQL RPC 거부, target version 변화 없음.
+5 학교 간 접근 차단: 합성 A 지원강사의 B 컨텍스트 직접 DB RPC 거부.
+6 오래된 학교 응답 폐기: abort 무시한 실제 A 응답을 지연시킨 뒤 B 전환, B 유지.
+7 권한 회수: 멤버십 정지 및 관리자 강등 후 기존 세션의 실제 DB 명령 거부.
+8 세션 만료: 로컬 auth.sessions 만료 주입 후 요청 거부·공동 상태 잠금.
+9 로그아웃: Main vault/공동 상태 정리, 후속 요청 거부.
+10 암호화 저장 실패: safeStorage MOCK 실패 주입, 평문 저장 및 bootstrap 없음.
+11 Renderer 토큰 비노출: 전용 IPC safe DTO 검사와 잘못된 sender/frame 거부.
+12 Web CSRF/Origin: 실제 BFF 검사가 DB 호출 이전에 거부.
+13 동시 refresh: BFF 동시 요청 두 개, MOCK provider refresh 1회, 실제 DB 두 학교 조회.
+14 버전 충돌: 실제 SQL conflict, 부분 갱신 없음.
+15 서버 오류 시 개인 기능 유지: 네트워크 실패 주입 중 기존 실제 LocalTaskStore 저장/읽기 성공.
+실제 hosted Auth/JWT/PostgREST, 실제 Windows safeStorage/OS callback, 운영 배포: 모두 NOT RUN.
+
+8. 기존 타입 오류 13개 비교
+B 9934 기준 13개, clean 최신 166df05 기준 13개, 변경 작업공간 13개이며 진단 문구도 동일하다.
+기존 오류를 수정하지 않았다. education-video 7건, inventory 2건, newsletter 1건,
+official-document window.electronWork 1건 및 officialDocumentSession 2건이다.
+baseline-build-comparison.json과 clean 최신/변경 root-build 로그에 원문 13개를 보존한다.
+C strict 검사는 새 인증·통합 소스에 별도로 적용해 통과했다.
+
+9. 운영 Supabase 미검증
+사용자가 전달한 READ-ONLY 메타데이터 결과는 인계 근거로 유지한다: PG17.6, RLS232,
+SECURITY DEFINER20/경고19, 신규 스키마·역할 없음, auth 소유자 supabase_auth_admin 등.
+이번 작업에서 이를 운영에 직접 재조회하거나 신규 RPC를 호출하지 않았다.
+managed auth.sessions 최소 GRANT, 새 역할 생성·소유권·RLS, public/private PostgREST wrapper 호출,
+Auth provider/redirect/PKCE OS callback, 실제 JWT 서명/만료/refresh/권한 회수, 기존 함수 내부 인가 및
+신규 Workspace 도달성은 NOT VERIFIED다. 기존 경고 19개 함수는 호출·재사용·수정하지 않았다.
+신규 C 상태 RPC의 운영 계약, self-status 노출 범위와 감사 정책도 운영 도입 전 별도 검토가 필요하다.
+
+10. Git 상태와 인계 ZIP
+기존 추적 제품 변경은 P0App.tsx 2줄뿐이며 신규 개발 컴포넌트 및 school-workspace는 미커밋 상태다.
+A/B 원본 브랜치와 작업물은 보존했고 commit/push/PR/merge/배포는 수행하지 않았다.
+패키지는 SQL·fixture·A/B/C 소스·테스트·로그·비교표·스크린샷·상대경로 복원 스크립트·SHA256 Manifest와
+원본 A/B ZIP을 포함한다. npm 의존성·.git·.env·실제 비밀키·실제 사용자 자료는 포함하지 않는다.
+복원은 clean 166df05 clone에서만 적용하며 기존 파일을 임의 덮어쓰지 않고 baseline SHA/hash를 검사한다.
+압축 해제 후 Manifest 검증과 clean clone 오버레이/타입 검사까지 별도 검증한다.
+
+11. SCHOOL-02 착수 가능 여부
+CONDITIONAL: 격리된 가입·승인 UI 개발은 시작할 수 있다. 운영 적용 및 실제 계정 로그인 준비 완료는 아니다.
+선행 조건은 self-membership 상태 RPC 이름/DTO 확정, 미소속 사용자의 account-level request_join 흐름,
+최초 관리자 검증 책임·승인 근거, 운영 Auth/PostgREST/최소권한 검증이다.
+실제 가입/승인 UI에서는 서버의 최신 소속을 권위로 사용하고 현재 generation 취소 계약을 재사용한다.
+기존 개인 기능은 서버 인증과 독립적으로 유지한다. 운영 migration/설정 변경은 별도 승인 대상이다.

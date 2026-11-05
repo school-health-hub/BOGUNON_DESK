@@ -1,0 +1,13 @@
+SCHOOL-02 gaps identified before implementation
+Existing A public RPC: bootstrap, get_context, request_join, decide_join,
+set_member_role, set_membership_state, leave_school, propose_admin_change,
+accept_admin_change, revoke_current_session. B common DTO includes first seven only.
+Missing: trusted directory search, own request/status list including rejected/withdrawn,
+first-space request (pending only), admin request/member list, withdraw, expiry update,
+transfer inbox. Request/approval timestamps are absent from A tables.
+Added local-only purpose RPCs fill these gaps; existing A SQL is preserved unchanged.
+Actual NEIS provider and directory import verification are not connected. Reuse
+existing EDUCATION_OFFICES and validateSchoolQuery; synthetic directory is the only
+accepted source. Codes remain text. Existing personal school profile is never proof.
+Hosted first-admin verification and actual reauthentication are disabled. Only synthetic
+session-created_at fixtures permit local propose/accept validation.

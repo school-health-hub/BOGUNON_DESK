@@ -1,0 +1,3 @@
+import{useState}from'react';import{SchoolWorkspace}from'../../../school-workspace/school02/ui/SchoolWorkspace';import{SchoolClientStore}from'../../../school-workspace/school02/core/client-store';import type{SchoolBridge}from'../../../school-workspace/school02/core/types';
+/** Explicit local harness bridge only. Actual hosted authentication remains disabled. */
+export default function School02Entry(){const[open,setOpen]=useState(false);const bridge=(window as Window&{school02?:SchoolBridge}).school02;const[store]=useState(()=>new SchoolClientStore(bridge??{async command(){throw Error('unavailable');}}));return <aside><button type="button" onClick={()=>setOpen(v=>!v)}>우리 보건실</button>{open&&<SchoolWorkspace store={store} client="electron" connected={!!bridge}/>}</aside>;}

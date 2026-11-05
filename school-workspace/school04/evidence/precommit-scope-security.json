@@ -1,0 +1,12 @@
+{
+  "allowed_path_scope": "PASS",
+  "private_key_token_pattern_scan": "PASS",
+  "actual_credentials_included": false,
+  "source_paths_scanned": 546,
+  "new_tests": "22 PASS /0 FAIL",
+  "browser": "15 PASS /0 FAIL",
+  "new_type_errors": 0,
+  "old_root_type_errors": 13,
+  "source_whitespace_check": "PASS; historical build-log trailing whitespace preserved verbatim",
+  "hosted_connection": "NOT RUN"
+}

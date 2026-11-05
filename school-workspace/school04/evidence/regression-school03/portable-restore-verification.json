@@ -1,0 +1,18 @@
+{
+  "base_sha": "166df05dd45402cb1a7526c9ae824ec11fcdb579",
+  "clean_clone_restore": "PASS",
+  "strict_typecheck": "PASS",
+  "fresh_database": {
+    "pass": 21,
+    "fail": 0,
+    "classification": "15 LOCAL DB +4 LOCAL DB/React/Main with MOCK IPC +2 MOCK Renderer"
+  },
+  "browser": {
+    "pass": 13,
+    "fail": 0,
+    "classification": "BROWSER + LOCAL DB + MOCK Auth"
+  },
+  "hosted": "NOT RUN",
+  "windows_real": "NOT RUN",
+  "absolute_cloud_path_dependency": false
+}

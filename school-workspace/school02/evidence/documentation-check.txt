@@ -1,0 +1,1 @@
+Supabase/RLS current docs consulted through search_docs. Changelog direct HTTPS fetch returned403 under configured network policy; no bypass attempted. No hosted Supabase tool was used for DB/Auth operations.

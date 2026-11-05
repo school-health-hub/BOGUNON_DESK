@@ -1,0 +1,30 @@
+Remote branch checked at start: integration/electron-feature-baseline
+Base: 166df05dd45402cb1a7526c9ae824ec11fcdb579
+9934 base is ancestor; ahead 2 / behind 0. 22 files changed.
+166df05 fix(electron): disambiguate Quick Add helper module on Windows
+ae457fe feat(electron): connect school address review and portal launcher
+
+A	docs/STABILITY-03-SCHOOL-PORTAL-WIRING.md
+M	electron-p0/admin-protocol.ts
+M	electron-p0/builder.json
+M	electron-p0/main/admin-ipc.ts
+M	electron-p0/main/admin-store.ts
+M	electron-p0/main/main.mts
+M	electron-p0/preload/preload.cts
+M	electron-p0/renderer/P0App.tsx
+M	electron-p0/renderer/desktop-utilities/LocalQuickAdd.tsx
+R100	electron-p0/renderer/desktop-utilities/localQuickAdd.ts	electron-p0/renderer/desktop-utilities/localQuickTask.ts
+M	electron-p0/renderer/official-document/summaryTasks.ts
+M	electron-p0/renderer/school-admin/SchoolAdmin.tsx
+M	electron-p0/renderer/school-profile/SchoolProfile.tsx
+A	electron-p0/renderer/school-profile/SchoolSystemAddresses.tsx
+M	electron-p0/renderer/school-profile/school-profile.css
+A	electron-p0/school-launcher.ts
+M	electron-p0/school-protocol.ts
+M	electron-p0/tests/admin-preload.test.ts
+M	electron-p0/tests/desktop-utilities.test.ts
+A	electron-p0/tests/school-portal-dashboard.test.tsx
+A	electron-p0/tests/school-portal-wiring.test.ts
+M	electron-p0/tests/school-profile-ui.test.tsx
+
+Changes concern school portal/address wiring and Quick Add Windows rename; no Workspace auth collision. P0App two-line dev-only entry applied on latest source.
