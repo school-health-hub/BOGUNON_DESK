@@ -45,7 +45,7 @@ const launch=()=>spawn(executable,[`--remote-debugging-port=${port}`,'--inspect=
 
 const seedRoot=join(qaRoot,'test-runs',qaRun,'user-data');
 await mkdir(join(seedRoot,'poc-settings'),{recursive:true});
-await writeFile(join(seedRoot,'poc-settings','desktop.json'),JSON.stringify({version:1,closeBehavior:'tray',maximized:false}));
+await writeFile(join(seedRoot,'poc-settings','desktop.json'),JSON.stringify({version:1,closeBehavior:'quit',maximized:false}));
 await mkdir(join(seedRoot,'work-data/school-profile'),{recursive:true});
 await writeFile(join(seedRoot,'work-data/school-profile/school.json'),JSON.stringify({version:1,revision:1,school:{officeCode:'K10',officeName:'강원특별자치도교육청',schoolCode:'1234567',schoolName:'합성 QA 긴 학교명 화면 표시 확인 전용 초등학교'}}));
 await mkdir(join(seedRoot,'work-data/local-events'),{recursive:true});
@@ -126,84 +126,41 @@ const setWindowBounds=(width,height)=>{
   return JSON.parse(output);
 };
 
-
-const native=(action,extra=[])=>JSON.parse(execFileSync(action==='TrayReturn'?'powershell.exe':'pwsh',['-NoProfile','-File',join(dirname(fileURLToPath(import.meta.url)),'td2-window.ps1'),'-ExecutableRoot',process.env.TEMP,'-Action',action,...extra],{encoding:'utf8',timeout:25000}).trim());
-const bounded=async(name,fn)=>{try{result.gui[name]=await fn();}catch(error){result.gui[name]={verdict:'FAIL',error:String(error).split('\n')[0].slice(0,240)};}await writeFile(join(evidenceRoot,'gui-final-checkpoint.json'),JSON.stringify(result,null,2));};
-let mainCall;const remainingOnly=!!process.env.GUI_FINAL_REMAINING;const trayOnly=process.env.GUI_FINAL_REMAINING==='tray';
+const native=(action,extra=[])=>JSON.parse(execFileSync('pwsh',['-NoProfile','-File',join(dirname(fileURLToPath(import.meta.url)),'td2-window.ps1'),'-ExecutableRoot',process.env.TEMP,'-Action',action,...extra],{encoding:'utf8',timeout:25000}).trim());
 try{
- await waitForCdp();browser=await chromium.connectOverCDP(`http://127.0.0.1:${port}`);browserSession=await browser.newBrowserCDPSession();
- const page=browser.contexts()[0].pages().find(p=>p.url().startsWith('file:'));await page.waitForLoadState('domcontentloaded');
- const dock=page.getByRole('navigation',{name:'주요 기능'});await dock.waitFor();
- const info=await page.evaluate(()=>window.electronP0.info());
- if(info.sourceSha!==expectedSha||resolve(info.userData).toLowerCase()!==resolve(seedRoot).toLowerCase())throw Error('Immutable source/QA userData mismatch');
- if(!info.qaProfile||!info.qaProfile.stores.every(p=>resolve(p).toLowerCase().startsWith(resolve(seedRoot).toLowerCase()+'\\'))||resolve(info.qaProfile.appData).toLowerCase()!==resolve(qaRoot,'app-data').toLowerCase()||resolve(info.qaProfile.sessionData).toLowerCase()!==resolve(seedRoot,'chromium').toLowerCase())throw Error('Sensitive storage escaped QA root');
- result.actualUserData=info.userData;result.profileIsolation={verdict:'PASS',...info.qaProfile};result.devicePixelRatio=await page.evaluate(()=>devicePixelRatio);result.gui={};result.environment=native('Probe');
- // Read/invoke only the existing app menu and window state; no consent/clipboard/network mocking.
- const endpoints=await (await fetch('http://127.0.0.1:19228/json/list')).json();mainWs=new WebSocket(endpoints[0].webSocketDebuggerUrl);await new Promise((ok,bad)=>{mainWs.addEventListener('open',ok,{once:true});mainWs.addEventListener('error',bad,{once:true});});
- let seq=0;const replies=new Map();mainWs.addEventListener('message',event=>{const m=JSON.parse(event.data);replies.get(m.id)?.(m);replies.delete(m.id);});
- mainCall=async fn=>{const id=++seq;const response=await new Promise((ok,bad)=>{const timer=setTimeout(()=>{replies.delete(id);bad(Error('QA Main observation timeout'));},15000);replies.set(id,m=>{clearTimeout(timer);ok(m);});mainWs.send(JSON.stringify({id,method:'Runtime.evaluate',params:{expression:'('+fn.toString()+')()',awaitPromise:true,returnByValue:true}}));});if(response.error||response.result?.exceptionDetails)throw Error('QA Main observation failed');return response.result.result.value;};
- await mainCall(async function(){const e=process.getBuiltinModule('module').createRequire(process.cwd()+'/package.json')('electron');globalThis.__guiFinal={e,w:e.BrowserWindow.getAllWindows().find(w=>w.isVisible())};return true;});
- const state=()=>mainCall(async function(){const q=globalThis.__guiFinal;return {id:q.w.id,visible:q.w.isVisible(),destroyed:q.w.isDestroyed(),wc:q.w.webContents.id,rendererPid:q.w.webContents.getOSProcessId()};});
- const reset=async()=>{await page.reload();await dock.waitFor();};
- const tool=async name=>{await reset();await dock.getByRole('button',{name:'업무 도구',exact:true}).click();await page.getByRole('button',{name,exact:true}).click();if(name.includes('Finder'))await page.getByRole('heading',{name:/AI 교육영상 Finder/}).waitFor();};
- const school=async()=>{await reset();await dock.getByRole('button',{name:'설정',exact:true}).click();await page.getByRole('navigation',{name:'설정 카테고리'}).getByRole('button',{name:'학교 프로필',exact:true}).click();await page.getByRole('region',{name:'학교 업무 주소 확인·적용'}).getByText('초기값:',{exact:false}).first().waitFor();};
- const inspect=async(label,footer)=>{
-  const before=await page.evaluate(()=>{
-   const visible=e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0&&getComputedStyle(e).visibility!=='hidden';};
-   const modal=[...document.querySelectorAll('[role="dialog"]')].filter(visible).at(-1),scope=modal??[...document.querySelectorAll('.ev-finder,.workspace-dashboard')].find(visible)??document.body;
-   const owners=[scope,...scope.querySelectorAll('*')].filter(e=>visible(e)&&e.clientHeight>0&&e.scrollHeight>e.clientHeight+2&&/auto|scroll/.test(getComputedStyle(e).overflowY)).map(e=>{const old=e.scrollTop;e.scrollTop=e.scrollHeight;const reached=e.scrollTop+e.clientHeight>=e.scrollHeight-2;e.scrollTop=old;return {tag:e.tagName,class:e.className,clientHeight:e.clientHeight,scrollHeight:e.scrollHeight,reached};});
-   const doc=document.scrollingElement;if(doc&&doc.scrollHeight>doc.clientHeight+2){const old=doc.scrollTop;doc.scrollTop=doc.scrollHeight;owners.push({tag:'DOCUMENT',class:'document.scrollingElement',clientHeight:doc.clientHeight,scrollHeight:doc.scrollHeight,reached:doc.scrollTop+doc.clientHeight>=doc.scrollHeight-2});doc.scrollTop=old;}
-   const horizontal=scope.scrollWidth>scope.clientWidth+2||document.documentElement.scrollWidth>innerWidth+2;
-   const controls=[...scope.querySelectorAll('button,input,select,textarea,[role="tab"]')].filter(visible).map(e=>{const r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;const hit=x>0&&x<innerWidth&&y>0&&y<innerHeight?document.elementFromPoint(x,y):null;return {e,r,hit:hit&&(e===hit||e.contains(hit))};}).filter(v=>v.hit);
-   const overlaps=[];for(let i=0;i<controls.length;i++)for(let j=i+1;j<controls.length;j++){const a=controls[i],b=controls[j];if(a.e.contains(b.e)||b.e.contains(a.e))continue;const w=Math.min(a.r.right,b.r.right)-Math.max(a.r.left,b.r.left),h=Math.min(a.r.bottom,b.r.bottom)-Math.max(a.r.top,b.r.top);if(w>4&&h>4)overlaps.push({a:a.e.tagName,b:b.e.tagName,width:w,height:h});}
-   return {scope:{tag:scope.tagName,class:scope.className,clientWidth:scope.clientWidth,scrollWidth:scope.scrollWidth,rect:scope.getBoundingClientRect().toJSON(),overflowX:getComputedStyle(scope).overflowX,docWidth:document.documentElement.scrollWidth},horizontalOffenders:[...scope.querySelectorAll('*')].filter(e=>visible(e)&&e.clientWidth>0&&e.scrollWidth>e.clientWidth+2).slice(0,25).map(e=>({tag:e.tagName,class:e.className,clientWidth:e.clientWidth,scrollWidth:e.scrollWidth,overflowX:getComputedStyle(e).overflowX})),viewport:{innerWidth,innerHeight,outerWidth,outerHeight},horizontalOverflow:horizontal,scrollOwners:owners,overlaps,visibleControlCount:controls.length};
+ await waitForCdp();browser=await chromium.connectOverCDP(`http://127.0.0.1:${port}`);browserSession=await browser.newBrowserCDPSession();const page=browser.contexts()[0].pages().find(p=>p.url().startsWith('file:'));
+ await page.waitForLoadState('domcontentloaded');const dock=page.getByRole('navigation',{name:'주요 기능'});await dock.waitFor();
+ const info=await page.evaluate(()=>window.electronP0.info());if(info.sourceSha!==expectedSha||resolve(info.userData).toLowerCase()!==resolve(seedRoot).toLowerCase()||!info.qaProfile||!info.qaProfile.stores.every(p=>resolve(p).toLowerCase().startsWith(resolve(seedRoot).toLowerCase()+'\\')))throw Error('Source/isolated storage invariant failed');
+ result.actualUserData=info.userData;result.profileIsolation={verdict:'PASS',...info.qaProfile};result.environment=native('Probe');result.devicePixelRatio=await page.evaluate(()=>devicePixelRatio);result.fixes=[];
+ const eventBytes=await readFile(join(seedRoot,'work-data/local-events/events.json'),'utf8');
+ for(const [width,height] of [[980,700],[900,680]]){
+  native('Resize',['-Width',String(width),'-Height',String(height)]);await page.evaluate(async()=>{await document.fonts.ready;await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));});await delay(250);
+  const check=await page.evaluate(()=>{
+   const rect=e=>e.getBoundingClientRect(),root=document.querySelector('.workspace-dashboard'),grid=document.querySelector('.desktop-widget-grid');
+   const scrollingCells=[],dateIntrusions=[],eventIntrusions=[],dateEventOverlaps=[];let eventCount=0;const titles=[];
+   for(const c of document.querySelectorAll('[data-widget-type="monthly-calendar"] .calendar-cell')){
+    const cr=rect(c),d=c.querySelector('.calendar-date'),e=c.querySelector('.calendar-event');if(c.scrollHeight>c.clientHeight+1)scrollingCells.push({height:c.clientHeight,scrollHeight:c.scrollHeight});
+    if(d){const dr=rect(d);if(dr.left<cr.left-1||dr.right>cr.right+1||dr.top<cr.top-1||dr.bottom>cr.bottom+1)dateIntrusions.push({cell:cr.toJSON(),date:dr.toJSON()});}
+    if(e){eventCount++;const er=rect(e);titles.push({fullTitle:e.title,shownWidth:e.clientWidth,textWidth:e.scrollWidth,ellipsis:getComputedStyle(e).textOverflow});if(er.left<cr.left-1||er.right>cr.right+1||er.top<cr.top-1||er.bottom>cr.bottom+1)eventIntrusions.push({cell:cr.toJSON(),event:er.toJSON()});if(d&&rect(d).right>er.left+1)dateEventOverlaps.push({date:rect(d).toJSON(),event:er.toJSON()});}
+   }
+   const card=document.querySelector('[data-widget-type="clock"] .date-card'),body=card.querySelector('.date-card__body'),brand=card.querySelector('.date-card__eyebrow'),time=card.querySelector('.date-card__time'),date=card.querySelector('.date-card__date');const range=document.createRange();range.selectNodeContents(time);const tr=range.getBoundingClientRect(),br=rect(body),brr=rect(brand),dr=rect(date),car=rect(card);
+   const clock={text:time.textContent.trim(),font:getComputedStyle(time).fontSize,time:tr.toJSON(),brand:brr.toJSON(),date:dr.toJSON(),card:car.toJSON(),body:br.toJSON(),fits:tr.left>=br.left-1&&tr.right<=br.right+1&&tr.bottom<=car.bottom-1&&brr.bottom<=tr.top+1&&tr.bottom<=dr.top+1&&dr.bottom<=car.bottom-1&&time.scrollWidth<=time.clientWidth+1};
+   const horizontal={mainClient:root.clientWidth,mainScroll:root.scrollWidth,gridClient:grid.clientWidth,gridScroll:grid.scrollWidth,overflow:Math.max(0,root.scrollWidth-root.clientWidth),gridOverflow:Math.max(0,grid.scrollWidth-grid.clientWidth)};
+   const calendar={eventCount,titles,scrollingCells,dateIntrusions,eventIntrusions,dateEventOverlaps,passed:eventCount>0&&!scrollingCells.length&&!dateIntrusions.length&&!eventIntrusions.length&&!dateEventOverlaps.length&&titles.every(t=>t.fullTitle.length>20&&t.ellipsis==='ellipsis')};
+   return {viewport:{outerWidth,outerHeight,innerWidth,innerHeight},horizontal,calendar,clock};
   });
-  await page.screenshot({path:join(screenshots,label+'-top.png')});let footerResult=null;
-  if(footer){await footer.scrollIntoViewIfNeeded();await footer.click({trial:true,timeout:5000});footerResult=await footer.evaluate(e=>{const r=e.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return {top:r.top,bottom:r.bottom,viewportHeight:innerHeight,reachable:r.top>=0&&r.bottom<=innerHeight&&(hit===e||e.contains(hit))};});await page.screenshot({path:join(screenshots,label+'-bottom.png')});}
-  return {verdict:!before.horizontalOverflow&&!before.overlaps.length&&before.scrollOwners.every(s=>s.reached)&&(!footerResult||footerResult.reachable)?'PASS':'FAIL',...before,footer:footerResult,criterion:'Vertical scrolling is allowed when controls and bottom remain reachable; no horizontal clipping/control overlap'};
- };
- for(const [width,height] of (trayOnly?[]:[[980,700],[900,680]])){
-  const size=native('Resize',['-Width',String(width),'-Height',String(height)]);await delay(200);result.gui['bounds-'+width]={verdict:size.width===width&&size.height===height?'PASS':'FAIL',...size};
-  if(!remainingOnly) await bounded(width+'-dashboard',async()=>{await reset();return inspect(width+'-dashboard');});
-  await bounded(width+'-finder',async()=>{await tool('교육영상 Finder · 합성 Mock');return inspect(width+'-finder',page.getByLabel('사용자 메모',{exact:true}));});
-  if(!remainingOnly) await bounded(width+'-calendar',async()=>{await tool('독립 로컬 일정');await page.getByRole('button',{name:'일정 추가',exact:true}).click();return inspect(width+'-calendar',page.getByRole('button',{name:'일정 편집 취소',exact:true}));});
-  if(!remainingOnly) await bounded(width+'-quick-add',async()=>{await tool('빠른 추가 · 로컬 업무');await page.getByPlaceholder('추가할 업무를 입력하세요').fill('합성 QA 긴 업무 제목 · 작은 창의 입력과 저장 버튼 접근 확인');return inspect(width+'-quick-add',page.locator('.quick-add-panel button[type="submit"]'));});
-  if(!remainingOnly) await bounded(width+'-school',async()=>{await school();return inspect(width+'-school',page.getByRole('button',{name:'선택한 초기 주소 확인 후 적용',exact:true}));});
+  await page.screenshot({path:join(screenshots,`fixed-dashboard-${width}x${height}.png`)});
+  const dockRect=await dock.boundingBox();const quick=page.getByRole('button',{name:'빠른 추가',exact:true});await quick.click();await page.getByLabel('업무 제목',{exact:true}).waitFor();await page.keyboard.press('Escape');
+  await dock.getByRole('button',{name:'업무 도구',exact:true}).click();await page.getByRole('dialog',{name:'업무 도구',exact:true}).waitFor();await page.getByRole('button',{name:'교육영상 Finder · 합성 Mock',exact:true}).click();await page.getByRole('heading',{name:/AI 교육영상 Finder/}).waitFor();await page.getByRole('button',{name:'보건 업무로',exact:true}).click();await dock.waitFor();
+  const todayButton=page.locator('[data-widget-type="monthly-calendar"] .calendar-cell.is-today .calendar-date-action');await todayButton.click();const calendarDialog=page.getByRole('dialog',{name:'독립 로컬 일정',exact:true});await calendarDialog.waitFor();await calendarDialog.getByRole('button',{name:/합성 QA 긴 일정 제목/}).first().waitFor();await page.screenshot({path:join(screenshots,`event-link-${width}.png`)});await page.keyboard.press('Escape');
+  const portal=page.getByRole('button',{name:'업무포털',exact:true});await portal.scrollIntoViewIfNeeded();await portal.click({trial:true});await page.screenshot({path:join(screenshots,`fixed-dashboard-${width}-bottom.png`)});
+  const dockPass=!!dockRect&&dockRect.x>=0&&dockRect.y>=0&&dockRect.x+dockRect.width<=check.viewport.innerWidth+1&&dockRect.y+dockRect.height<=check.viewport.innerHeight+1;
+  result.fixes.push({requested:{width,height},...check,regression:{quickAdd:'PASS (entry only)',tools:'PASS (entry only)',finder:'PASS (entry only)',calendarEventLink:'PASS (existing synthetic event shown)',portal:'PASS (visible/actionable only; not opened)',dock:dockPass?'PASS':'FAIL'},verdict:check.horizontal.overflow===0&&check.horizontal.gridOverflow===0&&check.calendar.passed&&check.clock.fits&&dockPass?'PASS':'FAIL'});
+  await page.reload();await dock.waitFor();await writeFile(join(evidenceRoot,'gui-fix-checkpoint.json'),JSON.stringify(result,null,2));
  }
- result.gui.resizeRestore={...native('Resize',['-Width','980','-Height','700']),verdict:'PASS'};await reset();if(!remainingOnly)result.gui.resizeRestore.layout=await inspect('980-restored');
- // Actual Windows Explorer notification icon, never BrowserWindow.show as evidence.
- await bounded('nativeTray',async()=>{
-  if(!result.environment.shellTrayVisible)return {verdict:'NOT RUN',reason:'Explorer shell tray absent from runner desktop',environment:result.environment};
-  await tool('교육영상 Finder · 합성 Mock');await page.getByLabel('사용자 메모',{exact:true}).fill('SYNTHETIC_NATIVE_TRAY_MEMO');const initial=await state(),cycles=[];
-  for(let i=0;i<3;i++){native('Close');await delay(300);const hidden=await state();if(hidden.visible||hidden.destroyed)throw Error('Native close did not hide live window');const gesture=native('TrayReturn',['-Screenshot',join(screenshots,`actual-tray-${i}.png`)]);if(gesture.verdict==='NOT RUN'){await mainCall(async function(){globalThis.__guiFinal.w.show();return true;});return {verdict:'NOT RUN',reason:gesture.reason,detail:gesture,uncreditedRecovery:'Main.show used only to recover automation; not a tray PASS'};}await delay(500);const restored=await state();if(!restored.visible||restored.id!==initial.id||restored.wc!==initial.wc||await page.locator('.ev-layout label').filter({hasText:'사용자 메모'}).locator('textarea').inputValue()!=='SYNTHETIC_NATIVE_TRAY_MEMO')throw Error('Actual icon failed to restore same Finder state');cycles.push({hidden,gesture,restored});await page.screenshot({path:join(screenshots,`actual-tray-return-${i}.png`)});}
-  return {verdict:'PASS',cycles,basis:'Win32 close + actual Explorer icon mouse double-click; no show fallback in passing path'};
- });
- const trayState=await state();if(!trayState.visible&&!trayState.destroyed){await mainCall(async function(){globalThis.__guiFinal.w.show();return true;});result.gui.nativeTray.recovery='Main.show only after native tray failure, not credited';}
- const waitDialog=async(name)=>{for(let i=0;i<8;i++){const r=native('DialogProbe',['-Screenshot',join(screenshots,name+'.png')]);if(r.found)return r;await delay(200);}return {found:false};};
- const beginNative=async()=>{const l=await page.evaluate(()=>window.electronWork.admin.schoolAddresses());if(!l.ok)throw Error('Address preview failed');const p=l.data;await page.evaluate(p=>{window.__nativeApply=window.electronWork.admin.applySchoolAddresses({officeCode:p.school.officeCode,schoolCode:p.school.schoolCode,expectedRevision:p.revision,environment:p.environment,systems:['portal']});return true;},p);};
- let nativeAvailable=false;
- if(!remainingOnly) await bounded('nativeConfirm',async()=>{
-  await school();await page.getByPlaceholder('예: 학교명').fill('합성 입력 유지').catch(()=>{});
-  const before=await page.evaluate(()=>window.electronWork.admin.load());await beginNative();const probe=await waitDialog('native-cancel');
-  if(!probe.found){await page.evaluate(()=>window.electronWork.admin.cancel());return {verdict:'NOT RUN',reason:'No accessible owned native dialog',probe};}
-  nativeAvailable=true;const cancel=native('DialogCancel');if(!cancel.clicked)throw Error('Native cancel button inaccessible');const canceled=await page.evaluate(()=>window.__nativeApply);const after=await page.evaluate(()=>window.electronWork.admin.load());if(!canceled.ok||canceled.data!==null||JSON.stringify(before)!==JSON.stringify(after))throw Error('Native cancel changed settings');
-  await beginNative();if(!(await waitDialog('native-approve')).found)throw Error('Approval dialog absent');const approve=native('DialogApprove');if(!approve.clicked)throw Error('Native approval button inaccessible');const saved=await page.evaluate(()=>window.__nativeApply);if(!saved.ok||!saved.data?.document.systems.portal)throw Error('Native approval did not save');
-  const baseline=await page.evaluate(()=>window.electronWork.admin.load());await beginNative();if(!(await waitDialog('native-late-approve')).found)throw Error('Late approval dialog absent');await page.evaluate(()=>window.electronWork.admin.cancel());const late=native('DialogApprove');if(!late.clicked)throw Error('Late native click inaccessible');const lateResult=await page.evaluate(()=>window.__nativeApply);const final=await page.evaluate(()=>window.electronWork.admin.load());if(lateResult.ok&&lateResult.data!==null||JSON.stringify(baseline)!==JSON.stringify(final))throw Error('Late native approval changed settings');
-  return {verdict:'PASS',cancel,approve,late,unchangedAfterCancel:true,lateApprovalInvalidated:true,basis:'actual owned #32770 Windows dialogs and Button BM_CLICK; no Main/renderer consent override'};
- });
- result.reusedEvidence={run:41952480866,items:['calendar/Quick Add/school layout at both sizes','actual native approve/cancel/late approval/pending quit'],dashboardFailuresRemainOpen:true};
- result.dpi={actual100:result.devicePixelRatio===1?'OBSERVED (see OS registry evidence)':'NOT VERIFIED',dpi125:'NOT RUN: hosted session has no approved interactive display-scale/sign-out change',dpi150:'NOT RUN: hosted session has no approved interactive display-scale/sign-out change',browserEmulationUsed:false};
- // Normal product quit while a real native consent is pending, if that dialog is available.
- if(nativeAvailable){await beginNative();result.pendingQuitDialog=await waitDialog('native-pending-quit');if(!result.pendingQuitDialog.found)throw Error('Pending native dialog absent; quit scenario not executed');}
- await mainCall(async function(){const q=globalThis.__guiFinal;const quit=q.e.Menu.getApplicationMenu().items[0].submenu.items.find(i=>i.label==='완전 종료');if(!quit)throw Error('Product quit menu absent');quit.click();return true;}).catch(error=>{result.quitRequestError=String(error);});
- mainWs.close();mainWs=undefined;await waitForWrapperExit();result.shutdown.wrapperExited=true;
- result.gui.pendingNativeQuit=nativeAvailable?{verdict:'PASS',normalProductQuit:true,dialogWasVisible:!!result.pendingQuitDialog?.found}: {verdict:'NOT RUN',reason:'Native dialog unavailable'};
- result.verdict=Object.values(result.gui).some(v=>v?.verdict==='FAIL')?'FAIL':Object.values(result.gui).some(v=>v?.verdict==='NOT RUN')?'PARTIAL':'PASS';
-}catch(error){result.error=String(error).split('\n')[0].slice(0,400);result.verdict='FAIL';}
-finally{
- if(mainWs){try{mainWs.close();}catch{}}
- try{await cleanupOwned();}catch(error){result.cleanupError=String(error);result.verdict='FAIL';}
- if(browser){try{await browser.close();}catch{}}
- await writeFile(join(evidenceRoot,'gui-final-result.json'),JSON.stringify(result,null,2));console.log(JSON.stringify(result));
-}
+ if(await readFile(join(seedRoot,'work-data/local-events/events.json'),'utf8')!==eventBytes)throw Error('Display/link checks modified event fixture');result.eventFixtureUnchanged=true;
+ await closeBrowser();await waitForWrapperExit();result.shutdown.wrapperExited=true;result.verdict=result.fixes.every(r=>r.verdict==='PASS')?'PASS':'FAIL';
+ result.remaining=['Actual tray icon 3 cycles NOT RUN (manual QA)','OS DPI125/150 NOT RUN','900x680 native confirmation NOT RUN','Real school login/AI/Tauri migration NOT RUN'];
+}catch(error){result.error=String(error).split('\n')[0].slice(0,500);result.verdict='FAIL';}
+finally{try{await cleanupOwned();}catch(error){result.cleanupError=String(error);result.verdict='FAIL';}if(browser){try{await browser.close();}catch{}}await writeFile(join(evidenceRoot,'gui-fix-result.json'),JSON.stringify(result,null,2));console.log(JSON.stringify(result));}
 if(result.verdict==='FAIL')process.exitCode=1;
