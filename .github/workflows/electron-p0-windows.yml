@@ -159,6 +159,8 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Workspace Web build failed'}
           node scripts/qa/school05-build-native-provider.mjs
           if($LASTEXITCODE -ne 0){throw 'External Windows QA provider build failed'}
+          node --input-type=module -e "import {pathToFileURL} from 'node:url';import {resolve} from 'node:path';import fs from 'node:fs';const {createRuntime}=await import(pathToFileURL(resolve('build/school05-qa/provider.mjs')).href);let session=null;const vault={load:async()=>session,save:async s=>{session=s;},clear:async()=>{session=null;}};const runtime=await createRuntime({vault});try{const state=await runtime.school('login',{});if(!['authenticated_unselected','approved'].includes(state.workspace.phase))throw Error('Native QA SQL preflight phase: '+state.workspace.phase);fs.writeFileSync(process.env.TD2_EVIDENCE_ROOT+'/school05-provider-preflight.json',JSON.stringify({verdict:'PASS',backend:'native PostgreSQL',auth:'synthetic',vault:'explicit memory mock for preflight only; actual DPAPI checked in GUI',phase:state.workspace.phase}));}finally{await runtime.dispose();}"
+          if($LASTEXITCODE -ne 0){throw 'Native QA provider SQL preflight failed'}
       - name: Build configured Portable with masked existing public variables
         working-directory: source
         env:
