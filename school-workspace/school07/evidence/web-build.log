@@ -5,6 +5,6 @@ rendering chunks...
 computing gzip size...
 build/school05-web/index.html                   0.47 kB │ gzip:   0.36 kB
 build/school05-web/assets/index-D5lAZC7p.css   18.15 kB │ gzip:   3.90 kB
-build/school05-web/assets/index-922tR82h.js   416.28 kB │ gzip: 122.76 kB
+build/school05-web/assets/index-CMMLwefx.js   416.34 kB │ gzip: 122.77 kB
 
-✓ built in 294ms
+✓ built in 327ms

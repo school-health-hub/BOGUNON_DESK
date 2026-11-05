@@ -10,7 +10,7 @@
 | 기존 Preload 허용 목록에 inventory 누락 | 승인된 고정 inventory 키 추가, 메서드·IPC·범용 API 금지 검사 유지 | 1 | 기존 경계12 PASS |
 | REST 격리 테스트 사용자가 A/B 모두 승인됨 | A-only 합성 사용자4로 부정 검사, 다중 소속자는 학교별 역할 상한 별도 검사 | 1 | 실제 LOCAL POSTGREST 거부 PASS |
 | 기존 parent 지문에 새 public inventory 함수가 포함 안 됨 | 별도 child 장부·정확한15개 공개 함수 지문/ACL 범위, 기존 장부 불변 | 1 | 공개 wrapper 드리프트/close/replay PASS |
-| 비활성 등록값 누락 및 보관 물품 가용량 표시 불일치 | active 입력 저장, 보관 시 전체 수량 유지·가용0·사용불가 표시 | 1 | 실제 등록/전환/입고 거부 재검증 |
+| 비활성 등록값 누락 및 보관 물품 가용량 표시 불일치 | active 입력 저장, 보관 시 전체 수량 유지·가용0·사용불가 표시, 입고/사용 UI도 비활성 | 2 (SQL/UI) | 실제 등록/전환/입고 거부 재검증 |
 | 지원강사 본인 이력 범위 명시 | movement SELECT를 현재 membership/epoch 본인으로 제한, 관리자·교사는 학교 전체 이력 유지 | 1 | 실제 RLS 본인/교사 이력 검사 |
 | 기존 root13 오류/SheetJS cache 없음 | 기준 SHA 재현·공식 CDN 확인, 기존 제품/의존성 버전은 변경 안 함 | 0 (분리) | root 기존 실패, 전체 Electron 환경 BLOCKED |
 
