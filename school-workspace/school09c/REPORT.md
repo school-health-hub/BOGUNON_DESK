@@ -98,7 +98,7 @@ audit 실패 시 승인 전체 rollback, 실제 HTTP JWT 서명/만료/학교/�
 ## 7. 자율 수정·기존 제품
 
 fixture account UUID 고정 가정, PL/pgSQL receipt 변수 해석, default ACL 추가 grantee,
-NULL expected_version 비교 오류를 최소 수정했다. 결함별 실질 수정1회, 실패 로그/원인·검증은 QA_FIX_LOG.md에 보존한다.
+NULL expected_version 비교 오류를 최소 수정했다. 위 네 결함은 각각 실질 수정1회다. 별도 catalog exporter 시작 실패는 로그 분석 후2가지 수정으로 해결했다. 실패 로그/원인·검증은 QA_FIX_LOG.md에 보존한다.
 CLI 설정은 지원 SUPABASE_HOME만 분리했다. Auth 세션/학교 격리·권한 상한을 약화하지 않았다.
 제품/Electron/Web/DPAPI/Finance/개인 자료/기존 SQL 변경0. 인증 실패와 개인 기능의 분리 계약도 변경하지 않는다.
 Python 문법·Bash 문법·입력/SQL hash·git diff 검사를 수행한다.
