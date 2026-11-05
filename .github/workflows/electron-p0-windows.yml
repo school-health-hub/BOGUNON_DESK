@@ -1,138 +1,59 @@
 name: Final integrated Portable Windows QA
-run-name: ACCOUNT 01 Windows verification / 8f9a1f0 / ${{ github.run_id }}
-
+run-name: ACCOUNT 02 public configuration readiness / ${{ github.run_id }}
 on:
   push:
     branches: [qa/final-integrated-windows]
     paths: ['.github/workflows/electron-p0-windows.yml', 'scripts/qa/td2-soft-rose-portable.mjs', 'scripts/qa/td2-window.ps1']
   workflow_dispatch:
-
 permissions:
   contents: read
-  actions: read
-
 concurrency:
   group: td2-soft-rose-portable-gui
   cancel-in-progress: false
-
 jobs:
   portable-gui:
-    if: (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/qa/final-integrated-windows' && github.run_attempt == 1
+    if: github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/qa/final-integrated-windows' && github.run_attempt == 1
     runs-on: windows-2022
-    timeout-minutes: 40
+    timeout-minutes: 10
     defaults:
       run:
         shell: pwsh
-    env:
-      CI: 'true'
-      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      TD2_CONTROLLER_BASE_SHA: b085e8b7c7a5ec1bd6c7ba54cc689fcf11dbc2cc
-      TD2_PRODUCT_SHA: 8f9a1f0aa88502b1c45b2d575abdab5300234bbb
     steps:
-      - name: Checkout immutable approved product
+      - name: Checkout immutable ACCOUNT product
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: 8f9a1f0aa88502b1c45b2d575abdab5300234bbb
-          path: source
           persist-credentials: false
-          fetch-depth: 0
-      - name: Checkout QA controller
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-        with:
-          ref: ${{ github.sha }}
-          path: controller
-          persist-credentials: false
-          fetch-depth: 0
-      - name: Set up Node
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with:
-          node-version: '24'
-          cache: npm
-          cache-dependency-path: source/package-lock.json
-      - name: Verify immutable source and QA-only controller
+      - name: Read public configuration metadata only
+        env:
+          ACCOUNT_URL_PRESENT: ${{ vars.VITE_SUPABASE_URL != '' }}
+          ACCOUNT_URL_MATCHES: ${{ vars.VITE_SUPABASE_URL == 'https://xxownwxxajzrviuvvfiu.supabase.co' }}
+          ACCOUNT_PUBLISHABLE_PRESENT: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY != '' }}
+          ACCOUNT_MODERN_PUBLIC_PREFIX: ${{ startsWith(vars.VITE_SUPABASE_PUBLISHABLE_KEY, 'sb_publishable_') }}
+          ACCOUNT_LEGACY_ALIAS_PRESENT: ${{ vars.VITE_SUPABASE_ANON_KEY != '' }}
         run: |
           $ErrorActionPreference='Stop'
-          $source=(git -C source rev-parse HEAD).Trim()
-          if($source -cne $env:TD2_PRODUCT_SHA){throw 'Approved product SHA mismatch'}
-          if(git -C source status --porcelain){throw 'Approved product checkout is dirty'}
-          $allowed=@('.github/workflows/electron-p0-windows.yml','scripts/qa/td2-soft-rose-portable.mjs','scripts/qa/td2-window.ps1')
-          $changed=@(git -C controller diff --name-only $env:TD2_CONTROLLER_BASE_SHA HEAD)
-          foreach($path in $changed){if($path -notin $allowed){throw "Non-QA controller change: $path"}}
-          if($changed.Count -ne 3){throw 'Expected exactly three QA controller files'}
-          $root=Join-Path $env:RUNNER_TEMP "td2-portable-$env:GITHUB_RUN_ID"
-          New-Item -ItemType Directory "$root/evidence","$root/temp","$root/npm-cache","$root/f-drive" | Out-Null
-          New-Item -ItemType Directory "$root/profile","$root/appdata","$root/localappdata" | Out-Null
-          "TD2_ROOT=$root" >> $env:GITHUB_ENV
-          "TD2_EVIDENCE_ROOT=$root/evidence" >> $env:GITHUB_ENV
-          "TD2_PRODUCT_ROOT=${{ github.workspace }}/source" >> $env:GITHUB_ENV
-          "TEMP=$root/temp" >> $env:GITHUB_ENV
-          "TMP=$root/temp" >> $env:GITHUB_ENV
-          "npm_config_cache=$root/npm-cache" >> $env:GITHUB_ENV
-          "ELECTRON_P0_QA_ROOT=$root/profile" >> $env:GITHUB_ENV
+          if((git rev-parse HEAD).Trim() -cne '8f9a1f0aa88502b1c45b2d575abdab5300234bbb'){throw 'Source mismatch'}
+          if(git status --porcelain){throw 'Dirty product checkout'}
+          $root=Join-Path $env:RUNNER_TEMP "account02-config-$env:GITHUB_RUN_ID"
+          New-Item -ItemType Directory $root | Out-Null
           [ordered]@{
-            productSha=$source;controllerSha=(git -C controller rev-parse HEAD).Trim();workflowSha='${{ github.workflow_sha }}'
-            runner='windows-2022';runId=$env:GITHUB_RUN_ID;attempt=$env:GITHUB_RUN_ATTEMPT
-          }|ConvertTo-Json|Set-Content "$root/evidence/provenance.json"
-      - name: Install locked dependencies
-        working-directory: source
-        run: npm ci --ignore-scripts
-      - name: Download exact verified Portable
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
-        with:
-          name: account-portable-8f9a1f0-41966408957
-          run-id: 41966408957
-          github-token: ${{ github.token }}
-          path: prior-portable
-      - name: Download matching immutable evidence
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
-        with:
-          name: account-evidence-41966408957-1
-          run-id: 41966408957
-          github-token: ${{ github.token }}
-          path: prior-evidence
-      - name: Verify exact Portable and actual OS DPI without rebuilding
-        run: |
-          $ErrorActionPreference='Stop'
-          $files=@(Get-ChildItem prior-portable/*.exe)
-          $meta=Get-Content prior-evidence/portable.json -Raw|ConvertFrom-Json
-          $source=Get-Content prior-evidence/asar-source.json -Raw|ConvertFrom-Json
-          $expected='eaf7d55f93ba0b997a19d5855a0f4ddb7aae7f6be879cf5ea2f4969a7e1cf099'
-          if($files.Count -ne 1 -or $meta.sourceSha -cne $env:TD2_PRODUCT_SHA -or $source.sourceSha -cne $env:TD2_PRODUCT_SHA -or $source.dirty -or $meta.sha256 -cne $expected){throw 'Immutable Portable provenance mismatch'}
-          $hash=(Get-FileHash $files[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-          if($hash -cne $expected){throw 'Portable SHA-256 mismatch'}
-          "TD2_PORTABLE_EXE=$($files[0].FullName)" >> $env:GITHUB_ENV
-          "TD2_EXPECTED_SOURCE_SHA=$env:TD2_PRODUCT_SHA" >> $env:GITHUB_ENV
-          Copy-Item prior-evidence/portable.json "$env:TD2_EVIDENCE_ROOT/portable.json"
-          Copy-Item prior-evidence/asar-source.json "$env:TD2_EVIDENCE_ROOT/asar-source.json"
-          [ordered]@{originRun=41966408957;rebuilt=$false;fileHashVerified=$true;sourceSha=$env:TD2_PRODUCT_SHA;sha256=$hash}|ConvertTo-Json|Set-Content "$env:TD2_EVIDENCE_ROOT/portable-reuse.json"
-          $metrics=Get-ItemProperty 'HKCU:\Control Panel\Desktop\WindowMetrics'
-          $desktop=Get-ItemProperty 'HKCU:\Control Panel\Desktop'
-          [ordered]@{appliedDpi=$metrics.AppliedDPI;logPixels=$desktop.LogPixels;dpi100=if($metrics.AppliedDPI -eq 96){'VERIFIED'}else{'NOT VERIFIED'};dpi125='NOT RUN';dpi150='NOT RUN';emulationUsed=$false}|ConvertTo-Json|Set-Content "$env:TD2_EVIDENCE_ROOT/windows-dpi.json"
-      - name: Run actual Portable and capture Electron GUI
-        working-directory: source
-        run: node ../controller/scripts/qa/td2-soft-rose-portable.mjs 2>&1 | Tee-Object "$env:TD2_EVIDENCE_ROOT/portable-gui.log"
-      - name: Verify clean shutdown and finalize evidence
-        if: always()
-        run: |
-          $ErrorActionPreference='Stop'
-          $ownedRoot=[IO.Path]::GetFullPath("$env:TD2_ROOT/temp")+'\'
-          $before=@(Get-CimInstance Win32_Process|Where-Object{$_.ExecutablePath -and $_.ExecutablePath.StartsWith($ownedRoot,[StringComparison]::OrdinalIgnoreCase) -and $_.Name -like 'BOGUNON*'})
-          foreach($owned in $before){$current=Get-CimInstance Win32_Process -Filter "ProcessId=$($owned.ProcessId)";if($current -and $current.CreationDate -eq $owned.CreationDate -and $current.ExecutablePath -eq $owned.ExecutablePath){Stop-Process -Id $current.ProcessId -Force -ErrorAction SilentlyContinue}}
-          if($before.Count){Start-Sleep -Seconds 2}
-          $remaining=@(Get-CimInstance Win32_Process|Where-Object{$_.ExecutablePath -and $_.ExecutablePath.StartsWith($ownedRoot,[StringComparison]::OrdinalIgnoreCase) -and $_.Name -like 'BOGUNON*'})
-          [ordered]@{count=$remaining.Count;emergencyCleanupCount=$before.Count;processes=@($remaining|Select-Object ProcessId,Name,ExecutablePath)}|ConvertTo-Json -Depth 4|Set-Content "$env:TD2_EVIDENCE_ROOT/process-cleanup.json"
-          if($remaining.Count){throw 'Residual BOGUNON QA process detected'}
-          $files=@(Get-ChildItem $env:TD2_EVIDENCE_ROOT -Recurse -File|Where-Object Name -ne 'SHA256SUMS.txt'|Sort-Object FullName)
-          @($files|ForEach-Object{"$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.FullName.Substring($env:TD2_EVIDENCE_ROOT.Length+1).Replace('\','/'))"})|Set-Content "$env:TD2_EVIDENCE_ROOT/SHA256SUMS.txt"
-          '## Final integrated Portable Windows QA' >> $env:GITHUB_STEP_SUMMARY
-          "Product SHA: ``$env:TD2_PRODUCT_SHA``" >> $env:GITHUB_STEP_SUMMARY
-          'Inspect result JSON: screenshots and actual source SHA are evidence only when execution passed the isolation gate.' >> $env:GITHUB_STEP_SUMMARY
-          '125% and 150% remain NOT VERIFIED unless the recorded Windows OS DPI proves otherwise; no zoom/device emulation was used.' >> $env:GITHUB_STEP_SUMMARY
-      - name: Upload Portable GUI evidence
-        if: always()
+            sourceSha=(git rev-parse HEAD).Trim();runId=$env:GITHUB_RUN_ID
+            urlPresent=$env:ACCOUNT_URL_PRESENT -eq 'true'
+            urlMatchesExistingProject=$env:ACCOUNT_URL_MATCHES -eq 'true'
+            publishableVariablePresent=$env:ACCOUNT_PUBLISHABLE_PRESENT -eq 'true'
+            modernPublicPrefix=$env:ACCOUNT_MODERN_PUBLIC_PREFIX -eq 'true'
+            legacyAnonAliasPresent=$env:ACCOUNT_LEGACY_ALIAS_PRESENT -eq 'true'
+            keyValueRead=$false;keyCryptographicallyValidated=$false
+            environmentScope='repository and organization vars available to existing QA job; no production Environment attached'
+            productionAuthSettings='NOT VERIFIED';realLogin='NOT RUN'
+            productChanged=$false;buildRepeated=$false;externalAuthRequests=0
+          } | ConvertTo-Json | Set-Content "$root/public-config-readiness.json"
+          Get-Content "$root/public-config-readiness.json" | Add-Content $env:GITHUB_STEP_SUMMARY
+      - name: Upload configuration metadata only
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: account-windows-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/td2-portable-${{ github.run_id }}/evidence/
+          name: account02-public-config-${{ github.run_id }}
+          path: ${{ runner.temp }}/account02-config-${{ github.run_id }}/public-config-readiness.json
           if-no-files-found: error
           retention-days: 14
