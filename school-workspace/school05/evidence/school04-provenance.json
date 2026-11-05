@@ -1,0 +1,16 @@
+{
+  "school04_zip_sha256": "21adb5ba055707849432360007fd68c1f8172e3f75be068d04bdc7c8fd58bf04",
+  "manifest_entries_verified": 552,
+  "mismatches": [],
+  "restoration": "clone SCHOOL04 Git commit, not ZIP overlay; earlier steps already included",
+  "required_module_paths_present": [
+    "school-workspace/local/supabase/migrations",
+    "school-workspace/auth/electron/main-adapter.ts",
+    "school-workspace/auth/web/bff-adapter.ts",
+    "school-workspace/integration/core/workspace.ts",
+    "school-workspace/school02/sql/extension.sql",
+    "school-workspace/school03/sql/extension.sql",
+    "school-workspace/school04/sql/extension.sql"
+  ],
+  "prior_verdicts": "CONDITIONAL retained"
+}

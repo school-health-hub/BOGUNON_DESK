@@ -1,0 +1,18 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+locator.click: Error: strict mode violation: getByRole('button', { name: '업무 도구', exact: true }) resolved to 2 elements:
+    1) <button type="button" aria-label="업무 도구">…</button> aka getByRole('region', { name: '빠른 실행' }).getByRole('button', { name: '업무 도구' })
+    2) <button class="" type="button" aria-label="업무 도구" data-dock-item="toolbox">…</button> aka getByRole('navigation', { name: '주요 기능' }).getByRole('button', { name: '업무 도구' })
+
+Call log:
+[2m  - waiting for getByRole('button', { name: '업무 도구', exact: true })[22m
+
+    at /workspace/work/school-05/repo/school-workspace/school05/browser-check.mjs:11:115 {
+  log: [
+    "  - waiting for getByRole('button', { name: '업무 도구', exact: true })"
+  ]
+}
+
+Node.js v24.19.0

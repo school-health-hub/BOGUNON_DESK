@@ -1,0 +1,102 @@
+{
+  "checks": [
+    {
+      "name": "actual P0 renderer starts without Workspace login (preload MOCK)",
+      "result": "PASS",
+      "classification": "CHROMIUM + LOCAL DB + real BFF, MOCK Auth"
+    },
+    {
+      "name": "product menu opens disabled feature with accurate connection status",
+      "result": "PASS",
+      "classification": "CHROMIUM + LOCAL DB + real BFF, MOCK Auth"
+    },
+    {
+      "name": "actual product shell 980x700, preload MOCK",
+      "result": "PASS",
+      "classification": "CHROMIUM + LOCAL DB + real BFF, MOCK Auth"
+    },
+    {
+      "name": "actual product shell 900x680, preload MOCK",
+      "result": "PASS",
+      "classification": "CHROMIUM + LOCAL DB + real BFF, MOCK Auth"
+    },
+    {
+      "name": "product closes to unchanged Dashboard/Dock without login",
+      "result": "PASS",
+      "classification": "CHROMIUM + LOCAL DB + real BFF, MOCK Auth"
+    },
+    {
+      "name": "teacher product flow creates and assigns task",
+      "result": "PASS",
+      "classification": "CHROMIUM + LOCAL DB + real BFF, MOCK Auth"
+    },
+    {
+      "name": "assistant assigned task start and done",
+      "result": "PASS",
+      "classification": "CHROMIUM + LOCAL DB + real BFF, MOCK Auth"
+    },
+    {
+      "name": "product calendar save",
+      "result": "PASS",
+      "classification": "CHROMIUM + LOCAL DB + real BFF, MOCK Auth"
+    },
+    {
+      "name": "desktop-980x700",
+      "result": "PASS",
+      "classification": "CHROMIUM + LOCAL DB + real BFF, MOCK Auth"
+    },
+    {
+      "name": "desktop-900x680",
+      "result": "PASS",
+      "classification": "CHROMIUM + LOCAL DB + real BFF, MOCK Auth"
+    },
+    {
+      "name": "target reads and saves own acknowledgement",
+      "result": "PASS",
+      "classification": "CHROMIUM + LOCAL DB + real BFF, MOCK Auth"
+    },
+    {
+      "name": "mobile-390",
+      "result": "PASS",
+      "classification": "CHROMIUM + LOCAL DB + real BFF, MOCK Auth"
+    },
+    {
+      "name": "mobile-320",
+      "result": "PASS",
+      "classification": "CHROMIUM + LOCAL DB + real BFF, MOCK Auth"
+    },
+    {
+      "name": "web home unread then assigned tasks then events",
+      "result": "PASS",
+      "classification": "CHROMIUM + LOCAL DB + real BFF, MOCK Auth"
+    },
+    {
+      "name": "account switch clears previous school content",
+      "result": "PASS",
+      "classification": "CHROMIUM + LOCAL DB + real BFF, MOCK Auth"
+    },
+    {
+      "name": "BFF rejects Origin and CSRF forgery",
+      "result": "PASS",
+      "classification": "CHROMIUM + LOCAL DB + real BFF, MOCK Auth"
+    },
+    {
+      "name": "logout clears all shared view",
+      "result": "PASS",
+      "classification": "CHROMIUM + LOCAL DB + real BFF, MOCK Auth"
+    },
+    {
+      "name": "administrator member management connected and assistant menu hidden",
+      "result": "PASS",
+      "classification": "CHROMIUM + LOCAL DB + real BFF, MOCK Auth"
+    },
+    {
+      "name": "pending membership cannot open shared functions",
+      "result": "PASS",
+      "classification": "CHROMIUM + LOCAL DB + real BFF, MOCK Auth"
+    }
+  ],
+  "count": 19,
+  "windowsReal": "NOT RUN",
+  "hosted": "NOT RUN"
+}

@@ -25,7 +25,8 @@
     "tray.png",
     "purchase-ai-protocol.js",
     "ai-image-capabilities.json",
-    "admin-connection.js"
+    "admin-connection.js",
+    "workspace-protocol.js"
   ],
   "asar": true,
   "npmRebuild": false,

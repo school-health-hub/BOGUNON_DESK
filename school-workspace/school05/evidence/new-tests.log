@@ -1,0 +1,24 @@
+
+ RUN  v5.0.1 /workspace/work/school-05/repo
+
+ ✓ school-workspace/school05/tests/product-db.test.ts > LOCAL DB actual product Main purpose methods: login school task/event/handover writes 9752ms
+ ✓ school-workspace/school05/tests/product-db.test.ts > LOCAL DB product pending/assistant/cross-school access denied, account and logout clear state 3402ms
+ ✓ school-workspace/school05/tests/product-ui.test.tsx > MOCK product disconnected status keeps personal exit usable without login or synthetic identities 156ms
+ ✓ school-workspace/school05/tests/product-ui.test.tsx > MOCK optional bridge failure is contained and no internal error is shown 7ms
+ ✓ school-workspace/school05/tests/product-ui.test.tsx > MOCK workspace render crash leaves parent personal flow intact 18ms
+ ✓ school-workspace/school05/tests/boundary.test.ts > MOCK gate rejects {"packaged":true,"isolated":true,"mode":"synthetic","runId":"00000000-0000-4000-8000-000000000001"} 8ms
+ ✓ school-workspace/school05/tests/boundary.test.ts > MOCK gate rejects {"packaged":false,"isolated":false,"mode":"synthetic","runId":"00000000-0000-4000-8000-000000000001"} 1ms
+ ✓ school-workspace/school05/tests/boundary.test.ts > MOCK gate rejects {"packaged":false,"isolated":true,"mode":"synthetic","runId":"00000000-0000-4000-8000-000000000001","nodeEnv":"production"} 0ms
+ ✓ school-workspace/school05/tests/boundary.test.ts > MOCK gate rejects {"packaged":false,"isolated":true,"runId":"00000000-0000-4000-8000-000000000001"} 0ms
+ ✓ school-workspace/school05/tests/boundary.test.ts > MOCK gate rejects {"packaged":false,"isolated":true,"mode":"synthetic","runId":"bad"} 2ms
+ ✓ school-workspace/school05/tests/boundary.test.ts > MOCK actual sandbox preload exposes only fixed named methods and no generic executor 96ms
+ ✓ school-workspace/school05/tests/boundary.test.ts > MOCK sender/frame/origin, lifecycle cleanup and late account response rejection 1ms
+ ✓ school-workspace/school05/tests/boundary.test.ts > MOCK provider startup failure is contained and exposes no internal error 0ms
+ ✓ school-workspace/school05/tests/web-generation.test.ts > MOCK late account response cannot restore old data or CSRF nonce 24ms
+
+ Test Files  4 passed (4)
+      Tests  14 passed (14)
+   Start at  04:28:00
+   Duration  15.67s (tests 89%, environment 4%, import 4%, transform 4%)
+
+JSON report written to /workspace/work/school-05/repo/school-workspace/school05/evidence/new-tests.json

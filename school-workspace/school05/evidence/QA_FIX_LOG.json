@@ -1,0 +1,66 @@
+[
+  {
+    "defect": "strict side-effect CSS imports missing ambient type",
+    "attempt": 1,
+    "fix": "reuse scoped *.css declaration",
+    "files": [
+      "ui/env.d.ts"
+    ],
+    "verification": "strict tsc PASS"
+  },
+  {
+    "defect": "new Main protocol omitted from packaging allowlist",
+    "attempt": 1,
+    "fix": "include workspace-protocol.js; scan build output and manifest",
+    "files": [
+      "electron-p0/builder.json"
+    ],
+    "verification": "production boundary PASS"
+  },
+  {
+    "defect": "ambiguous desktop test selector",
+    "attempt": 1,
+    "cause": "Quick Launcher and Dock both expose 업무 도구",
+    "fix": "scope selector to existing Dock item ID",
+    "files": [
+      "browser-check.mjs"
+    ],
+    "verification": "actual P0 renderer menu/980/900 checks advanced successfully"
+  },
+  {
+    "defect": "late Web response could replace newer account CSRF",
+    "attempt": 1,
+    "fix": "generation check before body/nonce/state acceptance",
+    "files": [
+      "ui/web-api.ts",
+      "tests/web-generation.test.ts"
+    ],
+    "verification": "focused generation test PASS"
+  },
+  {
+    "limitation": "full Electron test preparation requires absent cargo",
+    "attempt": 0,
+    "action": "keep native CLI code unchanged; run independent selected frontend/IPC suites and report full native suite NOT RUN",
+    "verification": "selected regression109 PASS"
+  },
+  {
+    "defect": "browser checked mobile home before async context loaded",
+    "attempt": 1,
+    "cause": "missing controls interpreted as enabled in generic wait",
+    "fix": "wait for visible home heading before checking order",
+    "files": [
+      "browser-check.mjs"
+    ],
+    "verification": "final14 tests + Chromium19 PASS; strict and product boundary PASS"
+  },
+  {
+    "defect": "stacked product and legacy headings pushed mobile content down",
+    "attempt": 1,
+    "fix": "single product header, compact QA controls, retain explicit QA and school/role labels",
+    "files": [
+      "ui/ProductWorkspace.tsx",
+      "ui/product.css"
+    ],
+    "verification": "final14 tests + Chromium19 PASS; strict and product boundary PASS"
+  }
+]

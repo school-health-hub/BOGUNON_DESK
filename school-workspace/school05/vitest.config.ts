@@ -1,0 +1,1 @@
+import{defineConfig}from'vitest/config';export default defineConfig({test:{environment:'node',testTimeout:45000,hookTimeout:30000,fileParallelism:false,include:['school-workspace/school05/tests/**/*.test.ts','school-workspace/school05/tests/**/*.test.tsx']}});

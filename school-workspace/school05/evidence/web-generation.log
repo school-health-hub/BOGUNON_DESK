@@ -1,0 +1,9 @@
+
+ RUN  v5.0.1 /workspace/work/school-05/repo
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  04:20:42
+   Duration  270ms (transform 66%, tests 16%, import 15%, worker 3%)
+

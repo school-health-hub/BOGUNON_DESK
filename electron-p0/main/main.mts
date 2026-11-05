@@ -2,6 +2,7 @@ import {AccountService} from './account-service.js';
 import {AccountVault} from './account-vault.js';
 import {createAccountHandlers} from './account-ipc.js';
 import {parseAccountConfig,allowedAccountRequest} from './account-network.js';
+import {registerWorkspaceProduct} from './workspace-product.js';
 import {LocalEventStore,createLocalEventHandlers} from './local-events.js';
 import {DropSelections,createFileDropHandlers} from './file-drop.js';
 import {RecordHelperProcess} from './record-helper-process.js';
@@ -102,6 +103,14 @@ else {
   isolated.webRequest.onBeforeRequest((details,callback)=>callback({cancel:!resourceAllowed(details.url,renderer,dev ? new URL(dev).origin : undefined)}));
   const window = new BrowserWindow({ title:PRODUCT_NAME,...fitBounds(desktop.bounds,screen.getAllDisplays().map(d=>d.workArea)),show:false,
     webPreferences:{ preload:join(app.getAppPath(),'preload','preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webviewTag:false,session:isolated,webSecurity:true } });
+  // Closed renderer remains offline. Optional QA provider lives OUTSIDE product app.
+  const workspaceProduct=await registerWorkspaceProduct(ipcMain,window.webContents,url,{packaged:app.isPackaged,isolated:qaPaths.qa,mode:process.env.SCHOOL_WORKSPACE_MODE,nodeEnv:process.env.NODE_ENV,runId:testRun},async()=>{
+    const moduleUrl=pathToFileURL(join(app.getAppPath(),'..','school05-qa','provider.mjs')).href;
+    const provider=await import(moduleUrl);
+    return provider.createRuntime({safeStorage,profileDirectory:userData});
+  });
+  const disposeWorkspace=()=>{void workspaceProduct.dispose().catch(()=>undefined);};
+  window.on('closed',disposeWorkspace);window.webContents.on('will-navigate',disposeWorkspace);window.webContents.on('render-process-gone',disposeWorkspace);app.on('before-quit',disposeWorkspace);
   window.webContents.setWindowOpenHandler(()=>({action:'deny'}));
   window.webContents.on('will-navigate',event=>event.preventDefault());
   window.webContents.on('will-redirect',event=>event.preventDefault());

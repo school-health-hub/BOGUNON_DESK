@@ -181,3 +181,6 @@
  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item[data-widget-type=clock] .date-card__time{font-size:20px;line-height:22px;gap:0;letter-spacing:-.02em;white-space:nowrap}
  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item[data-widget-type=clock] .date-card__date{margin:0;font-size:11px;line-height:14px;white-space:normal;word-break:keep-all;overflow-wrap:normal}
 }
+
+/* Optional school workspace overlay; existing dashboard remains mounted. */
+.s05-overlay{position:fixed;inset:0;z-index:1100;overflow-y:auto;background:#f5f3f7;padding:8px;overscroll-behavior:contain}

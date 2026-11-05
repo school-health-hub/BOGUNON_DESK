@@ -1,0 +1,2 @@
+import{Component,type ReactNode}from'react';
+export class WorkspaceBoundary extends Component<{children:ReactNode;onClose:()=>void},{failed:boolean}>{state={failed:false};static getDerivedStateFromError(){return{failed:true};}render(){return this.state.failed?<section role="alert"><p>공동 공간을 열지 못했습니다. 개인 업무는 계속 사용할 수 있습니다.</p><button onClick={this.props.onClose}>개인 업무로 돌아가기</button></section>:this.props.children;}}
