@@ -33,5 +33,6 @@
   "electron-p0/tests/purchase-settings-ui.test.tsx",
   "electron-p0/tests/finder-v2-ui.test.tsx",
   "electron-p0/tests/newsletter-project-controls.test.tsx",
-  "electron-p0/tests/school-profile-ui.test.tsx"
+  "electron-p0/tests/school-profile-ui.test.tsx",
+  "electron-p0/tests/finance-provenance.test.ts"
 ]

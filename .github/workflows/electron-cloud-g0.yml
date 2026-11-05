@@ -1,7 +1,7 @@
 name: Electron CLOUD-G0 integration
 on:
   push:
-    branches: [codex/cloud-g0-integration-stabilization, integration/school-05-account-02b-qa]
+    branches: [codex/cloud-g0-integration-stabilization, qa/school-08-windows]
   workflow_dispatch:
 permissions:
   contents: read
@@ -33,7 +33,7 @@ jobs:
           retention-days: 7
 
   account-configured-portable:
-    if: github.ref == 'refs/heads/integration/school-05-account-02b-qa' && github.run_attempt == 1
+    if: github.ref == 'refs/heads/qa/school-08-windows' && github.run_attempt == 1
     uses: ./.github/workflows/electron-p0-windows.yml
     secrets:
       public_url: ${{ vars.VITE_SUPABASE_URL }}

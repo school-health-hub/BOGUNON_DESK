@@ -1,5 +1,5 @@
 name: Final integrated Portable Windows QA
-run-name: SCHOOL05 + ACCOUNT02B final integrated QA / ${{ github.run_id }}
+run-name: SCHOOL08 isolated Windows final QA / ${{ github.run_id }}
 
 on:
   workflow_call:
@@ -14,13 +14,13 @@ permissions:
   actions: read
 
 concurrency:
-  group: td2-soft-rose-portable-gui
+  group: school08-windows-qa
   cancel-in-progress: true
 
 jobs:
   portable-gui:
-    if: (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/integration/school-05-account-02b-qa' && github.run_attempt == 1
-    runs-on: windows-2022
+    if: (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/qa/school-08-windows' && github.run_attempt == 1
+    runs-on: windows-2025
     timeout-minutes: 40
     defaults:
       run:
@@ -28,7 +28,7 @@ jobs:
     env:
       CI: 'true'
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      TD2_CONTROLLER_BASE_SHA: 8f9a1f0aa88502b1c45b2d575abdab5300234bbb
+      TD2_CONTROLLER_BASE_SHA: da1737589329b3c62647f926827839765adf12cd
       TD2_PRODUCT_SHA: ${{ github.sha }}
     steps:
       - name: Checkout immutable approved product
@@ -73,7 +73,7 @@ jobs:
           "ELECTRON_P0_QA_ROOT=$root/profile" >> $env:GITHUB_ENV
           [ordered]@{
             productSha=$source;controllerSha=(git -C controller rev-parse HEAD).Trim();workflowSha='${{ github.workflow_sha }}'
-            runner='windows-2022';runId=$env:GITHUB_RUN_ID;attempt=$env:GITHUB_RUN_ATTEMPT
+            runner='windows-2025';runId=$env:GITHUB_RUN_ID;attempt=$env:GITHUB_RUN_ATTEMPT
           }|ConvertTo-Json|Set-Content "$root/evidence/provenance.json"
       - name: Install locked dependencies
         working-directory: source
@@ -135,6 +135,9 @@ jobs:
           $state | Set-Content "$env:TD2_EVIDENCE_ROOT/checkout-state.txt"
           if($state.Count){$state | Write-Output;throw 'Product checkout modified'}
           [ordered]@{policy='canonical LF Git bytes for src-tauri/src/record_helper_import only';reason='fixed product build.rs performs LF-sensitive import stripping';productCodeChanged=$false;blobHashesVerified=$true} | ConvertTo-Json | Set-Content "$env:TD2_EVIDENCE_ROOT/checkout-policy.json"
+      - name: Build renderer for provenance regression
+        working-directory: source
+        run: node node_modules/vite/bin/vite.js build --config electron-p0/vite.config.ts
       - name: Focused existing-feature and Workspace regression
         working-directory: source
         run: |
@@ -147,9 +150,21 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Workspace auth regression failed'}
           node node_modules/vitest/vitest.mjs run --config school-workspace/school05/vitest.config.ts school-workspace/school05/tests/boundary.test.ts school-workspace/school05/tests/platform-docker.test.ts school-workspace/school05/tests/product-ui.test.tsx school-workspace/school05/tests/web-generation.test.ts --reporter=json --outputFile="$env:TD2_EVIDENCE_ROOT/workspace-boundary-regression.json"
           if($LASTEXITCODE -ne 0){throw 'Workspace boundary regression failed'}
+      - name: Compare known root type baseline without masking new errors
+        working-directory: source
+        run: |
+          $rootLog=Join-Path $env:TD2_EVIDENCE_ROOT 'root-build.log'
+          npm run build *> $rootLog
+          $rootExit=$LASTEXITCODE
+          $actual=@(Get-Content $rootLog|Where-Object{$_ -match 'error TS[0-9]+'}|ForEach-Object{$_ -replace '\x1b\[[0-9;]*m',''})
+          $baseline=@(Get-Content 'school-workspace/school08/evidence/baseline-root-build.log'|Where-Object{$_ -match 'error TS[0-9]+'}|ForEach-Object{$_ -replace '\x1b\[[0-9;]*m',''})
+          $different=@(Compare-Object $actual $baseline)
+          [ordered]@{exit=$rootExit;errors=$actual.Count;baselineErrors=$baseline.Count;newDifferences=$different.Count;rootBuild='Known baseline FAIL, not release PASS'}|ConvertTo-Json|Set-Content "$env:TD2_EVIDENCE_ROOT/root-baseline.json"
+          if($actual.Count -ne 13 -or $different.Count){throw 'Root type baseline changed'}
+          exit 0
       - name: Initialize isolated native Windows PostgreSQL
         working-directory: source
-        run: pwsh -NoProfile -File ../controller/scripts/qa/school05-native-pg.ps1 -Action Start
+        run: pwsh -NoProfile -File ../controller/scripts/qa/school08-native-pg.ps1 -Action Start
       - name: Strict Workspace checks
         working-directory: source
         run: |
@@ -161,6 +176,11 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'External Windows QA provider build failed'}
           node --input-type=module -e "import {pathToFileURL} from 'node:url';import {resolve} from 'node:path';import fs from 'node:fs';const {createRuntime}=await import(pathToFileURL(resolve('build/school05-qa/provider.mjs')).href);let session=null;const vault={load:async()=>session,save:async s=>{session=s;},clear:async()=>{session=null;}};const runtime=await createRuntime({vault});try{const state=await runtime.school('login',{});if(!['authenticated_unselected','approved'].includes(state.workspace.phase))throw Error('Native QA SQL preflight phase: '+state.workspace.phase+' / '+JSON.stringify(globalThis.__school05NativePgDiag??{stage:'before-sql'}));fs.writeFileSync(process.env.TD2_EVIDENCE_ROOT+'/school05-provider-preflight.json',JSON.stringify({verdict:'PASS',backend:'native PostgreSQL',auth:'synthetic',vault:'explicit memory mock for preflight only; actual DPAPI checked in GUI',phase:state.workspace.phase}));}finally{await runtime.dispose();}"
           if($LASTEXITCODE -ne 0){throw 'Native QA provider SQL preflight failed'}
+      - name: Actual Windows native DB Main contract flows
+        working-directory: source
+        run: |
+          node node_modules/vitest/vitest.mjs run --config scripts/qa/school08-windows.vitest.config.ts --reporter=json --outputFile="$env:TD2_EVIDENCE_ROOT/windows-db-flow.json"
+          if($LASTEXITCODE -ne 0){throw 'Windows native DB/Main flow failed'}
       - name: Build configured Portable with masked existing public variables
         working-directory: source
         env:
@@ -231,7 +251,7 @@ jobs:
         if: always()
         run: |
           $ErrorActionPreference='Stop'
-          if($env:SCHOOL05_PG_BIN){Push-Location source;try{pwsh -NoProfile -File ../controller/scripts/qa/school05-native-pg.ps1 -Action Stop}finally{Pop-Location}}
+          if($env:SCHOOL05_PG_BIN){Push-Location source;try{pwsh -NoProfile -File ../controller/scripts/qa/school08-native-pg.ps1 -Action Stop}finally{Pop-Location}}
           $ownedRoot=[IO.Path]::GetFullPath("$env:TD2_ROOT/temp")+'\'
           $before=@(Get-CimInstance Win32_Process|Where-Object{$_.ExecutablePath -and $_.ExecutablePath.StartsWith($ownedRoot,[StringComparison]::OrdinalIgnoreCase) -and $_.Name -like 'BOGUNON*'})
           foreach($owned in $before){$current=Get-CimInstance Win32_Process -Filter "ProcessId=$($owned.ProcessId)";if($current -and $current.CreationDate -eq $owned.CreationDate -and $current.ExecutablePath -eq $owned.ExecutablePath){Stop-Process -Id $current.ProcessId -Force -ErrorAction SilentlyContinue}}
@@ -249,7 +269,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: school05-integrated-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          name: school08-integrated-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/td2-portable-${{ github.run_id }}/evidence/
           if-no-files-found: error
           retention-days: 14
@@ -257,7 +277,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: success() || failure()
         with:
-          name: school05-integrated-portable-${{ github.run_id }}
+          name: school08-integrated-portable-${{ github.run_id }}
           path: source/release-electron-p0/*.exe
           if-no-files-found: ignore
           retention-days: 14

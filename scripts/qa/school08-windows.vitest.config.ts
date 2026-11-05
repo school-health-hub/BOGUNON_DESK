@@ -1,0 +1,2 @@
+import{defineConfig}from'vitest/config';import{resolve}from'node:path';
+export default defineConfig({plugins:[{name:'owned-native-pg',enforce:'pre',resolveId(source,importer){if(source.endsWith('/school05/server/local-db.js')||(source==='./local-db.js'&&importer?.replaceAll('\\','/').endsWith('/school05/server/provider.ts')))return resolve('scripts/qa/school05-native-pg.ts');}}],test:{environment:'node',fileParallelism:false,testTimeout:90000,hookTimeout:30000,include:['school-workspace/school08/tests/flow.test.ts']}});

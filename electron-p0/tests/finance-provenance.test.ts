@@ -12,6 +12,6 @@ it('packages the fixed Windows engine, with no Tauri repository or plaintext exp
 
 import {getFileMatchers} from 'app-builder-lib/out/fileMatcher.js';
 import {resolve,basename} from 'node:path';
-it('uses actual electron-builder extraResources merging to include all three Windows engines',()=>{
- const config=JSON.parse(readFileSync('electron-p0/builder.json','utf8'));const matchers=getFileMatchers(config,'extraResources',resolve('/tmp/synthetic-resources'),{defaultSrc:process.cwd(),macroExpander:(v:string)=>v,customBuildOptions:config.win,globalOutDir:resolve('release-electron-p0')});expect(matchers?.map(m=>basename(m.from)).sort()).toEqual(['chatgpt-auth-cli','my-finance-cli','official-document-cli','purchase-excel-cli','purchase-ocr','node_modules'].sort());
+it('uses actual electron-builder extraResources merging to include all five Windows engines and OCR resources',()=>{
+ const config=JSON.parse(readFileSync('electron-p0/builder.json','utf8'));const matchers=getFileMatchers(config,'extraResources',resolve('/tmp/synthetic-resources'),{defaultSrc:process.cwd(),macroExpander:(v:string)=>v,customBuildOptions:config.win,globalOutDir:resolve('release-electron-p0')});expect(matchers?.map(m=>basename(m.from)).sort()).toEqual(['chatgpt-auth-cli','my-finance-cli','official-document-cli','purchase-excel-cli','purchase-ocr','node_modules','record-helper-cli'].sort());
 });
