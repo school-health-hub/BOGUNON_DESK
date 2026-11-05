@@ -127,9 +127,9 @@ const setWindowBounds=(width,height)=>{
 };
 
 
-const native=(action,extra=[])=>JSON.parse(execFileSync('pwsh',['-NoProfile','-File',join(dirname(fileURLToPath(import.meta.url)),'td2-window.ps1'),'-ExecutableRoot',process.env.TEMP,'-Action',action,...extra],{encoding:'utf8',timeout:25000}).trim());
+const native=(action,extra=[])=>JSON.parse(execFileSync(action==='TrayReturn'?'powershell.exe':'pwsh',['-NoProfile','-File',join(dirname(fileURLToPath(import.meta.url)),'td2-window.ps1'),'-ExecutableRoot',process.env.TEMP,'-Action',action,...extra],{encoding:'utf8',timeout:25000}).trim());
 const bounded=async(name,fn)=>{try{result.gui[name]=await fn();}catch(error){result.gui[name]={verdict:'FAIL',error:String(error).split('\n')[0].slice(0,240)};}await writeFile(join(evidenceRoot,'gui-final-checkpoint.json'),JSON.stringify(result,null,2));};
-let mainCall;const remainingOnly=process.env.GUI_FINAL_REMAINING==='1';
+let mainCall;const remainingOnly=!!process.env.GUI_FINAL_REMAINING;const trayOnly=process.env.GUI_FINAL_REMAINING==='tray';
 try{
  await waitForCdp();browser=await chromium.connectOverCDP(`http://127.0.0.1:${port}`);browserSession=await browser.newBrowserCDPSession();
  const page=browser.contexts()[0].pages().find(p=>p.url().startsWith('file:'));await page.waitForLoadState('domcontentloaded');
@@ -162,7 +162,7 @@ try{
   if(footer){await footer.scrollIntoViewIfNeeded();await footer.click({trial:true,timeout:5000});footerResult=await footer.evaluate(e=>{const r=e.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return {top:r.top,bottom:r.bottom,viewportHeight:innerHeight,reachable:r.top>=0&&r.bottom<=innerHeight&&(hit===e||e.contains(hit))};});await page.screenshot({path:join(screenshots,label+'-bottom.png')});}
   return {verdict:!before.horizontalOverflow&&!before.overlaps.length&&before.scrollOwners.every(s=>s.reached)&&(!footerResult||footerResult.reachable)?'PASS':'FAIL',...before,footer:footerResult,criterion:'Vertical scrolling is allowed when controls and bottom remain reachable; no horizontal clipping/control overlap'};
  };
- for(const [width,height] of [[980,700],[900,680]]){
+ for(const [width,height] of (trayOnly?[]:[[980,700],[900,680]])){
   const size=native('Resize',['-Width',String(width),'-Height',String(height)]);await delay(200);result.gui['bounds-'+width]={verdict:size.width===width&&size.height===height?'PASS':'FAIL',...size};
   if(!remainingOnly) await bounded(width+'-dashboard',async()=>{await reset();return inspect(width+'-dashboard');});
   await bounded(width+'-finder',async()=>{await tool('교육영상 Finder · 합성 Mock');return inspect(width+'-finder',page.getByLabel('사용자 메모',{exact:true}));});

@@ -25,7 +25,7 @@ jobs:
         shell: pwsh
     env:
       CI: 'true'
-      GUI_FINAL_REMAINING: '1'
+      GUI_FINAL_REMAINING: 'tray'
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       TD2_CONTROLLER_BASE_SHA: b085e8b7c7a5ec1bd6c7ba54cc689fcf11dbc2cc
       TD2_PRODUCT_SHA: 166df05dd45402cb1a7526c9ae824ec11fcdb579

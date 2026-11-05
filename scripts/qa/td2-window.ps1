@@ -1,6 +1,6 @@
 param([Parameter(Mandatory=$true)][string]$ExecutableRoot,[int]$Width=980,[int]$Height=700,[ValidateSet('Resize','Probe','Close','DialogProbe','DialogApprove','DialogCancel','TrayReturn')][string]$Action='Resize',[string]$Screenshot)
 $ErrorActionPreference='Stop'
-if(-not [IO.Path]::IsPathFullyQualified($ExecutableRoot)){throw 'Executable root must be absolute'}
+if($ExecutableRoot -notmatch '^[A-Za-z]:[\\/]'){throw 'Executable root must be an absolute Windows drive path'}
 Add-Type @'
 using System;using System.Text;using System.Collections.Generic;using System.Runtime.InteropServices;
 public static class Td2Window{
