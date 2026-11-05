@@ -1,0 +1,41 @@
+{
+  "start_integration_sha": "86f4fceed7b7a8774affc0c9db556f592eaa29ba",
+  "latest_integration_sha": "8f9a1f0aa88502b1c45b2d575abdab5300234bbb",
+  "school04_sha": "8de4dfd8f13f3aeae8173edd7f28c9e8caa8fd8c",
+  "common_ancestor": "86f4fceed7b7a8774affc0c9db556f592eaa29ba",
+  "integration_added_commits": 1,
+  "integration_changed_paths": [
+    "docs/ACCOUNT-01-ELECTRON.md",
+    "electron-p0/account-protocol.ts",
+    "electron-p0/builder.json",
+    "electron-p0/main/account-ipc.ts",
+    "electron-p0/main/account-loopback.ts",
+    "electron-p0/main/account-network.ts",
+    "electron-p0/main/account-sdk.ts",
+    "electron-p0/main/account-service.ts",
+    "electron-p0/main/account-vault.ts",
+    "electron-p0/main/main.mts",
+    "electron-p0/main/school-profile.ts",
+    "electron-p0/preload/preload.cts",
+    "electron-p0/protocol.ts",
+    "electron-p0/renderer/P0App.tsx",
+    "electron-p0/renderer/school-profile/BogunonAccount.tsx",
+    "electron-p0/renderer/school-profile/SchoolProfile.tsx",
+    "electron-p0/tests/account-ui.test.tsx",
+    "electron-p0/tests/account.test.ts",
+    "electron-p0/tests/school-profile-ui.test.tsx",
+    "electron-p0/vite.account.config.ts",
+    "scripts/electron-p0/account-package.test.mjs",
+    "scripts/electron-p0/build.mjs"
+  ],
+  "overlapping_product_paths": [
+    "electron-p0/builder.json",
+    "electron-p0/main/main.mts",
+    "electron-p0/preload/preload.cts",
+    "electron-p0/renderer/P0App.tsx"
+  ],
+  "overlap_count": 4,
+  "fast_forward_current_integration_to_candidate": false,
+  "actual_merge_attempted": false,
+  "action": "Preserve validated starting base; hand off Account01 overlap to authorized Cloud B. No rebase/reset/merge."
+}

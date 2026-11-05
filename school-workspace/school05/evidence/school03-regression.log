@@ -1,0 +1,31 @@
+
+ RUN  v5.0.1 /workspace/work/school-05/repo
+
+ ✓ school-workspace/school03/tests/tasks.test.ts > LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted > admin/teacher 1 creates with server actor/time and valid same-school multiassignment 896ms
+ ✓ school-workspace/school03/tests/tasks.test.ts > LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted > admin/teacher 3 creates with server actor/time and valid same-school multiassignment 873ms
+ ✓ school-workspace/school03/tests/tasks.test.ts > LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted > assistant cannot create/edit/assign/close/history even through direct public RPC 1497ms
+ ✓ school-workspace/school03/tests/tasks.test.ts > LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted > cross-school/pending/expired/inactive assignees are rejected and create rolls back 1070ms
+ ✓ school-workspace/school03/tests/tasks.test.ts > LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted > assigned assistant TODO -> IN_PROGRESS -> DONE only; other assistant denied 1808ms
+ ✓ school-workspace/school03/tests/tasks.test.ts > LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted > teachers complete/cancel/archive; archived records stay school-owned and hidden by default 1366ms
+ ✓ school-workspace/school03/tests/tasks.test.ts > LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted > server due/priority sorting and my/today scopes 1410ms
+ ✓ school-workspace/school03/tests/tasks.test.ts > LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted > school isolation, pending/expired/suspended and revoked sessions deny new reads 1944ms
+ ✓ school-workspace/school03/tests/tasks.test.ts > LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted > optimistic concurrency permits one edit only and has no partial loser history 1321ms
+ ✓ school-workspace/school03/tests/tasks.test.ts > LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted > request id replay deduplicates, different payload conflicts, receipts have hashes not prose 1109ms
+ ✓ school-workspace/school03/tests/tasks.test.ts > LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted > blocked synthetic sensitive markers/long input leave no task/audit/history/receipt 1289ms
+ ✓ school-workspace/school03/tests/tasks.test.ts > LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted > audit failure atomically rolls back task/assignment/history/receipt 1247ms
+ ✓ school-workspace/school03/tests/tasks.test.ts > LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted > raw tables/audit/history mutation forbidden, epoch prevents stale assignment restoration 1450ms
+ ✓ school-workspace/school03/tests/tasks.test.ts > LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted > individual task.read denial and live session expiry override cached approved role 1099ms
+ ✓ school-workspace/school03/tests/tasks.test.ts > LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted > reassignment validates candidates, increments version and records same transaction history 1140ms
+ ✓ school-workspace/school03/tests/ui-db.test.tsx > LOCAL DB + React + actual Electron Main; MOCK IPC/cipher/Auth, not WINDOWS REAL > teacher UI -> scoped IPC -> Main -> actual create, personal task document unchanged 4706ms
+ ✓ school-workspace/school03/tests/ui-db.test.tsx > LOCAL DB + React + actual Electron Main; MOCK IPC/cipher/Auth, not WINDOWS REAL > assistant UI exposes only own sequential status actions and confirms actual save 3347ms
+ ✓ school-workspace/school03/tests/ui-db.test.tsx > LOCAL DB + React + actual Electron Main; MOCK IPC/cipher/Auth, not WINDOWS REAL > actual delayed A list cannot replace B; revoke/expiry clears board on next request 2558ms
+ ✓ school-workspace/school03/tests/ui-db.test.tsx > LOCAL DB + React + actual Electron Main; MOCK IPC/cipher/Auth, not WINDOWS REAL > failed network clears success claim while existing personal store still writes 1188ms
+ ✓ school-workspace/school03/tests/state.test.ts > MOCK Renderer generation/idempotency/network only > late school response after clear cannot restore old data 2ms
+ ✓ school-workspace/school03/tests/state.test.ts > MOCK Renderer generation/idempotency/network only > ambiguous network response retains request id for explicit retry after refresh; never success 1ms
+
+ Test Files  3 passed (3)
+      Tests  21 passed (21)
+   Start at  04:29:00
+   Duration  32.95s (tests 96%, environment 2%, transform 1%, import 1%)
+
+JSON report written to /workspace/work/school-05/repo/school-workspace/school05/evidence/school03-regression.json

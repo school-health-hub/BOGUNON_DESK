@@ -1,0 +1,2 @@
+import{defineConfig}from'vite';import react from'@vitejs/plugin-react';import{fileURLToPath}from'node:url';
+export default defineConfig({root:fileURLToPath(new URL('./ui',import.meta.url)),base:'/',plugins:[react(),{name:'workspace-no-provider-in-client',generateBundle(){for(const id of this.getModuleIds())if(/school-workspace\/.*\/(server|tests|sql)\//.test(id))this.error('Server/fixture dependency in Web client');}}],build:{outDir:'../../../build/school05-web',emptyOutDir:true}});

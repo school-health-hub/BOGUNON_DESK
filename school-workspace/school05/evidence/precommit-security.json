@@ -1,0 +1,9 @@
+{
+  "scope": "PASS",
+  "key_token_scan": "PASS",
+  "source_hash_match": "PASS",
+  "product_boundary": "PASS",
+  "hosted_access": "NOT RUN",
+  "windows_real": "NOT RUN",
+  "native_full_suite": "NOT RUN (cargo absent)"
+}

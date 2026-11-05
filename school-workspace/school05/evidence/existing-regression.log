@@ -1,0 +1,122 @@
+
+ RUN  v5.0.1 /workspace/work/school-05/repo
+
+ ✓ src/auth/authService.test.ts > authService > restores a persisted Supabase user without syncing account settings 100ms
+ ✓ src/auth/authService.test.ts > authService > opens the system-browser OAuth URL with PKCE redirect settings 7ms
+ ✓ src/auth/authService.test.ts > authService > handles a cancellation only for the active login attempt 4ms
+ ✓ src/auth/authService.test.ts > authService > exchanges a callback only for the active login attempt 57ms
+ ✓ src/auth/authService.test.ts > authService > ignores stale callbacks without changing an existing signed-in session 2ms
+ ✓ src/auth/authService.test.ts > authService > ignores a callback for a different login attempt 2ms
+ ✓ src/auth/authService.test.ts > authService > does not exchange the same active callback twice 54ms
+ ✓ src/auth/authService.test.ts > authService > refuses to open OAuth when Supabase does not return a correlated flow identifier 3ms
+ ✓ src/auth/authService.test.ts > authService > clears only secure auth storage when signing out 6ms
+ ✓ src/auth/authService.test.ts > authService > supports two login cycles with one client and one callback listener 109ms
+ ✓ src/auth/authService.test.ts > authService > does not claim sign-out when secure session removal fails 2ms
+ ✓ electron-p0/tests/admin-preload.test.ts > exposes only named administrative operations, never raw URL/path/invoke/browser automation APIs 202ms
+ ✓ electron-p0/tests/admin-preload.test.ts > projects school address operations to fixed channels without arbitrary URL/path arguments 116ms
+ ✓ electron-p0/tests/local-tasks-preload.test.ts > exposes only typed task load/save and routes revision as an explicit argument 212ms
+ ✓ electron-p0/tests/local-tasks-preload.test.ts > exposes a frozen independent Event API without generic channels, paths, or extra invocation arguments 87ms
+ ✓ electron-p0/tests/desktop-utilities-routing.test.tsx > opens calculator/command/quick-add from the existing Dock toolbox without changing widget IDs or Dock layout 599ms
+ ✓ electron-p0/tests/ai-preload.test.ts > exposes only named AI operations, never token/key reads, URL, fetch or arbitrary invoke 214ms
+ ✓ electron-p0/tests/desktop-utilities-routing.test.tsx > hands off palette execution after the invoking modal closes and blocks global palette shortcuts while a workspace is open 418ms
+ ✓ electron-p0/tests/desktop-utilities-routing.test.tsx > runs only fixed customization commands and transitions from the palette to local Quick Add without stacked modals 359ms
+ ✓ electron-p0/tests/local-calendar-ui.test.tsx > creates/edits/deletes separate events, updates Dashboard, and restores after a fresh provider/store read 2483ms
+ ✓ electron-p0/tests/finance-preload.test.ts > exposes only dedicated finance operations; no DB key, path or generic SQL/invoke API 173ms
+ ✓ electron-p0/tests/desktop-utilities-routing.test.tsx > routes the toolbox, Quick Add and command palette to separate events while preserving tasks and Dock geometry 843ms
+ ✓ electron-p0/tests/local-calendar-ui.test.tsx > handles month/year navigation, selected-date lists, KST today, and dirty cancel/Escape without writing 597ms
+ ✓ src/dashboard/presets.test.ts > dashboard presets > registers the desk preset after the existing presets 3ms
+ ✓ src/dashboard/presets.test.ts > dashboard presets > provides every widget exactly once in the desk preset 0ms
+ ✓ src/dashboard/presets.test.ts > dashboard presets > uses a valid, non-overlapping twelve-row desk layout 5ms
+ ✓ src/dashboard/presets.test.ts > dashboard presets > matches the requested desk hierarchy and visibility 2ms
+ ✓ src/dashboard/presets.test.ts > dashboard presets > keeps the balanced layout as the separate default preset 1ms
+ ✓ src/dashboard/presets.test.ts > dashboard presets > keeps the current appearance when applying the desk preset 6ms
+ ✓ src/dashboard/presets.test.ts > dashboard presets > accepts desk in persisted v1 layouts without regressing legacy layouts 1ms
+ ✓ electron-p0/tests/local-calendar-ui.test.tsx > validates timed dates and displays overlap warnings requiring confirmation without deleting candidates 1046ms
+ ✓ electron-p0/tests/grid-content-width.test.tsx > uses actual grid content width rather than padded/scrollbar parent width and follows resizing without rewriting layout 56ms
+ ✓ electron-p0/tests/local-events.test.ts > validates separate events and rejects unknown fields, IDs, malformed dates, times, versions and metadata 14ms
+ ✓ electron-p0/tests/local-events.test.ts > uses KST wall time with UTC timestamps, exclusive timed ends, inclusive all-day ends and valid leap/year boundaries 2ms
+ ✓ electron-p0/tests/local-events.test.ts > detects real interval conflicts without treating adjacent or self intervals as overlaps 1ms
+ ✓ electron-p0/tests/local-events.test.ts > creates, reads, edits, deletes and restores in a fresh store without modifying the Task file 62ms
+ ✓ electron-p0/tests/memo-ipc.test.ts > creates, edits and reloads memo independently from dashboard settings 16ms
+ ✓ electron-p0/tests/memo-ipc.test.ts > rejects unauthorized callers, extra args, oversized text and arbitrary paths 3ms
+ ✓ electron-p0/tests/memo-ipc.test.ts > preserves last good bytes if atomic rename fails, then permits retry 16ms
+ ✓ electron-p0/tests/memo-ipc.test.ts > refuses to replace corrupted existing memo and returns sanitized errors 2ms
+ ✓ electron-p0/tests/local-events.test.ts > protects CAS, duplicate IDs and acknowledgement-loss retries without overwriting newer edits 25ms
+ ✓ electron-p0/tests/local-events.test.ts > retains the primary on write failure and preserves corrupt/unsupported files without resetting them 32ms
+ ✓ electron-p0/tests/local-events.test.ts > rejects linked storage and forged IPC and does not accept path or timestamp injection 5ms
+ ✓ electron-p0/tests/local-events.test.ts > merges real events into Dashboard calendar/weekly/today counts without changing Task/D-Day semantics 22ms
+ ✓ electron-p0/tests/local-calendar-ui.test.tsx > keeps input and existing data on failure and handles an acknowledgement-loss retry without duplicate creation 837ms
+ ✓ src/dock/AppDock.test.tsx > AppDock > keeps launcher names accessible while rendering labels as tooltips 20ms
+ ✓ src/dock/AppDock.test.tsx > AppDock > keeps stable item identity hooks when dock items are reordered 12ms
+ ✓ src/dashboard/deskGeometry.test.ts > dense desk geometry > fits bounded real slots at 1366 pixels 10ms
+ ✓ src/dashboard/deskGeometry.test.ts > dense desk geometry > fits bounded real slots at 1600 pixels 2ms
+ ✓ src/dashboard/deskGeometry.test.ts > dense desk geometry > fits bounded real slots at 1920 pixels 2ms
+ ✓ src/dashboard/deskGeometry.test.ts > dense desk geometry > fits the actual Portable content viewport at 1424x835 1ms
+ ✓ src/dashboard/deskGeometry.test.ts > dense desk geometry > fits the actual Portable content viewport at 1264x735 0ms
+ ✓ src/dashboard/deskGeometry.test.ts > dense desk geometry > recognizes canonical geometry independently of appearance, order and empty settings 0ms
+ ✓ src/dashboard/deskGeometry.test.ts > dense desk geometry > returns the same state for responsive callbacks without persistence churn 1ms
+ ✓ src/dashboard/deskGeometry.test.ts > dense desk geometry > persists displayed coordinates and fine units after manual resize 3ms
+ ✓ src/dashboard/deskGeometry.test.ts > dense desk geometry > keeps displayed coordinates when hiding and restoring at wide width 1ms
+ ✓ src/dashboard/deskGeometry.test.ts > dense desk geometry > preserves absent-profile saved desk and custom geometry 1ms
+ ✓ src/dashboard/deskGeometry.test.ts > dense desk geometry > rejects unknown profiles at the persistence boundary 1ms
+ ✓ src/dashboard/deskGeometry.test.ts > dense desk geometry > preserves current metadata when an older render emits an edited callback 1ms
+ ✓ src/dashboard/deskGeometry.test.ts > dense desk geometry > places calendar at the origin with weekly directly below when starting a desk 1ms
+ ✓ src/dashboard/deskGeometry.test.ts > dense desk geometry > fits the visible launcher inside twelve rows when starting a desk 1ms
+ ✓ electron-p0/tests/policy.test.ts > PoC IPC and resource boundary > permits only exact owned main frame and URL 5ms
+ ✓ electron-p0/tests/policy.test.ts > PoC IPC and resource boundary > rejects network, file escape, unrelated local services and unknown schemes 1ms
+ ✓ electron-p0/tests/local-calendar-ui.test.tsx > locks duplicate submits/dismissal during a save and ignores late UI callbacks after unmount 642ms
+ ✓ src/dashboard/storage.test.ts > dashboard storage defaults > uses the desk layout when no saved workspace exists 5ms
+ ✓ src/dashboard/storage.test.ts > dashboard storage defaults > uses the desk layout when saved workspace cannot be parsed 1ms
+ ✓ src/dashboard/storage.test.ts > dashboard storage defaults > uses the desk layout when saved workspace cannot be parsed 1ms
+ ✓ src/dashboard/storage.test.ts > dashboard storage defaults > preserves a valid saved default preset and its balanced geometry 1ms
+ ✓ src/dashboard/storage.test.ts > dashboard storage defaults > preserves custom saved geometry when presetId is absent 2ms
+ ✓ src/dashboard/storage.test.ts > dashboard storage defaults > supplements legacy meal and weather widgets as hidden without moving saved widgets 1ms
+ ✓ src/dashboard/mealWidgetRegistration.test.ts > meal widget registration > registers a hidden meal widget with compatible sizing 3ms
+ ✓ src/dashboard/mealWidgetRegistration.test.ts > meal widget registration > keeps the meal widget restorable and only shows it in the desk preset 0ms
+ ✓ src/dashboard/mealWidgetRegistration.test.ts > meal widget registration > supplements a legacy v1 layout without moving existing widgets 1ms
+ ✓ src/dashboard/mealWidgetRegistration.test.ts > meal widget registration > reuses the registered BOGUNON school settings action 0ms
+ ✓ src/dashboard/WidgetSessionContext.test.tsx > WidgetSessionProvider memo > starts each provider session with an empty memo 13ms
+ ✓ src/dashboard/dateSource.test.ts > getWeekDates > returns the Monday-through-Sunday range when now is Monday 4ms
+ ✓ src/dashboard/dateSource.test.ts > getWeekDates > returns the same range when now is midweek 1ms
+ ✓ src/dashboard/dateSource.test.ts > getWeekDates > crosses a month boundary using local calendar dates 0ms
+ ✓ src/dashboard/dateSource.test.ts > getWeekDates > crosses a year boundary using local calendar dates 0ms
+ ✓ src/dashboard/dateSource.test.ts > getWeekDates > matches exactly one computed date as today 2ms
+ ✓ src/dock/storage.test.ts > Dock persistence compatibility > keeps top-level preferences while removing legacy detailed tools 4ms
+ ✓ src/dock/storage.test.ts > Dock persistence compatibility > preserves an enabled optional official document item across reloads 1ms
+ ✓ src/auth/supabaseClient.test.ts > getSupabaseClient > enables correlated PKCE callback flow identifiers 11ms
+ ✓ electron-p0/tests/local-calendar-ui.test.tsx > does not overwrite an event edited elsewhere while an old editor survives refresh 1165ms
+ ✓ src/dashboard/weatherWidgetRegistration.test.ts > weather widget registration > registers a hidden 3x2 singleton default 2ms
+ ✓ src/dashboard/weatherWidgetRegistration.test.ts > weather widget registration > includes weather in every preset and only shows it in desk 5ms
+ ✓ src/dashboard/weatherWidgetRegistration.test.ts > weather widget registration > supplements legacy v1 layouts without moving stored widgets 1ms
+ ✓ src/dashboard/weatherWidgetRegistration.test.ts > weather widget registration > reuses the registered BOGUNON school settings action 0ms
+ ✓ electron-p0/tests/local-calendar-ui.test.tsx > shows corrupt and backup-recovered stores explicitly and blocks mutation without resetting files 201ms
+ ✓ src/dashboard/quickLauncherRegistration.test.ts > quick launcher registration > registers a default-hidden 3x3 work widget without a schema bump 4ms
+ ✓ src/dashboard/quickLauncherRegistration.test.ts > quick launcher registration > shows the launcher only in the new desk preset 0ms
+ ✓ src/dashboard/quickLauncherRegistration.test.ts > quick launcher registration > supplements a saved v1 layout with a hidden launcher without moving existing widgets 1ms
+ ✓ src/dashboard/quickLauncherRegistration.test.ts > quick launcher registration > references existing central desktop action IDs 1ms
+ ✓ src/auth/secureSessionStorage.test.ts > secureSessionStorage > routes session values only through Tauri secure storage commands 3ms
+ ✓ src/auth/secureSessionStorage.test.ts > secureSessionStorage > converts native storage failures into a user-safe error 1ms
+ ✓ src/auth/authCallback.test.ts > parseAuthCallback > accepts the configured callback and extracts the PKCE code 4ms
+ ✓ src/auth/authCallback.test.ts > parseAuthCallback > returns a friendly cancellation result 1ms
+ ✓ src/auth/authCallback.test.ts > parseAuthCallback > rejects callbacks without a code 0ms
+ ✓ src/auth/authCallback.test.ts > parseAuthCallback > rejects malformed PKCE flow identifiers without rejecting the callback shape 1ms
+ ✓ src/auth/authCallback.test.ts > parseAuthCallback > ignores unrelated or spoofed deep links 0ms
+ ✓ src/auth/authCallback.test.ts > parseAuthCallback > deduplicates callbacks without retaining the authorization code 1ms
+ ✓ src/auth/config.test.ts > parseSupabaseAuthConfig > accepts an https project URL and publishable key 3ms
+ ✓ src/auth/config.test.ts > parseSupabaseAuthConfig > accepts a legacy anon JWT 1ms
+ ✓ src/auth/config.test.ts > parseSupabaseAuthConfig > rejects a different Supabase project origin 1ms
+ ✓ src/auth/config.test.ts > parseSupabaseAuthConfig > rejects missing config and secret keys 1ms
+ ✓ src/auth/config.test.ts > parseSupabaseAuthConfig > rejects legacy service-role JWTs 0ms
+ ✓ electron-p0/tests/qa-profile.test.ts > preserves normal and legacy profile paths 2ms
+ ✓ electron-p0/tests/qa-profile.test.ts > isolates app, session and user storage with explicit UUID opt-in 0ms
+ ✓ electron-p0/tests/qa-profile.test.ts > rejects implicit, relative, root, outside and overlapping profile paths 2ms
+
+ Test Files  26 passed (26)
+      Tests  109 passed (109)
+   Start at  04:18:21
+   Duration  9.76s (tests 46%, import 25%, transform 14%, environment 14%, worker 1%)
+
+    Isolate  26 workers spawned · ~308ms startup each (spawn + environment, per file)
+             at least ~2.36s faster with isolate: false — reuses workers across files instead of one per file
+
+JSON report written to /workspace/work/school-05/repo/school-workspace/school05/evidence/existing-regression.json

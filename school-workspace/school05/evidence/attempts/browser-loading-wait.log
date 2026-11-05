@@ -1,0 +1,8 @@
+file:///workspace/work/school-05/repo/school-workspace/school05/browser-check.mjs:18
+ await tab(assistant,'한눈에 보기');const headers=await assistant.p.locator('.s04-controls>h3').allTextContents();if(!headers[0].includes('확인하지')||!headers[1].includes('내 담당')||!headers[2].includes('공동 일정'))throw Error('mobile priority');pass('web home unread then assigned tasks then events');
+                                                                                                                            ^
+
+TypeError: Cannot read properties of undefined (reading 'includes')
+    at file:///workspace/work/school-05/repo/school-workspace/school05/browser-check.mjs:18:125
+
+Node.js v24.19.0
