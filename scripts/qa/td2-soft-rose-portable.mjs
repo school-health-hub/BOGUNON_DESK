@@ -145,7 +145,7 @@ try{
  await mainCall(async function(){const e=process.getBuiltinModule('module').createRequire(process.cwd()+'/package.json')('electron');globalThis.__guiFinal={e,w:e.BrowserWindow.getAllWindows().find(w=>w.isVisible())};return true;});
  const state=()=>mainCall(async function(){const q=globalThis.__guiFinal;return {id:q.w.id,visible:q.w.isVisible(),destroyed:q.w.isDestroyed(),wc:q.w.webContents.id,rendererPid:q.w.webContents.getOSProcessId()};});
  const reset=async()=>{await page.reload();await dock.waitFor();};
- const tool=async name=>{await reset();await dock.getByRole('button',{name:'업무 도구',exact:true}).click();await page.getByRole('button',{name,exact:true}).click();};
+ const tool=async name=>{await reset();await dock.getByRole('button',{name:'업무 도구',exact:true}).click();await page.getByRole('button',{name,exact:true}).click();if(name.includes('Finder'))await page.getByRole('heading',{name:/AI 교육영상 Finder/}).waitFor();};
  const school=async()=>{await reset();await dock.getByRole('button',{name:'설정',exact:true}).click();await page.getByRole('navigation',{name:'설정 카테고리'}).getByRole('button',{name:'학교 프로필',exact:true}).click();await page.getByRole('region',{name:'학교 업무 주소 확인·적용'}).getByText('초기값:',{exact:false}).first().waitFor();};
  const inspect=async(label,footer)=>{
   const before=await page.evaluate(()=>{
@@ -155,7 +155,7 @@ try{
    const horizontal=scope.scrollWidth>scope.clientWidth+2||document.documentElement.scrollWidth>innerWidth+2;
    const controls=[...scope.querySelectorAll('button,input,select,textarea,[role="tab"]')].filter(visible).map(e=>{const r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;const hit=x>0&&x<innerWidth&&y>0&&y<innerHeight?document.elementFromPoint(x,y):null;return {e,r,hit:hit&&(e===hit||e.contains(hit))};}).filter(v=>v.hit);
    const overlaps=[];for(let i=0;i<controls.length;i++)for(let j=i+1;j<controls.length;j++){const a=controls[i],b=controls[j];if(a.e.contains(b.e)||b.e.contains(a.e))continue;const w=Math.min(a.r.right,b.r.right)-Math.max(a.r.left,b.r.left),h=Math.min(a.r.bottom,b.r.bottom)-Math.max(a.r.top,b.r.top);if(w>4&&h>4)overlaps.push({a:a.e.tagName,b:b.e.tagName,width:w,height:h});}
-   return {viewport:{innerWidth,innerHeight,outerWidth,outerHeight},horizontalOverflow:horizontal,scrollOwners:owners,overlaps,visibleControlCount:controls.length};
+   return {scope:{tag:scope.tagName,class:scope.className,clientWidth:scope.clientWidth,scrollWidth:scope.scrollWidth,rect:scope.getBoundingClientRect().toJSON(),overflowX:getComputedStyle(scope).overflowX,docWidth:document.documentElement.scrollWidth},horizontalOffenders:[...scope.querySelectorAll('*')].filter(e=>visible(e)&&e.clientWidth>0&&e.scrollWidth>e.clientWidth+2).slice(0,25).map(e=>({tag:e.tagName,class:e.className,clientWidth:e.clientWidth,scrollWidth:e.scrollWidth,overflowX:getComputedStyle(e).overflowX})),viewport:{innerWidth,innerHeight,outerWidth,outerHeight},horizontalOverflow:horizontal,scrollOwners:owners,overlaps,visibleControlCount:controls.length};
   });
   await page.screenshot({path:join(screenshots,label+'-top.png')});let footerResult=null;
   if(footer){await footer.scrollIntoViewIfNeeded();await footer.click({trial:true,timeout:5000});footerResult=await footer.evaluate(e=>{const r=e.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return {top:r.top,bottom:r.bottom,viewportHeight:innerHeight,reachable:r.top>=0&&r.bottom<=innerHeight&&(hit===e||e.contains(hit))};});await page.screenshot({path:join(screenshots,label+'-bottom.png')});}
@@ -177,6 +177,7 @@ try{
   for(let i=0;i<3;i++){native('Close');await delay(300);const hidden=await state();if(hidden.visible||hidden.destroyed)throw Error('Native close did not hide live window');const gesture=native('TrayReturn',['-Screenshot',join(screenshots,`actual-tray-${i}.png`)]);if(gesture.verdict==='NOT RUN'){await mainCall(async function(){globalThis.__guiFinal.w.show();return true;});return {verdict:'NOT RUN',reason:gesture.reason,detail:gesture,uncreditedRecovery:'Main.show used only to recover automation; not a tray PASS'};}await delay(500);const restored=await state();if(!restored.visible||restored.id!==initial.id||restored.wc!==initial.wc||await page.locator('.ev-layout label').filter({hasText:'사용자 메모'}).locator('textarea').inputValue()!=='SYNTHETIC_NATIVE_TRAY_MEMO')throw Error('Actual icon failed to restore same Finder state');cycles.push({hidden,gesture,restored});await page.screenshot({path:join(screenshots,`actual-tray-return-${i}.png`)});}
   return {verdict:'PASS',cycles,basis:'Win32 close + actual Explorer icon mouse double-click; no show fallback in passing path'};
  });
+ const trayState=await state();if(!trayState.visible&&!trayState.destroyed){await mainCall(async function(){globalThis.__guiFinal.w.show();return true;});result.gui.nativeTray.recovery='Main.show only after native tray failure, not credited';}
  const waitDialog=async(name)=>{for(let i=0;i<8;i++){const r=native('DialogProbe',['-Screenshot',join(screenshots,name+'.png')]);if(r.found)return r;await delay(200);}return {found:false};};
  const beginNative=async()=>{const l=await page.evaluate(()=>window.electronWork.admin.schoolAddresses());if(!l.ok)throw Error('Address preview failed');const p=l.data;await page.evaluate(p=>{window.__nativeApply=window.electronWork.admin.applySchoolAddresses({officeCode:p.school.officeCode,schoolCode:p.school.schoolCode,expectedRevision:p.revision,environment:p.environment,systems:['portal']});return true;},p);};
  let nativeAvailable=false;
@@ -191,8 +192,8 @@ try{
  });
  result.dpi={actual100:result.devicePixelRatio===1?'OBSERVED (see OS registry evidence)':'NOT VERIFIED',dpi125:'NOT RUN: hosted session has no approved interactive display-scale/sign-out change',dpi150:'NOT RUN: hosted session has no approved interactive display-scale/sign-out change',browserEmulationUsed:false};
  // Normal product quit while a real native consent is pending, if that dialog is available.
- if(nativeAvailable){await beginNative();result.pendingQuitDialog=await waitDialog('native-pending-quit');}
- await mainCall(async function(){const q=globalThis.__guiFinal;const quit=q.e.Menu.getApplicationMenu().items[0].submenu.items.find(i=>i.label==='종료');if(!quit)throw Error('Product quit menu absent');quit.click();return true;}).catch(error=>{result.quitRequestError=String(error);});
+ if(nativeAvailable){await beginNative();result.pendingQuitDialog=await waitDialog('native-pending-quit');if(!result.pendingQuitDialog.found)throw Error('Pending native dialog absent; quit scenario not executed');}
+ await mainCall(async function(){const q=globalThis.__guiFinal;const quit=q.e.Menu.getApplicationMenu().items[0].submenu.items.find(i=>i.label==='완전 종료');if(!quit)throw Error('Product quit menu absent');quit.click();return true;}).catch(error=>{result.quitRequestError=String(error);});
  mainWs.close();mainWs=undefined;await waitForWrapperExit();result.shutdown.wrapperExited=true;
  result.gui.pendingNativeQuit=nativeAvailable?{verdict:'PASS',normalProductQuit:true,dialogWasVisible:!!result.pendingQuitDialog?.found}: {verdict:'NOT RUN',reason:'Native dialog unavailable'};
  result.verdict=Object.values(result.gui).some(v=>v?.verdict==='FAIL')?'FAIL':Object.values(result.gui).some(v=>v?.verdict==='NOT RUN')?'PARTIAL':'PASS';
