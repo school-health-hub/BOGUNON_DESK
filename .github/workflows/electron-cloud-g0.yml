@@ -1,12 +1,14 @@
 name: Electron CLOUD-G0 integration
 on:
   push:
-    branches: [codex/cloud-g0-integration-stabilization]
+    branches: [codex/cloud-g0-integration-stabilization, qa/final-integrated-windows]
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 jobs:
   integration:
+    if: github.ref == 'refs/heads/codex/cloud-g0-integration-stabilization'
     runs-on: windows-latest
     timeout-minutes: 25
     steps:
@@ -29,3 +31,10 @@ jobs:
           path: artifacts/electron-p0-e2e/
           if-no-files-found: ignore
           retention-days: 7
+
+  account-configured-portable:
+    if: github.ref == 'refs/heads/qa/final-integrated-windows' && github.run_attempt == 1
+    uses: ./.github/workflows/electron-p0-windows.yml
+    secrets:
+      public_url: ${{ vars.VITE_SUPABASE_URL }}
+      public_key: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}

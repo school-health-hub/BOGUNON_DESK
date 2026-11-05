@@ -1,68 +1,222 @@
-name: ELECTRON-P2E5B Purchase export
+name: Final integrated Portable Windows QA
+run-name: ACCOUNT 02B configured OAuth / 8f9a1f0 / ${{ github.run_id }}
+
 on:
-  push:
-    branches: [feature/electron-p0-dashboard, feature/electron-p1a-windows-installer, feature/electron-p1b-desktop-experience, feature/electron-p2d2-newsletter-export, feature/electron-p2e3-purchase-excel, feature/electron-p2e4-purchase-pdf, feature/electron-p2e5a-purchase-export, feature/electron-p2e5b-purchase-settlement]
-  workflow_dispatch:
+  workflow_call:
+    secrets:
+      public_url:
+        required: true
+      public_key:
+        required: true
+
 permissions:
   contents: read
+  actions: read
+
 concurrency:
-  group: electron-p0-${{ github.ref }}
-  cancel-in-progress: true
+  group: td2-soft-rose-portable-gui
+  cancel-in-progress: false
+
 jobs:
-  windows-poc:
-    runs-on: windows-latest
-    timeout-minutes: 35
+  portable-gui:
+    if: (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/qa/final-integrated-windows' && github.run_attempt == 1
+    runs-on: windows-2022
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: pwsh
     env:
+      CI: 'true'
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      TD2_CONTROLLER_BASE_SHA: b085e8b7c7a5ec1bd6c7ba54cc689fcf11dbc2cc
+      TD2_PRODUCT_SHA: 8f9a1f0aa88502b1c45b2d575abdab5300234bbb
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Checkout immutable approved product
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
+          ref: 8f9a1f0aa88502b1c45b2d575abdab5300234bbb
+          path: source
+          persist-credentials: false
           fetch-depth: 0
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      - name: Checkout QA controller
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          path: controller
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
           cache: npm
-      - run: npm ci
-      - name: Rust Purchase import/export contracts and CLI build
+          cache-dependency-path: source/package-lock.json
+      - name: Verify immutable source and QA-only controller
         run: |
-          rustup update stable --no-self-update
-          rustup default stable
-          node scripts/electron-p0/verify-excel-source.mjs
-          cargo test --locked --manifest-path tools/purchase-excel-cli/Cargo.toml
-          node scripts/electron-p0/build-excel.mjs --release
-          node scripts/electron-p0/check-excel-cli.mjs build/purchase-excel-cli/purchase-excel-cli.exe
-      - name: Source preservation, Newsletter IPC/output validation, Portable + NSIS and packaged UI
-        run: npm run electron:p0:ci:windows
-      - name: Record exact PoC artifact hash and signature (not a production release)
-        shell: pwsh
+          $ErrorActionPreference='Stop'
+          $source=(git -C source rev-parse HEAD).Trim()
+          if($source -cne $env:TD2_PRODUCT_SHA){throw 'Approved product SHA mismatch'}
+          if(git -C source status --porcelain){throw 'Approved product checkout is dirty'}
+          $allowed=@('.github/workflows/electron-p0-windows.yml','scripts/qa/td2-soft-rose-portable.mjs','scripts/qa/td2-window.ps1','.github/workflows/electron-cloud-g0.yml')
+          $changed=@(git -C controller diff --name-only $env:TD2_CONTROLLER_BASE_SHA HEAD)
+          foreach($path in $changed){if($path -notin $allowed){throw "Non-QA controller change: $path"}}
+          if($changed.Count -ne 4){throw 'Expected exactly four QA controller files'}
+          $root=Join-Path $env:RUNNER_TEMP "td2-portable-$env:GITHUB_RUN_ID"
+          New-Item -ItemType Directory "$root/evidence","$root/temp","$root/npm-cache","$root/f-drive" | Out-Null
+          New-Item -ItemType Directory "$root/profile","$root/appdata","$root/localappdata" | Out-Null
+          "TD2_ROOT=$root" >> $env:GITHUB_ENV
+          "TD2_EVIDENCE_ROOT=$root/evidence" >> $env:GITHUB_ENV
+          "TD2_PRODUCT_ROOT=${{ github.workspace }}/source" >> $env:GITHUB_ENV
+          "TEMP=$root/temp" >> $env:GITHUB_ENV
+          "TMP=$root/temp" >> $env:GITHUB_ENV
+          "npm_config_cache=$root/npm-cache" >> $env:GITHUB_ENV
+          "ELECTRON_P0_QA_ROOT=$root/profile" >> $env:GITHUB_ENV
+          [ordered]@{
+            productSha=$source;controllerSha=(git -C controller rev-parse HEAD).Trim();workflowSha='${{ github.workflow_sha }}'
+            runner='windows-2022';runId=$env:GITHUB_RUN_ID;attempt=$env:GITHUB_RUN_ATTEMPT
+          }|ConvertTo-Json|Set-Content "$root/evidence/provenance.json"
+      - name: Install locked dependencies
+        working-directory: source
+        run: npm ci
+      - name: Download previously verified native payload
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: parity-5cli-portable-5cfdee0-41854402237
+          run-id: 41854402237
+          github-token: ${{ github.token }}
+          path: prior-portable
+      - name: Download matching immutable Portable hash evidence
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: td2-soft-rose-portable-gui-41854402237-1
+          run-id: 41854402237
+          github-token: ${{ github.token }}
+          path: prior-evidence
+      - name: Reuse exact native binaries without rebuilding unchanged source
         run: |
-          $files = @(Get-ChildItem release-electron-p0/*.exe)
-          if ($files.Count -ne 2) { throw 'Expected Portable and NSIS artifacts' }
-          $results = foreach ($file in $files) {
-            $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-            $signature = [string](Get-AuthenticodeSignature $file.FullName).Status
-            if ($signature -notin @('NotSigned','Valid')) { throw 'Unexpected signature state' }
-            "$hash  $($file.Name)" | Add-Content release-electron-p0/SHA256SUMS.txt
-            Write-Output "::notice title=ELECTRON_P1A_ARTIFACT::$($file.Name) SHA256=$hash signature=$signature"
-            @{file=$file.Name;sha256=$hash;signature=$signature}
+          $ErrorActionPreference='Stop'
+          git -C source diff --exit-code 5cfdee00765d5ab11a9076028b4e6e4c1afc5292 HEAD -- tools/record-helper-cli tools/chatgpt-auth-cli tools/purchase-excel-cli tools/official-document-cli tools/my-finance-cli src-tauri
+          if($LASTEXITCODE -ne 0){throw 'Native source changed; reuse forbidden'}
+          $old=@(Get-ChildItem prior-portable/*.exe)
+          $priorMeta=Get-Content prior-evidence/portable.json -Raw|ConvertFrom-Json
+          if($old.Count -ne 1 -or $priorMeta.sourceSha -cne '5cfdee00765d5ab11a9076028b4e6e4c1afc5292' -or (Get-FileHash $old[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant() -cne $priorMeta.sha256){throw 'Same-product Portable hash mismatch'}
+          7z x $old[0].FullName "-o$env:TD2_ROOT/prior-container" -y | Out-Null
+          if($LASTEXITCODE -ne 0){throw 'Prior Portable extraction failed'}
+          $archive=@(Get-ChildItem "$env:TD2_ROOT/prior-container" -Recurse -Filter app-64.7z)
+          if($archive.Count -ne 1){throw 'Expected one embedded app archive'}
+          7z x $archive[0].FullName "-o$env:TD2_ROOT/prior-app" -y | Out-Null
+          if($LASTEXITCODE -ne 0){throw 'Prior payload extraction failed'}
+          $hashes=@{
+            'purchase-excel-cli'='5240026d893e6529361907915fd05ebf5498526e0bbf723a360c38fc5532175e';
+            'official-document-cli'='61697e919f96bf3816f1bcf7066684c8d64d7b3a3435c188ba92fc347b23c8e0';
+            'my-finance-cli'='b40175de3b7f65496674c7ebd2200d680b48f124a3933d812d5f7c09cc0992d9';
+            'chatgpt-auth-cli'='5f36d7340eaf184ac88866149cc46f1765fe279044e23d8aecec4e993fc22669';
+            'record-helper-cli'='e6eabcea08ef6b198e1f698dafda92a0990f30e5d2967a631865b362bfbcd3d8'
           }
-          @{scope='Electron P2E5B only';sourceSha=$env:GITHUB_SHA;files=@($results);qa=(Get-Content release-electron-p0/P1A-QA-RESULT.json -Raw | ConvertFrom-Json);productionDeployment=$false} | ConvertTo-Json -Depth 8 | Set-Content release-electron-p0/P0-BUILD-RESULT.json
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: ELECTRON-P2E5B-Windows-${{ github.sha }}
-          path: |
-            release-electron-p0/*.exe
-            release-electron-p0/SHA256SUMS.txt
-            release-electron-p0/P0-BUILD-RESULT.json
-            release-electron-p0/P1A-QA-RESULT.json
-          if-no-files-found: error
-          retention-days: 7
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+          foreach($cli in $hashes.Keys){
+            $root="$env:TD2_ROOT/prior-app/resources/$cli"
+            if((Get-FileHash "$root/$cli.exe" -Algorithm SHA256).Hash.ToLowerInvariant() -cne $hashes[$cli]){throw "Reused CLI hash mismatch: $cli"}
+            New-Item -ItemType Directory "source/build/$cli" -Force | Out-Null
+            Copy-Item "$root/*" "source/build/$cli/" -Recurse
+          }
+          [ordered]@{originRun=41854402237;nativeSourceSha='b9a0a1b3893c2f45eeeed7278b86442e415dc159';productSha=$env:TD2_PRODUCT_SHA;nativeSourceUnchanged=$true;hashes=$hashes;dpapiAndLoopback='REUSED from original Windows run'} | ConvertTo-Json -Depth 4 | Set-Content "$env:TD2_EVIDENCE_ROOT/native-reuse.json"
+      - name: Use canonical Git bytes for LF-sensitive extraction build inputs
+        run: |
+          $ErrorActionPreference='Stop'
+          git -C source config --local core.autocrlf input
+          git -C source config --local core.eol lf
+          'src-tauri/src/record_helper_import/** text eol=lf' | Add-Content source/.git/info/attributes
+          node -e "const cp=require('child_process'),fs=require('fs'),path=require('path'),crypto=require('crypto');const files=cp.execFileSync('git',['-C','source','ls-files','src-tauri/src/record_helper_import'],{encoding:'utf8'}).trim().split(/\r?\n/);for(const file of files){const bytes=cp.execFileSync('git',['-C','source','show','HEAD:'+file]);fs.writeFileSync(path.join('source',file),bytes);const digest=crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0')).update(bytes).digest('hex');const expected=cp.execFileSync('git',['-C','source','rev-parse','HEAD:'+file],{encoding:'utf8'}).trim();if(digest!==expected)throw Error('Canonical extraction blob mismatch');}"
+          if($LASTEXITCODE -ne 0){throw 'Canonical extraction checkout/hash verification failed'}
+          git -C source add --renormalize -- src-tauri/src/record_helper_import
+          git -C source diff --cached --exit-code HEAD
+          if($LASTEXITCODE -ne 0){throw 'Canonical checkout changed the product index tree'}
+          $state=@(git -C source status --porcelain)
+          $state | Set-Content "$env:TD2_EVIDENCE_ROOT/checkout-state.txt"
+          if($state.Count){$state | Write-Output;throw 'Product checkout modified'}
+          [ordered]@{policy='canonical LF Git bytes for src-tauri/src/record_helper_import only';reason='fixed product build.rs performs LF-sensitive import stripping';productCodeChanged=$false;blobHashesVerified=$true} | ConvertTo-Json | Set-Content "$env:TD2_EVIDENCE_ROOT/checkout-policy.json"
+      - name: Build configured Portable with masked existing public variables
+        working-directory: source
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.public_url }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.public_key }}
+        run: |
+          npm run electron:p0:build
+          if($LASTEXITCODE -ne 0){throw 'Electron build failed'}
+          node --input-type=module -e "import fs from 'node:fs';import {parseAccountConfig} from './build/electron-p0-app/main/account-network.js';const c=parseAccountConfig(JSON.parse(fs.readFileSync('build/electron-p0-app/account-config.json')));const origin=JSON.parse(fs.readFileSync('config/production-supabase.json')).origin;if(!c||c.origin!==origin||c.publishableKey!==process.env.VITE_SUPABASE_PUBLISHABLE_KEY.trim())throw Error('Public configuration injection rejected');fs.writeFileSync(process.env.TD2_EVIDENCE_ROOT+'/public-auth-build.json',JSON.stringify({configured:true,originMatches:true,publicClientKeyOnly:true,secretInputsUsedForLogMaskingOnly:true,keyValueLogged:false,sourceSha:process.env.TD2_PRODUCT_SHA}));"
+          if($LASTEXITCODE -ne 0){throw 'Public auth build injection failed'}
+          npx electron-builder --config electron-p0/builder.json --win portable --x64 --publish never
+          if($LASTEXITCODE -ne 0){throw '5-CLI Portable build failed'}
+      - name: Record Portable and actual Windows DPI
+        run: |
+          $ErrorActionPreference='Stop'
+          $portable=@(Get-ChildItem source/release-electron-p0/*.exe -File)
+          if($portable.Count -ne 1){throw 'Expected exactly one Portable EXE'}
+          $hash=(Get-FileHash $portable[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $($portable[0].Name)"|Set-Content "$env:TD2_EVIDENCE_ROOT/PORTABLE-SHA256.txt"
+          "TD2_PORTABLE_EXE=$($portable[0].FullName)" >> $env:GITHUB_ENV
+          "TD2_EXPECTED_SOURCE_SHA=$env:TD2_PRODUCT_SHA" >> $env:GITHUB_ENV
+          $desktop=Get-ItemProperty 'HKCU:\Control Panel\Desktop'
+          $metrics=Get-ItemProperty 'HKCU:\Control Panel\Desktop\WindowMetrics'
+          $dpi=[ordered]@{
+            appliedDpi=$metrics.AppliedDPI;logPixels=$desktop.LogPixels;win8DpiScaling=$desktop.Win8DpiScaling
+            dpi100=if($metrics.AppliedDPI -eq 96){'VERIFIED'}else{'NOT VERIFIED'}
+            dpi125='NOT VERIFIED';dpi150='NOT VERIFIED';emulationUsed=$false
+          }
+          $dpi|ConvertTo-Json|Set-Content "$env:TD2_EVIDENCE_ROOT/windows-dpi.json"
+          [ordered]@{sourceSha=$env:TD2_PRODUCT_SHA;file=$portable[0].Name;bytes=$portable[0].Length;sha256=$hash;signature=[string](Get-AuthenticodeSignature $portable[0].FullName).Status}|ConvertTo-Json|Set-Content "$env:TD2_EVIDENCE_ROOT/portable.json"
+      - name: Verify packaged runtime, resources and source
+        working-directory: source
+        run: |
+          node --test scripts/electron-p0/runtime-package.test.mjs scripts/electron-p0/chatgpt-package.test.mjs scripts/electron-p0/record-package.test.mjs scripts/electron-p0/account-package.test.mjs
+          if($LASTEXITCODE -ne 0){throw 'Packaged contract tests failed'}
+          node scripts/electron-p0/check-ocr-package.mjs
+          if($LASTEXITCODE -ne 0){throw 'Staged OCR integrity failed'}
+          node --input-type=module -e "import {verifyOcrRuntime} from './build/electron-p0-app/main/purchase-image-ocr.js';import {resolve} from 'node:path';await verifyOcrRuntime(resolve('release-electron-p0/win-unpacked/resources/purchase-ocr'));"
+          if($LASTEXITCODE -ne 0){throw 'New packaged OCR integrity failed'}
+          $resources='release-electron-p0/win-unpacked/resources'
+          foreach($cli in @('purchase-excel-cli','official-document-cli','my-finance-cli','chatgpt-auth-cli','record-helper-cli')) {
+            $file=Join-Path $resources "$cli/$cli.exe"
+            if(!(Test-Path $file)){throw "Missing packaged native CLI: $cli"}
+            "$((Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant())  $cli.exe" | Add-Content "$env:TD2_EVIDENCE_ROOT/NATIVE-SHA256.txt"
+          }
+          $manifest=Get-Content "$resources/chatgpt-auth-cli/manifest.json" -Raw|ConvertFrom-Json
+          if($manifest.sourceSha -cne 'b9a0a1b3893c2f45eeeed7278b86442e415dc159' -or $manifest.dirty){throw 'Native source provenance mismatch'}
+          node -e "const {createPackageFromStreams}=require('@electron/asar');const asar=require('@electron/asar');const p='release-electron-p0/win-unpacked/resources/app.asar';const fs=require('fs');const meta=JSON.parse(asar.extractFile(p,'build-meta.json'));if(meta.sourceSha!==process.env.TD2_PRODUCT_SHA||meta.dirty)throw Error('ASAR source mismatch');for(const f of ['purchase-ai-protocol.js','ai-image-capabilities.json','main/account-sdk.js','account-config.json'])asar.extractFile(p,f);const cfg=JSON.parse(asar.extractFile(p,'account-config.json'));const staged=JSON.parse(fs.readFileSync('build/electron-p0-app/account-config.json'));if(cfg.origin!==staged.origin||cfg.publishableKey!==staged.publishableKey||!cfg.publishableKey)throw Error('Packaged public config mismatch');for(const f of asar.listPackage(p).filter(f=>f.startsWith('/renderer/')&&f.endsWith('.js'))){if(asar.extractFile(p,f.slice(1)).includes(Buffer.from(cfg.publishableKey)))throw Error('Public key unexpectedly embedded in renderer');}fs.writeFileSync(process.env.TD2_EVIDENCE_ROOT+'/asar-source.json',JSON.stringify(meta));"
+          if($LASTEXITCODE -ne 0){throw 'ASAR provenance/resource verification failed'}
+      - name: Run actual Portable and capture Electron GUI
+        working-directory: source
+        run: node ../controller/scripts/qa/td2-soft-rose-portable.mjs 2>&1 | Tee-Object "$env:TD2_EVIDENCE_ROOT/portable-gui.log"
+      - name: Verify clean shutdown and finalize evidence
         if: always()
+        run: |
+          $ErrorActionPreference='Stop'
+          $ownedRoot=[IO.Path]::GetFullPath("$env:TD2_ROOT/temp")+'\'
+          $before=@(Get-CimInstance Win32_Process|Where-Object{$_.ExecutablePath -and $_.ExecutablePath.StartsWith($ownedRoot,[StringComparison]::OrdinalIgnoreCase) -and $_.Name -like 'BOGUNON*'})
+          foreach($owned in $before){$current=Get-CimInstance Win32_Process -Filter "ProcessId=$($owned.ProcessId)";if($current -and $current.CreationDate -eq $owned.CreationDate -and $current.ExecutablePath -eq $owned.ExecutablePath){Stop-Process -Id $current.ProcessId -Force -ErrorAction SilentlyContinue}}
+          if($before.Count){Start-Sleep -Seconds 2}
+          $remaining=@(Get-CimInstance Win32_Process|Where-Object{$_.ExecutablePath -and $_.ExecutablePath.StartsWith($ownedRoot,[StringComparison]::OrdinalIgnoreCase) -and $_.Name -like 'BOGUNON*'})
+          [ordered]@{count=$remaining.Count;emergencyCleanupCount=$before.Count;processes=@($remaining|Select-Object ProcessId,Name,ExecutablePath)}|ConvertTo-Json -Depth 4|Set-Content "$env:TD2_EVIDENCE_ROOT/process-cleanup.json"
+          if($remaining.Count){throw 'Residual BOGUNON QA process detected'}
+          $files=@(Get-ChildItem $env:TD2_EVIDENCE_ROOT -Recurse -File|Where-Object Name -ne 'SHA256SUMS.txt'|Sort-Object FullName)
+          @($files|ForEach-Object{"$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.FullName.Substring($env:TD2_EVIDENCE_ROOT.Length+1).Replace('\','/'))"})|Set-Content "$env:TD2_EVIDENCE_ROOT/SHA256SUMS.txt"
+          '## Final integrated Portable Windows QA' >> $env:GITHUB_STEP_SUMMARY
+          "Product SHA: ``$env:TD2_PRODUCT_SHA``" >> $env:GITHUB_STEP_SUMMARY
+          'Inspect result JSON: screenshots and actual source SHA are evidence only when execution passed the isolation gate.' >> $env:GITHUB_STEP_SUMMARY
+          '125% and 150% remain NOT VERIFIED unless the recorded Windows OS DPI proves otherwise; no zoom/device emulation was used.' >> $env:GITHUB_STEP_SUMMARY
+      - name: Upload Portable GUI evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: ELECTRON-P2E5B-UI-evidence-${{ github.run_id }}
-          path: |
-            artifacts/electron-p0-e2e/
-            release-electron-p0/P1A-QA-RESULT.json
+          name: account02b-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/td2-portable-${{ github.run_id }}/evidence/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload separate Portable executable
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: success() || failure()
+        with:
+          name: account02b-portable-8f9a1f0-${{ github.run_id }}
+          path: source/release-electron-p0/*.exe
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 14
