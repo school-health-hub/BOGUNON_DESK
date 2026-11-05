@@ -239,20 +239,28 @@ try{
   await writeFile(v2Path,await readFile(join(productRoot,'electron-p0/tests/fixtures/finder-v2/tauri-v2.json')));
   const libraryBefore=[await digest(v1Path),await digest(v2Path)];
   await checks('finder',async()=>{
+    await mainCall(async function(){const q=globalThis.__parityQa;q.originalClipRead=q.e.clipboard.readText;q.originalClipClear=q.e.clipboard.clear;q.e.clipboard.readText=()=>('AIza'+'0'.repeat(35));q.e.clipboard.clear=()=>{};q.dialogMode='defer';return true;});
+    await page.evaluate(()=>{window.__qaConnect=window.electronWork.educationVideo.searchProvider.connectFromClipboard({remember:false});return true;});
+    for(let i=0;i<20;i++){if(await mainCall(async function(){return !!globalThis.__parityQa.late;}))break;await delay(100);}
+    await page.evaluate(()=>window.electronWork.educationVideo.searchProvider.cancel());await mainCall(async function(){const q=globalThis.__parityQa;if(!q.late)throw Error('Approval wait not reached');q.late({response:1,checkboxChecked:false});q.late=null;q.dialogMode='approve';return true;});
+    const canceled=await page.evaluate(async()=>{const r=await window.__qaConnect,s=await window.electronWork.educationVideo.searchProvider.status();return !r.ok&&!s.data.configured&&!s.data.saved;});if(!canceled)throw Error('Late Finder approval activated key');
+    const connected=await page.evaluate(()=>window.electronWork.educationVideo.searchProvider.connectFromClipboard({remember:false}));if(!connected.ok||!connected.data.configured)throw Error('Synthetic memory-only Finder configuration failed');
     await tool('교육영상 Finder · 합성 Mock');
     await page.getByLabel('검색 방식',{exact:true}).selectOption('mock');await page.getByRole('button',{name:'Mock 영상 검색',exact:true}).click();
     await page.locator('.ev-results').getByRole('button',{name:/선택/}).first().click();
-    
+
     const notes=page.getByLabel('사용자 메모',{exact:true});await notes.fill('SYNTHETIC_TRAY_MEMO');
-    const proof=await mainCall(async function(){const q=globalThis.__parityQa;const win=q.e.BrowserWindow.fromWebContents(q.wc);q.windowId=win.id;q.handlers=q.e.ipcMain._invokeHandlers.size;return {id:win.id,wc:q.wc.id,pid:q.wc.getOSProcessId()};});
+    const proof=await mainCall(async function(){const q=globalThis.__parityQa;const win=q.e.BrowserWindow.fromWebContents(q.wc);const item=q.e.Menu.getApplicationMenu().items[0].submenu.items.find(i=>i.type==='checkbox');if(!item?.enabled)throw Error('Tray unavailable');item.checked=true;await item.click(item);q.windowId=win.id;q.handlers=q.e.ipcMain._invokeHandlers.size;return {id:win.id,wc:q.wc.id,pid:q.wc.getOSProcessId()};});
     const cycles=[];
     for(let i=0;i<3;i++){const hidden=await mainCall(async function(){const q=globalThis.__parityQa,w=q.e.BrowserWindow.fromWebContents(q.wc);w.close();await new Promise(r=>setTimeout(r,150));return {destroyed:w.isDestroyed(),visible:w.isVisible()};});if(hidden.destroyed||hidden.visible)throw Error('Close did not hide live window');
       const restored=await mainCall(async function(){const q=globalThis.__parityQa,w=q.e.BrowserWindow.fromWebContents(q.wc);w.show();w.focus();return {id:w.id,wc:q.wc.id,pid:q.wc.getOSProcessId(),handlers:q.e.ipcMain._invokeHandlers.size};});
-      if(restored.id!==proof.id||restored.wc!==proof.wc||restored.pid!==proof.pid||await page.locator('.ev-layout label').filter({hasText:'사용자 메모'}).locator('textarea').inputValue()!=='SYNTHETIC_TRAY_MEMO')throw Error('Finder state lost across native hide/show');cycles.push({hidden,restored});}
+      if(restored.id!==proof.id||restored.wc!==proof.wc||restored.pid!==proof.pid||await page.locator('.ev-layout label').filter({hasText:'사용자 메모'}).locator('textarea').inputValue()!=='SYNTHETIC_TRAY_MEMO')throw Error('Finder state lost across native hide/show');const status=await page.evaluate(()=>window.electronWork.educationVideo.searchProvider.status());if(!status.ok||!status.data.configured)throw Error('Finder permanently disposed across hide');cycles.push({hidden,restored,configured:true});}
     if(await digest(v1Path)!==libraryBefore[0]||await digest(v2Path)!==libraryBefore[1])throw Error('Finder files changed on hide');
-    await page.screenshot({path:join(screenshots,'stability-finder-return.png')});result.stability.finder={cycles,libraryBytesPreserved:true,returnMethod:'actual close->hide; Main BrowserWindow.show (not tray-icon click)',unsavedMemoPreserved:true};
+    await page.screenshot({path:join(screenshots,'stability-finder-return.png')});result.stability.finder={cycles,libraryBytesPreserved:true,returnMethod:'actual close->hide; Main BrowserWindow.show (not tray-icon click)',unsavedMemoPreserved:true,lateApprovalDenied:true,sameMemoryOnlyConfiguration:true};
     await reload();await tool('교육영상 Finder · 합성 Mock');const status=await page.evaluate(()=>window.electronWork.educationVideo.searchProvider.status());if(!status.ok)throw Error('Finder reentry service failed');
   });
+  const taskSeed=await page.evaluate(async()=>{const w=window.electronWork.tasks,l=await w.load();const d={...l.data.document,tasks:[{id:crypto.randomUUID(),title:'QA 기존 Task D-Day',scheduledDate:new Date().toISOString().slice(0,10),dueDate:new Date().toISOString().slice(0,10),completed:false,priority:'normal',category:'행사',dday:true}]};const r=await w.save(d,d.revision);if(!r.ok)throw Error('QA task seed failed');return r.data.document;});
+  const taskFile=join(userRoot,'work-data/local-tasks/tasks.json'),taskHash=await digest(taskFile);
   const today=new Date(Date.now()+9*3600000).toISOString().slice(0,10);
   await checks('calendar',async()=>{
     await tool('독립 로컬 일정');const dialog=page.getByRole('dialog',{name:'독립 로컬 일정',exact:true});
@@ -277,9 +285,9 @@ try{
     const changed=await page.evaluate(async()=>({load:await window.electronWork.admin.load(),preview:await window.electronWork.admin.schoolAddresses()}));if(JSON.stringify(changed.load)!==JSON.stringify(saved))throw Error('School change overwrote URLs');if(changed.preview.data.entries.find(e=>e.system==='edufine')?.proposed)throw Error('Unregistered office has invented edufine');
     result.stability.school={cancelPreserved:true,applied:true,schoolChangePreserved:true,consent:'QA Main response injection, not native OS dialog',urlFreshness:'NOT VERIFIED'};
   });
-  result.stability.quickAddCalendar='NOT RUN';result.stability.commandPaletteCalendar='NOT RUN';result.stability.lateNativeApproval='NOT RUN';result.stability.realExplorerDrop='NOT RUN (previous synthetic IPC evidence only)';
+  result.stability.quickAddCalendar='NOT RUN';result.stability.commandPaletteCalendar='NOT RUN';result.stability.lateNativeApproval='Main response injection tested; actual OS native dialog NOT RUN';result.stability.realExplorerDrop='NOT RUN (previous synthetic IPC evidence only)';
   // End instrumentation before a real Portable shutdown/relaunch.
-  await mainCall(async function(){const q=globalThis.__parityQa;q.e.dialog.showMessageBox=q.originalDialog;q.e.shell.openExternal=q.originalOpen;return true;});
+  await mainCall(async function(){const q=globalThis.__parityQa;q.e.dialog.showMessageBox=q.originalDialog;q.e.shell.openExternal=q.originalOpen;if(q.originalClipRead){q.e.clipboard.readText=q.originalClipRead;q.e.clipboard.clear=q.originalClipClear;}return true;});
   if(mainWs){mainWs.close();mainWs=undefined;await delay(200);}
   await closeBrowser();await waitForWrapperExit();await browser.close();browser=undefined;browserSession=undefined;
   result.shutdown.browserCloseSent=false;child=launch();ownedPids.add(child.pid);child.stdout.on('data',()=>{});child.stderr.on('data',()=>{});
@@ -288,6 +296,7 @@ try{
   const restored=await restoredPage.evaluate(async()=>({info:await window.electronP0.info(),events:await window.electronWork.events.load(),tasks:await window.electronWork.tasks.load(),admin:await window.electronWork.admin.load()}));
   result.stability.restart={verdict:restored.info.userData===result.actualUserData&&restored.events.ok&&restored.events.data.document.events.length===2?'PASS':'FAIL',eventCount:restored.events.ok?restored.events.data.document.events.length:null,sameProfile:restored.info.userData===result.actualUserData};
   if(restored.events.ok&&restored.events.data.document.events.length){const deleted=await restoredPage.evaluate(async()=>{const api=window.electronWork.events,l=await api.load(),row=l.data.document.events[0];return api.remove({id:row.id,expectedRevision:l.data.document.revision,expectedUpdatedAt:row.updatedAt,confirmed:true});});result.stability.deleteAfterRestart=deleted.ok?'PASS':'FAIL';}
+  result.stability.taskPreservation={verdict:await digest(taskFile)===taskHash?'PASS':'FAIL',ddayAndTaskBytesUnchanged:true};
   const eventsPath=join(userRoot,'work-data/local-events/events.json');const eventsBytes=await readFile(eventsPath);const backupPath=join(userRoot,'work-data/local-events/events.backup.json');await readFile(backupPath);
   await writeFile(eventsPath,'{invalid synthetic QA');const corrupted=await restoredPage.evaluate(async()=>{const api=window.electronWork.events,l=await api.load();if(!l.ok)return {readError:true};const row=l.data.document.events[0];if(!row)return {recovered:l.data.recovered};const {createdAt,updatedAt,...event}=row;const saved=await api.save({event,expectedRevision:l.data.document.revision,expectedUpdatedAt:updatedAt});return {recovered:l.data.recovered,writeDenied:!saved.ok};});await writeFile(eventsPath,eventsBytes);result.stability.corruption={...corrupted,basis:'only owned synthetic primary modified; original QA bytes restored'};
   if(Object.values(result.stability).some(v=>v&&typeof v==='object'&&v.verdict==='FAIL'))result.violations.push('One or more STABILITY focused checks failed; inspect stability evidence');

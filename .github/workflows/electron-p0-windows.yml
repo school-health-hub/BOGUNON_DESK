@@ -96,7 +96,7 @@ jobs:
       - name: Reuse exact native binaries without rebuilding unchanged source
         run: |
           $ErrorActionPreference='Stop'
-          git -C source diff --exit-code b9a0a1b3893c2f45eeeed7278b86442e415dc159 HEAD -- tools/record-helper-cli tools/chatgpt-auth-cli tools/purchase-excel-cli tools/official-document-cli tools/my-finance-cli src-tauri
+          git -C source diff --exit-code 5cfdee00765d5ab11a9076028b4e6e4c1afc5292 HEAD -- tools/record-helper-cli tools/chatgpt-auth-cli tools/purchase-excel-cli tools/official-document-cli tools/my-finance-cli src-tauri
           if($LASTEXITCODE -ne 0){throw 'Native source changed; reuse forbidden'}
           $old=@(Get-ChildItem prior-portable/*.exe)
           $priorMeta=Get-Content prior-evidence/portable.json -Raw|ConvertFrom-Json
