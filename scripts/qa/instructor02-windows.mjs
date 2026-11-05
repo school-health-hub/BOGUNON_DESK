@@ -54,6 +54,9 @@ async function launch(){
  page=await app.firstWindow();page.setDefaultTimeout(20000);
  page.on('request',r=>{if(/^https?:|^wss?:/.test(r.url()))result.externalRendererRequests.push(new URL(r.url()).origin);});
  await app.evaluate(({BrowserWindow})=>{const w=BrowserWindow.getAllWindows()[0];w.setSize(1440,900);});
+ await page.getByRole('navigation',{name:'주요 기능'}).waitFor();
+ const later=page.getByRole('button',{name:'나중에 설정',exact:true});
+ if(await later.count())await later.click();
  await page.getByRole('navigation',{name:'주요 기능'}).locator('button[data-dock-item="toolbox"]').click();
  await page.getByRole('button',{name:/우리 보건실 · 학교 공유/}).click();
  await expect.poll(()=>page.evaluate(()=>window.electronWorkspace.status().then(s=>s.mode))).toBe('qa');

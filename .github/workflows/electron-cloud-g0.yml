@@ -27,6 +27,11 @@ jobs:
           cache-dependency-path: source/package-lock.json
       - run: npm ci
       - run: npm run electron:p0:build
+      - name: Existing script prerequisite and fresh evidence only
+        shell: bash
+        run: |
+          if ! command -v rg >/dev/null; then sudo apt-get update -qq && sudo apt-get install -y ripgrep; fi
+          rm -f school-workspace/school05/evidence/db-apply.log school-workspace/school05/evidence/db-isolation.txt school-workspace/school05/evidence/new-tests.json school-workspace/school05/evidence/new-tests.log
       - name: Existing SCHOOL-05 and Instructor synthetic database contracts only
         run: bash school-workspace/school05/run-local.sh
         env:
