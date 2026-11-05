@@ -1,5 +1,5 @@
 import {it,expect,vi} from 'vitest';
-import {localQuickTask} from '../renderer/desktop-utilities/localQuickAdd';
+import {localQuickTask} from '../renderer/desktop-utilities/localQuickTask';
 import {electronCommands,runElectronCommand} from '../renderer/desktop-utilities/commands';
 import {createInitialTaskInput} from '../../src/workspace-data/workItemCreateService';
 const id='11111111-1111-4111-8111-111111111111';

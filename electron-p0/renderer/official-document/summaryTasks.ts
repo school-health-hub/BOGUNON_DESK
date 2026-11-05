@@ -1,6 +1,6 @@
 import {extractOfficialDocumentSummary} from '../../../src/official-document/summaryExtractor';
 import {createOfficialDocumentQuickAddDraft} from '../../../src/official-document/summaryToQuickAddDraft';
-import {localQuickTask} from '../desktop-utilities/localQuickAdd';
+import {localQuickTask} from '../desktop-utilities/localQuickTask';
 import type {LocalTask} from '../../local-tasks';
 export type SummaryTaskCandidate={id:string;selected:boolean;title:string;date:string;due:string;category:LocalTask['category'];priority:LocalTask['priority']};
 export function summaryTaskCandidates(text:string,date:string,ids:readonly string[]):SummaryTaskCandidate[]{

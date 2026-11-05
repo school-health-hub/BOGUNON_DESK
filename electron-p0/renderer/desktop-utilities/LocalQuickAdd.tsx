@@ -2,7 +2,7 @@ import {useEffect,useRef,useState} from 'react';
 import {QuickAddPanel} from '../../../src/components/desktop/QuickAddPanel';
 import type {QuickAddInput} from '../../../src/workspace-data/workItemCreateService';
 import {useLocalWorkspace} from '../local-tasks/LocalWorkspaceProvider';
-import {SurfaceDialog} from '../SurfaceDialog';import {localQuickTask} from './localQuickAdd';
+import {SurfaceDialog} from '../SurfaceDialog';import {localQuickTask} from './localQuickTask';
 export function LocalQuickAdd({date,title='',onClose,onNotice,onCalendar}:{date:string;title?:string;onCalendar?:()=>void;onClose:()=>void;onNotice:(message:string)=>void}){
  const data=useLocalWorkspace(),[id]=useState(()=>crypto.randomUUID()),[saving,setSaving]=useState(false),[error,setError]=useState<string|null>(null),locked=useRef(false),live=useRef(true),sequence=useRef(0);
  useEffect(()=>{live.current=true;return()=>{live.current=false;sequence.current++;};},[]);
