@@ -28,6 +28,7 @@ jobs:
         env:
           ACCOUNT_URL_PRESENT: ${{ vars.VITE_SUPABASE_URL != '' }}
           ACCOUNT_URL_MATCHES: ${{ vars.VITE_SUPABASE_URL == 'https://xxownwxxajzrviuvvfiu.supabase.co' }}
+          ACCOUNT_URL_CANONICAL_SLASH: ${{ vars.VITE_SUPABASE_URL == 'https://xxownwxxajzrviuvvfiu.supabase.co/' }}
           ACCOUNT_PUBLISHABLE_PRESENT: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY != '' }}
           ACCOUNT_MODERN_PUBLIC_PREFIX: ${{ startsWith(vars.VITE_SUPABASE_PUBLISHABLE_KEY, 'sb_publishable_') }}
           ACCOUNT_LEGACY_ALIAS_PRESENT: ${{ vars.VITE_SUPABASE_ANON_KEY != '' }}
@@ -41,6 +42,7 @@ jobs:
             sourceSha=(git rev-parse HEAD).Trim();runId=$env:GITHUB_RUN_ID
             urlPresent=$env:ACCOUNT_URL_PRESENT -eq 'true'
             urlMatchesExistingProject=$env:ACCOUNT_URL_MATCHES -eq 'true'
+            urlCanonicalTrailingSlashMatches=$env:ACCOUNT_URL_CANONICAL_SLASH -eq 'true'
             publishableVariablePresent=$env:ACCOUNT_PUBLISHABLE_PRESENT -eq 'true'
             modernPublicPrefix=$env:ACCOUNT_MODERN_PUBLIC_PREFIX -eq 'true'
             legacyAnonAliasPresent=$env:ACCOUNT_LEGACY_ALIAS_PRESENT -eq 'true'
