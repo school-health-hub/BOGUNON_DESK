@@ -78,7 +78,7 @@ export function InstructorWorkspace({bridge,school,client}:{bridge:Bridge;school
     {tab==='지급명세서·출력'&&<><div className="instructor-actions"><button disabled={!files||busy||!docs.attendanceRegister.rows.length} onClick={()=>openPrint('attendance')}>출근관리부 미리보기</button><button disabled={!files||busy} onClick={()=>openPrint('payment')}>지급명세서 미리보기</button><button disabled={!files||busy} onClick={()=>void fileAction('workbookSave')}>지급명세서 Excel 저장</button></div><PaymentStatementPreview documents={docs} printActive={false} showPreview={true}/></>}
    </>}
   </>}
-  {printing&&docs&&<SurfaceDialog title="출력 미리보기" onClose={closePrint} closeDisabled={busy}><section className="instructor-print-preview health-support-workspace" aria-label="인쇄할 문서" data-print-document={printing==='attendance'?'attendance-register':printing==='payment'?'payment-statement':'work-detail'}>
+  {printing&&docs&&<SurfaceDialog overlayClassName="instructor-preview-overlay" restoreScroll title="출력 미리보기" onClose={closePrint} closeDisabled={busy}><section className="instructor-print-preview health-support-workspace" aria-label="인쇄할 문서" data-print-document={printing==='attendance'?'attendance-register':printing==='payment'?'payment-statement':'work-detail'}>
    <div className="instructor-print-actions"><h2>출력 전 확인</h2>{printing==='attendance'&&<>
     <label><input type="checkbox" checked={includeInstructor} disabled={busy||!instructorStamp} onChange={e=>setIncludeInstructor(e.target.checked)}/>이번 출력에 강사 도장 포함</label>
     <label><input type="checkbox" checked={include} disabled={busy||!stamp} onChange={e=>setInclude(e.target.checked)}/>이번 출력에 보건교사 도장 포함</label>
