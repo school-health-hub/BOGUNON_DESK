@@ -1,0 +1,26 @@
+{
+  "classification": "VERIFIED HOSTED READ-ONLY, user-supplied handoff; not direct Cloud observation",
+  "project": "xxownwxxajzrviuvvfiu",
+  "observed_at": null,
+  "facts": {
+    "pg_version": "17.6",
+    "auth_sessions_owner": "supabase_auth_admin",
+    "auth_users_owner": "supabase_auth_admin",
+    "authenticated_auth_table_select": false,
+    "auth_owner_table_select": true,
+    "ws_runtime_exists": false,
+    "ws_authz_reader_exists": false,
+    "postgres_bypassrls": true,
+    "workspace_rpc_count": 0
+  },
+  "not_implied": [
+    "observer is actual installer",
+    "postgres superuser",
+    "SET ROLE Auth owner",
+    "schema ownership assignment",
+    "DDL allowance by Managed Auth",
+    "function execution success",
+    "session row visibility under RLS",
+    "hosted JWT/RPC/logout tested"
+  ]
+}

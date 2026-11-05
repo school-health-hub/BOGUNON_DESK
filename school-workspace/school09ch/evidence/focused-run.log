@@ -1,0 +1,27 @@
+PASS BYPASSRLS alone does not grant SET ROLE Auth owner
+PASS BYPASSRLS alone does not grant raw Auth SELECT
+PASS role MEMBER with SET FALSE cannot become Auth owner
+PASS ALTER FUNCTION OWNER also requires Auth SET, not BYPASSRLS
+PASS explicitly delegated SET plus target schema CREATE permits owner assignment locally
+PASS 09C original source cannot create Auth-owned schema without SET
+PASS 09C original schema ACL stage fails under SET-only NOINHERIT installer
+PASS schema-owner context correction alone leaves private helper replacement unauthorized
+PASS all failed original installation transactions leave baseline CLOSED and unchanged
+PASS new candidate fails before DDL without Auth SET capability
+PASS new candidate fails before DDL without database CREATE
+PASS pre-existing SET ROLE context cannot masquerade as a direct installer
+PASS late installation failure rolls back Auth helper, schema and grants
+PASS corrected Auth-only candidate installs using genuine NOSUPERUSER NOINHERIT LOGIN
+PASS temporary schema CREATE removed and all54 RPC remain CLOSED
+PASS no Workspace/client Auth session SELECT survives
+PASS installer grants no broad Auth privileges or inherited owner access
+PASS only Auth owner and reader EXECUTE the new fixed-path boolean functions
+PASS both distinct sessions for same subject initially authorized
+PASS deleted current session denied while same user other session remains valid
+PASS current session expiry denies still syntactically valid claims
+PASS Workspace revocation rejects current session independently of Auth row existence
+PASS Auth user deletion with session cleanup prevents old claims access and leaves school records
+PASS purpose test grants removed, final54 remain CLOSED
+PASS supplemental Hosted SELECT syntax validated locally with no Auth schema privilege
+PASS supplemental Hosted SELECT syntax validated as catalog observer
+PASS focused checks 26 HOSTED NOT RUN; original177/23 NOT REPEATED

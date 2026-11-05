@@ -1,0 +1,24 @@
+PASS BYPASSRLS alone does not grant SET ROLE Auth owner
+PASS BYPASSRLS alone does not grant raw Auth SELECT
+PASS role MEMBER with SET FALSE cannot become Auth owner
+PASS 09C original source cannot create Auth-owned schema without SET
+PASS 09C original schema ACL stage fails under SET-only NOINHERIT installer
+PASS schema-owner context correction alone leaves private helper replacement unauthorized
+PASS all failed original installation transactions leave baseline CLOSED and unchanged
+PASS new candidate fails before DDL without Auth SET capability
+PASS new candidate fails before DDL without database CREATE
+PASS pre-existing SET ROLE context cannot masquerade as a direct installer
+FAIL late installation failure rolls back Auth helper, schema and grants ('division by zero', 3, "ERROR:  42501: permission denied for schema auth\nLINE 1: EXISTS(SELECT 1 FROM pg_class c WHERE c.oid IN('auth.users':...\n                                                       ^\nQUERY:  EXISTS(SELECT 1 FROM pg_class c WHERE c.oid IN('auth.users'::regclass,'auth.sessions'::regclass)AND c.relowner<>(SELECT oid FROM pg_roles WHERE rolname='supabase_auth_admin'))\nCONTEXT:  PL/pgSQL function inline_code_block line 12 at IF\nLOCATION:  aclcheck_error, aclchk.c:2843\n")
+Traceback (most recent call last):
+  File "/workspace/work/school-09ch/repo/school-workspace/school09ch/tests/capabilities.py", line 44, in <module>
+    case('late installation failure rolls back Auth helper, schema and grants',lambda:(denied(login('ddl_set_only',prefix+body.replace('-- END AUTH INSTALL BOUNDARY','SELECT 1/0;\n-- END AUTH INSTALL BOUNDARY'),False),'division by zero'),require(snapshot()==before)))
+  File "/workspace/work/school-09ch/repo/school-workspace/school09ch/tests/capabilities.py", line 9, in case
+    try:fn();checks.append({'name':name,'status':'PASS','classification':'LOCAL PG17 capability/DDL boundary'});print('PASS',name,flush=True)
+        ^^^^
+  File "/workspace/work/school-09ch/repo/school-workspace/school09ch/tests/capabilities.py", line 44, in <lambda>
+    case('late installation failure rolls back Auth helper, schema and grants',lambda:(denied(login('ddl_set_only',prefix+body.replace('-- END AUTH INSTALL BOUNDARY','SELECT 1/0;\n-- END AUTH INSTALL BOUNDARY'),False),'division by zero'),require(snapshot()==before)))
+                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/school-09ch/repo/school-workspace/school09ch/tests/capabilities.py", line 19, in denied
+    def denied(p,marker):assert p.returncode and marker in p.stderr,(marker,p.returncode,p.stderr[-2000:])
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('division by zero', 3, "ERROR:  42501: permission denied for schema auth\nLINE 1: EXISTS(SELECT 1 FROM pg_class c WHERE c.oid IN('auth.users':...\n                                                       ^\nQUERY:  EXISTS(SELECT 1 FROM pg_class c WHERE c.oid IN('auth.users'::regclass,'auth.sessions'::regclass)AND c.relowner<>(SELECT oid FROM pg_roles WHERE rolname='supabase_auth_admin'))\nCONTEXT:  PL/pgSQL function inline_code_block line 12 at IF\nLOCATION:  aclcheck_error, aclchk.c:2843\n")

@@ -1,0 +1,17 @@
+PASS BYPASSRLS alone does not grant SET ROLE Auth owner
+PASS BYPASSRLS alone does not grant raw Auth SELECT
+PASS role MEMBER with SET FALSE cannot become Auth owner
+FAIL 09C original source cannot create Auth-owned schema without SET ('permission denied', 3, 'ERROR:  must be able to SET ROLE "supabase_auth_admin"\n')
+Traceback (most recent call last):
+  File "/workspace/work/school-09ch/repo/school-workspace/school09ch/tests/capabilities.py", line 35, in <module>
+    case('09C original source cannot create Auth-owned schema without SET',lambda:denied(login('ddl_bypass','BEGIN;'+orig+'COMMIT;',False),'permission denied'))
+  File "/workspace/work/school-09ch/repo/school-workspace/school09ch/tests/capabilities.py", line 9, in case
+    try:fn();checks.append({'name':name,'status':'PASS','classification':'LOCAL PG17 capability/DDL boundary'});print('PASS',name,flush=True)
+        ^^^^
+  File "/workspace/work/school-09ch/repo/school-workspace/school09ch/tests/capabilities.py", line 35, in <lambda>
+    case('09C original source cannot create Auth-owned schema without SET',lambda:denied(login('ddl_bypass','BEGIN;'+orig+'COMMIT;',False),'permission denied'))
+                                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/school-09ch/repo/school-workspace/school09ch/tests/capabilities.py", line 19, in denied
+    def denied(p,marker):assert p.returncode and marker in p.stderr,(marker,p.returncode,p.stderr[-2000:])
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('permission denied', 3, 'ERROR:  must be able to SET ROLE "supabase_auth_admin"\n')

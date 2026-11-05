@@ -1,0 +1,117 @@
+{
+  "functions": [
+    {
+      "acl": "{supabase_auth_admin=X/supabase_auth_admin,ws_authz_reader=X/supabase_auth_admin}",
+      "body": "\n SELECT auth.uid() IS NOT NULL\n AND coalesce((auth.jwt()->>'is_anonymous')::boolean,false)=false\n AND coalesce((auth.jwt()->>'exp')::numeric,0)>extract(epoch FROM statement_timestamp())\n AND EXISTS(SELECT 1 FROM auth.sessions s WHERE s.id=nullif(auth.jwt()->>'session_id','')::uuid\n AND s.user_id=auth.uid() AND s.created_at>statement_timestamp()-interval '7 days'\n AND(s.not_after IS NULL OR s.not_after>statement_timestamp()))\n",
+      "owner": "supabase_auth_admin",
+      "definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "workspace_auth_bridge.session_valid()"
+    },
+    {
+      "acl": "{supabase_auth_admin=X/supabase_auth_admin,ws_authz_reader=X/supabase_auth_admin}",
+      "body": "\n SELECT workspace_auth_bridge.session_valid()\n AND EXISTS(SELECT 1 FROM auth.sessions s WHERE s.id=nullif(auth.jwt()->>'session_id','')::uuid\n AND s.user_id=auth.uid() AND s.created_at>statement_timestamp()-interval '10 minutes')\n",
+      "owner": "supabase_auth_admin",
+      "definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "workspace_auth_bridge.recent_login()"
+    },
+    {
+      "acl": "{ws_authz_reader=X/ws_authz_reader,ws_runtime=X/ws_authz_reader}",
+      "body": "\n SELECT workspace_auth_bridge.session_valid()\n AND NOT EXISTS(SELECT 1 FROM workspace.revoked_sessions WHERE session_id=nullif(auth.jwt()->>'session_id','')::uuid)\n AND NOT EXISTS(SELECT 1 FROM workspace.accounts WHERE user_id=auth.uid() AND status<>'active')\n",
+      "owner": "ws_authz_reader",
+      "definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "workspace_private.session_ok()"
+    },
+    {
+      "acl": "{ws_authz_reader=X/ws_authz_reader,ws_runtime=X/ws_authz_reader}",
+      "body": "\n SELECT workspace_auth_bridge.recent_login() AND workspace_private.session_ok()\n",
+      "owner": "ws_authz_reader",
+      "definer": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "workspace_private.recent_login()"
+    }
+  ],
+  "role_memberships": [
+    {
+      "set": true,
+      "role": "ws_owner",
+      "member": "ddl_bypass",
+      "inherit": false
+    },
+    {
+      "set": true,
+      "role": "ws_authz_reader",
+      "member": "ddl_bypass",
+      "inherit": false
+    },
+    {
+      "set": true,
+      "role": "ws_owner",
+      "member": "ddl_member_no_set",
+      "inherit": false
+    },
+    {
+      "set": true,
+      "role": "ws_authz_reader",
+      "member": "ddl_member_no_set",
+      "inherit": false
+    },
+    {
+      "set": false,
+      "role": "supabase_auth_admin",
+      "member": "ddl_member_no_set",
+      "inherit": false
+    },
+    {
+      "set": true,
+      "role": "ws_owner",
+      "member": "ddl_set_only",
+      "inherit": false
+    },
+    {
+      "set": true,
+      "role": "ws_authz_reader",
+      "member": "ddl_set_only",
+      "inherit": false
+    },
+    {
+      "set": true,
+      "role": "supabase_auth_admin",
+      "member": "ddl_set_only",
+      "inherit": false
+    },
+    {
+      "set": true,
+      "role": "ws_owner",
+      "member": "ddl_no_db_create",
+      "inherit": false
+    },
+    {
+      "set": true,
+      "role": "ws_authz_reader",
+      "member": "ddl_no_db_create",
+      "inherit": false
+    },
+    {
+      "set": true,
+      "role": "supabase_auth_admin",
+      "member": "ddl_no_db_create",
+      "inherit": false
+    }
+  ],
+  "catalog_observer": {
+    "current": "postgres",
+    "session": "postgres"
+  },
+  "installer_evidence": "Actual psql -U ddl_set_only LOGIN; see capability tests and profile metadata; catalog observer is not the installer"
+}

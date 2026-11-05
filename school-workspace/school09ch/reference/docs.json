@@ -1,0 +1,14 @@
+{
+  "references": [
+    {
+      "url": "https://supabase.com/docs/guides/database/postgres/roles",
+      "evidence": "public Supabase search_docs result; roles/permissions distinction, not project capabilities"
+    },
+    {
+      "url": "https://supabase.com/docs/guides/auth/sessions",
+      "evidence": "session_id/live sessions concept from prior documentation review; not Hosted execution"
+    }
+  ],
+  "changelog_fetch": "blocked by environment HTTP proxy403; not bypassed",
+  "managed_custom_auth_owner_objects_support": "NOT VERIFIED; provider/operations confirmation required"
+}

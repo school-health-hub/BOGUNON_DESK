@@ -1,0 +1,14 @@
+[
+  {
+    "path": "sql/auth-install-local.sql",
+    "sha256": "e741af09bae0f358ca1bfdfe1b42ff5f2f762f67f317c9975f0b0eb4ee39f2c7"
+  },
+  {
+    "path": "sql/hosted-capabilities-readonly.sql",
+    "sha256": "f74c9f333aa1cdb5eeb342bb4c049fed265b0f03b4231c32ad6d8815cd5a2077"
+  },
+  {
+    "path": "sql/local-install-guard.sql",
+    "sha256": "aa9ad6969bef4498bca577a9a208a4f5bc3972031b3b41ad813f349913a20355"
+  }
+]

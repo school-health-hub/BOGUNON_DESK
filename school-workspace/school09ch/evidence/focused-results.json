@@ -1,0 +1,136 @@
+{
+  "checks": [
+    {
+      "name": "BYPASSRLS alone does not grant SET ROLE Auth owner",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    },
+    {
+      "name": "BYPASSRLS alone does not grant raw Auth SELECT",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    },
+    {
+      "name": "role MEMBER with SET FALSE cannot become Auth owner",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    },
+    {
+      "name": "ALTER FUNCTION OWNER also requires Auth SET, not BYPASSRLS",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    },
+    {
+      "name": "explicitly delegated SET plus target schema CREATE permits owner assignment locally",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    },
+    {
+      "name": "09C original source cannot create Auth-owned schema without SET",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    },
+    {
+      "name": "09C original schema ACL stage fails under SET-only NOINHERIT installer",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    },
+    {
+      "name": "schema-owner context correction alone leaves private helper replacement unauthorized",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    },
+    {
+      "name": "all failed original installation transactions leave baseline CLOSED and unchanged",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    },
+    {
+      "name": "new candidate fails before DDL without Auth SET capability",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    },
+    {
+      "name": "new candidate fails before DDL without database CREATE",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    },
+    {
+      "name": "pre-existing SET ROLE context cannot masquerade as a direct installer",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    },
+    {
+      "name": "late installation failure rolls back Auth helper, schema and grants",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    },
+    {
+      "name": "corrected Auth-only candidate installs using genuine NOSUPERUSER NOINHERIT LOGIN",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    },
+    {
+      "name": "temporary schema CREATE removed and all54 RPC remain CLOSED",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    },
+    {
+      "name": "no Workspace/client Auth session SELECT survives",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    },
+    {
+      "name": "installer grants no broad Auth privileges or inherited owner access",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    },
+    {
+      "name": "only Auth owner and reader EXECUTE the new fixed-path boolean functions",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    },
+    {
+      "name": "both distinct sessions for same subject initially authorized",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    },
+    {
+      "name": "deleted current session denied while same user other session remains valid",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    },
+    {
+      "name": "current session expiry denies still syntactically valid claims",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    },
+    {
+      "name": "Workspace revocation rejects current session independently of Auth row existence",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    },
+    {
+      "name": "Auth user deletion with session cleanup prevents old claims access and leaves school records",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    },
+    {
+      "name": "purpose test grants removed, final54 remain CLOSED",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    },
+    {
+      "name": "supplemental Hosted SELECT syntax validated locally with no Auth schema privilege",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    },
+    {
+      "name": "supplemental Hosted SELECT syntax validated as catalog observer",
+      "status": "PASS",
+      "classification": "LOCAL PG17 capability/DDL boundary"
+    }
+  ],
+  "hosted": "NOT RUN",
+  "old177_and_rest23": "REFERENCED at a16245d, not rerun"
+}

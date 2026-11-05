@@ -1,0 +1,114 @@
+[
+  {
+    "case": "BYPASSRLS alone does not grant SET ROLE Auth owner",
+    "returncode": 3,
+    "sqlstate": "42501",
+    "primary_error": "ERROR:  42501: permission denied to set role \"supabase_auth_admin\"",
+    "expected_marker": "42501"
+  },
+  {
+    "case": "BYPASSRLS alone does not grant raw Auth SELECT",
+    "returncode": 3,
+    "sqlstate": "42501",
+    "primary_error": "ERROR:  42501: permission denied for schema auth",
+    "expected_marker": "42501"
+  },
+  {
+    "case": "role MEMBER with SET FALSE cannot become Auth owner",
+    "returncode": 3,
+    "sqlstate": "42501",
+    "primary_error": "ERROR:  42501: permission denied to set role \"supabase_auth_admin\"",
+    "expected_marker": "42501"
+  },
+  {
+    "case": "ALTER FUNCTION OWNER also requires Auth SET, not BYPASSRLS",
+    "returncode": 3,
+    "sqlstate": "42501",
+    "primary_error": "ERROR:  42501: must be able to SET ROLE \"supabase_auth_admin\"",
+    "expected_marker": "42501"
+  },
+  {
+    "case": "09C original source cannot create Auth-owned schema without SET",
+    "returncode": 3,
+    "sqlstate": "42501",
+    "primary_error": "ERROR:  42501: must be able to SET ROLE \"supabase_auth_admin\"",
+    "expected_marker": "42501"
+  },
+  {
+    "case": "09C original schema ACL stage fails under SET-only NOINHERIT installer",
+    "returncode": 3,
+    "sqlstate": "42501",
+    "primary_error": "ERROR:  42501: permission denied for schema workspace_auth_bridge",
+    "expected_marker": "42501"
+  },
+  {
+    "case": "schema-owner context correction alone leaves private helper replacement unauthorized",
+    "returncode": 3,
+    "sqlstate": "42501",
+    "primary_error": "ERROR:  42501: permission denied for schema workspace_private",
+    "expected_marker": "42501"
+  },
+  {
+    "case": "new candidate fails before DDL without Auth SET capability",
+    "returncode": 3,
+    "sqlstate": "P0001",
+    "primary_error": "ERROR:  P0001: role_set_capability_required:supabase_auth_admin",
+    "expected_marker": "role_set_capability_required"
+  },
+  {
+    "case": "new candidate fails before DDL without database CREATE",
+    "returncode": 3,
+    "sqlstate": "P0001",
+    "primary_error": "ERROR:  P0001: database_create_required",
+    "expected_marker": "database_create_required"
+  },
+  {
+    "case": "pre-existing SET ROLE context cannot masquerade as a direct installer",
+    "returncode": 3,
+    "sqlstate": null,
+    "primary_error": "ERROR:  direct_install_identity_required",
+    "expected_marker": "direct_install_identity_required"
+  },
+  {
+    "case": "late installation failure rolls back Auth helper, schema and grants",
+    "returncode": 3,
+    "sqlstate": "22012",
+    "primary_error": "ERROR:  22012: division by zero",
+    "expected_marker": "division by zero"
+  },
+  {
+    "case": "installer grants no broad Auth privileges or inherited owner access",
+    "returncode": 3,
+    "sqlstate": "42501",
+    "primary_error": "ERROR:  42501: permission denied for schema auth",
+    "expected_marker": "42501"
+  },
+  {
+    "case": "deleted current session denied while same user other session remains valid",
+    "returncode": 3,
+    "sqlstate": "P0001",
+    "primary_error": "ERROR:  P0001: unauthenticated_or_revoked",
+    "expected_marker": "unauthenticated_or_revoked"
+  },
+  {
+    "case": "current session expiry denies still syntactically valid claims",
+    "returncode": 3,
+    "sqlstate": "P0001",
+    "primary_error": "ERROR:  P0001: unauthenticated_or_revoked",
+    "expected_marker": "unauthenticated_or_revoked"
+  },
+  {
+    "case": "Workspace revocation rejects current session independently of Auth row existence",
+    "returncode": 3,
+    "sqlstate": "P0001",
+    "primary_error": "ERROR:  P0001: unauthenticated_or_revoked",
+    "expected_marker": "unauthenticated_or_revoked"
+  },
+  {
+    "case": "Auth user deletion with session cleanup prevents old claims access and leaves school records",
+    "returncode": 3,
+    "sqlstate": "P0001",
+    "primary_error": "ERROR:  P0001: unauthenticated_or_revoked",
+    "expected_marker": "unauthenticated_or_revoked"
+  }
+]

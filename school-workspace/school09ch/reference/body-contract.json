@@ -1,0 +1,17 @@
+{
+  "prior_source": "a16245d878784aa2bdb06e2a339356956f9720e5",
+  "prior_auth_sql_sha256": "c08342a3fc0100c96168f2b18e3287bfcec9983c42ca9732f5bb2d06186a26c7",
+  "unchanged_function_bodies": {
+    "workspace_auth_bridge.session_valid": "233f7897776528ef6ba92be4d57de145a68f3bdbc829f95ffde27af63e941e55",
+    "workspace_auth_bridge.recent_login": "7d4aadc20503d7ab29375c3559a2dea1ab06949d4affb4a899759f3520adf28e",
+    "workspace_private.session_ok": "207162aeee8b0ffcbca82fd1f4d12ce69fafcdec26463faf2c8f5aafeca54162",
+    "workspace_private.recent_login": "3998fc3d8e4e742c745907d79f19d7fc87e7d2e406a39f2e7fe3562215d5715d"
+  },
+  "changes": [
+    "schema ACL commands run as Auth schema owner",
+    "replace private helpers as existing reader owner",
+    "temporary reader CREATE inside transaction then revoke",
+    "preflight SET/session/database/CLOSED gates"
+  ],
+  "hosted": "NOT RUN"
+}
