@@ -1,0 +1,896 @@
+{
+  "checks": [
+    {
+      "name": "installer NOSUPERUSER cannot SET Auth owner or CREATE in auth",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "mid-install forced failure rolls back schemas roles and default privileges",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "late installation failure rolls back business schemas roles and permissions",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "fresh full S01-S07 business installation without Auth role grants",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "all54 public RPC default CLOSED",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "managed Auth objects and ACL byte fingerprints unchanged",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "existing public objects and personal rows unchanged",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "no Workspace role has Auth USAGE or table or column SELECT",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "all Workspace tables FORCE RLS with nonbypass owner",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "no temporary seed policy or reader/runtime schema CREATE remains",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "all54 public signatures bodies owners and security flags unchanged",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "only two parameterless postgres-owned session booleans, private EXECUTE reader only",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "no permanent Workspace function owned by postgres outside boolean boundary",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "temporary NOBYPASS installer is removed completely",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "direct bridge SELECT and arbitrary UUID oracle denied anon",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "direct bridge SELECT and arbitrary UUID oracle denied authenticated",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "direct bridge SELECT and arbitrary UUID oracle denied ws_owner",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "direct bridge SELECT and arbitrary UUID oracle denied ws_runtime",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "full installer replay is checked no-op",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "explicit isolated QA activation",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t01",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t02",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t03",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t04",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t05",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t06",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t07",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t08",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t09",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t10",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t11",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t12",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t13",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t14",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t15",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t16",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t17",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t18",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t19",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t20",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t21",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t22",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t23",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t24",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t25",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t26",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t27",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t28",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t29",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t30",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t31",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t32",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t33",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION S01 t34",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory admin creates item with zero stock",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory inactive create is honored and archived holding never appears usable",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory location register/rename uses version; assistant cannot manage",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory teacher edits metadata",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory assistant cannot edit metadata",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory cross school item lookup denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory receive increases stock and30day inclusive boundary",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory assistant default receive denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory explicit own use permission decreases stock",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory negative stock denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory assistant adjust/dispose forbidden",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory request_id replay applies once",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory request_id changed payload rejected",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory stale expected_version rejected",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory concurrent actual connections cannot overdraw",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory expired use rejected",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory no-expiry lot and separate quantities",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory expired excluded from usable; holding includes all",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory adjust/dispose append history and low stock uses usable count",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory unusable lot excluded and use forbidden",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory different school lot movement denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory pending/expired denied 5",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory pending/expired denied 8",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory live suspension rejects previous session",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory all quantity transactions have atomic audit entries",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory audit failure rolls back lot/movement/receipt",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory raw tables and movement delete denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory privacy rejected before any persistent receipt",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory Seoul dates: expiry today/30 inclusive,31 excluded, yesterday expired",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory explicit own receive works; deny override wins over allow",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION Inventory valid school B item cannot reference school A lot",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only electron: teacher/assistant requests -> admin approval/rejection -> refreshed role",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only web: teacher/assistant requests -> admin approval/rejection -> refreshed role",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only same-name directory preserves code strings and office disambiguation",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only duplicate join blocked server-side and never becomes active",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only assistant approval requires future expiry; teacher admin role is not a join choice",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only withdraw pending -> withdrawn display -> rejoin creates a new epoch",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only opening request is pending only; duplicate request and forged directory rejected",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only self approval denied even with direct public RPC; no cross-school applicant access",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only assistant cannot list admin records, change role, or propose administrator",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only role refresh, expiry mutation and live suspension/revocation all enforced",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only expired assistant is denied and last admin leave/demotion/suspension is blocked",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only administrator add: recent reauth -> propose -> target accept -> server roles",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only administrator transfer: recent reauth -> propose -> target accept -> server roles",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only assistant cannot be proposed for admin and stale member versions do not partially update",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only late school A response cannot replace B; logout and expired session clear all school state",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only raw tables, audits, anon RPC and runtime/reader ownership remain protected",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted admin/teacher 1 creates with server actor/time and valid same-school multiassignment",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted admin/teacher 3 creates with server actor/time and valid same-school multiassignment",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted assistant cannot create/edit/assign/close/history even through direct public RPC",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted cross-school/pending/expired/inactive assignees are rejected and create rolls back",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted assigned assistant TODO -> IN_PROGRESS -> DONE only; other assistant denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted teachers complete/cancel/archive; archived records stay school-owned and hidden by default",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted server due/priority sorting and my/today scopes",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted school isolation, pending/expired/suspended and revoked sessions deny new reads",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted optimistic concurrency permits one edit only and has no partial loser history",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted request id replay deduplicates, different payload conflicts, receipts have hashes not prose",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted blocked synthetic sensitive markers/long input leave no task/audit/history/receipt",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted audit failure atomically rolls back task/assignment/history/receipt",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted raw tables/audit/history mutation forbidden, epoch prevents stale assignment restoration",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted individual task.read denial and live session expiry override cached approved role",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted reassignment validates candidates, increments version and records same transaction history",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN admin/teacher 1: create edit cancel event with history",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN admin/teacher 3: create edit cancel event with history",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN assistant read only; other school and pending event access denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN all-day endpoints at Seoul midnight, timed dates and positive exclusive ranges",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN event concurrent version conflict and idempotency prevent double side effects",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN direct targets visible only to target/author/admin, not unrelated teacher/assistant or other school",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN ack is self-only, duplicate state is unique; completion is separate from acknowledgement",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN edit forces new revision/ack; stale replay cannot acknowledge new content",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN role targets snapshot at publish; new join/rejoin has no past obligation or old revision access",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN assistant default creation/edit/complete denied; explicit create and targeted complete grants stay bounded",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN revocation, expiry, suspended and raw table/audit/revision mutations fail closed",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN privacy rejection persists nowhere; audit failure rolls back event/revision/target changes",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN deny overrides and suspended/live-expired sessions override cached school approval",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN direct authenticated SQL cannot bypass expected_version with NULL and roles remain nonowner/NOBYPASSRLS",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN focus/manual refresh replaces open detail after edited content and requires fresh ack",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN teacher completion requires current target and cross-school target assignment rolls back",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION bootstrap school request remains pending and has no admin",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION bootstrap applicant cannot self assign admin through existing RPC",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION bootstrap applicant cannot call private operator function",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION bootstrap operator has no raw table UPDATE",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION bootstrap NULL expected_version denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION bootstrap missing external proof or consent fails",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION bootstrap verified operator proposal still cannot activate school",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION bootstrap proposal replay is idempotent",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION bootstrap request_id payload mismatch denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION bootstrap proposer cannot approve own case",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION bootstrap wrong school case ID denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION bootstrap mismatched consent evidence denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION bootstrap expected version required",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION bootstrap expired verification cannot activate",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION bootstrap operator authority can be revoked immediately",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION bootstrap audit failure rolls back all activation",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION bootstrap second operator approves, school active with one admin",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION bootstrap approval replay cannot duplicate membership/audit",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION bootstrap new approval command after completion rejected",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION bootstrap cannot seize an existing active school",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION bootstrap app administrator cannot modify operator audit",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION bootstrap last admin still cannot leave",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION bootstrap cannot promote an existing assistant target",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION bootstrap ownership and RLS separation remains intact",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "REGRESSION bootstrap Hosted supplemental metadata SELECT is executable locally",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "MOCK failed REST startup never exposes signing material in traceback",
+      "status": "PASS",
+      "classification": "MOCK"
+    },
+    {
+      "name": "HTTP approved teacher public\u2192private\u2192reader\u2192limited postgres boolean chain",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP anon and expired signed JWT denied",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP pending and other-school user denied",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP teacher write traverses unchanged business RPC",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP live role downgrade blocks old JWT teacher write",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP live membership suspension blocks next request",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP two distinct sessions for same subject both initially valid",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP current revoked session denied while other session remains valid",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP current session not_after expiry overrides valid JWT signature",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP purpose revocation RPC records current session",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP app-revoked session denied with Auth row still present",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP mismatched sub/session binding and forged Auth role denied",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP private/raw endpoints are not resources",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP all54 CLOSED deny both anon/authenticated (108 requests,one grouped case)",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP closure retains existing task data",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "fresh installation and Auth ACL still unchanged after API lifecycle",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "manifest row substitution cannot be adopted or activated",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "external Auth usage grant is rejected by install and activation guards",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bridge definition drift cannot be adopted or activated",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "restored exact reviewed metadata permits checked replay without data deletion",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    }
+  ],
+  "hosted": "NOT RUN",
+  "prior_results": "REFERENCED only; not added to these counts"
+}

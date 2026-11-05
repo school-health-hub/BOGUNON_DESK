@@ -1,0 +1,10 @@
+
+ RUN  v5.0.1 /workspace/work/school-09ch3/repo
+
+No test files found, exiting with code 1
+
+filter: school-workspace/school03/tests/contracts.test.ts
+include: school-workspace/school03/tests/**/*.test.ts, school-workspace/school03/tests/**/*.test.tsx
+exclude:  **/node_modules/**, **/.git/**
+
+JSON report written to /workspace/work/school-09ch3/repo/school-workspace/school09ch3/evidence/school03-db-contracts.json

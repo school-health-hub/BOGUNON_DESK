@@ -1,0 +1,108 @@
+PASS installer NOSUPERUSER cannot SET Auth owner or CREATE in auth
+PASS mid-install forced failure rolls back schemas roles and default privileges
+PASS late installation failure rolls back business schemas roles and permissions
+PASS fresh full S01-S07 business installation without Auth role grants
+PASS all54 public RPC default CLOSED
+PASS managed Auth objects and ACL byte fingerprints unchanged
+PASS existing public objects and personal rows unchanged
+PASS no Workspace role has Auth USAGE or table or column SELECT
+PASS all Workspace tables FORCE RLS with nonbypass owner
+PASS no temporary seed policy or reader/runtime schema CREATE remains
+PASS all54 public signatures bodies owners and security flags unchanged
+PASS only two parameterless postgres-owned session booleans, private EXECUTE reader only
+PASS no permanent Workspace function owned by postgres outside boolean boundary
+PASS temporary NOBYPASS installer is removed completely
+PASS direct bridge SELECT and arbitrary UUID oracle denied anon
+PASS direct bridge SELECT and arbitrary UUID oracle denied authenticated
+PASS direct bridge SELECT and arbitrary UUID oracle denied ws_owner
+PASS direct bridge SELECT and arbitrary UUID oracle denied ws_runtime
+PASS full installer replay is checked no-op
+PASS explicit isolated QA activation
+PASS REGRESSION S01 t01
+PASS REGRESSION S01 t02
+PASS REGRESSION S01 t03
+PASS REGRESSION S01 t04
+PASS REGRESSION S01 t05
+PASS REGRESSION S01 t06
+PASS REGRESSION S01 t07
+PASS REGRESSION S01 t08
+PASS REGRESSION S01 t09
+PASS REGRESSION S01 t10
+PASS REGRESSION S01 t11
+PASS REGRESSION S01 t12
+PASS REGRESSION S01 t13
+PASS REGRESSION S01 t14
+PASS REGRESSION S01 t15
+PASS REGRESSION S01 t16
+PASS REGRESSION S01 t17
+PASS REGRESSION S01 t18
+PASS REGRESSION S01 t19
+PASS REGRESSION S01 t20
+PASS REGRESSION S01 t21
+PASS REGRESSION S01 t22
+PASS REGRESSION S01 t23
+PASS REGRESSION S01 t24
+PASS REGRESSION S01 t25
+PASS REGRESSION S01 t26
+PASS REGRESSION S01 t27
+PASS REGRESSION S01 t28
+PASS REGRESSION S01 t29
+PASS REGRESSION S01 t30
+PASS REGRESSION S01 t31
+PASS REGRESSION S01 t32
+PASS REGRESSION S01 t33
+PASS REGRESSION S01 t34
+PASS REGRESSION Inventory admin creates item with zero stock
+PASS REGRESSION Inventory inactive create is honored and archived holding never appears usable
+PASS REGRESSION Inventory location register/rename uses version; assistant cannot manage
+PASS REGRESSION Inventory teacher edits metadata
+PASS REGRESSION Inventory assistant cannot edit metadata
+PASS REGRESSION Inventory cross school item lookup denied
+PASS REGRESSION Inventory receive increases stock and30day inclusive boundary
+PASS REGRESSION Inventory assistant default receive denied
+PASS REGRESSION Inventory explicit own use permission decreases stock
+PASS REGRESSION Inventory negative stock denied
+PASS REGRESSION Inventory assistant adjust/dispose forbidden
+PASS REGRESSION Inventory request_id replay applies once
+PASS REGRESSION Inventory request_id changed payload rejected
+PASS REGRESSION Inventory stale expected_version rejected
+PASS REGRESSION Inventory concurrent actual connections cannot overdraw
+PASS REGRESSION Inventory expired use rejected
+PASS REGRESSION Inventory no-expiry lot and separate quantities
+PASS REGRESSION Inventory expired excluded from usable; holding includes all
+PASS REGRESSION Inventory adjust/dispose append history and low stock uses usable count
+PASS REGRESSION Inventory unusable lot excluded and use forbidden
+PASS REGRESSION Inventory different school lot movement denied
+PASS REGRESSION Inventory pending/expired denied 5
+PASS REGRESSION Inventory pending/expired denied 8
+PASS REGRESSION Inventory live suspension rejects previous session
+PASS REGRESSION Inventory all quantity transactions have atomic audit entries
+PASS REGRESSION Inventory audit failure rolls back lot/movement/receipt
+PASS REGRESSION Inventory raw tables and movement delete denied
+PASS REGRESSION Inventory privacy rejected before any persistent receipt
+PASS REGRESSION Inventory Seoul dates: expiry today/30 inclusive,31 excluded, yesterday expired
+PASS REGRESSION Inventory explicit own receive works; deny override wins over allow
+PASS REGRESSION Inventory valid school B item cannot reference school A lot
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only electron: teacher/assistant requests -> admin approval/rejection -> refreshed role
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only web: teacher/assistant requests -> admin approval/rejection -> refreshed role
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only same-name directory preserves code strings and office disambiguation
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only duplicate join blocked server-side and never becomes active
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only assistant approval requires future expiry; teacher admin role is not a join choice
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only withdraw pending -> withdrawn display -> rejoin creates a new epoch
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only opening request is pending only; duplicate request and forged directory rejected
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only self approval denied even with direct public RPC; no cross-school applicant access
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only assistant cannot list admin records, change role, or propose administrator
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only role refresh, expiry mutation and live suspension/revocation all enforced
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only expired assistant is denied and last admin leave/demotion/suspension is blocked
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only administrator add: recent reauth -> propose -> target accept -> server roles
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only administrator transfer: recent reauth -> propose -> target accept -> server roles
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only assistant cannot be proposed for admin and stale member versions do not partially update
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only late school A response cannot replace B; logout and expired session clear all school state
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only raw tables, audits, anon RPC and runtime/reader ownership remain protected
+Traceback (most recent call last):
+  File "/workspace/work/school-09ch3/repo/school-workspace/school09ch3/tests/run.py", line 54, in <module>
+    runpy.run_path(str(E/'tests/regression.py'))['run'](E,sql,case,check,run_file)
+  File "/workspace/work/school-09ch3/repo/school-workspace/school09ch3/tests/regression.py", line 37, in run
+    assert proc.returncode==0,stage+' DB contract regression failed; see separate log'
+           ^^^^^^^^^^^^^^^^^^
+AssertionError: school03 DB contract regression failed; see separate log

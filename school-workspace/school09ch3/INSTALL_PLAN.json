@@ -1,0 +1,15 @@
+{
+  "production_eligible": false,
+  "automatic_activation": false,
+  "fresh_install": "sql/01-fresh-local.sql",
+  "qa_activation_only": "sql/02-activate-qa-only.sql",
+  "data_preserving_close": "sql/03-close-local.sql",
+  "metadata_select_only": "sql/04-hosted-readonly.sql",
+  "release_version": "4c787101ba5b4c78f166ef56dd9d233cc53aa7d100e996fbaad2970133a0dd1a",
+  "files_sha256": {
+    "sql/01-fresh-local.sql": "4f80e5d08be07862b17deaf18620886a05e3fed1b3ce46eaed3246f043191122",
+    "sql/02-activate-qa-only.sql": "b4df754725adbaac4eb23d4e1d061ba681b7b1475eb44cb1ad70607347761623",
+    "sql/03-close-local.sql": "83a3e0a4db6d941172f08e7a6deb913396f4eb2742d69541f65de939c4ccc6f6",
+    "sql/04-hosted-readonly.sql": "c5948b6bbafdc8b3af9e85e41bd562544fd5a5b63fa355fb75738b9e46f93bd4"
+  }
+}

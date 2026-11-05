@@ -1,0 +1,13 @@
+{
+  "release_version": "4c787101ba5b4c78f166ef56dd9d233cc53aa7d100e996fbaad2970133a0dd1a",
+  "public_rpc_count": 54,
+  "body_sha256": "a0d0ae373f7632c36ba5a0ed0bf0ac398d33547040cc9117a220420b82257161",
+  "changes": [
+    "Auth bridge owner postgres, outside managed auth",
+    "request claims helpers replace private auth.uid/jwt calls",
+    "accounts Auth FK created by existing authorized postgres then owned by nonbypass ws_owner; deletion tombstone preserved",
+    "temporary owner-only INSERT policy removed before commit",
+    "new atomic release/manifest replacing legacy install ledgers"
+  ],
+  "production_eligible": false
+}

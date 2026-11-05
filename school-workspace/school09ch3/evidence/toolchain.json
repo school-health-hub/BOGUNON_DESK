@@ -1,0 +1,13 @@
+{
+  "runtime": {
+    "node": "v24.19.0",
+    "vitest": "5.0.1",
+    "react": "19.3.0"
+  },
+  "postgres": "17.6-bookworm pinned digest in run-local.sh",
+  "postgrest": "13.0.4 pinned digest in tests/rest.py",
+  "dependencies": "existing cache; package.json version confirmed; node_modules not packaged",
+  "hosted": "NOT RUN",
+  "windows": "NOT RUN",
+  "product_build": "NOT RUN no product source changes"
+}

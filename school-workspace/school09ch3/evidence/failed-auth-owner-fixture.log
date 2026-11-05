@@ -1,0 +1,40 @@
+PASS installer NOSUPERUSER cannot SET Auth owner or CREATE in auth
+PASS mid-install forced failure rolls back schemas roles and default privileges
+PASS late installation failure rolls back business schemas roles and permissions
+PASS fresh full S01-S07 business installation without Auth role grants
+PASS all54 public RPC default CLOSED
+PASS managed Auth objects and ACL byte fingerprints unchanged
+PASS existing public objects and personal rows unchanged
+PASS no Workspace role has Auth USAGE or table or column SELECT
+PASS all Workspace tables FORCE RLS with nonbypass owner
+PASS no temporary seed policy or reader/runtime schema CREATE remains
+PASS all54 public signatures bodies owners and security flags unchanged
+PASS only two parameterless postgres-owned session booleans, private EXECUTE reader only
+PASS no permanent Workspace function owned by postgres outside boolean boundary
+PASS temporary NOBYPASS installer is removed completely
+PASS direct bridge SELECT and arbitrary UUID oracle denied anon
+PASS direct bridge SELECT and arbitrary UUID oracle denied authenticated
+PASS direct bridge SELECT and arbitrary UUID oracle denied ws_owner
+PASS direct bridge SELECT and arbitrary UUID oracle denied ws_runtime
+PASS full installer replay is checked no-op
+PASS explicit isolated QA activation
+FAIL REGRESSION S01 t01 ERROR:  permission denied for schema auth at character 20
+
+Traceback (most recent call last):
+  File "/workspace/work/school-09ch3/repo/school-workspace/school09ch3/tests/run.py", line 56, in <module>
+    runpy.run_path(str(E/'tests/regression.py'))['run'](E,sql,case,check,run_file)
+  File "/workspace/work/school-09ch3/repo/school-workspace/school09ch3/tests/regression.py", line 16, in run
+    case('REGRESSION S01 '+name,one)
+  File "/workspace/work/school-09ch3/repo/school-workspace/school09ch3/tests/run.py", line 12, in case
+    try:fn();results.append({'name':n,'status':'PASS','classification':'LOCAL POSTGREST'if n.startswith('HTTP')else'MOCK'if n.startswith('MOCK')else'LOCAL DB'});print('PASS',n,flush=True)
+        ^^^^
+  File "/workspace/work/school-09ch3/repo/school-workspace/school09ch3/tests/regression.py", line 15, in one
+    def one(fn=fn):reset();fn()
+                   ^^^^^^^
+  File "/workspace/work/school-09ch3/repo/school-workspace/school09ch3/tests/regression.py", line 11, in reset
+    sql((P/'local/tests/fixtures.sql').read_text());sql("INSERT INTO workspace.s02_directory(school_id,office_code,school_code,school_name,office_name,kind)SELECT id,office_code,school_code,name,'합성 교육청','합성 학교'FROM workspace.schools")
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/school-09ch3/repo/school-workspace/school09ch3/tests/run.py", line 7, in sql
+    if ok:assert not p.returncode,p.stderr[-2200:]
+                 ^^^^^^^^^^^^^^^^
+AssertionError: ERROR:  permission denied for schema auth at character 20

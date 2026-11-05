@@ -1,0 +1,20 @@
+PASS installer NOSUPERUSER cannot SET Auth owner or CREATE in auth
+PASS mid-install forced failure rolls back schemas roles and default privileges
+PASS late installation failure rolls back business schemas roles and permissions
+PASS fresh full S01-S07 business installation without Auth role grants
+PASS all54 public RPC default CLOSED
+PASS managed Auth objects and ACL byte fingerprints unchanged
+PASS existing public objects and personal rows unchanged
+PASS no Workspace role has Auth USAGE or table or column SELECT
+PASS all Workspace tables FORCE RLS with nonbypass owner
+PASS no temporary seed policy or reader/runtime schema CREATE remains
+PASS all54 public signatures bodies owners and security flags unchanged
+PASS only two parameterless postgres-owned session booleans, private EXECUTE reader only
+PASS no permanent Workspace function owned by postgres outside boolean boundary
+PASS temporary NOBYPASS installer is removed completely
+PASS direct bridge SELECT and arbitrary UUID oracle denied anon
+PASS direct bridge SELECT and arbitrary UUID oracle denied authenticated
+PASS direct bridge SELECT and arbitrary UUID oracle denied ws_owner
+PASS direct bridge SELECT and arbitrary UUID oracle denied ws_runtime
+PASS full installer replay is checked no-op
+PASS stricter54 signature/result/full definition check; same SQL release; repeated checks not added

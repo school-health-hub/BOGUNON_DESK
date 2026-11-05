@@ -1,0 +1,6 @@
+{
+  "purpose": "stricter public/private CLOSED check; repeated checks not added to178",
+  "sql_release": "4c787101ba5b4c78f166ef56dd9d233cc53aa7d100e996fbaad2970133a0dd1a",
+  "runner_sha256": "f52ee0531954e937a074dcfe071f91482895b70cb115d5bbf3d424b65d10f258",
+  "all_schema_checks_passed": true
+}

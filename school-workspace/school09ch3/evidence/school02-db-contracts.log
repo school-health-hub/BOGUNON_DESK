@@ -1,0 +1,26 @@
+
+ RUN  v5.0.1 /workspace/work/school-09ch3/repo
+
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > electron: teacher/assistant requests -> admin approval/rejection -> refreshed role 6691ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > web: teacher/assistant requests -> admin approval/rejection -> refreshed role 6630ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > same-name directory preserves code strings and office disambiguation 1574ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > duplicate join blocked server-side and never becomes active 1342ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > assistant approval requires future expiry; teacher admin role is not a join choice 4617ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > withdraw pending -> withdrawn display -> rejoin creates a new epoch 2008ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > opening request is pending only; duplicate request and forged directory rejected 2599ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > self approval denied even with direct public RPC; no cross-school applicant access 1682ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > assistant cannot list admin records, change role, or propose administrator 1504ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > role refresh, expiry mutation and live suspension/revocation all enforced 7911ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > expired assistant is denied and last admin leave/demotion/suspension is blocked 2344ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > administrator add: recent reauth -> propose -> target accept -> server roles 5936ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > administrator transfer: recent reauth -> propose -> target accept -> server roles 5896ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > assistant cannot be proposed for admin and stale member versions do not partially update 1511ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > late school A response cannot replace B; logout and expired session clear all school state 2133ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > raw tables, audits, anon RPC and runtime/reader ownership remain protected 1070ms
+
+ Test Files  1 passed (1)
+      Tests  16 passed (16)
+   Start at  23:43:58
+   Duration  55.89s (tests 99%)
+
+JSON report written to /workspace/work/school-09ch3/repo/school-workspace/school09ch3/evidence/school02-db-contracts.json

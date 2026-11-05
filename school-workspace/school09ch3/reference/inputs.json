@@ -1,0 +1,78 @@
+{
+  "base_sha": "01647c13283b88e5a73b4c0542fe6d344129216f",
+  "integration_sha": "39c775cdd11509fdc6bc930ef62990acdd1e1315",
+  "files": [
+    {
+      "path": "school-workspace/school08/supabase/migrations/20261105130003_cumulative_workspace.sql",
+      "sha256": "52a4cb62ae675c0986158e7baf3940b07a6caee24e5262e0421d4513812d0062"
+    },
+    {
+      "path": "school-workspace/school08/sql/fingerprint.sql",
+      "sha256": "fa69afa67d652e196d16face725d1f1510514cd4d8a6482fbe80e95ec15df67e"
+    },
+    {
+      "path": "school-workspace/school09c/sql/auth-bridge.sql",
+      "sha256": "c08342a3fc0100c96168f2b18e3287bfcec9983c42ca9732f5bb2d06186a26c7"
+    },
+    {
+      "path": "school-workspace/school09c/sql/bootstrap-control.sql",
+      "sha256": "24b7b25a32fd32712260f060a2ffdd86b90b8e2b3f9fe18b22222378d842c0a4"
+    },
+    {
+      "path": "school-workspace/school09c/tests/bootstrap.py",
+      "sha256": "d27fe1836c9b9fb9c9ca0d269d17e0646b451cd8b7ac630fc4c5cf1e1f51bbe0"
+    },
+    {
+      "path": "school-workspace/school09c/evidence/catalog-active-workspace-scope.json",
+      "sha256": "0cd39eaaac9103b04026a8e0c30eebddb741db1db2c038b52423b678c94b5c48"
+    },
+    {
+      "path": "school-workspace/school09/reference/rpc-signatures.json",
+      "sha256": "f0f6bdfa52e1f36f129ba76de37cee7b2acb34b889f772046b94ad873b4b57f1"
+    },
+    {
+      "path": "school-workspace/school09ch2/REPORT.md",
+      "sha256": "bf92665e53a8cb26ad7286850ef397809fa4c276400f38ffc6db5da468376e74"
+    },
+    {
+      "path": "school-workspace/school09ch2/evidence/results.json",
+      "sha256": "69218c21e2bcb4af209f1cad8cada3c0d9aae6a021a224112df5dd70d910a27f"
+    },
+    {
+      "path": "school-workspace/school09ch2/tests/rest.py",
+      "sha256": "13e3a56afd17203f83f72498429d48b79dbbd3bcc403ed3013283ab26f9fa5d5"
+    },
+    {
+      "path": "school-workspace/school07/tests/run.py",
+      "sha256": "ca2a6eed540017df43b326d0f170873b37787f6470962da9cfc4558c7b545041"
+    },
+    {
+      "path": "school-workspace/local/tests/run.py",
+      "sha256": "dc13e31d84419f74e357d68b269059c6c16781f15b0192923df21f67884bd5b9"
+    },
+    {
+      "path": "school-workspace/local/tests/fixtures.sql",
+      "sha256": "72c5dc5d3be9cae542f57212c8b743966ab5e17688c8a84f782bb7ca6b1034c2"
+    },
+    {
+      "path": "school-workspace/local/tests/auth_fixture.sql",
+      "sha256": "8bb152d79ead38279ef080e82701cc5ccdc8faca948f3c310942b27dc599c115"
+    },
+    {
+      "path": "school-workspace/school06/tests/bootstrap.sql",
+      "sha256": "d76b2994a9241c4095e9d56b9d7791693a596a8c7de35fb7aee08453a842e973"
+    },
+    {
+      "path": "school-workspace/school02/tests/contracts.test.ts",
+      "sha256": "3fa0fbef20141f0a052c6f08ee868428fa89164e499cdb552f254452e83eb2a3"
+    },
+    {
+      "path": "school-workspace/school03/tests/tasks.test.ts",
+      "sha256": "c536982948faf0c7491e69a9808d5232e0e7c6f6ad8afd852eec83e1a7854f78"
+    },
+    {
+      "path": "school-workspace/school04/tests/contracts.test.ts",
+      "sha256": "b70cf6c0658f7a6f407bf0d7f76b0fe7e910de410d139d4e2eb4603a087dfcfc"
+    }
+  ]
+}

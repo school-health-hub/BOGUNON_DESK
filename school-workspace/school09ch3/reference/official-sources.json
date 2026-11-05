@@ -1,0 +1,16 @@
+{
+  "review_date_kst": "2026-11-06",
+  "method": "public official Supabase pages opened using web tool; no project access",
+  "changelog_index_shell": "proxy403; not bypassed",
+  "sources": [
+    {
+      "url": "https://supabase.com/changelog/34270-restricting-access-on-auth-storage-and-realtime-schemas-on-april-21-2025",
+      "finding": "Managed Auth DDL restrictions effective2025-04-21; user-schema objects required."
+    },
+    {
+      "url": "https://supabase.com/kb/troubleshooting/permission-errors-when-granting-custom-roles-access-to-the-auth-schema-9e32e7",
+      "finding": "Use narrowly scoped postgres-owned SECURITY DEFINER in unexposed schema, or read trusted request claims without Auth schema access. No Auth owner SET or custom-role Auth USAGE grants. Existing authorized principal may construct application Auth FK."
+    }
+  ],
+  "hosted_metadata": "User handoff only: postgres identity; no Auth CREATE/owner SET; authenticated no sessions SELECT. Actual postgres SELECT/REFERENCES grant option and Data API/OAuth still NOT VERIFIED."
+}
