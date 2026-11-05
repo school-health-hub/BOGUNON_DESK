@@ -6,6 +6,7 @@ using System;using System.Text;using System.Collections.Generic;using System.Run
 public static class Td2Window{
  public delegate bool EnumProc(IntPtr h,IntPtr p);
  [StructLayout(LayoutKind.Sequential)]public struct Rect{public int Left,Top,Right,Bottom;}
+ [DllImport("user32.dll")]public static extern int GetSystemMetrics(int n);
  [DllImport("user32.dll")]public static extern bool MoveWindow(IntPtr h,int x,int y,int w,int z,bool r);
  [DllImport("user32.dll")]public static extern bool GetWindowRect(IntPtr h,out Rect r);
  [DllImport("user32.dll",CharSet=CharSet.Unicode)]public static extern IntPtr FindWindow(string c,string t);
@@ -57,7 +58,7 @@ if($Action -like 'Dialog*'){
  $dialog=$dialogs[0];$buttons=@([Td2Window]::Children($dialog)|Where-Object{[Td2Window]::Class($_) -eq 'Button' -and [Td2Window]::IsWindowVisible($_) -and [Td2Window]::IsWindowEnabled($_)})
  $names=@($buttons|ForEach-Object{[Td2Window]::Text($_).Replace('&','')})
  Capture $dialog
- if($Action -eq 'DialogProbe'){@{found=$true;class='#32770';buttons=$names;pid=$target.Id}|ConvertTo-Json -Compress;exit}
+ if($Action -eq 'DialogProbe'){$rect=New-Object Td2Window+Rect;[void][Td2Window]::GetWindowRect($dialog,[ref]$rect);@{found=$true;class='#32770';buttons=$names;pid=$target.Id;left=$rect.Left;top=$rect.Top;width=($rect.Right-$rect.Left);height=($rect.Bottom-$rect.Top);screenWidth=[Td2Window]::GetSystemMetrics(0);screenHeight=[Td2Window]::GetSystemMetrics(1)}|ConvertTo-Json -Compress;exit}
  $selected=@($buttons|Where-Object{$n=[Td2Window]::Text($_).Replace('&','');if($Action -eq 'DialogCancel'){$n -match '취소|^Cancel$'}else{$n -match '확인|적용|계속|^OK$|^Yes$' -and $n -notmatch '취소|Cancel'}})
  if($selected.Count -ne 1){@{found=$true;clicked=$false;reason='Native button not uniquely identified';buttons=$names}|ConvertTo-Json -Compress;exit}
  [void][Td2Window]::SetForegroundWindow($dialog);[void][Td2Window]::PostMessage($selected[0],0x00F5,[IntPtr]::Zero,[IntPtr]::Zero)
