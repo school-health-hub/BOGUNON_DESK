@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/workspace/work/school-09c/repo/school-workspace/school09c/tools/export-closed-catalog.py", line 14, in <module>
+    (E/'evidence/catalog-container-diagnostic.log').write_text((logs.stdout+logs.stderr)[-3000:]);raise AssertionError('PG readiness failed')
+                                                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: PG readiness failed

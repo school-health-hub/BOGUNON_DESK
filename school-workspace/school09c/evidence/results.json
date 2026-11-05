@@ -1,0 +1,359 @@
+{
+  "checks": [
+    {
+      "name": "09C mid-patch failure rolls back Auth helper and grant replacement",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "09C bridge and bootstrap prototype install atomically on CLOSED54",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "09C all54 remain CLOSED after prototype install",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "09C no unexpected default EXECUTE on bridge or bootstrap",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "09C existing54 public signatures bodies and owners unchanged",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "09C repeat prototype rejects safely without overwriting parent",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "09C old S08 lifecycle detects intentional prototype drift",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "09C no Workspace/client session raw SELECT",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "09C raw auth.sessions denied ws_runtime",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "09C raw auth.sessions denied ws_authz_reader",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "09C raw auth.sessions denied authenticated",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "09C raw auth.sessions denied anon",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "09C bridge owner cannot write or read Workspace content",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "09C neither clients nor runtime can call Auth bridge directly",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "09C approved teacher context works without raw Auth SELECT",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "09C pending denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "09C school A-only assistant cannot access B",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "09C assistant cannot self promote",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "09C live session expiration denies existing identity",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "09C seven day age limit preserved",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "09C app revocation ledger denies still live Auth session",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bootstrap school request remains pending and has no admin",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bootstrap applicant cannot self assign admin through existing RPC",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bootstrap applicant cannot call private operator function",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bootstrap operator has no raw table UPDATE",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bootstrap NULL expected_version denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bootstrap missing external proof or consent fails",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bootstrap verified operator proposal still cannot activate school",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bootstrap proposal replay is idempotent",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bootstrap request_id payload mismatch denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bootstrap proposer cannot approve own case",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bootstrap wrong school case ID denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bootstrap mismatched consent evidence denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bootstrap expected version required",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bootstrap expired verification cannot activate",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bootstrap operator authority can be revoked immediately",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bootstrap audit failure rolls back all activation",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bootstrap second operator approves, school active with one admin",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bootstrap approval replay cannot duplicate membership/audit",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bootstrap new approval command after completion rejected",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bootstrap cannot seize an existing active school",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bootstrap app administrator cannot modify operator audit",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bootstrap last admin still cannot leave",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bootstrap cannot promote an existing assistant target",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bootstrap ownership and RLS separation remains intact",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bootstrap Hosted supplemental metadata SELECT is executable locally",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "LOCAL POSTGREST signed teacher inventories actual SQL",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST anonymous inventory denied",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST expired JWT inventory denied",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST assistant read, direct manage RPC forbidden",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST school A-only user cannot fetch school B inventory",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST raw inventory tables absent",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST private dispatch function not a resource",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST S09 wrong signature rejected",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST S09 pending denied",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST S09 JWT ws_runtime escalation denied",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST S09 private profile not exposed",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST S09 Workspace raw profile not exposed",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST S09 anonymous Auth claim rejected",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST S09 forged metadata does not grant write",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST S09 live role suspension blocks old signed JWT",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST S09 live session expiration blocks unexpired JWT",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST S09 removed Auth session rejects still signed JWT",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST S09 all54 CLOSED reject anon and authenticated (108 HTTP requests)",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST S09 reopen explicit wrappers retains live school authorization",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST 09C bridge not exposed under public schema",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST 09C bridge profile not exposed",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST 09C forged operator JWT role denied",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST 09C bootstrap command not public",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "09C original legacy public function definitions ACL unchanged",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    }
+  ],
+  "pass": 70,
+  "fail": 0,
+  "hosted": "NOT RUN",
+  "windows": "NOT RUN",
+  "classification": "LOCAL DB / LOCAL POSTGREST per row"
+}

@@ -1,0 +1,9 @@
+{
+  "integration_head": "39c775cdd11509fdc6bc930ef62990acdd1e1315",
+  "school09ab": "c41b60bf8da3537104dfdb7ba8a525fa0983de7d",
+  "restore_base": "c41b60bf8da3537104dfdb7ba8a525fa0983de7d",
+  "branch": "feature/school-09c-authz-decision",
+  "prior_worktree_clean": true,
+  "product_and_prior_sql_changes": [],
+  "source_commit": "see final GIT_RECEIPT.json; no circular self-SHA"
+}

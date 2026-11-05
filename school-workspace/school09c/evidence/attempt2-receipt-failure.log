@@ -1,0 +1,30 @@
+ bootstrap missing external proof or consent fails
+PASS bootstrap verified operator proposal still cannot activate school
+FAIL bootstrap proposal replay is idempotent ERROR:  missing FROM-clause entry for table "command"
+LINE 1: ... request_id=r AND command=op AND receipts.payload=command.pa...
+                                                             ^
+QUERY:  NOT EXISTS(SELECT 1 FROM workspace_bootstrap.receipts WHERE operator_name=session_user AND request_id=r AND command=op AND receipts.payload=command.payload)
+CONTEXT:  PL/pgSQL function workspace_bootstrap.command(text,uuid,uuid,uuid,text,uuid,bigint,uuid) line 13 at IF
+
+Traceback (most recent call last):
+  File "/workspace/work/school-09c/repo/school-workspace/school09c/tests/run.py", line 44, in <module>
+    runpy.run_path(str(E/'tests/bootstrap.py'))['run'](sql,case,E,d)
+  File "/workspace/work/school-09c/repo/school-workspace/school09c/tests/bootstrap.py", line 25, in run
+    case('bootstrap proposal replay is idempotent',lambda:check(command('s09c_verifier_a','propose',r=rid)==proposal))
+  File "/workspace/work/school-09c/repo/school-workspace/school07/tests/run.py", line 22, in case
+    try:fn();results.append({'name':n,'status':'PASS','classification':'LOCAL POSTGREST'if n.startswith('LOCAL POSTGREST')else'LOCAL DB'});print('PASS',n,flush=True)
+        ^^^^
+  File "/workspace/work/school-09c/repo/school-workspace/school09c/tests/bootstrap.py", line 25, in <lambda>
+    case('bootstrap proposal replay is idempotent',lambda:check(command('s09c_verifier_a','propose',r=rid)==proposal))
+                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/school-09c/repo/school-workspace/school09c/tests/bootstrap.py", line 21, in command
+    x=sql(q,ok);return json.loads(x.stdout.strip().splitlines()[-1])if ok else x
+      ^^^^^^^^^
+  File "/workspace/work/school-09c/repo/school-workspace/school07/tests/run.py", line 8, in sql
+    if ok and p.returncode:raise AssertionError(p.stderr[-2200:])
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ERROR:  missing FROM-clause entry for table "command"
+LINE 1: ... request_id=r AND command=op AND receipts.payload=command.pa...
+                                                             ^
+QUERY:  NOT EXISTS(SELECT 1 FROM workspace_bootstrap.receipts WHERE operator_name=session_user AND request_id=r AND command=op AND receipts.payload=command.payload)
+CONTEXT:  PL/pgSQL function workspace_bootstrap.command(text,uuid,uuid,uuid,text,uuid,bigint,uuid) line 13 at IF

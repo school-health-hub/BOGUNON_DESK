@@ -1,0 +1,9 @@
+{
+  "functions": 159,
+  "tables": 36,
+  "policies_all4schemas": 92,
+  "public_rpc": 54,
+  "closed": "PASS",
+  "hosted": "NOT RUN",
+  "classification": "LOCAL DB"
+}

@@ -1,0 +1,65 @@
+_reader
+PASS 09C raw auth.sessions denied authenticated
+PASS 09C raw auth.sessions denied anon
+PASS 09C bridge owner cannot write or read Workspace content
+PASS 09C neither clients nor runtime can call Auth bridge directly
+PASS 09C approved teacher context works without raw Auth SELECT
+PASS 09C pending denied
+PASS 09C school A-only assistant cannot access B
+PASS 09C assistant cannot self promote
+PASS t01
+PASS t02
+PASS t03
+PASS t04
+PASS t05
+PASS t06
+PASS t07
+PASS t08
+PASS t09
+PASS t10
+PASS t11
+PASS t12
+PASS t13
+PASS t14
+PASS t15
+PASS t16
+PASS t17
+PASS t18
+PASS t19
+PASS t20
+PASS t21
+PASS t22
+PASS t23
+PASS t24
+PASS t25
+PASS t26
+PASS t27
+PASS t28
+PASS t29
+PASS t30
+PASS t31
+PASS t32
+PASS t33
+PASS t34
+PASS 09C live session expiration denies existing identity
+PASS 09C seven day age limit preserved
+PASS 09C app revocation ledger denies still live Auth session
+PASS bootstrap school request remains pending and has no admin
+PASS bootstrap applicant cannot self assign admin through existing RPC
+PASS bootstrap applicant cannot call private operator function
+PASS bootstrap operator has no raw table UPDATE
+PASS bootstrap missing external proof or consent fails
+Traceback (most recent call last):
+  File "/workspace/work/school-09c/repo/school-workspace/school09c/tests/run.py", line 44, in <module>
+    runpy.run_path(str(E/'tests/bootstrap.py'))['run'](sql,case,E,d)
+  File "/workspace/work/school-09c/repo/school-workspace/school09c/tests/bootstrap.py", line 23, in run
+    proposal=command('s09c_verifier_a','propose',r=rid);cid=proposal['case_id']
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/school-09c/repo/school-workspace/school09c/tests/bootstrap.py", line 21, in command
+    x=sql(q,ok);return json.loads(x.stdout.strip().splitlines()[-1])if ok else x
+      ^^^^^^^^^
+  File "/workspace/work/school-09c/repo/school-workspace/school07/tests/run.py", line 8, in sql
+    if ok and p.returncode:raise AssertionError(p.stderr[-2200:])
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ERROR:  invalid_target
+CONTEXT:  PL/pgSQL function workspace_bootstrap.command(text,uuid,uuid,uuid,text,uuid,bigint,uuid) line 19 at RAISE

@@ -1,0 +1,45 @@
+ start
+
+waiting for server to start....2026-11-05 16:42:42.895 UTC [50] LOG:  starting PostgreSQL 17.6 (Debian 17.6-2.pgdg12+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit
+2026-11-05 16:42:42.898 UTC [50] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-11-05 16:42:42.900 UTC [53] LOG:  database system was shut down at 2026-11-05 16:42:42 UTC
+2026-11-05 16:42:42.902 UTC [50] LOG:  database system is ready to accept connections
+ done
+server started
+CREATE DATABASE
+
+
+/usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+
+waiting for server to shut down...2026-11-05 16:42:43.069 UTC [50] LOG:  received fast shutdown request
+2026-11-05 16:42:43.069 UTC [50] LOG:  aborting any active transactions
+.2026-11-05 16:42:43.071 UTC [50] LOG:  background worker "logical replication launcher" (PID 56) exited with exit code 1
+2026-11-05 16:42:43.072 UTC [51] LOG:  shutting down
+2026-11-05 16:42:43.072 UTC [51] LOG:  checkpoint starting: shutdown immediate
+2026-11-05 16:42:43.077 UTC [51] LOG:  checkpoint complete: wrote 921 buffers (5.6%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.005 s, sync=0.001 s, total=0.006 s; sync files=301, longest=0.001 s, average=0.000 s; distance=4238 kB, estimate=4238 kB; lsn=0/19088F0, redo lsn=0/19088F0
+2026-11-05 16:42:43.081 UTC [50] LOG:  database system is shut down
+ done
+server stopped
+
+PostgreSQL init process complete; ready for start up.
+
+********************************************************************************
+WARNING: POSTGRES_HOST_AUTH_METHOD has been set to "trust". This will allow
+         anyone with access to the Postgres port to access your database without
+         a password, even if POSTGRES_PASSWORD is set. See PostgreSQL
+         documentation about "trust":
+         https://www.postgresql.org/docs/current/auth-trust.html
+         In Docker's default configuration, this is effectively any other
+         container on the same system.
+
+         It is not recommended to use POSTGRES_HOST_AUTH_METHOD=trust. Replace
+         it with "-e POSTGRES_PASSWORD=password" instead to set a password in
+         "docker run".
+********************************************************************************
+initdb: warning: enabling "trust" authentication for local connections
+initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+2026-11-05 16:42:43.190 UTC [1] LOG:  starting PostgreSQL 17.6 (Debian 17.6-2.pgdg12+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit
+2026-11-05 16:42:43.190 UTC [1] LOG:  could not translate host name "''", service "5432" to address: Name or service not known
+2026-11-05 16:42:43.190 UTC [1] WARNING:  could not create listen socket for "''"
+2026-11-05 16:42:43.190 UTC [1] FATAL:  could not create any TCP/IP sockets
+2026-11-05 16:42:43.191 UTC [1] LOG:  database system is shut down

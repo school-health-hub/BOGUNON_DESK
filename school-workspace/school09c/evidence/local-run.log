@@ -1,0 +1,102 @@
+PASS 09C mid-patch failure rolls back Auth helper and grant replacement
+PASS 09C bridge and bootstrap prototype install atomically on CLOSED54
+PASS 09C all54 remain CLOSED after prototype install
+PASS 09C no unexpected default EXECUTE on bridge or bootstrap
+PASS 09C existing54 public signatures bodies and owners unchanged
+PASS 09C repeat prototype rejects safely without overwriting parent
+PASS 09C old S08 lifecycle detects intentional prototype drift
+PASS 09C no Workspace/client session raw SELECT
+PASS 09C raw auth.sessions denied ws_runtime
+PASS 09C raw auth.sessions denied ws_authz_reader
+PASS 09C raw auth.sessions denied authenticated
+PASS 09C raw auth.sessions denied anon
+PASS 09C bridge owner cannot write or read Workspace content
+PASS 09C neither clients nor runtime can call Auth bridge directly
+PASS 09C approved teacher context works without raw Auth SELECT
+PASS 09C pending denied
+PASS 09C school A-only assistant cannot access B
+PASS 09C assistant cannot self promote
+PASS 09C live session expiration denies existing identity
+PASS 09C seven day age limit preserved
+PASS 09C app revocation ledger denies still live Auth session
+PASS bootstrap school request remains pending and has no admin
+PASS bootstrap applicant cannot self assign admin through existing RPC
+PASS bootstrap applicant cannot call private operator function
+PASS bootstrap operator has no raw table UPDATE
+PASS bootstrap NULL expected_version denied
+PASS bootstrap missing external proof or consent fails
+PASS bootstrap verified operator proposal still cannot activate school
+PASS bootstrap proposal replay is idempotent
+PASS bootstrap request_id payload mismatch denied
+PASS bootstrap proposer cannot approve own case
+PASS bootstrap wrong school case ID denied
+PASS bootstrap mismatched consent evidence denied
+PASS bootstrap expected version required
+PASS bootstrap expired verification cannot activate
+PASS bootstrap operator authority can be revoked immediately
+PASS bootstrap audit failure rolls back all activation
+PASS bootstrap second operator approves, school active with one admin
+PASS bootstrap approval replay cannot duplicate membership/audit
+PASS bootstrap new approval command after completion rejected
+PASS bootstrap cannot seize an existing active school
+PASS bootstrap app administrator cannot modify operator audit
+PASS bootstrap last admin still cannot leave
+PASS bootstrap cannot promote an existing assistant target
+PASS bootstrap ownership and RLS separation remains intact
+PASS bootstrap Hosted supplemental metadata SELECT is executable locally
+PASS admin creates item with zero stock
+PASS inactive create is honored and archived holding never appears usable
+PASS location register/rename uses version; assistant cannot manage
+PASS teacher edits metadata
+PASS assistant cannot edit metadata
+PASS cross school item lookup denied
+PASS receive increases stock and30day inclusive boundary
+PASS assistant default receive denied
+PASS explicit own use permission decreases stock
+PASS negative stock denied
+PASS assistant adjust/dispose forbidden
+PASS request_id replay applies once
+PASS request_id changed payload rejected
+PASS stale expected_version rejected
+PASS concurrent actual connections cannot overdraw
+PASS expired use rejected
+PASS no-expiry lot and separate quantities
+PASS expired excluded from usable; holding includes all
+PASS adjust/dispose append history and low stock uses usable count
+PASS unusable lot excluded and use forbidden
+PASS different school lot movement denied
+PASS pending/expired denied 5
+PASS pending/expired denied 8
+PASS live suspension rejects previous session
+PASS all quantity transactions have atomic audit entries
+PASS audit failure rolls back lot/movement/receipt
+PASS raw tables and movement delete denied
+PASS privacy rejected before any persistent receipt
+PASS Seoul dates: expiry today/30 inclusive,31 excluded, yesterday expired
+PASS explicit own receive works; deny override wins over allow
+PASS valid school B item cannot reference school A lot
+DB PASS 31
+PASS LOCAL POSTGREST signed teacher inventories actual SQL
+PASS LOCAL POSTGREST anonymous inventory denied
+PASS LOCAL POSTGREST expired JWT inventory denied
+PASS LOCAL POSTGREST assistant read, direct manage RPC forbidden
+PASS LOCAL POSTGREST school A-only user cannot fetch school B inventory
+PASS LOCAL POSTGREST raw inventory tables absent
+PASS LOCAL POSTGREST private dispatch function not a resource
+PASS LOCAL POSTGREST S09 wrong signature rejected
+PASS LOCAL POSTGREST S09 pending denied
+PASS LOCAL POSTGREST S09 JWT ws_runtime escalation denied
+PASS LOCAL POSTGREST S09 private profile not exposed
+PASS LOCAL POSTGREST S09 Workspace raw profile not exposed
+PASS LOCAL POSTGREST S09 anonymous Auth claim rejected
+PASS LOCAL POSTGREST S09 forged metadata does not grant write
+PASS LOCAL POSTGREST S09 live role suspension blocks old signed JWT
+PASS LOCAL POSTGREST S09 live session expiration blocks unexpired JWT
+PASS LOCAL POSTGREST S09 removed Auth session rejects still signed JWT
+PASS LOCAL POSTGREST S09 all54 CLOSED reject anon and authenticated (108 HTTP requests)
+PASS LOCAL POSTGREST S09 reopen explicit wrappers retains live school authorization
+PASS LOCAL POSTGREST 09C bridge not exposed under public schema
+PASS LOCAL POSTGREST 09C bridge profile not exposed
+PASS LOCAL POSTGREST 09C forged operator JWT role denied
+PASS LOCAL POSTGREST 09C bootstrap command not public
+PASS 09C original legacy public function definitions ACL unchanged

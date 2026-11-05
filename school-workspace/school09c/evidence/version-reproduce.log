@@ -1,0 +1,41 @@
+PASS 09C mid-patch failure rolls back Auth helper and grant replacement
+PASS 09C bridge and bootstrap prototype install atomically on CLOSED54
+PASS 09C all54 remain CLOSED after prototype install
+PASS 09C no unexpected default EXECUTE on bridge or bootstrap
+PASS 09C existing54 public signatures bodies and owners unchanged
+PASS 09C repeat prototype rejects safely without overwriting parent
+PASS 09C old S08 lifecycle detects intentional prototype drift
+PASS 09C no Workspace/client session raw SELECT
+PASS 09C raw auth.sessions denied ws_runtime
+PASS 09C raw auth.sessions denied ws_authz_reader
+PASS 09C raw auth.sessions denied authenticated
+PASS 09C raw auth.sessions denied anon
+PASS 09C bridge owner cannot write or read Workspace content
+PASS 09C neither clients nor runtime can call Auth bridge directly
+PASS 09C approved teacher context works without raw Auth SELECT
+PASS 09C pending denied
+PASS 09C school A-only assistant cannot access B
+PASS 09C assistant cannot self promote
+PASS 09C live session expiration denies existing identity
+PASS 09C seven day age limit preserved
+PASS 09C app revocation ledger denies still live Auth session
+PASS bootstrap school request remains pending and has no admin
+PASS bootstrap applicant cannot self assign admin through existing RPC
+PASS bootstrap applicant cannot call private operator function
+PASS bootstrap operator has no raw table UPDATE
+FAIL bootstrap NULL expected_version denied ('expected_version_required', '')
+Traceback (most recent call last):
+  File "/workspace/work/school-09c/repo/school-workspace/school09c/tests/run.py", line 46, in <module>
+    runpy.run_path(str(E/'tests/bootstrap.py'))['run'](sql,case,E,d)
+  File "/workspace/work/school-09c/repo/school-workspace/school09c/tests/bootstrap.py", line 22, in run
+    case('bootstrap NULL expected_version denied',lambda:deny(command('s09c_verifier_a','propose',ev=None,ok=False),'expected_version_required'))
+  File "/workspace/work/school-09c/repo/school-workspace/school07/tests/run.py", line 22, in case
+    try:fn();results.append({'name':n,'status':'PASS','classification':'LOCAL POSTGREST'if n.startswith('LOCAL POSTGREST')else'LOCAL DB'});print('PASS',n,flush=True)
+        ^^^^
+  File "/workspace/work/school-09c/repo/school-workspace/school09c/tests/bootstrap.py", line 22, in <lambda>
+    case('bootstrap NULL expected_version denied',lambda:deny(command('s09c_verifier_a','propose',ev=None,ok=False),'expected_version_required'))
+                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/school-09c/repo/school-workspace/school07/tests/run.py", line 20, in deny
+    def deny(p,marker='access_denied'):assert p.returncode and marker in p.stderr,(marker,p.stderr[-2000:])
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('expected_version_required', '')

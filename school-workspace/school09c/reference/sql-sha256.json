@@ -1,0 +1,22 @@
+[
+  {
+    "path": "sql/candidate-guard.sql",
+    "sha256": "dce0d1ceaa01c285cfcb839e780a960f6203de26bd0c4b5e59900b207d6417c6"
+  },
+  {
+    "path": "sql/auth-bridge.sql",
+    "sha256": "c08342a3fc0100c96168f2b18e3287bfcec9983c42ca9732f5bb2d06186a26c7"
+  },
+  {
+    "path": "sql/bootstrap-control.sql",
+    "sha256": "24b7b25a32fd32712260f060a2ffdd86b90b8e2b3f9fe18b22222378d842c0a4"
+  },
+  {
+    "path": "sql/activate-isolated.sql",
+    "sha256": "b5b909c5c01862a0b6d4e382f4794adc338cb78ee0a31c45317fc16950c14ee3"
+  },
+  {
+    "path": "supabase/migrations/20261105161659_auth_bridge_bootstrap_prototype.sql",
+    "sha256": "a27778a844c0418568958e6da5476de9df84bb7eb76caf86da0a0de3feae40d7"
+  }
+]

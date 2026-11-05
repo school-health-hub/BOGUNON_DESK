@@ -1,0 +1,3970 @@
+{
+  "school09ab": "c41b60bf8da3537104dfdb7ba8a525fa0983de7d",
+  "integration": "39c775cdd11509fdc6bc930ef62990acdd1e1315",
+  "files": [
+    {
+      "path": "electron-p0/main/account-ipc.ts",
+      "sha256": "079379ccabc1c4933db5b0a4caba55c0de6a796d2cbb1ceba35d6551094d9d35"
+    },
+    {
+      "path": "electron-p0/main/account-loopback.ts",
+      "sha256": "d67d5771ba0246a2c6ef6a5a3e2d4465a205f717ad82741d012112127d67d841"
+    },
+    {
+      "path": "electron-p0/main/account-network.ts",
+      "sha256": "006b5c62760c8552c49411119f5e106f2449d332e5493a8aec979d3e96a0a0f6"
+    },
+    {
+      "path": "electron-p0/main/account-sdk.ts",
+      "sha256": "3a71fc6ec8204fd0456a6b4dae6922de62f1a3ea31264b22d091aac18a06d801"
+    },
+    {
+      "path": "electron-p0/main/account-service.ts",
+      "sha256": "a63d6e190516e662f07d77a07d02bb49e2ff4135392a0d1ccaf6c4735e3c6c84"
+    },
+    {
+      "path": "electron-p0/main/account-vault.ts",
+      "sha256": "71526906d2c13687717469f6f83a29a20a92a57fbaf3bf4d5ac1f2846fea7c6a"
+    },
+    {
+      "path": "electron-p0/main/admin-connection.ts",
+      "sha256": "05a6107c45344888bf91d62552f7c2994402fddf543baac38c87095b5ea6712f"
+    },
+    {
+      "path": "electron-p0/main/admin-ipc.ts",
+      "sha256": "23bf03b37d170f466caa5c3fbd0ebcab9dd5724d8bef001c720f1e9e36864119"
+    },
+    {
+      "path": "electron-p0/main/admin-store.ts",
+      "sha256": "33573fb034cda91bb70b5af3d2a764c631158540cb3acaf121bd25802148771f"
+    },
+    {
+      "path": "electron-p0/main/admin-table.ts",
+      "sha256": "04a71525852ad95b9d6c1abac4e9367b25a967c90bcdb3f4220fa263c15dd269"
+    },
+    {
+      "path": "electron-p0/main/ai-image-contract.ts",
+      "sha256": "682d51c5d173d23f8e151eae7d3e73dedb0dd5f295737b41c35f195b84a5f6ee"
+    },
+    {
+      "path": "electron-p0/main/ai-image-network.ts",
+      "sha256": "76834a9ec3969708e7b0b97b0a7df0e5c98f673a6d39daaf3da95fc9ad6500a1"
+    },
+    {
+      "path": "electron-p0/main/ai-network.ts",
+      "sha256": "e846882f541d90f53577258a7d57e6a7392f7b2a0dd5a79c02afad010be287bb"
+    },
+    {
+      "path": "electron-p0/main/ai-privacy.ts",
+      "sha256": "c3b8f6cc04582ef840e16d9ed18c71a48903233ca165cc73c832519ba2213af2"
+    },
+    {
+      "path": "electron-p0/main/ai-service.ts",
+      "sha256": "10d6df23f4eb0f51f381a686b3922a4c7e42ff6949673b5863b572d046d23dd7"
+    },
+    {
+      "path": "electron-p0/main/ai-vault.ts",
+      "sha256": "e0c048e4d76ce4d72095cf802aca5cde1846275fee9708430680e8ab6db0151c"
+    },
+    {
+      "path": "electron-p0/main/chatgpt-process.ts",
+      "sha256": "3858caa6e289395f856d538fd3ebacabbbccffa96cb807b83391cf3b57ec0fd9"
+    },
+    {
+      "path": "electron-p0/main/chatgpt-service.ts",
+      "sha256": "84c1c25ff504bde157f375abcc00df77c2d08fb5de09facdc15ede4a23b7d11c"
+    },
+    {
+      "path": "electron-p0/main/desktop.ts",
+      "sha256": "e38c3840246d003d8c8a63465817e50ef7e6775d292c1dfa1cff424dac389ede"
+    },
+    {
+      "path": "electron-p0/main/education-video-export.ts",
+      "sha256": "277fa143c2d6d576e6780b220d7b9020b236e7c91b859f816a3443b44ed5e7b9"
+    },
+    {
+      "path": "electron-p0/main/education-video-library.ts",
+      "sha256": "c11d3d82da8d0dcdfd9e5d99a663acb973b0323330cfde4fcabe7ae55feb7023"
+    },
+    {
+      "path": "electron-p0/main/file-drop-files.ts",
+      "sha256": "f4456399589ccf5be482e8a002ca358a39161ccbb78ab3747e892f00e162ac43"
+    },
+    {
+      "path": "electron-p0/main/file-drop-router.ts",
+      "sha256": "a9e708d9e3f9045fa485df0c844d3ed752e592d17f224f25d04c4bdf05bfd642"
+    },
+    {
+      "path": "electron-p0/main/file-drop.ts",
+      "sha256": "177d602f31dd039a23fba2f2d46a230b7b0923ce4bf07965ab11666526ad5709"
+    },
+    {
+      "path": "electron-p0/main/finance-ipc.ts",
+      "sha256": "acb5298a482aa9c6a776fd2b929b11e539c2570fbe162f1190ac6c7616172c56"
+    },
+    {
+      "path": "electron-p0/main/finance-process.ts",
+      "sha256": "5422eb11ece3a648fca652b4421a21f1f195d3eb119ba6e3d25d7ddae52bf08f"
+    },
+    {
+      "path": "electron-p0/main/finder-compat-ipc.ts",
+      "sha256": "06ae9bb643946d69fa87f86dca680c10d99387473ec2f5e56e7b1ed70f3437b8"
+    },
+    {
+      "path": "electron-p0/main/finder-search.ts",
+      "sha256": "76e4ef0e49c9f49f860f99df25a3ac99635c168081e953f40c50bc5f5b57af73"
+    },
+    {
+      "path": "electron-p0/main/finder-v2/aiLibraryMetadata.ts",
+      "sha256": "5c099aa4f51eb8e5ad498064a4a8daca152ae722ee443d3006fb04f450ba8786"
+    },
+    {
+      "path": "electron-p0/main/finder-v2/candidateRecord.ts",
+      "sha256": "640902b37127dea598ba4fe9b8547914a37842294190dee716eff806999392d4"
+    },
+    {
+      "path": "electron-p0/main/finder-v2/contracts.ts",
+      "sha256": "b3f0e2d47e8ccf4bfc9c3afe7115d8a165cd9049a82cd7c0a1bcb572fba4eda8"
+    },
+    {
+      "path": "electron-p0/main/finder-v2/recommendationReason.ts",
+      "sha256": "ed418008e7bc8b1912ffa24a36e4e5bb83df56fbcaceb8c3662c92f7e2eae9ba"
+    },
+    {
+      "path": "electron-p0/main/finder-v2/validate.ts",
+      "sha256": "0a858bb9636ac1f2875b942143f4a391fb517b73e8e7c4ee55b9b28c63581171"
+    },
+    {
+      "path": "electron-p0/main/finder-vault.ts",
+      "sha256": "3ce5891953e60c42cf1abadb7828306846d76b8c54153fca338382d03131fe16"
+    },
+    {
+      "path": "electron-p0/main/finder-youtube.ts",
+      "sha256": "292cf112ef52808cdd4f135625ef3550ba1696ddf7c277458c96972eefe38460"
+    },
+    {
+      "path": "electron-p0/main/instructor-files.ts",
+      "sha256": "d5f818a6d81206efe62ecc119147746a3551ae08a36bbb9f5c1268460832ac6c"
+    },
+    {
+      "path": "electron-p0/main/instructor-stamp.ts",
+      "sha256": "2845e6d3fd4342a39900ffa94090da036d06eb55be5db2ffbcaa15468c4228ef"
+    },
+    {
+      "path": "electron-p0/main/inventory-connection/contracts.ts",
+      "sha256": "a61a38968a47abd218d6eca1e9d2ef67cba1f5553e9599a4330063d73a15671a"
+    },
+    {
+      "path": "electron-p0/main/inventory-connection/electron.ts",
+      "sha256": "2ed8079e7b0c1e4d4165d58649b44404e550e178f8394e7cd74adfcb7b1fc6ad"
+    },
+    {
+      "path": "electron-p0/main/inventory-connection/localQa.ts",
+      "sha256": "8ef84644b47694460ccb95212091089a34ee45173fbf481ad44877441e0737f0"
+    },
+    {
+      "path": "electron-p0/main/inventory-connection/responses.ts",
+      "sha256": "ccaa1a4799fc9efbde1132807ede4febb21e53242756d941b5f5d2a605eeaebb"
+    },
+    {
+      "path": "electron-p0/main/inventory-connection/transport.ts",
+      "sha256": "b24af843de003aad807ad803147c52e0365f15fc3aba8278ebdfd4846b04c972"
+    },
+    {
+      "path": "electron-p0/main/inventory-connection/validation.ts",
+      "sha256": "da8d7c5d648fec7d730bca1061060caeaea458a14370e9d2439481a5a2750432"
+    },
+    {
+      "path": "electron-p0/main/inventory-env.d.ts",
+      "sha256": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5"
+    },
+    {
+      "path": "electron-p0/main/inventory-local-qa.ts",
+      "sha256": "691e0d29cda334bbe5e696f61ec509284578a42b051d7927796d8481d9b765d8"
+    },
+    {
+      "path": "electron-p0/main/inventory-qa-service.ts",
+      "sha256": "e13f3801e8bc10061acd68a2dc289edccb815e2b1ddc3495f5fd0046936ebb40"
+    },
+    {
+      "path": "electron-p0/main/inventory-qa-transport.ts",
+      "sha256": "e2fba4a65fccca8ae16a2f1b48d176ebd13de32bdd251454fde2ea6ed318bb2f"
+    },
+    {
+      "path": "electron-p0/main/inventory-store.ts",
+      "sha256": "4e0138619b4d9ede17751a40cd359416274eae6e03cb8f86a50e01ccb3b7bcf2"
+    },
+    {
+      "path": "electron-p0/main/local-events.ts",
+      "sha256": "23f59cdf7b101d003e172b12934901bf50367337d428226a38725479ea89e5a5"
+    },
+    {
+      "path": "electron-p0/main/local-tasks.ts",
+      "sha256": "6167d9ab0679dd51cbf981a357ce86924c05d8d5d77f7fb502b7a3ae34734fb3"
+    },
+    {
+      "path": "electron-p0/main/main.mts",
+      "sha256": "a1d6a519c27bfc76ee31eb9672ccd3320e1a64e79cb45e51a8479eee0cead18d"
+    },
+    {
+      "path": "electron-p0/main/memo-ipc.ts",
+      "sha256": "7cdd4a1ace1c9cc6eeecc71f5f0474ecce9302db22155e3b503c4b53c4054916"
+    },
+    {
+      "path": "electron-p0/main/newsletter-export-storage.ts",
+      "sha256": "d91996bb14f5b436d340495b43b0bcc45b239e6bf3cf67ab5956222a04aff7e4"
+    },
+    {
+      "path": "electron-p0/main/newsletter-export.ts",
+      "sha256": "cf3d359033c663dce540530f479e6ab45ac0daa4810ee79ef2dc6269d0d4dc09"
+    },
+    {
+      "path": "electron-p0/main/newsletter-json.ts",
+      "sha256": "25920ab87d71135e53e585463bfe9fafefbfe8b5e8459f40fbe22c9749b654a6"
+    },
+    {
+      "path": "electron-p0/main/newsletter-project-ipc.ts",
+      "sha256": "b7a43ad54ab65673d349c33f39d1286940004924722e4773a49d30d486a32a99"
+    },
+    {
+      "path": "electron-p0/main/newsletter-projects.ts",
+      "sha256": "f50421a393a82234d61a3ba5e08129971ed5cc804045df24dbe2eebb13dd2d04"
+    },
+    {
+      "path": "electron-p0/main/official-document-files.ts",
+      "sha256": "2547208961acbf8b4cd97a7c21274b9f3b44a1289cc4ec95f2b5627d0361d4fe"
+    },
+    {
+      "path": "electron-p0/main/policy.ts",
+      "sha256": "fbe30318ce2eba70cad53ee4118dd48fe0aa7bd97b4b454f16d0d2b5d90c9beb"
+    },
+    {
+      "path": "electron-p0/main/purchase-ai-images.ts",
+      "sha256": "a6a166318a33e27973deb6f8b3e9807bb2956b016ed3bae4b23c4f637a6dc929"
+    },
+    {
+      "path": "electron-p0/main/purchase-ai-service.ts",
+      "sha256": "559660bc3f0c063e6f3a5d446a0a26b7ca95c3a2ff3d0fb6449ce13a53af7b0a"
+    },
+    {
+      "path": "electron-p0/main/purchase-clipboard.ts",
+      "sha256": "670dd990a8e71560bb611745b532d2c674909d4bd7993b9f80687398364af7ca"
+    },
+    {
+      "path": "electron-p0/main/purchase-csv.ts",
+      "sha256": "9a6c11bb72768fed3513ee822bb3e911f1f561fffe5c355e98f75667b6ffde83"
+    },
+    {
+      "path": "electron-p0/main/purchase-domain-types.ts",
+      "sha256": "11595e68df7b80e7bc53c1e37fd9aaa56e32c5e452f8215563a179ffdd782558"
+    },
+    {
+      "path": "electron-p0/main/purchase-domain.ts",
+      "sha256": "9262f940af9cd80db7b04e8b4ad357ae5385fd9a0101e66be775599cc022fd56"
+    },
+    {
+      "path": "electron-p0/main/purchase-excel-ipc.ts",
+      "sha256": "e47374bf5fefc44a63d1f862f7f1eaeeca698fc54b1a05f1688bcbac034c74af"
+    },
+    {
+      "path": "electron-p0/main/purchase-excel.ts",
+      "sha256": "f89e1d2035d7d93b9b02c593f785671027e3a7b89c5e954bfd2e5a3634659ff0"
+    },
+    {
+      "path": "electron-p0/main/purchase-export-storage.ts",
+      "sha256": "63055e53eba9d03ec0520b31c54e8da76794d763bb5a8fa7d8c5a3bd0c6ee408"
+    },
+    {
+      "path": "electron-p0/main/purchase-export-validation.ts",
+      "sha256": "604ab11432942f2ea4e85730e7af78228e0afc24b1b45be93fe350515b5583e4"
+    },
+    {
+      "path": "electron-p0/main/purchase-export.ts",
+      "sha256": "d3ec4e9d1887e62e0b53d051e34809ec13a63ce75b3e9a7c17b6eb4327779875"
+    },
+    {
+      "path": "electron-p0/main/purchase-image-files.ts",
+      "sha256": "e9037a01cc39ccaed3716ccd7c4fbc2c8fa9f4dabda7044d0ea95e3ba2eee479"
+    },
+    {
+      "path": "electron-p0/main/purchase-image-ipc.ts",
+      "sha256": "8951421d873a28235f3e82fef38cfcd5d899b29a004b360e9bf6a38b7ed85d38"
+    },
+    {
+      "path": "electron-p0/main/purchase-image-ocr.ts",
+      "sha256": "865676c1cea907b1a15755fd45ad331703e6c93c72f9a576927772df9af4dc95"
+    },
+    {
+      "path": "electron-p0/main/purchase-image-preview.ts",
+      "sha256": "c94662abd10f1fc19c49d0f3c620e75598c0d064eabee4d5b8b4ac6f9813e20d"
+    },
+    {
+      "path": "electron-p0/main/purchase-import.ts",
+      "sha256": "f26ff3d554d1a22775a6b4debff55824e8658cf8dd1bfaeaca9045b468dbb6ed"
+    },
+    {
+      "path": "electron-p0/main/purchase-settings-normalize.ts",
+      "sha256": "39da21bbd35ee0891290222c546963ac4b96fc59fbee12d783f0409d80c84a4c"
+    },
+    {
+      "path": "electron-p0/main/purchase-settings.ts",
+      "sha256": "6b3d58309682311e85eb3c7fde0141c2febb54db87d929f34deb6045101aba52"
+    },
+    {
+      "path": "electron-p0/main/purchase-settlement-domain.ts",
+      "sha256": "a707ce5c32ca06e00150224ba302e7ed4ad9c5816a90d9160721e252613ee4fc"
+    },
+    {
+      "path": "electron-p0/main/purchase-specialized-validation.ts",
+      "sha256": "3cd3db124012ca9a8cf76430722dfc6c6d536cb046f3d2088173a01847d7ed6d"
+    },
+    {
+      "path": "electron-p0/main/purchase-specialized.ts",
+      "sha256": "c20031f86941ed01b5cd64b956e5322d0940e650cc7ac3a7f783e5a8d8b478d3"
+    },
+    {
+      "path": "electron-p0/main/qa-profile.ts",
+      "sha256": "5e148a9edf943157038fe4036c4e8306c637d8f9f41130920013572a5c547554"
+    },
+    {
+      "path": "electron-p0/main/record-helper-ipc.ts",
+      "sha256": "d109f43e3467611274f1e4517b24480b805957fb7e1fc3b9e0740404f7bf7705"
+    },
+    {
+      "path": "electron-p0/main/record-helper-process.ts",
+      "sha256": "510e423e7c559acbb8266a8ddf6965642e4fd80ba7c093cd22c5db6a59725249"
+    },
+    {
+      "path": "electron-p0/main/record-helper/chatgpt-types.ts",
+      "sha256": "97f2939c27b1de7a1e410a38b94d1bd20c81507bb7bad11cb5207eb57ec03215"
+    },
+    {
+      "path": "electron-p0/main/record-helper/deidentification.ts",
+      "sha256": "3664076cd8fc9ad6c60fcab4e72d73eb1a753068e865c44dea4b2b25f17bea1c"
+    },
+    {
+      "path": "electron-p0/main/record-helper/import-contract.ts",
+      "sha256": "f3c95badbe4dcfefe568c5534afe92a1a8960f11da6ba6c2cd3122cc285ee1df"
+    },
+    {
+      "path": "electron-p0/main/record-helper/privacyGuard.ts",
+      "sha256": "6966bb62fff933172ada57637ba37e3c2a6ff55eb000a01d9ab91861f904ceab"
+    },
+    {
+      "path": "electron-p0/main/record-helper/promptBuilder.ts",
+      "sha256": "82fb7fb94e42dccfd6b288c23da7411072d9fa4caba729f44f9be5bd07970f30"
+    },
+    {
+      "path": "electron-p0/main/record-helper/recordHelperAiService.ts",
+      "sha256": "3002b9b618ac4ef509043ce8cf0003c47fe3ac5975afba050ce8db46a1caa05a"
+    },
+    {
+      "path": "electron-p0/main/record-helper/types.ts",
+      "sha256": "6f328750c7d085420b6bf7965e3636afcdc3c9ae270fb0741463e1f93fc48523"
+    },
+    {
+      "path": "electron-p0/main/sample-ipc.ts",
+      "sha256": "243edaa83bec56db4abed05910db6599151900316ed96a971cbd2e737b7a486d"
+    },
+    {
+      "path": "electron-p0/main/school-network.ts",
+      "sha256": "9bd109d53890c25449210373935c0c48e377f7073e3355b1aeb72a99ed1382c6"
+    },
+    {
+      "path": "electron-p0/main/school-profile.ts",
+      "sha256": "cc8df4ad11d9378af6a54fb0b3e242f9ec7c1fcfcfa4c57b897784d27c52e9ea"
+    },
+    {
+      "path": "electron-p0/main/settings.ts",
+      "sha256": "31e8c61daa4403778916c765acd08633d4284804327b0593e094e9fe821f84e2"
+    },
+    {
+      "path": "electron-p0/main/work-folders-ipc.ts",
+      "sha256": "88bf8a349fe059b57de5cdc2022031a8409f91bd912f03514a4e13f006b3379c"
+    },
+    {
+      "path": "electron-p0/main/work-folders.ts",
+      "sha256": "c419b43ff51ca5ae5f792becddf7848eda2df12bceef679edfaec2fad4d1c89c"
+    },
+    {
+      "path": "electron-p0/main/workspace-product.ts",
+      "sha256": "baed46b5da32775404452cea788b09beac8e65bd4e3e6e2238fc5c8d8bc04ab5"
+    },
+    {
+      "path": "electron-p0/preload/preload.cts",
+      "sha256": "a0ba383dae8025102b13ce09d6d67f74b94dfdfb3147093c6737c07240bf63cf"
+    },
+    {
+      "path": "electron-p0/workspace-protocol.ts",
+      "sha256": "cdebea20678a617d891046f1878f2f3d08603520009f4eb49d7978b2236b7c1a"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "8086572ba19a8de494a0c63262a7c4620ce5e2bad05ea0d89f5a219cc9015081"
+    },
+    {
+      "path": "package.json",
+      "sha256": "e0f99f7a30107d968e1b413ef43b1932846b3d71fabadbbbc5f59c8d27648294"
+    },
+    {
+      "path": "school-workspace/auth/.gitignore",
+      "sha256": "e94e66ba76eb63521b7889cdc3841f1d224c0205870a63767cbf7621de034cae"
+    },
+    {
+      "path": "school-workspace/auth/README.txt",
+      "sha256": "5571567e9e93798a408070e4c1882e58475d71de52fec254d7af6e2282cbcbc2"
+    },
+    {
+      "path": "school-workspace/auth/SCHOOL_01B_RESULT.txt",
+      "sha256": "102308a356de57f4a913837badcfe8540b30108111744e07bdde47867c713d2a"
+    },
+    {
+      "path": "school-workspace/auth/common/rpc.ts",
+      "sha256": "8915a93d4ba42483228d26ca1a0389d02ab797266e7b5294f7cac57492d5fe82"
+    },
+    {
+      "path": "school-workspace/auth/common/types.ts",
+      "sha256": "e9984214e853953dcf657f719c0098cc564c5e62d6f0062827113dea26c3737b"
+    },
+    {
+      "path": "school-workspace/auth/electron/composition.ts",
+      "sha256": "86376c767f9b11efb82369d6ed897639d79ed0d73f83c351cf1a1ded8c7e4730"
+    },
+    {
+      "path": "school-workspace/auth/electron/ipc-contract.ts",
+      "sha256": "c98649922abd4e345c0269b0edbf795b1bd184f150600523911e7118fcb57de3"
+    },
+    {
+      "path": "school-workspace/auth/electron/ipc.ts",
+      "sha256": "2bc0c00321edd3e4cb2d184b46b67a85ac7b67613f5f67a7d14075a565163850"
+    },
+    {
+      "path": "school-workspace/auth/electron/main-adapter.ts",
+      "sha256": "33c081d1f668cceb87b8213e154fffdd0b84032530bf3697615023bc316ac90c"
+    },
+    {
+      "path": "school-workspace/auth/electron/preload.ts",
+      "sha256": "1ae6d8121d0daba90d04fd954c4dd4eaf49c51d160913129097b3466c0422853"
+    },
+    {
+      "path": "school-workspace/auth/electron/vault.ts",
+      "sha256": "6a56de3a306e2311b60e3529f6bce40477de57377adb719a26efd91251cba057"
+    },
+    {
+      "path": "school-workspace/auth/evidence/auth-build-smoke.log",
+      "sha256": "70ac489f51f868dbd2bbb48647b79ad005984510235925dcd59b202cce3597a8"
+    },
+    {
+      "path": "school-workspace/auth/evidence/auth-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/auth/evidence/auth-tests.json",
+      "sha256": "f41730ed2df409957e55744d9168cb52454dddcbee6fa87dc4f4e1938ffb8849"
+    },
+    {
+      "path": "school-workspace/auth/evidence/auth-tests.log",
+      "sha256": "47ab8fa7e4e62e6d8033a2fdcc510d5d85f7edcae5977c1d5767f00db59a441c"
+    },
+    {
+      "path": "school-workspace/auth/evidence/auth-typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/auth/evidence/baseline-build-comparison.json",
+      "sha256": "66a16b458677391da648c81c09c3adb61fc089bb9a2540f34cc4ab0fd1c409ef"
+    },
+    {
+      "path": "school-workspace/auth/evidence/baseline-root-build.log",
+      "sha256": "6cfd4b08f20eb9a7d3121bea7c2f0057f67f4d4735a70fd9e8da15a519718a9e"
+    },
+    {
+      "path": "school-workspace/auth/evidence/commands.json",
+      "sha256": "e06dff2f98ffd2ae039f481c12d78b9521095f4988e745c98b1239512976a6e0"
+    },
+    {
+      "path": "school-workspace/auth/evidence/electron-build.log",
+      "sha256": "b88431224111da6bd50c31689e47d58eb7e38291b267e463fb0639965ce60791"
+    },
+    {
+      "path": "school-workspace/auth/evidence/existing-regression.json",
+      "sha256": "a0c98a9315590be6f51ae009bf33c857ae3fb6412af63d785fe238d1a5e8e895"
+    },
+    {
+      "path": "school-workspace/auth/evidence/existing-regression.log",
+      "sha256": "332c1c404817bfbc7473f3b2f81b9dd97b127fdd2d9fcc2337a83aa4b4b57813"
+    },
+    {
+      "path": "school-workspace/auth/evidence/file-list.json",
+      "sha256": "36f58d5ab381bb2aee3e87fb70937bb783ff8ced90486314920f668bc7373a42"
+    },
+    {
+      "path": "school-workspace/auth/evidence/package-scan.json",
+      "sha256": "f98e09318ca01ca2da0ce6458705fb257febb20111b44fd4a8a4f22618295095"
+    },
+    {
+      "path": "school-workspace/auth/evidence/portable-restore-run.log",
+      "sha256": "88f23755e9fb019ff5f7070386c621cc51f95eb29594f994b25d8a0c01065372"
+    },
+    {
+      "path": "school-workspace/auth/evidence/portable-restore-verification.json",
+      "sha256": "317f6bb70b02807083e3ee093804d818d2c889d4d62a80a2b14e9076960a700c"
+    },
+    {
+      "path": "school-workspace/auth/evidence/root-build.log",
+      "sha256": "6cfd4b08f20eb9a7d3121bea7c2f0057f67f4d4735a70fd9e8da15a519718a9e"
+    },
+    {
+      "path": "school-workspace/auth/evidence/school01a-restore-verification.json",
+      "sha256": "73e8062d8437ab6708cdc3d6ee8076f5c29a34e981f7f748df3edf5362946508"
+    },
+    {
+      "path": "school-workspace/auth/evidence/summary.json",
+      "sha256": "be5907ab67a4ecd91fbf318f62865f356fceaf5b0407cf5a479cea01dc17b0bf"
+    },
+    {
+      "path": "school-workspace/auth/reference/OPERATING_METADATA_HANDOFF.json",
+      "sha256": "deece463f676948f5bee9cc4dd45bdee4cc730cb1d2ee76077345698b20280bf"
+    },
+    {
+      "path": "school-workspace/auth/reference/OPERATING_METADATA_HANDOFF.txt",
+      "sha256": "a865c0b6962d47bbb17ef66f909d9008a3f151772478fdd8000e680f49a3c46f"
+    },
+    {
+      "path": "school-workspace/auth/reference/SCHOOL_01A_HANDOFF_ORIGINAL.zip",
+      "sha256": "764cc84ed91196dc933c293da59f1f9128349f11f12cadfe4c9e6787dc10cca1"
+    },
+    {
+      "path": "school-workspace/auth/run-checks.sh",
+      "sha256": "3408e3dd190df6af204b2f45dae4568db200cdeb6cf27007b3f3afd0a78e6f8e"
+    },
+    {
+      "path": "school-workspace/auth/server/flow.ts",
+      "sha256": "4c3e5e6fcaf476f60bbaf93c4910056e0659743e1982c394eef35118f99d471d"
+    },
+    {
+      "path": "school-workspace/auth/server/ports.ts",
+      "sha256": "72aa5accf8da87b02024b70c83e21cb4b2c22b3b093285113805cd08ab9db5ba"
+    },
+    {
+      "path": "school-workspace/auth/server/rpc-adapter.ts",
+      "sha256": "7e31ad7e10776288310a7ae9260697ac87ee9acd246c5d953ad9b173def85013"
+    },
+    {
+      "path": "school-workspace/auth/server/session.ts",
+      "sha256": "3eee4d93f911bf552f749224eccfbcafad1ae1d9ebc401c5dada807a331d9449"
+    },
+    {
+      "path": "school-workspace/auth/server/supabase-provider.ts",
+      "sha256": "17aa82cf518c606385617cf01f6b19a00cce4a989405bca30366d06bc636fea3"
+    },
+    {
+      "path": "school-workspace/auth/tests/electron.test.ts",
+      "sha256": "da90a9182ff155f4d05464d2be844ea1d2a960c00961a0e36e401a55e096b3da"
+    },
+    {
+      "path": "school-workspace/auth/tests/fixtures.ts",
+      "sha256": "6e56f2299848c6cac67846606323d1ee1c0577a77eba0e7a688fb50115f5f79b"
+    },
+    {
+      "path": "school-workspace/auth/tests/sdk-and-boundaries.test.ts",
+      "sha256": "e26fc2dfe03dc5ac05141ad9e01ee410e7fd4ae695d33b817536641d660d8e93"
+    },
+    {
+      "path": "school-workspace/auth/tests/web-and-rpc.test.ts",
+      "sha256": "4e088e20399acb733c0d7a1be044073465fb07a49d41e9e7163b5e3ef80ff82f"
+    },
+    {
+      "path": "school-workspace/auth/tsconfig.build.json",
+      "sha256": "d75e68cd284748949ab0ef964b9dc4dd38633be8e6626b7382af30a4c0e8de85"
+    },
+    {
+      "path": "school-workspace/auth/tsconfig.json",
+      "sha256": "2d0d61074f8e666a152b6e1c882f5c8f012c21ca3d2ca283136747de855396fc"
+    },
+    {
+      "path": "school-workspace/auth/vitest.config.ts",
+      "sha256": "4d120277166ab070e25e32338192ae477c536fabe5042d73c855e7d06dc6fd03"
+    },
+    {
+      "path": "school-workspace/auth/web/bff-adapter.ts",
+      "sha256": "e754495e295ce6eb1e301ce1ef1fbf0de8bfa3c33bbc4f24daa8ae5a7a4d798c"
+    },
+    {
+      "path": "school-workspace/auth/web/session-store.ts",
+      "sha256": "7a7a4b5b16c5f58a9a9c142d488d6ace9e329df98e870cbbd152d6dab449429c"
+    },
+    {
+      "path": "school-workspace/integration/.gitignore",
+      "sha256": "9ec1d327144db35b72536a71a970be8daabe9ca24b64adb563c9095399495797"
+    },
+    {
+      "path": "school-workspace/integration/README.txt",
+      "sha256": "8901c41bfc7e430f55b984d7c453a42798967145dac0c966990af88870c081ad"
+    },
+    {
+      "path": "school-workspace/integration/SCHOOL_01C_RESULT.txt",
+      "sha256": "1a528dc314511eea7e5a438a87279dbf66320519c85bd01ef273cab5bf99848d"
+    },
+    {
+      "path": "school-workspace/integration/browser-check.mjs",
+      "sha256": "1590f3a02386b02fbd9795c241e1b061a9fff212c1b1422427906029d6e33133"
+    },
+    {
+      "path": "school-workspace/integration/core/workspace.ts",
+      "sha256": "43528976e65a791869c4bd4e8bed1ebf207e9caa6c55306fbef61adea9900903"
+    },
+    {
+      "path": "school-workspace/integration/dev-ui/WorkspacePanel.tsx",
+      "sha256": "54f7b513b578ae3d72b520b0b200362595e9275b308e78bdf40d4c9cc2ac49de"
+    },
+    {
+      "path": "school-workspace/integration/dev-ui/desktop.html",
+      "sha256": "f1e1cdf357276a265aefa1cd16a3ca10a9c4f3c7271063ce49fd091b8de4a701"
+    },
+    {
+      "path": "school-workspace/integration/dev-ui/env.d.ts",
+      "sha256": "da5bf71d48cf909584a01c80b445f730507068f5b34c920f352e2bfcf0315e4c"
+    },
+    {
+      "path": "school-workspace/integration/dev-ui/main.tsx",
+      "sha256": "14b6fc460775934c930217dae1eb8fd70fc2b6bf1fa200e4648ad6bdd6c56851"
+    },
+    {
+      "path": "school-workspace/integration/dev-ui/mobile.html",
+      "sha256": "f1e1cdf357276a265aefa1cd16a3ca10a9c4f3c7271063ce49fd091b8de4a701"
+    },
+    {
+      "path": "school-workspace/integration/dev-ui/preview.ts",
+      "sha256": "28ce5bfc653bdc99c63769cb7012a949682d4afeb8aa8ab7c2094dd15824480f"
+    },
+    {
+      "path": "school-workspace/integration/dev-ui/workspace.css",
+      "sha256": "9eb628c8db77d4c46449387403df811d2c081bc3173a9ebe2700e45826d4d488"
+    },
+    {
+      "path": "school-workspace/integration/evidence/auth-regression.json",
+      "sha256": "e1961ff380131ff6fb1f1736875d5945c678d8292e7ce24ebb268e7ca12b4250"
+    },
+    {
+      "path": "school-workspace/integration/evidence/auth-regression.log",
+      "sha256": "388c9e987958de95629f6f3b5f6dd8b2f2ecb722c0eef9fde1fd8ba1ddaa3a9b"
+    },
+    {
+      "path": "school-workspace/integration/evidence/baseline-build-comparison.json",
+      "sha256": "48f5e900a87b3ee50c36919b3471b7a528cd0c4c3476e9d9eea401a416a7ab7b"
+    },
+    {
+      "path": "school-workspace/integration/evidence/baseline-latest-root-build.log",
+      "sha256": "6cfd4b08f20eb9a7d3121bea7c2f0057f67f4d4735a70fd9e8da15a519718a9e"
+    },
+    {
+      "path": "school-workspace/integration/evidence/browser-check.json",
+      "sha256": "7753d7090e8ad8c106ba0eb27bad80ee581ba977c7642434a8ddaf6d2026819f"
+    },
+    {
+      "path": "school-workspace/integration/evidence/browser-check.log",
+      "sha256": "b0b3a3c4460b99e7b526b89f1b1cff3cb4e6726165a360efcf187afff11c66c8"
+    },
+    {
+      "path": "school-workspace/integration/evidence/db-apply.log",
+      "sha256": "1b04babb586a0c2a845b90db9a14f388bd3a51606067b56c815bd32218548291"
+    },
+    {
+      "path": "school-workspace/integration/evidence/db-isolation.txt",
+      "sha256": "f13d36636f5bb175e84fd864f8c90d9f43f92b99c89762eda339b752709c3666"
+    },
+    {
+      "path": "school-workspace/integration/evidence/desktop-active.png",
+      "sha256": "211793466f97d4f0f20059c547465d898dbadd581e289ff531f8e3e9c90437fb"
+    },
+    {
+      "path": "school-workspace/integration/evidence/desktop-denied.png",
+      "sha256": "d97495f96f7c237db4e9c71d5ab73a9b651a55a408a3a2615f9e457631ee6cb3"
+    },
+    {
+      "path": "school-workspace/integration/evidence/desktop-pending.png",
+      "sha256": "f3ea665f049bbe8cfab7c1ef10a98a03641f9aff3f8ee45e36517cf098f8b4ec"
+    },
+    {
+      "path": "school-workspace/integration/evidence/desktop-session-expired.png",
+      "sha256": "85063a8f45e3eaecb85cb88177f3c8da2e1fdb3e341113e57b871d5c5e314d2f"
+    },
+    {
+      "path": "school-workspace/integration/evidence/electron-build.log",
+      "sha256": "f44d7090a88324834c3daed11a45fc5c8a6bb6c7e82612dac603e49c3ca4c4f9"
+    },
+    {
+      "path": "school-workspace/integration/evidence/existing-regression.json",
+      "sha256": "68fd782758b66be123bbd5e60c50ee134f4428c7b5a9672c052cd227cad9b986"
+    },
+    {
+      "path": "school-workspace/integration/evidence/existing-regression.log",
+      "sha256": "4dd312a9062f3ddeb37ac394cfe81934bdff10a010b3902dbae20b3e42d66f02"
+    },
+    {
+      "path": "school-workspace/integration/evidence/file-list.json",
+      "sha256": "63259836e978156a02576f899db3cf305d5213f88d7edc15ee98d7d72e94e0c2"
+    },
+    {
+      "path": "school-workspace/integration/evidence/git-status.json",
+      "sha256": "2b0f411ec62bf5c0201007135f17ba0c207a43dd37d0b67edf8d6cf210bdb18f"
+    },
+    {
+      "path": "school-workspace/integration/evidence/handoff-verification.json",
+      "sha256": "e8fee119926d04d9dd2114e443eb56481609aeb5f0d88c97d34e750e6b3c3c35"
+    },
+    {
+      "path": "school-workspace/integration/evidence/integration-tests.json",
+      "sha256": "fb6aa4805c9ae035657fa93370ff9e649570e68abf0c7181e368cd45270d24f9"
+    },
+    {
+      "path": "school-workspace/integration/evidence/integration-tests.log",
+      "sha256": "3e620c135f1c86c78d13288ea4919f4c4d691943b5ba75dc9fb35cf87457137a"
+    },
+    {
+      "path": "school-workspace/integration/evidence/latest-base-comparison.txt",
+      "sha256": "909556d00340949b0b3f44aede8861ad3deef83c2322685c2cc9fbcc31925a2f"
+    },
+    {
+      "path": "school-workspace/integration/evidence/mobile-active.png",
+      "sha256": "00e605b94297bdc0f2d5dde924daaa81c802f1068111f4c5bfec7502b2aea4d1"
+    },
+    {
+      "path": "school-workspace/integration/evidence/mobile-denied.png",
+      "sha256": "f7c65dda0b5e5ef7492b465bccd506c03e5f37c121f8a4166e8964e0b38fc6b0"
+    },
+    {
+      "path": "school-workspace/integration/evidence/mobile-pending.png",
+      "sha256": "60682d30c1eaf3b73ba94b0d6c1e724f5ac7e7b0bd12d1fdefbaa521278766e0"
+    },
+    {
+      "path": "school-workspace/integration/evidence/mobile-session-expired.png",
+      "sha256": "b178322fc85646fd8e221a25a7befedc24ef3ef52e7e85dd47078b2ec4db0785"
+    },
+    {
+      "path": "school-workspace/integration/evidence/package-scan.json",
+      "sha256": "fe6a893672933ce8b7ac90bed484c9f0bbe505d33577f15ef6462c6b6e9ed389"
+    },
+    {
+      "path": "school-workspace/integration/evidence/portable-restore-verification.json",
+      "sha256": "a3ec41b4ef8055391b791f16a5cb8d64521ef7aff680cd3fdba6d15add9d7eae"
+    },
+    {
+      "path": "school-workspace/integration/evidence/product-change.diff",
+      "sha256": "a28f2892ff86a45be3409ad95ceebd5e91ea0e7eb1f9e9e20c6244e70f355dc8"
+    },
+    {
+      "path": "school-workspace/integration/evidence/production-boundary.json",
+      "sha256": "2c9dafbc50c957840fa454194df443f2daa6f328715d1ca8a01a3aae64f87727"
+    },
+    {
+      "path": "school-workspace/integration/evidence/restored-db-apply.log",
+      "sha256": "1b04babb586a0c2a845b90db9a14f388bd3a51606067b56c815bd32218548291"
+    },
+    {
+      "path": "school-workspace/integration/evidence/restored-db-isolation.txt",
+      "sha256": "f13d36636f5bb175e84fd864f8c90d9f43f92b99c89762eda339b752709c3666"
+    },
+    {
+      "path": "school-workspace/integration/evidence/restored-integration-tests.json",
+      "sha256": "f8a1f570d97fd8b0b4119e0f6c71479e33073a75d07232a832de21eb7075a9b1"
+    },
+    {
+      "path": "school-workspace/integration/evidence/restored-integration-tests.log",
+      "sha256": "74cec9d7bb85f9f9f380d4ffe9b12d23cffddb10d4a3dcd8d3e3e92e9fcc94a8"
+    },
+    {
+      "path": "school-workspace/integration/evidence/restored-typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/integration/evidence/root-build.log",
+      "sha256": "6cfd4b08f20eb9a7d3121bea7c2f0057f67f4d4735a70fd9e8da15a519718a9e"
+    },
+    {
+      "path": "school-workspace/integration/evidence/school01b-adaptation.diff",
+      "sha256": "4a9689aba2a3d3b7146e9a34cef7a4fe8f57ead3fec2a2fd3cfe9e697af86611"
+    },
+    {
+      "path": "school-workspace/integration/evidence/summary.json",
+      "sha256": "d27495151d5924944cf731f1643d17a324fae2075f7d4f79284700898f32c609"
+    },
+    {
+      "path": "school-workspace/integration/evidence/typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/integration/evidence/ui-review.txt",
+      "sha256": "f3b1860a12bae8f9d43b0d9dc9eeca63ed9ba7f9618be1d541cb239082e802f5"
+    },
+    {
+      "path": "school-workspace/integration/run-local-db.sh",
+      "sha256": "90dbd824f316bc8cc0c64a1b57c276863567eec917f545de021a28a91af65603"
+    },
+    {
+      "path": "school-workspace/integration/server/dev-ipc.ts",
+      "sha256": "18efce5e0eefccde1779236b7cdfef445b2539e782b1b66a290dfcb80432f67d"
+    },
+    {
+      "path": "school-workspace/integration/server/local-db.ts",
+      "sha256": "30bdb419ca76d8846b524833762a6dd01c2bdab31ecc0e5fbcbb4331064d0638"
+    },
+    {
+      "path": "school-workspace/integration/server/platform-ports.ts",
+      "sha256": "3451a62f252f4e133c1a4a8d2e219bca525763db7465b8d3342a5f4f6bae1623"
+    },
+    {
+      "path": "school-workspace/integration/sql/local-status.sql",
+      "sha256": "588c2dfd0e0a90a684e8e6b08b1d5f139817adc9048c50efd6ea8c091e12772a"
+    },
+    {
+      "path": "school-workspace/integration/sql/multi-school-fixture.sql",
+      "sha256": "ccb6ead96bf9e74c2920294a9e8d80bbc6b9de0b17edd4c43189de51f2e3dee9"
+    },
+    {
+      "path": "school-workspace/integration/tests/local-db.test.ts",
+      "sha256": "1c4a677c41ffb76d780195d00e54beb9506e9099f7ab9bb29c063bb60936513a"
+    },
+    {
+      "path": "school-workspace/integration/tests/rig.ts",
+      "sha256": "a038e06d990a694b7523d3d4fa73ddd3db62c5dd9f28e54be882a09b41a6e2bf"
+    },
+    {
+      "path": "school-workspace/integration/tests/ui.test.tsx",
+      "sha256": "2f03f15a2eaa7d2cf895209b6be515b91ac50e5545a083855279d9010e3b64cf"
+    },
+    {
+      "path": "school-workspace/integration/tsconfig.json",
+      "sha256": "10d9f0f5967c0f9983c068d779aca0cf118e5b4531ab45f650db3c558d1a3c79"
+    },
+    {
+      "path": "school-workspace/integration/vitest.config.ts",
+      "sha256": "8f43a1140362fb157dac62efc7aaac623bc20701b2b69b2d44a276ac94463830"
+    },
+    {
+      "path": "school-workspace/local/.gitignore",
+      "sha256": "862263fa1f46c20f0d1e4dac5ffcc75abd55c08211b2c3864c5f8764b9d87793"
+    },
+    {
+      "path": "school-workspace/local/README.txt",
+      "sha256": "33afe510772d1af5b021f2a994fe63ff1205741435ad0c53f0fc9230c6eff235"
+    },
+    {
+      "path": "school-workspace/local/SCHOOL_01A_RESULT.txt",
+      "sha256": "fef9e2e67855f542c8e8fca83c6575c1997b37aa2903d5f8b6746710f2d8189e"
+    },
+    {
+      "path": "school-workspace/local/evidence/auth-fixture-apply.log",
+      "sha256": "f401450a955ee9abf794398a36429101908b7d6f37661fb4b9e2676f6d869573"
+    },
+    {
+      "path": "school-workspace/local/evidence/catalog.json",
+      "sha256": "93a366ae7fe0634743acc3b056ae71ff30bcf2d145b78d7643fe7f59b8585861"
+    },
+    {
+      "path": "school-workspace/local/evidence/image-digest.txt",
+      "sha256": "0bf5c7e8dc14f44f5db879fba4c19c04a9e32bf815c0b89489d403fa6e96ef07"
+    },
+    {
+      "path": "school-workspace/local/evidence/isolation.txt",
+      "sha256": "f13d36636f5bb175e84fd864f8c90d9f43f92b99c89762eda339b752709c3666"
+    },
+    {
+      "path": "school-workspace/local/evidence/manifest.json",
+      "sha256": "22174b9bab0bcd1086c2547cc7eb9fe4ee15fcf49772ce4d8ec0252aec677460"
+    },
+    {
+      "path": "school-workspace/local/evidence/migration-apply.log",
+      "sha256": "d701ff5576955fb2bb146327ba014a99ee8c36e13734bc581a46cc416e9a0e85"
+    },
+    {
+      "path": "school-workspace/local/evidence/pre_fix_results.json",
+      "sha256": "b4c1503087368e9f256838819acaf3d236971e9549cb903c3d9124e6a42d3a1c"
+    },
+    {
+      "path": "school-workspace/local/evidence/results.json",
+      "sha256": "c6b956d8e86ee37a289fc414c9ce4de1fe08f2ba089f610f5ab3c92f4f701bbc"
+    },
+    {
+      "path": "school-workspace/local/evidence/static-check.txt",
+      "sha256": "8c4fb5b462dae8ba2c97c90dbe29a4dbdbc5e914a701360c547195f667ef1b64"
+    },
+    {
+      "path": "school-workspace/local/evidence/test-output.txt",
+      "sha256": "d941964eb01fecc07d30c6b62dbc7406cf4f21df9644582a06d8690f97e7c77a"
+    },
+    {
+      "path": "school-workspace/local/run.sh",
+      "sha256": "8f8f3531719d91099651f0736631648156d3c908afadaee65686d114aaecb8fc"
+    },
+    {
+      "path": "school-workspace/local/supabase/.temp/cli-latest",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/local/supabase/migrations/20261105000027_school01a_workspace_local.sql",
+      "sha256": "3c5c0799ffd27e04ea25e8496c895063ced395cb32fc1059f4e308fa84d83e91"
+    },
+    {
+      "path": "school-workspace/local/tests/auth_fixture.sql",
+      "sha256": "8bb152d79ead38279ef080e82701cc5ccdc8faca948f3c310942b27dc599c115"
+    },
+    {
+      "path": "school-workspace/local/tests/catalog.sql",
+      "sha256": "417b582fa8b899fe1f28e09d91a5b38e998d369903d61ead199dfe338bfd19b9"
+    },
+    {
+      "path": "school-workspace/local/tests/fixtures.sql",
+      "sha256": "72c5dc5d3be9cae542f57212c8b743966ab5e17688c8a84f782bb7ca6b1034c2"
+    },
+    {
+      "path": "school-workspace/local/tests/run.py",
+      "sha256": "dc13e31d84419f74e357d68b269059c6c16781f15b0192923df21f67884bd5b9"
+    },
+    {
+      "path": "school-workspace/local/tests/static_check.py",
+      "sha256": "d73cecd5747c1ee89b295ca32efc2760b3e1a8e4b5e0e383e613dc032ce05832"
+    },
+    {
+      "path": "school-workspace/school02/.gitignore",
+      "sha256": "9ec1d327144db35b72536a71a970be8daabe9ca24b64adb563c9095399495797"
+    },
+    {
+      "path": "school-workspace/school02/GAPS.txt",
+      "sha256": "f0ee606d0ffaf977dc24c03fb959774c98350a6f1b31d5145e30687195446f90"
+    },
+    {
+      "path": "school-workspace/school02/README.txt",
+      "sha256": "d0a11ec4eed0e49c53ac001d76aaa1728e54a80b9588300a6c32f394ad2ec591"
+    },
+    {
+      "path": "school-workspace/school02/SCHOOL_02_RESULT.txt",
+      "sha256": "216d5d32386775f3737baa2b2997aebce17ef92d53adb2d0a48611f544909d87"
+    },
+    {
+      "path": "school-workspace/school02/browser-check.mjs",
+      "sha256": "894de0e9e5709cf8ea17eaaeef507af6062c234c6b93e0f434488dc616bd44ff"
+    },
+    {
+      "path": "school-workspace/school02/build.tsconfig.json",
+      "sha256": "f6422a2467e1cdbdaeaaff841a3ceafbea764168000a92bc9e02972dbe165084"
+    },
+    {
+      "path": "school-workspace/school02/core/client-store.ts",
+      "sha256": "acb86f248be54d6f3d15afea3e7ce7215a9d66907d226356f300e163f667f44a"
+    },
+    {
+      "path": "school-workspace/school02/core/controller.ts",
+      "sha256": "e1dafb2a05e21552552914ce18c13a518850aa44e4a4258a1d73d5b6dc4f8e27"
+    },
+    {
+      "path": "school-workspace/school02/core/types.ts",
+      "sha256": "12229d9dfc54afdad1888698d337591433e8f8c14aa80283d5fa19295233e03d"
+    },
+    {
+      "path": "school-workspace/school02/evidence/auth-regression.json",
+      "sha256": "0c04295f10f0eeb247133c3bd7149ce8c51ec7c4380eecc644260fc6a9971913"
+    },
+    {
+      "path": "school-workspace/school02/evidence/auth-regression.log",
+      "sha256": "e6ed8ba9a32eee70ced96a7d3e41b14aaa1f8c84fecf5158c8a12c4e7e2b9b32"
+    },
+    {
+      "path": "school-workspace/school02/evidence/base-reference.txt",
+      "sha256": "2c3bf8513daf2969d6a6fa65ee2ddd04e67e16c5ab0f8d44b9bb7511544fd24d"
+    },
+    {
+      "path": "school-workspace/school02/evidence/baseline-build-comparison.json",
+      "sha256": "e9d077a3912f88d5d2904126b8c82c24d7f60f69627fff9bce0a0f69f2edbb7c"
+    },
+    {
+      "path": "school-workspace/school02/evidence/baseline-root-build.log",
+      "sha256": "6cfd4b08f20eb9a7d3121bea7c2f0057f67f4d4735a70fd9e8da15a519718a9e"
+    },
+    {
+      "path": "school-workspace/school02/evidence/browser-check.log",
+      "sha256": "ba88dc414524feaeddc765cbc3ad0788f414447081f600439c681c4d19d5d720"
+    },
+    {
+      "path": "school-workspace/school02/evidence/browser-fixture-reset.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school02/evidence/browser-results.json",
+      "sha256": "f5281d96ecab903772825a38bae623d1da4ef4d0fb1d7428f8ddc6cee9d926a8"
+    },
+    {
+      "path": "school-workspace/school02/evidence/catalog.json",
+      "sha256": "3eca088a0b1d4bcf95164f7ec041d3dfa4b275062760f2d2279bba267353d903"
+    },
+    {
+      "path": "school-workspace/school02/evidence/db-apply.log",
+      "sha256": "cc5a0dc271c3d0c4f97f95146165573fc35138fa3ffb29870e904db9220adc75"
+    },
+    {
+      "path": "school-workspace/school02/evidence/db-isolation.txt",
+      "sha256": "f13d36636f5bb175e84fd864f8c90d9f43f92b99c89762eda339b752709c3666"
+    },
+    {
+      "path": "school-workspace/school02/evidence/desktop-admin-980x700.png",
+      "sha256": "97a03e3512ec133005a28a403024c041fbfd71ccb9d5e14a3a4b2e6b957f2a95"
+    },
+    {
+      "path": "school-workspace/school02/evidence/development-fixes.txt",
+      "sha256": "1a2789ccad16a1cb0f157baa28a87837e0f5e0b8577e168c7dc3c9a00d47e8c2"
+    },
+    {
+      "path": "school-workspace/school02/evidence/documentation-check.txt",
+      "sha256": "fe73fab4b2151e25dbeb84c01baf747e4a4956e380d20ec5bf18eca353b52450"
+    },
+    {
+      "path": "school-workspace/school02/evidence/electron-build.log",
+      "sha256": "5580769470dcde1a4c328227ca1e6ff69d7d839615d2bcc000f79126d3b7526d"
+    },
+    {
+      "path": "school-workspace/school02/evidence/existing-regression.json",
+      "sha256": "cfa87b24ad17085448030dfe0b7a3cd311a53ca5918d576306050d9362036636"
+    },
+    {
+      "path": "school-workspace/school02/evidence/existing-regression.log",
+      "sha256": "04ed99398d5d7748326b6adf516c61d1495ab9f48f61848ffb130d57d20cbf97"
+    },
+    {
+      "path": "school-workspace/school02/evidence/file-list.json",
+      "sha256": "0489b73754ea3293d606823746141134169244ae57fa6cee44d22d5d790e6be0"
+    },
+    {
+      "path": "school-workspace/school02/evidence/git-status.json",
+      "sha256": "1af3d15836c4287cb8ed227191d538d248cc32b3313a19716f9535aa52ff16e5"
+    },
+    {
+      "path": "school-workspace/school02/evidence/handoff-verification.json",
+      "sha256": "fffb87dee45d689298538ce053e9c34c7a8ac3760e234ec72b4c0f21a0f90adb"
+    },
+    {
+      "path": "school-workspace/school02/evidence/integration-tests.json",
+      "sha256": "377b5f19f904b0390035155d3a06348f48089210c9c930e63b6ac11866a6b0c7"
+    },
+    {
+      "path": "school-workspace/school02/evidence/integration-tests.log",
+      "sha256": "1d5eb3436310747d3adc209c89c9f6ba096cd0e179b19b59d6f0a3c11212718c"
+    },
+    {
+      "path": "school-workspace/school02/evidence/local-server-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school02/evidence/local-server.log",
+      "sha256": "2e56ecb2e795edcea8a54dd2bd829be9900667ea34f627c8ed6bfe39a05ca122"
+    },
+    {
+      "path": "school-workspace/school02/evidence/mobile-admin.png",
+      "sha256": "6745a0946598a0e7c2ddf55396affb7c4b633770f411b49cd9c31c4865562541"
+    },
+    {
+      "path": "school-workspace/school02/evidence/mobile-approved.png",
+      "sha256": "165946b5bcec2fb590524d99dbed2b1a951d045d0990a97b3c94054a2e211379"
+    },
+    {
+      "path": "school-workspace/school02/evidence/mobile-pending.png",
+      "sha256": "0a618c6fc88855c4956c40105290b9972e4b0a41826573bd886ca4b41b3b874b"
+    },
+    {
+      "path": "school-workspace/school02/evidence/package-scan.json",
+      "sha256": "4b6719ca193268da0370d2eeb86d3ded97bcc37625ca9ece2c3f9102270d1647"
+    },
+    {
+      "path": "school-workspace/school02/evidence/portable-restore-verification.json",
+      "sha256": "063a0c17337100353b0f32046c4f8e9401d7ed7fbcd3fb799551d64ab818bf5b"
+    },
+    {
+      "path": "school-workspace/school02/evidence/product-change.diff",
+      "sha256": "9b83a315efd770a9a72d6f31193a5e87bf18842c6218b6d03a1dae0b73616b28"
+    },
+    {
+      "path": "school-workspace/school02/evidence/production-boundary.json",
+      "sha256": "a1ffc00190316f0678c62006dfe6ae5a3e348aae94abe221582ba9d136f2e64a"
+    },
+    {
+      "path": "school-workspace/school02/evidence/renderer-tests.json",
+      "sha256": "ef659f85319b80c0fa05f630ebd64de143adfed263afb3f8b6ead39b12335ba5"
+    },
+    {
+      "path": "school-workspace/school02/evidence/renderer-tests.log",
+      "sha256": "80b1dea44508caf34eda7e7e59b6c37d82c412486b0541cabf8feed6dbadf267"
+    },
+    {
+      "path": "school-workspace/school02/evidence/restored-browser-check.log",
+      "sha256": "ba88dc414524feaeddc765cbc3ad0788f414447081f600439c681c4d19d5d720"
+    },
+    {
+      "path": "school-workspace/school02/evidence/restored-browser-results.json",
+      "sha256": "f5281d96ecab903772825a38bae623d1da4ef4d0fb1d7428f8ddc6cee9d926a8"
+    },
+    {
+      "path": "school-workspace/school02/evidence/restored-catalog.json",
+      "sha256": "3eca088a0b1d4bcf95164f7ec041d3dfa4b275062760f2d2279bba267353d903"
+    },
+    {
+      "path": "school-workspace/school02/evidence/restored-db-apply.log",
+      "sha256": "cc5a0dc271c3d0c4f97f95146165573fc35138fa3ffb29870e904db9220adc75"
+    },
+    {
+      "path": "school-workspace/school02/evidence/restored-db-isolation.txt",
+      "sha256": "f13d36636f5bb175e84fd864f8c90d9f43f92b99c89762eda339b752709c3666"
+    },
+    {
+      "path": "school-workspace/school02/evidence/restored-integration-tests.json",
+      "sha256": "ad3cdf688b941f6803e6f59befcb9fbebdd6a9933d3c97f6ca4cd289dd3783e2"
+    },
+    {
+      "path": "school-workspace/school02/evidence/restored-integration-tests.log",
+      "sha256": "4f5c1b45b1766e19fda3f88aa8e0671a103b553d6ef04d3b2f3250acc8dca934"
+    },
+    {
+      "path": "school-workspace/school02/evidence/restored-local-server.log",
+      "sha256": "2e56ecb2e795edcea8a54dd2bd829be9900667ea34f627c8ed6bfe39a05ca122"
+    },
+    {
+      "path": "school-workspace/school02/evidence/restored-ui-build.log",
+      "sha256": "a61ba73907121601b4b1c7df3bc50a8b2e98e975ee58cac81904958519b18082"
+    },
+    {
+      "path": "school-workspace/school02/evidence/root-build.log",
+      "sha256": "6cfd4b08f20eb9a7d3121bea7c2f0057f67f4d4735a70fd9e8da15a519718a9e"
+    },
+    {
+      "path": "school-workspace/school02/evidence/scripts-reviewed.json",
+      "sha256": "0cd5dea1bff3ec90aa49a2b0713a8eee80a61e3b989afd702a4305e8b6b49585"
+    },
+    {
+      "path": "school-workspace/school02/evidence/security-review.txt",
+      "sha256": "9cee5ce44aa999d53c6db3d2480bd63c1e5c2ffae0fc0d4792d3c0c97c3ac3a2"
+    },
+    {
+      "path": "school-workspace/school02/evidence/summary.json",
+      "sha256": "4398cebaa9fcd744d64e3aa73d0d0a17de0cbe8a92918f208cdea88adc166d9b"
+    },
+    {
+      "path": "school-workspace/school02/evidence/typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school02/evidence/ui-build.log",
+      "sha256": "2da5ae9be61a77f788bf96a6df52f5598d88512926bc0f8a9c3a7611f708860d"
+    },
+    {
+      "path": "school-workspace/school02/evidence/ui-review.txt",
+      "sha256": "1e24b93bb8fd8ade7347697c36b16dcd9e25f2bd611dff0090f32e8c02d28cc9"
+    },
+    {
+      "path": "school-workspace/school02/run-browser.sh",
+      "sha256": "bfd9285f67c96bfa1e0fc5f15dbad0157c1f325e16f132552fe7909172031b1d"
+    },
+    {
+      "path": "school-workspace/school02/run-local.sh",
+      "sha256": "410570a8bf2fb5d00a846c2fa8f3fbc56051b5771926bf67ee3db67da4ce13d7"
+    },
+    {
+      "path": "school-workspace/school02/server/database.ts",
+      "sha256": "a57281ef001558d67c8c7472b1ff391c9f6c77820643c5fb4c92e5243c573a4a"
+    },
+    {
+      "path": "school-workspace/school02/server/ipc.ts",
+      "sha256": "929493bd5e37dbeaf8d8b4cc32c59e9ae601d2307ac3afc6331c175a164757c1"
+    },
+    {
+      "path": "school-workspace/school02/server/local-server.ts",
+      "sha256": "a6f0c45b220d04ec26ffd7c7a216a5202ed96d045c4864dda1566132408c2599"
+    },
+    {
+      "path": "school-workspace/school02/server/session.ts",
+      "sha256": "71e37d529d15e615ef691cdee06ecfa1492aa8b8440e94e94f7cdd03d8bd1240"
+    },
+    {
+      "path": "school-workspace/school02/sql/catalog.sql",
+      "sha256": "bb781e8fb8203b69178647416bd0ad0b5f5c6a032ba2808ecc779b095821ccc6"
+    },
+    {
+      "path": "school-workspace/school02/sql/extension.sql",
+      "sha256": "9920ac9053ee153b4a5002ef2c0879612152a7d5ae167d276c1c4db55da43c9d"
+    },
+    {
+      "path": "school-workspace/school02/sql/fixtures.sql",
+      "sha256": "d85d9d2733e375131db10c70f2177dc71b12083041dfbe9cc1f6b75d36044d13"
+    },
+    {
+      "path": "school-workspace/school02/tests/client.test.ts",
+      "sha256": "5649769032dd1b0fac8fd8030f8359316c2e9e09b33e69dad29b5e16c80385b2"
+    },
+    {
+      "path": "school-workspace/school02/tests/contracts.test.ts",
+      "sha256": "3fa0fbef20141f0a052c6f08ee868428fa89164e499cdb552f254452e83eb2a3"
+    },
+    {
+      "path": "school-workspace/school02/tests/fixtures.ts",
+      "sha256": "76b9d756548fc31a268cf1bd0820169c22456600ec4ab2cea98833be6af16427"
+    },
+    {
+      "path": "school-workspace/school02/tests/ui-db.test.tsx",
+      "sha256": "fbc787da4a3477f4c1d3d705b250eafb15515721dd3ceb2223d1e213cd1d8633"
+    },
+    {
+      "path": "school-workspace/school02/tsconfig.json",
+      "sha256": "81b69218b8ade8b8162924ecee9f027c7b4b16c6935d9242ccc8bd0f07e8866e"
+    },
+    {
+      "path": "school-workspace/school02/ui/SchoolWorkspace.tsx",
+      "sha256": "db99c97ea7f2712e6ed387af2428f014841c0661a38d28a7fd5ab79ab4b1ad58"
+    },
+    {
+      "path": "school-workspace/school02/ui/desktop.html",
+      "sha256": "7e22d1921fec41075d1e1c8f61cc3fdfe4843469a395828c97b2f8916aa1693f"
+    },
+    {
+      "path": "school-workspace/school02/ui/env.d.ts",
+      "sha256": "da5bf71d48cf909584a01c80b445f730507068f5b34c920f352e2bfcf0315e4c"
+    },
+    {
+      "path": "school-workspace/school02/ui/index.html",
+      "sha256": "7e22d1921fec41075d1e1c8f61cc3fdfe4843469a395828c97b2f8916aa1693f"
+    },
+    {
+      "path": "school-workspace/school02/ui/main.tsx",
+      "sha256": "b1adee319ba053d5d65ed5717addb578c450501671b04c533b4e246b9ac7bcd4"
+    },
+    {
+      "path": "school-workspace/school02/ui/network.ts",
+      "sha256": "97e14828759b6a0b44370adfe36c3160414a846093c51beac7f0a8e1001f43be"
+    },
+    {
+      "path": "school-workspace/school02/ui/school02.css",
+      "sha256": "c42024565052a5e3d3e7fbe23b8f5fd0580bcc1e8890bab02efa218460ddc432"
+    },
+    {
+      "path": "school-workspace/school02/vite.config.ts",
+      "sha256": "3d2680e093df9a57f584e3e6cd7c1611aae92ee0f45152611bcb33d265457469"
+    },
+    {
+      "path": "school-workspace/school02/vitest.config.ts",
+      "sha256": "48fe0a7b07d7f2e27d9d9e3c0f37f3564cb03494b93e8d98cd428d2dff077219"
+    },
+    {
+      "path": "school-workspace/school03/.gitignore",
+      "sha256": "b301fd3f8145abaeadb1e14b9683d4dfe4d050c84ffe04cf3e0507f61676faec"
+    },
+    {
+      "path": "school-workspace/school03/README.txt",
+      "sha256": "07dd3543e9f70a481d80a0a0ab889c1aceff140e9a4c2865213667f75b32805f"
+    },
+    {
+      "path": "school-workspace/school03/SCHOOL_03_RESULT.txt",
+      "sha256": "88ba52c81742862b6aebb64d4d1fb761832087a4d34ab4a5a30ec43098e4f6d4"
+    },
+    {
+      "path": "school-workspace/school03/browser-check.mjs",
+      "sha256": "1a5d2088b1195fb5da0ccae01f92264d5c479a3fb6c70ef69042d7b21974043d"
+    },
+    {
+      "path": "school-workspace/school03/build.tsconfig.json",
+      "sha256": "7da6e7e7d7d5a1302083ad620229197c6401487883bf2691a8eff6ce7a92a1ac"
+    },
+    {
+      "path": "school-workspace/school03/core/client-store.ts",
+      "sha256": "454b41474e01787ea0666ade9df246168c29ae8063b988b56cb4e775accbf510"
+    },
+    {
+      "path": "school-workspace/school03/core/controller.ts",
+      "sha256": "45db6d37631a16750bc2f0ec34e43037f3af2f82af038d57388350fcf8163ec9"
+    },
+    {
+      "path": "school-workspace/school03/core/types.ts",
+      "sha256": "a5e22b4e786664c9fbd9bb19f7448e32a73ef33e49b75858a4a738783d06d30a"
+    },
+    {
+      "path": "school-workspace/school03/evidence/adaptation-P0App.diff",
+      "sha256": "ca079a9e96a0b5d5b01e5bd90d6bbcb306154a28e81e6df4ac09a40b37206ca0"
+    },
+    {
+      "path": "school-workspace/school03/evidence/adaptation-SchoolWorkspace.diff",
+      "sha256": "fd9f4f89d7a7cf26f4146525d01c55052d51312985531f02aff1f941314580e8"
+    },
+    {
+      "path": "school-workspace/school03/evidence/adaptation-database.diff",
+      "sha256": "05d57748594907ecddff9c5d7f85c5254f573c36be5c55771bcc64d34a0bb8c2"
+    },
+    {
+      "path": "school-workspace/school03/evidence/adaptation-session.diff",
+      "sha256": "5cb20b661c783f212672f26b9e79d0e6fff54172e0e2727438ff4ba6dca40a0d"
+    },
+    {
+      "path": "school-workspace/school03/evidence/all-prior-zip-verification.json",
+      "sha256": "d27901508a0c44bda324c75a26a1721f2e0c0ff0b3536c7386c18176e2702b0d"
+    },
+    {
+      "path": "school-workspace/school03/evidence/auth-regression.json",
+      "sha256": "1c9c55f4c38c027b2eef9b2b56ac12ce742ec34f9742a3ce16d7aaa903ca2b29"
+    },
+    {
+      "path": "school-workspace/school03/evidence/auth-regression.log",
+      "sha256": "15dd9bfe92b3bcb25d2406c1aa2c7400c0f93a3598ee4aaa0bd7aab07c47314f"
+    },
+    {
+      "path": "school-workspace/school03/evidence/base-reference.txt",
+      "sha256": "a68f28fcf40bb6255774dbb4481ee764cfaab2e50b9db0589ac858ac4cc8b97a"
+    },
+    {
+      "path": "school-workspace/school03/evidence/baseline-build-comparison.json",
+      "sha256": "d95567ff40517d4cedee149f9e14532a76032e983a2c5d49ecb0ddcad754997b"
+    },
+    {
+      "path": "school-workspace/school03/evidence/baseline-root-build.log",
+      "sha256": "6cfd4b08f20eb9a7d3121bea7c2f0057f67f4d4735a70fd9e8da15a519718a9e"
+    },
+    {
+      "path": "school-workspace/school03/evidence/browser-check.log",
+      "sha256": "41a95af9976f51a578540db865de6aa8c0452910480b90cbe3f67f73bc625124"
+    },
+    {
+      "path": "school-workspace/school03/evidence/browser-fixture-reset.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school03/evidence/browser-results.json",
+      "sha256": "6b5bdf16aab54f1ca91cffa23578be2b449cd353ba125ece6b59a212b1a1902c"
+    },
+    {
+      "path": "school-workspace/school03/evidence/catalog.json",
+      "sha256": "83b376d9948d6b434d2cb879a6fca7a738a67bd0784f52369f4d3f15d8a760b6"
+    },
+    {
+      "path": "school-workspace/school03/evidence/commands.json",
+      "sha256": "a8cdbe8c0ebe6c2a928e2e11bb33ba4afc17cef07e5ba91462dbdf9b5eb81308"
+    },
+    {
+      "path": "school-workspace/school03/evidence/db-apply.log",
+      "sha256": "018a96273d689f672d1186c53e8cf4a3bd4c7793ddfce4a6a3edf75b66339d8e"
+    },
+    {
+      "path": "school-workspace/school03/evidence/db-isolation.txt",
+      "sha256": "f13d36636f5bb175e84fd864f8c90d9f43f92b99c89762eda339b752709c3666"
+    },
+    {
+      "path": "school-workspace/school03/evidence/desktop-teacher-980x700.png",
+      "sha256": "3a6a21c959029ec97b3c911b0eb554ba4b3e323e8fd40cf11e0a2891a377a20e"
+    },
+    {
+      "path": "school-workspace/school03/evidence/development-fixes.txt",
+      "sha256": "f6b97dcbab811c8fb636167e2965253ff56a16dbf6b8aba190c6b1fee305aa3f"
+    },
+    {
+      "path": "school-workspace/school03/evidence/documentation-check.txt",
+      "sha256": "61e0f0c0ae83ebe4587e3e7d90500cbb0fc4896755f16044d33a546e4dc9984a"
+    },
+    {
+      "path": "school-workspace/school03/evidence/electron-build.log",
+      "sha256": "49c2e3956aff761d5b06242977e6e30dbdfa75d8fa6191e6789fbae91a22ef27"
+    },
+    {
+      "path": "school-workspace/school03/evidence/existing-regression.json",
+      "sha256": "b4a20f0d0ef4a30d1116a33f67f8a6afe6ddc8c2c7cf1a905fbe381b5662cefb"
+    },
+    {
+      "path": "school-workspace/school03/evidence/existing-regression.log",
+      "sha256": "95482e160fdfa5575aa1c1714f5894514ef2c475a6163f405a160d88ab0ea0ff"
+    },
+    {
+      "path": "school-workspace/school03/evidence/file-list.json",
+      "sha256": "404a059e9e3f83773352a749372304d7b72c5b053c0d9c9c8882343114621dbf"
+    },
+    {
+      "path": "school-workspace/school03/evidence/git-status.json",
+      "sha256": "5725a978941fa370cf4525ec92c0656bc2253b8b4749931ccddd52cc73a9b27e"
+    },
+    {
+      "path": "school-workspace/school03/evidence/handoff-verification.json",
+      "sha256": "1ff9073aff38dc9b590ce6d49b23764ea810713a24570ab4ae8af79814ddeac0"
+    },
+    {
+      "path": "school-workspace/school03/evidence/integration-tests.json",
+      "sha256": "8c290756eef24af9109d54b7522da2c340e8e84d6490b670009ff20b77ee2f54"
+    },
+    {
+      "path": "school-workspace/school03/evidence/integration-tests.log",
+      "sha256": "a0c8dd5aa05b9a9a50e0ca4497976a02392e848bdc679a61145e918ddad4b9f8"
+    },
+    {
+      "path": "school-workspace/school03/evidence/local-server.log",
+      "sha256": "9b766d1000e08c579ba2177274781e1e4febb1d4dc3e14fc7525ced90e83da7f"
+    },
+    {
+      "path": "school-workspace/school03/evidence/mobile-assistant-done.png",
+      "sha256": "abcc8065cdce001b6418ee08d371ed6302354ff0a91a604296ccf0292c178548"
+    },
+    {
+      "path": "school-workspace/school03/evidence/package-scan.json",
+      "sha256": "513cb0e5250a3a3b534007d096ef4474c90496d77ea78f45aefcf018c78be576"
+    },
+    {
+      "path": "school-workspace/school03/evidence/portable-restore-verification.json",
+      "sha256": "73831a9886a92267bf6531efa9cc1a57bbce2bfa97a724ad0376549d8d770b13"
+    },
+    {
+      "path": "school-workspace/school03/evidence/production-boundary.json",
+      "sha256": "1460f0ddc52d5af98697682b7c945b6c12d24131e1bb72f2fc4d94fcf41dd3e6"
+    },
+    {
+      "path": "school-workspace/school03/evidence/restored-browser-check.log",
+      "sha256": "41a95af9976f51a578540db865de6aa8c0452910480b90cbe3f67f73bc625124"
+    },
+    {
+      "path": "school-workspace/school03/evidence/restored-browser-results.json",
+      "sha256": "6b5bdf16aab54f1ca91cffa23578be2b449cd353ba125ece6b59a212b1a1902c"
+    },
+    {
+      "path": "school-workspace/school03/evidence/restored-catalog.json",
+      "sha256": "83b376d9948d6b434d2cb879a6fca7a738a67bd0784f52369f4d3f15d8a760b6"
+    },
+    {
+      "path": "school-workspace/school03/evidence/restored-db-apply.log",
+      "sha256": "018a96273d689f672d1186c53e8cf4a3bd4c7793ddfce4a6a3edf75b66339d8e"
+    },
+    {
+      "path": "school-workspace/school03/evidence/restored-db-isolation.txt",
+      "sha256": "f13d36636f5bb175e84fd864f8c90d9f43f92b99c89762eda339b752709c3666"
+    },
+    {
+      "path": "school-workspace/school03/evidence/restored-integration-tests.json",
+      "sha256": "8c290756eef24af9109d54b7522da2c340e8e84d6490b670009ff20b77ee2f54"
+    },
+    {
+      "path": "school-workspace/school03/evidence/restored-integration-tests.log",
+      "sha256": "a0c8dd5aa05b9a9a50e0ca4497976a02392e848bdc679a61145e918ddad4b9f8"
+    },
+    {
+      "path": "school-workspace/school03/evidence/restored-local-server.log",
+      "sha256": "9b766d1000e08c579ba2177274781e1e4febb1d4dc3e14fc7525ced90e83da7f"
+    },
+    {
+      "path": "school-workspace/school03/evidence/restored-ui-build.log",
+      "sha256": "b4fa6afd8fc071a0fc34b36c9e83838b309ca6bd58b3cff35be5273bae13ad3f"
+    },
+    {
+      "path": "school-workspace/school03/evidence/root-build.log",
+      "sha256": "6cfd4b08f20eb9a7d3121bea7c2f0057f67f4d4735a70fd9e8da15a519718a9e"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/auth-regression.json",
+      "sha256": "0c04295f10f0eeb247133c3bd7149ce8c51ec7c4380eecc644260fc6a9971913"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/auth-regression.log",
+      "sha256": "e6ed8ba9a32eee70ced96a7d3e41b14aaa1f8c84fecf5158c8a12c4e7e2b9b32"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/base-reference.txt",
+      "sha256": "2c3bf8513daf2969d6a6fa65ee2ddd04e67e16c5ab0f8d44b9bb7511544fd24d"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/baseline-build-comparison.json",
+      "sha256": "e9d077a3912f88d5d2904126b8c82c24d7f60f69627fff9bce0a0f69f2edbb7c"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/baseline-root-build.log",
+      "sha256": "6cfd4b08f20eb9a7d3121bea7c2f0057f67f4d4735a70fd9e8da15a519718a9e"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/browser-check.log",
+      "sha256": "ba88dc414524feaeddc765cbc3ad0788f414447081f600439c681c4d19d5d720"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/browser-fixture-reset.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/browser-results.json",
+      "sha256": "f5281d96ecab903772825a38bae623d1da4ef4d0fb1d7428f8ddc6cee9d926a8"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/catalog.json",
+      "sha256": "1fb19fd2dc2793284237c3c4518224cc6d20e1164c7bae53a945fab865c9fc35"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/db-apply.log",
+      "sha256": "cc5a0dc271c3d0c4f97f95146165573fc35138fa3ffb29870e904db9220adc75"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/db-isolation.txt",
+      "sha256": "f13d36636f5bb175e84fd864f8c90d9f43f92b99c89762eda339b752709c3666"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/desktop-admin-980x700.png",
+      "sha256": "e71a1a1f972a4984c71f2c9f582745448b013e4a025e66f5801f8d0ec3137e56"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/development-fixes.txt",
+      "sha256": "1a2789ccad16a1cb0f157baa28a87837e0f5e0b8577e168c7dc3c9a00d47e8c2"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/documentation-check.txt",
+      "sha256": "fe73fab4b2151e25dbeb84c01baf747e4a4956e380d20ec5bf18eca353b52450"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/electron-build.log",
+      "sha256": "5580769470dcde1a4c328227ca1e6ff69d7d839615d2bcc000f79126d3b7526d"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/existing-regression.json",
+      "sha256": "cfa87b24ad17085448030dfe0b7a3cd311a53ca5918d576306050d9362036636"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/existing-regression.log",
+      "sha256": "04ed99398d5d7748326b6adf516c61d1495ab9f48f61848ffb130d57d20cbf97"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/file-list.json",
+      "sha256": "0489b73754ea3293d606823746141134169244ae57fa6cee44d22d5d790e6be0"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/git-status.json",
+      "sha256": "1af3d15836c4287cb8ed227191d538d248cc32b3313a19716f9535aa52ff16e5"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/handoff-verification.json",
+      "sha256": "fffb87dee45d689298538ce053e9c34c7a8ac3760e234ec72b4c0f21a0f90adb"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/integration-tests.json",
+      "sha256": "5f62989e2fdfbc541d17ea73108cbad57a4183b340ca072a719a113605a22db6"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/integration-tests.log",
+      "sha256": "a5283862c781d62f60cb410b6368c89432602da1c6eaf1b067d10308c0899fe1"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/local-server-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/local-server.log",
+      "sha256": "2e56ecb2e795edcea8a54dd2bd829be9900667ea34f627c8ed6bfe39a05ca122"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/mobile-admin.png",
+      "sha256": "d3fa5e595372f647f00b19ee33de7c13dc0c707a25d1d31e7d7ba9bc6e244bd5"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/mobile-approved.png",
+      "sha256": "6cfd8553da09624ee5dafea510770d1e663a414e8707add36a792f5a6cb90b3b"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/mobile-pending.png",
+      "sha256": "4a47b22b48c17e0661c6cce8a7ae571e063e425706c900b9e4265f661146088c"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/package-scan.json",
+      "sha256": "4b6719ca193268da0370d2eeb86d3ded97bcc37625ca9ece2c3f9102270d1647"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/portable-restore-verification.json",
+      "sha256": "063a0c17337100353b0f32046c4f8e9401d7ed7fbcd3fb799551d64ab818bf5b"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/product-change.diff",
+      "sha256": "9b83a315efd770a9a72d6f31193a5e87bf18842c6218b6d03a1dae0b73616b28"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/production-boundary.json",
+      "sha256": "a1ffc00190316f0678c62006dfe6ae5a3e348aae94abe221582ba9d136f2e64a"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/renderer-tests.json",
+      "sha256": "ef659f85319b80c0fa05f630ebd64de143adfed263afb3f8b6ead39b12335ba5"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/renderer-tests.log",
+      "sha256": "80b1dea44508caf34eda7e7e59b6c37d82c412486b0541cabf8feed6dbadf267"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/restored-browser-check.log",
+      "sha256": "ba88dc414524feaeddc765cbc3ad0788f414447081f600439c681c4d19d5d720"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/restored-browser-results.json",
+      "sha256": "f5281d96ecab903772825a38bae623d1da4ef4d0fb1d7428f8ddc6cee9d926a8"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/restored-catalog.json",
+      "sha256": "3eca088a0b1d4bcf95164f7ec041d3dfa4b275062760f2d2279bba267353d903"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/restored-db-apply.log",
+      "sha256": "cc5a0dc271c3d0c4f97f95146165573fc35138fa3ffb29870e904db9220adc75"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/restored-db-isolation.txt",
+      "sha256": "f13d36636f5bb175e84fd864f8c90d9f43f92b99c89762eda339b752709c3666"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/restored-integration-tests.json",
+      "sha256": "ad3cdf688b941f6803e6f59befcb9fbebdd6a9933d3c97f6ca4cd289dd3783e2"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/restored-integration-tests.log",
+      "sha256": "4f5c1b45b1766e19fda3f88aa8e0671a103b553d6ef04d3b2f3250acc8dca934"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/restored-local-server.log",
+      "sha256": "2e56ecb2e795edcea8a54dd2bd829be9900667ea34f627c8ed6bfe39a05ca122"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/restored-ui-build.log",
+      "sha256": "a61ba73907121601b4b1c7df3bc50a8b2e98e975ee58cac81904958519b18082"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/root-build.log",
+      "sha256": "6cfd4b08f20eb9a7d3121bea7c2f0057f67f4d4735a70fd9e8da15a519718a9e"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/scripts-reviewed.json",
+      "sha256": "0cd5dea1bff3ec90aa49a2b0713a8eee80a61e3b989afd702a4305e8b6b49585"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/security-review.txt",
+      "sha256": "9cee5ce44aa999d53c6db3d2480bd63c1e5c2ffae0fc0d4792d3c0c97c3ac3a2"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/summary.json",
+      "sha256": "4398cebaa9fcd744d64e3aa73d0d0a17de0cbe8a92918f208cdea88adc166d9b"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/ui-build.log",
+      "sha256": "500181da541c785244905af4c4f891e5fdde291b9f8f8e748f29387ecb48bc5e"
+    },
+    {
+      "path": "school-workspace/school03/evidence/school02-regression/ui-review.txt",
+      "sha256": "1e24b93bb8fd8ade7347697c36b16dcd9e25f2bd611dff0090f32e8c02d28cc9"
+    },
+    {
+      "path": "school-workspace/school03/evidence/security-review.txt",
+      "sha256": "2f743d8652441af5c9834154fd8890f17bc03b3442ad0717bc235ed3f3f07f6e"
+    },
+    {
+      "path": "school-workspace/school03/evidence/summary.json",
+      "sha256": "ae8b8f12942d0669c50aad4351c869eeea5329afdd4d692fdbb7665ed62b4758"
+    },
+    {
+      "path": "school-workspace/school03/evidence/typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school03/evidence/ui-build.log",
+      "sha256": "9c645f306c2dbc860d859dba00b4bcf64d5ed23c6d7a85f72f0f0de43a730c49"
+    },
+    {
+      "path": "school-workspace/school03/evidence/ui-review.txt",
+      "sha256": "4d6555b09a12dae8c5afb24c19e83b2d00e3fcaaaa4556a6d71e4a679e949b5d"
+    },
+    {
+      "path": "school-workspace/school03/run-browser.sh",
+      "sha256": "d1b9a896df4612cb4b0507366e7c6d43cb468ba315fd9ac8518e29b882b73893"
+    },
+    {
+      "path": "school-workspace/school03/run-local.sh",
+      "sha256": "9bd70dbf31b565df066e55687e62f5c60de5ec44ff232efc58c78f362e312205"
+    },
+    {
+      "path": "school-workspace/school03/server/database.ts",
+      "sha256": "d6df900de5b0bf0e051f7b2e96c0fb9165fb5307164c8ecdd1e6b95fe27fa1c7"
+    },
+    {
+      "path": "school-workspace/school03/server/ipc.ts",
+      "sha256": "1701fb7dbd5567097d6f7e635fd0d9e4f5a37e10289b4e0e649fe1c4fae310fb"
+    },
+    {
+      "path": "school-workspace/school03/server/local-server.ts",
+      "sha256": "4098e6df75167dd85ccf8635ae17ab05098017ca83029324ff9ebd12fb48e44e"
+    },
+    {
+      "path": "school-workspace/school03/server/session.ts",
+      "sha256": "b134eddf2c39aa9ace482a8d13b435221f9c2e7a75d061a75eefacdca181d788"
+    },
+    {
+      "path": "school-workspace/school03/sql/catalog.sql",
+      "sha256": "6a1c1542796c8abf91b50f4b9a413d1b533efc061935448a5974e283e4f592e1"
+    },
+    {
+      "path": "school-workspace/school03/sql/extension.sql",
+      "sha256": "c75e34d1e4f63adb41f1db7025532e390942ed6c79b1732bf6b1839af3a65c60"
+    },
+    {
+      "path": "school-workspace/school03/sql/fixtures.sql",
+      "sha256": "db00d392d4ddc77650e1cad8306464e8a18281d60cbbe1dc968dc99ae53af4a7"
+    },
+    {
+      "path": "school-workspace/school03/tests/fixtures.ts",
+      "sha256": "1351aef056fed218bc12b980bbc7bd15c9ec1be199723f3b4ee47f65c4d7bf37"
+    },
+    {
+      "path": "school-workspace/school03/tests/state.test.ts",
+      "sha256": "10747e3cb78e3a457ab8fd56c0766c8c8f2587e9cd81acbc2ff1664bba227827"
+    },
+    {
+      "path": "school-workspace/school03/tests/tasks.test.ts",
+      "sha256": "c536982948faf0c7491e69a9808d5232e0e7c6f6ad8afd852eec83e1a7854f78"
+    },
+    {
+      "path": "school-workspace/school03/tests/ui-db.test.tsx",
+      "sha256": "1bded9c29332f7946bb083cbc9ddcd23c014046f7e05c040f89847a164404503"
+    },
+    {
+      "path": "school-workspace/school03/tsconfig.json",
+      "sha256": "81b69218b8ade8b8162924ecee9f027c7b4b16c6935d9242ccc8bd0f07e8866e"
+    },
+    {
+      "path": "school-workspace/school03/ui/IntegratedWorkspace.tsx",
+      "sha256": "275635acaa8319b38e940880c5244e2af28065e09893421bd0f935aadec83308"
+    },
+    {
+      "path": "school-workspace/school03/ui/TaskBoard.tsx",
+      "sha256": "973a7adfaa7a4269ff7a37bf1e8f8bc4644331b3b5bd085b4ad2cf41dc02cb46"
+    },
+    {
+      "path": "school-workspace/school03/ui/desktop.html",
+      "sha256": "0e044b6bac13dca3b2586b09007f0be4a925229b65e5d146121a41709d83995f"
+    },
+    {
+      "path": "school-workspace/school03/ui/env.d.ts",
+      "sha256": "da5bf71d48cf909584a01c80b445f730507068f5b34c920f352e2bfcf0315e4c"
+    },
+    {
+      "path": "school-workspace/school03/ui/index.html",
+      "sha256": "0e044b6bac13dca3b2586b09007f0be4a925229b65e5d146121a41709d83995f"
+    },
+    {
+      "path": "school-workspace/school03/ui/main.tsx",
+      "sha256": "8df581a3c7490b23665d77b253afd08246e27a837e76eb841d85de3e10912538"
+    },
+    {
+      "path": "school-workspace/school03/ui/network.ts",
+      "sha256": "5f66ad823032b1f53d0a35d737b44eb65d9bb816bfcfa2d8c3c5520e06411f03"
+    },
+    {
+      "path": "school-workspace/school03/ui/tasks.css",
+      "sha256": "70737adeb54ca3f5a7d68dd8384f679ae3cd14ef85a318f936f706f5cb631880"
+    },
+    {
+      "path": "school-workspace/school03/vite.config.ts",
+      "sha256": "cc08459c0a54abc51b20e195d330033c1c2246ea1bf6225161fd6d38b6fdfa91"
+    },
+    {
+      "path": "school-workspace/school03/vitest.config.ts",
+      "sha256": "a0a99556e535f0b738850f33055bec0671d01113a20177bcdd2b943513b02bd2"
+    },
+    {
+      "path": "school-workspace/school04/.gitignore",
+      "sha256": "b301fd3f8145abaeadb1e14b9683d4dfe4d050c84ffe04cf3e0507f61676faec"
+    },
+    {
+      "path": "school-workspace/school04/AUTONOMY_POLICY.md",
+      "sha256": "8e95778b205802a3631ddbcb6c08e6660ad6cacf290712f0d6090687fab1a32b"
+    },
+    {
+      "path": "school-workspace/school04/README.md",
+      "sha256": "ab0e7576fdfd168e0498d4038bb674cd08a351df6ecd0c609dfe776f4d36a1ef"
+    },
+    {
+      "path": "school-workspace/school04/REPORT.md",
+      "sha256": "066035598a06365eb1d532ecb3cf1b705a19758c91115aed0e9922223518640e"
+    },
+    {
+      "path": "school-workspace/school04/VALIDATION_MATRIX.md",
+      "sha256": "c403f41ba081d774aaeccd4dd7292061e59885c0b5446622a30576141783b357"
+    },
+    {
+      "path": "school-workspace/school04/browser-check.mjs",
+      "sha256": "3f922b9e04da635253daa16d197372f3c191d715282fd6d3f1641c498b045261"
+    },
+    {
+      "path": "school-workspace/school04/build.tsconfig.json",
+      "sha256": "54efc33ab297ee24f332ac24ebf3c02bfc27e8b1bed3993ccff436a2b4b58ab8"
+    },
+    {
+      "path": "school-workspace/school04/core/client-store.ts",
+      "sha256": "28326db6e391a71ce334ecd33b1fcf3786da760d038dd478ca7fc8a7b0f84403"
+    },
+    {
+      "path": "school-workspace/school04/core/controller.ts",
+      "sha256": "a0ea086c4e45b36ef870111f3063fbe51d87d60d59376c8d4066fe8d039b6823"
+    },
+    {
+      "path": "school-workspace/school04/core/time.ts",
+      "sha256": "0f3d27b135df9bfa7fd5932e74c9d2544c8c4bffab2bf89a636b2c0a92b18679"
+    },
+    {
+      "path": "school-workspace/school04/core/types.ts",
+      "sha256": "e0491a82dfd3da598431bfcbfd6a8549425528332110d5cde2a8da66aee059c1"
+    },
+    {
+      "path": "school-workspace/school04/evidence/CHANGED_FILES.json",
+      "sha256": "4e990ad98afb493df7b5e3bfadcbd36b01f7b17e88dcb33f47e040d20da2b6d0"
+    },
+    {
+      "path": "school-workspace/school04/evidence/QA_FIX_LOG.json",
+      "sha256": "c0cf170f6c65dd54b54868ccbb050b28f4d2b192f92bf8767db81b269924b368"
+    },
+    {
+      "path": "school-workspace/school04/evidence/RESTORE_VALIDATION.json",
+      "sha256": "e6943db295953f32a69771361fef1a6251a99a492e90735af5f81ccac4f0a051"
+    },
+    {
+      "path": "school-workspace/school04/evidence/attempts/runner-inflight-script-change.log",
+      "sha256": "baffffebdb314b0d9bc1db8835de900dc4fa458ad8d32d646c47722ec58f84f9"
+    },
+    {
+      "path": "school-workspace/school04/evidence/auth-regression.json",
+      "sha256": "ce815e14c0cac42005e5aa967e681b71bbb110aa8ec50ba9fe4fe58df5b26b49"
+    },
+    {
+      "path": "school-workspace/school04/evidence/auth-regression.log",
+      "sha256": "9b73e6694c1c91cf55cd25ed09a0e838dabd8d58125dcf5baa3a66d3d72299ba"
+    },
+    {
+      "path": "school-workspace/school04/evidence/baseline-build.log",
+      "sha256": "6cfd4b08f20eb9a7d3121bea7c2f0057f67f4d4735a70fd9e8da15a519718a9e"
+    },
+    {
+      "path": "school-workspace/school04/evidence/browser-check.log",
+      "sha256": "e575a812f2b15f37aa1ad18617bca8a976ab2d0deea2d321398ed6cd490d7e5a"
+    },
+    {
+      "path": "school-workspace/school04/evidence/browser-fixture-reset.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school04/evidence/browser-results.json",
+      "sha256": "4a4e810c983127886a2d93bdd52eb68f1e7c00f7ad39798971045ada3fbca850"
+    },
+    {
+      "path": "school-workspace/school04/evidence/catalog-verification.json",
+      "sha256": "a48e8d58bc858cefb84e5123ab7bb726c0c7698b9b721cf0787f3ac3ebd6dccf"
+    },
+    {
+      "path": "school-workspace/school04/evidence/catalog-verification.log",
+      "sha256": "95f73eb7354e2597371aa1bf743ec6fc09604ec6e01e8e8901bf9027b56b9573"
+    },
+    {
+      "path": "school-workspace/school04/evidence/catalog.json",
+      "sha256": "4fb8d45b93f3092277dc8b3fffb6dff6e541f2294bbd7e181e4c89606b38b58c"
+    },
+    {
+      "path": "school-workspace/school04/evidence/db-apply.log",
+      "sha256": "0fecc24cfdf44a5479b401030160eeb9dc67bdcb46debf81f850c8e324703fbc"
+    },
+    {
+      "path": "school-workspace/school04/evidence/db-isolation.txt",
+      "sha256": "f13d36636f5bb175e84fd864f8c90d9f43f92b99c89762eda339b752709c3666"
+    },
+    {
+      "path": "school-workspace/school04/evidence/desktop-calendar-980x700.png",
+      "sha256": "35374f12edd3645b6bf831f9655743208a0b6bb0542bf6281e6f3392dc085223"
+    },
+    {
+      "path": "school-workspace/school04/evidence/electron-build.log",
+      "sha256": "923e1a8cff34d2091496699c2611002ffca18def5f1f9e9a70336d293a54613e"
+    },
+    {
+      "path": "school-workspace/school04/evidence/existing-regression.json",
+      "sha256": "de5fd000b9d3cda85faae3416383737b72bb2a45ed908e5fa67142b0861f5590"
+    },
+    {
+      "path": "school-workspace/school04/evidence/existing-regression.log",
+      "sha256": "ff95d85572022e63551779a67e59adb6d167717d823ab56d319713e461934774"
+    },
+    {
+      "path": "school-workspace/school04/evidence/historical-evidence-preservation.json",
+      "sha256": "af9a4f7f7764eb61419509eb9e2d2032aaf86fa78d3d79f85e2c3c10568bfbec"
+    },
+    {
+      "path": "school-workspace/school04/evidence/inherited-source-diff.json",
+      "sha256": "9820af320323006527443f5b7249aaff68bc2db78e02dc47850fa84fc7cf9223"
+    },
+    {
+      "path": "school-workspace/school04/evidence/integration-tests.json",
+      "sha256": "fa828525b2ac795fb2ca03146650c910e27901e8cfd24987c35aa046211e4ded"
+    },
+    {
+      "path": "school-workspace/school04/evidence/integration-tests.log",
+      "sha256": "b2f10dbc05b6395ce5d5c8775b92f5ba787e41601282f877d55b0c060b6fd178"
+    },
+    {
+      "path": "school-workspace/school04/evidence/local-server.log",
+      "sha256": "e195026b2a74a0ead352174179e6f1de5decd35a0dc57b50cdd610ee19fdcf6c"
+    },
+    {
+      "path": "school-workspace/school04/evidence/mobile-calendar.png",
+      "sha256": "77a334e08ce7458bcdd7d5edfb100c8c8faf5fcd43d197e54fa14929135062cc"
+    },
+    {
+      "path": "school-workspace/school04/evidence/mobile-handover-ack.png",
+      "sha256": "a4a6de67e49e92767a1e354f613622fbad34e9f6b34cc3c1240f4cd7d6a4e173"
+    },
+    {
+      "path": "school-workspace/school04/evidence/precommit-scope-security.json",
+      "sha256": "949763431c604c379772d4840af1e6b01266155618a5bfd38dd2c521f1f65cf2"
+    },
+    {
+      "path": "school-workspace/school04/evidence/prior-package-verification.json",
+      "sha256": "2341d063ade0f0c5e9a1e019c5e5d5782bfef8df52e41239a0da5e2da2c656c4"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/auth-regression.json",
+      "sha256": "0c04295f10f0eeb247133c3bd7149ce8c51ec7c4380eecc644260fc6a9971913"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/auth-regression.log",
+      "sha256": "e6ed8ba9a32eee70ced96a7d3e41b14aaa1f8c84fecf5158c8a12c4e7e2b9b32"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/base-reference.txt",
+      "sha256": "2c3bf8513daf2969d6a6fa65ee2ddd04e67e16c5ab0f8d44b9bb7511544fd24d"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/baseline-build-comparison.json",
+      "sha256": "e9d077a3912f88d5d2904126b8c82c24d7f60f69627fff9bce0a0f69f2edbb7c"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/baseline-root-build.log",
+      "sha256": "6cfd4b08f20eb9a7d3121bea7c2f0057f67f4d4735a70fd9e8da15a519718a9e"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/browser-check.log",
+      "sha256": "ba88dc414524feaeddc765cbc3ad0788f414447081f600439c681c4d19d5d720"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/browser-fixture-reset.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/browser-results.json",
+      "sha256": "f5281d96ecab903772825a38bae623d1da4ef4d0fb1d7428f8ddc6cee9d926a8"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/catalog.json",
+      "sha256": "b1c818037ae24abd7b5cf9dabea5b7c9180d351da58c8ec33c88c53c51790280"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/db-apply.log",
+      "sha256": "cc5a0dc271c3d0c4f97f95146165573fc35138fa3ffb29870e904db9220adc75"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/db-isolation.txt",
+      "sha256": "f13d36636f5bb175e84fd864f8c90d9f43f92b99c89762eda339b752709c3666"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/desktop-admin-980x700.png",
+      "sha256": "522d831e98dafe82a40ba6cf1f816e2e6b534a8a8966f74e8291ff240c15e2e9"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/development-fixes.txt",
+      "sha256": "1a2789ccad16a1cb0f157baa28a87837e0f5e0b8577e168c7dc3c9a00d47e8c2"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/documentation-check.txt",
+      "sha256": "fe73fab4b2151e25dbeb84c01baf747e4a4956e380d20ec5bf18eca353b52450"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/electron-build.log",
+      "sha256": "5580769470dcde1a4c328227ca1e6ff69d7d839615d2bcc000f79126d3b7526d"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/existing-regression.json",
+      "sha256": "cfa87b24ad17085448030dfe0b7a3cd311a53ca5918d576306050d9362036636"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/existing-regression.log",
+      "sha256": "04ed99398d5d7748326b6adf516c61d1495ab9f48f61848ffb130d57d20cbf97"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/file-list.json",
+      "sha256": "0489b73754ea3293d606823746141134169244ae57fa6cee44d22d5d790e6be0"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/git-status.json",
+      "sha256": "1af3d15836c4287cb8ed227191d538d248cc32b3313a19716f9535aa52ff16e5"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/handoff-verification.json",
+      "sha256": "fffb87dee45d689298538ce053e9c34c7a8ac3760e234ec72b4c0f21a0f90adb"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/integration-tests.json",
+      "sha256": "f6d76bb7035333107c5669929a10d74d59bae9fea9d24cb262c85464d28cd94c"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/integration-tests.log",
+      "sha256": "f2ebc5e42e3aa017401bd7f76cff71c68b0a8118d2d5caa3bfd84ea68d5dd7c2"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/local-server-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/local-server.log",
+      "sha256": "2e56ecb2e795edcea8a54dd2bd829be9900667ea34f627c8ed6bfe39a05ca122"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/mobile-admin.png",
+      "sha256": "0b896868c22e005fdca402fe12fed48778242d4eddba74e1a8384ccbbdf1e3dd"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/mobile-approved.png",
+      "sha256": "335a5d4d9b9b530a264dac8dacaebf7d90dee512c9682c26b27af9a0855a9ce6"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/mobile-pending.png",
+      "sha256": "29bcfb1c5b5596b1c8673735947866f65748f43924f97a23eaa49736661833ab"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/package-scan.json",
+      "sha256": "4b6719ca193268da0370d2eeb86d3ded97bcc37625ca9ece2c3f9102270d1647"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/portable-restore-verification.json",
+      "sha256": "063a0c17337100353b0f32046c4f8e9401d7ed7fbcd3fb799551d64ab818bf5b"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/product-change.diff",
+      "sha256": "9b83a315efd770a9a72d6f31193a5e87bf18842c6218b6d03a1dae0b73616b28"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/production-boundary.json",
+      "sha256": "a1ffc00190316f0678c62006dfe6ae5a3e348aae94abe221582ba9d136f2e64a"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/renderer-tests.json",
+      "sha256": "ef659f85319b80c0fa05f630ebd64de143adfed263afb3f8b6ead39b12335ba5"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/renderer-tests.log",
+      "sha256": "80b1dea44508caf34eda7e7e59b6c37d82c412486b0541cabf8feed6dbadf267"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/restored-browser-check.log",
+      "sha256": "ba88dc414524feaeddc765cbc3ad0788f414447081f600439c681c4d19d5d720"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/restored-browser-results.json",
+      "sha256": "f5281d96ecab903772825a38bae623d1da4ef4d0fb1d7428f8ddc6cee9d926a8"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/restored-catalog.json",
+      "sha256": "3eca088a0b1d4bcf95164f7ec041d3dfa4b275062760f2d2279bba267353d903"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/restored-db-apply.log",
+      "sha256": "cc5a0dc271c3d0c4f97f95146165573fc35138fa3ffb29870e904db9220adc75"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/restored-db-isolation.txt",
+      "sha256": "f13d36636f5bb175e84fd864f8c90d9f43f92b99c89762eda339b752709c3666"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/restored-integration-tests.json",
+      "sha256": "ad3cdf688b941f6803e6f59befcb9fbebdd6a9933d3c97f6ca4cd289dd3783e2"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/restored-integration-tests.log",
+      "sha256": "4f5c1b45b1766e19fda3f88aa8e0671a103b553d6ef04d3b2f3250acc8dca934"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/restored-local-server.log",
+      "sha256": "2e56ecb2e795edcea8a54dd2bd829be9900667ea34f627c8ed6bfe39a05ca122"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/restored-ui-build.log",
+      "sha256": "a61ba73907121601b4b1c7df3bc50a8b2e98e975ee58cac81904958519b18082"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/root-build.log",
+      "sha256": "6cfd4b08f20eb9a7d3121bea7c2f0057f67f4d4735a70fd9e8da15a519718a9e"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/scripts-reviewed.json",
+      "sha256": "0cd5dea1bff3ec90aa49a2b0713a8eee80a61e3b989afd702a4305e8b6b49585"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/security-review.txt",
+      "sha256": "9cee5ce44aa999d53c6db3d2480bd63c1e5c2ffae0fc0d4792d3c0c97c3ac3a2"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/summary.json",
+      "sha256": "4398cebaa9fcd744d64e3aa73d0d0a17de0cbe8a92918f208cdea88adc166d9b"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/ui-build.log",
+      "sha256": "db7b9634cc7687ea9b56637f394f3dc1aa9cea5caf3b4d756739c455e163cfb2"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school02/ui-review.txt",
+      "sha256": "1e24b93bb8fd8ade7347697c36b16dcd9e25f2bd611dff0090f32e8c02d28cc9"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/adaptation-P0App.diff",
+      "sha256": "ca079a9e96a0b5d5b01e5bd90d6bbcb306154a28e81e6df4ac09a40b37206ca0"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/adaptation-SchoolWorkspace.diff",
+      "sha256": "fd9f4f89d7a7cf26f4146525d01c55052d51312985531f02aff1f941314580e8"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/adaptation-database.diff",
+      "sha256": "05d57748594907ecddff9c5d7f85c5254f573c36be5c55771bcc64d34a0bb8c2"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/adaptation-session.diff",
+      "sha256": "5cb20b661c783f212672f26b9e79d0e6fff54172e0e2727438ff4ba6dca40a0d"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/all-prior-zip-verification.json",
+      "sha256": "d27901508a0c44bda324c75a26a1721f2e0c0ff0b3536c7386c18176e2702b0d"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/auth-regression.json",
+      "sha256": "1c9c55f4c38c027b2eef9b2b56ac12ce742ec34f9742a3ce16d7aaa903ca2b29"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/auth-regression.log",
+      "sha256": "15dd9bfe92b3bcb25d2406c1aa2c7400c0f93a3598ee4aaa0bd7aab07c47314f"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/base-reference.txt",
+      "sha256": "a68f28fcf40bb6255774dbb4481ee764cfaab2e50b9db0589ac858ac4cc8b97a"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/baseline-build-comparison.json",
+      "sha256": "d95567ff40517d4cedee149f9e14532a76032e983a2c5d49ecb0ddcad754997b"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/baseline-root-build.log",
+      "sha256": "6cfd4b08f20eb9a7d3121bea7c2f0057f67f4d4735a70fd9e8da15a519718a9e"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/browser-check.log",
+      "sha256": "41a95af9976f51a578540db865de6aa8c0452910480b90cbe3f67f73bc625124"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/browser-fixture-reset.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/browser-results.json",
+      "sha256": "6b5bdf16aab54f1ca91cffa23578be2b449cd353ba125ece6b59a212b1a1902c"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/catalog.json",
+      "sha256": "83b376d9948d6b434d2cb879a6fca7a738a67bd0784f52369f4d3f15d8a760b6"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/commands.json",
+      "sha256": "a8cdbe8c0ebe6c2a928e2e11bb33ba4afc17cef07e5ba91462dbdf9b5eb81308"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/db-apply.log",
+      "sha256": "018a96273d689f672d1186c53e8cf4a3bd4c7793ddfce4a6a3edf75b66339d8e"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/db-isolation.txt",
+      "sha256": "f13d36636f5bb175e84fd864f8c90d9f43f92b99c89762eda339b752709c3666"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/desktop-teacher-980x700.png",
+      "sha256": "353a278115ee8a7f7ba87d4f34e67450bb1fcf80374f51532d3770e1ea9573d5"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/development-fixes.txt",
+      "sha256": "f6b97dcbab811c8fb636167e2965253ff56a16dbf6b8aba190c6b1fee305aa3f"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/documentation-check.txt",
+      "sha256": "61e0f0c0ae83ebe4587e3e7d90500cbb0fc4896755f16044d33a546e4dc9984a"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/electron-build.log",
+      "sha256": "49c2e3956aff761d5b06242977e6e30dbdfa75d8fa6191e6789fbae91a22ef27"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/existing-regression.json",
+      "sha256": "b4a20f0d0ef4a30d1116a33f67f8a6afe6ddc8c2c7cf1a905fbe381b5662cefb"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/existing-regression.log",
+      "sha256": "95482e160fdfa5575aa1c1714f5894514ef2c475a6163f405a160d88ab0ea0ff"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/file-list.json",
+      "sha256": "404a059e9e3f83773352a749372304d7b72c5b053c0d9c9c8882343114621dbf"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/git-status.json",
+      "sha256": "5725a978941fa370cf4525ec92c0656bc2253b8b4749931ccddd52cc73a9b27e"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/handoff-verification.json",
+      "sha256": "1ff9073aff38dc9b590ce6d49b23764ea810713a24570ab4ae8af79814ddeac0"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/integration-tests.json",
+      "sha256": "08b607516c53a76437ee9ab2975e5c8d1f475fc65bcbe911254049eac3d8980b"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/integration-tests.log",
+      "sha256": "2b86177694fec95d8e203034b996ce9b2e8a4244a6ab1443cef9035fbfbff7fe"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/local-server.log",
+      "sha256": "9b766d1000e08c579ba2177274781e1e4febb1d4dc3e14fc7525ced90e83da7f"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/mobile-assistant-done.png",
+      "sha256": "9da6f8b0a3c105c0e467881d76fe05a275d8919ad42f0541b5614a9097a952e8"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/package-scan.json",
+      "sha256": "513cb0e5250a3a3b534007d096ef4474c90496d77ea78f45aefcf018c78be576"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/portable-restore-verification.json",
+      "sha256": "73831a9886a92267bf6531efa9cc1a57bbce2bfa97a724ad0376549d8d770b13"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/production-boundary.json",
+      "sha256": "1460f0ddc52d5af98697682b7c945b6c12d24131e1bb72f2fc4d94fcf41dd3e6"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/restored-browser-check.log",
+      "sha256": "41a95af9976f51a578540db865de6aa8c0452910480b90cbe3f67f73bc625124"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/restored-browser-results.json",
+      "sha256": "6b5bdf16aab54f1ca91cffa23578be2b449cd353ba125ece6b59a212b1a1902c"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/restored-catalog.json",
+      "sha256": "83b376d9948d6b434d2cb879a6fca7a738a67bd0784f52369f4d3f15d8a760b6"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/restored-db-apply.log",
+      "sha256": "018a96273d689f672d1186c53e8cf4a3bd4c7793ddfce4a6a3edf75b66339d8e"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/restored-db-isolation.txt",
+      "sha256": "f13d36636f5bb175e84fd864f8c90d9f43f92b99c89762eda339b752709c3666"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/restored-integration-tests.json",
+      "sha256": "8c290756eef24af9109d54b7522da2c340e8e84d6490b670009ff20b77ee2f54"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/restored-integration-tests.log",
+      "sha256": "a0c8dd5aa05b9a9a50e0ca4497976a02392e848bdc679a61145e918ddad4b9f8"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/restored-local-server.log",
+      "sha256": "9b766d1000e08c579ba2177274781e1e4febb1d4dc3e14fc7525ced90e83da7f"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/restored-ui-build.log",
+      "sha256": "b4fa6afd8fc071a0fc34b36c9e83838b309ca6bd58b3cff35be5273bae13ad3f"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/root-build.log",
+      "sha256": "6cfd4b08f20eb9a7d3121bea7c2f0057f67f4d4735a70fd9e8da15a519718a9e"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/security-review.txt",
+      "sha256": "2f743d8652441af5c9834154fd8890f17bc03b3442ad0717bc235ed3f3f07f6e"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/summary.json",
+      "sha256": "ae8b8f12942d0669c50aad4351c869eeea5329afdd4d692fdbb7665ed62b4758"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/ui-build.log",
+      "sha256": "0997b1c5a196c83559196882cc6d41db93de96befe753ac447154538596f80c7"
+    },
+    {
+      "path": "school-workspace/school04/evidence/regression-school03/ui-review.txt",
+      "sha256": "4d6555b09a12dae8c5afb24c19e83b2d00e3fcaaaa4556a6d71e4a679e949b5d"
+    },
+    {
+      "path": "school-workspace/school04/evidence/restore-validation/browser-check.log",
+      "sha256": "e575a812f2b15f37aa1ad18617bca8a976ab2d0deea2d321398ed6cd490d7e5a"
+    },
+    {
+      "path": "school-workspace/school04/evidence/restore-validation/browser-results.json",
+      "sha256": "4a4e810c983127886a2d93bdd52eb68f1e7c00f7ad39798971045ada3fbca850"
+    },
+    {
+      "path": "school-workspace/school04/evidence/restore-validation/catalog-verification.json",
+      "sha256": "a48e8d58bc858cefb84e5123ab7bb726c0c7698b9b721cf0787f3ac3ebd6dccf"
+    },
+    {
+      "path": "school-workspace/school04/evidence/restore-validation/catalog-verification.log",
+      "sha256": "95f73eb7354e2597371aa1bf743ec6fc09604ec6e01e8e8901bf9027b56b9573"
+    },
+    {
+      "path": "school-workspace/school04/evidence/restore-validation/catalog.json",
+      "sha256": "4fb8d45b93f3092277dc8b3fffb6dff6e541f2294bbd7e181e4c89606b38b58c"
+    },
+    {
+      "path": "school-workspace/school04/evidence/restore-validation/db-apply.log",
+      "sha256": "0fecc24cfdf44a5479b401030160eeb9dc67bdcb46debf81f850c8e324703fbc"
+    },
+    {
+      "path": "school-workspace/school04/evidence/restore-validation/db-isolation.txt",
+      "sha256": "f13d36636f5bb175e84fd864f8c90d9f43f92b99c89762eda339b752709c3666"
+    },
+    {
+      "path": "school-workspace/school04/evidence/restore-validation/desktop-calendar-980x700.png",
+      "sha256": "35374f12edd3645b6bf831f9655743208a0b6bb0542bf6281e6f3392dc085223"
+    },
+    {
+      "path": "school-workspace/school04/evidence/restore-validation/final-restore-electron-build.log",
+      "sha256": "db2b649cd1ab5908c9df5d2f89f67687eec504c2d8522274948e9fdaf3c1e7f8"
+    },
+    {
+      "path": "school-workspace/school04/evidence/restore-validation/final-restore-run.log",
+      "sha256": "56c468f606544443c415fbfc5f29d7d1cebaa6214197467286dca0a72625bdc1"
+    },
+    {
+      "path": "school-workspace/school04/evidence/restore-validation/final-restore-typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school04/evidence/restore-validation/integration-tests.json",
+      "sha256": "44f255fd3f22b2b133fed88d6a63bf3ba9a836560fe6bf748ab4d4243c536864"
+    },
+    {
+      "path": "school-workspace/school04/evidence/restore-validation/integration-tests.log",
+      "sha256": "f0a6ef417fb9976dc7b0ea191b4c6c3ccfbd6e9b04dda74096875b96978c59e8"
+    },
+    {
+      "path": "school-workspace/school04/evidence/restore-validation/mobile-calendar.png",
+      "sha256": "77a334e08ce7458bcdd7d5edfb100c8c8faf5fcd43d197e54fa14929135062cc"
+    },
+    {
+      "path": "school-workspace/school04/evidence/restore-validation/mobile-handover-ack.png",
+      "sha256": "a4a6de67e49e92767a1e354f613622fbad34e9f6b34cc3c1240f4cd7d6a4e173"
+    },
+    {
+      "path": "school-workspace/school04/evidence/restore-validation/restore-electron-build.log",
+      "sha256": "e4651dcff506be2b15b3ad17045b08157223dbbb2c6499eb055fe4c38e235777"
+    },
+    {
+      "path": "school-workspace/school04/evidence/restore-validation/restore-run.log",
+      "sha256": "9993433d2449b73bfcb5cd0ff43e851f82a27cbd84a6286b0a9067ee002c6d57"
+    },
+    {
+      "path": "school-workspace/school04/evidence/restore-validation/restore-typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school04/evidence/restore-validation/school02-expanded-schema.json",
+      "sha256": "5cf4dae7116a1e0e27bd0b8d391c739c033963da916871e907be97b237df6d5f"
+    },
+    {
+      "path": "school-workspace/school04/evidence/restore-validation/school02-expanded-schema.log",
+      "sha256": "d93f5244a7c76de8742dbab25b555ee4ec8ef12919af80d5bb4e56f6b46563d1"
+    },
+    {
+      "path": "school-workspace/school04/evidence/restore-validation/school03-expanded-schema.json",
+      "sha256": "8fd811aed6a86aea10aac6c92cdbdd375d12a66d1b2e29266e9457217842371e"
+    },
+    {
+      "path": "school-workspace/school04/evidence/restore-validation/school03-expanded-schema.log",
+      "sha256": "52eb3e3b193e4e7b13d16692efbe644ed9e6a2fc3ae62438772b9dcb7bcfac11"
+    },
+    {
+      "path": "school-workspace/school04/evidence/restore-validation/ui-build.log",
+      "sha256": "54678c4534a9820d11dba87a29ce93ddd2056b871645deebd30da334deb97a5c"
+    },
+    {
+      "path": "school-workspace/school04/evidence/restore-validation/ui-only-delta.json",
+      "sha256": "9738da7ca29d0a2c9e3c98419700af5dbabd0879816a0c5d2053b1067dde51dc"
+    },
+    {
+      "path": "school-workspace/school04/evidence/root-build.log",
+      "sha256": "6cfd4b08f20eb9a7d3121bea7c2f0057f67f4d4735a70fd9e8da15a519718a9e"
+    },
+    {
+      "path": "school-workspace/school04/evidence/school02-expanded-schema.json",
+      "sha256": "f38937e0b4203471110196256a4422bcf81bd9d46ac8a918d68ee502ac7f7363"
+    },
+    {
+      "path": "school-workspace/school04/evidence/school02-expanded-schema.log",
+      "sha256": "961bda08f273f49744f6b5c276eeb2b1cbd1b9c5e425df5f320535b149ac3b27"
+    },
+    {
+      "path": "school-workspace/school04/evidence/school03-expanded-schema.json",
+      "sha256": "b50d40d0455c80e7129130066533d1f4ebc090e0425522e352dbaea40e91c2bb"
+    },
+    {
+      "path": "school-workspace/school04/evidence/school03-expanded-schema.log",
+      "sha256": "a48dc6b4190015bfc364cbd6967c9f88eacdf3b5c79820b1f624acf7f3466378"
+    },
+    {
+      "path": "school-workspace/school04/evidence/source-restoration.json",
+      "sha256": "07ae7bef49f2dfff800bcc2a1b7ef0c4dfbfc2dc13c27c75c3432fc029edf680"
+    },
+    {
+      "path": "school-workspace/school04/evidence/type-error-comparison.json",
+      "sha256": "99e4bfde2147c0ad1770b0cc9a301b460d502aaeffc6552368eda5d2d00d6d9a"
+    },
+    {
+      "path": "school-workspace/school04/evidence/typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school04/evidence/ui-build.log",
+      "sha256": "54678c4534a9820d11dba87a29ce93ddd2056b871645deebd30da334deb97a5c"
+    },
+    {
+      "path": "school-workspace/school04/run-browser.sh",
+      "sha256": "6f53a6b7ab9221a80bb4e87aed9d5286e4e27a4b924ce1ecd78caa3e5b196d7c"
+    },
+    {
+      "path": "school-workspace/school04/run-local.sh",
+      "sha256": "cef6d5f430f94b357ef9f6b80d85935d0706be4944d7efb1110755273c3ee747"
+    },
+    {
+      "path": "school-workspace/school04/server/database.ts",
+      "sha256": "6e18fcaa256f0aab4d82f399c9c14260fb9a18479407db621262c92dce12dfe9"
+    },
+    {
+      "path": "school-workspace/school04/server/ipc.ts",
+      "sha256": "d33d04eddef2670250fd1b63c65af848444a23728dca40086daafca05ef863c3"
+    },
+    {
+      "path": "school-workspace/school04/server/local-server.ts",
+      "sha256": "e22cfa1adac281c58cf4cb5697b633f5c95210bd2d27350151f6daae31950294"
+    },
+    {
+      "path": "school-workspace/school04/server/session.ts",
+      "sha256": "5ee7162f44fc64b266082a1fbb77ad8ef9c485f7e79f26d5b7ec43205eaf7a91"
+    },
+    {
+      "path": "school-workspace/school04/sql/catalog.sql",
+      "sha256": "8224414444deea5e80b98f4bc61e91eda4b179370bb587ace2b7da60917143cf"
+    },
+    {
+      "path": "school-workspace/school04/sql/extension.sql",
+      "sha256": "828b81eb460fc6410e979d6905554f265fd8a6b4c74806f0ad00175c9bbbf0ed"
+    },
+    {
+      "path": "school-workspace/school04/tests/contracts.test.ts",
+      "sha256": "b70cf6c0658f7a6f407bf0d7f76b0fe7e910de410d139d4e2eb4603a087dfcfc"
+    },
+    {
+      "path": "school-workspace/school04/tests/fixtures.ts",
+      "sha256": "2ca820c2957628180973f94a0ddba8fc32d3a9d358af0f24b8897946cc92cfd8"
+    },
+    {
+      "path": "school-workspace/school04/tests/state.test.ts",
+      "sha256": "e846e223a71b997067bf642fd34fbc8f6c21f105cfa585712b1566375eafbb39"
+    },
+    {
+      "path": "school-workspace/school04/tests/ui-db.test.tsx",
+      "sha256": "b1e9917ffbcad9e78fc160b121d1ad71421234513f78060d69ad1c796b9367d2"
+    },
+    {
+      "path": "school-workspace/school04/tools/verify_catalog.py",
+      "sha256": "ee5c53304cbc0499b137acbe257d76f05377b57616fb0d5c8ddda658a5c64cfc"
+    },
+    {
+      "path": "school-workspace/school04/tsconfig.json",
+      "sha256": "81b69218b8ade8b8162924ecee9f027c7b4b16c6935d9242ccc8bd0f07e8866e"
+    },
+    {
+      "path": "school-workspace/school04/ui/ActivityWorkspace.tsx",
+      "sha256": "3a44c26930a59e5f53ea3fa3dc32561b7da46350d1ba982ce0dfcc8789f552e0"
+    },
+    {
+      "path": "school-workspace/school04/ui/IntegratedWorkspace.tsx",
+      "sha256": "c926b99ff6d15c86003947e3345a5f4d313a2b22d41f47438c71c2fef1550b0a"
+    },
+    {
+      "path": "school-workspace/school04/ui/activity.css",
+      "sha256": "678389168805b811762c457959fdd6ffdfaf82a5be840d45e8bfaca252be8ee0"
+    },
+    {
+      "path": "school-workspace/school04/ui/desktop.html",
+      "sha256": "c8184957244c148e04046512438d6d214414d1ece38772b710a79c0dfeaaf3ae"
+    },
+    {
+      "path": "school-workspace/school04/ui/env.d.ts",
+      "sha256": "da5bf71d48cf909584a01c80b445f730507068f5b34c920f352e2bfcf0315e4c"
+    },
+    {
+      "path": "school-workspace/school04/ui/index.html",
+      "sha256": "c8184957244c148e04046512438d6d214414d1ece38772b710a79c0dfeaaf3ae"
+    },
+    {
+      "path": "school-workspace/school04/ui/main.tsx",
+      "sha256": "80878f4fc4c7a79a810d2ce570fa09a9e7d61cc1a7f85699878e0682d678ea03"
+    },
+    {
+      "path": "school-workspace/school04/ui/network.ts",
+      "sha256": "664cb1cf404016708e9aec16b014c36cdcfce393f4163d4c60cfb98efc389165"
+    },
+    {
+      "path": "school-workspace/school04/vite.config.ts",
+      "sha256": "6a3e30f3aec5b59d5394f9814adf75554a25cfa6314ccfaac224a3057803dacb"
+    },
+    {
+      "path": "school-workspace/school04/vitest.config.ts",
+      "sha256": "420980dc502899c6181398007ea53aa51007200a84e7811fb5e1abfd3c166583"
+    },
+    {
+      "path": "school-workspace/school05/.gitignore",
+      "sha256": "d296af07102d86e013ee363cc6f60f3b3177409c45278fbbcf70683566740538"
+    },
+    {
+      "path": "school-workspace/school05/CLOUD_B_HANDOFF.md",
+      "sha256": "6f71490f6aa577108c5839793981d005ed5815e2c1a77693ec577c0e07a58705"
+    },
+    {
+      "path": "school-workspace/school05/README.md",
+      "sha256": "85f680698f3e59bfed761d60f83ac42f21efefe09c83b58334447e0896eeeca1"
+    },
+    {
+      "path": "school-workspace/school05/REPORT.md",
+      "sha256": "33a862628eacb5c2f73bb0ee82a26c2bd14a9f6801be840b6fa8af2fc42ea700"
+    },
+    {
+      "path": "school-workspace/school05/browser-check.mjs",
+      "sha256": "4a98e6fd251b9f5733cafe77d6af1c926e64af292baf17fa5f0c8571d91ebc68"
+    },
+    {
+      "path": "school-workspace/school05/build.tsconfig.json",
+      "sha256": "ae6fbabc3b805689a1baf5e98110694949215d5140ab4b2148d428fdf8fcbbab"
+    },
+    {
+      "path": "school-workspace/school05/evidence/CHANGED_FILES.json",
+      "sha256": "eecb49491d01c90c7d82e3a07a61d63385f74b12756df5627a3b7f0c1df43e69"
+    },
+    {
+      "path": "school-workspace/school05/evidence/QA_FIX_LOG.json",
+      "sha256": "667a8bf0605d6cb8abeeff312fc0f693e5a789a502a4bd3f41f13e931bb9f843"
+    },
+    {
+      "path": "school-workspace/school05/evidence/attempts/browser-desktop-label.log",
+      "sha256": "5854715163a835928826c241023e1e2eb746e66c7e64beb43738a2b1cae72bd4"
+    },
+    {
+      "path": "school-workspace/school05/evidence/attempts/browser-loading-wait.log",
+      "sha256": "a2b68d013349118c27fb3fd2f3b616924f04fb7621bc62b718eef14894cc5eb7"
+    },
+    {
+      "path": "school-workspace/school05/evidence/auth-regression.json",
+      "sha256": "08fcb4d92ffa437c8fcff8c0b036a6fe99ed96209793fe5c37029a82a3d9db1a"
+    },
+    {
+      "path": "school-workspace/school05/evidence/auth-regression.log",
+      "sha256": "46aae549491847bd26645dc7a1e2d4e26af88665a802c7e53478c41927d356cd"
+    },
+    {
+      "path": "school-workspace/school05/evidence/baseline-root-build.log",
+      "sha256": "6cfd4b08f20eb9a7d3121bea7c2f0057f67f4d4735a70fd9e8da15a519718a9e"
+    },
+    {
+      "path": "school-workspace/school05/evidence/boundary-tests.log",
+      "sha256": "e9c171fea244b6f51e5b8a9f2e703f707e1176f69d3818f03999eb5782254b60"
+    },
+    {
+      "path": "school-workspace/school05/evidence/browser-fixtures.log",
+      "sha256": "eb8057f0cbbb512ec8b026445bd47b8889271f64916c40f959b3af25d6bb8282"
+    },
+    {
+      "path": "school-workspace/school05/evidence/browser-results.json",
+      "sha256": "423467a233b134ee8f170412c4835cbeed6c7dc671819b38a91734a1f16d7394"
+    },
+    {
+      "path": "school-workspace/school05/evidence/browser.log",
+      "sha256": "728347fb856b12e878b0fde63f8888bc90ed3ab675e73a6def66fcab21d5bf91"
+    },
+    {
+      "path": "school-workspace/school05/evidence/db-apply.log",
+      "sha256": "0fecc24cfdf44a5479b401030160eeb9dc67bdcb46debf81f850c8e324703fbc"
+    },
+    {
+      "path": "school-workspace/school05/evidence/db-isolation.txt",
+      "sha256": "f13d36636f5bb175e84fd864f8c90d9f43f92b99c89762eda339b752709c3666"
+    },
+    {
+      "path": "school-workspace/school05/evidence/desktop-900x680.png",
+      "sha256": "0aa6fae300f0f5bddc07bf2a5bca220ab060690ca44a286a75a200648a2ff646"
+    },
+    {
+      "path": "school-workspace/school05/evidence/desktop-980x700.png",
+      "sha256": "e2ff88b7fb4f4c462814443b09e1d6c08affdaf7e8ab7ce56b0e502328b28926"
+    },
+    {
+      "path": "school-workspace/school05/evidence/electron-build.log",
+      "sha256": "3bddee9b37cba8fe61d058ee325db8a78618c6a0913bb581ce0bbdec52e3f52c"
+    },
+    {
+      "path": "school-workspace/school05/evidence/existing-regression.json",
+      "sha256": "0cf289baf6feef035a7a629c6c187f3782d1f0cc8cbc6963bc221d2b2a7d3468"
+    },
+    {
+      "path": "school-workspace/school05/evidence/existing-regression.log",
+      "sha256": "51cfdf8497af88722f0785c84e75cfac57ae9098190360b94c41f45b8dfae51e"
+    },
+    {
+      "path": "school-workspace/school05/evidence/failure-0.png",
+      "sha256": "72ae3fb1287d872a17752e1a0d5153a55451bf3eadc2812307a3470003d361bd"
+    },
+    {
+      "path": "school-workspace/school05/evidence/failure-0.txt",
+      "sha256": "c9c394e27a3e5c07a26360dc93e66f88faffe7321e06935072eab2ae124ecdcd"
+    },
+    {
+      "path": "school-workspace/school05/evidence/failure-1.png",
+      "sha256": "ad49b85eda5bb7059d2b8eec8a9cd81160baccd5edcc93d62475000851a1e2a7"
+    },
+    {
+      "path": "school-workspace/school05/evidence/failure-1.txt",
+      "sha256": "cba024aa0038a1dbf1a8e0d164c4239ed353140e5abae3cf513b6dee127eb85f"
+    },
+    {
+      "path": "school-workspace/school05/evidence/final-ui-tests.log",
+      "sha256": "d5c0644e2f00669f2ec3b83d6fafa6c917a81a1d31c61cdde874d976d3d6b211"
+    },
+    {
+      "path": "school-workspace/school05/evidence/integration-compare.json",
+      "sha256": "eec1e70bce6d939282dd7a5a40810c20383f5e017c6d8be12a68a94f1b68c398"
+    },
+    {
+      "path": "school-workspace/school05/evidence/main-typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school05/evidence/mobile-320.png",
+      "sha256": "34798b0d2f41638e6cb26f70f73acadbe855527d39d888712a0b3dad2974567a"
+    },
+    {
+      "path": "school-workspace/school05/evidence/mobile-390.png",
+      "sha256": "c49f27ef96783b8cdced53354593829deb08913cb19c2c7bd48ca8aa33cedbcc"
+    },
+    {
+      "path": "school-workspace/school05/evidence/new-tests.json",
+      "sha256": "913038c956b37ebd6733ab0c374d5ab289af09c37a0267ab4cc7cb80b6dd79e3"
+    },
+    {
+      "path": "school-workspace/school05/evidence/new-tests.log",
+      "sha256": "a7dd9be36fe41544289e99a4f3ace02ff1028468c627e2eaacaf508ed4e2609e"
+    },
+    {
+      "path": "school-workspace/school05/evidence/precommit-security.json",
+      "sha256": "d56f736dd38bd8b733e4535abe9383215c6d77e5463ced47acb213adf164b11b"
+    },
+    {
+      "path": "school-workspace/school05/evidence/prepare-tests.log",
+      "sha256": "fda5468837317fac572fb270f2110b015cd12e9e5ffd55b2540619a862c7d286"
+    },
+    {
+      "path": "school-workspace/school05/evidence/product-boundary.json",
+      "sha256": "1cf328f54bfdb4a42776e30af151cd09b5f3df2f643f2f2e1ebf5b73e92064fb"
+    },
+    {
+      "path": "school-workspace/school05/evidence/product-scan.log",
+      "sha256": "cb772b8f3fe390c040e3e4134b4604fa2fc21aa3f74031c811ab9e02740b73d7"
+    },
+    {
+      "path": "school-workspace/school05/evidence/product-shell-900x680.png",
+      "sha256": "b4b20462beeee6517db2270a383a3255bdac4ad86bda64c65469e31e032cf175"
+    },
+    {
+      "path": "school-workspace/school05/evidence/product-shell-980x700.png",
+      "sha256": "cbe3daeb74150bcc376a9a10843c5e5909b43a91d2b1b1a5be5a663612120206"
+    },
+    {
+      "path": "school-workspace/school05/evidence/qa-build.log",
+      "sha256": "a54b4a2f27d595723f42260bf2fe5fe33956b58b81e15f9bd8f2db1ef396a818"
+    },
+    {
+      "path": "school-workspace/school05/evidence/root-build.log",
+      "sha256": "6cfd4b08f20eb9a7d3121bea7c2f0057f67f4d4735a70fd9e8da15a519718a9e"
+    },
+    {
+      "path": "school-workspace/school05/evidence/school02-regression.json",
+      "sha256": "5c72337142bfbf3283002ddeb92450f6a785c115b23c3af1a1cc8adcf3f0f1a4"
+    },
+    {
+      "path": "school-workspace/school05/evidence/school02-regression.log",
+      "sha256": "20b8535bd50b9701bc0780d0f431199419c0d52c9899543ad3c0ea316b12af03"
+    },
+    {
+      "path": "school-workspace/school05/evidence/school03-regression.json",
+      "sha256": "bbc77ae35af39704f1f986313e789c44ed09aa47b79386de5a9ed42e93706833"
+    },
+    {
+      "path": "school-workspace/school05/evidence/school03-regression.log",
+      "sha256": "d7ddf18c17ea011da2923930fb9d1c4551228ed01388c3178c3dad4d57ab8de9"
+    },
+    {
+      "path": "school-workspace/school05/evidence/school04-provenance.json",
+      "sha256": "60f9b6377861bff1cc584a978ec09d9b3b5793d1bc7e70c635baee8559d6e356"
+    },
+    {
+      "path": "school-workspace/school05/evidence/school04-regression.json",
+      "sha256": "db4af988eff62de136c593ff5bc0888c6067a9a23563d835536a391b8b016302"
+    },
+    {
+      "path": "school-workspace/school05/evidence/school04-regression.log",
+      "sha256": "3df28cb4967add9abd2d5c95e5a836a5f49533fe846673b1af42c8257be48c10"
+    },
+    {
+      "path": "school-workspace/school05/evidence/source-validation.json",
+      "sha256": "c4901c2eccabf06a03a90aa221d9a7cf12d5c9d631d42ead575ac41c1c38a616"
+    },
+    {
+      "path": "school-workspace/school05/evidence/type-error-comparison.json",
+      "sha256": "a7f56117e7d3fa84e1904b8ee8ec3f13cee488af400c03058bec65e6167b69c2"
+    },
+    {
+      "path": "school-workspace/school05/evidence/typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school05/evidence/web-build.log",
+      "sha256": "0fb0daaf6b771931a3bd8baf38994c9c2b506b3eaacd007a482e6ccc8a2bd17d"
+    },
+    {
+      "path": "school-workspace/school05/evidence/web-generation.log",
+      "sha256": "8550b0c057cbe21f591f48d54b0244f7440a882794d2bcaac0602f4f85dbc18c"
+    },
+    {
+      "path": "school-workspace/school05/evidence/web-server.log",
+      "sha256": "655115100e14269a869ee39c8aa1dde52781ec5a66ccc1f609218e8b7f4bd1c2"
+    },
+    {
+      "path": "school-workspace/school05/run-browser.sh",
+      "sha256": "4c2fd031b3601ad15f2fef39788c3c4aacabcc358102396b726266948f51c8f1"
+    },
+    {
+      "path": "school-workspace/school05/run-local.sh",
+      "sha256": "406d81e82bcd9ed8d98e2860d50a30eecf64b7f1b762daf5d5881999e4019ac5"
+    },
+    {
+      "path": "school-workspace/school05/server/local-db.ts",
+      "sha256": "03e193954be0d09d40f82feebb54ca7b86ff190eeb2da6473efc0c14d1b73b0f"
+    },
+    {
+      "path": "school-workspace/school05/server/provider.ts",
+      "sha256": "d3c9c1ce4103a801f9adde832352053709fa18ddff608b9c42d4b70de2dbee53"
+    },
+    {
+      "path": "school-workspace/school05/server/qa-web.ts",
+      "sha256": "cacfb6ef934b9d4207be02ab86e83f8decb0b5b984c4a98db42db24171de5983"
+    },
+    {
+      "path": "school-workspace/school05/tests/boundary.test.ts",
+      "sha256": "e6796692b6e522a5e450adc1cef61aaa5ced9c11b5fea12f2a48e6e18a93a444"
+    },
+    {
+      "path": "school-workspace/school05/tests/platform-docker.test.ts",
+      "sha256": "e7d687c46abe3bdffde14d6c1021ab308ad42544760eb7931aef603d4ae9c5fc"
+    },
+    {
+      "path": "school-workspace/school05/tests/product-db.test.ts",
+      "sha256": "7f9628ae57f507851673e1d015ea98deff2f1d444a39b37dd6995ad76edbb175"
+    },
+    {
+      "path": "school-workspace/school05/tests/product-ui.test.tsx",
+      "sha256": "6336cbc2b854525b3c160d3edf9a5a6d4702318d8665afbbae641ceba535cf1d"
+    },
+    {
+      "path": "school-workspace/school05/tests/web-generation.test.ts",
+      "sha256": "c6acd82af87e569e93b4e8557f368502e6bd1ed6418cae6b139ee91c3da562d0"
+    },
+    {
+      "path": "school-workspace/school05/tools/build-qa.mjs",
+      "sha256": "674edbef23ed5da2dac6c6608016b70dbc4bd30ba359e3e9beb2ae42a3261d32"
+    },
+    {
+      "path": "school-workspace/school05/tools/scan-product.mjs",
+      "sha256": "f73851e0d0f9a986836ad4941115a09ca53b79f825193bc73f04d56c6fb917c3"
+    },
+    {
+      "path": "school-workspace/school05/tools/start-windows-qa.ps1",
+      "sha256": "44938f828cd1ebfed1a41bf23437c0d47095547866831a0e5132b271ffc38bab"
+    },
+    {
+      "path": "school-workspace/school05/tsconfig.json",
+      "sha256": "71d4ff705c50ceb3d1f9f4bb5bdccbe80391a6428a9d1b1018913451a056c8ea"
+    },
+    {
+      "path": "school-workspace/school05/ui/ProductWorkspace.tsx",
+      "sha256": "1c97c0c0387522d35a354513e5059661246a000c7a6788a1e7b48a5085ae49f2"
+    },
+    {
+      "path": "school-workspace/school05/ui/bridges.ts",
+      "sha256": "309f4b6033b1753422b06a05a466d29c576901305edbb7fbec23833cb9fef227"
+    },
+    {
+      "path": "school-workspace/school05/ui/env.d.ts",
+      "sha256": "da5bf71d48cf909584a01c80b445f730507068f5b34c920f352e2bfcf0315e4c"
+    },
+    {
+      "path": "school-workspace/school05/ui/index.html",
+      "sha256": "b106ec68a370c366ac33fccd583f81e5a237f3c653a033528e7d85c7dbb905b4"
+    },
+    {
+      "path": "school-workspace/school05/ui/product.css",
+      "sha256": "1d45ff849b0e5e2b75a611f4c4cdb9cec408edd043baaeb4d87f4574b49a6de3"
+    },
+    {
+      "path": "school-workspace/school05/ui/web-api.ts",
+      "sha256": "d6d533f14a4f5c2b6aa9b2263b3a96957ebaea2fa777a158f622b2c577777aa6"
+    },
+    {
+      "path": "school-workspace/school05/ui/web-main.tsx",
+      "sha256": "916aa706ed31369ff55ca8b2e2c5bea27e16adfcb317f7cb693f95a81ec68a5d"
+    },
+    {
+      "path": "school-workspace/school05/vite.config.ts",
+      "sha256": "624354f0975969d36a347e856e77514cd2eba23d1dd1f08835781eb3e58a137a"
+    },
+    {
+      "path": "school-workspace/school05/vitest.config.ts",
+      "sha256": "9a6515f41b4d8a06da5dbfa7e56c03dbb98e05ffaaa50a5e96f9408dd8527206"
+    },
+    {
+      "path": "school-workspace/school06/.gitignore",
+      "sha256": "22599acac7b9e2727aa978510cacf3458b19e8253e54f6e7b031ba8956639bc0"
+    },
+    {
+      "path": "school-workspace/school06/AUTH_HOSTED_MATRIX.md",
+      "sha256": "84423faf926b74948ab75631737c27f665c7ff9f21d462823ae2f71d5ece97e8"
+    },
+    {
+      "path": "school-workspace/school06/OPERATIONS.md",
+      "sha256": "bd84095980716aa651f02c63100a8c5c9d38c197a6a914834411e30d2b48dea7"
+    },
+    {
+      "path": "school-workspace/school06/QA_FIX_LOG.md",
+      "sha256": "c3fee792244aa903093abb014c8f2d9c388803e05f8ab266f97abd0b8628a6c5"
+    },
+    {
+      "path": "school-workspace/school06/README.md",
+      "sha256": "8a5a673e7f59127256f3da43c1c66daeb14de6f20fbdf1c9c279bde912270f28"
+    },
+    {
+      "path": "school-workspace/school06/REPORT.md",
+      "sha256": "af7f07c37fe4cfe9d74eaef34924e5306917650770fb56193724c7fdc465e8be"
+    },
+    {
+      "path": "school-workspace/school06/evidence/attempts/record-alias.log",
+      "sha256": "dbbe6a26e5f9538152c83da16604cc69babd9a1530d95e41b76767a2317eb9be"
+    },
+    {
+      "path": "school-workspace/school06/evidence/auth-regression.json",
+      "sha256": "92a29bf58a4852e59970891fc208f0893ea2e51f7333773ea3d3580a1f7859f0"
+    },
+    {
+      "path": "school-workspace/school06/evidence/auth-regression.log",
+      "sha256": "59e089196c2d704c74f783b3ec96e0f340bd76ed159cb44acb9d8806f8efaca5"
+    },
+    {
+      "path": "school-workspace/school06/evidence/auth-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school06/evidence/baseline-electron-build.log",
+      "sha256": "ef4deac2bcf09646fdae852266b4c4cfb633da3379d181add6be737786c5c430"
+    },
+    {
+      "path": "school-workspace/school06/evidence/baseline-root-build.log",
+      "sha256": "6cfd4b08f20eb9a7d3121bea7c2f0057f67f4d4735a70fd9e8da15a519718a9e"
+    },
+    {
+      "path": "school-workspace/school06/evidence/baseline-workspace-types.log",
+      "sha256": "614fc0d0ecd06cb409e6138eec01e3b10e48dc2127bc6acf3c51b9d6bbde8611"
+    },
+    {
+      "path": "school-workspace/school06/evidence/bootstrap.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school06/evidence/build-comparison.json",
+      "sha256": "6aa7f9548d5d0182e9a032d1061d23241755b19197aa53d8846a73948801d467"
+    },
+    {
+      "path": "school-workspace/school06/evidence/dashboard-build.log",
+      "sha256": "b9c56a9dd133e0dfd3da4f50b4c1926821d65ec38594eb6f778bf98239780ae3"
+    },
+    {
+      "path": "school-workspace/school06/evidence/electron-build.log",
+      "sha256": "ba54a07c0824cdc43d7207eb7d13b4e388aa0f131d4cccafbe7186972fc8721d"
+    },
+    {
+      "path": "school-workspace/school06/evidence/gate-regression.json",
+      "sha256": "19eb07e7683ebdd73c3fe8ced469fa861772e147c807fd72409db25dc737892b"
+    },
+    {
+      "path": "school-workspace/school06/evidence/gate-regression.log",
+      "sha256": "2a8212efc41ac50c9ea21f92381cd1bbfb8902da31d8a4f43f1c926b7640ee55"
+    },
+    {
+      "path": "school-workspace/school06/evidence/initial-full-run.log",
+      "sha256": "68bccdc8dc1700619273b937964736c6847c2fbdb5d8fa261da04b8cd898c3c8"
+    },
+    {
+      "path": "school-workspace/school06/evidence/install-tests.json",
+      "sha256": "a9d81ca53d25a6ac55f3b9c085d895dc1ef17e95397c323c9059842fded43d48"
+    },
+    {
+      "path": "school-workspace/school06/evidence/isolation.txt",
+      "sha256": "f13d36636f5bb175e84fd864f8c90d9f43f92b99c89762eda339b752709c3666"
+    },
+    {
+      "path": "school-workspace/school06/evidence/local-full-run.log",
+      "sha256": "68bccdc8dc1700619273b937964736c6847c2fbdb5d8fa261da04b8cd898c3c8"
+    },
+    {
+      "path": "school-workspace/school06/evidence/local-postgrest.json",
+      "sha256": "b5c54eafa09d2ae9d3d332ce2610a8b43e0d0f50217b69bf8b670a97bcfc7a72"
+    },
+    {
+      "path": "school-workspace/school06/evidence/object-inventory.json",
+      "sha256": "819d3ef5929add71d6c4ed535203c1b91ef6c277292fd7732fe8f2ac7c5f84fe"
+    },
+    {
+      "path": "school-workspace/school06/evidence/preflight-after.json",
+      "sha256": "939ab1437ede703df1fbfa6a97e8f542fe5dc5ee9409b7fd113d0ab75958a786"
+    },
+    {
+      "path": "school-workspace/school06/evidence/preflight-before.json",
+      "sha256": "229100721ebeeb3a92c5ad0b1fba9f26c5dea31bdf40bec1f65a132c8a5a1037"
+    },
+    {
+      "path": "school-workspace/school06/evidence/root-build.log",
+      "sha256": "6cfd4b08f20eb9a7d3121bea7c2f0057f67f4d4735a70fd9e8da15a519718a9e"
+    },
+    {
+      "path": "school-workspace/school06/evidence/school01-invariants.json",
+      "sha256": "722ba0c9c4e825fac18aef685b84230b4ff34b217c9d5e645242b140f7644bd4"
+    },
+    {
+      "path": "school-workspace/school06/evidence/school02-regression.json",
+      "sha256": "0acab3b6c592205ed8217bf166d9306a96537ec7651c00cf33749ed7cc9fe261"
+    },
+    {
+      "path": "school-workspace/school06/evidence/school02-regression.log",
+      "sha256": "0fce56ca3286e7f0a846fb7509456884101639388ed1417161e1ed3b24250fa7"
+    },
+    {
+      "path": "school-workspace/school06/evidence/school03-regression.json",
+      "sha256": "de3b31c5ef48ae15f9aec979478ef755f94dce742514a4cdddca2cb7e794d7a2"
+    },
+    {
+      "path": "school-workspace/school06/evidence/school03-regression.log",
+      "sha256": "bbb5409a50bfa3f437c66935cae5f3578bacf3c5b1f4fa6ce41daa0fe98e9703"
+    },
+    {
+      "path": "school-workspace/school06/evidence/school04-regression.json",
+      "sha256": "a8a5d921b2814254db7a7b6faea537ee9cc7122272e1d875d851076896be4514"
+    },
+    {
+      "path": "school-workspace/school06/evidence/school04-regression.log",
+      "sha256": "7ff9ae806b475ad2a8f816e12195faf47c7bef90e63a843b61a0f73b7d615ad3"
+    },
+    {
+      "path": "school-workspace/school06/evidence/secret-scope-scan.json",
+      "sha256": "807bf1b449b185dc24ac171bc6e59c20d06ad91fd0cf729a9c5c4b74a0df6903"
+    },
+    {
+      "path": "school-workspace/school06/evidence/static-checks.json",
+      "sha256": "f3b72678d9dd9b8b511954aab3052b76c9483908497e0c3a2579213815a0be6a"
+    },
+    {
+      "path": "school-workspace/school06/evidence/static-checks.log",
+      "sha256": "be1bfb265c5556c31029c58276ae3f86c0a0c920da251b5a40d4a140764200ef"
+    },
+    {
+      "path": "school-workspace/school06/evidence/workspace-types.log",
+      "sha256": "614fc0d0ecd06cb409e6138eec01e3b10e48dc2127bc6acf3c51b9d6bbde8611"
+    },
+    {
+      "path": "school-workspace/school06/reference/changed-files.json",
+      "sha256": "5e6c66bd9fef0d193f16a243071216b59ff01e6dbd4abc1db5fda8ad0ee1e743"
+    },
+    {
+      "path": "school-workspace/school06/reference/git-baseline.json",
+      "sha256": "e9194a5b0dd656c85981d2e337e05a2577eaaa01ff9719edaaf07192954bd7e0"
+    },
+    {
+      "path": "school-workspace/school06/reference/previous-handoff-verification.json",
+      "sha256": "058262164222393d2afad2b5a6c69dba43372ab716e3814a25d9d404388607ee"
+    },
+    {
+      "path": "school-workspace/school06/reference/source-sql-manifest.json",
+      "sha256": "76688fbf56dbe15fcfc0608aff60a84d50ce350fc912937e4c7a43c26ca1bc71"
+    },
+    {
+      "path": "school-workspace/school06/run-local.sh",
+      "sha256": "a76363c33ad024a56f28b99b4bfdd9002c16c67b201ea3b56d36dbdb2b3a245c"
+    },
+    {
+      "path": "school-workspace/school06/sql/activate-new-rpcs.sql",
+      "sha256": "12558375ee24112b93f472a43984221d28d9ba82ceb664e829ec46c2f6a25b0c"
+    },
+    {
+      "path": "school-workspace/school06/sql/auth-capability-check.sql",
+      "sha256": "843ee73e235033f30ecf060c30f1283a2ee62da85ea86de92dc2d25520e213f4"
+    },
+    {
+      "path": "school-workspace/school06/sql/close-new-rpcs.sql",
+      "sha256": "45049160f0390d2772164014148a12153569bd730a263f85fb61efd14dde7429"
+    },
+    {
+      "path": "school-workspace/school06/sql/fingerprint-expression.sql",
+      "sha256": "15a18dc3b9fcbe2390462d70217b1df7e7360ab234661967eaf691523942de96"
+    },
+    {
+      "path": "school-workspace/school06/sql/inventory-readonly.sql",
+      "sha256": "5451fb78f7af5dc7a810e2b39d3e89b2db9af1d74627de2a3ea7e0b8e5850c23"
+    },
+    {
+      "path": "school-workspace/school06/sql/preflight-readonly.sql",
+      "sha256": "1fa216ea4ab0eda9e08acc886b526c5a9b3a0a85f8cdc72676699d2b0c6daa84"
+    },
+    {
+      "path": "school-workspace/school06/sql/public-rpc-names.json",
+      "sha256": "aac4a853664d59183a300419305341d4d1a72d8592894bf6f72000165d851b64"
+    },
+    {
+      "path": "school-workspace/school06/supabase/migrations/20261105104546_workspace_foundation.sql",
+      "sha256": "2830f5f2179acf2f99f1664fbc629e2fca4216a41fc95db2a5cbe7e71a4a487c"
+    },
+    {
+      "path": "school-workspace/school06/supabase/migrations/20261105104548_workspace_core.sql",
+      "sha256": "9e1914062cb19f1286a147b5c00d9aae81a0859bf3a2bb643d2c52c95d6df1d2"
+    },
+    {
+      "path": "school-workspace/school06/tests/bootstrap.sql",
+      "sha256": "d76b2994a9241c4095e9d56b9d7791693a596a8c7de35fb7aee08453a842e973"
+    },
+    {
+      "path": "school-workspace/school06/tests/local-auth-capabilities.sql",
+      "sha256": "c25d38cd7116162c8d8c5e8bd357d47fecf2dd0709830044c03ae46659b744d7"
+    },
+    {
+      "path": "school-workspace/school06/tests/postgrest.py",
+      "sha256": "f0dbc76f7032f7181d2a9c7507686dd4cf69e7e865c8532b84d886cc5c29df94"
+    },
+    {
+      "path": "school-workspace/school06/tests/run.py",
+      "sha256": "b04bd263390bcdca159f614b5e30706f2fc290b577101f7b5563106efa41506d"
+    },
+    {
+      "path": "school-workspace/school06/tests/security-regression.py",
+      "sha256": "0755562db8901173887e47cf0b19d7e89139bf34980e54e4270ca6cd3c6fa9e9"
+    },
+    {
+      "path": "school-workspace/school06/tools/build_handoff.py",
+      "sha256": "4ae2ac7754661044bc1d41874f066d42801e007b995c9282bfab6b3e301e863f"
+    },
+    {
+      "path": "school-workspace/school06/tools/build_sql.py",
+      "sha256": "74dc9d350d18225b6d3adfdb3f6a333f4d256317611ad9d897c4417abfc70ad2"
+    },
+    {
+      "path": "school-workspace/school06/tools/check_static.py",
+      "sha256": "912d3be45461dc93ecb42aa22f07f57994e6e5be8e6d92a20d4f77bf47c73bcf"
+    },
+    {
+      "path": "school-workspace/school06/tools/verify_package.py",
+      "sha256": "64ffb5368d1f0380036572f000930cafd92e8ba49c4d3ea844ff819d3765f0ae"
+    },
+    {
+      "path": "school-workspace/school07/.gitignore",
+      "sha256": "3eb68e3f3a46cb558c86512fa3353bc3adb95c4c7742bc0f005aa99f99774099"
+    },
+    {
+      "path": "school-workspace/school07/QA_FIX_LOG.md",
+      "sha256": "069f23d757436b56a371dde88cdd7cf789aad5cf9a373191aa39886e91e0169c"
+    },
+    {
+      "path": "school-workspace/school07/README.md",
+      "sha256": "0386fbccef04ff29b27df51c678a1f7afb2d0f278bf972aa20cf4af0a7e45601"
+    },
+    {
+      "path": "school-workspace/school07/REPORT.md",
+      "sha256": "d7da22088bfb5db281c0337da3c4e75e5557719235039ff1a87f180514a10e65"
+    },
+    {
+      "path": "school-workspace/school07/browser-check.mjs",
+      "sha256": "dc6e48058573a0d7a42df50f23eda020822ad2a92a840de1ac0ca06ec6dc4207"
+    },
+    {
+      "path": "school-workspace/school07/core/controller.ts",
+      "sha256": "2cf539ef16613e0f421ac0d8914056be1e9e60ee3e704cc781c02116057e96eb"
+    },
+    {
+      "path": "school-workspace/school07/core/env.d.ts",
+      "sha256": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5"
+    },
+    {
+      "path": "school-workspace/school07/core/signature.ts",
+      "sha256": "d21c2206ce9f63ca5e3197a3569a44734ebdba4b14c52bdfedc420d26f151c8e"
+    },
+    {
+      "path": "school-workspace/school07/core/store.ts",
+      "sha256": "bc9634bb042aa3c34e422e582631fae49fe07961ff88ee02f18314fcbf9890a9"
+    },
+    {
+      "path": "school-workspace/school07/core/types.ts",
+      "sha256": "4134f490dd10006433d133dc922fd4b907a7f230324f441da4a59baa08e16a29"
+    },
+    {
+      "path": "school-workspace/school07/evidence/attempts/assistant-item-lock.log",
+      "sha256": "399e7a0f87ce61d7d2cf6bcd844b1d33c5a945d7faea1b71672eaec251081cce"
+    },
+    {
+      "path": "school-workspace/school07/evidence/attempts/default-permission-seed.log",
+      "sha256": "e4d0860ce0897103ebb0c951c834cc7d02b676ee755cb40461ec8e7245cfd773"
+    },
+    {
+      "path": "school-workspace/school07/evidence/attempts/rest-multi-school-fixture.log",
+      "sha256": "a85894b5605d1ba41e403d87327712bb3c45bae38c2c691a5866a0cba27cfe26"
+    },
+    {
+      "path": "school-workspace/school07/evidence/auth-regression.json",
+      "sha256": "e85a829eda58bea24472a1fb394351bbe2733fcc63b483467c0c87ebbb2746db"
+    },
+    {
+      "path": "school-workspace/school07/evidence/auth-regression.log",
+      "sha256": "048acefb9a1f8c351f3175a935f51697c7948f9ca2d54b874248c3490f8d41bb"
+    },
+    {
+      "path": "school-workspace/school07/evidence/baseline-electron-build.log",
+      "sha256": "928263ff0e078e270f1fea628754333c7961d6a83f3acf5db21bb82c326a67f3"
+    },
+    {
+      "path": "school-workspace/school07/evidence/baseline-root-build.log",
+      "sha256": "6cfd4b08f20eb9a7d3121bea7c2f0057f67f4d4735a70fd9e8da15a519718a9e"
+    },
+    {
+      "path": "school-workspace/school07/evidence/baseline-workspace-full-types.log",
+      "sha256": "614fc0d0ecd06cb409e6138eec01e3b10e48dc2127bc6acf3c51b9d6bbde8611"
+    },
+    {
+      "path": "school-workspace/school07/evidence/bff-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school07/evidence/bff-server.log",
+      "sha256": "655115100e14269a869ee39c8aa1dde52781ec5a66ccc1f609218e8b7f4bd1c2"
+    },
+    {
+      "path": "school-workspace/school07/evidence/browser-results.json",
+      "sha256": "bbc7a4f91b667754e8bc697df34bf241792f69a392cbd3fee68165fb9ee27836"
+    },
+    {
+      "path": "school-workspace/school07/evidence/build-comparison.json",
+      "sha256": "f7308e369ee94094906bacbfc574103baedf92e6872ff98a34899f35e8bc53b8"
+    },
+    {
+      "path": "school-workspace/school07/evidence/db-results.json",
+      "sha256": "c4197ad906ad022837dadf67f5616d441386799405674104fef64035dce739f0"
+    },
+    {
+      "path": "school-workspace/school07/evidence/db.log",
+      "sha256": "7a8614e45e0a2ac7727080db9479762008d69e41b1d906bba462c451bc7a2c7e"
+    },
+    {
+      "path": "school-workspace/school07/evidence/desktop-900x680.png",
+      "sha256": "9f6cbacfd2e430a448fc81cd1160d31a69f5328cde6d1fed1153f57dfd465cb8"
+    },
+    {
+      "path": "school-workspace/school07/evidence/desktop-980x700.png",
+      "sha256": "d1d3b440770bca2d09d1b62b644a720392a24603e14b67927292411b21ac4943"
+    },
+    {
+      "path": "school-workspace/school07/evidence/electron-build.log",
+      "sha256": "a9570f168ab5b7d4f29961fa21ee787d4c2f22662c13ecf18380ea757580cb75"
+    },
+    {
+      "path": "school-workspace/school07/evidence/electron-renderer-900x680.png",
+      "sha256": "76ce39312dfc24c00e42f087d88b2eeaeb7e26a281a2ab60c7eb1861090f6817"
+    },
+    {
+      "path": "school-workspace/school07/evidence/electron-renderer-980x700.png",
+      "sha256": "c83062c5a3476a3e4c335ed0164d9875674727558c0aebb4e5f3cbed2d4cea6d"
+    },
+    {
+      "path": "school-workspace/school07/evidence/electron-test-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school07/evidence/final-focused-run.log",
+      "sha256": "404358c37a6fb0a1c1e10c002010015622e91c99c5deefd0517477b26c429a2b"
+    },
+    {
+      "path": "school-workspace/school07/evidence/full-run.log",
+      "sha256": "f76ad7e3e11f63eb92ec56502fde02645990bba6841ef74d23b93ef2ed555749"
+    },
+    {
+      "path": "school-workspace/school07/evidence/gate-regression.json",
+      "sha256": "7ef459d5d0c71dafe92345478d098a99db42b41e1d7c8cfd268cbd0b2e0b9a02"
+    },
+    {
+      "path": "school-workspace/school07/evidence/gate-regression.log",
+      "sha256": "2f1edb2b1347eb8a655a098caa2b938c49fc8376eea96023d2f9c1f121263046"
+    },
+    {
+      "path": "school-workspace/school07/evidence/install-close-results.json",
+      "sha256": "770c29149acacb4fd19b9479672a0384c984a62d0efcce5319f6ea0f56fc2ccd"
+    },
+    {
+      "path": "school-workspace/school07/evidence/local-postgrest.json",
+      "sha256": "02a404c938e2ec3869599f9955cb998823c6015e28915d0789eafd161726c998"
+    },
+    {
+      "path": "school-workspace/school07/evidence/main-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school07/evidence/mobile-320.png",
+      "sha256": "ffd9311b097f8e71f10ee8d761564cdf622c58eb3078ae6c4f8be561d6b3fcaf"
+    },
+    {
+      "path": "school-workspace/school07/evidence/mobile-390.png",
+      "sha256": "2545783a8edb81827f9d0bc6add4353907c5179cffd7dc69bfcc258c8fe1c6fd"
+    },
+    {
+      "path": "school-workspace/school07/evidence/new-ts-tests.json",
+      "sha256": "38c13c70e4b146d05e9ca5ae0c46ea5bddd8385d4849bf77e379af1ec3f93761"
+    },
+    {
+      "path": "school-workspace/school07/evidence/new-ts-tests.log",
+      "sha256": "ed2fd3a803d2d55b2a36d6c225d922bf3dda957cce7c23f714863723afdcb47d"
+    },
+    {
+      "path": "school-workspace/school07/evidence/object-inventory.json",
+      "sha256": "0c0d513b13bb60cd8fedca6e1dd4668de6fd57e471f10fe15edfe97e6a83155e"
+    },
+    {
+      "path": "school-workspace/school07/evidence/personal-regression.json",
+      "sha256": "e329b43819b92633a0aeb4ec58583456b33046badf9482ad1194126ec729b20e"
+    },
+    {
+      "path": "school-workspace/school07/evidence/personal-regression.log",
+      "sha256": "6ab197548e2d2f25a58bb59bcb49136fa61677a645aa73d6dcda623f1da78248"
+    },
+    {
+      "path": "school-workspace/school07/evidence/renderer-build.log",
+      "sha256": "56726e0f44c92a2295479acc2c17ad15ce97d0c540a96e0188e9af9a84991183"
+    },
+    {
+      "path": "school-workspace/school07/evidence/renderer-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school07/evidence/root-build.log",
+      "sha256": "6cfd4b08f20eb9a7d3121bea7c2f0057f67f4d4735a70fd9e8da15a519718a9e"
+    },
+    {
+      "path": "school-workspace/school07/evidence/school01-invariants.json",
+      "sha256": "977fd6c949425038c2376248f95b4ddcd5cd470d1c177bf9032c90d2c0aa67d3"
+    },
+    {
+      "path": "school-workspace/school07/evidence/school02-regression.json",
+      "sha256": "ed4389fba5df57e6fa4fec9bee71fd38b555b28c16dc7cfd3c31e2c35587afb1"
+    },
+    {
+      "path": "school-workspace/school07/evidence/school02-regression.log",
+      "sha256": "c46816abb732586cafe333d776aa64827a5dc37f104c4c312eb000bfa4942f6a"
+    },
+    {
+      "path": "school-workspace/school07/evidence/school03-regression.json",
+      "sha256": "10dbe76d9846cd1a914de58d36ecff87f5042201559637b19d53731b21c2520d"
+    },
+    {
+      "path": "school-workspace/school07/evidence/school03-regression.log",
+      "sha256": "8e52253be8bc92160da6bb2da7ebad09bd62e6af132661ad766d756b68b3169e"
+    },
+    {
+      "path": "school-workspace/school07/evidence/school04-regression.json",
+      "sha256": "bcebb2fc5ee86426798a93c15fa8a740b5d60bca1ecf47f1fb8c035ad1a35e46"
+    },
+    {
+      "path": "school-workspace/school07/evidence/school04-regression.log",
+      "sha256": "b9732b5dc9daf6043881741db14211bf3375ecb7fb3ecdb19f2482d6bf841c42"
+    },
+    {
+      "path": "school-workspace/school07/evidence/static-results.json",
+      "sha256": "b6a642c7eea46c9ba05074e8195463540b59bdeaff1f1e4ecbd55c36bdef164b"
+    },
+    {
+      "path": "school-workspace/school07/evidence/static.log",
+      "sha256": "d8465a2d503f7aa65e9cc3e8a85ef4113bf90d785da81fa32e075eeea28489a4"
+    },
+    {
+      "path": "school-workspace/school07/evidence/types.log",
+      "sha256": "e826992fba2b3edb41128fe5bf1ac2f1b282b3d6ad2c69759e6dce97e0a35843"
+    },
+    {
+      "path": "school-workspace/school07/evidence/ui-run.log",
+      "sha256": "b0004aa51b0c905ed4ee7a969a4985c461e1ffef42c8be06e587efd84fd05f18"
+    },
+    {
+      "path": "school-workspace/school07/evidence/web-build.log",
+      "sha256": "d6b352c9688fb74a834e5fb51eed924ed7ed1cf1884315d14d50a8a600230270"
+    },
+    {
+      "path": "school-workspace/school07/evidence/workspace-full-types.log",
+      "sha256": "614fc0d0ecd06cb409e6138eec01e3b10e48dc2127bc6acf3c51b9d6bbde8611"
+    },
+    {
+      "path": "school-workspace/school07/evidence/xlsx-network.txt",
+      "sha256": "626d0c5752cca0c4259284f4c64e2e54c15aa177242ac834cd899cb78b347663"
+    },
+    {
+      "path": "school-workspace/school07/reference/personal-inventory-hashes.json",
+      "sha256": "9af4d1b5ac5a150164b11bfffaf89324dd7cde7336a922cdc2ba36b00aee08f0"
+    },
+    {
+      "path": "school-workspace/school07/reference/school06-preservation.json",
+      "sha256": "fa8c2bdd9db8672d219456c48612fa3cf7b2ffc2339716e230232d169f7abe43"
+    },
+    {
+      "path": "school-workspace/school07/reference/tested-source-hashes.json",
+      "sha256": "2cd15465b319c390938293424d0b0d24bb30015917c55c3889d81dfc27653ca3"
+    },
+    {
+      "path": "school-workspace/school07/run-browser.sh",
+      "sha256": "8ed1e2d1299f4baa8c0f9efe66a6c22278a0d5205e9fec3ed110fcbd8a9c2aaf"
+    },
+    {
+      "path": "school-workspace/school07/run-local.sh",
+      "sha256": "198f938634eecaee4e1a11136c6e94cceb3dad7cadeaf715b5e3cb75e7910c6e"
+    },
+    {
+      "path": "school-workspace/school07/server/session.ts",
+      "sha256": "764c95f624dd38f238ed4f0a25c5755c547ec4089130f066bf689a46efa0fe6d"
+    },
+    {
+      "path": "school-workspace/school07/sql/activate-local.sql",
+      "sha256": "4a69afdea1e172eda20b8c09e6e3940b809fbd6374f377721910979f42947fe6"
+    },
+    {
+      "path": "school-workspace/school07/sql/close-inventory.sql",
+      "sha256": "be87a208b6a6f4d05ee21825c5ee82d3da8b37780426da0cf9d84f21376c8560"
+    },
+    {
+      "path": "school-workspace/school07/sql/functions.sql",
+      "sha256": "53185e5d1f227050635f16521fd88360d56864727da25bbedc252344ef543830"
+    },
+    {
+      "path": "school-workspace/school07/sql/rpc-contracts.json",
+      "sha256": "19bb4c9c3a088eae51655bf8cf9d6d6149d206cb1329ac3d31a1b927c63194c0"
+    },
+    {
+      "path": "school-workspace/school07/sql/tables.sql",
+      "sha256": "6648ee6898457fe49e77d34b0d9765c72b42f6eccf602a27323ec2400f84119e"
+    },
+    {
+      "path": "school-workspace/school07/supabase/migrations/20261105114645_shared_inventory.sql",
+      "sha256": "d14ed327bdf03ddde37e2b864f34211458a3c7c3785fdd929053581318e38b7f"
+    },
+    {
+      "path": "school-workspace/school07/tests/client.test.ts",
+      "sha256": "4b0ba7698826ceaf00379d00910a9c1bf6120722ad696c61ddc6ee56962014a5"
+    },
+    {
+      "path": "school-workspace/school07/tests/db-ui.test.tsx",
+      "sha256": "59178cb1f0e75c30ae9baf63f078878fd2473e51654e6689987af17dfb26e4c9"
+    },
+    {
+      "path": "school-workspace/school07/tests/install-close.py",
+      "sha256": "c4776eaae390a0ae36a32de9ef19da303e65bfaf637b26641ad6aafd0571520b"
+    },
+    {
+      "path": "school-workspace/school07/tests/postgrest.py",
+      "sha256": "86012c14008884b3d08fa7355921d7724b914eec852f8550d4ce9f744904be39"
+    },
+    {
+      "path": "school-workspace/school07/tests/run.py",
+      "sha256": "ca2a6eed540017df43b326d0f170873b37787f6470962da9cfc4558c7b545041"
+    },
+    {
+      "path": "school-workspace/school07/tools/build_handoff.py",
+      "sha256": "ae4333bdc8466d8cc211f1bd0ed992e35e178d9d15c627a77fc9760a26b41ff9"
+    },
+    {
+      "path": "school-workspace/school07/tools/build_sql.py",
+      "sha256": "7e7c1f9cac1dce92a555a18d079501c46bb039e2d7b5e87ebf01a6630a0dee93"
+    },
+    {
+      "path": "school-workspace/school07/tools/check_static.py",
+      "sha256": "41967a5d867b52aa0f5dea118f6fcb49d3e514f60f505beb1594e2ac39d7b9f3"
+    },
+    {
+      "path": "school-workspace/school07/tools/verify_package.py",
+      "sha256": "64ffb5368d1f0380036572f000930cafd92e8ba49c4d3ea844ff819d3765f0ae"
+    },
+    {
+      "path": "school-workspace/school07/tsconfig.json",
+      "sha256": "ce53b602afad304a26d438a862bfe598a20cc9a088b13ab03c8b234ab14c903e"
+    },
+    {
+      "path": "school-workspace/school07/ui/InventoryWorkspace.tsx",
+      "sha256": "3ddfd0047b69b2862e6a9d7c44ea1b249ed84d7123c063b980a49ab08abca973"
+    },
+    {
+      "path": "school-workspace/school07/ui/inventory.css",
+      "sha256": "26e8fa560e54d0695a140276959106fa1dfcc109e0a96cf22d93a6bc6592b9d5"
+    },
+    {
+      "path": "school-workspace/school07/vitest.config.ts",
+      "sha256": "5e82b34f8cc374ce868f15568e1697450e359427e2bdadbc0f7891c3ee323af6"
+    },
+    {
+      "path": "school-workspace/school08/.gitignore",
+      "sha256": "3eb68e3f3a46cb558c86512fa3353bc3adb95c4c7742bc0f005aa99f99774099"
+    },
+    {
+      "path": "school-workspace/school08/CLOUD_B_HANDOFF.md",
+      "sha256": "d323ba584fb3c68f58325a4edf13fac1b08ec714acf30d02b54d8d6553f2f95a"
+    },
+    {
+      "path": "school-workspace/school08/OPERATIONS.md",
+      "sha256": "ee40640a873094937d75c68c8205607423732bb2308a03b17d4f9617ec65baba"
+    },
+    {
+      "path": "school-workspace/school08/QA_FIX_LOG.md",
+      "sha256": "68ec53784806c96fb6ef659b1790760be5046f946d9857113f324c06620a44a8"
+    },
+    {
+      "path": "school-workspace/school08/README.md",
+      "sha256": "2aee5214f20c9c37fe8f9f9d3b9a939116695c6e77bd8abba2d9a00a8763363d"
+    },
+    {
+      "path": "school-workspace/school08/REPORT.md",
+      "sha256": "652408fa3131d204656faae63cce61b3d9fe756f9b9946b5aa3cba4034f21bdd"
+    },
+    {
+      "path": "school-workspace/school08/browser-check.mjs",
+      "sha256": "ac66e302df7a751b764b22a5efa9e98ad2ec64d558441561f2aeaa90a298a8d1"
+    },
+    {
+      "path": "school-workspace/school08/evidence/attempts/threadpool-name.log",
+      "sha256": "cc8bc548476f88b05b6f624180b731d1be34bca686b1b15840eaf82481c44baa"
+    },
+    {
+      "path": "school-workspace/school08/evidence/baseline-finance.json",
+      "sha256": "be83b3d45d608ff3c7a57e2d758f9f73ed1b8643dc38adcb9c58f0ee132ee465"
+    },
+    {
+      "path": "school-workspace/school08/evidence/baseline-finance.log",
+      "sha256": "698164b18b603e574c42b592bc64a61aa56ecd5dc4723ca7d6d8dfae3d0eec7d"
+    },
+    {
+      "path": "school-workspace/school08/evidence/baseline-inventory-types.log",
+      "sha256": "e826992fba2b3edb41128fe5bf1ac2f1b282b3d6ad2c69759e6dce97e0a35843"
+    },
+    {
+      "path": "school-workspace/school08/evidence/baseline-renderer-build.log",
+      "sha256": "054f2d36eecfefa30263462e738b5a7fe6d749d41badde4d6277aae26c09d043"
+    },
+    {
+      "path": "school-workspace/school08/evidence/baseline-root-build.log",
+      "sha256": "6cfd4b08f20eb9a7d3121bea7c2f0057f67f4d4735a70fd9e8da15a519718a9e"
+    },
+    {
+      "path": "school-workspace/school08/evidence/baseline-workspace-full-types.log",
+      "sha256": "205a03ea7d9ceb5a02e13894fdf19cefe089c1b89f168fbedc1d14edca6225f8"
+    },
+    {
+      "path": "school-workspace/school08/evidence/bff-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school08/evidence/bff-server.log",
+      "sha256": "655115100e14269a869ee39c8aa1dde52781ec5a66ccc1f609218e8b7f4bd1c2"
+    },
+    {
+      "path": "school-workspace/school08/evidence/boundary.json",
+      "sha256": "26a6f632a2febc715a5c1fdc7732eeca81a8ea1b8aa211afc683ceebe4fb8b6c"
+    },
+    {
+      "path": "school-workspace/school08/evidence/boundary.log",
+      "sha256": "9cba504aabd1c3a28678bc76a898e720b4383a5343bef662c930bfe10ab4d6d9"
+    },
+    {
+      "path": "school-workspace/school08/evidence/browser-results.json",
+      "sha256": "d34b1112dcd5f87673eec62819c74b412dbc00b14374e4347cf5c59cda9758ca"
+    },
+    {
+      "path": "school-workspace/school08/evidence/build-comparison.json",
+      "sha256": "8479a4da3e9b015063a56b33ad0f447bca5802ad63f225c3584868f1bfe7923b"
+    },
+    {
+      "path": "school-workspace/school08/evidence/desktop-900x680.png",
+      "sha256": "4f57a8612206f424bc9e247642ddc43283e4d323b7132eedfc112d1dd86ac4d8"
+    },
+    {
+      "path": "school-workspace/school08/evidence/desktop-980x700.png",
+      "sha256": "9f9b1be2ddb9d0d939b180adee5c78a1e411514d06d24619211bd4727dc2234e"
+    },
+    {
+      "path": "school-workspace/school08/evidence/electron-build.log",
+      "sha256": "8193a31b1e64ec4ce148dfe7588e98b0d6869552c5a7c04d668330f6f68c2a90"
+    },
+    {
+      "path": "school-workspace/school08/evidence/electron-renderer-900x680.png",
+      "sha256": "ac529f9e4126cfabe8aefb6e9b5ac35fe6b9c85eaadd6ff6df25e667c1084a52"
+    },
+    {
+      "path": "school-workspace/school08/evidence/electron-renderer-980x700.png",
+      "sha256": "09fc334314691c48b5c0b6f588325796e377a303bffe32b43b113a8ba8a4b7ed"
+    },
+    {
+      "path": "school-workspace/school08/evidence/final-install.log",
+      "sha256": "165f43e49817037fd17007ddd28dacd0e6c173fb873848bd3cbb851bff30d0ce"
+    },
+    {
+      "path": "school-workspace/school08/evidence/final-run.log",
+      "sha256": "693ad3468ffe6408e776456644c7e14f1ef8166d22806d37b0617c9f65df8ad5"
+    },
+    {
+      "path": "school-workspace/school08/evidence/flow-tests.json",
+      "sha256": "af344b6e433a8d403d3f4ab0befc171170b2b5112d586da4f5a77755b67c1915"
+    },
+    {
+      "path": "school-workspace/school08/evidence/flow-tests.log",
+      "sha256": "38331520f07787d84228454c1225903cd2420d3508ec535e20000c675032a6f9"
+    },
+    {
+      "path": "school-workspace/school08/evidence/flow-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school08/evidence/full-run.log",
+      "sha256": "03ec96873e2bf881e7e9f12f70146fe11adb3aae4291bb5231027f28954ed562"
+    },
+    {
+      "path": "school-workspace/school08/evidence/initial-install.log",
+      "sha256": "04c64613e99cb3b67fe541782533b214c94ba64ecfe04454cbeadb8e162aaa07"
+    },
+    {
+      "path": "school-workspace/school08/evidence/install-results.json",
+      "sha256": "9426d6681e04f4dae69ab0ea95600a361625f53af940a3837bd26c1bbccb12b1"
+    },
+    {
+      "path": "school-workspace/school08/evidence/inventory-regression.json",
+      "sha256": "59e629a985c060b302a85b66d64b0bcfe3dc0045aff6c5b18124d392fed4ff93"
+    },
+    {
+      "path": "school-workspace/school08/evidence/inventory-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school08/evidence/local-postgrest.json",
+      "sha256": "02a404c938e2ec3869599f9955cb998823c6015e28915d0789eafd161726c998"
+    },
+    {
+      "path": "school-workspace/school08/evidence/main-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school08/evidence/mobile-320.png",
+      "sha256": "9147278a0fc2803d6ba492f14b25999da0c5af00cad730a50e9b6e6d39319a48"
+    },
+    {
+      "path": "school-workspace/school08/evidence/mobile-390.png",
+      "sha256": "cdce059da75e9c4a00a5046be58f6fd3018923cef3abbb293678fb73e97c94e7"
+    },
+    {
+      "path": "school-workspace/school08/evidence/object-inventory.json",
+      "sha256": "cad6679ef964ffc7cd598c952b715a6fe3422cc621d2d24205848232c27fdd1b"
+    },
+    {
+      "path": "school-workspace/school08/evidence/personal-focus.json",
+      "sha256": "b7c1cd17ca71dd01dc292e10a93d331bfd5abdde197ae7ce642ae9f452b860fc"
+    },
+    {
+      "path": "school-workspace/school08/evidence/personal-focus.log",
+      "sha256": "217439be7d2eccf75438bd01cd5b25d4915edcb7e34bc78de782e1f84889f6b1"
+    },
+    {
+      "path": "school-workspace/school08/evidence/regression-baseline.json",
+      "sha256": "ad1df5407f4609bf75b53b1dad0666143057df6ee7c912bbe25d16ba2ccb26ad"
+    },
+    {
+      "path": "school-workspace/school08/evidence/renderer-build.log",
+      "sha256": "de61c44cbfdd786a01f16abe7db3d110d9260f3ba939d896628aa2f97432f4bf"
+    },
+    {
+      "path": "school-workspace/school08/evidence/renderer-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school08/evidence/root-build.log",
+      "sha256": "6cfd4b08f20eb9a7d3121bea7c2f0057f67f4d4735a70fd9e8da15a519718a9e"
+    },
+    {
+      "path": "school-workspace/school08/evidence/school01-invariants.json",
+      "sha256": "f1a95e0df85bca22cd6875cdd077caa1c2f3c7ea839e1e1e59fa8e58101a549e"
+    },
+    {
+      "path": "school-workspace/school08/evidence/school02-regression.json",
+      "sha256": "7de6d2d3a74aa10ee3d01b250fc04564250d89ad227b8a38201cbb14922a62bd"
+    },
+    {
+      "path": "school-workspace/school08/evidence/school02-regression.log",
+      "sha256": "d5b688d71a428c9a7de049cfb3319d5fd4854c11cbe5543bc6431437eb5dc20c"
+    },
+    {
+      "path": "school-workspace/school08/evidence/school03-regression.json",
+      "sha256": "f4e3c2bc86a5fade1b251c7587f701dbd37ef7ba18308d86b5d08419e1838c74"
+    },
+    {
+      "path": "school-workspace/school08/evidence/school03-regression.log",
+      "sha256": "3dd43fcb863b2c469a3a1b3ee92170a3f8be02ddab25fe102de5c28d2b14604c"
+    },
+    {
+      "path": "school-workspace/school08/evidence/school04-regression.json",
+      "sha256": "06fde2949ce14079a42bcddfd86d8919e86d6fe288e40277f6c3e8cff63f4b00"
+    },
+    {
+      "path": "school-workspace/school08/evidence/school04-regression.log",
+      "sha256": "1a6ff908f801d66ef120032327263545eeabab3217bf0d45672db71c340f606b"
+    },
+    {
+      "path": "school-workspace/school08/evidence/static-results.json",
+      "sha256": "bd042ff85579d000b62442d0427e7d382e74ca867ccbff71ba61a331b539eede"
+    },
+    {
+      "path": "school-workspace/school08/evidence/static.log",
+      "sha256": "d9c7be9c7ae6b126d7dba326d397b8d670d7ce56954075c120d4d491946daadb"
+    },
+    {
+      "path": "school-workspace/school08/evidence/test-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "school-workspace/school08/evidence/web-build.log",
+      "sha256": "879ce4d7ab0cba12dc1660cf1ad540d036a1206d569abc7d651f9158d5ec2116"
+    },
+    {
+      "path": "school-workspace/school08/evidence/workspace-full-types.log",
+      "sha256": "614fc0d0ecd06cb409e6138eec01e3b10e48dc2127bc6acf3c51b9d6bbde8611"
+    },
+    {
+      "path": "school-workspace/school08/evidence/xlsx-network.txt",
+      "sha256": "84fd66722cc265fe0b363669bdcdfaad5672a3d87523809582750dec29325450"
+    },
+    {
+      "path": "school-workspace/school08/reference/git-lineage.json",
+      "sha256": "e7dd89a647eb93dc615317eeeb8da09f3208895c511d353598d0a1ee940e5759"
+    },
+    {
+      "path": "school-workspace/school08/reference/historical-windows-artifacts.json",
+      "sha256": "047fe10c168e4014a400c45cd8233396ea41c217a46c74db5a1dffd19c347914"
+    },
+    {
+      "path": "school-workspace/school08/reference/historical-windows-run.json",
+      "sha256": "2df88b51873026627a41730589853e45b0f18710effa31e63163782a6881cad6"
+    },
+    {
+      "path": "school-workspace/school08/reference/protected-source-hashes.json",
+      "sha256": "ecea790917f6f3edadb56d9f70858878e467abbf692b1ed9d2d6d5fc80887ab5"
+    },
+    {
+      "path": "school-workspace/school08/reference/school06-handoff.json",
+      "sha256": "2862875a3f00ed5f2e1ee38f2d3f7bebae8211d6d32edb9386b83a6b382e9d96"
+    },
+    {
+      "path": "school-workspace/school08/reference/school07-handoff.json",
+      "sha256": "d7ed563588cb5150c083efdce181537fa2528af9d06138ce116ed82f008f40a3"
+    },
+    {
+      "path": "school-workspace/school08/reference/sql-provenance.json",
+      "sha256": "46b2b8dff8c42a5ea3f6289b2135fba24ddae1dcdba2835e71b888ee890c4987"
+    },
+    {
+      "path": "school-workspace/school08/reference/tested-source-hashes.json",
+      "sha256": "11ec34dd1fb626474df4a8c96e1bc0f8426f85e649223933e63505b11ac932fd"
+    },
+    {
+      "path": "school-workspace/school08/run-browser.sh",
+      "sha256": "f13d107ebf1968f386ce9ca78408a0479597afe16a4451259ac2b2dc25e3c1fe"
+    },
+    {
+      "path": "school-workspace/school08/run-local.sh",
+      "sha256": "36242d09bf6795993901423a6efb3b00e6a9957e9a24d60cfcbdb435b1e0baa1"
+    },
+    {
+      "path": "school-workspace/school08/sql/01-foundation.sql",
+      "sha256": "2830f5f2179acf2f99f1664fbc629e2fca4216a41fc95db2a5cbe7e71a4a487c"
+    },
+    {
+      "path": "school-workspace/school08/sql/activate-local.sql",
+      "sha256": "5d16fd3c17a04f3b185406b078989af110df18f2a00788ecfffebf2ffacafb26"
+    },
+    {
+      "path": "school-workspace/school08/sql/close-local.sql",
+      "sha256": "590e1888659f97e72984a78507ff78775a7940dc8f4b89353131730f80624b3d"
+    },
+    {
+      "path": "school-workspace/school08/sql/fingerprint.sql",
+      "sha256": "fa69afa67d652e196d16face725d1f1510514cd4d8a6482fbe80e95ec15df67e"
+    },
+    {
+      "path": "school-workspace/school08/sql/install-candidate.sql",
+      "sha256": "554e1ea39a6ee27a1c32f2d580bbb9ab722c85af8f76e7bde270aae91806866d"
+    },
+    {
+      "path": "school-workspace/school08/supabase/migrations/20261105130003_cumulative_workspace.sql",
+      "sha256": "52a4cb62ae675c0986158e7baf3940b07a6caee24e5262e0421d4513812d0062"
+    },
+    {
+      "path": "school-workspace/school08/tests/flow.test.ts",
+      "sha256": "ea455080a3f5eab3ee114a9e3e590e557a83b06d19d987aa953dd191a910e978"
+    },
+    {
+      "path": "school-workspace/school08/tests/install.py",
+      "sha256": "424243c1ce3c14f18f393b792939fa9c56c10186d9718966a66f92751e96ca00"
+    },
+    {
+      "path": "school-workspace/school08/tools/build_handoff.py",
+      "sha256": "e24783d0c726a9fc8defa6d294e9b3d12c811f4688107d9deeb8c268728630e5"
+    },
+    {
+      "path": "school-workspace/school08/tools/build_sql.py",
+      "sha256": "78ecb3dc7ec25c0f0165e64c0e43ec82b108d51fc6339d12c96dcb3298c4144b"
+    },
+    {
+      "path": "school-workspace/school08/tools/check_static.py",
+      "sha256": "528af79592fb84aa5731b9f0033c911bb6506bac57f3b5c1f2d459ee0486851e"
+    },
+    {
+      "path": "school-workspace/school08/tools/verify_package.py",
+      "sha256": "64ffb5368d1f0380036572f000930cafd92e8ba49c4d3ea844ff819d3765f0ae"
+    },
+    {
+      "path": "school-workspace/school08/tsconfig.json",
+      "sha256": "bedc12e0d21d56d4fedf603720324b5229dfc35d9246198ef2fcf6b23ec90005"
+    },
+    {
+      "path": "school-workspace/school08/vitest.config.ts",
+      "sha256": "74fbfae4f039ae76c1a1ea1b689fd36c7dd699f88ce36441a56047fd01c58421"
+    },
+    {
+      "path": "school-workspace/school09/AUTH_API_REVIEW.md",
+      "sha256": "eff3491030e2786e699443b81f94ab9d61f897f1e0a8825bad3015473ed86d87"
+    },
+    {
+      "path": "school-workspace/school09/INSTALL_AND_RECOVERY.md",
+      "sha256": "57e4811c801d951e48c56a6e5506c60b28fc81f3a71de406a4d5be378aec7209"
+    },
+    {
+      "path": "school-workspace/school09/QA_FIX_LOG.md",
+      "sha256": "fa7b7ce0ee8cb6da5ff7c080961f2df6d851d2dd1044f35863d3e1ef5ad8343f"
+    },
+    {
+      "path": "school-workspace/school09/README.md",
+      "sha256": "e391532b0a0424038aa1a4bcba59e290d881f6d38c195f77ec42289b4ac20a6d"
+    },
+    {
+      "path": "school-workspace/school09/REPORT.md",
+      "sha256": "f03c0dc4b444e4a94f5eb29b65dde9c76b7b336fb68bae90a2831aa14984aa4a"
+    },
+    {
+      "path": "school-workspace/school09/RPC_AND_GRANTS.md",
+      "sha256": "8bc2ae18e780157066730f54f106e085d0bace05ad759fea526e933b796acc05"
+    },
+    {
+      "path": "school-workspace/school09/evidence/attempt1-audit-failure.log",
+      "sha256": "88788a0ad3152df366e956124e9b460be02a998e4d543b88c60f993c40c8e441"
+    },
+    {
+      "path": "school-workspace/school09/evidence/attempt2-audit-failure.log",
+      "sha256": "8f6aeed9bd89161e1e91c258701f70602d7578e8f8b349090bfe1608f76decd7"
+    },
+    {
+      "path": "school-workspace/school09/evidence/attempt3-role-probe-failure.log",
+      "sha256": "e4c986774682b4d84a0bae2a2739ee96b8ed469a091dfc831cf10cef9042752b"
+    },
+    {
+      "path": "school-workspace/school09/evidence/auth-regression.json",
+      "sha256": "a1425e9e30902140dcaedcc09242c6ad6892604e0df059f78940fac566bdcbdd"
+    },
+    {
+      "path": "school-workspace/school09/evidence/auth-regression.log",
+      "sha256": "4215a43c2133dab3ec179db19ecf83818c39074082d9940a622cfbe39b75be48"
+    },
+    {
+      "path": "school-workspace/school09/evidence/catalog-active.json",
+      "sha256": "607ab195a9d715be3b330359ec22ea4f0d5af65b96e1b000ab4be497b496df7c"
+    },
+    {
+      "path": "school-workspace/school09/evidence/db-results.json",
+      "sha256": "59e629a985c060b302a85b66d64b0bcfe3dc0045aff6c5b18124d392fed4ff93"
+    },
+    {
+      "path": "school-workspace/school09/evidence/empty-metadata.log",
+      "sha256": "93b1e280a8206467ef7467ff5da71d25d3dd80304f097375a2d6e7fbfb9167b0"
+    },
+    {
+      "path": "school-workspace/school09/evidence/git-baseline.json",
+      "sha256": "49880e520f5e00ce1c498b07d1b4942b699b154df048fef705a691f7595d0685"
+    },
+    {
+      "path": "school-workspace/school09/evidence/input-integrity.log",
+      "sha256": "75d390fec0e8338f191895a124235845d43e9e176c259d4374c4ade17bc09daf"
+    },
+    {
+      "path": "school-workspace/school09/evidence/install-results.json",
+      "sha256": "d72ee0a8d76bdb2cfa7c4044a52ef717c891681008af393a071d4edcfa54edcf"
+    },
+    {
+      "path": "school-workspace/school09/evidence/local-postgrest.json",
+      "sha256": "b43ca98e0ff98e0ac04a856dea4400e261dd8811d0f19f22c5d186dd45192d28"
+    },
+    {
+      "path": "school-workspace/school09/evidence/local-run.log",
+      "sha256": "16628c2a456fb8613baf259c2230f44faf3335cb33120107f01ea10c3c3e58be"
+    },
+    {
+      "path": "school-workspace/school09/evidence/object-inventory.json",
+      "sha256": "cad6679ef964ffc7cd598c952b715a6fe3422cc621d2d24205848232c27fdd1b"
+    },
+    {
+      "path": "school-workspace/school09/evidence/product-boundary.json",
+      "sha256": "5642038687418ba5f213e9fcb0f6e21bb7a255f135ac5b1b3c5fd9ee5c0f6f0b"
+    },
+    {
+      "path": "school-workspace/school09/evidence/product-boundary.log",
+      "sha256": "d81737c3b4ff4c126f9093fea236d73d51860131e4547ea8af44ff63c7088bd5"
+    },
+    {
+      "path": "school-workspace/school09/evidence/school01-invariants.json",
+      "sha256": "1c107015f29b1b831abc7736d04ac39b66157265453dbfe22f3cb00bf25baa8e"
+    },
+    {
+      "path": "school-workspace/school09/evidence/school02-regression.json",
+      "sha256": "93977539467dd3647d09371983379b585608bd09d6ff19b0d9e1fb499a80ff8b"
+    },
+    {
+      "path": "school-workspace/school09/evidence/school02-regression.log",
+      "sha256": "1ccb9b773ad628cbf881ae44e847d4e5df2761f8a34aa64853fc46b8cb24aab6"
+    },
+    {
+      "path": "school-workspace/school09/evidence/school03-regression.json",
+      "sha256": "d8b766f1d2ac0c410be4d0e530c2fc2055be0e7cc1a9abaf87986b16a7712705"
+    },
+    {
+      "path": "school-workspace/school09/evidence/school03-regression.log",
+      "sha256": "bb45420dec245e1121cf07ad72bd066471eb77b91a945c817a9af06ac7e9c06a"
+    },
+    {
+      "path": "school-workspace/school09/evidence/school04-regression.json",
+      "sha256": "b32be11a4166495afd7bf0413cae7b86f4e47e6ac09726e1d87e1f2d175a5457"
+    },
+    {
+      "path": "school-workspace/school09/evidence/school04-regression.log",
+      "sha256": "0b3539edf109c66fdfce49699a35077af6dd24866adda8a34183fd2e70696162"
+    },
+    {
+      "path": "school-workspace/school09/evidence/secret-scan.json",
+      "sha256": "03c8e3516b8a3d4ace3ce969d6414af39e5261ab8b711b9480e32088ec6cfa22"
+    },
+    {
+      "path": "school-workspace/school09/evidence/security-audit-results.json",
+      "sha256": "835a2be3a1e5ee7f16ba52f3f02bf52812306d8c0112422c3cc0aaef97839920"
+    },
+    {
+      "path": "school-workspace/school09/evidence/windows-historical.json",
+      "sha256": "8a2d8628ef04ab6a2807e4b56e28771728188eea8e54f834123271d0ac1211a3"
+    },
+    {
+      "path": "school-workspace/school09/reference/function-call-edges.json",
+      "sha256": "c0842c416ab327f5ba1d50060ad562800634d9549b2eb996c9a33328737ae0c2"
+    },
+    {
+      "path": "school-workspace/school09/reference/input-sha256.json",
+      "sha256": "23f14112917a1275d9f7235bea86d42ecc9c59982228f939a8fb8d6cbebfb940"
+    },
+    {
+      "path": "school-workspace/school09/reference/object-counts.json",
+      "sha256": "bc90d3ed1037f577a3ba8a3eb30825873fb4188a0ea5c56fa2be673c2f3f76de"
+    },
+    {
+      "path": "school-workspace/school09/reference/rpc-signatures.json",
+      "sha256": "f0f6bdfa52e1f36f129ba76de37cee7b2acb34b889f772046b94ad873b4b57f1"
+    },
+    {
+      "path": "school-workspace/school09/run-local.sh",
+      "sha256": "796134ff878b856afb0ffa68c4f43afd4d5db637cddad77a12874e33795b64fa"
+    },
+    {
+      "path": "school-workspace/school09/sql/catalog-local.sql",
+      "sha256": "f812f689d33636d006018a089b88b0674d4bf1d0e750509238213d7808d98da9"
+    },
+    {
+      "path": "school-workspace/school09/sql/hosted-readonly.sql",
+      "sha256": "79cafe0b05aee9839f3419aeb72b6e71a272ce4592c098ac97963c508efbf896"
+    },
+    {
+      "path": "school-workspace/school09/sql/postinstall-readonly.sql",
+      "sha256": "b8b695f388e52e9bb270722234d7cfaaf9a2a61799543dcacbb1689d295b7232"
+    },
+    {
+      "path": "school-workspace/school09/tests/audit.py",
+      "sha256": "ecd654a4ed63034fe7b69d320a9786e6c54aa64a25310373cd57712fc7ed9c8f"
+    },
+    {
+      "path": "school-workspace/school09/tests/empty-metadata.sh",
+      "sha256": "51aa701abee7041aad6c494a9fa23949368ded784713b994554f3cff14f26699"
+    },
+    {
+      "path": "school-workspace/school09/tests/rest.py",
+      "sha256": "830f333d88df71adf92dff1485a9eb6c5863c2b6faacf7339140adf0bd00825b"
+    },
+    {
+      "path": "school-workspace/school09/tests/run.py",
+      "sha256": "3276c7d6ba89e8fbb835c94b8afdaf7d0596b6c55a20c25537a9c72802f4266c"
+    },
+    {
+      "path": "school-workspace/school09/tools/package.py",
+      "sha256": "013db47fd6893f957aba1edd35a422d46b68fdac4d7abf8768cf90fb5f5cdaf6"
+    },
+    {
+      "path": "school-workspace/school09/tools/verify-inputs.py",
+      "sha256": "0ad5befd508fc1a8e2be7ce03588291ea4d19161edd1c3e4fcfe297c43a5f80f"
+    },
+    {
+      "path": "school-workspace/school09/tools/verify-package.py",
+      "sha256": "f0a6404962fe08206fc75d9ee01b10c3d10666f7f45c39654efa4d1173d9f312"
+    }
+  ]
+}
