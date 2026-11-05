@@ -157,7 +157,7 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Workspace strict typecheck failed'}
           node node_modules/vite/bin/vite.js build --config school-workspace/school05/vite.config.ts
           if($LASTEXITCODE -ne 0){throw 'Workspace Web build failed'}
-          node ../controller/scripts/qa/school05-build-native-provider.mjs
+          node scripts/qa/school05-build-native-provider.mjs
           if($LASTEXITCODE -ne 0){throw 'External Windows QA provider build failed'}
       - name: Build configured Portable with masked existing public variables
         working-directory: source

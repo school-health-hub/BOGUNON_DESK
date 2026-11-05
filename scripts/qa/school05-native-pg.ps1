@@ -7,7 +7,7 @@ function Invoke-OwnedPg([string]$Binary,[string[]]$Arguments,[string]$Stage,[int
   $out=Join-Path $env:TD2_ROOT "school05-$Stage.stdout"
   $err=Join-Path $env:TD2_ROOT "school05-$Stage.stderr"
   $quoted=@($Arguments|ForEach-Object{'"'+($_ -replace '"','\"')+'"'})
-  $process=Start-Process -FilePath $Binary -ArgumentList $quoted -PassThru -NoNewWindow -RedirectStandardOutput $out -RedirectStandardError $err
+  $process=Start-Process -FilePath $Binary -ArgumentList $quoted -PassThru -NoNewWindow -WorkingDirectory (Get-Location).Path -RedirectStandardOutput $out -RedirectStandardError $err
   if(!$process.WaitForExit($Seconds*1000)){Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue;throw "Owned PostgreSQL command timed out: $Stage"}
   if($process.ExitCode -ne 0){if($Stage -in @('initdb','start','createdb')){Get-Content $err -Tail 8|Write-Output};throw "Owned PostgreSQL command failed: $Stage"}
 }
