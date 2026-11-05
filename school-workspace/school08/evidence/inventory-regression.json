@@ -1,0 +1,163 @@
+{
+  "checks": [
+    {
+      "name": "admin creates item with zero stock",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "inactive create is honored and archived holding never appears usable",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "location register/rename uses version; assistant cannot manage",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "teacher edits metadata",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "assistant cannot edit metadata",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "cross school item lookup denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "receive increases stock and30day inclusive boundary",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "assistant default receive denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "explicit own use permission decreases stock",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "negative stock denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "assistant adjust/dispose forbidden",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "request_id replay applies once",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "request_id changed payload rejected",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "stale expected_version rejected",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "concurrent actual connections cannot overdraw",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "expired use rejected",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "no-expiry lot and separate quantities",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "expired excluded from usable; holding includes all",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "adjust/dispose append history and low stock uses usable count",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "unusable lot excluded and use forbidden",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "different school lot movement denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "pending/expired denied 5",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "pending/expired denied 8",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "live suspension rejects previous session",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "all quantity transactions have atomic audit entries",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "audit failure rolls back lot/movement/receipt",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "raw tables and movement delete denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "privacy rejected before any persistent receipt",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "Seoul dates: expiry today/30 inclusive,31 excluded, yesterday expired",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "explicit own receive works; deny override wins over allow",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "valid school B item cannot reference school A lot",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    }
+  ],
+  "pass": 31,
+  "fail": 0,
+  "hosted": "NOT RUN",
+  "windows": "NOT RUN"
+}

@@ -1,0 +1,18 @@
+PASS cumulative install without foundation fails closed
+PASS frozen foundation installs unchanged
+PASS missing Managed Auth capability blocks all app DDL
+PASS late inventory failure rolls back entire cumulative app install
+PASS empty PG17 cumulative install succeeds
+PASS all54 raw/public/private new purpose endpoints CLOSED
+PASS repeat CLOSED candidate no-op
+FAIL concurrent repeated install serialized 'function' object has no attribute 'futures'
+Traceback (most recent call last):
+  File "/workspace/work/school-08/repo/school-workspace/school08/tests/install.py", line 19, in <module>
+    case('concurrent repeated install serialized',concurrent)
+  File "/workspace/work/school-08/repo/school-workspace/school07/tests/run.py", line 22, in case
+    try:fn();results.append({'name':n,'status':'PASS','classification':'LOCAL POSTGREST'if n.startswith('LOCAL POSTGREST')else'LOCAL DB'});print('PASS',n,flush=True)
+        ^^^^
+  File "/workspace/work/school-08/repo/school-workspace/school08/tests/install.py", line 18, in concurrent
+    with concurrent.futures.ThreadPoolExecutor(2)as ex:list(ex.map(lambda _:apply(migration),range(2)))
+         ^^^^^^^^^^^^^^^^^^
+AttributeError: 'function' object has no attribute 'futures'

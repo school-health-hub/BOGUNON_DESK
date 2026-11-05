@@ -1,0 +1,4 @@
+__pycache__/
+supabase/.temp/
+!evidence/*.log
+!evidence/**/*.log

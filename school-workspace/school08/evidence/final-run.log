@@ -1,0 +1,78 @@
+PASS cumulative install without foundation fails closed
+PASS frozen foundation installs unchanged
+PASS missing Managed Auth capability blocks all app DDL
+PASS late inventory failure rolls back entire cumulative app install
+PASS empty PG17 cumulative install succeeds
+PASS all54 raw/public/private new purpose endpoints CLOSED
+PASS repeat CLOSED candidate no-op
+PASS complete installer entry replay skips immutable parent foundation
+PASS concurrent repeated install serialized
+PASS explicit cumulative activation opens only54 fixed wrappers
+PASS repeat ACTIVE candidate no-op
+PASS complete ACTIVE installer entry replay preserves permissions
+PASS legacy public metadata/policies/personal fixture rows unchanged
+PASS admin creates item with zero stock
+PASS inactive create is honored and archived holding never appears usable
+PASS location register/rename uses version; assistant cannot manage
+PASS teacher edits metadata
+PASS assistant cannot edit metadata
+PASS cross school item lookup denied
+PASS receive increases stock and30day inclusive boundary
+PASS assistant default receive denied
+PASS explicit own use permission decreases stock
+PASS negative stock denied
+PASS assistant adjust/dispose forbidden
+PASS request_id replay applies once
+PASS request_id changed payload rejected
+PASS stale expected_version rejected
+PASS concurrent actual connections cannot overdraw
+PASS expired use rejected
+PASS no-expiry lot and separate quantities
+PASS expired excluded from usable; holding includes all
+PASS adjust/dispose append history and low stock uses usable count
+PASS unusable lot excluded and use forbidden
+PASS different school lot movement denied
+PASS pending/expired denied 5
+PASS pending/expired denied 8
+PASS live suspension rejects previous session
+PASS all quantity transactions have atomic audit entries
+PASS audit failure rolls back lot/movement/receipt
+PASS raw tables and movement delete denied
+PASS privacy rejected before any persistent receipt
+PASS Seoul dates: expiry today/30 inclusive,31 excluded, yesterday expired
+PASS explicit own receive works; deny override wins over allow
+PASS valid school B item cannot reference school A lot
+DB PASS 31
+PASS LOCAL POSTGREST signed teacher inventories actual SQL
+PASS LOCAL POSTGREST anonymous inventory denied
+PASS LOCAL POSTGREST expired JWT inventory denied
+PASS LOCAL POSTGREST assistant read, direct manage RPC forbidden
+PASS LOCAL POSTGREST school A-only user cannot fetch school B inventory
+PASS LOCAL POSTGREST raw inventory tables absent
+PASS LOCAL POSTGREST private dispatch function not a resource
+PASS teacher creates item through product menu/BFF/local RPC
+PASS receive commits lot and refreshes server quantity
+PASS desktop-980x700
+PASS desktop-900x680
+PASS same school teacher creates and assigns shared task through cumulative BFF
+PASS same school teacher saves shared event through cumulative BFF
+PASS same school handover targets teacher and assistant
+PASS mobile assistant starts/completes assigned task
+PASS mobile assistant views events without write controls
+PASS mobile self acknowledgement and teacher completion stay separate
+PASS delegated assistant uses own quantity and has no metadata/adjust controls
+PASS mobile-390
+PASS mobile-320
+PASS network failure preserves prior amount and shows no saved success
+PASS actual P0 Dashboard/Dock product entry -> inventory, Preload MOCK to local BFF
+PASS actual Electron product renderer 980x700 in Chromium, Preload MOCK
+PASS actual Electron product renderer 900x680 in Chromium, Preload MOCK
+PASS actual product returns to personal Dashboard without modifying local inventory
+PASS inventory BFF blocks Origin/CSRF forgery
+PASS account switch clears inventory view
+PASS logout clears shared inventory
+PASS cumulative schema still matches after all domain/UI tests
+PASS close all54 atomically without deleting business data
+PASS closed candidate replays and reopens coherently
+PASS public wrapper drift blocks install and activation
+PASS drift emergency closure keeps data and marks unverified
