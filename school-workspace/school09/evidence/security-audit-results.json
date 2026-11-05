@@ -1,0 +1,96 @@
+{
+  "classification": "VERIFIED LOCAL",
+  "checks": [
+    {
+      "name": "S09 catalog:54 invokers, nonowner definers, all fixed empty paths, FORCE RLS",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "S09 no client/runtime SET ROLE escalation or owner membership",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "S09 SD probe private authz reader direct helper denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "S09 SD probe private session helper direct call denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "S09 SD probe private generic write dispatch denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "S09 SD probe role escalation runtime denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "S09 SD probe role escalation authz denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "S09 SD probe RLS row_security off cannot expose raw table",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "S09 SD probe private ledger mutation denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "S09 SD probe Auth table SELECT denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "S09 authz reader cannot mutate Workspace content",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "S09 read-only metadata queries execute without mutation",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "S09 runtime cannot SELECT any Auth session columns",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "S09 reader sees only four approved session columns",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "S09 definer code has no service_role or legacy-warning function references",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "S09 forged metadata cannot authorize teacher inventory write",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "S09 mismatched session owner/sub denies valid UUID",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "S09 anonymous Auth user denied despite authenticated PG role",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    }
+  ],
+  "hosted": "NOT RUN"
+}

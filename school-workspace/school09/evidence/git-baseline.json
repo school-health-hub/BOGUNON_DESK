@@ -1,0 +1,20 @@
+{
+  "integration": "39c775cdd11509fdc6bc930ef62990acdd1e1315",
+  "school08": "da1737589329b3c62647f926827839765adf12cd",
+  "school08_is_ancestor": true,
+  "school08_ahead_behind": "0\t8",
+  "changed_paths_since_school08": [
+    ".github/workflows/electron-cloud-g0.yml",
+    ".github/workflows/electron-p0-windows.yml",
+    "electron-p0/main/main.mts",
+    "electron-p0/main/workspace-product.ts",
+    "electron-p0/tests/finance-provenance.test.ts",
+    "school-workspace/school05/tests/boundary.test.ts",
+    "scripts/qa/school05-regression-files.json",
+    "scripts/qa/school05-windows.mjs",
+    "scripts/qa/school08-native-contract.test.ts",
+    "scripts/qa/school08-native-pg.ps1",
+    "scripts/qa/school08-windows.vitest.config.ts"
+  ],
+  "changes_this_stage": "school-workspace/school09 only; no product, auth or SQL migration changes"
+}

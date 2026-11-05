@@ -1,0 +1,8 @@
+{
+  "classification": "VERIFIED LOCAL; PostgREST13.0.4 + synthetic Auth/HS256; NOT Hosted",
+  "checks": 19,
+  "image": "postgrest/postgrest:v13.0.4@sha256:a312f4b2e48530a01fc26f5310d547d6c26d087858360e164522e415723a7732",
+  "tokens_keys_saved": false,
+  "network": "network:none container; loopback only; no published ports",
+  "hosted": "NOT RUN"
+}

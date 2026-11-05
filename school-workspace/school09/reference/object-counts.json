@@ -1,0 +1,15 @@
+{
+  "rpc54_total": 54,
+  "ws_v1_prefix": 46,
+  "other_public_ws_prefix": 8,
+  "private_functions": 102,
+  "security_definer": 76,
+  "definer_by_owner": {
+    "ws_runtime": 52,
+    "ws_authz_reader": 24
+  },
+  "tables": 32,
+  "business_tables": 27,
+  "policies": 80,
+  "constraints": 168
+}
