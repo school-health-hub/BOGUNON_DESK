@@ -4,7 +4,7 @@ Tests only the newly reviewed installer/ownership boundary, not old177/23 suites
 from pathlib import Path
 import os,runpy,json,subprocess,hashlib,re
 E=Path(__file__).resolve().parents[1];REPO=E.parents[1]
-d=runpy.run_path(str(E.parent/'school07/tests/run.py'));d['sql'].__globals__['NAME']='bogunon-school09ch-pg';sql=d['sql'];scalar=d['scalar'];apply=d['apply'];D=d['D'];ENV=d['ENV'];NAME='bogunon-school09ch-pg';checks=[];denials=[];current_case='' 
+d=runpy.run_path(str(E.parent/'school07/tests/run.py'));d['sql'].__globals__['NAME']='bogunon-school09ch-pg';sql=d['sql'];scalar=d['scalar'];apply=d['apply'];D=d['D'];ENV=d['ENV'];NAME='bogunon-school09ch-pg';checks=[];denials=[];current_case=''
 def case(name,fn):
  global current_case
  current_case=name
