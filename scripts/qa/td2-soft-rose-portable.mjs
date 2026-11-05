@@ -129,7 +129,7 @@ const setWindowBounds=(width,height)=>{
 
 const native=(action,extra=[])=>JSON.parse(execFileSync('pwsh',['-NoProfile','-File',join(dirname(fileURLToPath(import.meta.url)),'td2-window.ps1'),'-ExecutableRoot',process.env.TEMP,'-Action',action,...extra],{encoding:'utf8',timeout:25000}).trim());
 const bounded=async(name,fn)=>{try{result.gui[name]=await fn();}catch(error){result.gui[name]={verdict:'FAIL',error:String(error).split('\n')[0].slice(0,240)};}await writeFile(join(evidenceRoot,'gui-final-checkpoint.json'),JSON.stringify(result,null,2));};
-let mainCall;
+let mainCall;const remainingOnly=process.env.GUI_FINAL_REMAINING==='1';
 try{
  await waitForCdp();browser=await chromium.connectOverCDP(`http://127.0.0.1:${port}`);browserSession=await browser.newBrowserCDPSession();
  const page=browser.contexts()[0].pages().find(p=>p.url().startsWith('file:'));await page.waitForLoadState('domcontentloaded');
@@ -150,8 +150,9 @@ try{
  const inspect=async(label,footer)=>{
   const before=await page.evaluate(()=>{
    const visible=e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0&&getComputedStyle(e).visibility!=='hidden';};
-   const modal=[...document.querySelectorAll('[role="dialog"]')].filter(visible).at(-1),scope=modal??document.querySelector('.workspace-dashboard')??document.body;
+   const modal=[...document.querySelectorAll('[role="dialog"]')].filter(visible).at(-1),scope=modal??[...document.querySelectorAll('.ev-finder,.workspace-dashboard')].find(visible)??document.body;
    const owners=[scope,...scope.querySelectorAll('*')].filter(e=>visible(e)&&e.clientHeight>0&&e.scrollHeight>e.clientHeight+2&&/auto|scroll/.test(getComputedStyle(e).overflowY)).map(e=>{const old=e.scrollTop;e.scrollTop=e.scrollHeight;const reached=e.scrollTop+e.clientHeight>=e.scrollHeight-2;e.scrollTop=old;return {tag:e.tagName,class:e.className,clientHeight:e.clientHeight,scrollHeight:e.scrollHeight,reached};});
+   const doc=document.scrollingElement;if(doc&&doc.scrollHeight>doc.clientHeight+2){const old=doc.scrollTop;doc.scrollTop=doc.scrollHeight;owners.push({tag:'DOCUMENT',class:'document.scrollingElement',clientHeight:doc.clientHeight,scrollHeight:doc.scrollHeight,reached:doc.scrollTop+doc.clientHeight>=doc.scrollHeight-2});doc.scrollTop=old;}
    const horizontal=scope.scrollWidth>scope.clientWidth+2||document.documentElement.scrollWidth>innerWidth+2;
    const controls=[...scope.querySelectorAll('button,input,select,textarea,[role="tab"]')].filter(visible).map(e=>{const r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;const hit=x>0&&x<innerWidth&&y>0&&y<innerHeight?document.elementFromPoint(x,y):null;return {e,r,hit:hit&&(e===hit||e.contains(hit))};}).filter(v=>v.hit);
    const overlaps=[];for(let i=0;i<controls.length;i++)for(let j=i+1;j<controls.length;j++){const a=controls[i],b=controls[j];if(a.e.contains(b.e)||b.e.contains(a.e))continue;const w=Math.min(a.r.right,b.r.right)-Math.max(a.r.left,b.r.left),h=Math.min(a.r.bottom,b.r.bottom)-Math.max(a.r.top,b.r.top);if(w>4&&h>4)overlaps.push({a:a.e.tagName,b:b.e.tagName,width:w,height:h});}
@@ -163,13 +164,13 @@ try{
  };
  for(const [width,height] of [[980,700],[900,680]]){
   const size=native('Resize',['-Width',String(width),'-Height',String(height)]);await delay(200);result.gui['bounds-'+width]={verdict:size.width===width&&size.height===height?'PASS':'FAIL',...size};
-  await bounded(width+'-dashboard',async()=>{await reset();return inspect(width+'-dashboard');});
-  await bounded(width+'-finder',async()=>{await tool('교육영상 Finder · 합성 Mock');return inspect(width+'-finder',page.getByRole('button',{name:'내보내기',exact:true}).first());});
-  await bounded(width+'-calendar',async()=>{await tool('독립 로컬 일정');await page.getByRole('button',{name:'일정 추가',exact:true}).click();return inspect(width+'-calendar',page.getByRole('button',{name:'일정 편집 취소',exact:true}));});
-  await bounded(width+'-quick-add',async()=>{await tool('빠른 추가 · 로컬 업무');await page.getByPlaceholder('추가할 업무를 입력하세요').fill('합성 QA 긴 업무 제목 · 작은 창의 입력과 저장 버튼 접근 확인');return inspect(width+'-quick-add',page.locator('.quick-add-panel button[type="submit"]'));});
-  await bounded(width+'-school',async()=>{await school();return inspect(width+'-school',page.getByRole('button',{name:'선택한 초기 주소 확인 후 적용',exact:true}));});
+  if(!remainingOnly) await bounded(width+'-dashboard',async()=>{await reset();return inspect(width+'-dashboard');});
+  await bounded(width+'-finder',async()=>{await tool('교육영상 Finder · 합성 Mock');return inspect(width+'-finder',page.getByLabel('사용자 메모',{exact:true}));});
+  if(!remainingOnly) await bounded(width+'-calendar',async()=>{await tool('독립 로컬 일정');await page.getByRole('button',{name:'일정 추가',exact:true}).click();return inspect(width+'-calendar',page.getByRole('button',{name:'일정 편집 취소',exact:true}));});
+  if(!remainingOnly) await bounded(width+'-quick-add',async()=>{await tool('빠른 추가 · 로컬 업무');await page.getByPlaceholder('추가할 업무를 입력하세요').fill('합성 QA 긴 업무 제목 · 작은 창의 입력과 저장 버튼 접근 확인');return inspect(width+'-quick-add',page.locator('.quick-add-panel button[type="submit"]'));});
+  if(!remainingOnly) await bounded(width+'-school',async()=>{await school();return inspect(width+'-school',page.getByRole('button',{name:'선택한 초기 주소 확인 후 적용',exact:true}));});
  }
- result.gui.resizeRestore={...native('Resize',['-Width','980','-Height','700']),verdict:'PASS'};await reset();result.gui.resizeRestore.layout=await inspect('980-restored');
+ result.gui.resizeRestore={...native('Resize',['-Width','980','-Height','700']),verdict:'PASS'};await reset();if(!remainingOnly)result.gui.resizeRestore.layout=await inspect('980-restored');
  // Actual Windows Explorer notification icon, never BrowserWindow.show as evidence.
  await bounded('nativeTray',async()=>{
   if(!result.environment.shellTrayVisible)return {verdict:'NOT RUN',reason:'Explorer shell tray absent from runner desktop',environment:result.environment};
@@ -181,7 +182,7 @@ try{
  const waitDialog=async(name)=>{for(let i=0;i<8;i++){const r=native('DialogProbe',['-Screenshot',join(screenshots,name+'.png')]);if(r.found)return r;await delay(200);}return {found:false};};
  const beginNative=async()=>{const l=await page.evaluate(()=>window.electronWork.admin.schoolAddresses());if(!l.ok)throw Error('Address preview failed');const p=l.data;await page.evaluate(p=>{window.__nativeApply=window.electronWork.admin.applySchoolAddresses({officeCode:p.school.officeCode,schoolCode:p.school.schoolCode,expectedRevision:p.revision,environment:p.environment,systems:['portal']});return true;},p);};
  let nativeAvailable=false;
- await bounded('nativeConfirm',async()=>{
+ if(!remainingOnly) await bounded('nativeConfirm',async()=>{
   await school();await page.getByPlaceholder('예: 학교명').fill('합성 입력 유지').catch(()=>{});
   const before=await page.evaluate(()=>window.electronWork.admin.load());await beginNative();const probe=await waitDialog('native-cancel');
   if(!probe.found){await page.evaluate(()=>window.electronWork.admin.cancel());return {verdict:'NOT RUN',reason:'No accessible owned native dialog',probe};}
@@ -190,6 +191,7 @@ try{
   const baseline=await page.evaluate(()=>window.electronWork.admin.load());await beginNative();if(!(await waitDialog('native-late-approve')).found)throw Error('Late approval dialog absent');await page.evaluate(()=>window.electronWork.admin.cancel());const late=native('DialogApprove');if(!late.clicked)throw Error('Late native click inaccessible');const lateResult=await page.evaluate(()=>window.__nativeApply);const final=await page.evaluate(()=>window.electronWork.admin.load());if(lateResult.ok&&lateResult.data!==null||JSON.stringify(baseline)!==JSON.stringify(final))throw Error('Late native approval changed settings');
   return {verdict:'PASS',cancel,approve,late,unchangedAfterCancel:true,lateApprovalInvalidated:true,basis:'actual owned #32770 Windows dialogs and Button BM_CLICK; no Main/renderer consent override'};
  });
+ result.reusedEvidence={run:41952480866,items:['calendar/Quick Add/school layout at both sizes','actual native approve/cancel/late approval/pending quit'],dashboardFailuresRemainOpen:true};
  result.dpi={actual100:result.devicePixelRatio===1?'OBSERVED (see OS registry evidence)':'NOT VERIFIED',dpi125:'NOT RUN: hosted session has no approved interactive display-scale/sign-out change',dpi150:'NOT RUN: hosted session has no approved interactive display-scale/sign-out change',browserEmulationUsed:false};
  // Normal product quit while a real native consent is pending, if that dialog is available.
  if(nativeAvailable){await beginNative();result.pendingQuitDialog=await waitDialog('native-pending-quit');if(!result.pendingQuitDialog.found)throw Error('Pending native dialog absent; quit scenario not executed');}

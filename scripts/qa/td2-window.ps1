@@ -67,12 +67,12 @@ if($Action -eq 'TrayReturn'){
  if($shell -eq [IntPtr]::Zero){@{verdict='NOT RUN';reason='Windows Explorer Shell_TrayWnd absent'}|ConvertTo-Json -Compress;exit}
  try{
   Add-Type -AssemblyName UIAutomationClient;Add-Type -AssemblyName UIAutomationTypes
-  $type=[Windows.Automation.ControlType]::Button;$condition=[Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty,$type)
+  $condition=[Windows.Automation.Condition]::TrueCondition;$explorerId=[uint32]0;[void][Td2Window]::GetWindowThreadProcessId($shell,[ref]$explorerId)
   $desktop=[Windows.Automation.AutomationElement]::RootElement
   $all=$desktop.FindAll([Windows.Automation.TreeScope]::Descendants,$condition)
-  $icons=@($all|Where-Object{$_.Current.Name -like '*BOGUNON*' -and !$_.Current.IsOffscreen})
-  if(!$icons.Count){$expand=@($all|Where-Object{$_.Current.AutomationId -eq 'NotificationChevron' -or $_.Current.Name -match 'Show hidden icons|숨겨진 아이콘 표시'});if($expand.Count -eq 1){$expand[0].GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke();Start-Sleep -Milliseconds 500;$all=$desktop.FindAll([Windows.Automation.TreeScope]::Descendants,$condition);$icons=@($all|Where-Object{$_.Current.Name -like '*BOGUNON*' -and !$_.Current.IsOffscreen})}}
-  if($icons.Count -ne 1){@{verdict='NOT RUN';reason='No unique visible BOGUNON tray icon';count=$icons.Count}|ConvertTo-Json -Compress;exit}
+  $icons=@($all|Where-Object{$_.Current.Name -like '*BOGUNON*' -and !$_.Current.IsOffscreen -and $_.Current.ProcessId -eq $explorerId})
+  if(!$icons.Count){$expand=@($all|Where-Object{$_.Current.AutomationId -eq 'NotificationChevron' -or $_.Current.Name -match 'Show hidden icons|숨겨진 아이콘 표시|Notification Chevron'});if($expand.Count -eq 1){$expand[0].GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke();Start-Sleep -Milliseconds 500;$all=$desktop.FindAll([Windows.Automation.TreeScope]::Descendants,$condition);$icons=@($all|Where-Object{$_.Current.Name -like '*BOGUNON*' -and !$_.Current.IsOffscreen -and $_.Current.ProcessId -eq $explorerId})}}
+  if($icons.Count -ne 1){@{verdict='NOT RUN';reason='No unique visible BOGUNON tray icon';count=$icons.Count;visibleShellControls=@($all|Where-Object{$_.Current.ProcessId -eq $explorerId -and !$_.Current.IsOffscreen -and $_.Current.Name}|Select-Object -First 60|ForEach-Object{@{name=$_.Current.Name;automationId=$_.Current.AutomationId;controlType=$_.Current.ControlType.ProgrammaticName}})}|ConvertTo-Json -Compress;exit}
   $r=$icons[0].Current.BoundingRectangle;if($r.Width -le 0 -or $r.Height -le 0){throw 'Tray icon rectangle unavailable'}
   Capture $shell
   [void][Td2Window]::SetCursorPos([int]($r.X+$r.Width/2),[int]($r.Y+$r.Height/2));[Td2Window]::mouse_event(2,0,0,0,[UIntPtr]::Zero);[Td2Window]::mouse_event(4,0,0,0,[UIntPtr]::Zero);Start-Sleep -Milliseconds 80;[Td2Window]::mouse_event(2,0,0,0,[UIntPtr]::Zero);[Td2Window]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
