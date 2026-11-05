@@ -17,6 +17,7 @@
 | Node03 파일 선택 오류 | contracts.test.ts가 없고 tasks.test.ts가 실제 파일 | 저장소에 존재하는 파일 선택, 원래 단언 그대로 실행 |
 | 합성 Managed schema owner 분리 후 Auth FK fixture 거부 | Auth 테이블 소유자에게 본래 필요한 USAGE가 누락 | 합성 supabase_auth_admin에게만 USAGE를 복원, Workspace 역할에는 없음 |
 | 정적 body verifier 오탐 | AS 다음 개행을 처리하지 않아 다른 함수까지 매치 | 함수 header를 세미콜론으로 경계 짓고 공백/개행 처리 |
+| Docker CLI 고정 경로 | 새 환경의 CLI가 다른 위치에 설치될 수 있음 | shim 전 원래 PATH에서 해석한 CLI를 child에 전달, 임시 NOBYPASS 경계/학교 RPC 사용자 매핑은 유지 |
 | mutable manifest/외부 Auth ACL drift 채택 가능성 | 구조 지문은 테이블 내용/외부 Auth ACL을 포함하지 않음 | source54 manifest exact 비교 및 모든 lifecycle에서 Auth capability guard 추가, 변조 부정 시험 |
 
 처음28 PASS/중간174 PASS/별도 schema-only 결과는 그때 후보에 대한 중간 증거다.

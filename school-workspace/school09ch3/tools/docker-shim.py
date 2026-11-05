@@ -7,4 +7,6 @@ args=sys.argv[1:]
 if 'exec'in args and any('bogunon-'+s+'-pg'in args for s in ['school02','school03','school04']):
  for i,v in enumerate(args[:-1]):
   if v=='-U'and args[i+1]=='postgres':args[i+1]='fixture_root'
-os.execv('/usr/local/bin/docker',['docker',*args])
+binary=os.environ.get('H3_DOCKER_BIN')
+assert binary and os.path.isfile(binary),'resolved Docker CLI required'
+os.execv(binary,['docker',*args])

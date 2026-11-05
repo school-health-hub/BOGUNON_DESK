@@ -1,6 +1,6 @@
 """Reuse frozen business tests against the new fresh SQL; only fixture/endpoint adapters change."""
 from pathlib import Path
-import importlib.util,runpy,json,subprocess,tempfile,os
+import importlib.util,runpy,json,subprocess,tempfile,os,shutil
 
 def run(E,sql,case,check,run_file):
  P=E.parent;REPO=P.parent
@@ -23,7 +23,9 @@ def run(E,sql,case,check,run_file):
  ns['main']()
  # Frozen DB contracts retain real user-scoped AuthAdapter→RPC calls. Only DBA fixture identity is mapped.
  env={k:v for k,v in os.environ.items()if k not in('DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH')}
- docker=['/usr/local/bin/docker','--host=unix:///var/run/docker.sock']
+ docker_binary=shutil.which('docker',path=env['PATH']);assert docker_binary,'Docker CLI required'
+ env['H3_DOCKER_BIN']=docker_binary
+ docker=[docker_binary,'--host=unix:///var/run/docker.sock']
  with tempfile.TemporaryDirectory(prefix='h3-fixture-adapter-')as tmp:
   Path(tmp,'docker').symlink_to(E/'tools/docker-shim.py');env['PATH']=tmp+os.pathsep+env['PATH']
   for stage in ['school02','school03','school04']:
