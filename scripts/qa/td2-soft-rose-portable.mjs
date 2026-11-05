@@ -229,6 +229,8 @@ try{
   const checks=async(name,fn)=>{try{await fn();result.stability[name]={...(result.stability[name]??{}),verdict:'PASS'};}catch(e){result.stability[name]={...(result.stability[name]??{}),verdict:'FAIL',error:String(e).split('\n')[0].slice(0,220)};}finally{await writeFile(join(evidenceRoot,'stability-checkpoint.json'),JSON.stringify(result,null,2));}};
   const reload=async()=>{await page.reload();await dock.waitFor();const d=page.getByRole('dialog',{name:'학교 초기 설정'});if(await d.isVisible())await d.getByRole('button',{name:'나중에 설정'}).click();};
   const tool=async(label)=>{await reload();await dock.getByRole('button',{name:'업무 도구',exact:true}).click();await page.getByRole('button',{name:label,exact:true}).click();};
+  await page.addInitScript(()=>{window.confirm=()=>true;});await page.evaluate(()=>{window.confirm=()=>true;});
+  result.stability.rendererConfirm='QA explicit synthetic acceptance; actual OS confirmation NOT RUN';
   page.on('dialog',dialog=>{void dialog.accept().catch(error=>{result.dialogHandlingErrors??=[];result.dialogHandlingErrors.push(String(error).split('\n')[0].slice(0,160));});});
   const userRoot=result.actualUserData;
   const {createHash}=await import('node:crypto');
@@ -244,9 +246,9 @@ try{
     for(let i=0;i<20;i++){if(await mainCall(async function(){return !!globalThis.__parityQa.late;}))break;await delay(100);}
     await page.evaluate(()=>window.electronWork.educationVideo.searchProvider.cancel());await mainCall(async function(){const q=globalThis.__parityQa;if(!q.late)throw Error('Approval wait not reached');q.late({response:1,checkboxChecked:false});q.late=null;q.dialogMode='approve';return true;});
     const canceled=await page.evaluate(async()=>{const r=await window.__qaConnect,s=await window.electronWork.educationVideo.searchProvider.status();return !r.ok&&!s.data.configured&&!s.data.saved;});if(!canceled)throw Error('Late Finder approval activated key');
-    const connected=await page.evaluate(()=>window.electronWork.educationVideo.searchProvider.connectFromClipboard({remember:false}));if(!connected.ok||!connected.data.configured)throw Error('Synthetic memory-only Finder configuration failed');
+    const connected=await page.evaluate(()=>window.electronWork.educationVideo.searchProvider.connectFromClipboard({remember:false}));if(!connected.ok||!connected.data.configured)throw Error('Synthetic memory-only Finder configuration failed');result.stability.finder={lateApprovalDenied:true,memoryOnlyConfiguration:true};
     await tool('교육영상 Finder · 합성 Mock');
-    await page.getByLabel('검색 방식',{exact:true}).selectOption('mock');await page.getByRole('button',{name:'Mock 영상 검색',exact:true}).click();
+    await page.locator('.ev-search select').selectOption('mock');await page.getByLabel('교육 주제',{exact:true}).fill('합성 QA 보건교육');await page.getByLabel('검색 대상',{exact:true}).fill('합성 대상');await page.getByRole('button',{name:'Mock 영상 검색',exact:true}).click();
     await page.locator('.ev-results').getByRole('button',{name:/선택/}).first().click();
 
     const notes=page.getByLabel('사용자 메모',{exact:true});await notes.fill('SYNTHETIC_TRAY_MEMO');
@@ -285,7 +287,8 @@ try{
     const changed=await page.evaluate(async()=>({load:await window.electronWork.admin.load(),preview:await window.electronWork.admin.schoolAddresses()}));if(JSON.stringify(changed.load)!==JSON.stringify(saved))throw Error('School change overwrote URLs');if(changed.preview.data.entries.find(e=>e.system==='edufine')?.proposed)throw Error('Unregistered office has invented edufine');
     result.stability.school={cancelPreserved:true,applied:true,schoolChangePreserved:true,consent:'QA Main response injection, not native OS dialog',urlFreshness:'NOT VERIFIED'};
   });
-  result.stability.quickAddCalendar='NOT RUN';result.stability.commandPaletteCalendar='NOT RUN';result.stability.lateNativeApproval='Main response injection tested; actual OS native dialog NOT RUN';result.stability.realExplorerDrop='NOT RUN (previous synthetic IPC evidence only)';
+  await checks('quickAddCalendar',async()=>{await tool('빠른 추가 · 로컬 업무');await page.getByRole('tab',{name:'일정',exact:true}).click();await page.getByRole('dialog',{name:'독립 로컬 일정',exact:true}).waitFor();});
+  await checks('commandPaletteCalendar',async()=>{await tool('명령 팔레트');await page.getByLabel('명령 검색',{exact:true}).fill('독립 로컬 일정');await page.keyboard.press('Enter');await page.getByRole('dialog',{name:'독립 로컬 일정',exact:true}).waitFor();});result.stability.lateNativeApproval='Main response injection tested; actual OS native dialog NOT RUN';result.stability.realExplorerDrop='NOT RUN (previous synthetic IPC evidence only)';
   // End instrumentation before a real Portable shutdown/relaunch.
   await mainCall(async function(){const q=globalThis.__parityQa;q.e.dialog.showMessageBox=q.originalDialog;q.e.shell.openExternal=q.originalOpen;if(q.originalClipRead){q.e.clipboard.readText=q.originalClipRead;q.e.clipboard.clear=q.originalClipClear;}return true;});
   if(mainWs){mainWs.close();mainWs=undefined;await delay(200);}
@@ -305,7 +308,7 @@ try{
   await closeBrowser();
   await waitForWrapperExit();
   result.shutdown.wrapperExited=true;
-  result.verdict=result.violations.length?'PARTIAL':'PASS';
+  result.verdict=Object.values(result.stability??{}).some(v=>v&&typeof v==='object'&&v.verdict==='FAIL')?'FAIL':result.violations.length?'PARTIAL':'PASS';
   result.remaining=['Existing small-card/Quick Memo/Launcher PARTIAL requires manual review','OS DPI 125/150 NOT RUN','Actual credentials, paid AI, YouTube requests and school login NOT RUN'];
 }catch(error){
   result.error=error instanceof Error?error.stack??error.message:String(error);
