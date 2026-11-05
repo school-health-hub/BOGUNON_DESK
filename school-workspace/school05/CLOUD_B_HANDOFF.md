@@ -39,7 +39,7 @@ node school-workspace/school05/tools/scan-product.mjs
 pwsh -File school-workspace/school05/tools/start-windows-qa.ps1
 ```
 
-start-windows-qa는 임시 경로 아래 고유 QA profile과 port 없는 합성 PostgreSQL을 만든다. 기존 이름의 컨테이너는 덮어쓰지 않는다. QA provider는 build/school05-qa/provider.mjs로 제품 app 디렉터리 밖에 만든다. Main이 QA gate를 승인해야 로드된다. 스크립트 자체도 WINDOWS REAL NOT RUN이므로 실제 Windows에서 검증해야 한다.
+start-windows-qa는 로컬 Docker named pipe와 Linux 엔진을 검사하며 임시 경로 아래 고유 QA profile과 port 없는 합성 PostgreSQL을 만든다. 기존 이름의 컨테이너는 덮어쓰지 않는다. QA provider는 build/school05-qa/provider.mjs로 제품 app 디렉터리 밖에 만든다. Main이 QA gate를 승인해야 로드된다. 스크립트 자체도 WINDOWS REAL NOT RUN이므로 실제 Windows에서 검증해야 한다.
 
 Windows 확인 항목:
 
