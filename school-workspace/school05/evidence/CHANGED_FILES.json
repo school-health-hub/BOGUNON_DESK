@@ -81,6 +81,7 @@
     "school-workspace/school05/server/provider.ts",
     "school-workspace/school05/server/qa-web.ts",
     "school-workspace/school05/tests/boundary.test.ts",
+    "school-workspace/school05/tests/platform-docker.test.ts",
     "school-workspace/school05/tests/product-db.test.ts",
     "school-workspace/school05/tests/product-ui.test.tsx",
     "school-workspace/school05/tests/web-generation.test.ts",
@@ -98,6 +99,6 @@
     "school-workspace/school05/vite.config.ts",
     "school-workspace/school05/vitest.config.ts"
   ],
-  "count": 94,
+  "count": 95,
   "note": "SCHOOL05 delta only; ZIP includes cumulative SCHOOL04 source for base86 restore"
 }

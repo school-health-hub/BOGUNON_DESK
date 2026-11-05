@@ -38,6 +38,7 @@ Renderer는 토큰을 받지 않고 범용 RPC/SQL/HTTP 메서드가 없다. sen
 | 신규 Gate/실제 Preload VM/수명주기 MOCK | 8 | 0 | packaged/production/비격리 차단 포함 |
 | 신규 제품 React 상태/오류 경계 MOCK | 3 | 0 | 개인 복귀·미연결·오류 차단 |
 | 신규 Web 지연 응답 MOCK | 1 | 0 | 이전 CSRF/데이터 폐기 |
+| 신규 Docker 경계 정적/MOCK | 1 | 0 | Windows local pipe/Linux local socket |
 | CHROMIUM | 19항목 | 0 | 실제 P0 Renderer·Web BFF/LOCAL DB; Preload/Auth MOCK |
 | SCHOOL04 회귀 | 22 | 0 | 동일 로컬 스키마 |
 | SCHOOL03 회귀 | 21 | 0 | 동일 로컬 스키마 |
@@ -47,7 +48,7 @@ Renderer는 토큰을 받지 않고 범용 RPC/SQL/HTTP 메서드가 없다. sen
 | WINDOWS REAL | NOT RUN | — | GUI·safeStorage·PS 실행 |
 | HOSTED | NOT RUN | — | 운영 연결·변경 없음 |
 
-14개 신규 Vitest와19개 Chromium 항목은 중복 계층이므로 신규 고유 시나리오33개로 합산하지 않는다. 반복/재검증도 새 고유 테스트로 세지 않는다. 관련 기존 회귀와 선택 검증을 전체 제품/native suite PASS로 확대하지 않는다.
+15개 신규 Vitest와19개 Chromium 항목은 중복 계층이므로 신규 고유 시나리오34개로 합산하지 않는다. 반복/재검증도 새 고유 테스트로 세지 않는다. 관련 기존 회귀와 선택 검증을 전체 제품/native suite PASS로 확대하지 않는다.
 
 ## 타입 빌드와 자율 수정
 
@@ -55,7 +56,7 @@ Renderer는 토큰을 받지 않고 범용 RPC/SQL/HTTP 메서드가 없다. sen
 
 루트 npm run build는 깨끗한 시작 통합 기준에서도 같은 타입 오류13개이며 현재와 문자열이 모두 일치한다. 신규 오류0이다. 루트 lint/typecheck npm script는 없어 NOT RUN이고 별도 strict 검사로 구분한다. 전체 Electron test preparation은 이 환경에 cargo가 없어 실패했으며 전체 native suite는 NOT RUN이다. 기존 CLI/패키징 코드를 바꾸거나 실패를 PASS로 표시하지 않았다.
 
-자율 수정은 CSS 타입 선언 누락, 새 protocol 패키징 누락, 중복 메뉴 이름의 브라우저 selector, 이전 CSRF nonce 응답, 비동기 로딩 대기, 중복 모바일 헤더에 대해 각각1회 수행했다. 실행 증거/재현·원인·파일·집중 검증은 QA_FIX_LOG.json에 남겼다. 동일 명령의 무근거 반복이나 보안 계약 완화는 없다.
+자율 수정은 CSS 타입 선언 누락, 새 protocol 패키징 누락, 중복 메뉴 이름의 브라우저 selector, 이전 CSRF nonce 응답, 비동기 로딩 대기, 중복 모바일 헤더, Windows Docker 원격 컨텍스트 가능성에 대해 각각1회 수행했다. 실행 증거/재현·원인·파일·집중 검증은 QA_FIX_LOG.json에 남겼다. 동일 명령의 무근거 반복이나 보안 계약 완화는 없다.
 
 ## Git 보존과 인계
 

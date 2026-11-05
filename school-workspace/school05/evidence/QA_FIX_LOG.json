@@ -62,5 +62,16 @@
       "ui/product.css"
     ],
     "verification": "final14 tests + Chromium19 PASS; strict and product boundary PASS"
+  },
+  {
+    "defect": "Windows default Docker context could select remote engine",
+    "attempt": 1,
+    "fix": "force local named pipe, clear context selectors, require Linux engine in Windows QA helper",
+    "files": [
+      "server/local-db.ts",
+      "tools/start-windows-qa.ps1",
+      "tests/platform-docker.test.ts"
+    ],
+    "verification": "15 new tests PASS including explicit local transport assertions; strict PASS; WINDOWS REAL NOT RUN"
   }
 ]
