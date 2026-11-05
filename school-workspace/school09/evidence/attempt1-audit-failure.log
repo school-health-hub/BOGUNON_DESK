@@ -44,7 +44,7 @@ PASS Seoul dates: expiry today/30 inclusive,31 excluded, yesterday expired
 PASS explicit own receive works; deny override wins over allow
 PASS valid school B item cannot reference school A lot
 DB PASS 31
-FAIL S09 catalog:54 invokers, nonowner definers, all fixed empty paths, FORCE RLS 
+FAIL S09 catalog:54 invokers, nonowner definers, all fixed empty paths, FORCE RLS
 Traceback (most recent call last):
   File "/workspace/work/school-09/repo/school-workspace/school09/tests/run.py", line 17, in <module>
     exec(compile(s,'<frozen SCHOOL08 installer + evidence redirection + SCHOOL09 probes>','exec'),{'__name__':'__main__','__file__':str(R/'tests/install.py')})

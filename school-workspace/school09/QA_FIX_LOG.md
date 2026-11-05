@@ -16,3 +16,5 @@
 SET ROLE 허용 여부는 session_user인 superuser 기준이므로 잘못 성공한다. 실제 PostgREST authenticator와 동일한
 `SET SESSION AUTHORIZATION school_rest` 후 authenticated로 전환하도록 수정했다(이 결함 수정1회).
 단순 current_role 전환과 비특권 session_user의 역할 전환 가능성을 구분하며 SQL 권한은 변경하지 않았다.
+
+인계 diff 검사를 위해 로그 행 끝의 공백만 정규화했다. 실행 결과·오류 내용은 변경하지 않았다.

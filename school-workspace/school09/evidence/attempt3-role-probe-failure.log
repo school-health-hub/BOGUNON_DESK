@@ -9,7 +9,7 @@ PASS S09 no client/runtime SET ROLE escalation or owner membership
 PASS S09 SD probe private authz reader direct helper denied
 PASS S09 SD probe private session helper direct call denied
 PASS S09 SD probe private generic write dispatch denied
-FAIL S09 SD probe role escalation runtime denied 
+FAIL S09 SD probe role escalation runtime denied
 Traceback (most recent call last):
   File "/workspace/work/school-09/repo/school-workspace/school09/tests/run.py", line 17, in <module>
     exec(compile(s,'<frozen SCHOOL08 installer + evidence redirection + SCHOOL09 probes>','exec'),{'__name__':'__main__','__file__':str(R/'tests/install.py')})
