@@ -33,7 +33,7 @@ jobs:
           retention-days: 7
 
   account-configured-portable:
-    if: github.ref == 'refs/heads/qa/school-08-windows' && github.run_attempt == 1
+    if: github.ref == 'refs/heads/qa/school-08-windows' && github.run_attempt <= 2
     uses: ./.github/workflows/electron-p0-windows.yml
     secrets:
       public_url: ${{ vars.VITE_SUPABASE_URL }}

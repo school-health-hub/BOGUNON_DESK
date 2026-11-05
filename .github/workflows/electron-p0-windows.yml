@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   portable-gui:
-    if: (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/qa/school-08-windows' && github.run_attempt == 1
+    if: (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/qa/school-08-windows' && github.run_attempt <= 2
     runs-on: windows-2025
     timeout-minutes: 40
     defaults:
@@ -197,8 +197,18 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'School production boundary scan failed'}
           Copy-Item school-workspace/school05/evidence/product-boundary.json "$env:TD2_EVIDENCE_ROOT/school05-product-boundary.json"
           git restore -- school-workspace/school05/evidence/product-boundary.json
-          npx electron-builder --config electron-p0/builder.json --win portable --x64 --publish never
-          if($LASTEXITCODE -ne 0){throw '5-CLI Portable build failed'}
+          for($buildAttempt=1;$buildAttempt -le 2;$buildAttempt++){
+            $lines=@(npx electron-builder --config electron-p0/builder.json --win portable --x64 --publish never 2>&1)
+            $buildExit=$LASTEXITCODE
+            $buildText=($lines|ForEach-Object{$_.ToString()}) -join "`n"
+            if($env:VITE_SUPABASE_PUBLISHABLE_KEY){$buildText=$buildText.Replace($env:VITE_SUPABASE_PUBLISHABLE_KEY,'[public-key-redacted]')}
+            $buildText|Set-Content "$env:TD2_EVIDENCE_ROOT/portable-build-attempt-$buildAttempt.log"
+            Write-Output $buildText
+            if($buildExit -eq 0){break}
+            if($buildAttempt -eq 2 -or $buildText -notmatch 'Response code (502|504)|ETIMEDOUT|ECONNRESET'){throw 'Portable packaging failed; product failures are not retried'}
+            Write-Output 'One bounded retry of transient packaging download failure; no product changes'
+            Start-Sleep -Seconds 3
+          }
       - name: Record Portable and actual Windows DPI
         run: |
           $ErrorActionPreference='Stop'
@@ -279,7 +289,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: success() || failure()
         with:
-          name: school08-integrated-portable-${{ github.run_id }}
+          name: school08-integrated-portable-${{ github.run_id }}-${{ github.run_attempt }}
           path: source/release-electron-p0/*.exe
           if-no-files-found: ignore
           retention-days: 14
