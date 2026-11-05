@@ -1,0 +1,211 @@
+{
+  "classification": "LOCAL DB; original SCHOOL01 tests + synthetic directory adapter only",
+  "pass": 34,
+  "fail": 0,
+  "tests": [
+    {
+      "test": "t01",
+      "status": "PASS",
+      "detail": "anon EXECUTE denied (42501); missing claims authenticated caller denied",
+      "seconds": 0.21
+    },
+    {
+      "test": "t02",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.106
+    },
+    {
+      "test": "t03",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.1
+    },
+    {
+      "test": "t04",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.439
+    },
+    {
+      "test": "t05",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.121
+    },
+    {
+      "test": "t06",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.213
+    },
+    {
+      "test": "t07",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.329
+    },
+    {
+      "test": "t08",
+      "status": "PASS",
+      "detail": "separate sessions; observed advisory lock wait; one commit, one last_admin rejection; 1 admin remains",
+      "seconds": 1.764
+    },
+    {
+      "test": "t09",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.323
+    },
+    {
+      "test": "t10",
+      "status": "PASS",
+      "detail": "epoch 1 history retained; epoch 2 assistant has no old handover allow",
+      "seconds": 0.712
+    },
+    {
+      "test": "t11",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.321
+    },
+    {
+      "test": "t12",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.405
+    },
+    {
+      "test": "t13",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.657
+    },
+    {
+      "test": "t14",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.534
+    },
+    {
+      "test": "t15",
+      "status": "PASS",
+      "detail": "unchanged old JWT/session fails membership check; separate session denylist blocks bootstrap and context",
+      "seconds": 0.722
+    },
+    {
+      "test": "t16",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.46
+    },
+    {
+      "test": "t17",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.584
+    },
+    {
+      "test": "t18",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.555
+    },
+    {
+      "test": "t19",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.43
+    },
+    {
+      "test": "t20",
+      "status": "PASS",
+      "detail": "13 FORCE-RLS tables; runtime/authz reader non-owner NOLOGIN/NOBYPASSRLS; invoker public wrappers",
+      "seconds": 0.494
+    },
+    {
+      "test": "t21",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.403
+    },
+    {
+      "test": "t22",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.418
+    },
+    {
+      "test": "t23",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.302
+    },
+    {
+      "test": "t24",
+      "status": "PASS",
+      "detail": "RLS defense in depth filters B rows even for runtime role; owner injection only for this negative probe",
+      "seconds": 0.206
+    },
+    {
+      "test": "t25",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.355
+    },
+    {
+      "test": "t26",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.615
+    },
+    {
+      "test": "t27",
+      "status": "PASS",
+      "detail": "bootstrap creates only own account; repeat does not create a membership",
+      "seconds": 0.99
+    },
+    {
+      "test": "t28",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.714
+    },
+    {
+      "test": "t29",
+      "status": "PASS",
+      "detail": "forced audit permission failure rolls back member version, role history, receipt atomically",
+      "seconds": 0.845
+    },
+    {
+      "test": "t30",
+      "status": "PASS",
+      "detail": "parallel independent requests same UUID return same result; exactly one mutation/audit/receipt",
+      "seconds": 0.454
+    },
+    {
+      "test": "t31",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.642
+    },
+    {
+      "test": "t32",
+      "status": "PASS",
+      "detail": "no valid admin => fail closed even before recovery-state scheduler runs",
+      "seconds": 0.21
+    },
+    {
+      "test": "t33",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.448
+    },
+    {
+      "test": "t34",
+      "status": "PASS",
+      "detail": "synthetic Auth deletion leaves account tombstone, school memberships/terms intact",
+      "seconds": 0.425
+    }
+  ]
+}

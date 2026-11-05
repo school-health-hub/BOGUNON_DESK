@@ -1,0 +1,10 @@
+{
+  "classification": "LOCAL POSTGREST, synthetic Auth tables/HS256 issuer; NOT Hosted Supabase",
+  "version": "13.0.4",
+  "image": "postgrest/postgrest:v13.0.4@sha256:a312f4b2e48530a01fc26f5310d547d6c26d087858360e164522e415723a7732",
+  "checks": 11,
+  "signing_key": "ephemeral, not saved",
+  "authenticator": "LOGIN NOINHERIT NOBYPASSRLS; only anon/authenticated membership",
+  "network": "same owned PG container, network:none/no ports",
+  "hosted_jwt_go_true_gateway": "NOT RUN"
+}

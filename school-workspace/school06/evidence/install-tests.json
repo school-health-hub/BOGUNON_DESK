@@ -1,0 +1,183 @@
+{
+  "tests": [
+    {
+      "name": "default approval guard fails before roles/DDL",
+      "result": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "missing foundation blocks application migration",
+      "result": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "foreign namespace collision rejected",
+      "result": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "preexisting role collision rejected",
+      "result": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "foundation installs new roles/schemas only",
+      "result": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "foundation repeat safe",
+      "result": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "Auth prerequisites fail closed, no automatic Auth grants",
+      "result": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "Auth capability refusal leaves zero app tables",
+      "result": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "local Auth owner supplies column capabilities as FIXTURE ONLY",
+      "result": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "excessive Auth column capability rejected",
+      "result": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "public RPC collision rejected without replacement",
+      "result": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "failure after A/C/02/03 DDL rolls back entire app install",
+      "result": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "atomic core installs after failed transaction",
+      "result": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "default CLOSED RPC gate denies authenticated EXECUTE",
+      "result": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "unexpected default client ACL removed only on new functions",
+      "result": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "repeat core closed is no-op",
+      "result": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "concurrent repeat serialized without duplicate objects",
+      "result": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "activate isolated RPC gate explicitly",
+      "result": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "repeat core active and foundation active safe",
+      "result": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "least-privilege function/role/GRANT chain",
+      "result": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "LOCAL POSTGREST valid signed JWT → public invoker → private definer/RLS",
+      "result": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST anonymous EXECUTE denied",
+      "result": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST wrong JWT signature rejected",
+      "result": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST expired JWT rejected",
+      "result": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST approved A cannot access B",
+      "result": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST pending denied",
+      "result": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST helper not callable and private schema not exposed",
+      "result": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST owner/runtime role escalation rejected",
+      "result": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST raw Workspace table is not a public resource",
+      "result": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST membership suspension rejects previously issued JWT",
+      "result": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST Auth session deletion rejects still-signed JWT",
+      "result": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "legacy public metadata/data/Auth capabilities unchanged by package",
+      "result": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "data-preserving close revokes new RPCs only",
+      "result": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "catalog drift rejected instead of overwriting installed functions",
+      "result": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "emergency close after drift retains data and marks unverified",
+      "result": "PASS",
+      "classification": "LOCAL DB"
+    }
+  ],
+  "pass": 35,
+  "fail": 0,
+  "hosted": "NOT RUN",
+  "windows_real": "NOT RUN"
+}

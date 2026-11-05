@@ -1,0 +1,40 @@
+{
+  "baseline": "243ae95e69483dfbe8d2438c41f858577d748048",
+  "root_build": "FAIL baseline identical",
+  "root_existing_type_errors": 13,
+  "new_type_errors": 0,
+  "existing_errors": [
+    "electron-p0/renderer/adapters/NewsletterProjectControls.tsx(9,44): error TS2339: Property 'electronWork' does not exist on type 'Window & typeof globalThis'.",
+    "src/education-video/library.ts(51,68): error TS2339: Property 'electronWork' does not exist on type 'Window & typeof globalThis'.",
+    "src/education-video/library.ts(52,85): error TS2339: Property 'electronWork' does not exist on type 'Window & typeof globalThis'.",
+    "src/education-video/library.ts(55,44): error TS2339: Property 'electronWork' does not exist on type 'Window & typeof globalThis'.",
+    "src/education-video/library.ts(57,127): error TS2339: Property 'electronWork' does not exist on type 'Window & typeof globalThis'.",
+    "src/education-video/library.ts(58,70): error TS2339: Property 'electronWork' does not exist on type 'Window & typeof globalThis'.",
+    "src/education-video/library.ts(59,71): error TS2339: Property 'electronWork' does not exist on type 'Window & typeof globalThis'.",
+    "src/inventory-management/InventoryWorkspace.tsx(12,53): error TS2339: Property 'electronWork' does not exist on type 'Window & typeof globalThis'.",
+    "src/inventory-management/InventoryWorkspace.tsx(18,160): error TS2339: Property 'electronWork' does not exist on type 'Window & typeof globalThis'.",
+    "src/newsletter/NewsletterStudio.tsx(63,216): error TS2339: Property 'electronWork' does not exist on type 'Window & typeof globalThis'.",
+    "src/official-document/OfficialDocumentWorkspace.tsx(19,20): error TS2339: Property 'electronWork' does not exist on type 'Window & typeof globalThis'.",
+    "src/official-document/officialDocumentSession.ts(11,78): error TS2739: Type '{ mode: \"create\"; createInput: OfficialDocumentInput; revisionInput: { original: string; request: string; }; revisionSourceName: null; summaryOriginal: string; summarySourceName: null; ... 5 more ...; activeAiRequestId: null; }' is missing the following properties from type 'OfficialDocumentSession': touchedCreateFields, selectedReference, appliedReference",
+    "src/official-document/officialDocumentSession.ts(129,26): error TS2345: Argument of type '{ readonly type: \"selectReference\"; readonly reference: OfficialDocumentReference | null; } | { readonly type: \"applyReference\"; readonly reference: OfficialDocumentReference; readonly input: OfficialDocumentInput; }' is not assignable to parameter of type 'never'."
+  ],
+  "workspace_strict": "BLOCKED by missing locked xlsx dependency; baseline identical",
+  "workspace_dependency_diagnostics": [
+    "school-workspace/instructors/core/import/work-log-import.test.ts(2,23): error TS2307: Cannot find module 'xlsx' or its corresponding type declarations.",
+    "school-workspace/instructors/core/import/work-log-import.ts(1,23): error TS2307: Cannot find module 'xlsx' or its corresponding type declarations.",
+    "school-workspace/instructors/core/import/work-log-import.ts(136,36): error TS7006: Parameter 'row' implicitly has an 'any' type.",
+    "school-workspace/instructors/core/import/work-log-import.ts(136,41): error TS7006: Parameter 'index' implicitly has an 'any' type.",
+    "school-workspace/instructors/core/import/work-log-import.ts(137,24): error TS7006: Parameter 'value' implicitly has an 'any' type.",
+    "school-workspace/instructors/core/payment-workbook.ts(2,23): error TS2307: Cannot find module 'xlsx' or its corresponding type declarations.",
+    "school-workspace/instructors/tests/contracts.test.ts(1,56): error TS2307: Cannot find module 'xlsx' or its corresponding type declarations.",
+    "school-workspace/instructors/tests/packaging.test.ts(2,23): error TS2307: Cannot find module 'xlsx' or its corresponding type declarations."
+  ],
+  "auth_strict": "PASS",
+  "electron_main_preload_renderer_tsc": "PASS as stages completed before Vite instructor dependency error",
+  "electron_full_build": "BLOCKED environment xlsx missing, baseline identical import failure",
+  "dashboard_vite": "PASS; chunk warning retained",
+  "lint": "NOT RUN: no script",
+  "typecheck_script": "NOT RUN: no script; real tsc checks above",
+  "sheetjs_download": "HTTP403 cloud network policy; no dependency/source/version substitution",
+  "package_lock_changed": false
+}

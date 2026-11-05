@@ -1,0 +1,16 @@
+{
+  "classification": "STATIC",
+  "pass": 9,
+  "fail": 0,
+  "checks": [
+    "deterministic SQL generation",
+    "5 original source hashes and integration byte identity",
+    "no Auth GRANT in operating SQL",
+    "no existing public table mutation",
+    "no legacy authorization/medication function reuse",
+    "39 explicit RPC names",
+    "Instructor feature excluded",
+    "closed gate/external Auth prerequisite",
+    "no binary/session artifact"
+  ]
+}

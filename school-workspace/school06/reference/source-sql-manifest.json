@@ -1,0 +1,78 @@
+{
+  "sources": [
+    {
+      "path": "school-workspace/local/supabase/migrations/20261105000027_school01a_workspace_local.sql",
+      "sha256": "3c5c0799ffd27e04ea25e8496c895063ced395cb32fc1059f4e308fa84d83e91",
+      "adaptation": "remove local-only guard and role/schema bootstrap, remove all Auth GRANTs; supplied by separate foundation and external capability prerequisite"
+    },
+    {
+      "path": "school-workspace/integration/sql/local-status.sql",
+      "sha256": "588c2dfd0e0a90a684e8e6b08b1d5f139817adc9048c50efd6ea8c091e12772a",
+      "adaptation": "remove outer transaction/local-only guard; foundation and preverified Auth capabilities supplied separately"
+    },
+    {
+      "path": "school-workspace/school02/sql/extension.sql",
+      "sha256": "9920ac9053ee153b4a5002ef2c0879612152a7d5ae167d276c1c4db55da43c9d",
+      "adaptation": "remove outer transaction/local-only guard; foundation and preverified Auth capabilities supplied separately"
+    },
+    {
+      "path": "school-workspace/school03/sql/extension.sql",
+      "sha256": "c75e34d1e4f63adb41f1db7025532e390942ed6c79b1732bf6b1839af3a65c60",
+      "adaptation": "remove outer transaction/local-only guard; foundation and preverified Auth capabilities supplied separately"
+    },
+    {
+      "path": "school-workspace/school04/sql/extension.sql",
+      "sha256": "828b81eb460fc6410e979d6905554f265fd8a6b4c74806f0ad00175c9bbbf0ed",
+      "adaptation": "remove outer transaction/local-only guard; foundation and preverified Auth capabilities supplied separately"
+    }
+  ],
+  "excluded": [
+    "synthetic Auth/user/school fixtures",
+    "Instructor candidate.sql (separate feature, not SCHOOL01-05 core contract)"
+  ],
+  "public_rpc_names": [
+    "ws_c_membership_status",
+    "ws_s02_admin",
+    "ws_s02_directory",
+    "ws_s02_expiry",
+    "ws_s02_self",
+    "ws_s02_space",
+    "ws_s02_transfers",
+    "ws_s02_withdraw",
+    "ws_v1_accept_admin_change",
+    "ws_v1_ack_handover",
+    "ws_v1_assign_task",
+    "ws_v1_bootstrap",
+    "ws_v1_cancel_event",
+    "ws_v1_change_assigned_task_status",
+    "ws_v1_close_task",
+    "ws_v1_complete_handover",
+    "ws_v1_create_handover",
+    "ws_v1_create_task",
+    "ws_v1_decide_join",
+    "ws_v1_edit_handover",
+    "ws_v1_edit_task",
+    "ws_v1_get_activity_context",
+    "ws_v1_get_context",
+    "ws_v1_get_event",
+    "ws_v1_get_handover",
+    "ws_v1_get_task",
+    "ws_v1_leave_school",
+    "ws_v1_list_event_history",
+    "ws_v1_list_events",
+    "ws_v1_list_handover_history",
+    "ws_v1_list_handovers",
+    "ws_v1_list_task_history",
+    "ws_v1_list_tasks",
+    "ws_v1_propose_admin_change",
+    "ws_v1_request_join",
+    "ws_v1_revoke_current_session",
+    "ws_v1_save_event",
+    "ws_v1_set_member_role",
+    "ws_v1_set_membership_state"
+  ],
+  "derived_payload_sha256": "d247c2e2a2fb9ddb045681f40609cef47efc6f21ec729f35ed35dc95a6d0d0fd",
+  "legacy_sql_unchanged": true,
+  "foundation_sha256": "7afd993fbd977fe56e83daca2276f4e4b94a63d855cb9da2c4e72af777b2a8c9",
+  "release_spec_sha256": "92c6268eee5944e733132515b2fcd7895739c00c174a2dfc348ec891e283400a"
+}

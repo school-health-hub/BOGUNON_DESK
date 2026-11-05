@@ -1,0 +1,33 @@
+PASS default approval guard fails before roles/DDL
+PASS missing foundation blocks application migration
+PASS foundation installs new roles/schemas only
+PASS foundation repeat safe
+PASS Auth prerequisites fail closed, no automatic Auth grants
+PASS local Auth owner supplies column capabilities as FIXTURE ONLY
+FAIL atomic core install ERROR:  record "a" is not assigned yet
+DETAIL:  The tuple structure of a not-yet-assigned record is indeterminate.
+CONTEXT:  SQL expression "has_table_privilege('ws_authz_reader','auth.sessions','SELECT')OR EXISTS(SELECT 1 FROM pg_attribute a WHERE a.attrelid='auth.sessions'::regclass AND a.attnum>0 AND NOT a.attisdropped AND a.attname NOT IN('id','user_id','created_at','not_after')AND has_column_privilege('ws_authz_reader','auth.sessions',a.attname,'SELECT'))OR has_any_column_privilege('ws_runtime','auth.sessions','SELECT')OR has_any_column_privilege('ws_authz_reader','auth.users','SELECT')"
+PL/pgSQL function inline_code_block line 15 at IF
+
+Traceback (most recent call last):
+  File "/workspace/work/school-06/repo/school-workspace/school06/tests/run.py", line 32, in <module>
+    if __name__=='__main__':main()
+                            ^^^^^^
+  File "/workspace/work/school-06/repo/school-workspace/school06/tests/run.py", line 27, in main
+    case('atomic core install',lambda:apply(core))
+  File "/workspace/work/school-06/repo/school-workspace/school06/tests/run.py", line 17, in case
+    try:fn();RESULT.append({'name':name,'result':'PASS','classification':'LOCAL DB'});print('PASS',name,flush=True)
+        ^^^^
+  File "/workspace/work/school-06/repo/school-workspace/school06/tests/run.py", line 27, in <lambda>
+    case('atomic core install',lambda:apply(core))
+                                      ^^^^^^^^^^^
+  File "/workspace/work/school-06/repo/school-workspace/school06/tests/run.py", line 14, in apply
+    return sql(("SET bogunon.ws_install_mode='isolated';\n"if approved else'')+s,ok=ok)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/school-06/repo/school-workspace/school06/tests/run.py", line 9, in sql
+    if ok and p.returncode:raise AssertionError(p.stderr[-3000:])
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ERROR:  record "a" is not assigned yet
+DETAIL:  The tuple structure of a not-yet-assigned record is indeterminate.
+CONTEXT:  SQL expression "has_table_privilege('ws_authz_reader','auth.sessions','SELECT')OR EXISTS(SELECT 1 FROM pg_attribute a WHERE a.attrelid='auth.sessions'::regclass AND a.attnum>0 AND NOT a.attisdropped AND a.attname NOT IN('id','user_id','created_at','not_after')AND has_column_privilege('ws_authz_reader','auth.sessions',a.attname,'SELECT'))OR has_any_column_privilege('ws_runtime','auth.sessions','SELECT')OR has_any_column_privilege('ws_authz_reader','auth.users','SELECT')"
+PL/pgSQL function inline_code_block line 15 at IF
