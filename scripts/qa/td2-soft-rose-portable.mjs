@@ -137,10 +137,10 @@ try{
  for(const [width,height] of [[980,700],[900,680]]){native('Resize',['-Width',String(width),'-Height',String(height)]);await delay(300);const section=page.getByRole('region',{name:'BOGUNON 계정 연결'}),button=section.getByRole('button',{name:'Google로 BOGUNON 로그인'});await button.scrollIntoViewIfNeeded();if(!await button.isDisabled())throw Error('Unconfigured login enabled');await section.getByText('기존 Supabase 공개 클라이언트 빌드 설정이 필요합니다.',{exact:false}).waitFor();await page.screenshot({path:join(screenshots,`account-${width}.png`)});result.accountUi.push({width,height,disabledLogin:true,visible:await button.isVisible()});}
  const disabled=await page.evaluate(()=>window.electronWork.account.signIn());if(!disabled.ok||disabled.data.status!=='signedOut'||disabled.data.configured)throw Error('Unconfigured signin not blocked');
  result.syntheticWindows=await mainCall(async function(){
-  const q=globalThis.__remainingQa,e=q.e,req=process.getBuiltinModule('module').createRequire(e.app.getAppPath()+'/package.json'),fs=req('node:fs/promises'),path=req('node:path'),url=req('node:url');
+  globalThis.__accountStage='module-imports';try{const q=globalThis.__remainingQa,e=q.e,req=process.getBuiltinModule('module').createRequire(e.app.getAppPath()+'/package.json'),fs=req('node:fs/promises'),path=req('node:path'),url=req('node:url');
   const load=name=>import(url.pathToFileURL(path.join(e.app.getAppPath(),'main',name+'.js')).href);
   const {AccountVault}=await load('account-vault'),{AccountService}=await load('account-service'),{AccountLoopback}=await load('account-loopback'),{SchoolProfileStore}=await load('school-profile'),{createAccountHandlers}=await load('account-ipc');
-  const root=path.join(e.app.getPath('userData'),'account-synthetic-qa');await fs.mkdir(root,{recursive:true});
+  globalThis.__accountStage='dpapi';const root=path.join(e.app.getPath('userData'),'account-synthetic-qa');await fs.mkdir(root,{recursive:true});
   const check=(ok)=>{if(!ok)throw Error('Synthetic account assertion failed');};
   const cipher={available:process.platform==='win32'&&e.safeStorage.isEncryptionAvailable(),encrypt:v=>e.safeStorage.encryptString(v),decrypt:v=>e.safeStorage.decryptString(v)};check(cipher.available);
   const vault=new AccountVault(path.join(root,'vault'),cipher),marker='SYNTHETIC_DPAPI_ONLY';await vault.write({'sb-synthetic-auth-token':marker});const encrypted=await fs.readFile(path.join(root,'vault','session.bin'));check(!encrypted.includes(Buffer.from(marker)));check((await new AccountVault(path.join(root,'vault'),cipher).read())['sb-synthetic-auth-token']===marker);await vault.write({});
@@ -154,20 +154,22 @@ try{
   const login=async()=>{await service.signIn();loop.fire();await settle(async()=>(await service.status()).schoolStatus==='ready');};
   let handlers,restored;
   try{
-   await login();const state=await service.status();check(state.user.id===uid);check(!/access_token|refresh_token|code_verifier/.test(JSON.stringify(state)));
-   const store=new SchoolProfileStore(path.join(root,'local-school')),frame={},contents={mainFrame:frame,getURL:()=> 'file:///synthetic'},event={sender:contents,senderFrame:frame};let approve=false;handlers=createAccountHandlers(contents,contents.getURL(),service,store,async()=>approve);
+   globalThis.__accountStage='sdk-login';await login();const state=await service.status();check(state.user.id===uid);check(!/access_token|refresh_token|code_verifier/.test(JSON.stringify(state)));
+   globalThis.__accountStage='school-apply';const store=new SchoolProfileStore(path.join(root,'local-school')),frame={},contents={mainFrame:frame,getURL:()=> 'file:///synthetic'},event={sender:contents,senderFrame:frame};let approve=false;handlers=createAccountHandlers(contents,contents.getURL(),service,store,async()=>approve);
    const args={accountRevision:state.revision,expectedSchoolRevision:0};const cancel=await handlers.applySchool(event,args);check(cancel.ok&&cancel.data===null&&(await store.load()).document.school===null);
    approve=true;const saved=await handlers.applySchool(event,args);check(saved.ok&&saved.data.document.school.schoolName===school.schoolName);
    await service.cancel();check((await store.load()).document.school.schoolName===school.schoolName);
-   await login();uid='22222222-2222-4222-8222-222222222222';const switching=await service.signIn();check(!switching.user&&!switching.school);loop.fire();await settle(async()=>(await service.status()).user?.id===uid);
-   expired=true;check((await service.refresh()).status==='expired');expired=false;await service.signOut();check(Object.keys(await vault.read()).length===0);check((await store.load()).document.school.schoolName===school.schoolName);
-   await service.signIn();const previous=loop;await service.cancel();previous.fire();await service.flush();check(!(await service.status()).user);
+   globalThis.__accountStage='switch';await login();uid='22222222-2222-4222-8222-222222222222';const switching=await service.signIn();check(!switching.user&&!switching.school);loop.fire();await settle(async()=>(await service.status()).user?.id===uid);
+   globalThis.__accountStage='expiry';expired=true;check((await service.refresh()).status==='expired');expired=false;await service.signOut();check(Object.keys(await vault.read()).length===0);check((await store.load()).document.school.schoolName===school.schoolName);
+   globalThis.__accountStage='cancel';await service.signIn();const previous=loop;await service.cancel();previous.fire();await service.flush();check(!(await service.status()).user);
    await service.signIn();loop.timeout();await settle(async()=>(await service.status()).status==='signedOut');
-   await login();service.dispose();restored=new AccountService({...ports,vault:new AccountVault(path.join(root,'vault'),cipher)});check((await restored.status()).user?.id===uid);await restored.signOut();
-   const real=new AccountLoopback();try{let accepted=false;const redirect=await real.start(()=>{accepted=true;},()=>{});real.arm('synthetic_flow_01');const response=await req('electron').net.fetch(redirect+'?code=synthetic&sb_flow_id=synthetic_flow_01');check(response.ok);await settle(()=>accepted);}finally{real.close();}
+   globalThis.__accountStage='restore';await login();service.dispose();restored=new AccountService({...ports,vault:new AccountVault(path.join(root,'vault'),cipher)});check((await restored.status()).user?.id===uid);await restored.signOut();
+   globalThis.__accountStage='loopback';const real=new AccountLoopback();try{let accepted=false;const redirect=await real.start(()=>{accepted=true;},()=>{});real.arm('synthetic_flow_01');const response=await req('electron').net.fetch(redirect+'?code=synthetic&sb_flow_id=synthetic_flow_01');check(response.ok);await settle(()=>accepted);}finally{real.close();}
    return {verdict:'PASS',dpapi:'Actual Windows safeStorage encrypt/decrypt and new-vault disk restore',auth:'Synthetic transport; real bundled SDK and service',school:'Synthetic handler confirmation approve/cancel; no OS dialog injection into product',logoutSwitchExpiryCancelTimeout:true,schoolPreserved:true,rendererTokenFree:true,loopback:'Actual Windows 127.0.0.1 ephemeral listener',requests,externalNetworkRequests:0,systemBrowserOpens:0};
   }finally{handlers?.dispose();service.dispose();restored?.dispose();await vault.flush();}
+ }catch(error){return {verdict:'FAIL',stage:globalThis.__accountStage,errorCode:error.code??error.name};}
  });
+ if(result.syntheticWindows.verdict!=='PASS')throw Error('Synthetic Windows QA failed at '+result.syntheticWindows.stage+' / '+result.syntheticWindows.errorCode);
  await mainCall(async function(){const q=globalThis.__remainingQa,quit=q.e.Menu.getApplicationMenu().items[0].submenu.items.find(i=>i.label==='완전 종료');quit.click();return true;});mainWs.close();mainWs=undefined;await waitForWrapperExit();result.shutdown.wrapperExited=true;
  result.realOAuth='NOT RUN: public configuration and operator-approved redirect compatibility/test account required';result.verdict='PASS';
 }catch(error){result.error=String(error).split('\n')[0].slice(0,500);result.verdict='FAIL';}
