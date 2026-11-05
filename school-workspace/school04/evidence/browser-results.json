@@ -1,0 +1,88 @@
+{
+  "count": 15,
+  "checks": [
+    {
+      "name": "teacher timed event saved and displayed at Seoul09:00",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth"
+    },
+    {
+      "name": "all-day single day and monthly/list switching",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth"
+    },
+    {
+      "name": "desktop-calendar-980x700",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth",
+      "overflow": false,
+      "smallControls": 0
+    },
+    {
+      "name": "assistant calendar read-only",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth"
+    },
+    {
+      "name": "mobile-calendar",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth",
+      "overflow": false,
+      "smallControls": 0
+    },
+    {
+      "name": "teacher publishes direct-target note",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth"
+    },
+    {
+      "name": "self ack persists independently of completion",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth"
+    },
+    {
+      "name": "mobile-handover-ack",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth",
+      "overflow": false,
+      "smallControls": 0
+    },
+    {
+      "name": "untargeted assistant and other school do not see note",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth"
+    },
+    {
+      "name": "admin completion allowed without proxy acknowledgement",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth"
+    },
+    {
+      "name": "edited content requires a fresh read acknowledgement",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth"
+    },
+    {
+      "name": "network ack failure never marks read",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth"
+    },
+    {
+      "name": "explicit retry after reconnect saves current revision",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth"
+    },
+    {
+      "name": "task/calendar/handover navigation revalidates same school",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth"
+    },
+    {
+      "name": "logout clears all shared panels",
+      "result": "PASS",
+      "classification": "BROWSER + LOCAL DB + MOCK Auth"
+    }
+  ],
+  "windowsReal": "NOT RUN",
+  "hosted": "NOT RUN"
+}

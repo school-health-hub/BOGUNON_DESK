@@ -1,0 +1,30 @@
+{
+  "verdict": "CONDITIONAL",
+  "base": "166df05dd45402cb1a7526c9ae824ec11fcdb579",
+  "branch": "feature/school-03-shared-tasks",
+  "new_vitest": {
+    "LOCAL_DB_contracts": 15,
+    "LOCAL_DB_React_Main_MOCK_IPC": 4,
+    "MOCK_renderer": 2,
+    "fail": 0
+  },
+  "browser": {
+    "pass": 13,
+    "fail": 0,
+    "classification": "BROWSER + LOCAL DB + MOCK Auth"
+  },
+  "school02_regression": {
+    "vitest": 22,
+    "browser": 14,
+    "fail": 0
+  },
+  "auth_regression": 59,
+  "existing_regression": 101,
+  "strict_types": "PASS",
+  "electron_build": "PASS",
+  "root_build": "FAIL13 unchanged baseline errors, new0",
+  "hosted": "NOT VERIFIED / NOT RUN",
+  "windows_real": "NOT RUN",
+  "counts_across_suites_are_unique": false,
+  "school04": "isolated work CONDITIONAL"
+}

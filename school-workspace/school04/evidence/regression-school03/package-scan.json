@@ -1,0 +1,7 @@
+{
+  "result": "PASS",
+  "secret_findings": [],
+  "forbidden_files": [],
+  "real_user_data": "NONE: synthetic fixtures only",
+  "TLS": "temporary keys outside package, deleted by runner"
+}

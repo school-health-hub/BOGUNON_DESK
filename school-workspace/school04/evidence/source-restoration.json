@@ -1,0 +1,9 @@
+{
+  "source_sha": "86f4fceed7b7a8774affc0c9db556f592eaa29ba",
+  "previous_source_sha": "166df05dd45402cb1a7526c9ae824ec11fcdb579",
+  "source_zip_sha256": "3cbcba3a8c2cc115612209ebcf79f9385e66a85fab1ab065eb537f1c58cc4cc1",
+  "source_zip_name": "BOGUNON_DESK_SCHOOL_03_CODE_SQL_TESTS_EVIDENCE.zip",
+  "manifest_entries": 359,
+  "manifest_mismatches": [],
+  "restore_strategy": "One verified SCHOOL03 overlay only; includes A/B/C/02 source. P0App original hash checked. Latest integration grid files preserved. No merge/rebase/reset."
+}

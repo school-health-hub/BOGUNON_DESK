@@ -1,0 +1,5 @@
+import{useRef,useState}from'react';import{createRoot}from'react-dom/client';import{SchoolClientStore}from'../../school02/core/client-store.js';import{IntegratedWorkspace}from'./IntegratedWorkspace.js';import{localBridges}from'./network.js';
+function Harness(){const[fixture,setFixture]=useState(3),ref=useRef(fixture);ref.current=fixture;const[bridges]=useState(()=>localBridges(()=>ref.current)),[schoolStore]=useState(()=>new SchoolClientStore(bridges.school));
+ return <><div style={{maxWidth:1040,padding:'12px 16px',margin:'auto'}}><label>합성 검증 계정 <select aria-label="합성 검증 계정" style={{minHeight:48}} value={fixture} onChange={e=>{setFixture(Number(e.target.value));if(schoolStore.snapshot().workspace.phase!=='signed_out')void schoolStore.command('logout');}}>{[[1,'학교 A 관리자'],[3,'보건교사'],[4,'배정 지원강사'],[9,'다른 지원강사'],[6,'학교 B 관리자'],[5,'승인 대기 계정']].map(([v,n])=><option key={v} value={v}>{n}</option>)}</select></label></div><IntegratedWorkspace schoolStore={schoolStore} tasks={bridges.tasks} client={location.pathname.endsWith('desktop.html')?'electron':'web'}/></>;
+}
+createRoot(document.getElementById('root')!).render(<Harness/>);

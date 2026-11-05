@@ -1,0 +1,142 @@
+BOGUNON DESK 2.0 SCHOOL-02 학교 등록·가입·관리자 승인 구현 결과
+2026-11-05 · 최종 판정 CONDITIONAL
+
+1. 작업 기준 SHA·브랜치
+작업 시작 시 원격 integration/electron-feature-baseline을 직접 조회했다.
+기준 SHA: 166df05dd45402cb1a7526c9ae824ec11fcdb579. SCHOOL-01C 기준과 동일하며 추가 통합 차이는 없다.
+독립 작업공간: /workspace/work/school-02/repo
+작업 브랜치: feature/school-02-school-membership. HEAD는 기준 SHA이고 신규 커밋은 없다.
+기존 통합 및 A/B/C 브랜치를 수정·병합·rebase/reset하지 않았다. git-status.json 참조.
+
+2. SCHOOL-01A/B/C 복원
+A·B·C 원본 ZIP CRC, SHA-256, 내부 Manifest를 모두 검증했다.
+C ZIP SHA-256: cd853c9b880a9c3ecfad8b9bc0ebe975ca654be9e2da6bce50ad08ec59eb5011.
+C의 전체146개 파일 및 내부 원본 A/B 패키지를 보존했다. 복원된 A SQL·테스트와 B/C 인증·상태 소스는 바이트 동일하다.
+복원된 기존 파일 중 의도적 수정은 P0App.tsx의 SCHOOL-02 개발 진입점뿐이다. 나머지는 신규 SCHOOL-02 파일이다.
+최종 ZIP prior-handoffs에 원본 A/B/C ZIP을 포함한다. handoff-verification.json 참조.
+과거 A34/C30은 보존 증거이며 이번 SCHOOL-02의 신규 고유 시나리오 개수에 합산하지 않는다.
+C의198도 스위트 합계이며 고유 시나리오198개로 확대하지 않는다.
+
+3. 신규 UI 및 RPC
+school-workspace/school02/core/types.ts, controller.ts, client-store.ts:
+공통 safe DTO·명시적 command·세대별 상태·학교 전환/계정 변경/로그아웃 시 지연 응답 폐기.
+server/session.ts, database.ts, ipc.ts, local-server.ts:
+실제 B ElectronMainAuthAdapter 또는 WebBffAuthAdapter + 실제 C WorkspaceCoordinator + 로컬 DB 연결.
+Electron 전용 Preload/Main IPC는 기존 sender/frame/URL 검사를 재사용하고 호출 전후 검증한다.
+원시 HTTP·SQL·파일 IPC는 없으며 Renderer/브라우저에 access/refresh token을 반환하지 않는다.
+ui/SchoolWorkspace.tsx, school02.css, network.ts, main.tsx, index/desktop.html:
+학교 검색·선택, 가입·신청 현황, 최초 개설 대기, 관리자 승인·반려, 구성원/유효기간·역할·정지·회수,
+관리자 propose→accept 화면을 실제 로컬 BFF/DB로 연결한다. UI 전용 성공 모형이 아니다.
+
+기존 A RPC 재사용:
+ws_v1_bootstrap/get_context/request_join/decide_join/set_member_role/set_membership_state/leave_school,
+ws_v1_propose_admin_change/accept_admin_change.
+신규 로컬 RPC 7개:
+ws_s02_directory(q,o), ws_s02_self(), ws_s02_admin(s), ws_s02_space(s,r),
+ws_s02_withdraw(s,j,ev,r), ws_s02_expiry(s,mid,until_at,ev,r), ws_s02_transfers(s).
+C ws_c_membership_status를 승인/정지/만료/복구 잠금 표시용으로 재사용한다.
+
+로컬 DB 확장:
+workspace.s02_directory 1개, join_requests.requested_at와 memberships.approved_at,
+학교 ID/교육청/학교코드 복합 FK·UNIQUE, 최초 개설 pending 중복 제약, 목적별 정책·함수·승인시각 trigger.
+기존 public ws_v1_request_join 계약은 유지하면서 신규 private directory gate를 경유한다.
+원래 private request_join의 authenticated 직접 실행은 이 로컬 확장에서만 철회하여 gate 우회를 막았다.
+원본 A migration 파일을 고치지 않았으며 기존 public.tasks/events/profiles/medication 테이블과 경고19개 함수는 건드리지 않았다.
+모든 신규 SQL은 school01a DB guard가 있는 로컬 전용 extension이며 운영 migration 승인이 아니다.
+
+4. 검색·가입·승인 결과
+기존 EDUCATION_OFFICES 및 validateSchoolQuery를 재사용한다. 실제 NEIS 네트워크 조회는 연결하지 않는다.
+합성 서버 directory만 사용하고 같은 이름의 학교를 교육청/학교코드 조합으로 구분한다.
+교육청/학교코드는 문자열이며 '0000001' 같은 선행0이 보존된다. 이름 수동 입력이나 개인 학교 프로필로 서버 공간을 활성화하지 않는다.
+Directory에 없는 학교 ID 가입과 존재하지 않거나 폐쇄된 공간의 개설 요청을 서버에서 거부한다.
+
+희망 역할은 보건교사/보건지원강사뿐이다. 최초 신청과 승인에서 SCHOOL_ADMIN을 선택할 수 없다.
+교사·지원강사 가입 → pending → 관리자의 승인/반려 → 신청자 새로고침 → 실제 서버 상태와 권한 갱신을 구현했다.
+중복 신청은 UI와 서버에서 차단한다. pending은 공동 컨텍스트에 접근하지 못한다.
+신청 철회는 확인 후 처리하며 재신청 시 epoch를 새로 생성하고 이전 역할을 복원하지 않는다.
+반려/철회/정지/회수/만료와 승인 완료를 구분한다. 지원강사 승인에는 미래 유효기간이 필요하다.
+
+새 학교 개설은 unclaimed 합성 directory만 허용한다. 요청 후 pending 저장과 신청 현황까지 제공한다.
+최초 관리자 자동 승인 및 운영자 승인 RPC는 없다. 실제 재직/위임 확인 완료라고 표시하지 않는다.
+검증 담당자/절차가 미확정이므로 운영 최초 관리자 승인 버튼은 명시적으로 비활성이다.
+
+5. 관리자·지원강사 권한 방어
+승인된 현재 학교 관리자만 해당 학교 대기 신청·구성원 목록을 조회하고 승인한다.
+신청자 표시는 학교별 멤버 코드·희망 역할·신청일이며 이메일/실명/연락처를 수집하지 않는다.
+타 학교 목록·자기 승인·지원강사 관리자 API·지원강사 즉시 관리자 승격은 서버에서 거부한다.
+명시적 self guard는 관리자 본인 신청을 주입한 합성 이상 fixture로도 검사했다.
+역할 변경/정지/회수/유효기간 변경은 확인 후 version 검사 RPC를 거치며 최신 결과를 다시 조회한다.
+마지막 관리자 탈퇴·강등·정지는 실제 서버에서 차단한다. A학교 복수 관리자 및 B학교 마지막 관리자 fixture를 사용했다.
+
+관리자 추가/이관은 기존 A propose→accept를 사용한다. 제안만으로 대상 역할이 바뀌지 않는다.
+현재 관리자의 최근 재인증 증거, 대상의 승인된 교사 자격, 대상 본인의 수락·최근 재인증, 학교/epoch/version을 확인한다.
+이관 성공 시 대상 승격 후 기존 관리자를 교사로 바꾼다. 지원강사는 후보가 아니다.
+재인증은 합성 session.created_at 갱신 fixture다. 실제 공급자 재인증·MFA·재직 확인이 아니며 운영 승격은 비활성이다.
+일반 RPC는 school_client/authenticated로 실행한다. postgres는 로컬 DDL·fixture·catalog·명시적 실패/reauth 주입에만 사용한다.
+ws_runtime/reader는 NOBYPASSRLS·비소유자이고 원시 테이블 접근 및 감사 수정은 거부된다.
+
+6. Electron/Web 화면
+기존 Dashboard/Dock/TD2 Soft Rose Glass를 교체하지 않고 P0App에 개발 전용 '우리 보건실' 진입점만 추가했다.
+조건은 DEV + ELECTRON_P0_PUBLIC_SCHOOL02_LOCAL=1이며 운영 Main/Preload에는 시험 인증 bridge를 등록하지 않는다.
+로컬 bridge가 없는 경우 동작을 비활성하고 이유를 안내한다. 실제 Windows 제품 연결 완료라는 의미가 아니다.
+실제 Main Auth → 전용 Preload/IPC → React UI → 로컬 DB는 jsdom/합성 IPC 이벤트로 검증했다.
+980×700 Chromium의 Electron 크기 화면은 실제 BFF/DB 경로이며 Windows Electron 실행 결과가 아니다.
+
+Web은390×844 Mobile First이며 밝은 배경·네이비·절제된 로즈·둥근 카드·Lucide 아이콘을 사용한다.
+주요 동작은48px 이상, 상태/폼 label/확인 대화상자/Escape·Tab 처리를 포함하며 가로 넘침·page error가 없다.
+'이 PC에 저장' / '학교 공유' / '관리자 승인 대기' 문구로 개인과 공동 자료를 구분한다.
+지원강사에게 관리자 관리 화면을 표시하지 않는다. API/RPC/토큰/내부 오류를 사용자 화면에 노출하지 않는다.
+브라우저는 실제 HTTPS 로컬 BFF에 접속한다. HttpOnly/Secure/SameSite=Lax handle과 Origin/CSRF 검사를 사용하며 세션 만료 응답은 공동 상태를 비운다.
+합성 계정 선택기는 로컬 harness 전용이다. BFF 메모리 세션 저장소·합성 Auth·가짜 cipher는 운영용이 아니다.
+
+7. 테스트 PASS/FAIL/NOT RUN
+LOCAL DB 계약16 + React/Main/BFF 실제 DB 연결4: 20 PASS / 0 FAIL.
+MOCK Renderer/HTTP 만료·지연 응답: 2 PASS / 0 FAIL.
+B 인증 회귀: 59 PASS / 0 FAIL. 기존 선택 회귀: 101 PASS / 0 FAIL.
+BROWSER + LOCAL DB + MOCK Auth: 14개 검사 PASS / 0 FAIL.
+각 층은 겹치는 흐름을 검증하며 합계를 신규 고유 시나리오 수로 주장하지 않는다.
+복원 후 통합 실행은 위20+2를 포함한22개를 다시 실행한다. 재실행은 별도 신규 시나리오가 아니다.
+strict TypeScript PASS, 로컬 UI/server build PASS, Electron build PASS, git diff --check PASS.
+WINDOWS REAL / 실제 DPAPI / 실제 OS callback / hosted Auth·JWT·PostgREST / 실제 NEIS directory: NOT RUN.
+
+필수20항목 근거:
+1 동일 이름 학교/교육청 구분·문자열 코드·directory 외 ID 차단: directory 계약 및 브라우저 검색.
+2 교사 가입,3 지원강사 가입,4 중복,5 pending 거부: 실제 DB 계약·UI 승인 흐름.
+6 승인·반려,7 자기 승인,8 타 학교 조회,9 지원강사 관리자 거부: 실제 DB 부정 테스트.
+10 역할 갱신,11 정지·회수,12 만료: 실제 DB 변경 후 원래 계정의 재조회와 접근 검사.
+13 마지막 관리자: leave/demotion/suspension 모두 서버 거부.
+14 관리자 추가/이관: 최근 재인증 조건·제안 후 미승격·대상 수락·정확한 역할 변경.
+15 학교 지연 응답,16 로그아웃/만료: 실제 DB 지연 주입 및 MOCK Renderer/401 정리.
+17 네트워크 장애: 실제 개인 LocalTaskStore 저장 유지 및 공동 관리 UI 정리.
+18 Electron 작은 창,19 Web 모바일: 실제 Chromium 레이아웃·48px·가로 넘침·토큰 미노출 검사. WINDOWS REAL 아님.
+20 기존 기능: 선택 회귀101 및 기존 타입 진단 동일성, 원본 A/B/C 보존 해시.
+
+8. 기존 타입 오류와 신규 오류
+깨끗한166df05 기준 root build13개와 SCHOOL-02 root build13개가 진단 문구까지 동일하다. 신규 root 오류0.
+기존 education-video7, Inventory2, newsletter1, official-document3 오류는 무단 수정하지 않았다.
+신규 Electron renderer의 Array.at/ES2020 오류1건은 인덱스 접근으로 수정했고 최종 Electron build는 통과했다.
+루트 lint/typecheck npm script는 존재하지 않아 NOT RUN이며 임의 PASS로 표시하지 않는다.
+별도 명시적 strict tsc 검사와 실제 존재하는 build/electron:p0:build를 실행했다. 비교 원문은 evidence에 보존한다.
+
+9. 운영 미검증
+프로젝트 xxownwxxajzrviuvvfiu에 접속하거나 DB/Auth 설정을 변경하지 않았다. 다른 프로젝트도 사용하지 않았다.
+기존 사용자 제공 READ-ONLY 메타데이터 근거는 보존하지만 이번 단계의 hosted 호환성 검증으로 확대하지 않는다.
+provider/redirect/PKCE callback, 실제 JWT·세션/refresh/회수, managed auth.sessions 최소 GRANT,
+public/private PostgREST 호출·신규 역할 배포, directory 검증/갱신 책임, 최초 관리자 검증 담당자·절차,
+운영 재인증·보존/복구 정책은 NOT VERIFIED 또는 미결정이다.
+기존 SECURITY DEFINER 경고19개 함수를 호출·변경·재사용하지 않았다. 기존 함수 내부 인가 감사는 별도다.
+학생 건강/상담/투약/보건일지 원문·실제 학교/사용자 자료·개인 인증정보를 입력하거나 업로드하지 않았다.
+
+10. Git 및 결과 ZIP
+추적 제품 변경은 P0App.tsx의 제한된 개발 진입점이며 SCHOOL-02 파일과 기존 C 복원물이 미커밋 상태다.
+원본 제품 및 A/B/C 브랜치/자료를 보존했다. commit/push/PR/merge/운영 배포/Portable 빌드는 없다.
+ZIP은 신규 UI·서버·SQL·fixture·테스트·실행 로그·화면 캡처·기준 비교·변경 목록·원본 A/B/C ZIP,
+상대경로 복원 안내·스크립트·SHA-256 Manifest를 포함한다. .git/node_modules/빌드 산출물/실제 키·세션은 제외한다.
+독립 clean clone의 정확한 기준 SHA와 기존 P0App 원본 hash를 확인한 뒤에만 오버레이한다.
+압축 해제 후 전체 파일 해시 및 clean clone 복원·타입·빈 DB/브라우저 재검증을 별도 기록한다.
+
+11. SCHOOL-03 착수 가능 여부
+CONDITIONAL: 합성 환경에서 검색→가입→관리자 승인→권한 갱신 흐름이 실제로 동작하므로 격리된 공동 업무판 구현을 시작할 수 있다.
+SCHOOL-03은 live membership 검증·request generation·version 충돌 계약을 재사용하고 승인 전 공동 데이터 접근을 계속 차단해야 한다.
+실제 서비스 연결 준비 완료는 아니다. 운영 검증과 directory/최초 관리자/재인증 책임 확정 전까지 배포나 실제 계정 연결을 허용하지 않는다.
+기존 개인 기능을 공동 로그인에 종속시키지 않으며 로컬 자료 자동 업로드를 추가하지 않았다.

@@ -1,0 +1,5 @@
+Initial Docker init readiness race: now require init-process-complete marker plus pg_isready before DDL.
+Initial Vitest5s timeout: multi-step Docker/psql UI workflow needs30s; final assertions unchanged and all executed.
+New Electron renderer TS error: Array.at unavailable under ES2020, replaced with indexed access.
+Initial Vite dev HMR WebSocket error: local browser harness now serves a built static UI through HTTPS, no HMR.
+Security review: trusted directory enforced in existing public join contract via a private runtime gate; direct original private join EXECUTE revoked from authenticated locally. Closed/non-directory school opening denied.

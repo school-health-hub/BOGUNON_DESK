@@ -1,0 +1,18 @@
+{
+  "historical_paths_restored_verbatim": [
+    "school-workspace/school02/evidence/catalog.json",
+    "school-workspace/school02/evidence/desktop-admin-980x700.png",
+    "school-workspace/school02/evidence/integration-tests.json",
+    "school-workspace/school02/evidence/integration-tests.log",
+    "school-workspace/school02/evidence/mobile-admin.png",
+    "school-workspace/school02/evidence/mobile-approved.png",
+    "school-workspace/school02/evidence/mobile-pending.png",
+    "school-workspace/school02/evidence/ui-build.log",
+    "school-workspace/school03/evidence/desktop-teacher-980x700.png",
+    "school-workspace/school03/evidence/integration-tests.json",
+    "school-workspace/school03/evidence/integration-tests.log",
+    "school-workspace/school03/evidence/mobile-assistant-done.png",
+    "school-workspace/school03/evidence/ui-build.log"
+  ],
+  "current_rerun_evidence": "school04/evidence/regression-school02, regression-school03, *-expanded-schema.*"
+}

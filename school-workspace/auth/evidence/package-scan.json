@@ -1,0 +1,8 @@
+{
+  "pattern_matches": [],
+  "scanned_text_files": 75,
+  "excluded_binary_reference": "original SCHOOL-01A ZIP, separately previously verified",
+  "real_credentials_included": false,
+  "synthetic_values": "MOCK_*, .invalid hosts and explicitly named SYNTHETIC test keys",
+  "limit": "bounded pattern and inventory review, not a universal secret proof"
+}

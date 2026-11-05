@@ -1,0 +1,97 @@
+[
+  {
+    "defect": "ACK target without completion privilege denied",
+    "attempt": 1,
+    "reproduction": "HEALTH_ASSISTANT is current target but has no UPDATE permission; ack RPC denies",
+    "cause": "SELECT FOR UPDATE applies note UPDATE RLS during read-only acknowledgement",
+    "fix": "Use SELECT under existing school advisory transaction lock; do not broaden UPDATE policy",
+    "files": [
+      "sql/extension.sql"
+    ],
+    "verification": "LOCAL DB 12 PASS"
+  },
+  {
+    "defect": "new strict TS compile errors",
+    "attempt": 1,
+    "cause": "unused type import; inferred args too narrow for request_id",
+    "fix": "remove unused type; explicitly type command argument record",
+    "files": [
+      "core/client-store.ts"
+    ],
+    "verification": "strict tsc PASS"
+  },
+  {
+    "defect": "tab entry retained older calendar snapshot",
+    "attempt": 1,
+    "reproduction": "assistant opened home before teacher save, entered calendar and missed new event",
+    "cause": "entry revalidation depended only on school, not active tab",
+    "fix": "invalidate and select current school on activity tab entry; clear prior drafts; use month-overlap filter for spanning events",
+    "files": [
+      "ui/ActivityWorkspace.tsx"
+    ],
+    "verification": "BROWSER 15 PASS"
+  },
+  {
+    "defect": "individual deny ignored for default handover permission",
+    "attempt": 1,
+    "cause": "role defaults used without existing deny override precedence",
+    "fix": "apply current epoch deny before role or explicit allow",
+    "files": [
+      "sql/extension.sql"
+    ],
+    "verification": "LOCAL DB deny override PASS"
+  },
+  {
+    "defect": "NULL expected_version could bypass SQL inequality",
+    "attempt": 1,
+    "cause": "SQL three-valued <> comparison accepts NULL through IF",
+    "fix": "IS DISTINCT FROM mandatory version check; direct authenticated SQL negative test",
+    "files": [
+      "sql/extension.sql",
+      "tests/contracts.test.ts"
+    ],
+    "verification": "LOCAL DB/React suite 21 PASS"
+  },
+  {
+    "defect": "open detail remained stale after manual/focus refresh",
+    "attempt": 1,
+    "cause": "list reread did not replace selected detail",
+    "fix": "replace current detail from fresh server-authorized list; remove detail if no longer visible",
+    "files": [
+      "core/controller.ts",
+      "tests/contracts.test.ts"
+    ],
+    "verification": "LOCAL DB/React suite 21 PASS"
+  },
+  {
+    "defect": "React test TypeScript declarations",
+    "attempt": 1,
+    "cause": "unused waitFor and Playwright-only exact option in Testing Library calls",
+    "fix": "remove unused import and unsupported options",
+    "files": [
+      "tests/ui-db.test.tsx"
+    ],
+    "verification": "strict tsc PASS"
+  },
+  {
+    "defect": "validation runner changed while Bash was executing it",
+    "attempt": 1,
+    "cause": "editing active shell file invalidated read offsets after otherwise passing suites",
+    "fix": "freeze runner; syntax-check and restart on empty DB; preserve failed orchestration log separately",
+    "files": [
+      "run-local.sh"
+    ],
+    "verification": "frozen empty-DB rerun: 22 tests + BROWSER15 PASS; bash -n PASS"
+  },
+  {
+    "defect": "desktop heading consumed the first 700px before calendar actions",
+    "attempt": 1,
+    "cause": "mobile-friendly stacked header retained desktop vertical spacing",
+    "fix": "scope compact desktop shell/header and margins; keep mobile controls 48px",
+    "files": [
+      "ui/IntegratedWorkspace.tsx",
+      "ui/activity.css"
+    ],
+    "verification": "final restored archive: strict tsc PASS; 22 tests + BROWSER15 PASS; desktop action fits700px; Electron build PASS"
+  }
+]

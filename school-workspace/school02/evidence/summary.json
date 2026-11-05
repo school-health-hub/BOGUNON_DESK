@@ -1,0 +1,29 @@
+{
+  "verdict": "CONDITIONAL",
+  "base_sha": "166df05dd45402cb1a7526c9ae824ec11fcdb579",
+  "branch": "feature/school-02-school-membership",
+  "local_db_and_react": {
+    "pass": 20,
+    "fail": 0,
+    "Auth_and_cipher": "MOCK",
+    "Main_IPC": "MOCK events + real adapter/DB"
+  },
+  "renderer_mock": {
+    "pass": 2,
+    "fail": 0
+  },
+  "browser_with_local_bff_db": {
+    "pass": 14,
+    "fail": 0,
+    "Auth": "MOCK"
+  },
+  "auth_regression": 59,
+  "existing_regression": 101,
+  "strict_types": "PASS",
+  "electron_build": "PASS",
+  "root_build": "FAIL (13 unchanged errors, new0)",
+  "hosted": "NOT VERIFIED / NOT RUN",
+  "windows_real": "NOT RUN",
+  "school03": "isolated development CONDITIONAL",
+  "counts_are_unique_across_suites": false
+}

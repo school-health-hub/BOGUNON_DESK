@@ -1,0 +1,2 @@
+import{defineConfig}from'vite';import react from'@vitejs/plugin-react';import{fileURLToPath}from'node:url';
+export default defineConfig({root:fileURLToPath(new URL('./ui',import.meta.url)),base:'/school04-ui/',plugins:[react()],build:{outDir:'../../../build/school04-ui',emptyOutDir:true,rollupOptions:{input:{index:fileURLToPath(new URL('./ui/index.html',import.meta.url)),desktop:fileURLToPath(new URL('./ui/desktop.html',import.meta.url))}}}});

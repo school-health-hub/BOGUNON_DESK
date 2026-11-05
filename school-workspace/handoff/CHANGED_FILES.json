@@ -1,0 +1,50 @@
+{
+  "tracked_product_diff": "",
+  "staged_product_diff": "",
+  "original_local_files": [
+    "school-workspace/local/.gitignore",
+    "school-workspace/local/README.txt",
+    "school-workspace/local/SCHOOL_01A_RESULT.txt",
+    "school-workspace/local/evidence/auth-fixture-apply.log",
+    "school-workspace/local/evidence/catalog.json",
+    "school-workspace/local/evidence/image-digest.txt",
+    "school-workspace/local/evidence/isolation.txt",
+    "school-workspace/local/evidence/manifest.json",
+    "school-workspace/local/evidence/migration-apply.log",
+    "school-workspace/local/evidence/pre_fix_results.json",
+    "school-workspace/local/evidence/results.json",
+    "school-workspace/local/evidence/static-check.txt",
+    "school-workspace/local/evidence/test-output.txt",
+    "school-workspace/local/run.sh",
+    "school-workspace/local/supabase/.temp/cli-latest",
+    "school-workspace/local/supabase/migrations/20261105000027_school01a_workspace_local.sql",
+    "school-workspace/local/tests/auth_fixture.sql",
+    "school-workspace/local/tests/catalog.sql",
+    "school-workspace/local/tests/fixtures.sql",
+    "school-workspace/local/tests/run.py",
+    "school-workspace/local/tests/static_check.py"
+  ],
+  "new_handoff_files": [
+    "school-workspace/handoff/GIT_BASELINE.json",
+    "school-workspace/handoff/GIT_WORKING_TREE.txt",
+    "school-workspace/handoff/ORIGINAL_ZIP_VERIFICATION.json",
+    "school-workspace/handoff/PRESERVATION_RESULT.txt",
+    "school-workspace/handoff/README_RESTORE.txt",
+    "school-workspace/handoff/SCHOOL_01B_READONLY_SCOPE.txt",
+    "school-workspace/handoff/CHANGED_FILES.json",
+    "school-workspace/handoff/SECRET_SCAN.json"
+  ],
+  "ignored_but_packaged_logs": [
+    "school-workspace/local/evidence/auth-fixture-apply.log",
+    "school-workspace/local/evidence/migration-apply.log"
+  ],
+  "excluded": [
+    ".git",
+    "node_modules",
+    "npm cache",
+    "__pycache__",
+    "*.pyc",
+    ".env",
+    "credentials"
+  ]
+}

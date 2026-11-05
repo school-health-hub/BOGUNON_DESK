@@ -1,0 +1,7 @@
+import{useState,useSyncExternalStore}from'react';import type{SchoolClientStore}from'../../school02/core/client-store.js';import{SchoolWorkspace}from'../../school02/ui/SchoolWorkspace.js';import{TaskBoard}from'./TaskBoard.js';import{TaskClientStore}from'../core/client-store.js';import type{TaskBridge}from'../core/types.js';
+function SchoolTasks({bridge,school}:{bridge:TaskBridge;school:string}){const[store]=useState(()=>new TaskClientStore(bridge));return <TaskBoard store={store} school={school}/>;}
+export function IntegratedWorkspace({schoolStore,tasks,client='web',connected=true}:{schoolStore:SchoolClientStore;tasks:TaskBridge;client?:'web'|'electron';connected?:boolean}){
+ const s=useSyncExternalStore(schoolStore.subscribe,schoolStore.snapshot,schoolStore.snapshot),[open,setOpen]=useState(false);
+ if(open&&s.selected&&s.workspace.phase==='approved')return <section className="s02"><h1>우리 보건실</h1><p className="s02-banner">로컬 합성 검증 환경 · 학교 공유</p><button className="secondary" type="button" onClick={()=>setOpen(false)}>학교·가입 관리로 돌아가기</button><SchoolTasks key={`${s.selected}:${s.workspace.context?.epoch}`} bridge={tasks} school={s.selected}/></section>;
+ return <SchoolWorkspace store={schoolStore} client={client} connected={connected} sharedTasks={s.selected&&s.workspace.phase==='approved'?<div><button type="button" className="secondary" aria-expanded={open} onClick={()=>setOpen(v=>!v)}>공동 업무판</button></div>:undefined}/>;
+}

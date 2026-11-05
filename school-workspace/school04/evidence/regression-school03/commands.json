@@ -1,0 +1,11 @@
+{
+  "strict_types": "node node_modules/typescript/bin/tsc -p school-workspace/school03/tsconfig.json",
+  "new_tests_and_browser": "SCHOOL03_BROWSER=1 bash school-workspace/school03/run-local.sh",
+  "school02_regression": "SCHOOL02_BROWSER=1 bash school-workspace/school02/run-local.sh",
+  "auth_regression": "node node_modules/vitest/vitest.mjs run --config school-workspace/auth/vitest.config.ts",
+  "existing_regression": "node node_modules/vitest/vitest.mjs run electron-p0/tests/policy.test.ts electron-p0/tests/memo-ipc.test.ts electron-p0/tests/local-tasks-preload.test.ts electron-p0/tests/local-events.test.ts electron-p0/tests/local-calendar-ui.test.tsx electron-p0/tests/finance-preload.test.ts electron-p0/tests/ai-preload.test.ts electron-p0/tests/admin-preload.test.ts src/dashboard src/dock src/auth",
+  "electron_build": "npm run electron:p0:build",
+  "root_build": "npm run build",
+  "lint": "NOT RUN: no script",
+  "typecheck_script": "NOT RUN: no script"
+}

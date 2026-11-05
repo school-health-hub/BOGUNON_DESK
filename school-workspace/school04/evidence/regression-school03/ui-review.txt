@@ -1,0 +1,1 @@
+React skill checklist: lazy local entry, scoped subscription state, generation cancellation, explicit expected-school, role-aware controls with server enforcement, labelled48px controls, accessible status/alert, no raw API/token details. Editor retains draft on background reads and version conflicts. Mobile/980x700 checked by real Chromium; actual Windows mounting NOT RUN.

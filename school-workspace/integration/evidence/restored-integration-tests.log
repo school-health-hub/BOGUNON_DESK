@@ -1,0 +1,40 @@
+
+ RUN  v5.0.1 /workspace/work/school-01c/control/repo
+
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > electron: login -> real bootstrap -> school selection with server effective permissions 1037ms
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > electron: pending membership has no shared context and actual RPC is denied 650ms
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > electron: assistant management attempt reaches the real server and is rejected 965ms
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > electron: unauthorized other-school context is denied in status and real get_context 658ms
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > electron: same user switches A teacher -> B assistant using server roles 757ms
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > electron: membership suspension rejects old session on server and client projection 1404ms
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > electron: version conflict is real SQL conflict with no partial update 941ms
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > web: login -> real bootstrap -> school selection with server effective permissions 948ms
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > web: pending membership has no shared context and actual RPC is denied 532ms
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > web: assistant management attempt reaches the real server and is rejected 980ms
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > web: unauthorized other-school context is denied in status and real get_context 534ms
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > web: same user switches A teacher -> B assistant using server roles 756ms
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > web: membership suspension rejects old session on server and client projection 1358ms
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > web: version conflict is real SQL conflict with no partial update 942ms
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > real delayed A response is discarded after B selection, including transport ignoring abort 773ms
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > account change discards old DB response and clears Main Workspace cache 623ms
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > admin demotion prevents management despite previously cached admin role 1723ms
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > membership expiry and recovery lock are distinct real server states 732ms
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > expired real auth.sessions row locks shared operations despite a previously accepted mock JWT 753ms
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > logout clears view and rejects new operations with old synthetic session 528ms
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > encryption failure never writes plaintext or bootstraps, Renderer DTO contains no tokens 226ms
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > network error leaves real existing personal store writable and unaffiliated with Auth 549ms
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > forged synthetic token claims are rejected by the local registry before any SQL 228ms
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > Web Origin and CSRF rejection precedes the actual DB bootstrap transport 326ms
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > Web concurrent refresh serializes before two real DB membership lookups 457ms
+ ✓ school-workspace/integration/tests/local-db.test.ts > LOCAL DB RPC/RLS + MOCK AUTH/STORAGE — no REAL HOSTED > Main -> dedicated IPC -> real DB returns token-free context and rejects foreign frames 555ms
+ ✓ school-workspace/integration/tests/ui.test.tsx > MOCK browser UI only — no database or hosted authentication > safe mobile state: active 226ms
+ ✓ school-workspace/integration/tests/ui.test.tsx > MOCK browser UI only — no database or hosted authentication > safe mobile state: pending 35ms
+ ✓ school-workspace/integration/tests/ui.test.tsx > MOCK browser UI only — no database or hosted authentication > safe mobile state: session-expired 32ms
+ ✓ school-workspace/integration/tests/ui.test.tsx > MOCK browser UI only — no database or hosted authentication > safe mobile state: denied 40ms
+
+ Test Files  2 passed (2)
+      Tests  30 passed (30)
+   Start at  01:24:20
+   Duration  21.50s (tests 95%, environment 3%, transform 1%, import 1%)
+
+JSON report written to /workspace/work/school-01c/control/repo/school-workspace/integration/evidence/integration-tests.json

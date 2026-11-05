@@ -1,0 +1,12 @@
+{
+  "baseline": "166df05dd45402cb1a7526c9ae824ec11fcdb579",
+  "restore_into_clean_clone": "PASS",
+  "strict_typecheck": "PASS",
+  "fresh_database_after_restore": {
+    "pass": 30,
+    "fail": 0,
+    "classification": "26 local integration harness incl MOCK auth/cipher boundaries + 4 MOCK UI"
+  },
+  "hosted": "NOT RUN",
+  "depends_on_original_cloud_absolute_path": false
+}

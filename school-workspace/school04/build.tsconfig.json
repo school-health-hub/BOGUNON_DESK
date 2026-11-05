@@ -1,0 +1,1 @@
+{"extends":"./tsconfig.json","compilerOptions":{"noEmit":false,"rootDir":"../..","outDir":"../../build/school04-local"},"include":["server/**/*.ts","core/**/*.ts"]}

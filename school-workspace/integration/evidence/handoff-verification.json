@@ -1,0 +1,14 @@
+{
+  "school01b_zip_sha256": "d57d458bfe1905bb9dc08fb5f402cb9b4470f8f6559dc14cbf4cd937b5c36b49",
+  "manifest_entries_verified": 79,
+  "restored_workspace_files_unchanged": 75,
+  "intentional_adaptations": [
+    "school-workspace/auth/web/bff-adapter.ts"
+  ],
+  "school01a_sql_and_test_sources": "BYTE IDENTICAL",
+  "verification": "PASS",
+  "historical_tests": {
+    "school01a": "34 PASS / 0 FAIL LOCAL DB only, not rerun in C",
+    "school01b": "59 PASS / 0 FAIL, rerun in C"
+  }
+}

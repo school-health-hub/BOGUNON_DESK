@@ -1,0 +1,3 @@
+React best-practices review applied: component boundaries, lazy development entry, subscription-based immutable client snapshots, generation stale-response discard, semantic labels/status/alertdialog, keyboard focus trap/Escape, disabled unsupported hosted actions, 48px touch controls, responsive cards, no internal API/token/error output.
+Mobile screenshot visually inspected; browser automatically checks mobile and980x700 layout, overflow, button heights and page errors.
+BROWSER desktop route is BFF, not Electron runtime. Main/Preload/React real-DB wiring uses MOCK IPC in jsdom.

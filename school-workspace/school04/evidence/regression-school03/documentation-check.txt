@@ -1,0 +1,1 @@
+Supabase/cloud/Postgres/React skills applied. Current Supabase RLS/API docs searched via MCP. Changelog direct fetch403 under network policy; no bypass. Hosted DB/Auth tools not used.

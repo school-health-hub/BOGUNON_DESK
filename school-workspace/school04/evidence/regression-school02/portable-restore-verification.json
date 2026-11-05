@@ -1,0 +1,17 @@
+{
+  "base_sha": "166df05dd45402cb1a7526c9ae824ec11fcdb579",
+  "source_overlay_on_clean_clone": "PASS",
+  "strict_typecheck": "PASS",
+  "fresh_db_tests": {
+    "pass": 22,
+    "fail": 0,
+    "includes": "20 local DB/React + 2 MOCK Renderer"
+  },
+  "browser_checks": {
+    "pass": 14,
+    "classification": "BROWSER + LOCAL DB + MOCK Auth"
+  },
+  "no_cloud_absolute_path_dependency": true,
+  "hosted": "NOT RUN",
+  "windows_real": "NOT RUN"
+}

@@ -1,0 +1,22 @@
+--- SCHOOL02/electron-p0/renderer/P0App.tsx
++++ SCHOOL03/electron-p0/renderer/P0App.tsx
+@@ -43,6 +43,7 @@
+ import type { DockLayout } from '../../src/dock/types';
+ import type { DesktopActionId } from '../../src/desktop/types';
+ import type { DashboardEditorPanel } from '../../src/components/dashboard/useDesktopNavigation';
++const School03Entry=import.meta.env.DEV&&import.meta.env.ELECTRON_P0_PUBLIC_SCHOOL03_LOCAL==='1'?lazy(()=>import('./school-workspace-dev/School03Entry')):null;
+ const School02Entry=import.meta.env.DEV&&import.meta.env.ELECTRON_P0_PUBLIC_SCHOOL02_LOCAL==='1'?lazy(()=>import('./school-workspace-dev/School02Entry')):null;
+ const SchoolWorkspaceDevEntry=import.meta.env.DEV&&import.meta.env.ELECTRON_P0_PUBLIC_SCHOOL01C_DEV==='1'?lazy(()=>import('./school-workspace-dev/SchoolWorkspaceDevEntry')):null;
+ const NewsletterStudio=lazy(()=>import('../../src/newsletter/NewsletterStudio').then(m=>({default:m.NewsletterStudio})));
+@@ -152,8 +153,9 @@
+   return <WidgetSessionProvider><LocalCalendarProvider><LocalWorkspaceProvider><PersistentMemoProvider><DesktopPanelProvider notify={setNotice} openInbox={()=>openTasks()} openBogunonTask={async id=>openTasks({id})} openQuickAddEventForDate={date=>openUtility('calendar',{date})} openQuickAddFromMemo={title=>openUtility('quick-add',{title})} openQuickMemoUrl={async url=>{try{await openMemoUrl(url);}catch(e){setNotice(e instanceof Error?e.message:'링크를 열지 못했습니다.');}}} runDesktopAction={async id=>navigate(id)} workFolderFavorites={folders.snapshot?.favorites??[]} openWorkFolderFavorite={async folder=>{const message=await folders.open(folder.id);if(message)setNotice(message);}}>
+     <div hidden={recordOpen||newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen||financeOpen||adminOpen} style={{display:recordOpen||newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen||financeOpen||adminOpen?"none":undefined}} className={`app-shell workspace-shell ${editing?'is-edit-mode':'is-view-mode'} bg-${layout.appearance.background} card-${layout.appearance.cardStyle} corner-${layout.appearance.cornerStyle}`}>
+       <header className="rose-surface-header"><strong>BOGUNON DESK</strong><SurfaceDate/><span>Electron 전용 로컬 저장 · 운영 서비스·외부 금융 연결 없음</span></header>
+-      {School02Entry&&<Suspense fallback={null}><School02Entry/></Suspense>}
+-      {!School02Entry&&SchoolWorkspaceDevEntry&&<Suspense fallback={null}><SchoolWorkspaceDevEntry/></Suspense>}
++      {School03Entry&&<Suspense fallback={null}><School03Entry/></Suspense>}
++      {!School03Entry&&School02Entry&&<Suspense fallback={null}><School02Entry/></Suspense>}
++      {!School03Entry&&!School02Entry&&SchoolWorkspaceDevEntry&&<Suspense fallback={null}><SchoolWorkspaceDevEntry/></Suspense>}
+       <LocalWorkspaceStatus onOpen={()=>openTasks()}/><LocalCalendarStatus onOpen={()=>openUtility('calendar')}/>
+       <DashboardToolbar activePanel={panel} isEditing={editing} onOpenPanel={p=>setPanel(panel===p?null:p)} onOpenQuickAdd={()=>openUtility('quick-add')} onReset={()=>{if(window.confirm('PoC 배치만 기본값으로 되돌릴까요?'))setLayout(createDefaultDashboardLayout())}} onToggleEdit={()=>{setEditing(!editing);setPanel(null);setSelected(null);setActive('home')}}/>
+       <main ref={ref} aria-label="보건실 업무 위젯 작업 공간" className={`dashboard workspace-dashboard${metrics.requiresScroll?' is-scrollable':''}${geometry.dense?' is-dense-desk':''}`}>

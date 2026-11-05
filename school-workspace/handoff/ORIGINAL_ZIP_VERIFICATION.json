@@ -1,0 +1,35 @@
+{
+  "original_zip_sha256": "0833646bfc19ef33dcabf838ec7b77361dcf079f27af8f312a20df45a45c4c26",
+  "original_zip_entry_count": 21,
+  "zip_crc_pass": true,
+  "all_original_entries_match_working_files": true,
+  "entries": {
+    "school-workspace/local/.gitignore": true,
+    "school-workspace/local/README.txt": true,
+    "school-workspace/local/SCHOOL_01A_RESULT.txt": true,
+    "school-workspace/local/evidence/auth-fixture-apply.log": true,
+    "school-workspace/local/evidence/catalog.json": true,
+    "school-workspace/local/evidence/image-digest.txt": true,
+    "school-workspace/local/evidence/isolation.txt": true,
+    "school-workspace/local/evidence/manifest.json": true,
+    "school-workspace/local/evidence/migration-apply.log": true,
+    "school-workspace/local/evidence/pre_fix_results.json": true,
+    "school-workspace/local/evidence/results.json": true,
+    "school-workspace/local/evidence/static-check.txt": true,
+    "school-workspace/local/evidence/test-output.txt": true,
+    "school-workspace/local/run.sh": true,
+    "school-workspace/local/supabase/.temp/cli-latest": true,
+    "school-workspace/local/supabase/migrations/20261105000027_school01a_workspace_local.sql": true,
+    "school-workspace/local/tests/auth_fixture.sql": true,
+    "school-workspace/local/tests/catalog.sql": true,
+    "school-workspace/local/tests/fixtures.sql": true,
+    "school-workspace/local/tests/run.py": true,
+    "school-workspace/local/tests/static_check.py": true
+  },
+  "final_results": {
+    "pass": 34,
+    "fail": 0,
+    "scope": "local PostgreSQL synthetic only"
+  },
+  "new_test_execution_during_preservation": false
+}

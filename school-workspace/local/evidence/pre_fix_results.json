@@ -1,0 +1,220 @@
+{
+  "scope": "Standalone PostgreSQL 17.6 + synthetic Auth schema; not hosted Supabase/Auth/PostgREST",
+  "base_sha": "38b45c2a762224f0af976026519b3d47463e4454",
+  "branch": "feature/school-01a-local-rls",
+  "pass": 33,
+  "fail": 1,
+  "not_run": [
+    "Hosted Supabase auth.sessions grants",
+    "JWT signature verification",
+    "GoTrue refresh",
+    "PostgREST routing",
+    "Electron/Web adapters"
+  ],
+  "tests": [
+    {
+      "test": "01_t01",
+      "status": "PASS",
+      "detail": "anon EXECUTE denied (42501); missing claims authenticated caller denied",
+      "seconds": 0.197
+    },
+    {
+      "test": "02_t02",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.103
+    },
+    {
+      "test": "03_t03",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.1
+    },
+    {
+      "test": "04_t04",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.433
+    },
+    {
+      "test": "05_t05",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.098
+    },
+    {
+      "test": "06_t06",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.215
+    },
+    {
+      "test": "07_t07",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.328
+    },
+    {
+      "test": "08_t08",
+      "status": "PASS",
+      "detail": "separate sessions; observed advisory lock wait; one commit, one last_admin rejection; 1 admin remains",
+      "seconds": 1.737
+    },
+    {
+      "test": "09_t09",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.356
+    },
+    {
+      "test": "10_t10",
+      "status": "PASS",
+      "detail": "epoch 1 history retained; epoch 2 assistant has no old handover allow",
+      "seconds": 0.645
+    },
+    {
+      "test": "11_t11",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.306
+    },
+    {
+      "test": "12_t12",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.383
+    },
+    {
+      "test": "13_t13",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.58
+    },
+    {
+      "test": "14_t14",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.561
+    },
+    {
+      "test": "15_t15",
+      "status": "PASS",
+      "detail": "unchanged old JWT/session fails membership check; separate session denylist blocks bootstrap and context",
+      "seconds": 0.722
+    },
+    {
+      "test": "16_t16",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.44
+    },
+    {
+      "test": "17_t17",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.542
+    },
+    {
+      "test": "18_t18",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.591
+    },
+    {
+      "test": "19_t19",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.443
+    },
+    {
+      "test": "20_t20",
+      "status": "PASS",
+      "detail": "14 FORCE-RLS tables; runtime/authz reader non-owner NOLOGIN/NOBYPASSRLS; invoker public wrappers",
+      "seconds": 0.499
+    },
+    {
+      "test": "21_t21",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.401
+    },
+    {
+      "test": "22_t22",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.385
+    },
+    {
+      "test": "23_t23",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.304
+    },
+    {
+      "test": "24_t24",
+      "status": "PASS",
+      "detail": "RLS defense in depth filters B rows even for runtime role; owner injection only for this negative probe",
+      "seconds": 0.222
+    },
+    {
+      "test": "25_t25",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.33
+    },
+    {
+      "test": "26_t26",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.552
+    },
+    {
+      "test": "27_t27",
+      "status": "FAIL",
+      "detail": "ERROR:  42501: new row violates row-level security policy for table \"accounts\"\nCONTEXT:  SQL statement \"INSERT INTO workspace.accounts(user_id) VALUES(auth.uid()) ON CONFLICT(user_id) DO NOTHING\"\nPL/pgSQL function workspace_private.bootstrap() line 4 at SQL statement\nSQL function \"ws_v1_bootstrap\" statement 1\nLOCATION:  ExecWithCheckOptions, execMain.c:2158\n",
+      "seconds": 0.293
+    },
+    {
+      "test": "28_t28",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.434
+    },
+    {
+      "test": "29_t29",
+      "status": "PASS",
+      "detail": "forced audit permission failure rolls back member version, role history, receipt atomically",
+      "seconds": 0.709
+    },
+    {
+      "test": "30_t30",
+      "status": "PASS",
+      "detail": "parallel independent requests same UUID return same result; exactly one mutation/audit/receipt",
+      "seconds": 0.329
+    },
+    {
+      "test": "31_t31",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.511
+    },
+    {
+      "test": "32_t32",
+      "status": "PASS",
+      "detail": "no valid admin => fail closed even before recovery-state scheduler runs",
+      "seconds": 0.2
+    },
+    {
+      "test": "33_t33",
+      "status": "PASS",
+      "detail": "verified",
+      "seconds": 0.453
+    },
+    {
+      "test": "34_t34",
+      "status": "PASS",
+      "detail": "synthetic Auth deletion leaves account tombstone, school memberships/terms intact",
+      "seconds": 0.406
+    }
+  ]
+}

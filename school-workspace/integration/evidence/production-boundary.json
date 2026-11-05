@@ -1,0 +1,7 @@
+{
+  "result": "PASS",
+  "javascript_chunks_checked": 18,
+  "development_preview_present": false,
+  "local_database_transport_present": false,
+  "note": "Electron build only; actual Windows runtime NOT RUN"
+}

@@ -1,0 +1,32 @@
+
+ RUN  v5.0.1 /workspace/work/school-03/repo
+
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > electron: teacher/assistant requests -> admin approval/rejection -> refreshed role 7790ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > web: teacher/assistant requests -> admin approval/rejection -> refreshed role 7339ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > same-name directory preserves code strings and office disambiguation 1872ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > duplicate join blocked server-side and never becomes active 1678ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > assistant approval requires future expiry; teacher admin role is not a join choice 5619ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > withdraw pending -> withdrawn display -> rejoin creates a new epoch 2354ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > opening request is pending only; duplicate request and forged directory rejected 3513ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > self approval denied even with direct public RPC; no cross-school applicant access 2006ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > assistant cannot list admin records, change role, or propose administrator 1668ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > role refresh, expiry mutation and live suspension/revocation all enforced 9722ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > expired assistant is denied and last admin leave/demotion/suspension is blocked 2420ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > administrator add: recent reauth -> propose -> target accept -> server roles 5892ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > administrator transfer: recent reauth -> propose -> target accept -> server roles 5439ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > assistant cannot be proposed for admin and stale member versions do not partially update 1268ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > late school A response cannot replace B; logout and expired session clear all school state 1910ms
+ ✓ school-workspace/school02/tests/contracts.test.ts > LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only > raw tables, audits, anon RPC and runtime/reader ownership remain protected 1144ms
+ ✓ school-workspace/school02/tests/ui-db.test.tsx > LOCAL DB + React UI + actual Main/BFF classes; MOCK IPC/cipher/Auth (not Windows) > Electron UI -> dedicated Preload IPC -> Main Auth -> SQL teacher join, no renderer tokens 2152ms
+ ✓ school-workspace/school02/tests/ui-db.test.tsx > LOCAL DB + React UI + actual Main/BFF classes; MOCK IPC/cipher/Auth (not Windows) > admin UI approves actual pending assistant with expiry, confirmation cancels then executes suspension 4488ms
+ ✓ school-workspace/school02/tests/ui-db.test.tsx > LOCAL DB + React UI + actual Main/BFF classes; MOCK IPC/cipher/Auth (not Windows) > network failure clears admin UI while actual personal local store remains writable 1163ms
+ ✓ school-workspace/school02/tests/ui-db.test.tsx > LOCAL DB + React UI + actual Main/BFF classes; MOCK IPC/cipher/Auth (not Windows) > server rejected request remains nonadmin and unsupported hosted controls are explicitly disabled 1080ms
+ ✓ school-workspace/school02/tests/client.test.ts > MOCK network/Renderer hygiene only, no DB or Windows > HTTP401 clears shared view and gives explicit expired-session state 23ms
+ ✓ school-workspace/school02/tests/client.test.ts > MOCK network/Renderer hygiene only, no DB or Windows > Renderer drops even a successful late school response after logout 1ms
+
+ Test Files  3 passed (3)
+      Tests  22 passed (22)
+   Start at  02:33:11
+   Duration  72.55s (tests 98%, environment 1%, transform 1%, import 1%)
+
+JSON report written to /workspace/work/school-03/repo/school-workspace/school02/evidence/integration-tests.json

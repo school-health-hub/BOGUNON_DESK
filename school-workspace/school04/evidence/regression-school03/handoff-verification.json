@@ -1,0 +1,13 @@
+{
+  "school02_zip_sha256": "799d25fedfcc8004d205b2ddbd30ce6241cbe4c549ab6a25ac65ea0c05f85b02",
+  "expected_school02_zip_sha256": "799d25fedfcc8004d205b2ddbd30ce6241cbe4c549ab6a25ac65ea0c05f85b02",
+  "inherited_zip_files": 229,
+  "intentional_adaptations": [
+    "electron-p0/renderer/P0App.tsx",
+    "school-workspace/school02/server/database.ts",
+    "school-workspace/school02/server/session.ts",
+    "school-workspace/school02/ui/SchoolWorkspace.tsx"
+  ],
+  "other_inherited_source_and_evidence": "BYTE IDENTICAL, including A/B/C/02 SQL",
+  "earlier_original_zips": "preserved in source handoff and final prior-handoffs"
+}

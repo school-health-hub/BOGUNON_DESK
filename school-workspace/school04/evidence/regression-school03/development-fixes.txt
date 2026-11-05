@@ -1,0 +1,1 @@
+Accessible priority selector label fixed after real browser test failure. New JSX narrowing errors were fixed within03. Editor now retains draft/version through focus refresh; explicit reload discards draft by user action. Generation/busy ownership and expected-school guard prevent old/cross-tab responses from mixing. No baseline product type errors were edited.

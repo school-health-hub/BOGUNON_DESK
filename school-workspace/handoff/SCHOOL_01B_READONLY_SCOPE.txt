@@ -1,0 +1,61 @@
+SCHOOL-01B first task: hosted READ-ONLY compatibility audit only
+
+Decision: preparation READY; hosted audit execution BLOCKED by access permission.
+Current attempt: SELECT current_database(),current_user,version() against
+xxownwxxajzrviuvvfiu returned permission denied. No result rows were obtained.
+No other Supabase project was queried or used as a substitute.
+This connector denial is not an auto-approval-review rejection.
+
+Allowed investigation when legitimate read access is available:
+1. SQL/RLS/GRANT compatibility
+   Read schema/object names, owners, role flags/inheritance, ACL/default privileges,
+   RLS flags/policies and exposed API schema configuration. Compare against the
+   local migration without executing it. Check workspace/workspace_private and
+   public.ws_v1_* name collisions, current DDL/default policies and dependencies.
+2. auth.sessions minimum access
+   Read column names/types/owner/ACL only; never session rows, refresh tokens,
+   user metadata or personal records. Compare synthetic id/user_id/created_at/
+   not_after assumptions. Assess whether a dedicated NOLOGIN/NOBYPASSRLS reader
+   can be authorized. Catalog inspection cannot prove an unexecuted GRANT will
+   succeed in a managed environment; record that remaining execution dependency.
+3. JWT/PostgREST contract
+   Inspect public non-secret project/Auth configuration where authorized, actual
+   supported SDK version and official metadata/JWKS contract. Check sub/session_id/
+   iss/aud/exp and anonymous-user behavior. Do not collect actual access/refresh
+   tokens, perform production login, create accounts, call mutating RPCs, or change
+   redirect/provider/JWT settings. Check RPC exposure and error/POST contracts by
+   metadata, not by invoking production workflow functions.
+4. Existing SECURITY DEFINER impact
+   SCHOOL-00B handoff: 20 public definer functions, 19 warnings; warned owners
+   postgres, authenticated EXECUTE true, anon/PUBLIC false. Treat this as the
+   previous audit's verified handoff, not a fresh measurement.
+   Inspect exact signatures/owners/ACL/search_path/dependency paths and sanitized
+   bodies for those functions, with bounded metadata reads. Review dynamic SQL
+   manually; pg_depend is insufficient. Do not call them as penetration tests.
+   Do not reuse owns_project or receive_medication for Workspace authorization.
+   Do not bulk REVOKE or convert existing functions to SECURITY INVOKER.
+5. Electron/Web adapter prerequisites (specification only)
+   Verify official provider/PKCE/callback availability, Main secure storage/IPC
+   boundaries, BFF session storage/CSRF, token refresh serialization and logout
+   scope. Identify required approved future settings changes; implement no adapter.
+
+Explicitly excluded:
+Migration/DDL/DML, GRANT/REVOKE, role creation, RLS/function changes, Auth updates,
+new project/region changes, production RPC tests, real account/school creation,
+SCHOOL-02/03 UI, Electron/Web login code, commit/push/PR/merge/deployment.
+
+Required output:
+Per item: observed fact + source/time + compatible/mismatch/unverified + risk +
+next action. Distinguish READ-ONLY evidence from changes that would need a later
+approved execution test. Preserve the local 34 PASS as local evidence only.
+Do not copy secrets or unredacted function bodies with embedded confidential data
+into an attachment/package. No hosted rows are needed for this first audit.
+
+Current remote integration branch has advanced after the tested base:
+9934ff56d462c4748956c7fa5b7111f7a1a92c26
+feat(electron): restore independent local calendar with safe event persistence
+It is one direct child commit of tested 38b45c2... (24 changed files).
+The package has not adopted it; no rebase/reset/merge was performed.
+For later adapter design, explicitly review new local-calendar/IPC boundaries to
+avoid confusing personal calendar with school shared events. This is not a reason
+to modify personal tables or fold local calendar into Workspace.

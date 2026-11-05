@@ -1,0 +1,85 @@
+{
+  "realHosted": "NOT RUN",
+  "windowsReal": "NOT RUN",
+  "distinctChecks": 14,
+  "results": [
+    {
+      "name": "teacher request pending, not approved",
+      "classification": "BROWSER + LOCAL DB + MOCK AUTH",
+      "result": "PASS"
+    },
+    {
+      "name": "mobile-pending",
+      "classification": "BROWSER + LOCAL DB + MOCK AUTH",
+      "result": "PASS",
+      "overflow": false,
+      "smallButtons": 0
+    },
+    {
+      "name": "admin approves teacher; applicant refresh shows server approval",
+      "classification": "BROWSER + LOCAL DB + MOCK AUTH",
+      "result": "PASS"
+    },
+    {
+      "name": "assistant request and approval with future validity",
+      "classification": "BROWSER + LOCAL DB + MOCK AUTH",
+      "result": "PASS"
+    },
+    {
+      "name": "mobile-approved",
+      "classification": "BROWSER + LOCAL DB + MOCK AUTH",
+      "result": "PASS",
+      "overflow": false,
+      "smallButtons": 0
+    },
+    {
+      "name": "admin rejection is displayed as rejected",
+      "classification": "BROWSER + LOCAL DB + MOCK AUTH",
+      "result": "PASS"
+    },
+    {
+      "name": "applicant withdraws reapplication after confirmation",
+      "classification": "BROWSER + LOCAL DB + MOCK AUTH",
+      "result": "PASS"
+    },
+    {
+      "name": "new space request remains pending without admin grant",
+      "classification": "BROWSER + LOCAL DB + MOCK AUTH",
+      "result": "PASS"
+    },
+    {
+      "name": "admin addition requires target acceptance after synthetic reauth",
+      "classification": "BROWSER + LOCAL DB + MOCK AUTH",
+      "result": "PASS"
+    },
+    {
+      "name": "desktop-admin-980x700",
+      "classification": "BROWSER + LOCAL DB + MOCK AUTH",
+      "result": "PASS",
+      "overflow": false,
+      "smallButtons": 0
+    },
+    {
+      "name": "mobile-admin",
+      "classification": "BROWSER + LOCAL DB + MOCK AUTH",
+      "result": "PASS",
+      "overflow": false,
+      "smallButtons": 0
+    },
+    {
+      "name": "HttpOnly Secure SameSite handle; no renderer token",
+      "classification": "BROWSER + LOCAL DB + MOCK AUTH",
+      "result": "PASS"
+    },
+    {
+      "name": "BFF Origin and CSRF rejection on actual local HTTP boundary",
+      "classification": "BROWSER + LOCAL DB + MOCK AUTH",
+      "result": "PASS"
+    },
+    {
+      "name": "logout clears shared browser state",
+      "classification": "BROWSER + LOCAL DB + MOCK AUTH",
+      "result": "PASS"
+    }
+  ]
+}

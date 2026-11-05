@@ -1,0 +1,11 @@
+{
+  "changed_source_paths": [
+    "school-workspace/school04/REPORT.md",
+    "school-workspace/school04/browser-check.mjs",
+    "school-workspace/school04/evidence/QA_FIX_LOG.json",
+    "school-workspace/school04/ui/IntegratedWorkspace.tsx",
+    "school-workspace/school04/ui/activity.css"
+  ],
+  "sql_auth_02_03_source_unchanged": true,
+  "reason": "Final compact desktop UI verified separately; prior full expanded-schema regression remains applicable"
+}

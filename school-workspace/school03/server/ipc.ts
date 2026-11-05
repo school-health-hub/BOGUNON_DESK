@@ -1,0 +1,5 @@
+import{assertSender}from'../../../electron-p0/main/policy.js';import{TASK_ACTIONS,type TaskAction,type TaskBridge,type TaskState}from'../core/types.js';
+export const CHANNEL='workspace:school03-tasks';
+export interface TaskIpc{handle(name:string,fn:(e:{sender:unknown;senderFrame:unknown},action:unknown,input:unknown)=>Promise<TaskState>):void;removeHandler(name:string):void}
+export function registerTaskIpc(ipc:TaskIpc,contents:{mainFrame:unknown;getURL():string},url:string,bridge:TaskBridge,localOnly:boolean){if(!localOnly)throw Error('local_only');ipc.handle(CHANNEL,async(e,a,i)=>{assertSender(e,contents,url);if(!TASK_ACTIONS.includes(a as TaskAction)||!i||typeof i!=='object'||Array.isArray(i)||JSON.stringify(i).length>4096)throw Error('denied');const s=await bridge.command(a as TaskAction,i as Record<string,unknown>);assertSender(e,contents,url);return s;});return()=>ipc.removeHandler(CHANNEL);}
+export function createTaskPreload(invoke:(channel:string,action:TaskAction,input:Record<string,unknown>)=>Promise<TaskState>):Readonly<TaskBridge>{return Object.freeze({command:(a:TaskAction,i:Record<string,unknown>={})=>invoke(CHANNEL,a,i)});}

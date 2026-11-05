@@ -1,0 +1,5 @@
+import{readFile}from'node:fs/promises';import{randomUUID}from'node:crypto';import{sql}from'../server/database.js';
+export{A,B,mid}from'../../school02/tests/fixtures.js';export{createActivitySession}from'../server/session.js';
+export async function reset(){for(const p of ['school-workspace/local/tests/fixtures.sql','school-workspace/integration/sql/multi-school-fixture.sql','school-workspace/school02/sql/fixtures.sql','school-workspace/school03/sql/fixtures.sql'])await sql(await readFile(p,'utf8'));}
+export const eventArgs=(school:string)=>({p_school_id:school,p_event_id:null,p_title:'교직원 연수 준비',p_description:'안내문을 준비합니다.',p_start_at:'2026-11-05T09:00:00+09:00',p_end_at:'2026-11-05T10:00:00+09:00',p_all_day:false,p_expected_version:0,p_request_id:randomUUID()});
+export const noteArgs=(school:string,ids:string[]=[],roles:string[]=[])=>({p_school_id:school,p_title:'금요일 소모품 입고 예정',p_body:'입고 목록을 확인해 주세요.',p_member_ids:ids,p_target_roles:roles,p_expected_version:0,p_request_id:randomUUID()});

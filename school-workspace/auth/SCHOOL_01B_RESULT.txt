@@ -1,0 +1,191 @@
+BOGUNON DESK SCHOOL-01B 인증 어댑터 격리 구현 결과
+작성일: 2026-11-05 Asia/Seoul
+최종 판정: CONDITIONAL
+실제 코드 구현·단위/통합 테스트 수행. 운영 Supabase 연결·배포 없음.
+
+1. 기준 SHA·브랜치·작업공간
+시작 시 원격 integration/electron-feature-baseline 최신 SHA:
+9934ff56d462c4748956c7fa5b7111f7a1a92c26
+전용 브랜치: feature/school-01b-auth-adapters
+격리 저장소: /workspace/work/school-01b/repo (이 경로는 작업 이력이며 실행 의존 경로 아님)
+기존 work 저장소/feature/school-01a-local-rls의 history와 파일은 변경하지 않았다.
+
+SCHOOL-01A 기준 38b45c2a762224f0af976026519b3d47463e4454의 직접 자식이 이번 기준이다.
+차이는 독립 개인 일정 복원 커밋(24개 파일). 새로운 개인 일정/IPC를 공동 일정이나
+학교 권한으로 해석하지 않고 기존 코드를 보존했다. rebase/reset/merge하지 않았다.
+SCHOOL-01A 인계 ZIP 전체 manifest 검증 및 새 저장소에 복원한 subtree 29개 파일의
+해시 대조를 수행했다. 원본 ZIP도 reference/SCHOOL_01A_HANDOFF_ORIGINAL.zip으로
+그대로 보존했다. 34PASS는 이전 로컬 SQL 합성 증거이며 이번 Auth 테스트와 합산하지 않음.
+
+2. 변경 파일 목록
+신규 구현은 school-workspace/auth 아래에만 추가했다.
+- common/types.ts: 안전 DTO/상태/오류/AuthAdapter
+- common/rpc.ts: 7 RPC 계약, WorkspaceRequestScope
+- server/ports.ts: 서버 전용 SecretSession/IdentityProvider/SecretVault/Mutex
+- server/session.ts: 내부 세션 schema 검증
+- server/flow.ts: state/flow/callback/TTL/재사용 검증
+- server/supabase-provider.ts: 공식 SDK PKCE·exchange·refresh·local signOut
+- server/rpc-adapter.ts: 사용자 토큰만 사용하는 공식 SDK RPC transport/DTO 검증
+- electron/vault.ts: safeStorage 인터페이스 및 고정 전용 파일 저장
+- electron/main-adapter.ts: Main 인증 상태·복원·로그아웃·세대/메모리 정리
+- electron/ipc-contract.ts: 전용 4개 채널/반환 계약
+- electron/ipc.ts: 기존 assertSender 재사용한 Main handler 등록
+- electron/preload.ts: sandbox-safe frozen API 노출 함수
+- electron/composition.ts: 선택적 Main 구성 함수
+- web/session-store.ts: CAS/공유 lock/해지 인터페이스와 TEST-ONLY 메모리 구현
+- web/bff-adapter.ts: 서버 세션·cookie·CSRF·refresh·학교 세대 처리
+- tests/fixtures.ts: 명시적 MOCK provider/RPC/safeStorage
+- tests/electron.test.ts, web-and-rpc.test.ts, sdk-and-boundaries.test.ts
+- tsconfig.json, tsconfig.build.json, vitest.config.ts, run-checks.sh
+- README.txt, 본 보고서, evidence/*, reference/*
+
+school-workspace/local 및 기존 handoff는 SCHOOL-01A 자료의 변경 없는 복원본이다.
+정확한 전체 파일 목록·SHA-256 및 복원 검증 결과는 패키지 manifest와 evidence에 포함.
+제품 소스/루트 package.json/lockfile/기존 tsconfig/기존 UI 진입점은 변경하지 않았다.
+
+3. Electron Main Auth adapter 구현
+ElectronMainAuthAdapter는 token을 #private 메모리와 SecretVault로만 소유한다.
+Renderer status는 Auth UUID와 만료시간만, 오류는 고정 코드만 반환한다.
+
+구현:
+- beginSignIn: 이전 흐름/공동 메모리/저장 세션 정리, 공식 provider.start,
+  허용된 HTTPS Auth authorize URL만 시스템 브라우저 port로 전달
+- handleCallback: 고정 protocol/host/port/path, 중복·알 수 없는 query/fragment/
+  userinfo 거부, ws_state/ws_flow timing-safe 일치, 5분 TTL, 비동기 exchange 전
+  동기적 일회 소비, 로그아웃/계정 전환 중 늦은 완료 폐기
+- restore: 암호화 세션 검증·유효 세션 재사용·만료 임박 refresh, 사용자 UUID
+  불일치/손상/저장 실패시 공동 상태만 오류/재로그인으로 전환
+- logout: 요청 세대·공동 캐시 무효화, 파일 삭제, 공식 local signOut 요청.
+  원격 실패는 unconfirmed, 로컬 삭제 실패는 STORAGE_UNAVAILABLE로 보고
+- WindowsSessionVault: Windows+isEncryptionAvailable를 만족할 때만 encryptString.
+  평문 fallback 없음. 저장 중 부분 실패도 clear를 시도한 뒤 오류 처리
+- FileSessionBlob: 전용 school-workspace-auth-v1/session.bin, 제한 크기,
+  symlink/hardlink 거부, 0600 임시파일·sync·원자적 rename. Finance/AI/Tauri
+  저장 파일·암호화 key를 읽거나 재사용하지 않음
+- IPC: ws:auth:status/begin/restore/logout만 등록. 인자 없음/기존 sender·frame·
+  URL 일치 검증. callback/token/범용 URL/SQL/파일 API는 Preload에 없음
+- Preload 구현과 Main 등록 모듈을 분리하여 sandbox bridge가 Node fs/crypto/
+  Main 모듈을 끌어오지 않게 함
+
+공식 SDK는 verifier를 per-flow private 메모리 저장소에서 생성/소비한다. SDK
+Google PKCE URL과 code exchange를 MOCK HTTP로 실제 실행했다. 운영 callback
+허용 목록, OS protocol 등록, Windows Electron browser/DPAPI는 NOT RUN.
+새 어댑터는 기존 Main/Renderer 진입점에 자동 연결하지 않았다. composition과
+exposeWorkspaceAuthBridge는 후속 opt-in 통합 지점이다. 로그인 화면/UI 전면 변경 없음.
+
+4. Web BFF Auth adapter 구현
+WebBffAuthAdapter는 동일 provider user UUID를 그대로 사용한다. 이메일·실명·
+로컬 학교값으로 계정을 합치거나 역할을 부여하지 않는다.
+
+구현:
+- 무작위 256bit session handle, 서버 hash key, Auth access/refresh token은 서버만
+  보관. 브라우저에는 __Host-ws_session opaque cookie와 CSRF proof만 전달
+- cookie: HttpOnly; Secure; SameSite=Lax; Path=/; Domain 없음. 세션 TTL 12시간,
+  pre-auth flow cookie 5분. 초기 로그인/계정 전환 때 handle 재발급
+- 기존 세션의 요청은 POST+정확한 Origin+CSRF 검증. 초기 begin은 정확한 Origin,
+  OAuth GET callback은 HttpOnly flow binding+state로 로그인 CSRF/재사용 차단
+- 서버 refresh token 보관 store 인터페이스. 메모리 구현은 testOnly이며
+  production 모드로 사용하면 구성 오류. 실제 호스트/영속 store는 미선정/미구현
+- refresh는 store의 per-session shared lock으로 직렬화, 회전 결과는 CAS 저장.
+  logout이 먼저 revoke하면 늦은 refresh는 새 세션을 복원할 수 없음
+- Workspace generation을 store record에 유지. 다른 BFF 인스턴스에서 학교를
+  바꿔도 이전 성공·실패 응답 폐기. 로컬 AbortSignal도 함께 사용
+- 계정 전환/로그아웃/만료/인가 거부시 공동 context 초기화. 테스트는 두 adapter
+  인스턴스+동일 store의 경쟁 상태도 포함
+
+production store는 암호화 at rest, 공유 CAS/lock·원격 해지의 원자성이 필요하다.
+OAuth pending-flow map은 현재 프로세스 메모리이므로 멀티 인스턴스 운영에서
+durable/shared flow 저장소 또는 명시적 routing 설계도 추가 검토해야 한다.
+실제 HTTP route/호스팅/CORS 정책/네트워크 timeout·요청 제한은 후속 통합 항목이다.
+호출 route는 req.origin을 body값이 아닌 실제 HTTP Origin header에서 전달해야 한다.
+서버 세션 key나 refresh token을 public 테이블/Renderer에 저장하는 경로는 없다.
+
+5. 공통 DTO와 SCHOOL-01A RPC 계약
+AuthSessionSummary, WorkspaceAuthStatus, WorkspaceCurrentUser,
+WorkspaceMembershipContext, WorkspaceAuthError, AuthAdapter를 구현했다.
+common 모듈에 플랫폼 저장소/callback/token 필드를 두지 않았다.
+AuthAdapter의 공통 최소 메서드는 getStatus/restore/logout이며 sign-in/callback은
+플랫폼별 메서드다. 역할은 server RPC 응답으로만 context를 만들며 PENDING/잘못된
+학교/형식 오류는 거부. UI context 검사는 서버 RLS/멤버십 인가를 대체하지 않는다.
+
+7개 RPC wire 이름과 인자/반환 DTO 구현:
+ws_v1_bootstrap, ws_v1_get_context, ws_v1_request_join, ws_v1_decide_join,
+ws_v1_set_member_role, ws_v1_set_membership_state, ws_v1_leave_school.
+공식 SDK + MOCK HTTP로 정확한 SQL 매개변수/사용자 Authorization/publishable key/
+POST/redirect 차단/반환 DTO allowlist를 확인했다. 추가 actor/role 필드/secret key/
+service_role JWT 및 SERVER 모드의 MOCK marker를 거부한다.
+JWT role-shape 검사는 거부용 방어층이며 서명 검증 또는 권한 승인으로 표시하지 않는다.
+클라이언트 factory 기본 fetch는 차단이며 global fetch fallback이 없다. 운영 RPC는
+존재 여부 확인·호출을 하지 않았다. evidence=MOCK과 SERVER 타입을 구분했다.
+
+6. 테스트 PASS / FAIL / NOT RUN
+PASS
+- 신규 인증 단위/통합 테스트: 59 PASS / 0 FAIL (3개 test file)
+- 기존 선택 회귀: 100 PASS / 0 FAIL (23개 file)
+- 전용 strict tsc, JS+declaration 출력, 컴파일 Main/BFF import smoke
+- npm run electron:p0:build: Main/Preload·Renderer·test 타입검사, OCR staging,
+  Vite build 및 기존 Renderer 경계 검사 포함. 실제 Portable 빌드는 아님
+- Git tracked product diff 없음 / diff --check
+
+필수 보안 항목별 실행 근거(신규 59개에 포함)
+정상 상태 전이; state/flow 불일치; 중복·재사용·만료 callback; 계정 변경 정리;
+암호화 불가/실패·부분 저장; 손상 복원; Renderer token 비노출; sender/frame/origin
+거부; 미승인 membership 거부; 학교 전환 후 늦은 성공·실패 폐기; 로그아웃 초기화;
+Web Origin/CSRF; refresh 동시성·logout 경합; Auth 오류 후 실제 LocalTaskStore 저장.
+실제 파일 I/O/기존 assertSender/기존 LocalTaskStore는 REAL 실행, Auth provider·
+Windows safeStorage·RPC 권한 응답은 MOCK. SDK 코드는 REAL, HTTP 응답은 MOCK.
+
+FAIL (기존 기준 문제, 숨기지 않음)
+- 루트 npm run build: 타입 오류 13개.
+- 같은 9934ff56 SHA의 깨끗한 별도 clone에서 같은 명령을 실행하여 동일한 13개
+  diagnostics를 재현했다. electronWork Window 타입과 공문 세션 초기값/분기 타입.
+- 신규 adapters는 루트 tsconfig의 src include 밖에 있고 tracked 제품 diff도 없다.
+  이 실패를 신규 Auth 회귀 또는 PASS로 표시하지 않고 baseline 증거를 첨부했다.
+
+NOT RUN / 없음
+- npm run lint / npm run typecheck: script 자체가 없음. 임의 PASS 처리하지 않음.
+  별도 tsc 실행 결과는 위에 따로 기록.
+- npm run electron:p0:test 전체: Rust/native fixture 생성 경로가 포함된 전체명령은
+  실행하지 않고, 이번 범위의 기존 100개 테스트를 직접 선택 실행.
+- 실제 Electron/Windows GUI·DPAPI·시스템 브라우저 인증·운영 OAuth/GoTrue/
+  JWT 서명/토큰 실제 만료·회수·hosted PostgREST/RLS 호출: 모두 NOT RUN.
+- SCHOOL-01A DB 34개: 이번 단계 재실행 없음. 원래 합성 결과만 보존.
+
+7. 기존 기능 회귀 및 보호
+선택 회귀는 기존 Auth, sender policy, 메모 IPC, 개인 업무·일정/Preload,
+Finance/AI/학교 행정 Preload, Dashboard/Dock 등을 포함한다. 100개 모두 PASS.
+실제 LocalTaskStore를 합성 임시 폴더에서 사용하여 Auth 서버 오류와 로그아웃 후
+개인 업무 저장/재조회가 유지됨을 추가 확인했다.
+공문/구매/소식지/Finder/생기부/Finance/Inventory/AI/포털/NEIS/eVPN/Dashboard/Dock,
+기존 Windows 프로필·암호화·backup/native CLI/OCR·WorkerW 정책 소스는 미변경.
+실자료·개인 폴더를 탐색/업로드하지 않았고 학생 텍스트/의료기록 API도 도입하지 않음.
+모든 기존 기능의 실기기 전체 E2E PASS를 의미하지 않는다.
+
+8. 운영 Supabase 호환성 미확인
+사용자 인계의 운영 메타데이터 VERIFIED 범위는 유지한다: PG17.6, RLS232,
+definer20/경고19, 빈 search_path, 기존 사용자 RLS, auth owner 등.
+이번 구현 작업은 운영 Supabase에 아예 연결하지 않았다.
+미확인: provider/redirect/OS callback 등록, 공식 SDK 설정의 운영 수용 여부,
+실제 session refresh/logout/권한회수, auth.sessions 최소 GRANT/managed role,
+public wrapper->private 함수의 hosted PostgREST 실행, 기존 경고 함수 내부 인가/
+Workspace 도달성, production BFF store/flow 저장소·호스팅 보안·CSRF HTTP wiring.
+기존 19개 함수 재사용/수정·권한철회 없음. owns_project/receive_medication 연계 없음.
+
+9. Git 상태 및 보존
+전용 브랜치 HEAD는9934ff56... 그대로. tracked/staged 제품 변경 없음.
+미추적 school-workspace/에 복원한 SQL 자료와 신규 auth 코드/테스트/증거가 존재.
+생성 JS/OCR/Electron build는 작업 scratch에 보존하고 인계 ZIP/제품 변경에서 제외.
+commit/push/PR/merge/rebase/reset/workflow/배포/Portable 빌드 없음.
+동일 SHA의 별도 clone에 패키지를 복원하고 검사 스크립트를 실행해 59PASS/0FAIL을
+재현했다. 같은 테스트의 복원 확인이며 118개로 합산하지 않는다. 로컬 재현에서는
+같은 lockfile 의존성을 재사용했으며 새 환경 절차는 npm ci를 명시한다.
+패키지는 SQL 원본·Auth 코드·59개 로그·100개 회귀·빌드/기준 실패 로그·파일목록·
+manifest·복원법을 포함한다. node_modules/.git/생성 binary/실제 키·로그인정보/
+개인 사용자 데이터는 제외. 테스트용 MOCK marker는 명시적인 합성 값이다.
+
+10. SCHOOL-01B 최종 판정
+CONDITIONAL: 격리 코드와 필수 보안 테스트는 통과했지만 운영 Auth·PostgREST·
+Windows 안전 저장/OS callback 및 production BFF 저장·호스팅은 미검증이다.
+루트 build의 기존 타입 오류도 별도 잔여 항목으로 유지한다.
+운영 준비 완료/실제 로그인 성공/운영 DB 적용 완료로 표시하지 않는다.
+다음 통합은 정책/저장소/공식 callback 계약을 정하고 별도 승인 범위에서 수행해야 한다.

@@ -1,0 +1,9 @@
+{
+  "classification": "LOCAL DB",
+  "result": "PASS",
+  "raw_tables": 6,
+  "public_invoker_wrappers": 13,
+  "executable_purpose_implementations": 13,
+  "nonowner_nobypassrls": true,
+  "hosted": "NOT VERIFIED"
+}

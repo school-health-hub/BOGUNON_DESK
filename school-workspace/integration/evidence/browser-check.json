@@ -1,0 +1,101 @@
+{
+  "realHosted": "NOT RUN",
+  "results": [
+    {
+      "classification": "MOCK UI + REAL Chromium",
+      "client": "mobile",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scenario": "active",
+      "result": "PASS",
+      "horizontalOverflow": false,
+      "pageErrors": []
+    },
+    {
+      "classification": "MOCK UI + REAL Chromium",
+      "client": "mobile",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scenario": "pending",
+      "result": "PASS",
+      "horizontalOverflow": false,
+      "pageErrors": []
+    },
+    {
+      "classification": "MOCK UI + REAL Chromium",
+      "client": "mobile",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scenario": "session-expired",
+      "result": "PASS",
+      "horizontalOverflow": false,
+      "pageErrors": []
+    },
+    {
+      "classification": "MOCK UI + REAL Chromium",
+      "client": "mobile",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scenario": "denied",
+      "result": "PASS",
+      "horizontalOverflow": false,
+      "pageErrors": []
+    },
+    {
+      "classification": "MOCK UI + REAL Chromium",
+      "client": "desktop",
+      "viewport": {
+        "width": 980,
+        "height": 700
+      },
+      "scenario": "active",
+      "result": "PASS",
+      "horizontalOverflow": false,
+      "pageErrors": []
+    },
+    {
+      "classification": "MOCK UI + REAL Chromium",
+      "client": "desktop",
+      "viewport": {
+        "width": 980,
+        "height": 700
+      },
+      "scenario": "pending",
+      "result": "PASS",
+      "horizontalOverflow": false,
+      "pageErrors": []
+    },
+    {
+      "classification": "MOCK UI + REAL Chromium",
+      "client": "desktop",
+      "viewport": {
+        "width": 980,
+        "height": 700
+      },
+      "scenario": "session-expired",
+      "result": "PASS",
+      "horizontalOverflow": false,
+      "pageErrors": []
+    },
+    {
+      "classification": "MOCK UI + REAL Chromium",
+      "client": "desktop",
+      "viewport": {
+        "width": 980,
+        "height": 700
+      },
+      "scenario": "denied",
+      "result": "PASS",
+      "horizontalOverflow": false,
+      "pageErrors": []
+    }
+  ]
+}

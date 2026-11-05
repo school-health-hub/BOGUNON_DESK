@@ -1,0 +1,29 @@
+{
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "test": "vitest run",
+    "preview": "vite preview",
+    "release:check": "node scripts/release-preflight.mjs",
+    "release:windows": "npm run release:check && npm test && npx tsc --noEmit && npm run build && cargo test --manifest-path src-tauri/Cargo.toml && cargo check --manifest-path src-tauri/Cargo.toml && git diff --check && npm run tauri build -- --target x86_64-pc-windows-msvc --bundles nsis && node scripts/collect-release-artifacts.mjs",
+    "release:updater:check": "node scripts/updater-release-preflight.mjs",
+    "release:updater": "npm run release:check && npm test && npx tsc --noEmit && npm run build && cargo test --manifest-path src-tauri/Cargo.toml && cargo check --manifest-path src-tauri/Cargo.toml && git diff --check && npm run release:updater:check && node scripts/run-updater-build.mjs && node scripts/collect-release-artifacts.mjs --updater",
+    "release:version:check": "node scripts/verify-release-version.mjs",
+    "release:publish": "node scripts/publish-updater-release.mjs",
+    "tauri": "tauri",
+    "qa:finance:frontend": "node scripts/build-my-finance-qa-frontend.mjs",
+    "qa:finance:windows": "node scripts/build-my-finance-qa.mjs",
+    "electron:p0:build": "node scripts/electron-p0/build.mjs",
+    "electron:p0:dev": "node scripts/electron-p0/dev.mjs",
+    "electron:p0:start": "electron build/electron-p0-app",
+    "electron:p0:package:win": "node scripts/electron-p0/build-record.mjs --release && node scripts/electron-p0/build-chatgpt.mjs --release && node scripts/electron-p0/build-excel.mjs --release && node scripts/electron-p0/build-official-document.mjs --release && node scripts/electron-p0/build-finance.mjs --release && npm run electron:p0:build && electron-builder --config electron-p0/builder.json --win portable --x64 --publish never",
+    "electron:p0:package:linux": "node scripts/electron-p0/build-record.mjs --release && node scripts/electron-p0/build-chatgpt.mjs --release && node scripts/electron-p0/build-excel.mjs --release && node scripts/electron-p0/build-official-document.mjs --release && npm run electron:p0:build && electron-builder --config electron-p0/builder.json --linux dir --publish never",
+    "electron:p0:test": "node scripts/electron-p0/prepare-tests.mjs && vitest run electron-p0/tests src/dashboard src/dock",
+    "electron:p0:test:e2e": "playwright test --config electron-p0/playwright.config.ts",
+    "electron:p0:ci:windows": "node scripts/electron-p0/windows-check.mjs"
+  },
+  "lint": "NOT RUN: no script",
+  "typecheck": "NOT RUN: no script; explicit strict tsc executed",
+  "build": "FAIL: 13 unchanged baseline errors",
+  "electron:p0:build": "PASS after new ES2020 array.at use was replaced by indexed access"
+}

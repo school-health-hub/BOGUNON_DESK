@@ -1,0 +1,83 @@
+{
+  "available_scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "test": "vitest run",
+    "preview": "vite preview",
+    "release:check": "node scripts/release-preflight.mjs",
+    "release:windows": "npm run release:check && npm test && npx tsc --noEmit && npm run build && cargo test --manifest-path src-tauri/Cargo.toml && cargo check --manifest-path src-tauri/Cargo.toml && git diff --check && npm run tauri build -- --target x86_64-pc-windows-msvc --bundles nsis && node scripts/collect-release-artifacts.mjs",
+    "release:updater:check": "node scripts/updater-release-preflight.mjs",
+    "release:updater": "npm run release:check && npm test && npx tsc --noEmit && npm run build && cargo test --manifest-path src-tauri/Cargo.toml && cargo check --manifest-path src-tauri/Cargo.toml && git diff --check && npm run release:updater:check && node scripts/run-updater-build.mjs && node scripts/collect-release-artifacts.mjs --updater",
+    "release:version:check": "node scripts/verify-release-version.mjs",
+    "release:publish": "node scripts/publish-updater-release.mjs",
+    "tauri": "tauri",
+    "qa:finance:frontend": "node scripts/build-my-finance-qa-frontend.mjs",
+    "qa:finance:windows": "node scripts/build-my-finance-qa.mjs",
+    "electron:p0:build": "node scripts/electron-p0/build.mjs",
+    "electron:p0:dev": "node scripts/electron-p0/dev.mjs",
+    "electron:p0:start": "electron build/electron-p0-app",
+    "electron:p0:package:win": "node scripts/electron-p0/build-record.mjs --release && node scripts/electron-p0/build-chatgpt.mjs --release && node scripts/electron-p0/build-excel.mjs --release && node scripts/electron-p0/build-official-document.mjs --release && node scripts/electron-p0/build-finance.mjs --release && npm run electron:p0:build && electron-builder --config electron-p0/builder.json --win portable --x64 --publish never",
+    "electron:p0:package:linux": "node scripts/electron-p0/build-record.mjs --release && node scripts/electron-p0/build-chatgpt.mjs --release && node scripts/electron-p0/build-excel.mjs --release && node scripts/electron-p0/build-official-document.mjs --release && npm run electron:p0:build && electron-builder --config electron-p0/builder.json --linux dir --publish never",
+    "electron:p0:test": "node scripts/electron-p0/prepare-tests.mjs && vitest run electron-p0/tests src/dashboard src/dock",
+    "electron:p0:test:e2e": "playwright test --config electron-p0/playwright.config.ts",
+    "electron:p0:ci:windows": "node scripts/electron-p0/windows-check.mjs"
+  },
+  "commands": [
+    {
+      "command": "npm ci --ignore-scripts --no-audit --no-fund",
+      "result": "PASS",
+      "scope": "locked dependencies only; lifecycle scripts skipped"
+    },
+    {
+      "command": "node node_modules/typescript/bin/tsc -p school-workspace/auth/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "command": "node node_modules/typescript/bin/tsc -p school-workspace/auth/tsconfig.build.json",
+      "result": "PASS"
+    },
+    {
+      "command": "compiled Main/BFF module import",
+      "result": "PASS",
+      "scope": "no provider instantiation/network"
+    },
+    {
+      "command": "vitest run --config school-workspace/auth/vitest.config.ts",
+      "result": "PASS",
+      "tests": 59
+    },
+    {
+      "command": "selected existing policy/memo/IPC/calendar/dashboard/dock/auth Vitest tests",
+      "result": "PASS",
+      "tests": 100
+    },
+    {
+      "command": "npm run electron:p0:build",
+      "result": "PASS"
+    },
+    {
+      "command": "npm run build",
+      "result": "FAIL",
+      "scope": "13 identical errors on clean same-SHA baseline"
+    },
+    {
+      "command": "npm run lint",
+      "result": "NOT RUN",
+      "reason": "script does not exist"
+    },
+    {
+      "command": "npm run typecheck",
+      "result": "NOT RUN",
+      "reason": "script does not exist; explicit tsc checks recorded separately"
+    },
+    {
+      "command": "npm run electron:p0:test",
+      "result": "NOT RUN",
+      "reason": "full script generates Rust/native fixtures; selected existing tests run directly"
+    },
+    {
+      "command": "SCHOOL-01A DB tests / Windows GUI / hosted OAuth/PostgREST",
+      "result": "NOT RUN"
+    }
+  ]
+}

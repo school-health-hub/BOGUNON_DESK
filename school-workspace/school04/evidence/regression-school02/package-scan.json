@@ -1,0 +1,13 @@
+{
+  "result": "PASS",
+  "actual_secret_patterns": [],
+  "forbidden_files": [],
+  "synthetic_data_only": true,
+  "TLS_keys": "generated temporarily outside archive, deleted by harness",
+  "excluded": [
+    ".git",
+    "node_modules",
+    "build",
+    ".env"
+  ]
+}

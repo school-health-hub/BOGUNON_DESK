@@ -1,0 +1,6 @@
+Repository school-health-hub/BOGUNON_DESK
+Remote branch queried at start using GitHub read-only API: integration/electron-feature-baseline
+SHA 166df05dd45402cb1a7526c9ae824ec11fcdb579
+Same as verified SCHOOL-01C baseline; no newer integration delta at start.
+Branch feature/school-02-school-membership; independent clone, no-hardlinks.
+No rebase/reset/merge or product branch modification.
