@@ -1,4 +1,4 @@
-﻿param([Parameter(Mandatory=$true)][string]$ExecutableRoot,[int]$Width=980,[int]$Height=700,[ValidateSet('Resize','Probe','Close','DialogProbe','DialogApprove','DialogCancel','TrayReturn')][string]$Action='Resize',[string]$Screenshot)
+param([Parameter(Mandatory=$true)][string]$ExecutableRoot,[int]$Width=980,[int]$Height=700,[ValidateSet('Resize','Probe','Close','DialogProbe','DialogApprove','DialogCancel','TrayReturn')][string]$Action='Resize',[string]$Screenshot,[int]$OwnedProcessId=0)
 $ErrorActionPreference='Stop'
 if($ExecutableRoot -notmatch '^[A-Za-z]:[\\/]'){throw 'Executable root must be an absolute Windows drive path'}
 Add-Type @'
@@ -43,7 +43,8 @@ if($Action -eq 'Probe'){
  [ordered]@{platform=[Environment]::OSVersion.VersionString;architecture=$env:PROCESSOR_ARCHITECTURE;userInteractive=[Environment]::UserInteractive;sessionId=(Get-Process -Id $PID).SessionId;explorerCount=@(Get-Process explorer -ErrorAction SilentlyContinue).Count;shellTrayHandle=$shell.ToInt64();shellTrayVisible=($shell -ne [IntPtr]::Zero -and [Td2Window]::IsWindowVisible($shell))}|ConvertTo-Json -Compress;exit
 }
 $root=[IO.Path]::GetFullPath($ExecutableRoot).TrimEnd('\')+'\'
-$candidates=@(Get-Process -Name 'BOGUNON DESK ELECTRON P0' -ErrorAction SilentlyContinue|Where-Object{($_.MainWindowHandle -ne 0 -or $Action -eq 'TrayReturn') -and $_.Path -and [IO.Path]::GetFullPath($_.Path).StartsWith($root,[StringComparison]::OrdinalIgnoreCase)})
+$pool=if($OwnedProcessId -gt 0){@(Get-Process -Id $OwnedProcessId -ErrorAction SilentlyContinue)}else{@(Get-Process -Name 'BOGUNON DESK ELECTRON P0' -ErrorAction SilentlyContinue)}
+$candidates=@($pool|Where-Object{($_.MainWindowHandle -ne 0 -or $Action -eq 'TrayReturn') -and $_.Path -and [IO.Path]::GetFullPath($_.Path).StartsWith($root,[StringComparison]::OrdinalIgnoreCase)})
 if(($Action -ne 'TrayReturn' -and $candidates.Count -ne 1) -or ($Action -eq 'TrayReturn' -and $candidates.Count -lt 1)){throw "Expected one owned QA process with a window; found $($candidates.Count)"}
 $target=$candidates[0];$handle=$target.MainWindowHandle
 if($Action -eq 'Resize'){
