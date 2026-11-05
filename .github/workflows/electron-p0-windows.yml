@@ -193,6 +193,16 @@ jobs:
           }
           $dpi|ConvertTo-Json|Set-Content "$env:TD2_EVIDENCE_ROOT/windows-dpi.json"
           [ordered]@{sourceSha=$env:TD2_PRODUCT_SHA;file=$portable[0].Name;bytes=$portable[0].Length;sha256=$hash;signature=[string](Get-AuthenticodeSignature $portable[0].FullName).Status}|ConvertTo-Json|Set-Content "$env:TD2_EVIDENCE_ROOT/portable.json"
+      - name: Ensure pinned unpackaged Electron QA runtime
+        working-directory: source
+        run: |
+          if(!(Test-Path 'node_modules/electron/dist/electron.exe')){
+            Remove-Item Env:ELECTRON_SKIP_BINARY_DOWNLOAD -ErrorAction SilentlyContinue
+            node node_modules/electron/install.js
+            if($LASTEXITCODE -ne 0){throw 'Pinned Electron QA runtime installation failed'}
+          }
+          node -e "const fs=require('fs');const exe=require('electron');if(typeof exe!=='string'||!fs.existsSync(exe))throw Error('Pinned unpackaged Electron runtime missing');"
+          if($LASTEXITCODE -ne 0){throw 'Pinned unpackaged Electron runtime verification failed'}
       - name: Verify packaged runtime, resources and source
         working-directory: source
         run: |
