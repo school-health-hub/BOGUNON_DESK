@@ -19,7 +19,7 @@
 .instructor-print-actions label {display:flex;gap:8px;align-items:center}
 .instructor-print-preview .attendance-register-preview__meta,.instructor-print-preview .payment-statement-preview__meta {display:flex;gap:12px;flex-wrap:wrap}
 .instructor-print-preview td {position:relative}
-.instructor-print-stamp {position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:8mm;height:8mm;object-fit:contain}
+.instructor-print-stamp {position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:9mm;height:9mm;object-fit:contain}
 .instructor-print-preview td {height:9.5mm}
 .instructor-print-preview .attendance-register-preview__verifier {text-align:right}
 @media(max-width:600px){.instructor-workspace table{font-size:12px}.instructor-workspace th,.instructor-workspace td{padding:5px}.instructor-workspace nav button{flex:1 1 40%}.instructor-print-actions{flex-direction:column;align-items:stretch}}
@@ -41,3 +41,7 @@
  body.instructor-print .attendance-register-preview__verifier {break-inside:avoid}
  body.instructor-print .health-support-settlement__header,body.instructor-print .health-support-settlement__metrics,body.instructor-print .health-support-settlement__details {display:none}
 }
+
+/* Original verifier seal position/15mm size, with a reserved slot in both print states. */
+.instructor-verifier-seal-slot {display:inline-block;position:relative;width:15mm;height:15mm;margin-inline:2mm;vertical-align:middle}
+.instructor-verifier-seal-slot .instructor-print-stamp {width:15mm;height:15mm}

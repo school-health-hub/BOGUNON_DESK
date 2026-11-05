@@ -30,18 +30,21 @@ export function createInstructorFiles(contents:Parameters<typeof assertSender>[1
   if(busy)return{ok:false,message:'파일 작업이 진행 중입니다.'};busy=true;
   const run=async():Promise<FileResult<unknown>>=>{try{
    assertSender(event,contents,url);if(disposed||args.length!==1)throw Error('request');const i=args[0] as InstructorFilesRequest;
-   if(!i||Object.keys(i).some(k=>!['school','month','version','kind','includeStamp'].includes(k))||!uuid(i.school)||!Number.isSafeInteger(i.version))throw Error('request');monthValue(i.month);
+   if(!i||Object.keys(i).some(k=>!['school','month','version','kind','includeStamp','includeInstructorStamp','stampRole'].includes(k))||!uuid(i.school)||!Number.isSafeInteger(i.version))throw Error('request');monthValue(i.month);
    const identity=await ports.authorize(i.school);const fresh=async()=>{assertSender(event,contents,url);const next=await ports.authorize(i.school);if(disposed||next.user!==identity.user||next.generation!==identity.generation)throw Error('stale');};
    await fresh();
-   if(action==='stampRead'){const data=await ports.stamp.read(identity.user);await fresh();return{ok:true,status:'ready',data};}
+   if(i.stampRole!==undefined&&!['teacher','instructor'].includes(i.stampRole))throw Error('stamp_role');
+   const instructorScope=async()=>{const s=await ports.board(i.school,i.month);await fresh();if(s.phase!=='ready'||!s.board?.instructor||s.board.version!==i.version||!uuid(s.board.instructor.id))throw Error('conflict');return{school:i.school,instructor:s.board.instructor.id};};
+   const scope=action.startsWith('stamp')&&i.stampRole==='instructor'?await instructorScope():undefined;
+   if(action==='stampRead'){const data=await ports.stamp.read(identity.user,scope);await fresh();return{ok:true,status:'ready',data};}
    if(action==='stampPick'){
     const path=await wait(ports.pick('stamp'));await fresh();if(!path)return{ok:true,status:'canceled'};
     const original=await readInstructorFile(path,2*1024*1024,['.png','.jpg','.jpeg']);const dimensions=stampDimensions(original),png=ports.decode(original),normalized=stampDimensions(png);
     if(dimensions.width!==normalized.width||dimensions.height!==normalized.height)throw Error('image');await fresh();
-    if(!await wait(ports.confirm('선택한 도장을 이 계정의 로컬 개인 저장소에 저장·교체할까요? 공동 공간에는 업로드하지 않습니다.')))return{ok:true,status:'canceled'};await fresh();
-    const data=await ports.stamp.save(identity.user,png,()=>{if(disposed)throw Error('closed');});await fresh();return{ok:true,status:'saved',data};
+    if(!await wait(ports.confirm(`${scope?'현재 학교 강사':'보건교사'} 도장을 이 계정의 로컬 개인 저장소에 저장·교체할까요? 공동 공간에는 업로드하지 않습니다.`)))return{ok:true,status:'canceled'};await fresh();
+    const data=await ports.stamp.save(identity.user,png,()=>{if(disposed)throw Error('closed');},scope);await fresh();return{ok:true,status:'saved',data};
    }
-   if(action==='stampRemove'){if(!await wait(ports.confirm('이 계정에 등록한 개인 도장을 삭제할까요?')))return{ok:true,status:'canceled'};await fresh();await ports.stamp.remove(identity.user);await fresh();return{ok:true,status:'saved',data:null};}
+   if(action==='stampRemove'){if(!await wait(ports.confirm(`${scope?'현재 학교 강사':'보건교사'} 도장을 삭제할까요?`)))return{ok:true,status:'canceled'};await fresh();await ports.stamp.remove(identity.user,()=>{if(disposed)throw Error('closed');},scope);await fresh();return{ok:true,status:'saved',data:null};}
    const state=await ports.board(i.school,i.month);await fresh();if(state.phase!=='ready'||!state.board?.instructor||state.board.version!==i.version)throw Error('conflict');const board:Board=state.board;
    if(action==='workbookPick'){const path=await wait(ports.pick('workbook'));await fresh();if(!path)return{ok:true,status:'canceled'};const bytes=await readInstructorFile(path,10*1024*1024,['.xlsx']);const data=await (ports.worker??worker)({kind:'read',bytes,input:{instructorId:board.instructor!.id,existingLogs:board.logs}},abort.signal);await fresh();return{ok:true,status:'ready',data};}
    if(action==='workbookSave'){
@@ -49,9 +52,10 @@ export function createInstructorFiles(contents:Parameters<typeof assertSender>[1
     const path=await wait(ports.save(i.month));await fresh();if(!path)return{ok:true,status:'canceled'};const rel=relative(ports.protectedRoot,path);if(!rel||!isAbsolute(rel)&&rel!=='..'&&!rel.startsWith('..'+sep))throw Error('target');
     const result=await writeSelectedExport(path,'xlsx',Buffer.from(bytes),async()=>{const yes=await wait(ports.confirm('기존 Excel 파일을 교체할까요?'));await fresh();return yes;},()=>{if(disposed)throw Error('closed');});await fresh();return{ok:true,status:result.status,data:null};
    }
-   if(!['attendance','payment','detail'].includes(i.kind??'')||typeof i.includeStamp!=='boolean'||i.includeStamp&&i.kind!=='attendance')throw Error('print');
+   if(!['attendance','payment','detail'].includes(i.kind??'')||typeof i.includeStamp!=='boolean'||(i.includeInstructorStamp!==undefined&&typeof i.includeInstructorStamp!=='boolean')||(i.includeStamp||i.includeInstructorStamp)&&i.kind!=='attendance')throw Error('print');
    if(i.includeStamp&&!await ports.stamp.read(identity.user))throw Error('stamp');
-   if(!await wait(ports.confirm(`미리보기의 ${i.kind==='attendance'?'출근관리부':i.kind==='payment'?'지급명세서':'월별 근무내역'}를 ${i.includeStamp?'개인 도장 포함':'도장 미포함'}으로 인쇄할까요?`)))return{ok:true,status:'canceled'};
+   if(i.includeInstructorStamp&&!await ports.stamp.read(identity.user,await instructorScope()))throw Error('stamp');
+   if(!await wait(ports.confirm(`미리보기의 ${i.kind==='attendance'?'출근관리부':i.kind==='payment'?'지급명세서':'월별 근무내역'}를 ${i.includeStamp||i.includeInstructorStamp?`${i.includeInstructorStamp?'강사 도장 ':''}${i.includeStamp?'보건교사 도장 ':''}포함`:'도장 미포함'}으로 인쇄할까요?`)))return{ok:true,status:'canceled'};
    await fresh();const printed=await wait(ports.print());await fresh();return{ok:true,status:printed?'saved':'canceled',data:null};
   }catch{return{ok:false,message:'파일·출력을 처리하지 못했습니다. 형식·크기·권한·변경 여부를 확인하세요. 기존 도장과 근무 자료는 유지됩니다.'};}};
   pending=run();try{return await pending as FileResult<unknown>;}finally{busy=false;pending=undefined;}

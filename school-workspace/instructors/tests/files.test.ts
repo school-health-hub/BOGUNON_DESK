@@ -45,3 +45,16 @@ it('synthetic JPEG upload uses bounded header validation and normalized PNG outp
 it('dispose stops waiting on an owned dialog, flush completes and late selection never writes',async()=>{
  const {life,ports,store}=await rig();let selected!:(v:string|undefined)=>void;ports.pick=()=>new Promise(r=>selected=r);const pending=life.handlers.stampPick(event,req);await vi.waitFor(()=>expect(selected).toBeTypeOf('function'));life.dispose();await life.flush();expect(await pending).toMatchObject({ok:false});selected(undefined);expect(await store.read(user)).toBeNull();
 });
+
+it('separate teacher/instructor stamps preserve legacy teacher file, school/profile isolation and independent deletion',async()=>{
+ const {life,store,ports}=await rig();await life.handlers.stampPick(event,req);const teacher=await store.read(user);
+ const changed=new PNG({width:32,height:48});changed.data.fill(255);ports.decode=()=>PNG.sync.write(changed);
+ expect(await life.handlers.stampPick(event,{...req,stampRole:'instructor'})).toMatchObject({ok:true,status:'saved'});
+ const scoped={school,instructor:user},instructor=await store.read(user,scoped);expect(instructor?.dataUrl).not.toBe(teacher?.dataUrl);expect(await store.read(user)).toEqual(teacher);
+ expect(await store.read(other,scoped)).toBeNull();expect(await store.read(user,{...scoped,school:other})).toBeNull();expect(await store.read(user,{...scoped,instructor:other})).toBeNull();
+ expect(await life.handlers.stampRead(event,{...req,stampRole:'instructor',instructorId:other})).toMatchObject({ok:false});
+ expect(await life.handlers.stampRead(event,{...req,stampRole:'untrusted'})).toMatchObject({ok:false});
+ expect(await life.handlers.print(event,{...req,kind:'payment',includeStamp:false,includeInstructorStamp:true})).toMatchObject({ok:false});expect(ports.print).not.toHaveBeenCalled();
+ expect(await life.handlers.stampRemove(event,{...req,stampRole:'instructor'})).toMatchObject({ok:true,status:'saved'});expect(await store.read(user,scoped)).toBeNull();expect(await store.read(user)).toEqual(teacher);
+ expect(await life.handlers.print(event,{...req,kind:'attendance',includeStamp:true,includeInstructorStamp:true})).toMatchObject({ok:false});expect(ports.print).not.toHaveBeenCalled();
+});

@@ -17,16 +17,19 @@ export function stampDimensions(b:Buffer){
  if(width<8||height<8||width>STAMP_LIMIT.dimension||height>STAMP_LIMIT.dimension||width*height>STAMP_LIMIT.pixels)throw Error('image');return {width,height};
 }
 export async function safeParents(path:string){for(let p=path;p!==parse(p).root;p=dirname(p)){const s=await lstat(p);if(!s.isDirectory()||s.isSymbolicLink())throw Error('unsafe_path');}}
+export interface InstructorStampScope {school:string;instructor:string}
 export class InstructorStampStore {
  constructor(private root:string,private cipher:StampCipher){}
- private async store(user:string){
+ private async store(user:string,scope?:InstructorStampScope){
   if(!this.cipher.available||!/^[a-f0-9-]{36}$/i.test(user))throw Error('stamp_unavailable');
+  if(scope&&(!/^[a-f0-9-]{36}$/i.test(scope.school)||!/^[a-f0-9-]{36}$/i.test(scope.instructor)))throw Error('stamp_scope');
+  const filename=scope?'instructor-'+createHash('sha256').update(scope.school+':'+scope.instructor).digest('hex')+'.json':'stamp.json';
   await mkdir(this.root,{recursive:true,mode:0o700});await safeParents(this.root);
   const root=join(this.root,createHash('sha256').update(user).digest('hex'));await mkdir(root,{mode:0o700,recursive:true});await safeParents(root);
-  try{const s=await lstat(join(root,'stamp.json'));if(s.isSymbolicLink()||!s.isFile())throw Error('unsafe_stamp');}catch(e){if((e as NodeJS.ErrnoException).code!=='ENOENT')throw e;}
-  return new SettingsStore<{version:1;ciphertext:string}>(root,'stamp.json',v=>{const x=v as {version:unknown;ciphertext:unknown};if(!x||x.version!==1||typeof x.ciphertext!=='string'||x.ciphertext.length>4*1024*1024||!/^[A-Za-z0-9+/]*={0,2}$/.test(x.ciphertext))throw Error('stamp');return x as {version:1;ciphertext:string};},5*1024*1024);
+  try{const s=await lstat(join(root,filename));if(s.isSymbolicLink()||!s.isFile())throw Error('unsafe_stamp');}catch(e){if((e as NodeJS.ErrnoException).code!=='ENOENT')throw e;}
+  return new SettingsStore<{version:1;ciphertext:string}>(root,filename,v=>{const x=v as {version:unknown;ciphertext:unknown};if(!x||x.version!==1||typeof x.ciphertext!=='string'||x.ciphertext.length>4*1024*1024||!/^[A-Za-z0-9+/]*={0,2}$/.test(x.ciphertext))throw Error('stamp');return x as {version:1;ciphertext:string};},5*1024*1024);
  }
- async read(user:string):Promise<StampView|null>{const value=await(await this.store(user)).read();if(!value||!value.ciphertext)return null;const bytes=Buffer.from(this.cipher.decrypt(Buffer.from(value.ciphertext,'base64')),'base64');const d=stampDimensions(bytes);if(bytes[0]!==137)throw Error('stamp');return {...d,dataUrl:'data:image/png;base64,'+bytes.toString('base64')};}
- async save(user:string,png:Buffer,fresh:()=>void=()=>{}){stampDimensions(png);const store=await this.store(user);await store.read();fresh();await store.write({version:1,ciphertext:this.cipher.encrypt(png.toString('base64')).toString('base64')});fresh();return this.read(user);}
- async remove(user:string,fresh:()=>void=()=>{}){const store=await this.store(user);await store.read();fresh();await store.write({version:1,ciphertext:''});fresh();}
+ async read(user:string,scope?:InstructorStampScope):Promise<StampView|null>{const value=await(await this.store(user,scope)).read();if(!value||!value.ciphertext)return null;const bytes=Buffer.from(this.cipher.decrypt(Buffer.from(value.ciphertext,'base64')),'base64');const d=stampDimensions(bytes);if(bytes[0]!==137)throw Error('stamp');return {...d,dataUrl:'data:image/png;base64,'+bytes.toString('base64')};}
+ async save(user:string,png:Buffer,fresh:()=>void=()=>{},scope?:InstructorStampScope){stampDimensions(png);const store=await this.store(user,scope);await store.read();fresh();await store.write({version:1,ciphertext:this.cipher.encrypt(png.toString('base64')).toString('base64')});fresh();return this.read(user,scope);}
+ async remove(user:string,fresh:()=>void=()=>{},scope?:InstructorStampScope){const store=await this.store(user,scope);await store.read();fresh();await store.write({version:1,ciphertext:''});fresh();}
 }
