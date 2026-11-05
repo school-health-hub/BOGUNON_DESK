@@ -15,7 +15,7 @@ permissions:
 
 concurrency:
   group: td2-soft-rose-portable-gui
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   portable-gui:
