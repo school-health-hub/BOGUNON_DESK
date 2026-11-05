@@ -1,0 +1,18 @@
+{
+  "classification": "STATIC",
+  "checks": [
+    "deterministic generated SQL/DTO",
+    "SCHOOL06 entire folder unchanged",
+    "personal Inventory source byte identity",
+    "15 fixed RPC signatures",
+    "local-only and child drift guards",
+    "no Auth GRANT",
+    "no old medication/owner function reuse",
+    "no existing public table mutation",
+    "no private key/JWT literals"
+  ],
+  "pass": 9,
+  "fail": 0,
+  "protected_personal_files": 15,
+  "secret_scan": "pattern scan only, not universal proof"
+}

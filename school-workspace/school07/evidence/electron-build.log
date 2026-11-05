@@ -1,0 +1,70 @@
+
+> school-health-desk@0.2.1 electron:p0:build
+> node scripts/electron-p0/build.mjs
+
+Offline OCR: 200 files, 16.5 MiB
+vite v8.3.0 building ssr environment for production...
+transforming...
+✓ 46 modules transformed.
+rendering chunks...
+computing gzip size...
+build/electron-p0-app/main/account-sdk.js  741.64 kB │ gzip: 157.45 kB
+
+✓ built in 105ms
+vite v8.3.0 building ssr environment for production...
+transforming...
+✓ 101 modules transformed.
+rendering chunks...
+computing gzip size...
+build/electron-p0-app/main/instructor-workbook-worker.js  184.22 kB │ gzip: 42.24 kB
+
+✗ Build failed in 73ms
+error during build:
+Build failed with 1 error:
+
+Error: [vite]: Rolldown failed to resolve import "xlsx" from "/workspace/work/school-07/repo/school-workspace/instructors/core/payment-workbook.ts".
+This is most likely unintended because it can break your application at runtime.
+If you do want to externalize this module explicitly add it to
+`build.rolldownOptions.external`
+    at viteLog (file:///workspace/work/school-01c/repo/node_modules/vite/dist/node/chunks/node.js:34175:57)
+    at onRollupLog (file:///workspace/work/school-01c/repo/node_modules/vite/dist/node/chunks/node.js:34208:7)
+    at onLog (file:///workspace/work/school-01c/repo/node_modules/vite/dist/node/chunks/node.js:33971:4)
+    at file:///workspace/work/school-01c/repo/node_modules/rolldown/dist/shared/create-bundler-option-DJpvtSqr.mjs:48:26
+    at logger (file:///workspace/work/school-01c/repo/node_modules/rolldown/dist/shared/create-bundler-option-DJpvtSqr.mjs:39:3)
+    at aggregateBindingErrorsIntoJsError (file:///workspace/work/school-01c/repo/node_modules/rolldown/dist/shared/error-CGhV1ebk.mjs:48:18)
+    at unwrapBindingResult (file:///workspace/work/school-01c/repo/node_modules/rolldown/dist/shared/error-CGhV1ebk.mjs:18:128)
+    at #build (file:///workspace/work/school-01c/repo/node_modules/rolldown/dist/shared/rolldown-Ld3ZGGCt.mjs:133:34)
+    at async buildEnvironment (file:///workspace/work/school-01c/repo/node_modules/vite/dist/node/chunks/node.js:34082:66)
+    at async Object.build (file:///workspace/work/school-01c/repo/node_modules/vite/dist/node/chunks/node.js:34503:19)
+    at async Object.buildApp (file:///workspace/work/school-01c/repo/node_modules/vite/dist/node/chunks/node.js:34500:153)
+    at async CAC.<anonymous> (file:///workspace/work/school-01c/repo/node_modules/vite/dist/node/cli.js:780:3) {
+  errors: [Getter/Setter]
+}
+node:internal/errors:985
+  const err = new Error(message);
+              ^
+
+Error: Command failed: /opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build --config electron-p0/vite.instructor.config.ts
+    at genericNodeError (node:internal/errors:985:15)
+    at wrappedFn (node:internal/errors:539:14)
+    at checkExecSyncError (node:child_process:942:11)
+    at execFileSync (node:child_process:978:15)
+    at run (file:///workspace/work/school-07/repo/scripts/electron-p0/build.mjs:3:19)
+    at file:///workspace/work/school-07/repo/scripts/electron-p0/build.mjs:9:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)
+    at async node:internal/modules/esm/loader:643:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) {
+  status: 1,
+  signal: null,
+  output: [ null, null, null ],
+  pid: 737540,
+  stdout: null,
+  stderr: null
+}
+
+Node.js v24.19.0
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice

@@ -1,0 +1,52 @@
+{
+  "checks": [
+    {
+      "name": "all four inventory tables FORCE RLS, owner differs from runtime",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "child ledger cannot be rewritten by runtime or authenticated",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "assistant permission ceiling and role per school cannot inherit teacher rights",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "combined release replay after full old/new suites remains no-op",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "inventory close disables new authenticated execution without deleting data",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "normal close repeat/reopen is controlled and preserves data",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "public inventory wrapper drift is detected by child fingerprint",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "activation refuses drift instead of blessing new metadata",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "emergency close marks unverified and retains history",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    }
+  ],
+  "pass": 9,
+  "fail": 0,
+  "classification": "LOCAL DB"
+}

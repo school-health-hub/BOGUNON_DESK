@@ -1,0 +1,15 @@
+PASS SCHOOL06 initial39 RPCs remain CLOSED
+Traceback (most recent call last):
+  File "/workspace/work/school-07/repo/school-workspace/school07/tests/run.py", line 103, in <module>
+    if __name__=='__main__':main()
+                            ^^^^^^
+  File "/workspace/work/school-07/repo/school-workspace/school07/tests/run.py", line 31, in main
+    migration=next((R/'supabase/migrations').glob('*.sql'));apply(migration)
+                                                            ^^^^^^^^^^^^^^^^
+  File "/workspace/work/school-07/repo/school-workspace/school07/tests/run.py", line 11, in apply
+    def apply(p,ok=True):return sql("SET bogunon.ws_install_mode='isolated';"+Path(p).read_text(),ok)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/school-07/repo/school-workspace/school07/tests/run.py", line 8, in sql
+    if ok and p.returncode:raise AssertionError(p.stderr[-2200:])
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ERROR:  new row violates row-level security policy for table "role_permission_defaults"

@@ -1,0 +1,8 @@
+school-workspace/instructors/core/import/work-log-import.test.ts(2,23): error TS2307: Cannot find module 'xlsx' or its corresponding type declarations.
+school-workspace/instructors/core/import/work-log-import.ts(1,23): error TS2307: Cannot find module 'xlsx' or its corresponding type declarations.
+school-workspace/instructors/core/import/work-log-import.ts(136,36): error TS7006: Parameter 'row' implicitly has an 'any' type.
+school-workspace/instructors/core/import/work-log-import.ts(136,41): error TS7006: Parameter 'index' implicitly has an 'any' type.
+school-workspace/instructors/core/import/work-log-import.ts(137,24): error TS7006: Parameter 'value' implicitly has an 'any' type.
+school-workspace/instructors/core/payment-workbook.ts(2,23): error TS2307: Cannot find module 'xlsx' or its corresponding type declarations.
+school-workspace/instructors/tests/contracts.test.ts(1,56): error TS2307: Cannot find module 'xlsx' or its corresponding type declarations.
+school-workspace/instructors/tests/packaging.test.ts(2,23): error TS2307: Cannot find module 'xlsx' or its corresponding type declarations.

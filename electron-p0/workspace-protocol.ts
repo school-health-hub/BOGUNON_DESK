@@ -1,5 +1,6 @@
 /** Purpose-only product IPC. No arbitrary RPC/SQL/HTTP capability. */
 export const WORKSPACE_METHODS = {
+ inventory: {selectSchool:'select',refresh:'refresh',getItem:'detail',createItem:'create',editItem:'edit',saveLocation:'location',receive:'receive',use:'use',adjust:'adjust',dispose:'dispose',setLotState:'state'},
  school: {state:'state',signIn:'login',signOut:'logout',findSchool:'search',selectSchool:'select',refresh:'refresh',requestJoin:'join',requestSpace:'space',withdraw:'withdraw',decideJoin:'decide',setRole:'role',setMembership:'membership',setExpiry:'expiry',leave:'leave',proposeAdmin:'propose',acceptAdmin:'accept',reauthenticate:'reauth'},
  instructor: {read:'read',settings:'settings',save:'save',remove:'delete',import:'import'},
  tasks: {selectSchool:'select',refresh:'refresh',getTask:'detail',createTask:'create',editTask:'edit',assignTask:'assign',changeStatus:'status',closeTask:'close',history:'history'},
@@ -7,4 +8,4 @@ export const WORKSPACE_METHODS = {
 } as const;
 export interface WorkspaceProductStatus {mode:'disabled'|'qa'|'unavailable';connected:boolean;message:string;generation:number;accounts?:readonly {id:number;label:string}[];account?:number}
 type Methods<T> = Readonly<{[K in keyof T]:(input?:Record<string,unknown>)=>Promise<unknown>}>;
-export interface WorkspaceProductApi {status():Promise<WorkspaceProductStatus>;switchAccount(input:Record<string,unknown>):Promise<WorkspaceProductStatus>;school:Methods<typeof WORKSPACE_METHODS.school>;tasks:Methods<typeof WORKSPACE_METHODS.tasks>;activity:Methods<typeof WORKSPACE_METHODS.activity>;instructor?:Methods<typeof WORKSPACE_METHODS.instructor>}
+export interface WorkspaceProductApi {status():Promise<WorkspaceProductStatus>;switchAccount(input:Record<string,unknown>):Promise<WorkspaceProductStatus>;school:Methods<typeof WORKSPACE_METHODS.school>;tasks:Methods<typeof WORKSPACE_METHODS.tasks>;activity:Methods<typeof WORKSPACE_METHODS.activity>;inventory?:Methods<typeof WORKSPACE_METHODS.inventory>;instructor?:Methods<typeof WORKSPACE_METHODS.instructor>}

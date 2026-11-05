@@ -1,0 +1,78 @@
+{
+  "ws_v1_list_inventory_items": {
+    "p_school_id": "uuid",
+    "p_payload": "jsonb"
+  },
+  "ws_v1_get_inventory_item": {
+    "p_school_id": "uuid",
+    "p_payload": "jsonb"
+  },
+  "ws_v1_list_inventory_lots": {
+    "p_school_id": "uuid",
+    "p_payload": "jsonb"
+  },
+  "ws_v1_list_inventory_movements": {
+    "p_school_id": "uuid",
+    "p_payload": "jsonb"
+  },
+  "ws_v1_list_inventory_alerts": {
+    "p_school_id": "uuid",
+    "p_payload": "jsonb"
+  },
+  "ws_v1_list_inventory_locations": {
+    "p_school_id": "uuid",
+    "p_payload": "jsonb"
+  },
+  "ws_v1_get_inventory_context": {
+    "p_school_id": "uuid",
+    "p_payload": "jsonb"
+  },
+  "ws_v1_create_inventory_item": {
+    "p_school_id": "uuid",
+    "p_payload": "jsonb",
+    "p_expected_version": "bigint",
+    "p_request_id": "uuid"
+  },
+  "ws_v1_edit_inventory_item": {
+    "p_school_id": "uuid",
+    "p_payload": "jsonb",
+    "p_expected_version": "bigint",
+    "p_request_id": "uuid"
+  },
+  "ws_v1_save_inventory_location": {
+    "p_school_id": "uuid",
+    "p_payload": "jsonb",
+    "p_expected_version": "bigint",
+    "p_request_id": "uuid"
+  },
+  "ws_v1_receive_inventory": {
+    "p_school_id": "uuid",
+    "p_payload": "jsonb",
+    "p_expected_version": "bigint",
+    "p_request_id": "uuid"
+  },
+  "ws_v1_use_inventory": {
+    "p_school_id": "uuid",
+    "p_payload": "jsonb",
+    "p_expected_version": "bigint",
+    "p_request_id": "uuid"
+  },
+  "ws_v1_adjust_inventory": {
+    "p_school_id": "uuid",
+    "p_payload": "jsonb",
+    "p_expected_version": "bigint",
+    "p_request_id": "uuid"
+  },
+  "ws_v1_dispose_inventory": {
+    "p_school_id": "uuid",
+    "p_payload": "jsonb",
+    "p_expected_version": "bigint",
+    "p_request_id": "uuid"
+  },
+  "ws_v1_set_inventory_lot_state": {
+    "p_school_id": "uuid",
+    "p_payload": "jsonb",
+    "p_expected_version": "bigint",
+    "p_request_id": "uuid"
+  }
+}

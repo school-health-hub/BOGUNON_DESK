@@ -1,0 +1,33 @@
+PASS SCHOOL06 initial39 RPCs remain CLOSED
+PASS inventory15 default CLOSED; raw tables not exposed
+PASS admin creates item with zero stock
+PASS teacher edits metadata
+PASS assistant cannot edit metadata
+PASS cross school item lookup denied
+PASS receive increases stock and30day inclusive boundary
+PASS assistant default receive denied
+PASS explicit own use permission decreases stock
+PASS negative stock denied
+PASS assistant adjust/dispose forbidden
+PASS request_id replay applies once
+PASS request_id changed payload rejected
+PASS stale expected_version rejected
+PASS concurrent actual connections cannot overdraw
+PASS expired use rejected
+PASS no-expiry lot and separate quantities
+PASS expired excluded from usable; holding includes all
+PASS adjust/dispose append history and low stock uses usable count
+PASS unusable lot excluded and use forbidden
+PASS different school lot movement denied
+PASS pending/expired denied 5
+PASS pending/expired denied 8
+PASS live suspension rejects previous session
+PASS all quantity transactions have atomic audit entries
+PASS audit failure rolls back lot/movement/receipt
+PASS raw tables and movement delete denied
+PASS privacy rejected before any persistent receipt
+PASS Seoul dates: expiry today/30 inclusive,31 excluded, yesterday expired
+PASS explicit own receive works; deny override wins over allow
+PASS valid school B item cannot reference school A lot
+PASS SCHOOL06 replay fails closed on intentional extension, originals preserved
+DB PASS 32
