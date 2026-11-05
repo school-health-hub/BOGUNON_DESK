@@ -122,6 +122,7 @@ jobs:
             $processes=@(Get-CimInstance Win32_Process | Where-Object {$_.ExecutablePath -and ($_.ExecutablePath.StartsWith("$env:TD2_ROOT\",[StringComparison]::OrdinalIgnoreCase) -or $_.ExecutablePath.StartsWith("$env:TD2_PRODUCT_ROOT\node_modules\electron\",[StringComparison]::OrdinalIgnoreCase))})
             [ordered]@{ownedProcessesRemaining=$processes.Count;ownedDbStopped=!(Test-Path "$env:SCHOOL05_PG_DATA/postmaster.pid");runnerTemporaryFiles='Disposable hosted runner only; profile and DB excluded from evidence';localPcChanged=$false}|ConvertTo-Json|Set-Content "$env:TD2_EVIDENCE_ROOT/cleanup.json"
             if($processes.Count){throw 'Owned QA processes remain'}
+            if($env:SCHOOL05_PG_DATA -and (Test-Path "$env:SCHOOL05_PG_DATA/postmaster.pid")){throw 'Owned PostgreSQL still running'}
           }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()

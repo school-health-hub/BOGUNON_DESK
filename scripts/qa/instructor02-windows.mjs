@@ -33,7 +33,7 @@ for(const [name,color] of [['teacher',[190,0,20]],['instructor',[0,40,180]],['re
 }
 let app,page,stage='launch';
 const capture=async name=>{await page.screenshot({path:join(out,name+'.png')});result.captures.push(name+'.png');};
-const busy=async()=>expect(page.getByRole('region',{name:'보건지원강사 근무관리',exact:true})).toHaveAttribute('aria-busy','false');
+const busy=async()=>expect(page.locator('section.instructor-workspace')).toHaveAttribute('aria-busy','false');
 const instructor=()=>page.getByRole('region',{name:'보건지원강사 근무관리',exact:true});
 const tab=async name=>{await instructor().getByRole('navigation',{name:'강사 관리 메뉴'}).getByRole('button',{name,exact:true}).click();await busy();};
 async function login(id=3){
@@ -99,7 +99,8 @@ async function preview(name,teacher,instructorSeal){
   const box=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};
   return [...el.querySelectorAll('img')].map(img=>({alt:img.alt,box:box(img),parent:box(img.parentElement),inside:(()=>{const a=img.getBoundingClientRect(),b=img.parentElement.getBoundingClientRect();return a.left>=b.left-1&&a.right<=b.right+1&&a.top>=b.top-1&&a.bottom<=b.bottom+1;})()}));
  });
- assert.equal(geometry.length,(teacher?2:0)+(instructorSeal?1:0));assert.ok(geometry.every(g=>g.inside));
+ const rowCount=await dialog.locator('.attendance-register-preview tbody tr').count();
+ assert.equal(geometry.length,(teacher?rowCount+1:0)+(instructorSeal?rowCount:0));assert.ok(geometry.every(g=>g.inside));
  await capture(name);
  await app.evaluate((_e,path)=>{globalThis.__instructor02.pdf=path;},join(out,name+'.pdf'));
  await dialog.getByRole('button',{name:'미리보기 확인 후 인쇄'}).click();await busy();
@@ -116,6 +117,7 @@ try{
  const fields={name:'합성 강사 QA',subject:'학교보건지원',weeklyHours:'14',hourlyRate:'30000',monthlyInsurance:'45000',monthlyHourLimit:'60',weeklyHourLimit:'15',totalBudget:'500000',operationStartDate:'2026-08-01',operationEndDate:'2026-12-31'};
  for(const [key,value]of Object.entries(fields))await form.locator(`[name="${key}"]`).fill(value);
  await form.getByRole('button',{name:'강사 운영 설정 저장'}).click();await busy();
+ await tab('설정');
  await expect(form.locator('[name="name"]')).toHaveValue(fields.name);
  await form.locator('[name="name"]').fill('합성 강사 QA 수정');await form.getByRole('button',{name:'강사 운영 설정 저장'}).click();await busy();
  await pass('Teacher registers and edits Instructor settings through real UI and DB');
@@ -159,9 +161,11 @@ try{
   return (await api.import({...base,version:read.board.version,request_id:crypto.randomUUID(),payload})).phase==='ready';
  });assert.ok(imported);await instructor().getByRole('button',{name:'최신 자료 조회'}).click();await busy();await tab('지급명세서·출력');
  await preview('attendance-multiple-pages',true,true);assert.ok(result.checks.at(-1).pages.length>1);
+ const validWrite=await page.evaluate(async()=>{const r=await window.electronWorkspace.instructor.read({school:'10000000-0000-0000-0000-000000000001',month:'2026-08'});if(r.phase!=='ready')throw Error('Teacher board unavailable');const {id,...payload}=r.board.instructor;return{version:r.board.version,payload};});
  stage='assistant';await page.getByRole('button',{name:'공동 계정 로그아웃'}).click();await login(4);
  await expect(instructor().getByRole('region',{name:'월별 근무표'})).toContainText('3시간');assert.equal(await instructor().getByRole('navigation',{name:'강사 관리 메뉴'}).count(),0);assert.equal(await instructor().getByRole('form').count(),0);
- const denied=await page.evaluate(async()=>{const r=await window.electronWorkspace.instructor.settings({school:'10000000-0000-0000-0000-000000000001',month:'2026-08',version:3,request_id:crypto.randomUUID(),payload:{name:'합성 거부 시도'}});return r.phase!=='ready';});assert.ok(denied);
+ const denied=await page.evaluate(async valid=>window.electronWorkspace.instructor.settings({school:'10000000-0000-0000-0000-000000000001',month:'2026-08',...valid,request_id:crypto.randomUUID()}),validWrite);
+ assert.equal(denied.phase,'locked');assert.equal(denied.message,'보건교사 편집 권한을 다시 확인해 주세요.');
  await capture('assistant-read-only');await pass('Assistant Electron schedule read-only and direct settings IPC denied');
  result.verdict='CONDITIONAL';
 }catch(e){result.verdict='FAIL';result.failure={stage,message:String(e).slice(0,1500)};if(page){await capture('failure').catch(()=>{});await writeFile(join(out,'failure-ui.txt'),await page.locator('body').innerText().catch(()=>''));}process.exitCode=1;}
