@@ -26,6 +26,11 @@
       "classification": "LOCAL DB"
     },
     {
+      "name": "inactive create is honored and archived holding never appears usable",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
       "name": "location register/rename uses version; assistant cannot manage",
       "status": "PASS",
       "classification": "LOCAL DB"
@@ -211,7 +216,7 @@
       "classification": "LOCAL POSTGREST"
     }
   ],
-  "pass": 42,
+  "pass": 43,
   "fail": 0,
   "hosted": "NOT RUN",
   "windows": "NOT RUN"

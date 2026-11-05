@@ -43,6 +43,15 @@ def main():
  def create():
   item.update(rpc(1,'create_inventory_item',{'name':'멸균 거즈','category':'소모품','specification':'소형','unit':'개','minimum_quantity':5},0))
  case('admin creates item with zero stock',create)
+ def inactive():
+  inactive_payload={'name':'보관 소모품','category':'','specification':'','unit':'개','minimum_quantity':1,'active':False}
+  x=rpc(3,'create_inventory_item',inactive_payload,0);got=rpc(3,'get_inventory_item',{'item_id':x['item_id']});assert got['active']is False and got['available_quantity']==0 and got['is_low']is False
+  deny(rpc(3,'receive_inventory',{'item_id':x['item_id'],'quantity':1},0,ok=False),'input_rejected')
+  rpc(3,'edit_inventory_item',{**inactive_payload,'active':True,'item_id':x['item_id']},1)
+  rpc(3,'receive_inventory',{'item_id':x['item_id'],'quantity':2},0)
+  rpc(3,'edit_inventory_item',{**inactive_payload,'item_id':x['item_id']},2)
+  got=rpc(3,'get_inventory_item',{'item_id':x['item_id']});assert got['total_quantity']==2 and got['available_quantity']==0 and got['unusable_quantity']==2 and got['soon_quantity']==0
+ case('inactive create is honored and archived holding never appears usable',inactive)
  def locations():
   loc=rpc(3,'save_inventory_location',{'name':'합성 보관함'},0);loc=rpc(3,'save_inventory_location',{'location_id':loc['location_id'],'name':'합성 보관함 변경','active':True},loc['version']);assert any(x['name']=='합성 보관함 변경'for x in rpc(3,'list_inventory_locations'));deny(rpc(4,'save_inventory_location',{'name':'권한 없음'},0,ok=False))
  case('location register/rename uses version; assistant cannot manage',locations)
@@ -55,7 +64,10 @@ def main():
  case('receive increases stock and30day inclusive boundary',receive)
  case('assistant default receive denied',lambda:deny(rpc(4,'receive_inventory',{'item_id':item['item_id'],'quantity':2},0,ok=False)))
  sql("INSERT INTO workspace.membership_permission_overrides VALUES('"+A+"','20000000-0000-0000-0000-000000000004',1,'inventory.use','allow','own')")
- def use():lot.update(rpc(4,'use_inventory',{'item_id':item['item_id'],'lot_id':lot['lot_id'],'quantity':3},lot['version']));assert lot['quantity']==7
+ def use():
+  lot.update(rpc(4,'use_inventory',{'item_id':item['item_id'],'lot_id':lot['lot_id'],'quantity':3},lot['version']));assert lot['quantity']==7
+  mine=rpc(4,'list_inventory_movements',{'item_id':item['item_id']});assert len(mine)==1 and all(h['actor_membership_id']=='20000000-0000-0000-0000-000000000004'for h in mine)
+  assert len(rpc(3,'list_inventory_movements',{'item_id':item['item_id']}))==2
  case('explicit own use permission decreases stock',use)
  case('negative stock denied',lambda:deny(rpc(4,'use_inventory',{'item_id':item['item_id'],'lot_id':lot['lot_id'],'quantity':8},lot['version'],ok=False),'insufficient_stock'))
  case('assistant adjust/dispose forbidden',lambda:(deny(rpc(4,'adjust_inventory',{'item_id':item['item_id'],'lot_id':lot['lot_id'],'quantity':2},lot['version'],ok=False)),deny(rpc(4,'dispose_inventory',{'item_id':item['item_id'],'lot_id':lot['lot_id'],'quantity':2},lot['version'],ok=False))))

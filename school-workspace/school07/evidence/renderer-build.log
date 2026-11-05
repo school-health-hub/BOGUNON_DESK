@@ -31,22 +31,22 @@ build/electron-p0-app/renderer/assets/play-CKGdOTA0.js                          
 build/electron-p0-app/renderer/assets/archive-Dq6UGhbC.js                             0.29 kB │ gzip:     0.23 kB
 build/electron-p0-app/renderer/assets/triangle-alert-CVbnK7Ko.js                      0.33 kB │ gzip:     0.25 kB
 build/electron-p0-app/renderer/assets/modulepreload-polyfill-BIgaVKhB.js              1.38 kB │ gzip:     0.75 kB
-build/electron-p0-app/renderer/assets/FinanceHost-BXMUksSk.js                         2.00 kB │ gzip:     1.12 kB
+build/electron-p0-app/renderer/assets/FinanceHost-CtpPk1Mn.js                         2.00 kB │ gzip:     1.12 kB
 build/electron-p0-app/renderer/assets/createLucideIcon-BZr5NZmW.js                    3.15 kB │ gzip:     1.52 kB
 build/electron-p0-app/renderer/assets/react-dom-B2g5pnPP.js                           3.91 kB │ gzip:     1.42 kB
 build/electron-p0-app/renderer/assets/jsx-runtime-DOMNITCc.js                         8.24 kB │ gzip:     3.12 kB
-build/electron-p0-app/renderer/assets/InventoryHost-Bns0RCF4.js                       8.86 kB │ gzip:     3.15 kB
-build/electron-p0-app/renderer/assets/InventoryManagementPanel-Bu_bN1Nr.js           15.43 kB │ gzip:     4.82 kB
-build/electron-p0-app/renderer/assets/InventoryWorkspace-DXuCitsr.js                 17.19 kB │ gzip:     5.40 kB
-build/electron-p0-app/renderer/assets/OfficialDocumentWorkspace-DgP4_Zts.js          20.35 kB │ gzip:     7.47 kB
-build/electron-p0-app/renderer/assets/SchoolAdmin-CaBgiPYx.js                        21.04 kB │ gzip:     6.98 kB
-build/electron-p0-app/renderer/assets/RecordHelperHost-B5D04XtA.js                   33.46 kB │ gzip:     9.83 kB
-build/electron-p0-app/renderer/assets/EducationVideoFinder-Cg0F1YhW.js               33.50 kB │ gzip:    10.85 kB
-build/electron-p0-app/renderer/assets/FinanceScreen-DNKUP-5T.js                      49.03 kB │ gzip:    13.87 kB
+build/electron-p0-app/renderer/assets/InventoryHost-DKd-0Qhk.js                       8.86 kB │ gzip:     3.16 kB
+build/electron-p0-app/renderer/assets/InventoryManagementPanel-DAnRg5OO.js           15.43 kB │ gzip:     4.81 kB
+build/electron-p0-app/renderer/assets/InventoryWorkspace-Bcy2NMZ6.js                 17.19 kB │ gzip:     5.40 kB
+build/electron-p0-app/renderer/assets/OfficialDocumentWorkspace-DWm8F-2V.js          20.35 kB │ gzip:     7.47 kB
+build/electron-p0-app/renderer/assets/SchoolAdmin-BdckshAm.js                        21.04 kB │ gzip:     6.98 kB
+build/electron-p0-app/renderer/assets/RecordHelperHost-0VF46bTt.js                   33.46 kB │ gzip:     9.83 kB
+build/electron-p0-app/renderer/assets/EducationVideoFinder-BeUDv9g6.js               33.50 kB │ gzip:    10.85 kB
+build/electron-p0-app/renderer/assets/FinanceScreen-a9Q1T0ia.js                      49.03 kB │ gzip:    13.87 kB
 build/electron-p0-app/renderer/assets/NewsletterStudio-CizylsX9.js                   58.28 kB │ gzip:    17.10 kB
-build/electron-p0-app/renderer/assets/WorkspaceProductHost-IDn8bzBN.js              100.39 kB │ gzip:    25.85 kB
+build/electron-p0-app/renderer/assets/WorkspaceProductHost-B48LJ9pL.js              100.46 kB │ gzip:    25.86 kB
 build/electron-p0-app/renderer/assets/schemas-D2iFiwxY.js                           126.47 kB │ gzip:    35.24 kB
-build/electron-p0-app/renderer/assets/app-qQA3aEeG.js                               627.45 kB │ gzip:   186.65 kB
+build/electron-p0-app/renderer/assets/app-B7bLyI7w.js                               627.45 kB │ gzip:   186.67 kB
 build/electron-p0-app/renderer/assets/svgRenderer-9U6nCL_s.js                     2,374.74 kB │ gzip: 1,726.39 kB
 build/electron-p0-app/renderer/assets/exportWorker-CFaLW-Ej.js                    3,171.15 kB │ gzip: 2,235.98 kB
 
@@ -55,4 +55,4 @@ build/electron-p0-app/renderer/assets/exportWorker-CFaLW-Ej.js                  
 - Using dynamic import() to code-split the application
 - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 958ms
+✓ built in 927ms

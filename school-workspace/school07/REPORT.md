@@ -46,13 +46,13 @@ Asia/Seoul 오늘 기준. 유효기간 당일까지 사용 가능, 어제 만료
 
 ## 6. 역할별 권한
 
-Admin/Teacher 관리·입고·사용·조정·폐기. Assistant 기본 조회만, inventory.receive/use 명시 allow+own scope일 때 본인 거래만. deny 우선. 관리/조정/폐기 allow를 넣어도 Assistant 상한은 유지된다. A학교 교사 권한이 B학교 지원강사 권한을 덮어쓰지 않는다. pending·정지·만료·학교/계정 회수 시 매 요청 재인가. 개별 permission 관리 UI/운영 부여 RPC는 새로 만들지 않았고 합성 fixture만 사용했다. 실제 승인된 부여 절차 전에는 지원강사 쓰기 기본 비활성이다.
+Admin/Teacher 관리·입고·사용·조정·폐기. Assistant 기본 재고 조회·현재 epoch 본인 거래 이력만, inventory.receive/use 명시 allow+own scope일 때 본인 거래만. deny 우선. 관리/조정/폐기 allow를 넣어도 Assistant 상한은 유지된다. A학교 교사 권한이 B학교 지원강사 권한을 덮어쓰지 않는다. pending·정지·만료·학교/계정 회수 시 매 요청 재인가. 개별 permission 관리 UI/운영 부여 RPC는 새로 만들지 않았고 합성 fixture만 사용했다. 실제 승인된 부여 절차 전에는 지원강사 쓰기 기본 비활성이다.
 
 ## 7. 보안·동시성·멱등성 검증
 
 | 스위트/분류 | PASS | FAIL | 한계 |
 |---|---:|---:|---|
-| 신규 수량·권한 LOCAL DB | 35 | 0 | 실제 PG17.6, 합성 사용자/학교 |
+| 신규 수량·권한 LOCAL DB | 36 | 0 | 실제 PG17.6, 합성 사용자/학교 |
 | 신규 설치/권한 상한/close/드리프트 LOCAL DB | 9 | 0 | 새 public wrapper 드리프트도 거부 |
 | LOCAL POSTGREST | 7 | 0 | 실제13.0.4 HTTP, 합성 HS256/Auth |
 | 신규 상태·UI·IPC | 6 | 0 | LOCAL DB+React/jsdom1, MOCK5 |
@@ -67,7 +67,7 @@ Admin/Teacher 관리·입고·사용·조정·폐기. Assistant 기본 조회만
 | 정적 생성/원본 보호 | 9 | 0 | 개인 소스15개 byte 동일 |
 | WINDOWS REAL / HOSTED SUPABASE | NOT RUN | — | 실제 연결/배포 없음 |
 
-중복 실행은 새 고유 시나리오 수에 합산하지 않는다. 각 스위트는 서로 겹치는 동작을 포함할 수 있어 총합을 고유 업무 시나리오 수로 주장하지 않는다. 마지막 위치 epoch FK 보강 후 영향받는 새 SQL/상태/UI 테스트를 재실행했으며 기존 기능 SQL/권한 규칙의 무관한 수정은 없다.
+중복 실행은 새 고유 시나리오 수에 합산하지 않는다. 각 스위트는 서로 겹치는 동작을 포함할 수 있어 총합을 고유 업무 시나리오 수로 주장하지 않는다. 마지막 위치 epoch FK 및 비활성 물품 가용량 보강 후 영향받는 새 SQL/상태/UI 테스트를 재실행했으며 기존 기능 SQL/권한 규칙의 무관한 수정은 없다.
 
 ## 8. Electron/Web 화면
 

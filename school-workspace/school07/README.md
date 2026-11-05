@@ -36,7 +36,7 @@ SCHOOL06 원본·설치 장부·체크섬은 바꾸지 않는다. S07은 명시�
 - 최대 소수3자리, 0~1,000,000,000 수량. 수량을 단순 덮어쓰는 API 없음. 조정은 새 거래로 기록한다.
 - 입고 새 lot는 expected_version0, 기존 lot 변경은 해당 lot version 필수. 물품 메타데이터/위치는 각각의 version 사용.
 - 같은 학교 기존 advisory lock과 lot FOR UPDATE로 거래 직렬화. 서로 다른 lot의 학교 전체 직렬화는 소규모 MVP 선택이며 처리량 확장 때 별도 검토한다.
-- Admin/Teacher는 물품·위치 관리/거래. Assistant 기본 조회만; explicit inventory.receive/use allow + own scope인 경우에만 **본인 명의** 기록. deny 우선. Assistant의 inventory.manage/adjust/dispose allow를 억지로 넣어도 역할 상한을 넘지 못한다.
+- Admin/Teacher는 물품·위치 관리/거래. Assistant 기본 재고 조회·현재 epoch 본인 거래 이력만; explicit inventory.receive/use allow + own scope인 경우에만 **본인 명의** 기록. deny 우선. Assistant의 inventory.manage/adjust/dispose allow를 억지로 넣어도 역할 상한을 넘지 못한다.
 - 개별 권한 부여 UI/운영 관리 RPC는 이번에 새로 만들지 않았다. 검증된 운영 권한 부여 절차 전에는 지원강사 쓰기 기본 차단. 합성 fixture의 allow를 실제 승인으로 간주하지 않는다.
 - pending/정지/만료/계정·세션 회수는 RPC마다 현재 상태로 검사한다. 원시 테이블/private dispatch 직접 접근 없음. 새 공개 함수는 invoker, private 목적별 진입은 ws_runtime definer, authz reader는 비소유 NOBYPASSRLS.
 
@@ -44,7 +44,7 @@ SCHOOL06 원본·설치 장부·체크섬은 바꾸지 않는다. S07은 명시�
 
 Asia/Seoul 오늘 날짜 기준, 유효기간 **당일까지 사용 가능**, 어제 이전 만료. 임박은 오늘~30일 inclusive. 31일은 제외. 서버 상수 계층 `s07_soon_days()`로 분리했으며 학교별 실제 설정 UI는 후속 범위다.
 
-전체 보유는 모든 lot 합계. 사용 가능은 AVAILABLE 및 미만료/유효기간 없음만 합산. 만료·UNUSABLE은 사용 불가, 폐기는 명시적 음수 거래로 잔량을 줄인다. STATE 거래는 수량 변화0으로 사용 가능 상태 변경 이력을 기록한다. 자동 차감/자동 폐기 없음. 부족 여부는 사용 가능 수량<최소 수량이다. 임박 수량은 사용 가능한 lot만 포함한다. 만료와 UNUSABLE 표시는 겹칠 수 있으므로 두 값을 합쳐 전체 수량에서 빼지 않는다.
+전체 보유는 모든 lot 합계. 비활성 보관 물품은 전체 보유를 유지하고 사용 가능/임박0, 전체를 사용 불가로 표시한다. 사용 가능은 AVAILABLE 및 미만료/유효기간 없음만 합산. 만료·UNUSABLE은 사용 불가, 폐기는 명시적 음수 거래로 잔량을 줄인다. STATE 거래는 수량 변화0으로 사용 가능 상태 변경 이력을 기록한다. 자동 차감/자동 폐기 없음. 부족 여부는 사용 가능 수량<최소 수량이다. 임박 수량은 사용 가능한 lot만 포함한다. 만료와 UNUSABLE 표시는 겹칠 수 있으므로 두 값을 합쳐 전체 수량에서 빼지 않는다.
 
 빠른 유효기간 순으로 lot 표시, null은 뒤에 표시. 기존 lot의 유효기간/입고일을 입고 요청으로 몰래 변경하지 못한다. 날짜 무한대는 거부한다. 운영 사유80자, 이름80/분류40/규격100/단위12자. 학생/상담/투약/처치/개인인증정보 패턴을 서버에서 거부하지만 탐지는 완전하지 않다. 긴 자유 서술·첨부·학생 연결은 없다. 차단한 원문은 receipt/audit/AI로 전달하지 않는다.
 

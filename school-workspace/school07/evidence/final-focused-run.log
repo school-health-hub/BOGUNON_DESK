@@ -3,6 +3,7 @@ PASS inventory15 default CLOSED; raw tables not exposed
 PASS S07 closed child release repeat is no-op
 PASS S07 active child release repeat is no-op
 PASS admin creates item with zero stock
+PASS inactive create is honored and archived holding never appears usable
 PASS location register/rename uses version; assistant cannot manage
 PASS teacher edits metadata
 PASS assistant cannot edit metadata
@@ -40,7 +41,22 @@ PASS LOCAL POSTGREST assistant read, direct manage RPC forbidden
 PASS LOCAL POSTGREST school A-only user cannot fetch school B inventory
 PASS LOCAL POSTGREST raw inventory tables absent
 PASS LOCAL POSTGREST private dispatch function not a resource
-DB PASS 42
+DB PASS 43
+PASS teacher creates item through product menu/BFF/local RPC
+PASS receive commits lot and refreshes server quantity
+PASS desktop-980x700
+PASS desktop-900x680
+PASS delegated assistant uses own quantity and has no metadata/adjust controls
+PASS mobile-390
+PASS mobile-320
+PASS network failure preserves prior amount and shows no saved success
+PASS actual P0 Dashboard/Dock product entry -> inventory, Preload MOCK to local BFF
+PASS actual Electron product renderer 980x700 in Chromium, Preload MOCK
+PASS actual Electron product renderer 900x680 in Chromium, Preload MOCK
+PASS actual product returns to personal Dashboard without modifying local inventory
+PASS inventory BFF blocks Origin/CSRF forgery
+PASS account switch clears inventory view
+PASS logout clears shared inventory
 PASS all four inventory tables FORCE RLS, owner differs from runtime
 PASS child ledger cannot be rewritten by runtime or authenticated
 PASS assistant permission ceiling and role per school cannot inherit teacher rights
