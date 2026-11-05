@@ -1,0 +1,16 @@
+{
+  "production_eligible": false,
+  "base_required": "reviewed CLOSED SCHOOL08 app; no fresh Hosted migration claimed",
+  "provider_phase": "sql/01-provider-local.sql",
+  "workspace_phase": "sql/02-bind-workspace-local.sql",
+  "explicit_qa_activation_only": "sql/03-activate-qa-only.sql",
+  "data_preserving_close": "sql/04-close-local.sql",
+  "automatic_activation": false,
+  "failed_or_alternative_candidates_in_install_sequence": [],
+  "files_sha256": {
+    "01-provider-local.sql": "8fee658ab760e57da996949c8b8125affcf84d1fd215de64ae73a44daef8206a",
+    "02-bind-workspace-local.sql": "7da8580c811f5d63e13948f3bfcc5ad04fa377ba54d976fc28b069be1721591c",
+    "03-activate-qa-only.sql": "09a6af7f2d2abda0d930fd8b82fdf5c1d6bfcfecd9f7910a12caccf6c18289da",
+    "04-close-local.sql": "680ee22c487d295213738a3a61d941b9894974083067eef20e3b2bf3a2090e72"
+  }
+}

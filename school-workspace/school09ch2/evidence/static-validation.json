@@ -1,0 +1,8 @@
+{
+  "python_compile": "PASS",
+  "bash_syntax": "PASS",
+  "inputs_and_four_bodies": "PASS",
+  "secret_pattern_scan": "PASS",
+  "scope": "school-workspace/school09ch2 only",
+  "product_build": "NOT RUN no product changes"
+}

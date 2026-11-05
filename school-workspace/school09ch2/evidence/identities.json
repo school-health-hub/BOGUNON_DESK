@@ -1,0 +1,1 @@
+[{"role": "h2_provider", "super": false, "bypass": false, "inherit": false, "auth_set": true, "ws_owner_set": false}, {"role": "h2_workspace", "super": false, "bypass": false, "inherit": false, "auth_set": false, "ws_owner_set": true}]

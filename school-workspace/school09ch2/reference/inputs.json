@@ -1,0 +1,94 @@
+{
+  "base_sha": "78016384a304540a1097935f454501d84c1367a9",
+  "prior_results": "177 DB /23 LOCAL PostgREST /26 focused are REFERENCES not rerun",
+  "files": [
+    {
+      "path": "school-workspace/school09ch/REPORT.md",
+      "sha256": "fd2defd23a66019603a8a81c13028b2e6ac6a20b7e4df943b0615af24c178b79"
+    },
+    {
+      "path": "school-workspace/school09ch/evidence/focused-results.json",
+      "sha256": "2a9d7a389b34d157159784059ccc6ea9873a52a09a3485f3afbd96c9c3de6225"
+    },
+    {
+      "path": "school-workspace/school09ch/evidence/denial-receipts.json",
+      "sha256": "dbdc7bb29bf3926c1f406f93f74e4523c9366d54e309cf741bdc24ac2547331e"
+    },
+    {
+      "path": "school-workspace/school09ch/sql/auth-install-local.sql",
+      "sha256": "e741af09bae0f358ca1bfdfe1b42ff5f2f762f67f317c9975f0b0eb4ee39f2c7"
+    },
+    {
+      "path": "school-workspace/school09c/sql/auth-bridge.sql",
+      "sha256": "c08342a3fc0100c96168f2b18e3287bfcec9983c42ca9732f5bb2d06186a26c7"
+    },
+    {
+      "path": "school-workspace/school09c/evidence/catalog-active-workspace-scope.json",
+      "sha256": "0cd39eaaac9103b04026a8e0c30eebddb741db1db2c038b52423b678c94b5c48"
+    },
+    {
+      "path": "school-workspace/school09c/evidence/results.json",
+      "sha256": "6e04422fddfa19eb415d1280c559b2d9387b819fd35e2020fd68a626fe963823"
+    },
+    {
+      "path": "school-workspace/school09c/evidence/inventory-regression.json",
+      "sha256": "59e629a985c060b302a85b66d64b0bcfe3dc0045aff6c5b18124d392fed4ff93"
+    },
+    {
+      "path": "school-workspace/school09c/evidence/school01-invariants.json",
+      "sha256": "64d6e4603291c87b8d7be0be209fd45e16b410b94114348d1a96d3a2e1f463e9"
+    },
+    {
+      "path": "school-workspace/school09c/evidence/school02-regression.json",
+      "sha256": "498426b8a94df119e585f9ee1e72cae67923955e4c49c83993846fd01fa8d21f"
+    },
+    {
+      "path": "school-workspace/school09c/evidence/school03-regression.json",
+      "sha256": "5c45b8980e394b0d9f671d32f155ab1969b45e000fb243d99495eca1f88034ce"
+    },
+    {
+      "path": "school-workspace/school09c/evidence/school04-regression.json",
+      "sha256": "6c433114dd7898fd6e8b7ba214c1c444a0e16f96df447a9de0fdc5c36ef9d362"
+    },
+    {
+      "path": "school-workspace/school09c/evidence/local-postgrest.json",
+      "sha256": "e488d2debd863a383bb32b4150ea8c83600cfb180ee3611afe79273dcd61ffaf"
+    },
+    {
+      "path": "school-workspace/school09/reference/rpc-signatures.json",
+      "sha256": "f0f6bdfa52e1f36f129ba76de37cee7b2acb34b889f772046b94ad873b4b57f1"
+    },
+    {
+      "path": "school-workspace/school08/sql/01-foundation.sql",
+      "sha256": "2830f5f2179acf2f99f1664fbc629e2fca4216a41fc95db2a5cbe7e71a4a487c"
+    },
+    {
+      "path": "school-workspace/school08/sql/fingerprint.sql",
+      "sha256": "fa69afa67d652e196d16face725d1f1510514cd4d8a6482fbe80e95ec15df67e"
+    },
+    {
+      "path": "school-workspace/school08/supabase/migrations/20261105130003_cumulative_workspace.sql",
+      "sha256": "52a4cb62ae675c0986158e7baf3940b07a6caee24e5262e0421d4513812d0062"
+    },
+    {
+      "path": "school-workspace/school06/tests/bootstrap.sql",
+      "sha256": "d76b2994a9241c4095e9d56b9d7791693a596a8c7de35fb7aee08453a842e973"
+    },
+    {
+      "path": "school-workspace/school06/tests/local-auth-capabilities.sql",
+      "sha256": "c25d38cd7116162c8d8c5e8bd357d47fecf2dd0709830044c03ae46659b744d7"
+    },
+    {
+      "path": "school-workspace/local/tests/auth_fixture.sql",
+      "sha256": "8bb152d79ead38279ef080e82701cc5ccdc8faca948f3c310942b27dc599c115"
+    },
+    {
+      "path": "school-workspace/local/tests/fixtures.sql",
+      "sha256": "72c5dc5d3be9cae542f57212c8b743966ab5e17688c8a84f782bb7ca6b1034c2"
+    },
+    {
+      "path": "school-workspace/school07/tests/run.py",
+      "sha256": "ca2a6eed540017df43b326d0f170873b37787f6470962da9cfc4558c7b545041"
+    }
+  ]
+}

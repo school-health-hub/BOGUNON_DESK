@@ -1,0 +1,16 @@
+PASS workspace installer cannot SET Auth owner; provider cannot SET Workspace owners
+PASS both actual installer LOGINs are NOSUPERUSER NOBYPASSRLS NOINHERIT
+FAIL no Auth authority fails provider phase before DDL ('provider_authority_required', 'ERROR:  42601: syntax error at or near "p"\nLINE 3: ...id(p.proowner)=\'ws_owner\'AND p.prosecdef=falseAND p.proconfi...\n                                                             ^\nLOCATION:  scanner_yyerror, scan.l:1244\n')
+Traceback (most recent call last):
+  File "/workspace/work/school-09ch2/repo/school-workspace/school09ch2/tests/install.py", line 27, in <module>
+    case('no Auth authority fails provider phase before DDL',lambda:deny(run('h2_noauth','01-provider-local.sql',False),'provider_authority_required'))
+  File "/workspace/work/school-09ch2/repo/school-workspace/school09ch2/tests/install.py", line 6, in case
+    try:fn();results.append({'name':name,'status':'PASS','classification':'LOCAL POSTGREST'if name.startswith('HTTP')else'LOCAL DB'});print('PASS',name,flush=True)
+        ^^^^
+  File "/workspace/work/school-09ch2/repo/school-workspace/school09ch2/tests/install.py", line 27, in <lambda>
+    case('no Auth authority fails provider phase before DDL',lambda:deny(run('h2_noauth','01-provider-local.sql',False),'provider_authority_required'))
+                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/school-09ch2/repo/school-workspace/school09ch2/tests/install.py", line 19, in deny
+    def deny(p,marker):assert p.returncode and marker in p.stderr,(marker,p.stderr[-2000:])
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('provider_authority_required', 'ERROR:  42601: syntax error at or near "p"\nLINE 3: ...id(p.proowner)=\'ws_owner\'AND p.prosecdef=falseAND p.proconfi...\n                                                             ^\nLOCATION:  scanner_yyerror, scan.l:1244\n')

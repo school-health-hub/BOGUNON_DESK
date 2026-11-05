@@ -1,0 +1,17 @@
+{
+  "classification": "USER PROVIDED HOSTED READ-ONLY ONLY",
+  "project": "xxownwxxajzrviuvvfiu",
+  "observed_at": null,
+  "facts": [
+    "auth.users/auth.sessions owner supabase_auth_admin",
+    "authenticated cannot SELECT those tables",
+    "Auth owner can SELECT",
+    "postgres BYPASSRLS",
+    "Workspace roles/RPC not installed"
+  ],
+  "new_direct_hosted_observations": 0,
+  "provider_install_supported": "NOT VERIFIED",
+  "workspace_roles_SET": "NOT VERIFIED",
+  "data_api_auth_jwt_logout": "NOT VERIFIED",
+  "operating_changes": 0
+}

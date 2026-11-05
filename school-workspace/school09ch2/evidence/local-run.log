@@ -1,0 +1,40 @@
+PASS workspace installer cannot SET Auth owner; provider cannot SET Workspace owners
+PASS both actual installer LOGINs are NOSUPERUSER NOBYPASSRLS NOINHERIT
+PASS no Auth authority fails provider phase before DDL
+PASS workspace phase without provider bridge fails CLOSED
+PASS provider transaction error leaks no schema or new rights
+PASS pre-existing public wrapper setting drift cannot be adopted
+PASS client role membership escalation cannot be adopted
+PASS Auth-owned provider phase installs without Workspace role SET
+PASS provider phase preserves54 CLOSED and removes reader raw Auth SELECT
+PASS provider retry verifies identical bridge without rewriting it
+PASS mid-binding CREATE grant failure is rolled back before commit
+PASS binding failure keeps committed provider but rolls back all Workspace changes
+PASS Workspace binding succeeds without any Auth owner SET capability
+PASS unexpected helper EXECUTE is removed at binding boundary
+PASS all54 signatures and public bodies owners unchanged
+PASS closed binder replay is verified no-op
+PASS QA activation grants via each actual function owner, no bypass
+PASS active binding replay preserves exact release fingerprint
+PASS Auth bridge remains private, reader CREATE absent, raw tables inaccessible
+PASS MOCK failed REST startup never exposes signing material in traceback
+PASS HTTP approved teacher public→private→reader→Auth owner chain
+PASS HTTP anon and expired signed JWT denied
+PASS HTTP pending and other-school user denied
+PASS HTTP teacher write traverses unchanged business RPC
+PASS HTTP live role downgrade blocks old JWT teacher write
+PASS HTTP live membership suspension blocks next request
+PASS HTTP two distinct sessions for same subject both initially valid
+PASS HTTP current revoked session denied while other session remains valid
+PASS HTTP current session not_after expiry overrides valid JWT signature
+PASS HTTP purpose revocation RPC records current session
+PASS HTTP app-revoked session denied with Auth row still present
+PASS HTTP mismatched sub/session binding and forged Auth role denied
+PASS HTTP private/raw endpoints are not resources
+PASS HTTP all54 CLOSED deny both anon/authenticated (108 requests,one grouped case)
+PASS HTTP closure retains existing task data
+PASS closing/replaying/reopening preserves release coherence
+PASS existing public contract remains unchanged after lifecycle
+PASS bridge drift rejects provider replay, bind and activation
+PASS emergency closure on drift retains data and marks unverified
+PASS H2 checks 39 Hosted/real OAuth NOT RUN
