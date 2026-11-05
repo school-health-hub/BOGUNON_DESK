@@ -26,7 +26,8 @@ export const commandIds = [
   "appearance",
   "dock-editor",
 ] as const;
-export type CommandId = (typeof commandIds)[number];
+// The Electron-only calendar is not registered in the Tauri command list.
+export type CommandId = (typeof commandIds)[number] | 'local-calendar';
 
 type CommandBase = {
   readonly id: CommandId;
@@ -45,6 +46,7 @@ export type CommandDefinition = CommandBase & (
 );
 
 export type CommandExecutionHandlers = {
+  readonly openLocalCalendar?:()=>void;
   readonly openQuickAdd: () => void;
   readonly runDesktopAction: (actionId: DesktopActionId) => Promise<void>;
   readonly openWorkspaceEditor: (target: WorkspaceEditorTarget) => void;

@@ -54,7 +54,7 @@ export const commandRegistry = {
   presets: { id: "presets", label: "배치", description: "업무 방식에 맞는 화면 배치를 선택합니다.", keywords: ["프리셋", "배치", "레이아웃"], group: "screen", icon: LayoutTemplate, kind: "workspaceEditor", target: "presets" },
   appearance: { id: "appearance", label: "스타일", description: "배경과 카드 모양을 변경합니다.", keywords: ["화면", "스타일", "배경", "테마"], group: "screen", icon: Palette, kind: "workspaceEditor", target: "appearance" },
   "dock-editor": { id: "dock-editor", label: "Dock", description: "Dock 항목의 순서와 표시 여부를 바꿉니다.", keywords: ["dock", "독", "편집", "순서"], group: "screen", icon: PanelBottom, kind: "workspaceEditor", target: "dock" },
-} as const satisfies Record<CommandId, CommandDefinition>;
+} as const satisfies Record<(typeof commandIds)[number], CommandDefinition>;
 
 export const commandDefinitions = commandIds.map((commandId) => commandRegistry[commandId]);
 
@@ -78,6 +78,7 @@ export const executeCommand = async (
   commandId: CommandId,
   handlers: CommandExecutionHandlers,
 ): Promise<void> => {
+  if(commandId==='local-calendar'){if(!handlers.openLocalCalendar)throw Error('이 환경은 로컬 일정을 지원하지 않습니다.');handlers.openLocalCalendar();return;}
   const command = commandRegistry[commandId];
   switch (command.kind) {
     case "quickAdd":

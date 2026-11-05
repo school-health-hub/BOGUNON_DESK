@@ -13,6 +13,7 @@
     "chatgpt-protocol.js",
     "inventory-qa-protocol.js",
     "local-tasks.js",
+    "local-events.js",
     "admin-protocol.js",
     "school-protocol.js",
     "renderer/**",

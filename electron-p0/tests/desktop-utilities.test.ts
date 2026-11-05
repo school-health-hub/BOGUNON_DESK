@@ -16,3 +16,7 @@ it('exposes only supported commands and refuses arbitrary paths, URLs or OS comm
  for(const id of ['javascript:alert(1)','https://example.test','C:\\Windows\\system32\\cmd.exe','__proto__','constructor','record-student-search'])await expect(runElectronCommand(id,handlers)).rejects.toThrow();
  expect(handlers.runDesktopAction).not.toHaveBeenCalled();await runElectronCommand('calculator',handlers);expect(handlers.runDesktopAction).toHaveBeenCalledExactlyOnceWith('calculator');await runElectronCommand('quick-add',handlers);expect(handlers.openQuickAdd).toHaveBeenCalledOnce();
 });
+it('exposes the calendar only in Electron and never falls through to the Task Quick Add handler',async()=>{
+ const handlers={openQuickAdd:vi.fn(),openLocalCalendar:vi.fn(),runDesktopAction:vi.fn(async()=>{}),openWorkspaceEditor:vi.fn(),openWidgetLibrary:vi.fn()};
+ expect(electronCommands.filter(c=>c.id==='local-calendar')).toHaveLength(1);await runElectronCommand('local-calendar',handlers);expect(handlers.openLocalCalendar).toHaveBeenCalledOnce();expect(handlers.openQuickAdd).not.toHaveBeenCalled();expect(handlers.runDesktopAction).not.toHaveBeenCalled();await expect(runElectronCommand('local-calendar',{...handlers,openLocalCalendar:undefined})).rejects.toThrow();
+});

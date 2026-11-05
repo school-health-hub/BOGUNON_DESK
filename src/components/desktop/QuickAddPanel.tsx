@@ -47,6 +47,7 @@ type QuickAddPanelProps = {
   readonly storageMode?:'bogunon'|'electron-local';
   readonly saveEnabled?:boolean;
   readonly embedded?:boolean;
+  readonly onOpenLocalCalendar?:()=>void;
 };
 
 export function QuickAddPanel({
@@ -62,7 +63,7 @@ export function QuickAddPanel({
   isSaving,
   onClose,
   onSubmit,
-  storageMode='bogunon',saveEnabled=true,embedded=false,
+  storageMode='bogunon',saveEnabled=true,embedded=false,onOpenLocalCalendar,
 }: QuickAddPanelProps) {
   const local=storageMode==='electron-local';
   const [kind, setKind] = useState<"task" | "event">(local?'task':initialKind);
@@ -109,7 +110,7 @@ export function QuickAddPanel({
 
       <div className="quick-add-panel__tabs" role="tablist" aria-label="추가할 항목 종류">
         <button disabled={isSaving} className={kind === "task" ? "is-active" : ""} type="button" role="tab" aria-selected={kind === "task"} onClick={() => setKind("task")}>업무</button>
-        <button disabled={local||isSaving} title={local?'독립 일정·서버 일정 저장은 지원하지 않습니다.':undefined} className={kind === "event" ? "is-active" : ""} type="button" role="tab" aria-selected={kind === "event"} onClick={() => setKind("event")}>일정</button>
+        <button disabled={local&&!onOpenLocalCalendar||isSaving} title={local?(onOpenLocalCalendar?'독립 로컬 일정 창으로 이동':'독립 일정·서버 일정 저장은 지원하지 않습니다.'):undefined} className={kind === "event" ? "is-active" : ""} type="button" role="tab" aria-selected={kind === "event"} onClick={() => {if(local&&onOpenLocalCalendar){if(task.title.trim()&&!window.confirm('입력 중인 업무는 저장하지 않고 독립 일정 창으로 이동할까요? 기존 저장 업무는 유지됩니다.'))return;onOpenLocalCalendar();}else setKind('event');}}>일정</button>
       </div>
 
       <form onSubmit={(formEvent) => void submit(formEvent)}>
@@ -197,7 +198,7 @@ export function QuickAddPanel({
         )}
 
         {!local&&authStatus === "signedOut" && <p className="quick-add-panel__auth">저장하려면 Google 계정을 연결해 주세요.</p>}
-        {local&&<p>날짜가 있는 로컬 업무만 저장합니다. 독립 일정·시간 일정·서버 동기화·계정 연결은 지원하지 않습니다.</p>}
+        {local&&<p>날짜가 있는 로컬 업무만 저장합니다. {onOpenLocalCalendar?'독립 일정은 별도 일정 창에서 저장합니다. 서버 동기화·계정 연결은 지원하지 않습니다.':'독립 일정·시간 일정·서버 동기화·계정 연결은 지원하지 않습니다.'}</p>}
         {error !== null && <p className="quick-add-panel__error" role="alert">{error}</p>}
         <p className="quick-add-panel__helper">{local?'학생·교직원 개인정보와 건강정보는 입력하지 마세요.':'상세 기록이나 개인정보가 필요한 내용은 BOGUNON에서 관리하세요.'}</p>
         <div className="quick-add-panel__actions">

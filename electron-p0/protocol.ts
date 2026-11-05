@@ -1,3 +1,4 @@
+import type {LocalEventsBridge} from './local-events.js';
 import type {AdminBridge} from './admin-protocol.js';
 import type {FinanceBridge} from './finance-protocol.js';
 import type {LocalTaskDocument,LocalTaskLoad} from './local-tasks.js';
@@ -44,6 +45,7 @@ export interface WorkBridge {
  readonly admin?:AdminBridge;
  readonly finance?:FinanceBridge;
  readonly ai?:AiBridge;
+ readonly events?:LocalEventsBridge;
  readonly tasks:Readonly<{load():Promise<IpcResult<LocalTaskLoad>>;save(document:LocalTaskDocument,expectedRevision:number):Promise<IpcResult<LocalTaskLoad>>}>;
   inventoryLocalQa?: { status: () => Promise<IpcResult<InventoryQaStatus>>; business?: InventoryQaApi };
  readonly officialDocument:Readonly<{pick():Promise<IpcResult<OfficialDocumentImported|null>>;save(document:OfficialDocumentSave):Promise<IpcResult<{fileName:string}|null>>;cancel():Promise<IpcResult<null>>}>;
