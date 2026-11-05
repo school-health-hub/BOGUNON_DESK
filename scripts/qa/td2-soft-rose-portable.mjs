@@ -214,7 +214,7 @@ try{
   mainWs.addEventListener('message',event=>{const message=JSON.parse(event.data);if(replies.has(message.id)){replies.get(message.id)(message);replies.delete(message.id);}});
   const mainEval=async expression=>{
     const id=++seq;const response=await new Promise((ok,bad)=>{const timer=setTimeout(()=>{replies.delete(id);bad(Error('Bounded QA Main probe timeout'));},45000);replies.set(id,m=>{clearTimeout(timer);ok(m);});mainWs.send(JSON.stringify({id,method:'Runtime.evaluate',params:{expression,awaitPromise:true,returnByValue:true}}));});
-    if(response.error||response.result?.exceptionDetails)throw Error('QA Main probe failed (content omitted)');return response.result?.result?.value;
+    if(response.error||response.result?.exceptionDetails)throw Error('QA Main probe failed: '+String(response.result?.exceptionDetails?.exception?.description??response.error?.message??'unknown').split('\n')[0].slice(0,200));return response.result?.result?.value;
   };
   const mainCall=(fn,args)=>mainEval('('+fn.toString()+')('+JSON.stringify(args)+')');
   await mainCall(async function(){
@@ -252,7 +252,7 @@ try{
     await page.locator('.ev-results').getByRole('button',{name:/선택/}).first().click();
 
     const notes=page.getByLabel('사용자 메모',{exact:true});await notes.fill('SYNTHETIC_TRAY_MEMO');
-    const proof=await mainCall(async function(){const q=globalThis.__parityQa;const win=q.e.BrowserWindow.fromWebContents(q.wc);const item=q.e.Menu.getApplicationMenu().items[0].submenu.items.find(i=>i.type==='checkbox');if(!item?.enabled)throw Error('Tray unavailable');item.checked=true;await item.click(item);q.windowId=win.id;q.handlers=q.e.ipcMain._invokeHandlers.size;return {id:win.id,wc:q.wc.id,pid:q.wc.getOSProcessId()};});
+    const proof=await mainCall(async function(){const q=globalThis.__parityQa;const win=q.e.BrowserWindow.fromWebContents(q.wc);const item=q.e.Menu.getApplicationMenu().items[0].submenu.items.find(i=>i.type==='checkbox');if(!item?.enabled)throw Error('Tray unavailable');if(!item.checked)await item.click(item);const fs=process.getBuiltinModule('fs'),path=process.getBuiltinModule('path');const settings=JSON.parse(fs.readFileSync(path.join(q.e.app.getPath('userData'),'poc-settings','desktop.json'),'utf8'));if(settings.closeBehavior!=='tray')throw Error('QA tray setting did not persist');q.windowId=win.id;q.handlers=q.e.ipcMain._invokeHandlers.size;return {id:win.id,wc:q.wc.id,pid:q.wc.getOSProcessId()};});
     const cycles=[];
     for(let i=0;i<3;i++){const hidden=await mainCall(async function(){const q=globalThis.__parityQa,w=q.e.BrowserWindow.fromWebContents(q.wc);w.close();await new Promise(r=>setTimeout(r,150));return {destroyed:w.isDestroyed(),visible:w.isVisible()};});if(hidden.destroyed||hidden.visible)throw Error('Close did not hide live window');
       const restored=await mainCall(async function(){const q=globalThis.__parityQa,w=q.e.BrowserWindow.fromWebContents(q.wc);w.show();w.focus();return {id:w.id,wc:q.wc.id,pid:q.wc.getOSProcessId(),handlers:q.e.ipcMain._invokeHandlers.size};});
