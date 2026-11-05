@@ -4,7 +4,7 @@ run-name: Windows GUI FINAL / 166df05 / ${{ github.run_id }}
 on:
   push:
     branches: [qa/final-integrated-windows]
-    paths: ['.github/workflows/electron-p0-windows.yml', 'scripts/qa/td2-soft-rose-portable.mjs']
+    paths: ['.github/workflows/electron-p0-windows.yml', 'scripts/qa/td2-soft-rose-portable.mjs', 'scripts/qa/td2-window.ps1']
   workflow_dispatch:
 
 permissions:
