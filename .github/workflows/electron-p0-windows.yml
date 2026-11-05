@@ -1,5 +1,5 @@
 name: Final integrated Portable Windows QA
-run-name: ACCOUNT 02B configured OAuth / 8f9a1f0 / ${{ github.run_id }}
+run-name: SCHOOL05 + ACCOUNT02B final integrated QA / ${{ github.run_id }}
 
 on:
   workflow_call:
@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   portable-gui:
-    if: (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/qa/final-integrated-windows' && github.run_attempt == 1
+    if: (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/integration/school-05-account-02b-qa' && github.run_attempt == 1
     runs-on: windows-2022
     timeout-minutes: 40
     defaults:
@@ -28,13 +28,13 @@ jobs:
     env:
       CI: 'true'
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      TD2_CONTROLLER_BASE_SHA: b085e8b7c7a5ec1bd6c7ba54cc689fcf11dbc2cc
-      TD2_PRODUCT_SHA: 8f9a1f0aa88502b1c45b2d575abdab5300234bbb
+      TD2_CONTROLLER_BASE_SHA: 8f9a1f0aa88502b1c45b2d575abdab5300234bbb
+      TD2_PRODUCT_SHA: ${{ github.sha }}
     steps:
       - name: Checkout immutable approved product
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: 8f9a1f0aa88502b1c45b2d575abdab5300234bbb
+          ref: ${{ github.sha }}
           path: source
           persist-credentials: false
           fetch-depth: 0
@@ -57,10 +57,8 @@ jobs:
           $source=(git -C source rev-parse HEAD).Trim()
           if($source -cne $env:TD2_PRODUCT_SHA){throw 'Approved product SHA mismatch'}
           if(git -C source status --porcelain){throw 'Approved product checkout is dirty'}
-          $allowed=@('.github/workflows/electron-p0-windows.yml','scripts/qa/td2-soft-rose-portable.mjs','scripts/qa/td2-window.ps1','.github/workflows/electron-cloud-g0.yml')
-          $changed=@(git -C controller diff --name-only $env:TD2_CONTROLLER_BASE_SHA HEAD)
-          foreach($path in $changed){if($path -notin $allowed){throw "Non-QA controller change: $path"}}
-          if($changed.Count -ne 4){throw 'Expected exactly four QA controller files'}
+          $changed=@(git -C source diff --name-only $env:TD2_CONTROLLER_BASE_SHA HEAD)
+          foreach($path in $changed){if($path -notmatch '^(school-workspace/|electron-p0/|scripts/qa/|\.github/workflows/electron-(cloud-g0|p0-windows)\.yml$|\.gitignore$)'){throw "Unexpected integration change: $path"}}
           $root=Join-Path $env:RUNNER_TEMP "td2-portable-$env:GITHUB_RUN_ID"
           New-Item -ItemType Directory "$root/evidence","$root/temp","$root/npm-cache","$root/f-drive" | Out-Null
           New-Item -ItemType Directory "$root/profile","$root/appdata","$root/localappdata" | Out-Null
@@ -70,6 +68,8 @@ jobs:
           "TEMP=$root/temp" >> $env:GITHUB_ENV
           "TMP=$root/temp" >> $env:GITHUB_ENV
           "npm_config_cache=$root/npm-cache" >> $env:GITHUB_ENV
+          "ELECTRON_CACHE=$root/electron-cache" >> $env:GITHUB_ENV
+          "ELECTRON_BUILDER_CACHE=$root/builder-cache" >> $env:GITHUB_ENV
           "ELECTRON_P0_QA_ROOT=$root/profile" >> $env:GITHUB_ENV
           [ordered]@{
             productSha=$source;controllerSha=(git -C controller rev-parse HEAD).Trim();workflowSha='${{ github.workflow_sha }}'
@@ -135,6 +135,30 @@ jobs:
           $state | Set-Content "$env:TD2_EVIDENCE_ROOT/checkout-state.txt"
           if($state.Count){$state | Write-Output;throw 'Product checkout modified'}
           [ordered]@{policy='canonical LF Git bytes for src-tauri/src/record_helper_import only';reason='fixed product build.rs performs LF-sensitive import stripping';productCodeChanged=$false;blobHashesVerified=$true} | ConvertTo-Json | Set-Content "$env:TD2_EVIDENCE_ROOT/checkout-policy.json"
+      - name: Focused existing-feature and Workspace regression
+        working-directory: source
+        run: |
+          New-Item -ItemType Directory tools/purchase-excel-cli/target/debug -Force | Out-Null
+          Copy-Item build/purchase-excel-cli/purchase-excel-cli.exe tools/purchase-excel-cli/target/debug/purchase-excel-cli.exe
+          Copy-Item build/purchase-excel-cli/purchase-excel-cli.exe tools/purchase-excel-cli/target/debug/purchase-excel-cli
+          node --input-type=module -e "import fs from 'node:fs';import {execFileSync} from 'node:child_process';const paths=JSON.parse(fs.readFileSync('../controller/scripts/qa/school05-regression-files.json'));execFileSync(process.execPath,['node_modules/vitest/vitest.mjs','run',...paths,'--reporter=json','--outputFile='+process.env.TD2_EVIDENCE_ROOT+'/existing-regression.json'],{stdio:'inherit'});"
+          if($LASTEXITCODE -ne 0){throw 'Existing-feature regression failed'}
+          node node_modules/vitest/vitest.mjs run --config school-workspace/auth/vitest.config.ts --reporter=json --outputFile="$env:TD2_EVIDENCE_ROOT/workspace-auth-regression.json"
+          if($LASTEXITCODE -ne 0){throw 'Workspace auth regression failed'}
+          node node_modules/vitest/vitest.mjs run --config school-workspace/school05/vitest.config.ts school-workspace/school05/tests/boundary.test.ts school-workspace/school05/tests/platform-docker.test.ts school-workspace/school05/tests/product-ui.test.tsx school-workspace/school05/tests/web-generation.test.ts --reporter=json --outputFile="$env:TD2_EVIDENCE_ROOT/workspace-boundary-regression.json"
+          if($LASTEXITCODE -ne 0){throw 'Workspace boundary regression failed'}
+      - name: Initialize isolated native Windows PostgreSQL
+        working-directory: source
+        run: pwsh -NoProfile -File ../controller/scripts/qa/school05-native-pg.ps1 -Action Start
+      - name: Strict Workspace checks
+        working-directory: source
+        run: |
+          node node_modules/typescript/bin/tsc -p school-workspace/school05/tsconfig.json
+          if($LASTEXITCODE -ne 0){throw 'Workspace strict typecheck failed'}
+          node node_modules/vite/bin/vite.js build --config school-workspace/school05/vite.config.ts
+          if($LASTEXITCODE -ne 0){throw 'Workspace Web build failed'}
+          node ../controller/scripts/qa/school05-build-native-provider.mjs
+          if($LASTEXITCODE -ne 0){throw 'External Windows QA provider build failed'}
       - name: Build configured Portable with masked existing public variables
         working-directory: source
         env:
@@ -145,6 +169,10 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Electron build failed'}
           node --input-type=module -e "import fs from 'node:fs';import {parseAccountConfig} from './build/electron-p0-app/main/account-network.js';const c=parseAccountConfig(JSON.parse(fs.readFileSync('build/electron-p0-app/account-config.json')));const origin=JSON.parse(fs.readFileSync('config/production-supabase.json')).origin;if(!c||c.origin!==origin||c.publishableKey!==process.env.VITE_SUPABASE_PUBLISHABLE_KEY.trim())throw Error('Public configuration injection rejected');fs.writeFileSync(process.env.TD2_EVIDENCE_ROOT+'/public-auth-build.json',JSON.stringify({configured:true,originMatches:true,publicClientKeyOnly:true,secretInputsUsedForLogMaskingOnly:true,keyValueLogged:false,sourceSha:process.env.TD2_PRODUCT_SHA}));"
           if($LASTEXITCODE -ne 0){throw 'Public auth build injection failed'}
+          node school-workspace/school05/tools/scan-product.mjs
+          if($LASTEXITCODE -ne 0){throw 'School production boundary scan failed'}
+          Copy-Item school-workspace/school05/evidence/product-boundary.json "$env:TD2_EVIDENCE_ROOT/school05-product-boundary.json"
+          git restore -- school-workspace/school05/evidence/product-boundary.json
           npx electron-builder --config electron-p0/builder.json --win portable --x64 --publish never
           if($LASTEXITCODE -ne 0){throw '5-CLI Portable build failed'}
       - name: Record Portable and actual Windows DPI
@@ -182,15 +210,16 @@ jobs:
           }
           $manifest=Get-Content "$resources/chatgpt-auth-cli/manifest.json" -Raw|ConvertFrom-Json
           if($manifest.sourceSha -cne 'b9a0a1b3893c2f45eeeed7278b86442e415dc159' -or $manifest.dirty){throw 'Native source provenance mismatch'}
-          node -e "const {createPackageFromStreams}=require('@electron/asar');const asar=require('@electron/asar');const p='release-electron-p0/win-unpacked/resources/app.asar';const fs=require('fs');const meta=JSON.parse(asar.extractFile(p,'build-meta.json'));if(meta.sourceSha!==process.env.TD2_PRODUCT_SHA||meta.dirty)throw Error('ASAR source mismatch');for(const f of ['purchase-ai-protocol.js','ai-image-capabilities.json','main/account-sdk.js','account-config.json'])asar.extractFile(p,f);const cfg=JSON.parse(asar.extractFile(p,'account-config.json'));const staged=JSON.parse(fs.readFileSync('build/electron-p0-app/account-config.json'));if(cfg.origin!==staged.origin||cfg.publishableKey!==staged.publishableKey||!cfg.publishableKey)throw Error('Packaged public config mismatch');for(const f of asar.listPackage(p).filter(f=>f.startsWith('/renderer/')&&f.endsWith('.js'))){if(asar.extractFile(p,f.slice(1)).includes(Buffer.from(cfg.publishableKey)))throw Error('Public key unexpectedly embedded in renderer');}fs.writeFileSync(process.env.TD2_EVIDENCE_ROOT+'/asar-source.json',JSON.stringify(meta));"
+          node -e "const {createPackageFromStreams}=require('@electron/asar');const asar=require('@electron/asar');const p='release-electron-p0/win-unpacked/resources/app.asar';const fs=require('fs');const meta=JSON.parse(asar.extractFile(p,'build-meta.json'));if(meta.sourceSha!==process.env.TD2_PRODUCT_SHA||meta.dirty)throw Error('ASAR source mismatch');for(const f of ['purchase-ai-protocol.js','ai-image-capabilities.json','main/account-sdk.js','account-config.json','workspace-protocol.js','main/workspace-product.js'])asar.extractFile(p,f);const cfg=JSON.parse(asar.extractFile(p,'account-config.json'));const staged=JSON.parse(fs.readFileSync('build/electron-p0-app/account-config.json'));if(cfg.origin!==staged.origin||cfg.publishableKey!==staged.publishableKey||!cfg.publishableKey)throw Error('Packaged public config mismatch');for(const f of asar.listPackage(p).filter(f=>f.startsWith('/renderer/')&&f.endsWith('.js'))){if(asar.extractFile(p,f.slice(1)).includes(Buffer.from(cfg.publishableKey)))throw Error('Public key unexpectedly embedded in renderer');}fs.writeFileSync(process.env.TD2_EVIDENCE_ROOT+'/asar-source.json',JSON.stringify(meta));"
           if($LASTEXITCODE -ne 0){throw 'ASAR provenance/resource verification failed'}
       - name: Run actual Portable and capture Electron GUI
         working-directory: source
-        run: node ../controller/scripts/qa/td2-soft-rose-portable.mjs 2>&1 | Tee-Object "$env:TD2_EVIDENCE_ROOT/portable-gui.log"
+        run: node ../controller/scripts/qa/school05-windows.mjs 2>&1 | Tee-Object "$env:TD2_EVIDENCE_ROOT/portable-gui.log"
       - name: Verify clean shutdown and finalize evidence
         if: always()
         run: |
           $ErrorActionPreference='Stop'
+          if($env:SCHOOL05_PG_BIN){Push-Location source;try{pwsh -NoProfile -File ../controller/scripts/qa/school05-native-pg.ps1 -Action Stop}finally{Pop-Location}}
           $ownedRoot=[IO.Path]::GetFullPath("$env:TD2_ROOT/temp")+'\'
           $before=@(Get-CimInstance Win32_Process|Where-Object{$_.ExecutablePath -and $_.ExecutablePath.StartsWith($ownedRoot,[StringComparison]::OrdinalIgnoreCase) -and $_.Name -like 'BOGUNON*'})
           foreach($owned in $before){$current=Get-CimInstance Win32_Process -Filter "ProcessId=$($owned.ProcessId)";if($current -and $current.CreationDate -eq $owned.CreationDate -and $current.ExecutablePath -eq $owned.ExecutablePath){Stop-Process -Id $current.ProcessId -Force -ErrorAction SilentlyContinue}}
@@ -208,7 +237,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: account02b-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          name: school05-integrated-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/td2-portable-${{ github.run_id }}/evidence/
           if-no-files-found: error
           retention-days: 14
@@ -216,7 +245,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: success() || failure()
         with:
-          name: account02b-portable-8f9a1f0-${{ github.run_id }}
+          name: school05-integrated-portable-${{ github.run_id }}
           path: source/release-electron-p0/*.exe
           if-no-files-found: ignore
           retention-days: 14

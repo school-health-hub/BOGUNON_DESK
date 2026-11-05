@@ -56,3 +56,8 @@ release-output/
 /tools/record-helper-cli/target/
 /build/record-helper-cli/
 /build/record-helper-fixtures/
+
+# Isolated SCHOOL-05 generated QA/Web output; never product resources
+/build/school05-qa/
+/build/school05-local/
+/build/school05-web/
