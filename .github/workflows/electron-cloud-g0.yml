@@ -3,12 +3,17 @@ on:
   push:
     branches: [codex/cloud-g0-integration-stabilization, integration/school-05-account-02b-qa]
   workflow_dispatch:
+    inputs:
+      windows_only:
+        description: Reuse a completed Linux DB result; run only the Windows QA job
+        type: boolean
+        default: false
 permissions:
   contents: read
   actions: read
 jobs:
   instructor02-db:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/instructor02-actions-qa'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/instructor02-actions-qa' && !inputs.windows_only
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:

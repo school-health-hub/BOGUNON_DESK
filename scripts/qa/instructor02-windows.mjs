@@ -61,7 +61,7 @@ async function launch(){
  await page.getByRole('button',{name:/우리 보건실 · 학교 공유/}).click();
  await expect.poll(()=>page.evaluate(()=>window.electronWorkspace.status().then(s=>s.mode))).toBe('qa');
  const info=await page.evaluate(()=>window.electronP0.info());
- result.runtime=info;assert.equal(info.sourceSha,sha);assert.ok(info.userData.startsWith(qaRoot));
+ result.runtime=info;assert.equal(info.sourceSha,sha);assert.ok(resolve(info.userData).toLowerCase().startsWith(resolve(qaRoot).toLowerCase()+'\\'));
  await app.evaluate(({dialog,BrowserWindow},paths)=>{
   globalThis.__instructor02={pick:paths.teacher,pdf:null,printError:null};
   dialog.showOpenDialog=async()=>({canceled:false,filePaths:[globalThis.__instructor02.pick]});
