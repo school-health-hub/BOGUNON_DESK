@@ -16,6 +16,7 @@
     "local-events.js",
     "admin-protocol.js",
     "school-protocol.js",
+    "school-launcher.js",
     "renderer/**",
     "build-meta.json",
     "package.json",

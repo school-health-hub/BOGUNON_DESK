@@ -168,7 +168,7 @@ else {
   const releaseAdminProbe=()=>app.removeListener('select-client-certificate',adminProbe.denyCertificate);
   window.on('closed',releaseAdminProbe);app.on('will-quit',releaseAdminProbe);
   const adminHandlers=createAdminHandlers(window.webContents,url,{store:adminStore,excel:excelService,protectedRoot:userData,
-   school:async()=>(await schoolStore.load()).document.school,
+   school:async()=>(await schoolStore.load()).document.school,schoolProfile:()=>schoolStore.load(),
    inspect:(target,signal)=>inspectAdminConnection(adminProbe.fetch,target,signal),
    pick:async()=>{const r=await dialog.showOpenDialog(window,{title:'학교 행정 검토용 CSV/XLSX 선택',properties:['openFile','dontAddToRecent'],filters:[{name:'검토용 표',extensions:['csv','xlsx']}]});return r.canceled?undefined:r.filePaths[0];},
    save:async()=>{const r=await dialog.showSaveDialog(window,{title:'학교 행정 검토용 CSV 저장',defaultPath:'학교행정_검토용.csv',properties:['dontAddToRecent'],filters:[{name:'검토용 CSV',extensions:['csv']}]});return r.canceled?undefined:r.filePath;},

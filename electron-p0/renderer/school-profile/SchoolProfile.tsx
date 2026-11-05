@@ -1,5 +1,7 @@
 import {createContext,useContext,useEffect,useRef,useState,type ReactNode} from 'react';
-import {EDUCATION_OFFICES,OFFICE_LAUNCHER_URLS,type SchoolLoad,type SchoolSearch,type SchoolSelection,type OfficeCode} from '../../school-protocol';
+import {SchoolSystemAddresses} from './SchoolSystemAddresses';
+import type {AdminLoad} from '../../admin-protocol';
+import {EDUCATION_OFFICES,type SchoolLoad,type SchoolSearch,type SchoolSelection,type OfficeCode} from '../../school-protocol';
 import type {IpcResult} from '../../protocol';
 import {SurfaceDialog} from '../SurfaceDialog';
 import './school-profile.css';
@@ -14,11 +16,12 @@ export function SchoolProfileProvider({children}:{children:ReactNode}){
  return <Context.Provider value={{data,loading,error,refresh,selected}}>{children}</Context.Provider>;
 }
 export function SchoolInitialSetup(){
- const state=useContext(Context),[dismissed,setDismissed]=useState(false);
- if(!state?.data||state.loading||state.error||state.data.document.school||dismissed)return null;
- return <SurfaceDialog title="학교 초기 설정" onClose={()=>setDismissed(true)}><SchoolProfileSettings/><button type="button" onClick={()=>setDismissed(true)}>나중에 설정</button><p>학교를 선택하지 않아도 기존 로컬 작업을 계속할 수 있습니다.</p></SurfaceDialog>;
+ const state=useContext(Context),[dismissed,setDismissed]=useState(false),[started,setStarted]=useState(false);
+ useEffect(()=>{if(state?.data&&!state.loading&&!state.error&&!state.data.document.school)setStarted(true);},[state?.data,state?.loading,state?.error]);
+ if(!state?.data||state.loading||state.error||state.data.document.school&&!started||dismissed)return null;
+ return <SurfaceDialog title="학교 초기 설정" onClose={()=>setDismissed(true)}><SchoolProfileSettings/><button type="button" onClick={()=>setDismissed(true)}>{state.data.document.school?'학교 설정 마치기':'나중에 설정'}</button><p>학교를 선택하지 않아도 기존 로컬 작업을 계속할 수 있습니다.</p></SurfaceDialog>;
 }
-export function SchoolProfileSettings(){
+export function SchoolProfileSettings({showAddresses=true}:{showAddresses?:boolean}={}){
  const state=useContext(Context),api=window.electronWork.school;
  const [name,setName]=useState(''),[office,setOffice]=useState<OfficeCode|''>(''),[search,setSearch]=useState<SchoolSearch|null>(null),[busy,setBusy]=useState(false),[searching,setSearching]=useState(false),[notice,setNotice]=useState('');const mounted=useRef(true),epoch=useRef(0),running=useRef(false);
  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;epoch.current++;void api?.cancel();};},[api]);
@@ -30,6 +33,7 @@ export function SchoolProfileSettings(){
   <h2>학교 선택</h2><p>이 Electron 프로필에서 학교명·학교코드·시도교육청코드를 한 번 저장해 행정 런처에서 재사용합니다.</p>
   <p className="school-profile-status">BOGUNON 계정 연결: 현재 Electron에서 미지원. 기존 Tauri 계정·등록 학교를 자동으로 읽거나 가져오지 않습니다. NEIS 공개 조회에서 학교를 선택해 주세요.</p>
   {current?<p><strong>현재 학교: {current.schoolName}</strong><br/>{current.officeName} · 교육청 {current.officeCode} · 학교 {current.schoolCode}</p>:<p>아직 학교를 선택하지 않았습니다.</p>}
+  {showAddresses&&<SchoolSystemAddresses school={current??null} blocked={!!state.data?.recovered||busy||state.loading}/>}
   {state.error&&<p role="alert">{state.error}</p>}{state.data?.recovered&&<p role="alert">학교 프로필 백업을 읽었습니다. 원본 보호를 위해 변경을 차단합니다.</p>}
   <button type="button" disabled={busy||state.loading} onClick={()=>void state.refresh()}>학교 정보 다시 불러오기</button>
   <form onSubmit={event=>{event.preventDefault();void run(async token=>{setSearching(true);setSearch(null);setNotice('NEIS에 학교 이름만 전송해 조회하는 중…');const result=read(await api.search({name:name.trim(),officeCode:office}));if(!mounted.current||token!==epoch.current)return;setSearch(result);setNotice(result.results.length?'결과를 확인하고 학교 선택 버튼을 눌러 주세요. 검색만으로 학교를 변경하지 않습니다.':'조회 결과가 없습니다. 교육청과 학교 이름을 확인해 주세요.');});}}>
@@ -42,9 +46,9 @@ export function SchoolProfileSettings(){
   {search&&<ul className="school-profile-results">{search.results.map(candidate=><li key={candidate.school.officeCode+candidate.school.schoolCode}><div><strong>{candidate.school.schoolName}</strong><p>{candidate.school.officeName} · {candidate.kind} · {candidate.location}<br/>교육청 {candidate.school.officeCode} · 학교 {candidate.school.schoolCode}</p></div><button type="button" disabled={busy||!state.data||state.data.recovered||state.loading} onClick={()=>void run(async()=>{if(!state.data||!window.confirm(`${candidate.school.schoolName}을 공통 학교로 저장할까요? 기존 시스템 주소·복무 초안·Excel·다른 로컬 데이터는 변경하지 않습니다. 주소가 새 학교에 맞는지 직접 확인해 주세요.`))return;await state.selected({searchId:search.searchId,officeCode:candidate.school.officeCode,schoolCode:candidate.school.schoolCode,expectedRevision:state.data.document.revision});if(mounted.current){setSearch(null);setNotice('학교 프로필을 저장했습니다. 기존 주소·초안·업무 데이터는 유지했습니다.');}})}>학교 선택 · {candidate.school.schoolName}</button></li>)}</ul>}
  </section>;
 }
-export function SchoolLauncherProfile({onConfigure}:{onConfigure:()=>void}){
+export function SchoolLauncherProfile({onConfigure,onApplied,onBusyChange,blocked=false,revision}:{onConfigure:()=>void;onApplied?:(load:AdminLoad)=>void;onBusyChange?:(busy:boolean)=>void;blocked?:boolean;revision?:number}){
  const state=useContext(Context);if(!state)return null;const school=state.data?.document.school;
- const defaults=school?OFFICE_LAUNCHER_URLS[school.officeCode as OfficeCode]:undefined;
- const verifiedCount=defaults?Object.values(defaults).reduce((sum,env)=>sum+Object.keys(env).length,0):0;
- return <section className="school-profile school-launcher-profile" aria-label="행정 런처 학교 프로필"><h2>공통 학교</h2>{school?<><strong>{school.schoolName}</strong><p>{school.officeName} · {school.officeCode} / {school.schoolCode}</p><p>학교를 변경해도 기존 학교망/eVPN 주소는 유지됩니다. 새 교육청의 주소인지 직접 확인해 주세요.</p><p>{verifiedCount?'검증된 교육청 주소가 있습니다. 기존 주소를 변경하기 전 확인해 주세요.':'이 교육청의 검증된 공식 URL 기본값은 없습니다. 기관 안내를 확인해 업무포털·나이스·K-에듀파인·eVPN 주소를 직접 등록해 주세요.'}</p></>:<p>학교를 아직 선택하지 않았습니다. 기존 등록 주소는 계속 사용할 수 있습니다.</p>}{state.error&&<p role="alert">{state.error}</p>}<button type="button" onClick={onConfigure}>현재 환경 주소 설정</button><details><summary>학교 선택·변경</summary><SchoolProfileSettings/></details></section>;
+ return <section className="school-profile school-launcher-profile" aria-label="행정 런처 학교 프로필"><h2>공통 학교</h2>{school?<><strong>{school.schoolName}</strong><p>{school.officeName} · {school.officeCode} / {school.schoolCode}</p><p>학교 변경만으로 기존 주소를 변경하지 않습니다. 아래 현재 주소와 초기값을 확인하고 적용할 항목을 직접 선택하세요.</p></>:<p>학교를 아직 선택하지 않았습니다. 기존 등록 주소는 계속 사용할 수 있습니다.</p>}{state.error&&<p role="alert">{state.error}</p>}
+ <SchoolSystemAddresses school={school??null} revision={revision} onApplied={onApplied} onBusyChange={onBusyChange} blocked={blocked||!!state.data?.recovered||state.loading} onConfigure={onConfigure}/>
+ <button type="button" onClick={onConfigure}>현재 환경 주소 설정</button><details><summary>학교 선택·변경</summary><SchoolProfileSettings showAddresses={false}/></details></section>;
 }

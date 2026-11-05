@@ -9,8 +9,9 @@ export type VerifiedSchoolUrl=Readonly<{url:string;evidence:string;verifiedOn:st
 export type OfficeUrls=Readonly<Record<AdminEnvironment,Readonly<Partial<Record<AdminSystem|'evpn',VerifiedSchoolUrl>>>>>;
 // Initial values copied verbatim from the user's final 17-office table.
 // Source registration does not verify network reachability or authentication.
-// Gangwon (K10) remains explicitly pending official confirmation; do not substitute
-// gwe or generate other URLs. This table has no K-Edufine entries.
+// Gangwon (K10) portal/NEIS/eVPN remain pending confirmation; preserve kwe
+// verbatim rather than substituting gwe. Only the separately user-confirmed Gangwon
+// K-Edufine URL recorded in docs/school-admin/LAUNCHER_CONNECTION.md is added below.
 const initial=(url:string,office:OfficeCode,kind:'portal'|'neis'|'evpn'):VerifiedSchoolUrl=>Object.freeze({
  url,
  evidence:office==='R10'&&kind==='evpn'?'https://www.gbe.kr/main/main.do':`사용자 제공 전국 접속 주소 표 · 공식 확인 필요${office==='K10'?' · 강원 주소 우선 확인':''}`,
@@ -40,7 +41,7 @@ const INITIAL_OFFICE_URLS:Readonly<Record<OfficeCode,readonly [portal:string,nei
 // No user document is written or overwritten by registering these initial values.
 export const OFFICE_LAUNCHER_URLS:Readonly<Record<OfficeCode,OfficeUrls>>=Object.freeze(Object.fromEntries((Object.keys(EDUCATION_OFFICES) as OfficeCode[]).map(code=>{
  const [portal,neis,evpn]=INITIAL_OFFICE_URLS[code];
- const urls=Object.freeze({portal:initial(portal,code,'portal'),neis:initial(neis,code,'neis'),evpn:initial(evpn,code,'evpn')});
+ const urls=Object.freeze({portal:initial(portal,code,'portal'),neis:initial(neis,code,'neis'),evpn:initial(evpn,code,'evpn'),...(code==='K10'?{edufine:Object.freeze({url:'https://klefedu.gwe.go.kr/',evidence:'사용자 확인 주소 · docs/school-admin/LAUNCHER_CONNECTION.md · 공식 최신성 추가 확인 필요',verifiedOn:'',verification:'needs-official-confirmation' as const})}:{})});
  return [code,Object.freeze({school:urls,evpn:urls})];
 })) as Record<OfficeCode,OfficeUrls>);
 export type SchoolDocument=Readonly<{version:1;revision:number;school:SchoolInfo|null}>;

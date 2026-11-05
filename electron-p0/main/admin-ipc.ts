@@ -1,4 +1,5 @@
 import {adminNetworkGuide,type AdminConnectionCheck} from '../admin-connection.js';
+import {schoolAddressPreview,validateSchoolAddressApply,withSchoolAddresses,SCHOOL_SYSTEMS} from '../school-launcher.js';
 import {basename,extname,isAbsolute,relative,sep} from 'node:path';
 import {assertSender} from './policy.js';import {AdminStore,AdminConflict} from './admin-store.js';
 import {ADMIN_SYSTEMS,ADMIN_ENVIRONMENTS,adminEnvironment,adminAddresses,safeAdminLaunchUrl,validateAdminDocument,validateLeaveDraft,type AdminSystem,type AdminTable,type AdminReview} from '../admin-protocol.js';
@@ -7,7 +8,7 @@ import {csvRows,decodeCsv} from './purchase-csv.js';import {readSelectedPurchase
 import {mapAdminTable,selectAdminRows,validateAdminRows} from './admin-table.js';
 import type {ExcelService} from './purchase-excel.js';
 class AdminActionError extends Error{}
-export type AdminPorts={store:AdminStore;excel:Pick<ExcelService,'table'|'review'>;protectedRoot:string;pick:()=>Promise<string|undefined>;save:()=>Promise<string|undefined>;openExternal:(url:string)=>Promise<void>;copy:(text:string)=>Promise<void>;review:(message:string,text:string)=>Promise<boolean>;inspect?:(url:string,signal:AbortSignal)=>Promise<AdminConnectionCheck>;school?:()=>Promise<import('../school-protocol.js').SchoolInfo|null>;write?:typeof writeSelectedExport;read?:typeof readSelectedPurchaseFile};
+export type AdminPorts={store:AdminStore;excel:Pick<ExcelService,'table'|'review'>;protectedRoot:string;pick:()=>Promise<string|undefined>;save:()=>Promise<string|undefined>;openExternal:(url:string)=>Promise<void>;copy:(text:string)=>Promise<void>;review:(message:string,text:string)=>Promise<boolean>;inspect?:(url:string,signal:AbortSignal)=>Promise<AdminConnectionCheck>;school?:()=>Promise<import('../school-protocol.js').SchoolInfo|null>;schoolProfile?:()=>Promise<import('../school-protocol.js').SchoolLoad>;write?:typeof writeSelectedExport;read?:typeof readSelectedPurchaseFile};
 export function createAdminHandlers(contents:Parameters<typeof assertSender>[1],url:string,ports:AdminPorts){
  let generation=0,busy=false,table:AdminTable|undefined,review:AdminReview|undefined,controller:AbortController|undefined;
  const fresh=(event:Parameters<typeof assertSender>[0],token:number)=>{assertSender(event,contents,url);if(token!==generation||controller?.signal.aborted)throw Error('Canceled');};
@@ -20,6 +21,7 @@ export function createAdminHandlers(contents:Parameters<typeof assertSender>[1],
  const reset=()=>{generation++;controller?.abort();};
  const confirm=async(event:Parameters<typeof assertSender>[0],token:number,message:string,text:string)=>{const approved=await ports.review(message,text);fresh(event,token);return approved;};
  const schoolIdentity=async()=>{const school=await ports.school?.();return school?`${school.officeCode} / ${school.schoolCode} · ${school.schoolName}`:'학교 프로필 미선택';};
+ const schoolState=async()=>ports.schoolProfile?ports.schoolProfile():{document:{school:await ports.school?.()??null},recovered:false};
  const inspectLaunch=async(event:Parameters<typeof assertSender>[0],token:number,target:string):Promise<AdminConnectionCheck|undefined>=>{
   if(!ports.inspect)return undefined;const checked=await ports.inspect(target,controller!.signal);fresh(event,token);return checked;
  };
@@ -30,6 +32,17 @@ export function createAdminHandlers(contents:Parameters<typeof assertSender>[1],
  };
  return {
   load:run(0,()=>ports.store.load()),
+  schoolAddresses:run(0,async()=>{const school=await schoolState(),admin=await ports.store.load();return schoolAddressPreview(school.document.school,admin.document,school.recovered||admin.recovered);}),
+  applySchoolAddresses:run(1,async(args,event,token)=>{
+   const request=validateSchoolAddressApply(args[0]),school=await schoolState(),admin=await ports.store.load(),preview=schoolAddressPreview(school.document.school,admin.document,school.recovered||admin.recovered);
+   if(preview.readonly||!preview.school)throw new AdminActionError('학교 또는 주소 저장소를 변경할 수 없습니다. 현재 학교와 복구 상태를 확인해 주세요.');
+   if(preview.revision!==request.expectedRevision||preview.environment!==request.environment||preview.school.officeCode!==request.officeCode||preview.school.schoolCode!==request.schoolCode)throw new AdminConflict();
+   const next=withSchoolAddresses(admin.document,preview,request.systems),identity=JSON.stringify(preview.school);
+   const rows=request.systems.map(system=>{const row=preview.entries.find(row=>row.system===system)!;return `${SCHOOL_SYSTEMS[system]}: ${row.currentUrl||'(미등록)'} → ${row.proposed!.url}\n근거: ${row.proposed!.evidence}\n${row.proposed!.verification==='official-source-reviewed'?'기존 공식 출처 대조 기록 있음 · 현재 접속 미검증':'공식 최신성 미확인 초기값 · 기관 안내와 대조 필요'}`;});
+   if(!await confirm(event,token,'선택한 학교 업무 시스템 초기 주소를 적용할까요?',`${preview.school.schoolName} · ${preview.school.officeCode} · ${ADMIN_ENVIRONMENTS[preview.environment]}\n${rows.join('\n\n')}\n선택한 항목만 변경합니다. 학교·초안·양식·다른 환경 주소와 인증정보는 변경하지 않습니다. 로그인 성공을 의미하지 않습니다.`))return null;
+   const guard=async()=>{fresh(event,token);const current=await schoolState();fresh(event,token);if(current.recovered||JSON.stringify(current.document.school)!==identity)throw new AdminConflict();};
+   await guard();return ports.store.save(next,request.expectedRevision,guard);
+  },true),
   setEnvironment:run(2,async args=>ports.store.setEnvironment(args[0],args[1])),
   save:run(2,async args=>{const next=validateAdminDocument(args[0]),current=(await ports.store.load()).document;for(const environment of ['school','evpn'] as const)for(const system of Object.keys(ADMIN_SYSTEMS) as AdminSystem[]){const target=adminAddresses(next,environment)[system];if(target&&target!==adminAddresses(current,environment)[system])safeAdminLaunchUrl(target);}if(next.launcher?.entryUrl&&next.launcher.entryUrl!==current.launcher?.entryUrl)safeAdminLaunchUrl(next.launcher.entryUrl);return ports.store.save(next,args[1]);}),
   openSystem:run(1,async(args,event,token)=>{

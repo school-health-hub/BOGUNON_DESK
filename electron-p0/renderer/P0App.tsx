@@ -97,6 +97,8 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   const [selected,setSelected] = useState<string | null>(null), [active,setActive] = useState<DesktopActionId>('home');
   const settingsHandoffRef=useRef(false);
   const [notice,setNotice] = useState<string | null>(null);
+  const portalPending=useRef(false),dashboardLive=useRef(true);
+  useEffect(()=>{dashboardLive.current=true;return()=>{dashboardLive.current=false;};},[]);
   const {ref,width} = useElementWidth(); const vh=useViewportHeight(), vw=useViewportWidth();
   const geometry=resolveDeskGeometry(layout,vw);
   const visible=geometry.widgets.filter(w=>w.visible);
@@ -132,6 +134,12 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   };
   const excluded=()=>setNotice('이 기능은 ELECTRON-P0 범위에 포함되지 않습니다. 로그인·업무·금융 데이터에 연결하지 않습니다.');
   const navigate=(id:DesktopActionId)=>{
+    if(id==='work-portal'){
+      if(portalPending.current||utilityBlocked()||utilityRef.current||document.querySelector('[role="dialog"][aria-modal="true"]')){setNotice('현재 작업이나 대화상자를 먼저 정리해 주세요. 기존 입력은 유지됩니다.');return;}
+      const api=window.electronWork.admin;if(!api){setNotice('학교 업무 시스템 연결이 없습니다.');return;}
+      portalPending.current=true;
+      void api.openSystem('portal').then(result=>{if(!dashboardLive.current)return;if(!result.ok){setNotice(result.error.message);return;}if(result.data.status==='needs-configuration'){setActive('home');setAdminOpen(true);setNotice('현재 환경의 업무포털 주소를 확인·적용하거나 직접 등록해 주세요.');return;}setNotice(result.data.status==='launched'?'기본 브라우저에 저장된 업무포털 열기를 요청했습니다. 학교망·공식 로그인은 브라우저에서 확인하세요.':result.data.status==='blocked'?'허용하지 않는 업무포털 이동을 차단했습니다. 주소 설정을 확인하세요.':'업무포털 열기를 취소했습니다.');}).catch(()=>{if(dashboardLive.current)setNotice('업무포털 열기에 실패했습니다. 기존 주소를 유지합니다.');}).finally(()=>{portalPending.current=false;});return;
+    }
     if(id==='calculator'){openUtility('calculator');return;}
     if(id==='record-helper'){setActive('home');setRecordOpen(true);return;}
     if(id==='today-tasks'||id==='inbox'){openTasks();return;}

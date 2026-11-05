@@ -67,6 +67,8 @@ export type AdminMapping=Readonly<{generation:number;headerRow:number;columns:re
 export type AdminSelection=Readonly<{reviewId:string;rowIndexes:readonly number[]}>;
 export type AdminLaunchResult=Readonly<{status:'launched'|'canceled'|'blocked';connection?:import('./admin-connection.js').AdminConnectionCheck}>;
 export type AdminBridge=Readonly<{
+ schoolAddresses?():Promise<IpcResult<import('./school-launcher.js').SchoolAddressPreview>>;
+ applySchoolAddresses?(request:import('./school-launcher.js').ApplySchoolAddresses):Promise<IpcResult<AdminLoad|null>>;
  close():Promise<IpcResult<null>>;load():Promise<IpcResult<AdminLoad>>;save(document:AdminDocument,expectedRevision:number):Promise<IpcResult<AdminLoad>>;
  openEvpn():Promise<IpcResult<AdminLaunchResult|Readonly<{status:'needs-configuration'}>>>;
  checkSystem?(system:AdminSystem|'evpn'):Promise<IpcResult<import('./admin-connection.js').AdminConnectionCheck|Readonly<{state:'needs-configuration';message:string}>>>;
