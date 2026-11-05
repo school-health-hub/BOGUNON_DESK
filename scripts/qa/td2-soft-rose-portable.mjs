@@ -137,9 +137,10 @@ try{
   result.devicePixelRatio=await page.evaluate(()=>devicePixelRatio);
 
   browserSession=await browser.newBrowserCDPSession();
-  for(const [width,height] of [[1440,900],[1280,800],[980,700]]){
+  for(const [width,height] of [[980,700],[900,680]]){
     const nativeBounds=setWindowBounds(width,height);
-    await page.waitForFunction(([targetWidth,targetHeight])=>Math.abs(outerWidth-targetWidth)<=2&&Math.abs(outerHeight-targetHeight)<=2,[width,height]);
+    if(nativeBounds.width!==width||nativeBounds.height!==height)result.violations.push(`Requested ${width}x${height} clamped to ${nativeBounds.width}x${nativeBounds.height}`);
+    await page.waitForTimeout(300); // Actual bounds recorded; product minimum size may clamp request.
     await page.waitForTimeout(300);
     const layout=await page.evaluate(()=>{
       const dashboard=document.querySelector('.workspace-dashboard');
@@ -219,69 +220,77 @@ try{
   await mainCall(async function(){
     const e=process.getBuiltinModule('module').createRequire(process.cwd()+'/package.json')('electron');
     const q=globalThis.__parityQa={e,picks:[],externalCalls:0};q.wc=e.BrowserWindow.getAllWindows().find(w=>w.isVisible()).webContents;
-    q.originalPicker=e.dialog.showOpenDialog;e.dialog.showOpenDialog=async()=>({canceled:!q.picks.length,filePaths:q.picks.shift()??[]});
-    q.originalStatus=e.ipcMain._invokeHandlers.get('p2:chatgpt:status');
-    e.ipcMain._invokeHandlers.set('p2:chatgpt:status',async()=>({ok:true,data:{supported:true,phase:'ready',busy:false,accountId:'1'.repeat(64),identity:'synthetic QA',planUsageEnabled:true,models:[{id:'gpt-synthetic',label:'Synthetic QA only'}],model:'gpt-synthetic',textCallVerified:false,showPlanNotice:false,notice:'Synthetic UI state; no external calls'}}));
-    q.denied=new Map();for(const [name,fn] of e.ipcMain._invokeHandlers)if(/p2:(record:generateReviewed|chatgpt:(signIn|refreshModels|generate)|ai:(connectFromClipboard|restore|generate))$/.test(name)){q.denied.set(name,fn);e.ipcMain._invokeHandlers.set(name,async()=>{q.externalCalls++;return {ok:false,error:{code:'FORBIDDEN',message:'External request disabled in synthetic QA',retryable:false}};});}
+    q.originalDialog=e.dialog.showMessageBox;q.dialogMode='cancel';q.confirmations=[];
+    e.dialog.showMessageBox=async(...args)=>{q.confirmations.push({mode:q.dialogMode});if(q.dialogMode==='defer')return new Promise(resolve=>{q.late=resolve;});return {response:q.dialogMode==='approve'?1:0,checkboxChecked:false};};
+    q.external=[];q.originalOpen=e.shell.openExternal;e.shell.openExternal=async()=>{q.external.push('blocked dispatch');};
     return true;
   });
-  const choose=paths=>mainCall(async function(paths){globalThis.__parityQa.picks.push(paths);return true;},paths);
-  const fixture=resolve(productRoot,'build/record-helper-fixtures');
-  const paths=Object.fromEntries(['synthetic.pdf','synthetic.hwp','compressed.hwp','synthetic.hwpx','synthetic.docx','protected.hwp'].map(n=>[n,join(fixture,n)]));
-  const resetParity=async()=>{await page.reload();await dock.waitFor({state:'visible'});const setup=page.getByRole('dialog',{name:'학교 초기 설정'});await setup.waitFor({state:'visible'});await setup.getByRole('button',{name:'나중에 설정'}).click();};
-  result.parity={basis:'actual Portable; QA-only Main picker substitution + real renderer IPC; no real accounts',explorerDrop:'NOT RUN: controller cannot produce trusted Windows Explorer drag gesture'};
-  await resetParity();await dock.getByRole('button',{name:'업무 도구',exact:true}).click();await page.getByRole('button',{name:/생기부 도우미/}).click();
-  await choose(Object.values(paths));await page.getByRole('button',{name:'활동보고서 파일 추가',exact:true}).click();
-  await page.getByText('5개 보고서',{exact:true}).waitFor({state:'visible',timeout:45000});
-  await page.getByRole('alert',{name:'가져오지 못한 파일'}).waitFor({state:'visible'});
-  await page.locator('.record-helper-workspace__list').getByText('synthetic.pdf',{exact:true}).click();await page.getByLabel('학생 구분',{exact:true}).fill('합성A');await page.locator('.record-helper-detail__memo textarea').fill('RECORD_QA_TRANSIENT_A');
-  await page.locator('.record-helper-workspace__list').getByText('synthetic.docx',{exact:true}).click();await page.getByLabel('학생 구분',{exact:true}).fill('합성B');await page.locator('.record-helper-detail__memo textarea').fill('RECORD_QA_TRANSIENT_B');
-  await page.locator('.record-helper-workspace__list').getByText('synthetic.pdf',{exact:true}).click();if(await page.locator('.record-helper-detail__memo textarea').inputValue()!=='RECORD_QA_TRANSIENT_A')throw Error('Student workspace isolation failed');
-  await page.getByRole('button',{name:'ChatGPT 요금제로 초안 작성',exact:true}).click();const approval=page.getByRole('dialog',{name:'AI 전송 내용 확인'});await approval.waitFor({state:'visible'});
-  if(!(await approval.getByLabel('비식별 활동보고서').isVisible())||!(await approval.getByRole('button',{name:'확인 후 전송'}).isVisible()))throw Error('AI review gate missing');
-  await approval.getByRole('button',{name:'취소',exact:true}).first().click();
-  await page.getByRole('button',{name:'선택 보고서 제거',exact:true}).click();await page.getByRole('dialog',{name:'보고서 제거',exact:true}).getByRole('button',{name:'취소',exact:true}).click();await page.getByText('5개 보고서',{exact:true}).waitFor();
-  await page.getByRole('button',{name:'전체 비우기',exact:true}).click();await page.getByRole('dialog',{name:'작업실 전체 비우기',exact:true}).getByRole('button',{name:'취소',exact:true}).click();
-  await page.getByRole('button',{name:'생기부 도우미 닫기',exact:true}).click();const closePrompt=page.getByRole('dialog',{name:'생기부 도우미 닫기',exact:true});await closePrompt.getByRole('button',{name:'취소',exact:true}).click();await page.getByText('5개 보고서',{exact:true}).waitFor();
-  await page.getByRole('button',{name:'생기부 도우미 닫기',exact:true}).click();await page.getByRole('dialog',{name:'생기부 도우미 닫기',exact:true}).getByRole('button',{name:'닫고 비우기',exact:true}).click();
-  result.parity.recordUi={verdict:'PASS',nativeBatch:'5 valid + 1 protected failure',studentIsolation:true,reviewAndApprovalScreen:'PASS with synthetic connection state only',cancelRemoveClearClosePreserve:true,confirmedCloseClearsSession:true};
-  await resetParity();
-  const prepared=await page.evaluate(async()=>{const w=window.electronWork,s=await w.purchase.settings.load();if(!s.ok)throw Error('Settings load failed');const d={...s.data.document,draftTemplates:[{id:'qa-template',name:'QA template',titlePattern:'{{title}}',introPattern:'{{purpose}}',detailFieldOrder:['summary','amount','vendor','budgetItem'],attachmentPhrase:'QA attachment',includeAttachment:true}],importTemplates:[{id:'qa-mapping',name:'QA CSV',headerSignature:['name','quantity','price'],mapping:{name:0,quantity:1,unitPrice:2}}],outputColumns:['name','note','amount']};const r=await w.purchase.settings.save(d,d.revision);if(!r.ok)throw Error('Settings save failed');return {revision:r.data.document.revision};});
-  const favorites=join(qaRoot,'synthetic-favorite');await mkdir(favorites,{recursive:true});await choose([favorites]);
-  await page.evaluate(async()=>{const api=window.electronWork.workFolders,l=await api.load();if(!l.ok)throw Error('Folder load failed');const r=await api.pick({expectedRevision:l.data.revision});if(!r.ok||!r.data||r.data.favorites.length!==1)throw Error('Folder save failed');});
-  const v1=JSON.parse(await readFile(join(productRoot,'electron-p0/tests/fixtures/finder-v2/electron-v1.json'),'utf8'));const v2=JSON.parse(await readFile(join(productRoot,'electron-p0/tests/fixtures/finder-v2/tauri-v2.json'),'utf8'));
-  for(const [name,value] of [['v1',v1],['v2',v2]]){const file=join(qaRoot,'finder-'+name+'.json');await writeFile(file,JSON.stringify(value));await choose([file]);await page.evaluate(async()=>{const api=window.electronWork.educationVideo.compat,p=await api.prepareImport();if(!p.ok||!p.data)throw Error('Reviewed import prepare failed');const r=await api.applyImport({token:p.data.token,selectedIds:p.data.rows.filter(r=>!r.conflict).map(r=>r.videoId)});if(!r.ok||r.data.added<1)throw Error('Reviewed Finder import failed');});}
-  const stage=files=>mainCall(async function(files){const q=globalThis.__parityQa;const event={sender:q.wc,senderFrame:q.wc.mainFrame};const r=await q.e.ipcMain._invokeHandlers.get('p2:drop:stage')(event,files);if(!r.ok)throw Error('Synthetic stage rejected');return r.data;},files);
-  const clearDropUi=async()=>{const d=page.getByRole('dialog',{name:'드롭 파일 확인',exact:true});if(await d.isVisible())await d.getByRole('button',{name:'취소',exact:true}).click();};
-  const csv=join(qaRoot,'synthetic.csv');await writeFile(csv,'name,quantity,price\nQA item,2,100\n');
-  const dropCases=[['purchase CSV',csv,'purchase-helper','purchase'],['purchase PNG',join(productRoot,'electron-p0/tests/fixtures/purchase-image/synthetic-cart.png'),'purchase-helper','images'],['official PDF',paths['synthetic.pdf'],'official-document','official'],['official HWPX',paths['synthetic.hwpx'],'official-document','official'],['record PDF',paths['synthetic.pdf'],'record-helper','record'],['record DOCX',paths['synthetic.docx'],'record-helper','record']];
-  result.parity.syntheticDrop={basis:'Main handler stage injection; renderer IPC approve/consume; NOT Explorer',cases:{}};
-  for(const [label,file,target,method] of dropCases){const offer=await stage([file]);const pendingDenied=await page.evaluate(async({token,method,id})=>{const api=window.electronWork.fileDrop;const r=await api[method]({token,...(method==='purchase'?{sourceId:id}:{})});return !r.ok;},{token:offer.token,method,id:offer.files[0].id});if(!pendingDenied)throw Error('Unapproved drop consumed');
-    const success=await page.evaluate(async({token,target,method,id})=>{const api=window.electronWork.fileDrop;const a=await api.approve({token,target,approved:true});if(!a.ok)return false;const r=await api[method]({token,...(method==='purchase'?{sourceId:id}:{})});if(method==='images')await window.electronWork.purchase.images.cancel();return r.ok&&!!r.data;},{token:offer.token,target,method,id:offer.files[0].id});if(!success)throw Error('Approved synthetic drop import failed');await clearDropUi();result.parity.syntheticDrop.cases[label]='PASS (synthetic Main stage + real importer/native process)';}
-  const offer=await stage([paths['synthetic.pdf']]);if(offer.candidates.filter(c=>c.enabled).length<2)throw Error('Multiple target choices missing');await page.getByRole('dialog',{name:'드롭 파일 확인',exact:true}).getByRole('button',{name:/생기부/}).click();await clearDropUi();
-  const changed=join(qaRoot,'changed.csv');await writeFile(changed,'name,quantity,price\nQA item,1,10\n');const stale=await stage([changed]);await writeFile(changed,'name,quantity,price\nChanged QA item,22,100\n');const denied=await page.evaluate(async token=>!(await window.electronWork.fileDrop.approve({token,target:'purchase-helper',approved:true})).ok,stale.token);if(!denied)throw Error('Changed dropped file accepted');await clearDropUi();
-  result.parity.syntheticDrop.changedSourceDenied=true;result.parity.syntheticDrop.multipleChoicesAndCancel=true;
-  const scan=await mainCall(async function(){const q=globalThis.__parityQa,fs=process.getBuiltinModule('fs/promises'),path=process.getBuiltinModule('path');const dir=path.join(q.e.app.getPath('userData'),'work-data/drop-import-tmp');let left=[];for(let i=0;i<20;i++){left=await fs.readdir(dir).catch(()=>[]);if(!left.length)break;await new Promise(r=>setTimeout(r,100));}q.e.dialog.showOpenDialog=q.originalPicker;q.e.ipcMain._invokeHandlers.set('p2:chatgpt:status',q.originalStatus);if(q.externalCalls)throw Error('Unexpected AI request attempted');return {temporaryCopies:left.length,externalCalls:q.externalCalls};});
-  if(scan.temporaryCopies!==0||scan.externalCalls!==0)throw Error('Temporary drop copy or external request invariant failed');result.parity.cleanup=scan;
-
-  const synthetic=await page.evaluate(async()=>{
-    const w=window.electronWork;const current=await w.inventory.load();if(!current.ok||current.data.document!==null)throw Error('Expected empty isolated inventory');
-    const doc={version:1,items:[{itemId:'qa-item',name:'합성 QA 물품',baseUnit:'개',recommendedStock:2}],lots:[],movements:[],updatedAt:new Date().toISOString()};
-    const save=await w.inventory.save(doc,null);if(!save.ok)throw Error('Synthetic inventory save failed');return save.data.document.updatedAt;
+  result.stability={basis:'actual Windows Portable + renderer/Main IPC; synthetic files; Main consent injected where stated',trayIconClick:'NOT RUN: native tray icon gesture unavailable',nativeConsent:'NOT RUN: actual OS confirmation interaction; Main response is QA-controlled',externalSystems:'NOT RUN'};
+  const checks=async(name,fn)=>{try{await fn();result.stability[name]={...(result.stability[name]??{}),verdict:'PASS'};}catch(e){result.stability[name]={...(result.stability[name]??{}),verdict:'FAIL',error:String(e).split('\n')[0].slice(0,220)};}};
+  const reload=async()=>{await page.reload();await dock.waitFor();const d=page.getByRole('dialog',{name:'학교 초기 설정'});if(await d.isVisible())await d.getByRole('button',{name:'나중에 설정'}).click();};
+  const tool=async(label)=>{await reload();await dock.getByRole('button',{name:'업무 도구',exact:true}).click();await page.getByRole('button',{name:label,exact:true}).click();};
+  page.on('dialog',dialog=>dialog.accept());
+  const userRoot=result.actualUserData;
+  const {createHash}=await import('node:crypto');
+  const digest=async file=>createHash('sha256').update(await readFile(file)).digest('hex');
+  const v1Path=join(userRoot,'work-data/education-video/library.json'),v2Path=join(userRoot,'work-data/education-video/library-v2.json');
+  await mkdir(dirname(v1Path),{recursive:true});
+  await writeFile(v1Path,await readFile(join(productRoot,'electron-p0/tests/fixtures/finder-v2/electron-v1.json')));
+  await writeFile(v2Path,await readFile(join(productRoot,'electron-p0/tests/fixtures/finder-v2/tauri-v2.json')));
+  const libraryBefore=[await digest(v1Path),await digest(v2Path)];
+  await checks('finder',async()=>{
+    await tool('교육영상 Finder · 합성 Mock');
+    await page.getByLabel('검색 방식',{exact:true}).selectOption('mock');await page.getByRole('button',{name:'Mock 영상 검색',exact:true}).click();
+    await page.locator('.ev-results').getByRole('button',{name:/선택/}).first().click();
+    
+    const notes=page.getByLabel('사용자 메모',{exact:true});await notes.fill('SYNTHETIC_TRAY_MEMO');
+    const proof=await mainCall(async function(){const q=globalThis.__parityQa;const win=q.e.BrowserWindow.fromWebContents(q.wc);q.windowId=win.id;q.handlers=q.e.ipcMain._invokeHandlers.size;return {id:win.id,wc:q.wc.id,pid:q.wc.getOSProcessId()};});
+    const cycles=[];
+    for(let i=0;i<3;i++){const hidden=await mainCall(async function(){const q=globalThis.__parityQa,w=q.e.BrowserWindow.fromWebContents(q.wc);w.close();await new Promise(r=>setTimeout(r,150));return {destroyed:w.isDestroyed(),visible:w.isVisible()};});if(hidden.destroyed||hidden.visible)throw Error('Close did not hide live window');
+      const restored=await mainCall(async function(){const q=globalThis.__parityQa,w=q.e.BrowserWindow.fromWebContents(q.wc);w.show();w.focus();return {id:w.id,wc:q.wc.id,pid:q.wc.getOSProcessId(),handlers:q.e.ipcMain._invokeHandlers.size};});
+      if(restored.id!==proof.id||restored.wc!==proof.wc||restored.pid!==proof.pid||await page.locator('.ev-layout label').filter({hasText:'사용자 메모'}).locator('textarea').inputValue()!=='SYNTHETIC_TRAY_MEMO')throw Error('Finder state lost across native hide/show');cycles.push({hidden,restored});}
+    if(await digest(v1Path)!==libraryBefore[0]||await digest(v2Path)!==libraryBefore[1])throw Error('Finder files changed on hide');
+    await page.screenshot({path:join(screenshots,'stability-finder-return.png')});result.stability.finder={cycles,libraryBytesPreserved:true,returnMethod:'actual close->hide; Main BrowserWindow.show (not tray-icon click)',unsavedMemoPreserved:true};
+    await reload();await tool('교육영상 Finder · 합성 Mock');const status=await page.evaluate(()=>window.electronWork.educationVideo.searchProvider.status());if(!status.ok)throw Error('Finder reentry service failed');
   });
-  result.inventoryPersistence='saved; restart pending';
+  const today=new Date(Date.now()+9*3600000).toISOString().slice(0,10);
+  await checks('calendar',async()=>{
+    await tool('독립 로컬 일정');const dialog=page.getByRole('dialog',{name:'독립 로컬 일정',exact:true});
+    await dialog.getByRole('button',{name:'일정 추가',exact:true}).click();await dialog.getByLabel('일정 제목',{exact:true}).fill('QA 종일 일정');await dialog.getByRole('button',{name:'일정 저장',exact:true}).click();await dialog.getByText('독립 로컬 일정을 저장했습니다.',{exact:false}).waitFor();
+    await dialog.getByRole('button',{name:'일정 추가',exact:true}).click();await dialog.getByLabel('일정 제목',{exact:true}).fill('QA 시간 일정');await dialog.getByLabel('종일 일정',{exact:true}).uncheck();await dialog.getByRole('button',{name:'일정 저장',exact:true}).click();await dialog.getByRole('button',{name:'일정 수정',exact:true}).waitFor();await dialog.getByRole('button',{name:'일정 수정',exact:true}).click();await dialog.getByLabel('일정 제목',{exact:true}).fill('QA 시간 수정');await dialog.getByRole('button',{name:'일정 저장',exact:true}).click();
+    await dialog.getByRole('button',{name:'일정 추가',exact:true}).click();await dialog.getByLabel('일정 제목',{exact:true}).fill('QA 겹침 취소');await dialog.getByLabel('종일 일정',{exact:true}).uncheck();await dialog.getByText(/시간이 겹치는 일정/).first().waitFor();await dialog.getByRole('button',{name:'일정 편집 취소',exact:true}).click();
+    const r=await page.evaluate(()=>window.electronWork.events.load());if(!r.ok||r.data.document.events.length!==2)throw Error('Event GUI CRUD failed');
+    const stale=await page.evaluate(async()=>{const w=window.electronWork.events,l=await w.load();const row=l.data.document.events[0];const {createdAt,updatedAt,...event}=row;return w.save({event,expectedRevision:0,expectedUpdatedAt:updatedAt});});if(stale.ok)throw Error('Stale revision accepted');
+    await page.screenshot({path:join(screenshots,'stability-calendar.png')});result.stability.calendar={revision:r.data.document.revision,count:2,overlapNotice:true,staleRevisionDenied:true,todayDate:today};
+  });
+  const schoolPath=join(userRoot,'work-data/school-profile/school.json');await mkdir(dirname(schoolPath),{recursive:true});
+  const schoolDoc={version:1,revision:1,school:{officeCode:'K10',officeName:'강원특별자치도교육청',schoolCode:'1234567',schoolName:'합성 QA 학교 긴 이름 화면 검증 전용'}};await writeFile(schoolPath,JSON.stringify(schoolDoc));
+  await checks('school',async()=>{
+    await reload();await dock.getByRole('button',{name:'설정',exact:true}).click();await page.getByRole('navigation',{name:'설정 카테고리'}).getByRole('button',{name:'학교 프로필',exact:true}).click();const section=page.getByRole('region',{name:'학교 업무 주소 확인·적용'});
+    await section.getByText('초기값:',{exact:false}).first().waitFor();await mainCall(async function(){globalThis.__parityQa.dialogMode='cancel';return true;});
+    const before=await page.evaluate(()=>window.electronWork.admin.load());await section.getByRole('button',{name:'선택한 초기 주소 확인 후 적용',exact:true}).click();await section.getByText('주소 적용을 취소했습니다.',{exact:false}).waitFor();
+    const after=await page.evaluate(()=>window.electronWork.admin.load());if(JSON.stringify(before)!==JSON.stringify(after))throw Error('Cancelled address apply changed settings');
+    await mainCall(async function(){globalThis.__parityQa.dialogMode='approve';return true;});await section.getByRole('button',{name:'선택한 초기 주소 확인 후 적용',exact:true}).click();await section.getByText('선택한 주소 저장을 완료했습니다.',{exact:false}).waitFor();
+    const saved=await page.evaluate(()=>window.electronWork.admin.load());if(!saved.ok||!saved.data.document.systems.portal)throw Error('Address apply not saved');
+    await page.screenshot({path:join(screenshots,'stability-school-address.png')});
+    const school2={...schoolDoc,revision:2,school:{officeCode:'B10',officeName:'서울특별시교육청',schoolCode:'7654321',schoolName:'합성 QA 변경 학교'}};await writeFile(schoolPath,JSON.stringify(school2));await reload();
+    const changed=await page.evaluate(async()=>({load:await window.electronWork.admin.load(),preview:await window.electronWork.admin.schoolAddresses()}));if(JSON.stringify(changed.load)!==JSON.stringify(saved))throw Error('School change overwrote URLs');if(changed.preview.data.entries.find(e=>e.system==='edufine')?.proposed)throw Error('Unregistered office has invented edufine');
+    result.stability.school={cancelPreserved:true,applied:true,schoolChangePreserved:true,consent:'QA Main response injection, not native OS dialog',urlFreshness:'NOT VERIFIED'};
+  });
+  result.stability.quickAddCalendar='NOT RUN';result.stability.commandPaletteCalendar='NOT RUN';result.stability.lateNativeApproval='NOT RUN';result.stability.realExplorerDrop='NOT RUN (previous synthetic IPC evidence only)';
+  // End instrumentation before a real Portable shutdown/relaunch.
+  await mainCall(async function(){const q=globalThis.__parityQa;q.e.dialog.showMessageBox=q.originalDialog;q.e.shell.openExternal=q.originalOpen;return true;});
   if(mainWs){mainWs.close();mainWs=undefined;await delay(200);}
   await closeBrowser();await waitForWrapperExit();await browser.close();browser=undefined;browserSession=undefined;
   result.shutdown.browserCloseSent=false;child=launch();ownedPids.add(child.pid);child.stdout.on('data',()=>{});child.stderr.on('data',()=>{});
   await waitForCdp();browser=await chromium.connectOverCDP(`http://127.0.0.1:${port}`);browserSession=await browser.newBrowserCDPSession();
-  const restoredPage=browser.contexts()[0].pages().find(p=>p.url().startsWith('file:'));
-  await restoredPage.waitForLoadState('domcontentloaded');
-  await restoredPage.waitForFunction(()=>!!window.electronWork);
-  const restored=await restoredPage.evaluate(async()=>{const info=await window.electronP0.info();const r=await window.electronWork.inventory.load();return {userData:info.userData,ok:r.ok&&r.data.document?.items.some(i=>i.itemId==='qa-item')};});
-  if(!restored.ok||restored.userData!==result.actualUserData)throw Error('Isolated inventory restart failed');
-  result.inventoryPersistence='PASS: synthetic item saved and restored across actual Portable restart';
-  const roundTrip=await restoredPage.evaluate(async()=>{const w=window.electronWork;const p=await w.purchase.settings.load(),f=await w.workFolders.load(),v1=await w.educationVideo.load(),v2=await w.educationVideo.compat.loadV2();return {purchase:p.ok&&p.data.document.draftTemplates.some(t=>t.id==='qa-template')&&p.data.document.importTemplates.some(t=>t.id==='qa-mapping')&&p.data.document.outputColumns.join(',')==='name,note,amount',folders:f.ok&&f.data.favorites.length===1&&f.data.favorites[0].available,v1:v1.ok&&v1.data.library.items.length>0,v2:v2.ok&&v2.data.library.entries.length>0};});
-  if(!Object.values(roundTrip).every(Boolean))throw Error('Packaged persistence round-trip failed');result.parity.persistence={...roundTrip,basis:'saved through packaged renderer/Main IPC; restored after Portable process restart'};
+  const restoredPage=browser.contexts()[0].pages().find(p=>p.url().startsWith('file:'));await restoredPage.waitForLoadState('domcontentloaded');await restoredPage.waitForFunction(()=>!!window.electronWork);
+  const restored=await restoredPage.evaluate(async()=>({info:await window.electronP0.info(),events:await window.electronWork.events.load(),tasks:await window.electronWork.tasks.load(),admin:await window.electronWork.admin.load()}));
+  result.stability.restart={verdict:restored.info.userData===result.actualUserData&&restored.events.ok&&restored.events.data.document.events.length===2?'PASS':'FAIL',eventCount:restored.events.ok?restored.events.data.document.events.length:null,sameProfile:restored.info.userData===result.actualUserData};
+  if(restored.events.ok&&restored.events.data.document.events.length){const deleted=await restoredPage.evaluate(async()=>{const api=window.electronWork.events,l=await api.load(),row=l.data.document.events[0];return api.remove({id:row.id,expectedRevision:l.data.document.revision,expectedUpdatedAt:row.updatedAt,confirmed:true});});result.stability.deleteAfterRestart=deleted.ok?'PASS':'FAIL';}
+  const eventsPath=join(userRoot,'work-data/local-events/events.json');const eventsBytes=await readFile(eventsPath);const backupPath=join(userRoot,'work-data/local-events/events.backup.json');await readFile(backupPath);
+  await writeFile(eventsPath,'{invalid synthetic QA');const corrupted=await restoredPage.evaluate(async()=>{const api=window.electronWork.events,l=await api.load();if(!l.ok)return {readError:true};const row=l.data.document.events[0];if(!row)return {recovered:l.data.recovered};const {createdAt,updatedAt,...event}=row;const saved=await api.save({event,expectedRevision:l.data.document.revision,expectedUpdatedAt:updatedAt});return {recovered:l.data.recovered,writeDenied:!saved.ok};});await writeFile(eventsPath,eventsBytes);result.stability.corruption={...corrupted,basis:'only owned synthetic primary modified; original QA bytes restored'};
+  if(Object.values(result.stability).some(v=>v&&typeof v==='object'&&v.verdict==='FAIL'))result.violations.push('One or more STABILITY focused checks failed; inspect stability evidence');
 
 
   await closeBrowser();

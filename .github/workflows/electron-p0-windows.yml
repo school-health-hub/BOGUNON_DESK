@@ -1,5 +1,5 @@
 name: Final integrated Portable Windows QA
-run-name: Final integrated 5-CLI Portable / 5cfdee0 / ${{ github.run_id }}
+run-name: Windows STABILITY QA / ae457fe / ${{ github.run_id }}
 
 on:
   push:
@@ -27,12 +27,12 @@ jobs:
       CI: 'true'
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       TD2_CONTROLLER_BASE_SHA: b085e8b7c7a5ec1bd6c7ba54cc689fcf11dbc2cc
-      TD2_PRODUCT_SHA: 5cfdee00765d5ab11a9076028b4e6e4c1afc5292
+      TD2_PRODUCT_SHA: ae457fe2da91c7f2de6653a41a2f7a9989926fce
     steps:
       - name: Checkout immutable approved product
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: 5cfdee00765d5ab11a9076028b4e6e4c1afc5292
+          ref: ae457fe2da91c7f2de6653a41a2f7a9989926fce
           path: source
           persist-credentials: false
           fetch-depth: 0
@@ -82,25 +82,25 @@ jobs:
       - name: Download previously verified native payload
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: final-integrated-portable-5ae8528-41791377272
-          run-id: 41791377272
+          name: parity-5cli-portable-5cfdee0-41854402237
+          run-id: 41854402237
           github-token: ${{ github.token }}
           path: prior-portable
       - name: Download matching immutable Portable hash evidence
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: td2-soft-rose-portable-gui-41791377272-1
-          run-id: 41791377272
+          name: td2-soft-rose-portable-gui-41854402237-1
+          run-id: 41854402237
           github-token: ${{ github.token }}
           path: prior-evidence
       - name: Reuse exact native binaries without rebuilding unchanged source
         run: |
           $ErrorActionPreference='Stop'
-          git -C source diff --exit-code b9a0a1b3893c2f45eeeed7278b86442e415dc159 HEAD -- tools/chatgpt-auth-cli tools/purchase-excel-cli tools/official-document-cli tools/my-finance-cli src-tauri
+          git -C source diff --exit-code b9a0a1b3893c2f45eeeed7278b86442e415dc159 HEAD -- tools/record-helper-cli tools/chatgpt-auth-cli tools/purchase-excel-cli tools/official-document-cli tools/my-finance-cli src-tauri
           if($LASTEXITCODE -ne 0){throw 'Native source changed; reuse forbidden'}
           $old=@(Get-ChildItem prior-portable/*.exe)
           $priorMeta=Get-Content prior-evidence/portable.json -Raw|ConvertFrom-Json
-          if($old.Count -ne 1 -or $priorMeta.sourceSha -cne '5ae8528f47a4d83b6d23cef240b210a7d420ad21' -or (Get-FileHash $old[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant() -cne $priorMeta.sha256){throw 'Same-product Portable hash mismatch'}
+          if($old.Count -ne 1 -or $priorMeta.sourceSha -cne '5cfdee00765d5ab11a9076028b4e6e4c1afc5292' -or (Get-FileHash $old[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant() -cne $priorMeta.sha256){throw 'Same-product Portable hash mismatch'}
           7z x $old[0].FullName "-o$env:TD2_ROOT/prior-container" -y | Out-Null
           if($LASTEXITCODE -ne 0){throw 'Prior Portable extraction failed'}
           $archive=@(Get-ChildItem "$env:TD2_ROOT/prior-container" -Recurse -Filter app-64.7z)
@@ -111,7 +111,8 @@ jobs:
             'purchase-excel-cli'='5240026d893e6529361907915fd05ebf5498526e0bbf723a360c38fc5532175e';
             'official-document-cli'='61697e919f96bf3816f1bcf7066684c8d64d7b3a3435c188ba92fc347b23c8e0';
             'my-finance-cli'='b40175de3b7f65496674c7ebd2200d680b48f124a3933d812d5f7c09cc0992d9';
-            'chatgpt-auth-cli'='5f36d7340eaf184ac88866149cc46f1765fe279044e23d8aecec4e993fc22669'
+            'chatgpt-auth-cli'='5f36d7340eaf184ac88866149cc46f1765fe279044e23d8aecec4e993fc22669';
+            'record-helper-cli'='e6eabcea08ef6b198e1f698dafda92a0990f30e5d2967a631865b362bfbcd3d8'
           }
           foreach($cli in $hashes.Keys){
             $root="$env:TD2_ROOT/prior-app/resources/$cli"
@@ -119,7 +120,7 @@ jobs:
             New-Item -ItemType Directory "source/build/$cli" -Force | Out-Null
             Copy-Item "$root/*" "source/build/$cli/" -Recurse
           }
-          [ordered]@{originRun=41791377272;nativeSourceSha='b9a0a1b3893c2f45eeeed7278b86442e415dc159';productSha=$env:TD2_PRODUCT_SHA;nativeSourceUnchanged=$true;hashes=$hashes;dpapiAndLoopback='REUSED from original Windows run'} | ConvertTo-Json -Depth 4 | Set-Content "$env:TD2_EVIDENCE_ROOT/native-reuse.json"
+          [ordered]@{originRun=41854402237;nativeSourceSha='b9a0a1b3893c2f45eeeed7278b86442e415dc159';productSha=$env:TD2_PRODUCT_SHA;nativeSourceUnchanged=$true;hashes=$hashes;dpapiAndLoopback='REUSED from original Windows run'} | ConvertTo-Json -Depth 4 | Set-Content "$env:TD2_EVIDENCE_ROOT/native-reuse.json"
       - name: Use canonical Git bytes for LF-sensitive extraction build inputs
         run: |
           $ErrorActionPreference='Stop'
@@ -140,10 +141,6 @@ jobs:
         run: |
           npm run electron:p0:build
           if($LASTEXITCODE -ne 0){throw 'Electron build failed'}
-          node scripts/electron-p0/build-record.mjs --release
-          if($LASTEXITCODE -ne 0){throw 'Record CLI Windows build failed'}
-          cargo test --release --locked --manifest-path tools/record-helper-cli/Cargo.toml writes_only_synthetic_electron_integration_fixtures
-          if($LASTEXITCODE -ne 0){throw 'Synthetic record fixtures failed'}
           npx electron-builder --config electron-p0/builder.json --win portable --x64 --publish never
           if($LASTEXITCODE -ne 0){throw '5-CLI Portable build failed'}
       - name: Record Portable and actual Windows DPI
@@ -194,25 +191,6 @@ jobs:
           if($manifest.sourceSha -cne 'b9a0a1b3893c2f45eeeed7278b86442e415dc159' -or $manifest.dirty){throw 'Native source provenance mismatch'}
           node -e "const {createPackageFromStreams}=require('@electron/asar');const asar=require('@electron/asar');const p='release-electron-p0/win-unpacked/resources/app.asar';const fs=require('fs');const meta=JSON.parse(asar.extractFile(p,'build-meta.json'));if(meta.sourceSha!==process.env.TD2_PRODUCT_SHA)throw Error('ASAR source mismatch');for(const f of ['purchase-ai-protocol.js','ai-image-capabilities.json'])asar.extractFile(p,f);fs.writeFileSync(process.env.TD2_EVIDENCE_ROOT+'/asar-source.json',JSON.stringify(meta));"
           if($LASTEXITCODE -ne 0){throw 'ASAR provenance/resource verification failed'}
-      - name: Real packaged record extraction by format without content logs
-        working-directory: source
-        run: |
-          $probe=@'
-          import {RecordHelperProcess} from './build/electron-p0-app/main/record-helper-process.js';
-          import {writeFileSync} from 'node:fs';import {resolve,join} from 'node:path';
-          const worker=new RecordHelperProcess(resolve('release-electron-p0/win-unpacked/resources/record-helper-cli/record-helper-cli.exe'));
-          const results={};
-          for(const file of ['synthetic.pdf','synthetic.hwp','compressed.hwp','synthetic.hwpx','synthetic.docx','protected.hwp']){
-            const batch=await worker.run(resolve('build/record-helper-fixtures',file),new AbortController().signal);
-            const denied=file==='protected.hwp';const passed=denied?batch.reports.length===0&&batch.failures.length===1:batch.reports.length===1&&batch.reports[0].text.length>0;
-            results[file]={verdict:passed?'PASS':'FAIL',expected:denied?'unsupported failure':'text extraction',reports:batch.reports.length,failures:batch.failures.length};if(!passed)throw Error('Packaged record format contract failed');
-          }
-          await worker.flush();writeFileSync(join(process.env.TD2_EVIDENCE_ROOT,'record-formats.json'),JSON.stringify({sourceSha:process.env.TD2_PRODUCT_SHA,platform:process.platform,execution:'actual packaged PE via RecordHelperProcess',synthetic:true,results},null,2));
-          '@
-          '/source-record-probe.mjs' | Add-Content .git/info/exclude
-          $probe | Set-Content source-record-probe.mjs
-          node source-record-probe.mjs
-          if($LASTEXITCODE -ne 0){throw 'Packaged record extraction failed'}
       - name: Prove profile isolation and cleanup after injected exception
         working-directory: source
         run: |
@@ -247,7 +225,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: success() || failure()
         with:
-          name: parity-5cli-portable-5cfdee0-${{ github.run_id }}
+          name: stability-portable-ae457fe-${{ github.run_id }}
           path: source/release-electron-p0/*.exe
           if-no-files-found: ignore
           retention-days: 14
