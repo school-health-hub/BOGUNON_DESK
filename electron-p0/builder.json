@@ -17,6 +17,8 @@
     "admin-protocol.js",
     "school-protocol.js",
     "school-launcher.js",
+    "account-protocol.js",
+    "account-config.json",
     "renderer/**",
     "build-meta.json",
     "package.json",

@@ -1,5 +1,6 @@
 import {createContext,useContext,useEffect,useRef,useState,type ReactNode} from 'react';
 import {SchoolSystemAddresses} from './SchoolSystemAddresses';
+import {BogunonAccount} from './BogunonAccount';
 import type {AdminLoad} from '../../admin-protocol';
 import {EDUCATION_OFFICES,type SchoolLoad,type SchoolSearch,type SchoolSelection,type OfficeCode} from '../../school-protocol';
 import type {IpcResult} from '../../protocol';
@@ -31,7 +32,7 @@ export function SchoolProfileSettings({showAddresses=true}:{showAddresses?:boole
  const clearSearch=()=>{epoch.current++;setSearch(null);void api.cancel();};
  return <section className="school-profile" aria-label="공통 학교 프로필" aria-busy={busy||state.loading}>
   <h2>학교 선택</h2><p>이 Electron 프로필에서 학교명·학교코드·시도교육청코드를 한 번 저장해 행정 런처에서 재사용합니다.</p>
-  <p className="school-profile-status">BOGUNON 계정 연결: 현재 Electron에서 미지원. 기존 Tauri 계정·등록 학교를 자동으로 읽거나 가져오지 않습니다. NEIS 공개 조회에서 학교를 선택해 주세요.</p>
+  <BogunonAccount local={state.data} onSchoolApplied={state.refresh}/>
   {current?<p><strong>현재 학교: {current.schoolName}</strong><br/>{current.officeName} · 교육청 {current.officeCode} · 학교 {current.schoolCode}</p>:<p>아직 학교를 선택하지 않았습니다.</p>}
   {showAddresses&&<SchoolSystemAddresses school={current??null} blocked={!!state.data?.recovered||busy||state.loading}/>}
   {state.error&&<p role="alert">{state.error}</p>}{state.data?.recovered&&<p role="alert">학교 프로필 백업을 읽었습니다. 원본 보호를 위해 변경을 차단합니다.</p>}
