@@ -138,7 +138,8 @@ try{
  const disabled=await page.evaluate(()=>window.electronWork.account.signIn());if(!disabled.ok||disabled.data.status!=='signedOut'||disabled.data.configured)throw Error('Unconfigured signin not blocked');
  result.syntheticWindows=await mainCall(async function(){
   globalThis.__accountStage='module-imports';try{const q=globalThis.__remainingQa,e=q.e,req=process.getBuiltinModule('module').createRequire(e.app.getAppPath()+'/package.json'),fs=req('node:fs/promises'),path=req('node:path'),url=req('node:url');
-  const load=name=>import(url.pathToFileURL(path.join(e.app.getAppPath(),'main',name+'.js')).href);
+  // Inspector evaluation has no VM dynamic-import callback. Node 24 sync ESM require loads the unchanged packaged modules.
+  const load=async name=>req(path.join(e.app.getAppPath(),'main',name+'.js'));
   const {AccountVault}=await load('account-vault'),{AccountService}=await load('account-service'),{AccountLoopback}=await load('account-loopback'),{SchoolProfileStore}=await load('school-profile'),{createAccountHandlers}=await load('account-ipc');
   globalThis.__accountStage='dpapi';const root=path.join(e.app.getPath('userData'),'account-synthetic-qa');await fs.mkdir(root,{recursive:true});
   const check=(ok)=>{if(!ok)throw Error('Synthetic account assertion failed');};
