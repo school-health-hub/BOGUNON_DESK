@@ -1,5 +1,5 @@
 name: Final integrated Portable Windows QA
-run-name: Windows STABILITY QA / ae457fe / ${{ github.run_id }}
+run-name: Windows STABILITY QA / 166df05 / ${{ github.run_id }}
 
 on:
   push:
@@ -27,12 +27,12 @@ jobs:
       CI: 'true'
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       TD2_CONTROLLER_BASE_SHA: b085e8b7c7a5ec1bd6c7ba54cc689fcf11dbc2cc
-      TD2_PRODUCT_SHA: ae457fe2da91c7f2de6653a41a2f7a9989926fce
+      TD2_PRODUCT_SHA: 166df05dd45402cb1a7526c9ae824ec11fcdb579
     steps:
       - name: Checkout immutable approved product
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ae457fe2da91c7f2de6653a41a2f7a9989926fce
+          ref: 166df05dd45402cb1a7526c9ae824ec11fcdb579
           path: source
           persist-credentials: false
           fetch-depth: 0
@@ -191,6 +191,17 @@ jobs:
           if($manifest.sourceSha -cne 'b9a0a1b3893c2f45eeeed7278b86442e415dc159' -or $manifest.dirty){throw 'Native source provenance mismatch'}
           node -e "const {createPackageFromStreams}=require('@electron/asar');const asar=require('@electron/asar');const p='release-electron-p0/win-unpacked/resources/app.asar';const fs=require('fs');const meta=JSON.parse(asar.extractFile(p,'build-meta.json'));if(meta.sourceSha!==process.env.TD2_PRODUCT_SHA)throw Error('ASAR source mismatch');for(const f of ['purchase-ai-protocol.js','ai-image-capabilities.json'])asar.extractFile(p,f);fs.writeFileSync(process.env.TD2_EVIDENCE_ROOT+'/asar-source.json',JSON.stringify(meta));"
           if($LASTEXITCODE -ne 0){throw 'ASAR provenance/resource verification failed'}
+      - name: Await verified integration fast-forward before GUI
+        run: |
+          $ErrorActionPreference='Stop'
+          $matched=$false
+          for($i=0;$i -lt 40;$i++){
+            $remote=(git -C source ls-remote origin refs/heads/integration/electron-feature-baseline)
+            if($LASTEXITCODE -ne 0){throw 'Cannot verify integration ref'}
+            if(($remote -split '\s+')[0] -ceq $env:TD2_PRODUCT_SHA){$matched=$true;break}
+            Start-Sleep -Seconds 15
+          }
+          if(!$matched){throw 'Integration SHA did not reach verified build; GUI QA not started'}
       - name: Prove profile isolation and cleanup after injected exception
         working-directory: source
         run: |
@@ -225,7 +236,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: success() || failure()
         with:
-          name: stability-portable-ae457fe-${{ github.run_id }}
+          name: stability-portable-166df05-${{ github.run_id }}
           path: source/release-electron-p0/*.exe
           if-no-files-found: ignore
           retention-days: 14
