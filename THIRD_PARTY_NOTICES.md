@@ -33,3 +33,11 @@ When distributing compiled Windows installers, preserve all notices and
 license obligations required by bundled third-party software. Before a
 production release, regenerate or review the dependency license inventory
 against the committed lockfiles.
+
+## INSTRUCTOR-02 spreadsheet adapter
+
+The health-support instructor XLSX import/payment-statement adapter reuses SheetJS
+Community Edition 0.20.3 from the original BOGUNON web implementation.
+Source: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
+License: Apache-2.0; full text is retained in
+`school-workspace/instructors/SHEETJS-LICENSE.txt`.

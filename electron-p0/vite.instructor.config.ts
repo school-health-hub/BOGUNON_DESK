@@ -1,0 +1,3 @@
+import {defineConfig} from 'vite';import {fileURLToPath} from 'node:url';
+// Bounded Main worker: SheetJS and existing calculations never grant Renderer filesystem access.
+export default defineConfig({publicDir:false,envDir:false,build:{ssr:true,target:'node22',emptyOutDir:false,outDir:fileURLToPath(new URL('../build/electron-p0-app/main',import.meta.url)),lib:{entry:fileURLToPath(new URL('../school-workspace/instructors/server/workbook-worker.ts',import.meta.url)),formats:['es'],fileName:()=> 'instructor-workbook-worker.js'},rollupOptions:{external:[/^node:/],output:{entryFileNames:'instructor-workbook-worker.js'}}} ,ssr:{noExternal:true}});

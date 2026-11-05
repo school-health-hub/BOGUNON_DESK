@@ -1,0 +1,15 @@
+{
+  "repository": "sungandi86-max/bogunon",
+  "sha": "38f99cc868253828544f5986629a4ee829db3b8d",
+  "targetBase": "142c2d9bcf0f2831e10191de30e9d640fb2d83e5",
+  "sourceFiles": {
+    "lib/health-support-instructors/domain.ts": "3ee1bb18ee08b4a3e27bf90e9746427d20f9ecf58bde7ada799ef4518b5863ab",
+    "lib/health-support-instructors/settlement/documents.ts": "9b4ffbeda77ca58ef5b2a1035a37f94c608185a315e2bc705e629a851b67f527",
+    "lib/health-support-instructors/import/work-log-import.ts": "fa83d6111e558fb2357b8cd8bd4eb1b393b5763e2a01a521b9314c0bcf1e1622",
+    "lib/health-support-instructors/repository.ts": "c6e30ea509695fd23c9d08108d5b32f59ce8238688d0eec56e51e6a6d3d0bfab",
+    "components/health-support-instructors/instructor-settings-form.tsx": "f31fa78041399bdaea913d3bb948b02fdb9dfcb8ab30a5bd3f74ee010db23f9c",
+    "components/health-support-instructors/health-support-instructor-status-pane.tsx": "3d3e2abc65fb593dce02771d492ffd63aa7e7dbbeb25f9559f05c1a1ef6eb258",
+    "components/health-support-instructors/payment-statement-preview.tsx": "e8c17dc23892bccb030802c10a576ef8d5f2420164deb29c9668d9064f0a7928",
+    "components/health-support-instructors/attendance-register-panel.tsx": "316f36877c73d8fb7d4793ac0e5e8d41f109293c908f9a9a1aa89ffdb843b2bd"
+  }
+}

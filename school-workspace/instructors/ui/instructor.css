@@ -1,0 +1,43 @@
+.instructor-workspace {min-width:0;overflow-wrap:anywhere;color:#243246}
+.instructor-workspace nav,.instructor-actions {display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0}
+.instructor-workspace form,.instructor-workspace section {min-width:0;max-width:100%}
+.instructor-workspace form,.instructor-workspace fieldset {display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr))}
+.instructor-workspace form>p,.instructor-workspace form>h3,.instructor-workspace form>fieldset {grid-column:1/-1}
+.instructor-workspace label {display:flex;gap:6px;flex-direction:column;min-width:0}
+.instructor-workspace input,.instructor-workspace textarea {max-width:100%;box-sizing:border-box;color:inherit}
+.instructor-workspace input[type=checkbox] {width:auto;flex:0 0 auto}
+.instructor-workspace label:has(input[type=checkbox]) {flex-direction:row;align-items:center}
+.instructor-workspace li {display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.instructor-table-scroll {overflow:auto}
+.instructor-workspace table,.instructor-print-preview table {width:100%;border-collapse:collapse;font-size:14px}
+.instructor-workspace th,.instructor-workspace td,.instructor-print-preview td,.instructor-print-preview th {padding:8px;border:1px solid #d8cbd1;overflow-wrap:anywhere}
+.instructor-workspace .health-support-dashboard__summary,.instructor-workspace .health-support-settlement__metrics {display:flex;gap:16px;flex-wrap:wrap}
+.instructor-workspace .health-support-dashboard__summary>div,.instructor-workspace .health-support-settlement__metrics>div {display:grid;gap:6px;padding:12px;border:1px solid #e9dde2;border-radius:16px;background:#fffdfd}
+.instructor-stamp-preview {max-width:120px;max-height:120px;object-fit:contain;border:1px solid #e9dde2}
+.instructor-print-preview {color:#243246;background:#fff;max-width:100%;overflow:auto}
+.instructor-print-actions {display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:12px}
+.instructor-print-actions label {display:flex;gap:8px;align-items:center}
+.instructor-print-preview .attendance-register-preview__meta,.instructor-print-preview .payment-statement-preview__meta {display:flex;gap:12px;flex-wrap:wrap}
+.instructor-print-preview td {position:relative}
+.instructor-print-stamp {position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:8mm;height:8mm;object-fit:contain}
+.instructor-print-preview td {height:9.5mm}
+.instructor-print-preview .attendance-register-preview__verifier {text-align:right}
+@media(max-width:600px){.instructor-workspace table{font-size:12px}.instructor-workspace th,.instructor-workspace td{padding:5px}.instructor-workspace nav button{flex:1 1 40%}.instructor-print-actions{flex-direction:column;align-items:stretch}}
+@media print {
+ @page instructor-sheet {size:A4 portrait;margin:12mm}
+ body.instructor-print {overflow:visible!important;height:auto!important;background:white!important}
+ body.instructor-print>div:not(:has(.instructor-print-preview)) {display:none!important}
+ body.instructor-print .rose-overlay,body.instructor-print .rose-dialog {position:static!important;display:block!important;max-height:none!important;height:auto!important;width:auto!important;max-width:none!important;overflow:visible!important;padding:0!important;margin:0!important;border:0!important;box-shadow:none!important;background:white!important}
+ body.instructor-print .rose-dialog>header,body.instructor-print .instructor-print-actions,body.instructor-print button,body.instructor-print input,body.instructor-print label:has(input) {display:none!important}
+ body.instructor-print .instructor-print-preview {page:instructor-sheet;overflow:visible!important;max-height:none!important}
+ body.instructor-print table {font-size:11pt;table-layout:fixed;width:100%;border-collapse:collapse}
+ body.instructor-print td,body.instructor-print th {padding:2mm;border:1px solid #777}
+ body.instructor-print tr {break-inside:avoid}
+ body.instructor-print h2 {font-size:16pt;text-align:center}
+ body.instructor-print .attendance-register-preview th:nth-child(1) {width:16%}
+ body.instructor-print .attendance-register-preview th:nth-child(2) {width:9%}
+ body.instructor-print .attendance-register-preview th:nth-child(3),body.instructor-print .attendance-register-preview th:nth-child(4) {width:14.5%}
+ body.instructor-print .attendance-register-preview th:nth-child(5),body.instructor-print .attendance-register-preview th:nth-child(6) {width:20.5%}
+ body.instructor-print .attendance-register-preview__verifier {break-inside:avoid}
+ body.instructor-print .health-support-settlement__header,body.instructor-print .health-support-settlement__metrics,body.instructor-print .health-support-settlement__details {display:none}
+}

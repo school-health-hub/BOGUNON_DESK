@@ -13,7 +13,7 @@ ready=no
 for ((i=0;i<120;i++));do if "${DOCKER[@]}" logs "$ID" 2>&1|rg -q 'init process complete'&&"${DOCKER[@]}" exec "$CONTAINER" pg_isready -U postgres -d school01a >/dev/null 2>&1;then ready=yes;break;fi;sleep .25;done
 [[ "$ready" == yes ]]||exit 1
 mkdir -p school-workspace/school05/evidence
-for file in school-workspace/local/tests/auth_fixture.sql school-workspace/local/supabase/migrations/*.sql school-workspace/integration/sql/local-status.sql school-workspace/school02/sql/extension.sql school-workspace/school03/sql/extension.sql school-workspace/school04/sql/extension.sql;do "${DOCKER[@]}" exec -i "$CONTAINER" psql -X -v ON_ERROR_STOP=1 -U postgres -d school01a < "$file";done > school-workspace/school05/evidence/db-apply.log
+for file in school-workspace/local/tests/auth_fixture.sql school-workspace/local/supabase/migrations/*.sql school-workspace/integration/sql/local-status.sql school-workspace/school02/sql/extension.sql school-workspace/school03/sql/extension.sql school-workspace/school04/sql/extension.sql school-workspace/instructors/sql/candidate.sql;do "${DOCKER[@]}" exec -i "$CONTAINER" psql -X -v ON_ERROR_STOP=1 -U postgres -d school01a < "$file";done > school-workspace/school05/evidence/db-apply.log
 "${DOCKER[@]}" inspect "$CONTAINER" --format '{{json .HostConfig.NetworkMode}} {{json .HostConfig.PortBindings}}' > school-workspace/school05/evidence/db-isolation.txt
 node node_modules/vitest/vitest.mjs run --config school-workspace/school05/vitest.config.ts --reporter=verbose --reporter=json --outputFile=school-workspace/school05/evidence/new-tests.json > school-workspace/school05/evidence/new-tests.log 2>&1
 if [[ "${SCHOOL05_REGRESSION:-0}" == 1 ]];then

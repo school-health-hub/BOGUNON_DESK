@@ -1,3 +1,5 @@
+import {createInstructorFiles} from './instructor-files.js';
+import {InstructorStampStore} from './instructor-stamp.js';
 import {AccountService} from './account-service.js';
 import {AccountVault} from './account-vault.js';
 import {createAccountHandlers} from './account-ipc.js';
@@ -109,6 +111,18 @@ else {
     const provider=await import(moduleUrl);
     return provider.createRuntime({safeStorage,profileDirectory:userData});
   });
+  const instructorFiles=createInstructorFiles(window.webContents,url,{
+    authorize:school=>workspaceProduct.authorizeInstructor(school),
+    board:async(school,month)=>await workspaceProduct.instructorBoard(school,month) as {phase:string;board?:{version:number;instructor:{id:string}|null;logs:unknown[]}},
+    stamp:new InstructorStampStore(join(userData,'work-data','instructor-private'),{available:process.platform==='win32'&&safeStorage.isEncryptionAvailable(),encrypt:s=>safeStorage.encryptString(s),decrypt:b=>safeStorage.decryptString(b)}),protectedRoot:userData,
+    pick:async kind=>{const r=await dialog.showOpenDialog(window,{title:kind==='stamp'?'개인 도장 선택 · 로컬 보관':'근무기록 XLSX 선택',filters:kind==='stamp'?[{name:'도장 PNG/JPEG',extensions:['png','jpg','jpeg']}]:[{name:'근무기록',extensions:['xlsx']}],properties:['openFile','dontAddToRecent']});return r.canceled?undefined:r.filePaths[0];},
+    save:async month=>{const r=await dialog.showSaveDialog(window,{title:'지급명세서 Excel 저장',defaultPath:`학교보건지원강사 ${month.replace('-','년 ')}월 지급명세서.xlsx`,filters:[{name:'Excel',extensions:['xlsx']}],properties:['dontAddToRecent']});return r.canceled?undefined:r.filePath;},
+    confirm:async message=>(await dialog.showMessageBox(window,{type:'question',message,buttons:['취소','확인'],defaultId:0,cancelId:0})).response===1,
+    decode:bytes=>{const image=nativeImage.createFromBuffer(bytes);if(image.isEmpty())throw Error('image');return image.toPNG();},
+    print:()=>new Promise<boolean>((resolve,reject)=>window.webContents.print({silent:false,printBackground:true},(success,reason)=>success?resolve(true):reason?.toLowerCase().includes('cancel')?resolve(false):reject(Error('print_failed')))),
+  });
+  for(const[action,handler]of Object.entries(instructorFiles.handlers))ipcMain.handle('p2:instructor-files:'+action,handler);
+  window.on('closed',()=>instructorFiles.dispose());window.webContents.on('will-navigate',()=>instructorFiles.dispose());window.webContents.on('render-process-gone',()=>instructorFiles.dispose());
   const disposeWorkspace=()=>{void workspaceProduct.dispose().catch(()=>undefined);};
   window.on('closed',disposeWorkspace);window.webContents.on('will-navigate',disposeWorkspace);window.webContents.on('render-process-gone',disposeWorkspace);app.on('before-quit',disposeWorkspace);
   window.webContents.setWindowOpenHandler(()=>({action:'deny'}));
@@ -326,7 +340,7 @@ else {
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
-  const quit=()=>{if(quitting)return;quitting=true;accountHandlers.dispose();fileDrop.dispose();workFolderHandlers.dispose();recordHandlers.dispose();finderCompat.dispose();finderV2Export.dispose();finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();aiService.dispose();inventoryQa.close();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([accountHandlers.flush(),fileDrop.flush(),workFoldersStore.flush(),recordHandlers.flush(),finderSearch.flush(),finderV2Export.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),eventStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
+  const quit=()=>{if(quitting)return;quitting=true;instructorFiles.dispose();accountHandlers.dispose();fileDrop.dispose();workFolderHandlers.dispose();recordHandlers.dispose();finderCompat.dispose();finderV2Export.dispose();finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();aiService.dispose();inventoryQa.close();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([instructorFiles.flush(),accountHandlers.flush(),fileDrop.flush(),workFoldersStore.flush(),recordHandlers.flush(),finderSearch.flush(),finderV2Export.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),eventStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>{tray?.destroy();app.quit();});};
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
       {label:'창 열기',click:show},{label:'최소화',click:()=>window.minimize()},
