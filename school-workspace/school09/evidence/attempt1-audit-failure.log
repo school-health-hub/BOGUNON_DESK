@@ -1,0 +1,60 @@
+PASS t21
+PASS t22
+PASS t23
+PASS t24
+PASS t25
+PASS t26
+PASS t27
+PASS t28
+PASS t29
+PASS t30
+PASS t31
+PASS t32
+PASS t33
+PASS t34
+PASS admin creates item with zero stock
+PASS inactive create is honored and archived holding never appears usable
+PASS location register/rename uses version; assistant cannot manage
+PASS teacher edits metadata
+PASS assistant cannot edit metadata
+PASS cross school item lookup denied
+PASS receive increases stock and30day inclusive boundary
+PASS assistant default receive denied
+PASS explicit own use permission decreases stock
+PASS negative stock denied
+PASS assistant adjust/dispose forbidden
+PASS request_id replay applies once
+PASS request_id changed payload rejected
+PASS stale expected_version rejected
+PASS concurrent actual connections cannot overdraw
+PASS expired use rejected
+PASS no-expiry lot and separate quantities
+PASS expired excluded from usable; holding includes all
+PASS adjust/dispose append history and low stock uses usable count
+PASS unusable lot excluded and use forbidden
+PASS different school lot movement denied
+PASS pending/expired denied 5
+PASS pending/expired denied 8
+PASS live suspension rejects previous session
+PASS all quantity transactions have atomic audit entries
+PASS audit failure rolls back lot/movement/receipt
+PASS raw tables and movement delete denied
+PASS privacy rejected before any persistent receipt
+PASS Seoul dates: expiry today/30 inclusive,31 excluded, yesterday expired
+PASS explicit own receive works; deny override wins over allow
+PASS valid school B item cannot reference school A lot
+DB PASS 31
+FAIL S09 catalog:54 invokers, nonowner definers, all fixed empty paths, FORCE RLS 
+Traceback (most recent call last):
+  File "/workspace/work/school-09/repo/school-workspace/school09/tests/run.py", line 17, in <module>
+    exec(compile(s,'<frozen SCHOOL08 installer + evidence redirection + SCHOOL09 probes>','exec'),{'__name__':'__main__','__file__':str(R/'tests/install.py')})
+  File "<frozen SCHOOL08 installer + evidence redirection + SCHOOL09 probes>", line 50, in <module>
+  File "/workspace/work/school-09/repo/school-workspace/school09/tests/audit.py", line 16, in run
+    case('S09 catalog:54 invokers, nonowner definers, all fixed empty paths, FORCE RLS',verify_shape)
+  File "/workspace/work/school-09/repo/school-workspace/school07/tests/run.py", line 22, in case
+    try:fn();results.append({'name':n,'status':'PASS','classification':'LOCAL POSTGREST'if n.startswith('LOCAL POSTGREST')else'LOCAL DB'});print('PASS',n,flush=True)
+        ^^^^
+  File "/workspace/work/school-09/repo/school-workspace/school09/tests/audit.py", line 11, in verify_shape
+    assert all(not f['definer']and f['owner']=='ws_runtime'for f in pub)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

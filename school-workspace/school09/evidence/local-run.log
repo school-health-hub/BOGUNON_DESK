@@ -1,0 +1,89 @@
+PASS cumulative install without foundation fails closed
+PASS frozen foundation installs unchanged
+PASS full entry missing Auth prerequisite stops safely in fresh branch
+PASS missing Managed Auth capability blocks all app DDL
+PASS late inventory failure rolls back entire cumulative app install
+PASS empty PG17 cumulative install succeeds
+PASS all54 raw/public/private new purpose endpoints CLOSED
+PASS repeat CLOSED candidate no-op
+PASS complete installer entry replay skips immutable parent foundation
+PASS concurrent repeated install serialized
+PASS explicit cumulative activation opens only54 fixed wrappers
+PASS 54 exact EXECUTE chains, private helpers denied, all tables FORCE RLS/nonowner runtime
+PASS repeat ACTIVE candidate no-op
+PASS complete ACTIVE installer entry replay preserves permissions
+PASS legacy public metadata/policies/personal fixture rows unchanged
+PASS admin creates item with zero stock
+PASS inactive create is honored and archived holding never appears usable
+PASS location register/rename uses version; assistant cannot manage
+PASS teacher edits metadata
+PASS assistant cannot edit metadata
+PASS cross school item lookup denied
+PASS receive increases stock and30day inclusive boundary
+PASS assistant default receive denied
+PASS explicit own use permission decreases stock
+PASS negative stock denied
+PASS assistant adjust/dispose forbidden
+PASS request_id replay applies once
+PASS request_id changed payload rejected
+PASS stale expected_version rejected
+PASS concurrent actual connections cannot overdraw
+PASS expired use rejected
+PASS no-expiry lot and separate quantities
+PASS expired excluded from usable; holding includes all
+PASS adjust/dispose append history and low stock uses usable count
+PASS unusable lot excluded and use forbidden
+PASS different school lot movement denied
+PASS pending/expired denied 5
+PASS pending/expired denied 8
+PASS live suspension rejects previous session
+PASS all quantity transactions have atomic audit entries
+PASS audit failure rolls back lot/movement/receipt
+PASS raw tables and movement delete denied
+PASS privacy rejected before any persistent receipt
+PASS Seoul dates: expiry today/30 inclusive,31 excluded, yesterday expired
+PASS explicit own receive works; deny override wins over allow
+PASS valid school B item cannot reference school A lot
+DB PASS 31
+PASS S09 catalog:54 invokers, nonowner definers, all fixed empty paths, FORCE RLS
+PASS S09 no client/runtime SET ROLE escalation or owner membership
+PASS S09 SD probe private authz reader direct helper denied
+PASS S09 SD probe private session helper direct call denied
+PASS S09 SD probe private generic write dispatch denied
+PASS S09 SD probe role escalation runtime denied
+PASS S09 SD probe role escalation authz denied
+PASS S09 SD probe RLS row_security off cannot expose raw table
+PASS S09 SD probe private ledger mutation denied
+PASS S09 SD probe Auth table SELECT denied
+PASS S09 authz reader cannot mutate Workspace content
+PASS S09 read-only metadata queries execute without mutation
+PASS S09 runtime cannot SELECT any Auth session columns
+PASS S09 reader sees only four approved session columns
+PASS S09 definer code has no service_role or legacy-warning function references
+PASS S09 forged metadata cannot authorize teacher inventory write
+PASS S09 mismatched session owner/sub denies valid UUID
+PASS S09 anonymous Auth user denied despite authenticated PG role
+PASS LOCAL POSTGREST signed teacher inventories actual SQL
+PASS LOCAL POSTGREST anonymous inventory denied
+PASS LOCAL POSTGREST expired JWT inventory denied
+PASS LOCAL POSTGREST assistant read, direct manage RPC forbidden
+PASS LOCAL POSTGREST school A-only user cannot fetch school B inventory
+PASS LOCAL POSTGREST raw inventory tables absent
+PASS LOCAL POSTGREST private dispatch function not a resource
+PASS LOCAL POSTGREST S09 wrong signature rejected
+PASS LOCAL POSTGREST S09 pending denied
+PASS LOCAL POSTGREST S09 JWT ws_runtime escalation denied
+PASS LOCAL POSTGREST S09 private profile not exposed
+PASS LOCAL POSTGREST S09 Workspace raw profile not exposed
+PASS LOCAL POSTGREST S09 anonymous Auth claim rejected
+PASS LOCAL POSTGREST S09 forged metadata does not grant write
+PASS LOCAL POSTGREST S09 live role suspension blocks old signed JWT
+PASS LOCAL POSTGREST S09 live session expiration blocks unexpired JWT
+PASS LOCAL POSTGREST S09 removed Auth session rejects still signed JWT
+PASS LOCAL POSTGREST S09 all54 CLOSED reject anon and authenticated (108 HTTP requests)
+PASS LOCAL POSTGREST S09 reopen explicit wrappers retains live school authorization
+PASS cumulative schema still matches after all domain/UI tests
+PASS close all54 atomically without deleting business data
+PASS closed candidate replays and reopens coherently
+PASS public wrapper drift blocks install and activation
+PASS drift emergency closure keeps data and marks unverified

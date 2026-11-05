@@ -1,0 +1,1 @@
+PASS READ ONLY catalog query on empty Workspace with roles absent; no DDL; LOCAL PG17.6 synthetic Auth only

@@ -1,0 +1,22 @@
+ovement/receipt
+PASS raw tables and movement delete denied
+PASS privacy rejected before any persistent receipt
+PASS Seoul dates: expiry today/30 inclusive,31 excluded, yesterday expired
+PASS explicit own receive works; deny override wins over allow
+PASS valid school B item cannot reference school A lot
+DB PASS 31
+PASS S09 catalog:54 invokers, nonowner definers, all fixed empty paths, FORCE RLS
+FAIL S09 no client/runtime SET ROLE escalation or owner membership 'NoneType' object is not iterable
+Traceback (most recent call last):
+  File "/workspace/work/school-09/repo/school-workspace/school09/tests/run.py", line 17, in <module>
+    exec(compile(s,'<frozen SCHOOL08 installer + evidence redirection + SCHOOL09 probes>','exec'),{'__name__':'__main__','__file__':str(R/'tests/install.py')})
+  File "<frozen SCHOOL08 installer + evidence redirection + SCHOOL09 probes>", line 50, in <module>
+  File "/workspace/work/school-09/repo/school-workspace/school09/tests/audit.py", line 20, in run
+    case('S09 no client/runtime SET ROLE escalation or owner membership',roles)
+  File "/workspace/work/school-09/repo/school-workspace/school07/tests/run.py", line 22, in case
+    try:fn();results.append({'name':n,'status':'PASS','classification':'LOCAL POSTGREST'if n.startswith('LOCAL POSTGREST')else'LOCAL DB'});print('PASS',n,flush=True)
+        ^^^^
+  File "/workspace/work/school-09/repo/school-workspace/school09/tests/audit.py", line 19, in roles
+    assert not any(x['member']in('authenticated','anon','ws_runtime')and x['role']in('ws_runtime','ws_owner','ws_authz_reader')for x in c['memberships'])
+                                                                                                                                        ~^^^^^^^^^^^^^^^
+TypeError: 'NoneType' object is not iterable
