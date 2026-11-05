@@ -70,7 +70,7 @@ async function launch(){
   BrowserWindow.getAllWindows()[0].webContents.print=(_options,callback)=>{
    const q=globalThis.__instructor02;
    BrowserWindow.getAllWindows()[0].webContents.printToPDF({preferCSSPageSize:true,printBackground:true}).then(async bytes=>{
-    await (await import('node:fs/promises')).writeFile(q.pdf,bytes);callback(true);
+    await process.getBuiltinModule('fs').promises.writeFile(q.pdf,bytes);callback(true);
    }).catch(e=>{q.printError=e.message;callback(false,e.message);});
   };
  },{teacher:join(out,'teacher.png'),workbook:join(out,'payment.xlsx')});
@@ -95,6 +95,7 @@ async function preview(name,teacher,instructorSeal){
  await dialog.getByLabel('이번 출력에 강사 도장 포함').setChecked(instructorSeal);
  await dialog.getByLabel('이번 출력에 보건교사 도장 포함').setChecked(teacher);
  await dialog.getByLabel('확인자 이름').fill('합성 확인자');
+ await expect.poll(()=>dialog.locator('img').evaluateAll(images=>images.every(img=>img.complete&&img.naturalWidth>0))).toBe(true);
  const geometry=await dialog.locator('.attendance-register-preview').evaluate(el=>{
   const box=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};
   return [...el.querySelectorAll('img')].map(img=>({alt:img.alt,box:box(img),parent:box(img.parentElement),inside:(()=>{const a=img.getBoundingClientRect(),b=img.parentElement.getBoundingClientRect();return a.left>=b.left-1&&a.right<=b.right+1&&a.top>=b.top-1&&a.bottom<=b.bottom+1;})()}));
@@ -153,6 +154,7 @@ try{
  await pass('980x700 main output button reachable',result.smallWindow);
  stage='restart';await stop();await launch();await login();await tab('근무기록');await expect(instructor().getByRole('list',{name:'근무기록 수정 목록'}).getByRole('listitem')).toHaveCount(1);
  await tab('설정');await expect(instructor().getByAltText('등록한 강사 도장')).toBeVisible();await expect(instructor().getByAltText('등록한 보건교사 도장')).toBeVisible();await capture('restart-restored');await pass('Normal quit/relaunch restores DB record and both encrypted local stamps');
+ assert.equal(await instructor().getByAltText('등록한 보건교사 도장').getAttribute('src'),teacher);assert.equal(await instructor().getByAltText('등록한 강사 도장').getAttribute('src'),assistant);
  stage='multi-page';
  const imported=await page.evaluate(async()=>{
   const base={school:'10000000-0000-0000-0000-000000000001',month:'2026-08'},api=window.electronWorkspace.instructor;
