@@ -9,9 +9,10 @@ DO $guard$ BEGIN
 END$guard$;
 CREATE SCHEMA workspace_instructor AUTHORIZATION ws_owner;
 CREATE SCHEMA workspace_instructor_private AUTHORIZATION ws_owner;
+GRANT CREATE ON SCHEMA public TO ws_owner;
+SET LOCAL ROLE ws_owner;
 REVOKE ALL ON SCHEMA workspace_instructor,workspace_instructor_private FROM PUBLIC,anon,authenticated,service_role;
 GRANT USAGE ON SCHEMA workspace_instructor,workspace_instructor_private TO ws_runtime;
-GRANT CREATE ON SCHEMA public TO ws_owner;
 SET LOCAL ROLE ws_owner;
 CREATE TABLE workspace_instructor_private.release(state text PRIMARY KEY CHECK(state IN('closed','active')));
 ALTER TABLE workspace_instructor_private.release ENABLE ROW LEVEL SECURITY;
@@ -120,6 +121,9 @@ REVOKE CREATE ON SCHEMA workspace_instructor_private FROM ws_runtime;
 REVOKE ALL ON FUNCTION public.ws_v1_instructor_read(uuid,text),public.ws_v1_instructor_write(uuid,text,jsonb,bigint,uuid) FROM PUBLIC,anon,authenticated,service_role;
 RESET ROLE;REVOKE CREATE ON SCHEMA public FROM ws_owner;
 DO $acl$DECLARE x record;BEGIN
+ FOR x IN SELECT n.nspname,n.nspowner AS owner,a.grantee FROM pg_namespace n CROSS JOIN LATERAL aclexplode(coalesce(n.nspacl,acldefault('n',n.nspowner)))a WHERE n.nspname IN('workspace_instructor','workspace_instructor_private')AND a.grantee<>n.nspowner AND a.grantee<>(SELECT oid FROM pg_roles WHERE rolname='ws_runtime') LOOP
+ EXECUTE format('SET LOCAL ROLE %I',pg_get_userbyid(x.owner));EXECUTE format('REVOKE ALL ON SCHEMA %I FROM %s',x.nspname,CASE WHEN x.grantee=0 THEN 'PUBLIC' ELSE quote_ident(pg_get_userbyid(x.grantee))END);RESET ROLE;
+ END LOOP;
  FOR x IN SELECT p.oid::regprocedure AS sig,a.grantee,p.proowner AS owner FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace CROSS JOIN LATERAL aclexplode(coalesce(p.proacl,acldefault('f',p.proowner)))a WHERE (n.nspname='workspace_instructor_private' OR(n.nspname='public'AND p.proname IN('ws_v1_instructor_read','ws_v1_instructor_write')))AND a.grantee<>p.proowner AND a.grantee<>(SELECT oid FROM pg_roles WHERE rolname='ws_runtime') LOOP
  EXECUTE format('SET LOCAL ROLE %I',pg_get_userbyid(x.owner));EXECUTE format('REVOKE ALL ON FUNCTION %s FROM %s',x.sig,CASE WHEN x.grantee=0 THEN 'PUBLIC' ELSE quote_ident(pg_get_userbyid(x.grantee))END);RESET ROLE;
  END LOOP;

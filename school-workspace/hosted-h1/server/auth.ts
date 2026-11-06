@@ -13,8 +13,8 @@ export class H1Auth{
  }
  private fresh(g:number){if(g!==this.epoch)throw new H1Error('STALE');}
  private reset(){this.scope.invalidate();this.cancelLogin?.();this.cancelLogin=undefined;this.loopback?.close();this.loopback=undefined;return ++this.epoch;}
- private async verify(s:SecretSession){const{data,error}=await this.client.auth.getUser(s.accessToken);if(error||!data.user||data.user.id!==s.userId||data.user.is_anonymous===true)throw new H1Error('AUTH');}
- private async commit(s:Session|null,g:number){if(!s)throw new H1Error('AUTH');const next=validateSession({userId:s.user.id,accessToken:s.access_token,refreshToken:s.refresh_token,expiresAt:(s.expires_at??0)*1000});await this.verify(next);this.fresh(g);await this.storage.run(async()=>{this.fresh(g);await this.vault.save(next);if(g!==this.epoch){await this.vault.clear();throw new H1Error('STALE');}});this.session=next;this.state={kind:'authenticated',session:{user:{id:next.userId},expiresAt:next.expiresAt}};}
+ private async verify(s:SecretSession){const{data,error}=await this.client.auth.getUser(s.accessToken);if(error)throw new H1Error(error.status===0||error.status&&error.status>=500?'NETWORK':'AUTH');if(!data.user||data.user.id!==s.userId||data.user.is_anonymous===true)throw new H1Error('AUTH');}
+ private async commit(s:Session|null,g:number){if(!s)throw new H1Error('AUTH');const next=validateSession({userId:s.user.id,accessToken:s.access_token,refreshToken:s.refresh_token,expiresAt:(s.expires_at??0)*1000});await this.verify(next);this.fresh(g);await this.storage.run(async()=>{this.fresh(g);await this.vault.save(next);if(g!==this.epoch){await this.vault.clear();throw new H1Error('STALE');}});this.fresh(g);this.session=next;this.state={kind:'authenticated',session:{user:{id:next.userId},expiresAt:next.expiresAt}};}
  async login(){await this.logout();const g=this.reset();this.state={kind:'signing_in'};try{
   if(this.http.config.mode==='isolated-test'&&this.qaCredentials){const c=await this.qaCredentials();this.fresh(g);const{data,error}=await this.client.auth.signInWithPassword(c);if(error)throw new H1Error('AUTH');await this.commit(data.session,g);return;}
   if(this.http.config.mode!=='hosted-candidate')throw new H1Error('CONFIGURATION');
@@ -30,12 +30,12 @@ export class H1Auth{
   if(this.session.expiresAt<=Date.now()+30000){if(!this.refreshJob)this.refreshJob=(async()=>{const old=this.session!;const{data,error}=await this.client.auth.refreshSession({refresh_token:old.refreshToken});this.fresh(g);if(error||data.session?.user.id!==old.userId)throw new H1Error('AUTH');await this.commit(data.session,g);})().finally(()=>{this.refreshJob=undefined;});await this.refreshJob;}
   await this.verify(this.session!);this.fresh(g);this.state={kind:'authenticated',session:{user:{id:this.session!.userId},expiresAt:this.session!.expiresAt}};
  }
- async status():Promise<WorkspaceAuthStatus>{if(this.session)try{await this.ensure();}catch(e){this.scope.invalidate();this.state=e instanceof H1Error&&e.code==='NETWORK'?{kind:'error',error:'AUTH_SERVER_ERROR'}:{kind:'expired'};}return structuredClone(this.state);}
+ async status():Promise<WorkspaceAuthStatus>{const g=this.epoch;if(this.session)try{await this.ensure();}catch(e){if(g===this.epoch){this.scope.invalidate();this.state=e instanceof H1Error&&e.code==='NETWORK'?{kind:'error',error:'AUTH_SERVER_ERROR'}:{kind:'expired'};}}return structuredClone(this.state);}
  async authorized<T>(fn:(token:string,signal:AbortSignal)=>Promise<T>){const g=this.epoch;await this.ensure();this.fresh(g);return this.scope.run(signal=>fn(this.session!.accessToken,signal));}
- async logout(){const old=this.session;this.reset();this.session=null;this.state={kind:'signed_out'};await this.storage.run(()=>this.vault.clear());let unconfirmed=false;
+ async logout(){const old=this.session,g=this.reset();this.session=null;this.values.clear();this.state={kind:'signed_out'};await this.storage.run(()=>this.vault.clear());let unconfirmed=false;
   if(old){try{await this.http.rpc(old.accessToken,'ws_v1_revoke_current_session',{p_request_id:randomUUID()},AbortSignal.timeout(10000));}catch{unconfirmed=true;}
    try{const r=await this.http.fetch(`${this.http.config.origin}/auth/v1/logout?scope=local`,{method:'POST',headers:{Authorization:`Bearer ${old.accessToken}`}});if(!r.ok)unconfirmed=true;}catch{unconfirmed=true;}}
-  this.values.clear();if(unconfirmed)this.state={kind:'signed_out',remoteRevocation:'unconfirmed'};
+  if(g===this.epoch&&unconfirmed)this.state={kind:'signed_out',remoteRevocation:'unconfirmed'};
  }
  async dispose(){this.reset();this.session=null;this.state={kind:'signed_out'};this.values.clear();this.client.auth.dispose();}
 }
