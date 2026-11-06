@@ -21,7 +21,7 @@ export function RecordHelperHost({onClose,onOpenAiSettings,settingsOpen=false,dr
  },[api]);
  const read=<T,>(r:{ok:true;data:T}|{ok:false;error:{message:string}}):T=>{if(!r.ok)throw Error(r.error.message);return r.data;};
  if(!api)return <div><p role="alert">이 실행본에는 생기부 도우미 연결이 없습니다.</p><button type="button" onClick={onClose}>업무 도구로 돌아가기</button></div>;
- return createPortal(<div ref={root}><RecordHelperWorkspacePanel electronSession chatGpt={connection} onClose={onClose} onOpenAiSettings={onOpenAiSettings}
+ return createPortal(<div ref={root} className="td2-workspace td2-record-workspace" data-workspace="record-helper"><RecordHelperWorkspacePanel electronSession chatGpt={connection} onClose={onClose} onOpenAiSettings={onOpenAiSettings}
  importLabel={dropped?`확인한 드롭 보고서 ${dropped.files.length}개 가져오기`:undefined}
  onCancelDropped={dropped?()=>{void window.electronWork.fileDrop?.cancel({token:dropped.token});onDropDone?.();}:undefined}
  importReports={async()=>{if(!dropped)return read(await api.pick());try{const bridge=window.electronWork.fileDrop;if(!bridge)throw Error('드롭 연결이 없습니다.');return read(await bridge.record({token:dropped.token}));}finally{onDropDone?.();}}}
