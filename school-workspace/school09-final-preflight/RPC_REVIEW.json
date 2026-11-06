@@ -1,0 +1,515 @@
+{
+  "source_sha": "838cc0b1a7dc50129aebda75cf18b73386ed9bf7",
+  "basis": "D0 catalog evidence plus unchanged candidate SQL hashes; not Hosted installed inventory",
+  "public_rpc_count": 54,
+  "public_rpcs": [
+    {
+      "name": "ws_c_membership_status",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "0220e99683114ab1dcefa4e33ff6742d",
+      "identity_arguments": "p_school_id uuid"
+    },
+    {
+      "name": "ws_s02_admin",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "b34056910373a660c92ae6766adffcc0",
+      "identity_arguments": "s uuid"
+    },
+    {
+      "name": "ws_s02_directory",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "826e6eaaabceb4c80bdf91c5b0475987",
+      "identity_arguments": "q text, o text"
+    },
+    {
+      "name": "ws_s02_expiry",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "876bb9dcf85c59c1e68d25d078025236",
+      "identity_arguments": "s uuid, mid uuid, until_at timestamp with time zone, ev bigint, r uuid"
+    },
+    {
+      "name": "ws_s02_self",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "c89a42ad6c3275bb54ee0df5bf5211bb",
+      "identity_arguments": ""
+    },
+    {
+      "name": "ws_s02_space",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "ff04aa8109a2eb925a6da1a8764bd469",
+      "identity_arguments": "s uuid, r uuid"
+    },
+    {
+      "name": "ws_s02_transfers",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "c1394c7309b3c4270af0c4f0821e55b8",
+      "identity_arguments": "s uuid"
+    },
+    {
+      "name": "ws_s02_withdraw",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "4ffe62cdd55e440245cd9605145a79b8",
+      "identity_arguments": "s uuid, j uuid, ev bigint, r uuid"
+    },
+    {
+      "name": "ws_v1_accept_admin_change",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "add09b7dd27a89cc92d06bc209359dcc",
+      "identity_arguments": "p_school_id uuid, p_transfer_id uuid, p_expected_version bigint, p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_ack_handover",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "56b12fae27e07be65bb43bf2f272f2ec",
+      "identity_arguments": "p_school_id uuid, p_handover_id uuid, p_membership_id uuid, p_expected_version bigint, p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_adjust_inventory",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "fd7942da7cb6872269a2e8d5182f959f",
+      "identity_arguments": "p_school_id uuid, p_payload jsonb, p_expected_version bigint, p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_assign_task",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "da30019f297fc3b3c7107b50f1a9a6c2",
+      "identity_arguments": "p_school_id uuid, p_task_id uuid, p_assignees uuid[], p_expected_version bigint, p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_bootstrap",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "bf75a09384b640a32dd13d6971b7ead2",
+      "identity_arguments": ""
+    },
+    {
+      "name": "ws_v1_cancel_event",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "f530a0153fe6cd8fb2a8ab4336d62bf1",
+      "identity_arguments": "p_school_id uuid, p_event_id uuid, p_expected_version bigint, p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_change_assigned_task_status",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "9968e49f681eebd238eb8ed4308e105e",
+      "identity_arguments": "p_school_id uuid, p_task_id uuid, p_status text, p_expected_version bigint, p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_close_task",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "b5c5d4e6a94e4e856ce304d3e65cc049",
+      "identity_arguments": "p_school_id uuid, p_task_id uuid, p_mode text, p_expected_version bigint, p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_complete_handover",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "63940a4b05391c3b9ea7037f2ce9c907",
+      "identity_arguments": "p_school_id uuid, p_handover_id uuid, p_completed boolean, p_expected_version bigint, p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_create_handover",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "dc287bb5c8a50f5bcaee75097e32e507",
+      "identity_arguments": "p_school_id uuid, p_title text, p_body text, p_member_ids uuid[], p_target_roles text[], p_expected_version bigint, p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_create_inventory_item",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "3f6cc4d52c017be495e3d88af905cb2d",
+      "identity_arguments": "p_school_id uuid, p_payload jsonb, p_expected_version bigint, p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_create_task",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "53b64e7f6f2566453d77cd4e729f4d2b",
+      "identity_arguments": "p_school_id uuid, p_title text, p_description text, p_priority text, p_due_date date, p_assignees uuid[], p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_decide_join",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "535f2e0eb8d4052bf32fd27730ca6f26",
+      "identity_arguments": "p_school_id uuid, p_join_request_id uuid, p_decision text, p_approved_role text, p_valid_until timestamp with time zone, p_expected_version bigint, p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_dispose_inventory",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "a9c547705dd572eac6138ccc4b8da41c",
+      "identity_arguments": "p_school_id uuid, p_payload jsonb, p_expected_version bigint, p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_edit_handover",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "03c07c626560dc41990e598e088acda4",
+      "identity_arguments": "p_school_id uuid, p_handover_id uuid, p_title text, p_body text, p_member_ids uuid[], p_target_roles text[], p_expected_version bigint, p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_edit_inventory_item",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "dba918dfd75525a156496a9550e361a4",
+      "identity_arguments": "p_school_id uuid, p_payload jsonb, p_expected_version bigint, p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_edit_task",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "d22a68a2ab22097f44f1e82e943c5d0c",
+      "identity_arguments": "p_school_id uuid, p_task_id uuid, p_title text, p_description text, p_priority text, p_due_date date, p_expected_version bigint, p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_get_activity_context",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "df48fe88701de146423bc71e7619c685",
+      "identity_arguments": "p_school_id uuid"
+    },
+    {
+      "name": "ws_v1_get_context",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "771d018ed11ce01de8830de5d07e0cab",
+      "identity_arguments": "p_school_id uuid"
+    },
+    {
+      "name": "ws_v1_get_event",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "15a297823bfc5be2aa8b49f5a94dfbeb",
+      "identity_arguments": "p_school_id uuid, p_event_id uuid"
+    },
+    {
+      "name": "ws_v1_get_handover",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "27af0dd785a475fcaa34c7533b2d6fe7",
+      "identity_arguments": "p_school_id uuid, p_handover_id uuid"
+    },
+    {
+      "name": "ws_v1_get_inventory_context",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "a18108e507549262ec900483c47fdc6f",
+      "identity_arguments": "p_school_id uuid, p_payload jsonb"
+    },
+    {
+      "name": "ws_v1_get_inventory_item",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "5ea615f9a8392e680d37f3b3032248dc",
+      "identity_arguments": "p_school_id uuid, p_payload jsonb"
+    },
+    {
+      "name": "ws_v1_get_task",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "075b5691a8129fca7e80508d41c5847d",
+      "identity_arguments": "p_school_id uuid, p_task_id uuid"
+    },
+    {
+      "name": "ws_v1_leave_school",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "ba4c8c77874a24467434f786961e1f77",
+      "identity_arguments": "p_school_id uuid, p_expected_version bigint, p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_list_event_history",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "0b2ac82312dbdae676c0b087ceb36be4",
+      "identity_arguments": "p_school_id uuid, p_event_id uuid"
+    },
+    {
+      "name": "ws_v1_list_events",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "0fc0bdd857811d888d1362657b8397c7",
+      "identity_arguments": "p_school_id uuid, p_from timestamp with time zone, p_to timestamp with time zone"
+    },
+    {
+      "name": "ws_v1_list_handover_history",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "54e40a126317f46aa3cf773ffb68905e",
+      "identity_arguments": "p_school_id uuid, p_handover_id uuid"
+    },
+    {
+      "name": "ws_v1_list_handovers",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "73e78636909454386cbf0a3f8a7021b9",
+      "identity_arguments": "p_school_id uuid"
+    },
+    {
+      "name": "ws_v1_list_inventory_alerts",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "ed2f912a3312e3635ab5d5fc9b983db0",
+      "identity_arguments": "p_school_id uuid, p_payload jsonb"
+    },
+    {
+      "name": "ws_v1_list_inventory_items",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "c35e2653392d40a8aa6ffb2c538f98ea",
+      "identity_arguments": "p_school_id uuid, p_payload jsonb"
+    },
+    {
+      "name": "ws_v1_list_inventory_locations",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "bad414414c75be6be3877a949e485ae9",
+      "identity_arguments": "p_school_id uuid, p_payload jsonb"
+    },
+    {
+      "name": "ws_v1_list_inventory_lots",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "b37e8a2198f34000e76d4d9b5a4f8fea",
+      "identity_arguments": "p_school_id uuid, p_payload jsonb"
+    },
+    {
+      "name": "ws_v1_list_inventory_movements",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "a55d312f825cc6aaf7c034420c85a21a",
+      "identity_arguments": "p_school_id uuid, p_payload jsonb"
+    },
+    {
+      "name": "ws_v1_list_task_history",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "6f13562625be4f52d856d86dc3082381",
+      "identity_arguments": "p_school_id uuid, p_task_id uuid"
+    },
+    {
+      "name": "ws_v1_list_tasks",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "6216ed43acff774d5705a97571df195b",
+      "identity_arguments": "p_school_id uuid, p_status text, p_sort text, p_scope text, p_include_archived boolean"
+    },
+    {
+      "name": "ws_v1_propose_admin_change",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "764ca22f1bc004ca730c9c6e51929177",
+      "identity_arguments": "p_school_id uuid, p_target_membership_id uuid, p_mode text, p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_receive_inventory",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "143e3e16a0bf01449f15072b0d05f147",
+      "identity_arguments": "p_school_id uuid, p_payload jsonb, p_expected_version bigint, p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_request_join",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "7c816f30c5e07236d5393bfdb44c7448",
+      "identity_arguments": "p_school_id uuid, p_requested_role text, p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_revoke_current_session",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "c4bd2ef083c393af8afd315f915939a3",
+      "identity_arguments": "p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_save_event",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "15eae6baf5426258b6a37f318354cdfa",
+      "identity_arguments": "p_school_id uuid, p_event_id uuid, p_title text, p_description text, p_start_at timestamp with time zone, p_end_at timestamp with time zone, p_all_day boolean, p_expected_version bigint, p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_save_inventory_location",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "ba2155a94ccf84d33eb65ccd1de2b710",
+      "identity_arguments": "p_school_id uuid, p_payload jsonb, p_expected_version bigint, p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_set_inventory_lot_state",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "268b569795550d63ace67fe477fb9e68",
+      "identity_arguments": "p_school_id uuid, p_payload jsonb, p_expected_version bigint, p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_set_member_role",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "e64e86e0af872a2f8f0c6f473f6c1f7c",
+      "identity_arguments": "p_school_id uuid, p_membership_id uuid, p_new_role text, p_expected_version bigint, p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_set_membership_state",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "956d5ea1b5ac0df024d647e5c285452b",
+      "identity_arguments": "p_school_id uuid, p_membership_id uuid, p_state text, p_expected_version bigint, p_request_id uuid"
+    },
+    {
+      "name": "ws_v1_use_inventory",
+      "owner": "ws_owner",
+      "schema": "public",
+      "definer": false,
+      "returns": "jsonb",
+      "definition_md5": "40022ff1ba633885d05e4e3781a46d95",
+      "identity_arguments": "p_school_id uuid, p_payload jsonb, p_expected_version bigint, p_request_id uuid"
+    }
+  ],
+  "hash_comparison": [
+    {
+      "path": "school-workspace/school09d0/sql/00-hosted-preflight-select.sql",
+      "sha256": "be541aaa486d4dae5074a721e069898abe7216d74fb1642534588b9fc381e426",
+      "matches_plan": true
+    },
+    {
+      "path": "school-workspace/school09d0/sql/01-install-closed-candidate.sql",
+      "sha256": "bb18855935e71646343312b83c3d77428eb56ae235419220c01b4aa2b08dedac",
+      "matches_plan": true
+    },
+    {
+      "path": "school-workspace/school09d0/sql/02-postflight-select.sql",
+      "sha256": "db2a72022e8fc8d74efc0222fb41e3f92ba5db6dc6427038efd5a260c157e290",
+      "matches_plan": true
+    },
+    {
+      "path": "school-workspace/school09d0/sql/03-emergency-close.sql",
+      "sha256": "35c9cc7517d6f86dc4ab0a46a848dbc8d8dddd95c8847082bf8e14ba688b580c",
+      "matches_plan": true
+    }
+  ]
+}

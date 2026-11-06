@@ -1,0 +1,15 @@
+{
+  "integration_source_sha": "838cc0b1a7dc50129aebda75cf18b73386ed9bf7",
+  "scope": "read-only metadata and static approval review; no runtime retest",
+  "files": {
+    "school-workspace/school09-final-preflight/APPROVAL_PREFLIGHT.md": "2e8ea27b439a82bb979743fbeafa02e0de9b1f336e996431978ec8d47bcf27d0",
+    "school-workspace/school09-final-preflight/HOSTED_METADATA.json": "6f7cc799e7105bb8f8346017d20837469ec29116517c9176b68a4bd9153f2449",
+    "school-workspace/school09-final-preflight/HOSTED_METADATA.sql": "a1538d1337d33ea77cdec54956418b80b689b859f2ee5882e12521b61a34da0e",
+    "school-workspace/school09-final-preflight/RPC_REVIEW.json": "7854cde2f7af076422cbcbc42f733573214d87502b8d9d290f3e867a99df70d2",
+    "school-workspace/school09d0/INSTALL_PLAN.json": "9c478fcc031ad830984470ee11527fb3bd24d46c5c40258fae1801d9af1a94d7",
+    "school-workspace/school09d0/sql/00-hosted-preflight-select.sql": "be541aaa486d4dae5074a721e069898abe7216d74fb1642534588b9fc381e426",
+    "school-workspace/school09d0/sql/01-install-closed-candidate.sql": "bb18855935e71646343312b83c3d77428eb56ae235419220c01b4aa2b08dedac",
+    "school-workspace/school09d0/sql/02-postflight-select.sql": "db2a72022e8fc8d74efc0222fb41e3f92ba5db6dc6427038efd5a260c157e290",
+    "school-workspace/school09d0/sql/03-emergency-close.sql": "35c9cc7517d6f86dc4ab0a46a848dbc8d8dddd95c8847082bf8e14ba688b580c"
+  }
+}
