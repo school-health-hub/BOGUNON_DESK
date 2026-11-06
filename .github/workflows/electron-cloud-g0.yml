@@ -1,7 +1,7 @@
 name: Electron CLOUD-G0 integration
 on:
   push:
-    branches: [codex/cloud-g0-integration-stabilization, qa/school-08-windows, qa/school-09-windows]
+    branches: [codex/cloud-g0-integration-stabilization, qa/school-08-windows, qa/school-09-windows, qa/backup-readiness]
   workflow_dispatch:
 permissions:
   contents: read
@@ -45,3 +45,53 @@ jobs:
     secrets:
       public_url: ${{ vars.VITE_SUPABASE_URL }}
       public_key: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+  backup-tools-readonly:
+    if: github.ref == 'refs/heads/qa/backup-readiness'
+    runs-on: windows-2025
+    timeout-minutes: 5
+    steps:
+      - name: Inspect Windows backup tools only; no credentials or DB connection
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $out=Join-Path $env:RUNNER_TEMP 'backup-tools-only'
+          New-Item -ItemType Directory $out | Out-Null
+          function VersionOf([string]$exe,[string[]]$arguments){
+            $v=@(& $exe @arguments 2>$null)
+            if($LASTEXITCODE -ne 0){return $null}
+            $m=[regex]::Match(($v -join ' '),'[0-9]+[.][0-9]+(?:[.][0-9]+)?')
+            if($m.Success){return $m.Value};return $null
+          }
+          $cli=Get-Command supabase -ErrorAction SilentlyContinue
+          $docker=Get-Command docker -ErrorAction SilentlyContinue
+          $pg=@(Get-ChildItem 'C:\Program Files\PostgreSQL\*\bin\psql.exe' -ErrorAction SilentlyContinue|Sort-Object FullName -Descending)
+          $bin=if($pg.Count){Split-Path $pg[0].FullName}else{$null}
+          $client=if($docker){VersionOf $docker.Source @('--version')}else{$null}
+          $server=$null;$containerOs=$null
+          if($docker){
+            $raw=@(& $docker.Source version --format '{{.Server.Version}}' 2>$null)
+            if($LASTEXITCODE -eq 0){$server=($raw -join '').Trim()}
+            $raw=@(& $docker.Source info --format '{{.OSType}}' 2>$null)
+            if($LASTEXITCODE -eq 0){$containerOs=($raw -join '').Trim()}
+          }
+          $report=[ordered]@{
+            capturedUtc=[DateTime]::UtcNow.ToString('o');sourceSha='${{ github.sha }}'
+            environment='GitHub-hosted Windows2025, not the user PC';windows=[Environment]::OSVersion.VersionString;x64=[Environment]::Is64BitOperatingSystem
+            supabaseCli=if($cli){VersionOf $cli.Source @('--version')}else{$null}
+            psql=if($bin){VersionOf (Join-Path $bin 'psql.exe') @('--version')}else{$null}
+            pgDump=if($bin){VersionOf (Join-Path $bin 'pg_dump.exe') @('--version')}else{$null}
+            pgRestore=if($bin){VersionOf (Join-Path $bin 'pg_restore.exe') @('--version')}else{$null}
+            dockerClient=$client;dockerServer=$server;dockerContainerOs=$containerOs
+            linuxContainerAvailable=($containerOs -eq 'linux');toolsInstalledByThisJob=$false
+            credentialsInjected=$false;databaseConnectionAttempted=$false;backupAttempted=$false;productionDataCaptured=$false
+          }
+          $report|ConvertTo-Json|Set-Content "$out/windows-backup-tools.json"
+          $report|ConvertTo-Json
+          "BACKUP_TOOLS_EVIDENCE=$out" >> $env:GITHUB_ENV
+          exit 0
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: backup-tools-only-${{ github.run_id }}
+          path: ${{ env.BACKUP_TOOLS_EVIDENCE }}/windows-backup-tools.json
+          retention-days: 14
