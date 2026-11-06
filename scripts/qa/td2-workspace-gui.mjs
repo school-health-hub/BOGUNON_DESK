@@ -21,14 +21,16 @@ async function launch(){
  if(await page.getByRole('button',{name:'나중에 설정',exact:true}).count())await page.getByRole('button',{name:'나중에 설정',exact:true}).click();
  const info=await page.evaluate(()=>window.electronP0.info());
  if(!info.userData.includes(runId))throw Error('Profile isolation mismatch');
+ if(info.sourceSha!==sha)throw Error('Build source SHA does not match the reviewed checkout');
  report.profile=info.userData;report.electron=info.electron;
 }
 const dock=key=>page.getByRole('navigation',{name:'주요 기능'}).locator(`button[data-dock-item="${key}"]`);
 const click=async name=>{await page.getByRole('button',{name,exact:true}).first().click();};
 const tool=async name=>{await dock('toolbox').click();await click(name);};
 async function capture(id,size){
- const geometry=await app.evaluate(({BrowserWindow},size)=>{const w=BrowserWindow.getAllWindows()[0];w.unmaximize();if(size==='maximized')w.maximize();else w.setContentSize(size[0],size[1]);return {outer:w.getBounds(),content:w.getContentBounds(),maximized:w.isMaximized()};},size);
+ await app.evaluate(({BrowserWindow},size)=>{const w=BrowserWindow.getAllWindows()[0];w.unmaximize();if(size==='maximized')w.maximize();else w.setContentSize(size[0],size[1]);},size);
  await wait();
+ const geometry=await app.evaluate(({BrowserWindow})=>{const w=BrowserWindow.getAllWindows()[0];return {outer:w.getBounds(),content:w.getContentBounds(),maximized:w.isMaximized()};});
  const metrics=await page.evaluate(()=>({width:innerWidth,height:innerHeight,dpr:devicePixelRatio,overflow:Math.max(0,document.documentElement.scrollWidth-innerWidth),headings:[...document.querySelectorAll('h1,h2')].filter(e=>e.getClientRects().length).map(e=>e.textContent.trim()),dialogs:[...document.querySelectorAll('[role=dialog]')].filter(e=>e.getClientRects().length).map(e=>({name:e.getAttribute('aria-label')??e.querySelector('h1,h2')?.textContent,modal:e.getAttribute('aria-modal')}))}));
  const file=`${id}-${Array.isArray(size)?size.join('x'):size}.png`;
  await page.screenshot({path:join(out,'screenshots',file)});
@@ -67,7 +69,7 @@ try{
  await visit('record',()=>tool('생기부 도우미 · 세션 전용'),()=>click('생기부 도우미 닫기'));
  await visit('finder',()=>tool('교육영상 Finder'),()=>click('보건 업무로'));
  await visit('inventory',()=>tool('물품관리 — 로컬 저장'),()=>click('대시보드로'));
- await visit('inventory-preview',()=>tool('물품관리 — 미리보기'),()=>click('미리보기 닫기'));
+ await visit('inventory-preview',()=>tool('물품관리 — 미리보기'),()=>click('물품관리 미리보기 닫기'));
  await visit('finance',()=>tool('MY FINANCE · 암호화 로컬'),()=>click('보건 업무로'),async row=>{row.availability=await page.evaluate(()=>window.electronWork.finance.status());});
  await visit('settings',()=>dock('settings').click(),()=>click('설정 닫기'),async row=>{
   const first=page.getByRole('button',{name:'설정 닫기'});await first.focus();await page.keyboard.press('Shift+Tab');row.checks.push({shiftTabInside:await page.evaluate(()=>!!document.activeElement?.closest('[role=dialog]'))});await page.keyboard.press('Tab');row.checks.push({tabInside:await page.evaluate(()=>!!document.activeElement?.closest('[role=dialog]'))});
@@ -79,6 +81,12 @@ try{
  await visit('school-workspace',()=>tool('우리 보건실 · 학교 공유'),async()=>{await click('개인 업무 · 이 PC로 돌아가기');await click('업무 도구 닫기');},async row=>{row.gate=await page.evaluate(()=>window.electronWorkspace.status());if(row.gate.connected)throw Error('Unexpected operational workspace activation');row.checks.push('Existing disconnected gate preserved');});
  await visit('memo-protected',()=>dock('quick-memo').click(),()=>click('빠른 메모 닫기'));
 }catch(e){report.errors.push({type:'fatal',message:e.message});}
-finally{if(app){await app.close().then(()=>report.cleanup='Playwright Electron application closed normally').catch(e=>report.cleanup=e.message);}await writeFile(join(out,'review.json'),JSON.stringify(report,null,2));}
+finally{if(app){
+ const pids=await app.evaluate(({app})=>app.getAppMetrics().map(m=>m.pid)).catch(()=>[]);if(app.process()?.pid)pids.push(app.process().pid);
+ await app.close().then(()=>report.cleanup='Playwright Electron application closed normally').catch(e=>report.cleanup=e.message);
+ await new Promise(r=>setTimeout(r,500));const remaining=[];
+ for(const pid of [...new Set(pids)]){try{process.kill(pid,0);if(process.platform==='linux'){const stat=await readFile(`/proc/${pid}/stat`,'utf8');if(stat.split(') ')[1]?.startsWith('Z'))continue;}remaining.push(pid);}catch{}}
+ report.processCleanup={tracked:[...new Set(pids)],remaining,zeroResidual:remaining.length===0,scope:'Only PIDs reported by this isolated Electron instance; no termination of other processes'};
+ }await writeFile(join(out,'review.json'),JSON.stringify(report,null,2));}
 console.log(JSON.stringify({output:out,pass:report.records.filter(r=>r.status==='PASS').length,fail:report.records.filter(r=>r.status==='FAIL').map(r=>({id:r.id,error:r.error,captures:r.captures.filter(c=>c.renderer.overflow||c.sizeError)})),errors:report.errors,cleanup:report.cleanup},null,2));
-process.exitCode=report.errors.length||report.records.some(r=>r.status==='FAIL')?1:0;
+process.exitCode=report.errors.length||report.records.some(r=>r.status==='FAIL')||report.processCleanup?.remaining.length?1:0;
