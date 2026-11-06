@@ -1,5 +1,7 @@
 import {checkDockMemo,checkLastItems,processTracker} from './td2-b-usability.mjs';
-import { _electron as electron, expect } from '@playwright/test';
+import { expect } from '@playwright/test';
+import {launchQaElectron} from './td2-b-launch.mjs';
+const electron={launch:launchQaElectron};
 import { randomUUID, createHash } from 'node:crypto';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
