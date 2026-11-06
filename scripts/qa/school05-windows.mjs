@@ -36,7 +36,8 @@ const result={
 
 const isolatedAppData=join(qaRoot,'appdata'),isolatedLocalAppData=join(qaRoot,'localappdata');
 await mkdir(isolatedAppData,{recursive:true});await mkdir(isolatedLocalAppData,{recursive:true});
-const school09Gate=process.env.SCHOOL09_IMMUTABLE_GATE_ONLY==='1';
+const guiDesignSurvey=process.env.GUI_DESIGN_SURVEY==='1';
+const school09Gate=process.env.SCHOOL09_IMMUTABLE_GATE_ONLY==='1'||guiDesignSurvey;
 const electronExecutable=school09Gate?executable:requireFromProduct('electron');
 const launch=(mode)=>spawn(mode.startsWith('packaged')?executable:electronExecutable,[...(mode.startsWith('packaged')?[]:[join(productRoot,'build/electron-p0-app')]),`--remote-debugging-port=${port}`,'--inspect=127.0.0.1:19228'],{
   cwd:process.cwd(),
@@ -136,6 +137,7 @@ let mainCall;
 let scenarioTimer;try{
  await Promise.race([(async()=>{
  let current=await start('packaged-default');let page=current.page;
+ if(guiDesignSurvey){const {runSurvey}=await import('./gui-design-survey.mjs');result.survey=await runSurvey({page,native,mainCall,screenshots,evidenceRoot,qaRoot,result,mark,restart:async()=>{try{native('DialogCancel');}catch{}await stop('packaged-default');const next=await start('packaged-default');return next.page;}});await stop('packaged-default');result.verdict=result.survey.records.some(r=>r.error)?'FAIL':'PASS';result.hosted='NOT RUN';return;}
  if(school09Gate){
   result.controllerSourceSha=process.env.GITHUB_SHA;result.verificationScope='SCHOOL09 unchanged product runtime reuse, not a newly built Portable';
   const a=await page.evaluate(()=>window.electronWork.account.status());check(a.ok&&a.data.configured,'Existing public auth configuration lost');result.account={configured:true,actualLogin:'NOT RUN'};

@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$ExecutableRoot,[int]$Width=980,[int]$Height=700,[ValidateSet('Resize','Probe','Close','DialogProbe','DialogApprove','DialogCancel','TrayReturn')][string]$Action='Resize',[string]$Screenshot,[int]$OwnedProcessId=0)
+param([Parameter(Mandatory=$true)][string]$ExecutableRoot,[int]$Width=980,[int]$Height=700,[ValidateSet('Resize','Probe','Close','DialogProbe','DialogApprove','DialogCancel','DialogChooseFile','TrayReturn')][string]$Action='Resize',[string]$Screenshot,[int]$OwnedProcessId=0,[string]$FilePath)
 $ErrorActionPreference='Stop'
 if($ExecutableRoot -notmatch '^[A-Za-z]:[\\/]'){throw 'Executable root must be an absolute Windows drive path'}
 Add-Type @'
@@ -22,6 +22,8 @@ public static class Td2Window{
  [DllImport("user32.dll")]public static extern bool SetForegroundWindow(IntPtr h);
  [DllImport("user32.dll")]public static extern bool SetCursorPos(int x,int y);
  [DllImport("user32.dll")]public static extern void mouse_event(uint f,uint x,uint y,uint d,UIntPtr e);
+ [DllImport("user32.dll")]public static extern int GetDlgCtrlID(IntPtr h);
+ [DllImport("user32.dll",CharSet=CharSet.Unicode,EntryPoint="SendMessageW")]public static extern IntPtr SendText(IntPtr h,uint m,IntPtr w,string s);
  public static string Text(IntPtr h){var s=new StringBuilder(512);GetWindowText(h,s,512);return s.ToString();}
  public static string Class(IntPtr h){var s=new StringBuilder(128);GetClassName(h,s,128);return s.ToString();}
  public static IntPtr[] Windows(int pid){var a=new List<IntPtr>();EnumWindows((h,p)=>{uint n;GetWindowThreadProcessId(h,out n);if(n==pid&&IsWindowVisible(h))a.Add(h);return true;},IntPtr.Zero);return a.ToArray();}
@@ -60,6 +62,15 @@ if($Action -like 'Dialog*'){
  $names=@($buttons|ForEach-Object{[Td2Window]::Text($_).Replace('&','')})
  Capture $dialog
  if($Action -eq 'DialogProbe'){$rect=New-Object Td2Window+Rect;[void][Td2Window]::GetWindowRect($dialog,[ref]$rect);@{found=$true;class='#32770';buttons=$names;pid=$target.Id;left=$rect.Left;top=$rect.Top;width=($rect.Right-$rect.Left);height=($rect.Bottom-$rect.Top);screenWidth=[Td2Window]::GetSystemMetrics(0);screenHeight=[Td2Window]::GetSystemMetrics(1)}|ConvertTo-Json -Compress;exit}
+ if($Action -eq 'DialogChooseFile'){
+  $path=[IO.Path]::GetFullPath($FilePath);$qa=[IO.Path]::GetFullPath($env:ELECTRON_P0_QA_ROOT)+'\'
+  if(!$path.StartsWith($qa,[StringComparison]::OrdinalIgnoreCase)-or[IO.Path]::GetExtension($path)-ne '.csv'-or !(Test-Path -LiteralPath $path -PathType Leaf)){throw 'Only own synthetic QA CSV may be selected'}
+  $edits=@([Td2Window]::Children($dialog)|Where-Object{[Td2Window]::Class($_)-eq 'Edit'-and [Td2Window]::IsWindowVisible($_)-and [Td2Window]::IsWindowEnabled($_)-and [Td2Window]::GetDlgCtrlID($_)-in @(1148,1001)})
+  $open=@($buttons|Where-Object{[Td2Window]::Text($_).Replace('&','')-match '^(열기|Open)(\(.*\))?$'})
+  if($edits.Count-ne 1-or $open.Count-ne 1){@{found=$true;clicked=$false;reason='Filename/Open control not uniquely identified';editCount=$edits.Count;buttons=$names}|ConvertTo-Json -Compress;exit}
+  [void][Td2Window]::SendText($edits[0],0x000C,[IntPtr]::Zero,$path);[void][Td2Window]::PostMessage($open[0],0x00F5,[IntPtr]::Zero,[IntPtr]::Zero)
+  @{found=$true;clicked=$true;method='Owned Win32 native file dialog filename edit and Open';pid=$target.Id}|ConvertTo-Json -Compress;exit
+ }
  $selected=@($buttons|Where-Object{$n=[Td2Window]::Text($_).Replace('&','');if($Action -eq 'DialogCancel'){$n -match '취소|^Cancel$'}else{$n -match '확인|적용|계속|^OK$|^Yes$' -and $n -notmatch '취소|Cancel'}})
  if($selected.Count -ne 1){@{found=$true;clicked=$false;reason='Native button not uniquely identified';buttons=$names}|ConvertTo-Json -Compress;exit}
  [void][Td2Window]::SetForegroundWindow($dialog);[void][Td2Window]::PostMessage($selected[0],0x00F5,[IntPtr]::Zero,[IntPtr]::Zero)

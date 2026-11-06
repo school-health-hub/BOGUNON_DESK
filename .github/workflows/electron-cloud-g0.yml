@@ -1,7 +1,7 @@
 name: Electron CLOUD-G0 integration
 on:
   push:
-    branches: [codex/cloud-g0-integration-stabilization, qa/school-08-windows, qa/school-09-windows]
+    branches: [codex/cloud-g0-integration-stabilization, qa/school-08-windows, qa/school-09-windows, qa/integrated-gui-design]
   workflow_dispatch:
 permissions:
   contents: read
@@ -41,6 +41,13 @@ jobs:
 
   school09-impact:
     if: github.ref == 'refs/heads/qa/school-09-windows' && github.run_attempt <= 2
+    uses: ./.github/workflows/electron-p0-windows.yml
+    secrets:
+      public_url: ${{ vars.VITE_SUPABASE_URL }}
+      public_key: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+  gui-survey:
+    if: github.ref == 'refs/heads/qa/integrated-gui-design' && github.run_attempt <= 2
     uses: ./.github/workflows/electron-p0-windows.yml
     secrets:
       public_url: ${{ vars.VITE_SUPABASE_URL }}
