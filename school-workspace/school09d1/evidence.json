@@ -1,0 +1,51 @@
+{
+  "observed_date_kst": "2026-11-06",
+  "projects": {
+    "projects": [
+      {
+        "id": "zbdnvdjleipnrprpwqyd",
+        "ref": "zbdnvdjleipnrprpwqyd",
+        "organization_id": "lvghjzarjcsqfpkqucih",
+        "organization_slug": "lvghjzarjcsqfpkqucih",
+        "name": "baeruri",
+        "region": "ap-northeast-2",
+        "status": "ACTIVE_HEALTHY",
+        "database": {
+          "host": "db.zbdnvdjleipnrprpwqyd.supabase.co",
+          "version": "17.6.1.155",
+          "postgres_engine": "17",
+          "release_channel": "ga"
+        },
+        "created_at": "2026-08-19T10:47:29.208383Z"
+      }
+    ]
+  },
+  "organizations": {
+    "organizations": [
+      {
+        "id": "lvghjzarjcsqfpkqucih",
+        "slug": "lvghjzarjcsqfpkqucih",
+        "name": "TEAM BAERURI"
+      }
+    ]
+  },
+  "configuration": {
+    "secrets_configured": 0,
+    "outbound_identities": 0
+  },
+  "production_metadata_request": {
+    "project_id": "xxownwxxajzrviuvvfiu",
+    "operation": "get_project metadata READ-ONLY",
+    "result": "PERMISSION_DENIED; no data SQL run"
+  },
+  "test_project": "NOT FOUND IN CURRENT CONNECTION SCOPE; not proof none exists elsewhere",
+  "excluded_project": "zbdnvdjleipnrprpwqyd (baeruri); not queried or modified",
+  "hosted_tests": "NOT RUN",
+  "local_tests": "NOT RERUN",
+  "creation_or_operating_mutations": 0,
+  "user_supplied_dashboard": {
+    "url": "https://supabase.com/dashboard/project/xxownwxxajzrviuvvfiu",
+    "classification": "same excluded operating project; not an isolated QA approval",
+    "browser_check": "NOT AVAILABLE: no list_tabs/get_tab_context/browser js tools exposed; no browser sign-in performed"
+  }
+}
