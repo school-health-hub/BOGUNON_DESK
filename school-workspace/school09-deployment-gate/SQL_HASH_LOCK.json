@@ -1,0 +1,13 @@
+{
+  "integration_sha": "838cc0b1a7dc50129aebda75cf18b73386ed9bf7",
+  "project_id": "xxownwxxajzrviuvvfiu",
+  "base_path": "school-workspace/school09d0",
+  "files_sha256": {
+    "sql/00-hosted-preflight-select.sql": "be541aaa486d4dae5074a721e069898abe7216d74fb1642534588b9fc381e426",
+    "sql/01-install-closed-candidate.sql": "bb18855935e71646343312b83c3d77428eb56ae235419220c01b4aa2b08dedac",
+    "sql/02-postflight-select.sql": "db2a72022e8fc8d74efc0222fb41e3f92ba5db6dc6427038efd5a260c157e290",
+    "sql/03-emergency-close.sql": "35c9cc7517d6f86dc4ab0a46a848dbc8d8dddd95c8847082bf8e14ba688b580c"
+  },
+  "automatic_execute": false,
+  "approval_status": "PENDING"
+}
