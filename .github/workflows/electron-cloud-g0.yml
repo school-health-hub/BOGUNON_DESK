@@ -299,6 +299,16 @@ jobs:
         run: |
           node scripts/electron-p0/build-finance.mjs --release *> "$env:TD2_EVIDENCE_ROOT/finance-build.log"
           if ($LASTEXITCODE -ne 0) { throw 'Finance unavailable; other independent menu captures continue' }
+          # Main's existing unpackaged boundary intentionally resolves target/debug.
+          # Reuse the exact release bytes built above; do not change Main or encryption.
+          $from=Join-Path $pwd 'build/my-finance-cli/my-finance-cli.exe'
+          $to=Join-Path $pwd 'tools/my-finance-cli/target/debug/my-finance-cli.exe'
+          if (Test-Path $to) { throw 'Refusing to overwrite an existing native QA binary' }
+          New-Item -ItemType Directory (Split-Path $to) -Force | Out-Null
+          Copy-Item -LiteralPath $from -Destination $to
+          $hash=(Get-FileHash -LiteralPath $from -Algorithm SHA256).Hash
+          if ($hash -cne (Get-FileHash -LiteralPath $to -Algorithm SHA256).Hash) { throw 'Finance QA copy hash mismatch' }
+          [ordered]@{sourceSha=$env:GITHUB_SHA;buildMode='release';qaPlacement='Existing unpackaged Main target/debug path';sha256=$hash;productMainChanged=$false} | ConvertTo-Json | Set-Content "$env:TD2_EVIDENCE_ROOT/finance-native-resource.json"
       - name: Focused presentation and role-boundary tests only
         run: |
           node node_modules/vitest/vitest.mjs run electron-p0/tests/td2-workspace-ui.test.tsx electron-p0/tests/soft-rose-surface.test.tsx electron-p0/tests/quick-memo-surface.test.tsx school-workspace/school07/tests/client.test.ts school-workspace/school05/tests/boundary.test.ts school-workspace/instructors/tests/ui.test.tsx school-workspace/instructors/tests/preview-layers.test.tsx --reporter=json --outputFile="$env:TD2_EVIDENCE_ROOT/focused.json"
@@ -310,6 +320,7 @@ jobs:
       - name: Actual Windows Electron all-menu captures and synthetic shared screens
         env:
           TD2_UI_SYNTHETIC_SCHOOL: ${{ steps.school-db.outcome == 'success' && '1' || '0' }}
+          TD2_UI_REQUIRE_FINANCE: '1'
         run: |
           node scripts/qa/td2-workspace-gui.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Actual Windows GUI verification failed; see independent menu records' }

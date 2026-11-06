@@ -1,6 +1,6 @@
 // Focused UI evidence using the existing isolated Electron profile and real Preload.
 // No Portable build, service calls, credentials, synthetic IPC replacement or user data.
-import {_electron as electron} from '@playwright/test';
+import {_electron as electron,expect} from '@playwright/test';
 import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import {join,resolve} from 'node:path';
 import {randomUUID,createHash} from 'node:crypto';
@@ -70,7 +70,7 @@ try{
  await visit('finder',()=>tool('교육영상 Finder'),()=>click('보건 업무로'));
  await visit('inventory',()=>tool('물품관리 — 로컬 저장'),()=>click('대시보드로'));
  await visit('inventory-preview',()=>tool('물품관리 — 미리보기'),()=>click('물품관리 미리보기 닫기'));
- await visit('finance',()=>tool('MY FINANCE · 암호화 로컬'),()=>click('보건 업무로'),async row=>{row.availability=await page.evaluate(()=>window.electronWork.finance.status());});
+ await visit('finance',()=>tool('MY FINANCE · 암호화 로컬'),()=>click('보건 업무로'),async row=>{row.availability=await page.evaluate(()=>window.electronWork.finance.status());if(process.env.TD2_UI_REQUIRE_FINANCE==='1'){if(!row.availability.ok||!row.availability.data.available)throw Error('Original Finance native runtime unavailable; editor NOT RUN');await expect(page.getByRole('button',{name:'수입 등록',exact:true})).toBeEnabled({timeout:15000});row.checks.push('Original SQLCipher/DPAPI editor ready through real Main service');}});
  await visit('settings',()=>dock('settings').click(),()=>click('설정 닫기'),async row=>{
   const first=page.getByRole('button',{name:'설정 닫기'});await first.focus();await page.keyboard.press('Shift+Tab');row.checks.push({shiftTabInside:await page.evaluate(()=>!!document.activeElement?.closest('[role=dialog]'))});await page.keyboard.press('Tab');row.checks.push({tabInside:await page.evaluate(()=>!!document.activeElement?.closest('[role=dialog]'))});
  });
