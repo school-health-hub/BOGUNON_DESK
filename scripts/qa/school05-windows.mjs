@@ -203,6 +203,17 @@ let scenarioTimer;try{
   current=await start('h1-restored');page=current.page;
   const restoredShared=await page.evaluate(()=>window.electronWorkspace.school.refresh({}));
   check(restoredShared.workspace.phase==='authenticated_unselected'&&restoredShared.self.memberships.length>0,'H1 encrypted session restore failed');
+  const restoredUi=await openWorkspace(page);await restoredUi.getByRole('button',{name:'신청 현황 새로고침',exact:true}).waitFor();
+  globalThis.__schoolH1FixtureControls.expire();await restoredUi.getByRole('button',{name:'신청 현황 새로고침',exact:true}).click();
+  await restoredUi.getByText('로그인 시간이 만료되었습니다',{exact:true}).first().waitFor();
+  check(await restoredUi.getByRole('article',{name:'공동 업무 Windows 합성 공동 업무',exact:true}).count()===0,'Expired Auth retained shared task');
+  await capture(page,'h1-auth-expired-900');
+  globalThis.__schoolH1FixtureControls.failLogin();await restoredUi.getByRole('button',{name:'로그인',exact:true}).click();
+  await restoredUi.getByText('연결 확인 필요',{exact:true}).first().waitFor();
+  check(await restoredUi.getByRole('button',{name:'학교 공동 공간 열기',exact:true}).count()===0,'Failed login enabled shared workspace');
+  await capture(page,'h1-login-failed-900');
+  await restoredUi.getByRole('button',{name:'로그인',exact:true}).click();await restoredUi.getByText('학교를 선택해 주세요',{exact:true}).first().waitFor();
+  result.h1AuthFailureUi={verdict:'PASS',expiredSessionClearsSharedView:true,failedLoginNeverApproves:true,retrySucceeds:true,classification:'Actual Windows UI/HTTP; Auth responses are isolated fixture controls, NOT Hosted'};
   await page.evaluate(()=>window.electronWorkspace.school.signOut({}));
   let exists=false;try{await readFile(join(seedRoot,'hosted-h1/school-workspace-auth-v1/session.bin'));exists=true;}catch(e){if(e.code!=='ENOENT')throw e;}
   check(!exists,'Explicit H1 logout retained encrypted session');result.h1Restore={verdict:'PASS',actualDpapi:true,http:true,auth:'simulated signed fixture',restoredWithoutPasswordLogin:true,explicitLogoutDeletesVault:true};await stop('h1-restored');
