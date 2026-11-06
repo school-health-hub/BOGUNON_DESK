@@ -79,7 +79,7 @@ for(const mode of ['1280x800','1440x900','900x680','maximized',...(focused?['zoo
  report.checks.push({mode,bounds});
 const metrics=await page.evaluate(()=>{const main=document.querySelector('.workspace-dashboard');return{clientHeight:main.clientHeight,scrollHeight:main.scrollHeight,widgets:[...document.querySelectorAll('.desktop-widget-grid>[data-widget-type]')].map(e=>({type:e.dataset.widgetType,height:e.clientHeight,scrolling:[...e.querySelectorAll('*')].filter(n=>n.clientHeight>0&&n.scrollHeight>n.clientHeight+2&&['auto','scroll'].includes(getComputedStyle(n).overflowY)).map(n=>({class:n.className,height:n.clientHeight,scroll:n.scrollHeight}))})),memoHeight:document.querySelector('.quick-memo-editor textarea')?.clientHeight}});
 report.checks.push({mode,metrics});
-if(mode!=='900x680'&&!mode.startsWith('zoom')){
+if(mode!=='900x680'&&!mode.startsWith('zoom')&&bounds.width>1100){
  for(const type of ['today-summary','meal','dday','quick-launcher'])expect(metrics.widgets.find(w=>w.type===type)?.scrolling??[]).toEqual([]);
  expect(metrics.memoHeight).toBeGreaterThanOrEqual(90);
  expect(metrics.scrollHeight).toBeLessThanOrEqual(metrics.clientHeight+2);

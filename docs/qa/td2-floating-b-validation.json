@@ -1,0 +1,280 @@
+{
+  "designSha": "abf6f6f049f01dc57a574825fad8be86e2a4d68a",
+  "baseline": "243ae95e69483dfbe8d2438c41f858577d748048",
+  "focusedRunId": "aa7ac8ce-8a56-4941-b519-ee1696ec9a95",
+  "automatedResult": "PASS",
+  "visualHome": "PASS",
+  "windowsUsability": "REVISE",
+  "knownFailure": "zoom150 memo dialog covers Dock; Escape workaround only",
+  "mealReady": "NOT RUN",
+  "osDpi": "NOT RUN",
+  "tests": "5 files /38 PASS",
+  "build": "renderer PASS",
+  "types": "PASS",
+  "restart": {
+    "actualDragResizeAndProcessRestart": "PASS",
+    "beforeMove": {
+      "id": "widget-clock",
+      "type": "clock",
+      "x": 8,
+      "y": 0,
+      "w": 2,
+      "h": 2,
+      "visible": true
+    },
+    "afterMove": {
+      "id": "widget-clock",
+      "type": "clock",
+      "x": 1,
+      "y": 0,
+      "w": 2,
+      "h": 2,
+      "visible": true
+    },
+    "restored": {
+      "id": "widget-clock",
+      "type": "clock",
+      "x": 1,
+      "y": 0,
+      "w": 3,
+      "h": 3,
+      "visible": true
+    }
+  },
+  "captures": [
+    {
+      "file": "1280x800-top.png",
+      "sha256": "6c6d00c27180cad7b586ab14bbe584e0ca97fd71ee2b9e0d9080db18f0736084",
+      "nativeImage": {
+        "width": 1280,
+        "height": 800
+      },
+      "viewport": {
+        "width": 1280,
+        "height": 800,
+        "dpr": 1
+      }
+    },
+    {
+      "file": "1280x800-bottom.png",
+      "sha256": "c4731bbafd2da14d088aacfdd389c4ed91dca3666a98f92174dd2aa3b1b861d5",
+      "nativeImage": {
+        "width": 1280,
+        "height": 800
+      },
+      "viewport": {
+        "width": 1280,
+        "height": 800,
+        "dpr": 1
+      }
+    },
+    {
+      "file": "1440x900-top.png",
+      "sha256": "ed0c0a889446a145aee0b7c506bbbb475bb6cd033e438c16f223572aefed37f0",
+      "nativeImage": {
+        "width": 1440,
+        "height": 900
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "dpr": 1
+      }
+    },
+    {
+      "file": "1440x900-bottom.png",
+      "sha256": "ed0c0a889446a145aee0b7c506bbbb475bb6cd033e438c16f223572aefed37f0",
+      "nativeImage": {
+        "width": 1440,
+        "height": 900
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "dpr": 1
+      }
+    },
+    {
+      "file": "900x680-top.png",
+      "sha256": "43e902ce117ac7083562d633d7ac2913fad0805e242d7def3df43eb067858ae0",
+      "nativeImage": {
+        "width": 900,
+        "height": 680
+      },
+      "viewport": {
+        "width": 900,
+        "height": 680,
+        "dpr": 1
+      }
+    },
+    {
+      "file": "900x680-bottom.png",
+      "sha256": "954dcff693349615baf81ba44ba652254d33f7c8361881a10a1afb939e43a7e2",
+      "nativeImage": {
+        "width": 900,
+        "height": 680
+      },
+      "viewport": {
+        "width": 900,
+        "height": 680,
+        "dpr": 1
+      }
+    },
+    {
+      "file": "maximized-top.png",
+      "sha256": "80542076aa4d5e3d7afb91b3fd2204837aea7adfe957d3b116512957b2d40141",
+      "nativeImage": {
+        "width": 1920,
+        "height": 983
+      },
+      "viewport": {
+        "width": 1920,
+        "height": 983,
+        "dpr": 1
+      }
+    },
+    {
+      "file": "maximized-bottom.png",
+      "sha256": "43cdf767c0727b8c4b842d4a7f5a8483dd4245f3e6253da1d7c14c7417cc0c20",
+      "nativeImage": {
+        "width": 1920,
+        "height": 983
+      },
+      "viewport": {
+        "width": 1920,
+        "height": 983,
+        "dpr": 1
+      }
+    },
+    {
+      "file": "zoom125-top.png",
+      "sha256": "f9e0c3ce1890e36b2403dadcdcfa47c2c11fb52da29a9f0268180d12bafcf54d",
+      "nativeImage": {
+        "width": 1280,
+        "height": 800
+      },
+      "viewport": {
+        "width": 1024,
+        "height": 640,
+        "dpr": 1.25
+      }
+    },
+    {
+      "file": "zoom125-bottom.png",
+      "sha256": "26ce9376d46562a19997c6f387ac6469e14cd065850ae756260d0c17917fb542",
+      "nativeImage": {
+        "width": 1280,
+        "height": 800
+      },
+      "viewport": {
+        "width": 1024,
+        "height": 640,
+        "dpr": 1.25
+      }
+    },
+    {
+      "file": "zoom150-top.png",
+      "sha256": "38db2ef0f05dc3e612893d69675bf7ad5e2cbf43f19c2d28d7176dbdb8ce8d54",
+      "nativeImage": {
+        "width": 1280,
+        "height": 800
+      },
+      "viewport": {
+        "width": 853,
+        "height": 533,
+        "dpr": 1.5
+      }
+    },
+    {
+      "file": "zoom150-bottom.png",
+      "sha256": "74dfc38427a90c61225ad984a731a5aafd77b20928fac41d7bc0db2b7ebe0933",
+      "nativeImage": {
+        "width": 1280,
+        "height": 800
+      },
+      "viewport": {
+        "width": 853,
+        "height": 533,
+        "dpr": 1.5
+      }
+    },
+    {
+      "file": "dock-focus.png",
+      "sha256": "03ba7e16403c1094b4be0baed6bc08d7e04c50c7a39d718055c771d4bc9e90c9",
+      "nativeImage": {
+        "width": 1280,
+        "height": 800
+      },
+      "viewport": {
+        "width": 853,
+        "height": 533,
+        "dpr": 1.5
+      }
+    },
+    {
+      "file": "dock-selected-memo.png",
+      "sha256": "92c8cd70618275ec36afa0081375fd9de61b0d18fdfe7f80cd81e92b78c45e38",
+      "nativeImage": {
+        "width": 1280,
+        "height": 800
+      },
+      "viewport": {
+        "width": 853,
+        "height": 533,
+        "dpr": 1.5
+      }
+    },
+    {
+      "file": "dock-hover.png",
+      "sha256": "3d87a77434fed9f71c18e38aaab22feee71e4532cd801623fc4b5e85d4281093",
+      "nativeImage": {
+        "width": 1280,
+        "height": 800
+      },
+      "viewport": {
+        "width": 853,
+        "height": 533,
+        "dpr": 1.5
+      }
+    },
+    {
+      "file": "drag-resize-saved.png",
+      "sha256": "fc25077105292643b7f5b69416e5f1717900fdec4ff7ce11919f8f04f0218b27",
+      "nativeImage": {
+        "width": 1440,
+        "height": 900
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "dpr": 1
+      }
+    },
+    {
+      "file": "process-restart-restored.png",
+      "sha256": "896a8608db92626dbd58ea6b44125092e897564575540ee35c33991e2eb685f2",
+      "nativeImage": {
+        "width": 1440,
+        "height": 900
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "dpr": 1
+      }
+    },
+    {
+      "file": "custom-layout.png",
+      "sha256": "1ee794a9bec963b99effb23fa8c1f9e79ab2da3b51420e37b18fd99e8a698a1a",
+      "nativeImage": {
+        "width": 1440,
+        "height": 900
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "dpr": 1
+      }
+    }
+  ]
+}

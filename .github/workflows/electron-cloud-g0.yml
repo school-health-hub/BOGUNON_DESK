@@ -38,3 +38,72 @@ jobs:
     secrets:
       public_url: ${{ vars.VITE_SUPABASE_URL }}
       public_key: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+  td2-floating-b-focused:
+    name: Frozen TD2 B home and Dock QA only
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/codex/td2-floating-surface-b'
+    runs-on: windows-2022
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      TD2_DESIGN_SHA: abf6f6f049f01dc57a574825fad8be86e2a4d68a
+      TD2_FOCUSED_QA: '1'
+    steps:
+      - name: Checkout immutable approved design source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.23.3'
+      - name: Verify source and isolate synthetic profile
+        run: |
+          $ErrorActionPreference='Stop'
+          if ((git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA) { throw 'Controller SHA mismatch' }
+          git diff --exit-code $env:TD2_DESIGN_SHA HEAD -- electron-p0 src package.json package-lock.json
+          if ($LASTEXITCODE -ne 0) { throw 'Frozen product files differ from approved design' }
+          if (git status --porcelain) { throw 'Dirty design source' }
+          $root=Join-Path $env:RUNNER_TEMP "td2-b-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          New-Item -ItemType Directory "$root/evidence","$root/temp","$root/npm-cache" | Out-Null
+          "TEMP=$root/temp" >> $env:GITHUB_ENV
+          "TMP=$root/temp" >> $env:GITHUB_ENV
+          "npm_config_cache=$root/npm-cache" >> $env:GITHUB_ENV
+          "TD2_QA_TEMP=$root/profile-root" >> $env:GITHUB_ENV
+          "TD2_REVIEW_DIR=$root/evidence" >> $env:GITHUB_ENV
+          [ordered]@{designSha=$env:TD2_DESIGN_SHA;controllerSha=$env:GITHUB_SHA;runner='windows-2022';runId=$env:GITHUB_RUN_ID;osDpi='NOT RUN';deployment=$false;portableReplacement=$false} | ConvertTo-Json | Set-Content "$root/evidence/provenance.json"
+      - name: Install existing locked dependencies
+        run: npm ci
+      - name: Focused 38 tests and renderer types
+        run: |
+          node node_modules/typescript/bin/tsc -p electron-p0/tsconfig.renderer.json --noEmit
+          if ($LASTEXITCODE -ne 0) { throw 'Renderer type check failed' }
+          node node_modules/vitest/vitest.mjs run electron-p0/tests/soft-rose-surface.test.tsx electron-p0/tests/widget-state-notices.test.tsx src/dashboard/deskGeometry.test.ts src/dock/AppDock.test.tsx src/dock/storage.test.ts
+          if ($LASTEXITCODE -ne 0) { throw 'Focused tests failed' }
+      - name: Prepare unpackaged QA runtime without Portable or Rust rebuild
+        run: npm run electron:p0:build
+      - name: Native Electron synthetic long-data and restart checks
+        run: |
+          $env:TD2_ELECTRON_PATH=Join-Path $pwd 'node_modules/electron/dist/electron.exe'
+          node scripts/qa/td2-b-review.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Focused Electron QA failed' }
+      - name: Inventory evidence
+        if: always()
+        run: |
+          if (Test-Path $env:TD2_REVIEW_DIR) {
+            Get-ChildItem $env:TD2_REVIEW_DIR -File | Where-Object Name -ne 'SHA256SUMS.txt' | ForEach-Object { "$((Get-FileHash -LiteralPath $_.FullName).Hash)  $($_.Name)" } | Set-Content "$env:TD2_REVIEW_DIR/SHA256SUMS.txt"
+          }
+          'Frozen design QA only. Windows OS DPI, physical PC and integration approval: NOT RUN.' >> $env:GITHUB_STEP_SUMMARY
+      - name: Upload synthetic evidence only
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: td2-b-focused-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.TD2_REVIEW_DIR }}
+          retention-days: 14
+          if-no-files-found: warn
