@@ -3,6 +3,12 @@ on:
   push:
     branches: [codex/cloud-g0-integration-stabilization, integration/school-05-account-02b-qa]
   workflow_dispatch:
+    inputs:
+      h1_focus:
+        description: H1 only; other approved jobs keep their existing scope
+        type: choice
+        options: [all, http-only]
+        default: all
 permissions:
   contents: read
   actions: read
@@ -122,7 +128,7 @@ jobs:
 
   school-td2-candidate:
     name: SCHOOL Workspace plus TD2 candidate Windows QA
-    if: github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && (github.ref == 'refs/heads/integration/school-workspace-td2-candidate' || github.ref == 'refs/heads/feature/school-hosted-h1')
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && (github.ref == 'refs/heads/integration/school-workspace-td2-candidate' || (github.ref == 'refs/heads/feature/school-hosted-h1' && inputs.h1_focus != 'http-only'))
     runs-on: windows-2025
     timeout-minutes: 35
     defaults:
