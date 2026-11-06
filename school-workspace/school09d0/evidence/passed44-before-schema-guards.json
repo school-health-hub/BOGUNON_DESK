@@ -1,0 +1,226 @@
+{
+  "checks": [
+    {
+      "name": "H3 creator-default table exposure reproduced and rolled back",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "wrong project/plan markers rejected before installation",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "SELECT preflight executes with non-super installer",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "mid-install failure rolls back roles schema and creator defaults",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "late-install failure rolls back all cumulative objects",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "exact candidate fresh installation in empty PostgreSQL17.6 postgres database",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "SELECT postflight executes without new raw table grants",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "all54 public/private pairs CLOSED and PUBLIC has no function EXECUTE",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "all creator-default client/table/column privileges stripped from new relations",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "new table hardening never changes global default ACL or legacy public/Auth objects",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "no Workspace Auth raw SELECT USAGE or BYPASSRLS; owner FORCE RLS",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "all161 function definitions owners and results identical to H3, public54 unchanged",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "new installer replay is checked no-op under same explicit CLOSED plan",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "Auth boolean is not a direct session/UUID oracle for anon",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "Auth boolean is not a direct session/UUID oracle for authenticated",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "Auth boolean is not a direct session/UUID oracle for ws_runtime",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "Auth boolean is not a direct session/UUID oracle for ws_owner",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "Auth boolean is not a direct session/UUID oracle for service_role",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "retained nonbypass runtime table grants permit safe concurrent inventory use",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "request_id replay and changed payload/version rejection preserved",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "expired lot use and assistant metadata changes denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "audit failure rolls back inventory lot movement and receipt",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "MOCK failed REST startup never exposes signing material in traceback",
+      "status": "PASS",
+      "classification": "MOCK"
+    },
+    {
+      "name": "HTTP approved teacher public\u2192private\u2192reader\u2192limited postgres boolean chain",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP anon and expired signed JWT denied",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP pending and other-school user denied",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP teacher write traverses unchanged business RPC",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP live role downgrade blocks old JWT teacher write",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP live membership suspension blocks next request",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP two distinct sessions for same subject both initially valid",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP current revoked session denied while other session remains valid",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP current session not_after expiry overrides valid JWT signature",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP purpose revocation RPC records current session",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP app-revoked session denied with Auth row still present",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP mismatched sub/session binding and forged Auth role denied",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP private/raw endpoints are not resources",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "strict close rejects drift/Auth-read loss; emergency close still cuts public54",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "HTTP all54 CLOSED deny both anon/authenticated (108 requests,one grouped case)",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP closure retains existing task data",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "private bootstrap command remains separately CLOSED without new operator grants",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "emergency close retains data and never adopts fingerprint",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "install/activation cannot reopen unverified emergency closure",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "emergency closure is idempotent even after bridge search_path drift",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "all original personal/public/Auth/default privileges survive candidate and recovery",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    }
+  ],
+  "hosted": "NOT RUN",
+  "prior_results": "REFERENCED only; not added to these counts"
+}

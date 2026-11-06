@@ -1,0 +1,81 @@
+{
+  "package_verdict": "CONDITIONAL",
+  "operating_apply": "BLOCKED",
+  "authorized_to_apply": false,
+  "items": [
+    {
+      "id": "local-install",
+      "status": "VERIFIED",
+      "scope": "LOCAL PostgreSQL17.6",
+      "evidence": "evidence/results.json,final-run.log",
+      "detail": "Exact CLOSED candidate in local database postgres; real NOSUPERUSER installer; fresh/replay/rollback and ACL defaults"
+    },
+    {
+      "id": "local-api",
+      "status": "VERIFIED",
+      "scope": "LOCAL PostgREST13.0.4",
+      "evidence": "evidence/postgrest.json,results.json",
+      "detail": "Synthetic JWT/Auth only; current membership/session rechecked, cross-school/private/anonymous denied"
+    },
+    {
+      "id": "hosted-facts",
+      "status": "VERIFIED",
+      "scope": "Historical Hosted READ-ONLY user handoff only",
+      "detail": "postgres identity/BYPASSRLS, no Auth CREATE or Auth owner SET; authenticated no sessions SELECT. Not new observations or install success."
+    },
+    {
+      "id": "hosted-installer",
+      "status": "NOT VERIFIED",
+      "scope": "HOSTED",
+      "detail": "Existing postgres Auth4-column SELECT/USAGE/uid-jwt EXECUTE/users.id REFERENCES, CREATEROLE/DB CREATE/public grant option/WS owner SET. Run00 SELECT via authorized separate audit."
+    },
+    {
+      "id": "hosted-fk-owner",
+      "status": "NOT VERIFIED",
+      "scope": "HOSTED",
+      "detail": "Workspace FK creation and owner transfer; private postgres-owned boolean installation/Managed constraints. Local success is not Hosted proof."
+    },
+    {
+      "id": "hosted-data-api",
+      "status": "NOT VERIFIED",
+      "scope": "HOSTED",
+      "detail": "Data API enabled/schema exposure/cache and private boundary; no hosted RPC called."
+    },
+    {
+      "id": "hosted-legacy-function-reachability",
+      "status": "NOT VERIFIED",
+      "scope": "HOSTED EXISTING PUBLIC FUNCTIONS",
+      "detail": "Existing20 SECURITY DEFINER/19 historical warnings are untouched and not reused. Their current body/internal authorization/dynamic SQL reach into new schemas needs separate READ-ONLY review. Literal-reference flags in00 are triage, not proof."
+    },
+    {
+      "id": "hosted-oauth",
+      "status": "NOT VERIFIED",
+      "scope": "HOSTED",
+      "detail": "Google provider/redirect/PKCE, JWT/JWKS/claims, Electron Main and Web server sessions in real flow."
+    },
+    {
+      "id": "hosted-revocation",
+      "status": "NOT VERIFIED",
+      "scope": "HOSTED",
+      "detail": "Real refresh/logout/global revoke/user deletion/session cleanup; local session-row tests do not prove these."
+    },
+    {
+      "id": "bootstrap-policy",
+      "status": "BLOCKED",
+      "scope": "OPERATING POLICY",
+      "detail": "Accountable verifier and2 independent approvers not approved; private bootstrap remains CLOSED with no real operator provisioning."
+    },
+    {
+      "id": "evidence-retention",
+      "status": "BLOCKED",
+      "scope": "OPERATING POLICY",
+      "detail": "Minimal employment/delegation proof, custody, retention/deletion, school records, retired-member access and foreign storage notice require explicit decisions."
+    },
+    {
+      "id": "operating-approval",
+      "status": "BLOCKED",
+      "scope": "APPROVAL",
+      "detail": "Exact Source SHA/SQL hash, endpoint project identity, backup/restore and separately approved install/auth test/activation required. Project GUC markers are not approval or project proof."
+    }
+  ]
+}

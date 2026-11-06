@@ -1,0 +1,53 @@
+{
+  "base_sha": "4cacc51d06298ee4118273388513be1599d67095",
+  "integration_sha": "39c775cdd11509fdc6bc930ef62990acdd1e1315",
+  "h3_zip_sha256": "cae8ad31cb8ee643544876cf2a55509b6fd5723a59b12dc7c98b5886d353779d",
+  "h3_zip_files": 517,
+  "h3_results": "178 PASS references; full domain137 not blindly rerun",
+  "files": [
+    {
+      "path": "school-workspace/school09ch3/INSTALL_PLAN.json",
+      "sha256": "f59acddc27e6e4b3a776397f36e5656d36c6b8f3ae331e71a96e45abe590e1fc"
+    },
+    {
+      "path": "school-workspace/school09ch3/REPORT.md",
+      "sha256": "7921fb167f446aecb9da247f397be75b25f70c20f15090c10c9ba892d3eaff22"
+    },
+    {
+      "path": "school-workspace/school09ch3/sql/01-fresh-local.sql",
+      "sha256": "4f80e5d08be07862b17deaf18620886a05e3fed1b3ce46eaed3246f043191122"
+    },
+    {
+      "path": "school-workspace/school09ch3/sql/02-activate-qa-only.sql",
+      "sha256": "b4df754725adbaac4eb23d4e1d061ba681b7b1475eb44cb1ad70607347761623"
+    },
+    {
+      "path": "school-workspace/school09ch3/sql/03-close-local.sql",
+      "sha256": "83a3e0a4db6d941172f08e7a6deb913396f4eb2742d69541f65de939c4ccc6f6"
+    },
+    {
+      "path": "school-workspace/school09ch3/tests/run.py",
+      "sha256": "f52ee0531954e937a074dcfe071f91482895b70cb115d5bbf3d424b65d10f258"
+    },
+    {
+      "path": "school-workspace/school09ch3/tests/rest.py",
+      "sha256": "8b62fe91aadfd76c9d6e0d9a6c93f13ef894a4adb814afe816e366962fdb00f5"
+    },
+    {
+      "path": "school-workspace/school09ch3/evidence/results.json",
+      "sha256": "32483e4b8f24b1235f060ded5b1f71a49d832107374d55aa982a1e0e24de8cc4"
+    },
+    {
+      "path": "school-workspace/school09ch3/evidence/installed-functions.json",
+      "sha256": "b67a6238601c1537874ce9c62286a7d5b2bb70de70da29352f8b1f9a6fa2dce5"
+    },
+    {
+      "path": "school-workspace/school09ch3/reference/official-sources.json",
+      "sha256": "ddd3c1508593b40c7bf6bac3cdb7c5ae039090e952309e4d61ab309a8175223f"
+    },
+    {
+      "path": "school-workspace/school09/reference/rpc-signatures.json",
+      "sha256": "f0f6bdfa52e1f36f129ba76de37cee7b2acb34b889f772046b94ad873b4b57f1"
+    }
+  ]
+}

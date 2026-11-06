@@ -1,0 +1,36 @@
+{
+  "candidate_release": "16243d5a443e6b7d40fc92a1ea14f3cd451798583aca740f3f1550d80354360f",
+  "full_result": "46 PASS, final-run.log/results.json",
+  "additional_metadata_queries": "focused-select-run.log, PASS; not added to46",
+  "files": [
+    {
+      "path": "school-workspace/school09d0/sql/02-postflight-select.sql",
+      "sha256": "db2a72022e8fc8d74efc0222fb41e3f92ba5db6dc6427038efd5a260c157e290"
+    },
+    {
+      "path": "school-workspace/school09d0/sql/03-emergency-close.sql",
+      "sha256": "35c9cc7517d6f86dc4ab0a46a848dbc8d8dddd95c8847082bf8e14ba688b580c"
+    },
+    {
+      "path": "school-workspace/school09d0/sql/00-hosted-preflight-select.sql",
+      "sha256": "be541aaa486d4dae5074a721e069898abe7216d74fb1642534588b9fc381e426"
+    },
+    {
+      "path": "school-workspace/school09d0/sql/01-install-closed-candidate.sql",
+      "sha256": "bb18855935e71646343312b83c3d77428eb56ae235419220c01b4aa2b08dedac"
+    },
+    {
+      "path": "school-workspace/school09d0/tools/build.py",
+      "sha256": "87006eb9c2df6458faf1d2d10c217339b545b5c868e77b49ea4995543303458e"
+    },
+    {
+      "path": "school-workspace/school09d0/tests/run.py",
+      "sha256": "3175b8bd69dcb00978a5fb441a215dd3db8d2edf3cf07275e6bc8d457b542c02"
+    },
+    {
+      "path": "school-workspace/school09d0/tests/rest.py",
+      "sha256": "e305abaf6399c38a7436e74d578e9fcecefcd3b41f153cd3f28c58bec665f216"
+    }
+  ],
+  "reporting_only_change": "focused runner footer no longer hardcodes an intermediate total; no SQL change"
+}

@@ -1,0 +1,1309 @@
+{
+  "analysis": "static upper-bound references, not proof of conditional execution; combined with real SQL/HTTP negative tests",
+  "functions": [
+    {
+      "function": "public.ws_c_membership_status",
+      "calls_or_references": [
+        "workspace_private.c_membership_status"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_s02_admin",
+      "calls_or_references": [
+        "workspace_private.s02_admin"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_s02_directory",
+      "calls_or_references": [
+        "workspace_private.s02_directory"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_s02_expiry",
+      "calls_or_references": [
+        "workspace_private.s02_expiry"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_s02_self",
+      "calls_or_references": [
+        "workspace_private.s02_self"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_s02_space",
+      "calls_or_references": [
+        "workspace_private.s02_space"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_s02_transfers",
+      "calls_or_references": [
+        "workspace_private.s02_transfers"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_s02_withdraw",
+      "calls_or_references": [
+        "workspace_private.s02_withdraw"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_accept_admin_change",
+      "calls_or_references": [
+        "workspace_private.accept_admin_change"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_ack_handover",
+      "calls_or_references": [
+        "workspace_private.s04_note_ack"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_adjust_inventory",
+      "calls_or_references": [
+        "workspace_private.s07_adjust_inventory"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_assign_task",
+      "calls_or_references": [
+        "workspace_private.s03_reassign"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_bootstrap",
+      "calls_or_references": [
+        "workspace_private.bootstrap"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_cancel_event",
+      "calls_or_references": [
+        "workspace_private.s04_event_cancel"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_change_assigned_task_status",
+      "calls_or_references": [
+        "workspace_private.s03_status"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_close_task",
+      "calls_or_references": [
+        "workspace_private.s03_close"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_complete_handover",
+      "calls_or_references": [
+        "workspace_private.s04_note_complete"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_create_handover",
+      "calls_or_references": [
+        "workspace_private.s04_note_create"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_create_inventory_item",
+      "calls_or_references": [
+        "workspace_private.s07_create_inventory_item"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_create_task",
+      "calls_or_references": [
+        "workspace_private.s03_create"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_decide_join",
+      "calls_or_references": [
+        "workspace_private.decide_join"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_dispose_inventory",
+      "calls_or_references": [
+        "workspace_private.s07_dispose_inventory"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_edit_handover",
+      "calls_or_references": [
+        "workspace_private.s04_note_edit"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_edit_inventory_item",
+      "calls_or_references": [
+        "workspace_private.s07_edit_inventory_item"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_edit_task",
+      "calls_or_references": [
+        "workspace_private.s03_edit"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_get_activity_context",
+      "calls_or_references": [
+        "workspace_private.s04_context"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_get_context",
+      "calls_or_references": [
+        "workspace_private.get_context"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_get_event",
+      "calls_or_references": [
+        "workspace_private.s04_event_get"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_get_handover",
+      "calls_or_references": [
+        "workspace_private.s04_note_get"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_get_inventory_context",
+      "calls_or_references": [
+        "workspace_private.s07_get_inventory_context"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_get_inventory_item",
+      "calls_or_references": [
+        "workspace_private.s07_get_inventory_item"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_get_task",
+      "calls_or_references": [
+        "workspace_private.s03_get"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_leave_school",
+      "calls_or_references": [
+        "workspace_private.leave_school"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_list_event_history",
+      "calls_or_references": [
+        "workspace_private.s04_event_history"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_list_events",
+      "calls_or_references": [
+        "workspace_private.s04_event_list"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_list_handover_history",
+      "calls_or_references": [
+        "workspace_private.s04_note_history"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_list_handovers",
+      "calls_or_references": [
+        "workspace_private.s04_note_list"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_list_inventory_alerts",
+      "calls_or_references": [
+        "workspace_private.s07_list_inventory_alerts"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_list_inventory_items",
+      "calls_or_references": [
+        "workspace_private.s07_list_inventory_items"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_list_inventory_locations",
+      "calls_or_references": [
+        "workspace_private.s07_list_inventory_locations"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_list_inventory_lots",
+      "calls_or_references": [
+        "workspace_private.s07_list_inventory_lots"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_list_inventory_movements",
+      "calls_or_references": [
+        "workspace_private.s07_list_inventory_movements"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_list_task_history",
+      "calls_or_references": [
+        "workspace_private.s03_history"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_list_tasks",
+      "calls_or_references": [
+        "workspace_private.s03_list"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_propose_admin_change",
+      "calls_or_references": [
+        "workspace_private.propose_admin_change"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_receive_inventory",
+      "calls_or_references": [
+        "workspace_private.s07_receive_inventory"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_request_join",
+      "calls_or_references": [
+        "workspace_private.s02_request_join"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_revoke_current_session",
+      "calls_or_references": [
+        "workspace_private.revoke_current_session"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_save_event",
+      "calls_or_references": [
+        "workspace_private.s04_event_save"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_save_inventory_location",
+      "calls_or_references": [
+        "workspace_private.s07_save_inventory_location"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_set_inventory_lot_state",
+      "calls_or_references": [
+        "workspace_private.s07_set_inventory_lot_state"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_set_member_role",
+      "calls_or_references": [
+        "workspace_private.set_member_role"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_set_membership_state",
+      "calls_or_references": [
+        "workspace_private.set_membership_state"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "public.ws_v1_use_inventory",
+      "calls_or_references": [
+        "workspace_private.s07_use_inventory"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_auth_bridge.recent_login",
+      "calls_or_references": [
+        "auth.jwt",
+        "auth.sessions",
+        "auth.uid",
+        "workspace_auth_bridge.session_valid"
+      ],
+      "direct_auth_read": true
+    },
+    {
+      "function": "workspace_auth_bridge.session_valid",
+      "calls_or_references": [
+        "auth.jwt",
+        "auth.sessions",
+        "auth.uid"
+      ],
+      "direct_auth_read": true
+    },
+    {
+      "function": "workspace_bootstrap.command",
+      "calls_or_references": [
+        "workspace_bootstrap.audit",
+        "workspace_bootstrap.cases",
+        "workspace_bootstrap.operators",
+        "workspace_bootstrap.receipts"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.accept_admin_change",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.bump",
+        "workspace_private.enter",
+        "workspace_private.finish",
+        "workspace_private.promotion_allowed",
+        "workspace_private.receipt",
+        "workspace_private.recent_login"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.actor",
+      "calls_or_references": [
+        "workspace_private.request_uid"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.admin",
+      "calls_or_references": [
+        "workspace_private.member_role"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.allowed",
+      "calls_or_references": [
+        "workspace_private.member_role"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.bootstrap",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.request_uid",
+        "workspace_private.session_ok"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.bump",
+      "calls_or_references": [],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.c_membership_status",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.member_role",
+        "workspace_private.session_ok"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.decide_join",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.bump",
+        "workspace_private.enter",
+        "workspace_private.finish",
+        "workspace_private.receipt"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.enter",
+      "calls_or_references": [
+        "workspace_private.admin",
+        "workspace_private.allowed",
+        "workspace_private.session_ok"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.finish",
+      "calls_or_references": [
+        "workspace_private.actor"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.get_context",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.enter"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.guard_last",
+      "calls_or_references": [
+        "workspace_private.other_admin"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.immutable_identity",
+      "calls_or_references": [],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.leave_school",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.bump",
+        "workspace_private.enter",
+        "workspace_private.finish",
+        "workspace_private.guard_last",
+        "workspace_private.receipt"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.member_role",
+      "calls_or_references": [
+        "workspace_private.request_uid",
+        "workspace_private.session_ok"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.other_admin",
+      "calls_or_references": [],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.promotion_allowed",
+      "calls_or_references": [
+        "workspace_private.actor"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.propose_admin_change",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.enter",
+        "workspace_private.finish",
+        "workspace_private.receipt",
+        "workspace_private.recent_login"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.receipt",
+      "calls_or_references": [
+        "workspace_private.actor"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.recent_login",
+      "calls_or_references": [
+        "workspace_auth_bridge.recent_login",
+        "workspace_private.session_ok"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.request_join",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.finish",
+        "workspace_private.receipt",
+        "workspace_private.school_open",
+        "workspace_private.session_ok"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.request_jwt",
+      "calls_or_references": [],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.request_uid",
+      "calls_or_references": [
+        "workspace_private.request_jwt"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.revoke_current_session",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.finish",
+        "workspace_private.request_jwt",
+        "workspace_private.session_ok"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s02_admin",
+      "calls_or_references": [
+        "workspace_private.enter"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s02_approval_time",
+      "calls_or_references": [],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s02_directory",
+      "calls_or_references": [
+        "workspace_private.session_ok"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s02_expiry",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.bump",
+        "workspace_private.enter",
+        "workspace_private.finish",
+        "workspace_private.receipt",
+        "workspace_private.recent_login"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s02_request_join",
+      "calls_or_references": [
+        "workspace_private.request_join",
+        "workspace_private.session_ok"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s02_self",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.session_ok"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s02_space",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.finish",
+        "workspace_private.receipt",
+        "workspace_private.s02_unclaimed",
+        "workspace_private.session_ok"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s02_transfers",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.admin",
+        "workspace_private.enter"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s02_unclaimed",
+      "calls_or_references": [
+        "workspace_private.session_ok"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s02_withdraw",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.finish",
+        "workspace_private.receipt",
+        "workspace_private.session_ok"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s03_assign",
+      "calls_or_references": [
+        "workspace_private.s03_valid_epoch"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s03_assigned",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.s03_valid_epoch"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s03_close",
+      "calls_or_references": [
+        "workspace_private.enter",
+        "workspace_private.receipt",
+        "workspace_private.s03_hash",
+        "workspace_private.s03_manage",
+        "workspace_private.s03_record"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s03_create",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.enter",
+        "workspace_private.receipt",
+        "workspace_private.s03_assign",
+        "workspace_private.s03_hash",
+        "workspace_private.s03_manage",
+        "workspace_private.s03_record",
+        "workspace_private.s03_safe"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s03_edit",
+      "calls_or_references": [
+        "workspace_private.enter",
+        "workspace_private.receipt",
+        "workspace_private.s03_hash",
+        "workspace_private.s03_manage",
+        "workspace_private.s03_record",
+        "workspace_private.s03_safe"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s03_get",
+      "calls_or_references": [
+        "workspace_private.enter",
+        "workspace_private.s03_json",
+        "workspace_private.s03_read"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s03_guard",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.member_role",
+        "workspace_private.s03_assigned",
+        "workspace_private.s03_manage"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s03_hash",
+      "calls_or_references": [],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s03_history",
+      "calls_or_references": [
+        "workspace_private.enter",
+        "workspace_private.s03_json",
+        "workspace_private.s03_manage"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s03_json",
+      "calls_or_references": [
+        "workspace_private.s03_valid_epoch"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s03_list",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.enter",
+        "workspace_private.member_role",
+        "workspace_private.s03_assigned",
+        "workspace_private.s03_json",
+        "workspace_private.s03_read",
+        "workspace_private.s03_valid_epoch"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s03_manage",
+      "calls_or_references": [
+        "workspace_private.member_role",
+        "workspace_private.s03_read"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s03_read",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.allowed"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s03_reassign",
+      "calls_or_references": [
+        "workspace_private.enter",
+        "workspace_private.receipt",
+        "workspace_private.s03_assign",
+        "workspace_private.s03_hash",
+        "workspace_private.s03_manage",
+        "workspace_private.s03_record"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s03_record",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.finish"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s03_safe",
+      "calls_or_references": [],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s03_status",
+      "calls_or_references": [
+        "workspace_private.enter",
+        "workspace_private.receipt",
+        "workspace_private.s03_hash",
+        "workspace_private.s03_read",
+        "workspace_private.s03_record"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s03_valid_epoch",
+      "calls_or_references": [
+        "workspace_private.allowed"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_author",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.member_role"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_completable",
+      "calls_or_references": [
+        "workspace_private.admin",
+        "workspace_private.member_role",
+        "workspace_private.s04_denied",
+        "workspace_private.s04_permission",
+        "workspace_private.s04_target"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_context",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.s03_valid_epoch",
+        "workspace_private.s04_create_allowed",
+        "workspace_private.s04_enter"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_create_allowed",
+      "calls_or_references": [
+        "workspace_private.member_role",
+        "workspace_private.s04_denied",
+        "workspace_private.s04_manage",
+        "workspace_private.s04_permission"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_denied",
+      "calls_or_references": [
+        "workspace_private.actor"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_editable",
+      "calls_or_references": [
+        "workspace_private.admin",
+        "workspace_private.s04_author"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_enter",
+      "calls_or_references": [
+        "workspace_private.enter"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_event_cancel",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.finish",
+        "workspace_private.receipt",
+        "workspace_private.s03_hash",
+        "workspace_private.s04_enter",
+        "workspace_private.s04_manage"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_event_get",
+      "calls_or_references": [
+        "workspace_private.s04_enter"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_event_history",
+      "calls_or_references": [
+        "workspace_private.s04_enter",
+        "workspace_private.s04_event_get"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_event_list",
+      "calls_or_references": [
+        "workspace_private.s04_enter"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_event_save",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.finish",
+        "workspace_private.receipt",
+        "workspace_private.s03_hash",
+        "workspace_private.s04_enter",
+        "workspace_private.s04_manage",
+        "workspace_private.s04_safe"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_expand",
+      "calls_or_references": [
+        "workspace_private.s03_valid_epoch"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_guard",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.s04_completable",
+        "workspace_private.s04_editable",
+        "workspace_private.s04_manage"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_manage",
+      "calls_or_references": [
+        "workspace_private.member_role"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_note_ack",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.finish",
+        "workspace_private.receipt",
+        "workspace_private.s03_hash",
+        "workspace_private.s04_enter",
+        "workspace_private.s04_target"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_note_complete",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.admin",
+        "workspace_private.finish",
+        "workspace_private.receipt",
+        "workspace_private.s03_hash",
+        "workspace_private.s04_completable",
+        "workspace_private.s04_enter"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_note_create",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.finish",
+        "workspace_private.member_role",
+        "workspace_private.receipt",
+        "workspace_private.s03_hash",
+        "workspace_private.s04_create_allowed",
+        "workspace_private.s04_enter",
+        "workspace_private.s04_expand",
+        "workspace_private.s04_publish",
+        "workspace_private.s04_safe"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_note_edit",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.finish",
+        "workspace_private.receipt",
+        "workspace_private.s03_hash",
+        "workspace_private.s04_editable",
+        "workspace_private.s04_enter",
+        "workspace_private.s04_expand",
+        "workspace_private.s04_publish",
+        "workspace_private.s04_safe"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_note_get",
+      "calls_or_references": [
+        "workspace_private.s04_enter",
+        "workspace_private.s04_note_json"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_note_history",
+      "calls_or_references": [
+        "workspace_private.s04_enter",
+        "workspace_private.s04_note_get"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_note_json",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.s03_valid_epoch",
+        "workspace_private.s04_completable",
+        "workspace_private.s04_editable",
+        "workspace_private.s04_target"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_note_list",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.s04_enter",
+        "workspace_private.s04_note_json",
+        "workspace_private.s04_target"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_permission",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.allowed"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_publish",
+      "calls_or_references": [
+        "workspace_private.actor"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_safe",
+      "calls_or_references": [
+        "workspace_private.s03_safe"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_target",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.allowed"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s04_visible",
+      "calls_or_references": [
+        "workspace_private.admin",
+        "workspace_private.allowed",
+        "workspace_private.s04_author",
+        "workspace_private.s04_target"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s07_adjust_inventory",
+      "calls_or_references": [
+        "workspace_private.s07_write"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s07_create_inventory_item",
+      "calls_or_references": [
+        "workspace_private.s07_write"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s07_dispose_inventory",
+      "calls_or_references": [
+        "workspace_private.s07_write"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s07_edit_inventory_item",
+      "calls_or_references": [
+        "workspace_private.s07_write"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s07_get_inventory_context",
+      "calls_or_references": [
+        "workspace_private.s07_read"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s07_get_inventory_item",
+      "calls_or_references": [
+        "workspace_private.s07_read"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s07_list_inventory_alerts",
+      "calls_or_references": [
+        "workspace_private.s07_read"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s07_list_inventory_items",
+      "calls_or_references": [
+        "workspace_private.s07_read"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s07_list_inventory_locations",
+      "calls_or_references": [
+        "workspace_private.s07_read"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s07_list_inventory_lots",
+      "calls_or_references": [
+        "workspace_private.s07_read"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s07_list_inventory_movements",
+      "calls_or_references": [
+        "workspace_private.s07_read"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s07_permission",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.allowed"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s07_read",
+      "calls_or_references": [
+        "workspace_private.enter",
+        "workspace_private.member_role",
+        "workspace_private.s07_permission",
+        "workspace_private.s07_soon_days",
+        "workspace_private.s07_today"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s07_receive_inventory",
+      "calls_or_references": [
+        "workspace_private.s07_write"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s07_save_inventory_location",
+      "calls_or_references": [
+        "workspace_private.s07_write"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s07_set_inventory_lot_state",
+      "calls_or_references": [
+        "workspace_private.s07_write"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s07_soon_days",
+      "calls_or_references": [],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s07_today",
+      "calls_or_references": [],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s07_use_inventory",
+      "calls_or_references": [
+        "workspace_private.s07_write"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.s07_write",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.enter",
+        "workspace_private.finish",
+        "workspace_private.receipt",
+        "workspace_private.s03_hash",
+        "workspace_private.s04_safe",
+        "workspace_private.s07_permission",
+        "workspace_private.s07_today"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.school_open",
+      "calls_or_references": [
+        "workspace_private.session_ok"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.session_ok",
+      "calls_or_references": [
+        "workspace_auth_bridge.session_valid",
+        "workspace_private.request_jwt",
+        "workspace_private.request_uid"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.set_member_role",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.bump",
+        "workspace_private.enter",
+        "workspace_private.finish",
+        "workspace_private.guard_last",
+        "workspace_private.receipt",
+        "workspace_private.recent_login"
+      ],
+      "direct_auth_read": false
+    },
+    {
+      "function": "workspace_private.set_membership_state",
+      "calls_or_references": [
+        "workspace_private.actor",
+        "workspace_private.bump",
+        "workspace_private.enter",
+        "workspace_private.finish",
+        "workspace_private.guard_last",
+        "workspace_private.receipt"
+      ],
+      "direct_auth_read": false
+    }
+  ]
+}
