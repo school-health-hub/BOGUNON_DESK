@@ -1,0 +1,3 @@
+# Template only: add in the BAERURI repository; do not replace existing connections.
+[mcp_servers.supabase_baeruri_ro]
+url = "https://mcp.supabase.com/mcp?project_ref=zbdnvdjleipnrprpwqyd&read_only=true"

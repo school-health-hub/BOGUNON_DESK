@@ -1,0 +1,2 @@
+[mcp_servers.supabase_bogunon_ro]
+url = "https://mcp.supabase.com/mcp?project_ref=xxownwxxajzrviuvvfiu&read_only=true"
