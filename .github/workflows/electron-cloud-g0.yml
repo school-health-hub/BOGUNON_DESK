@@ -235,7 +235,7 @@ jobs:
 
   td2-all-menu-design:
     name: TD2 all menus Windows UI only (SCHOOL06-08)
-    if: github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/feature/electron-td2-all-menu-school08' && github.run_attempt == 1
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && (github.ref == 'refs/heads/feature/electron-td2-all-menu-school08' || github.ref == 'refs/heads/fix/td2-functional-stability') && github.run_attempt == 1
     runs-on: windows-2025
     timeout-minutes: 40
     permissions:
@@ -293,7 +293,13 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Build provenance failed' }
           node scripts/qa/school05-build-native-provider.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Existing isolated provider build failed' }
+      - name: Original Windows Excel CLI for selected-row integration regression
+        if: github.ref == 'refs/heads/fix/td2-functional-stability'
+        run: |
+          node scripts/electron-p0/build-excel.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Native Excel prerequisite build failed' }
       - name: Original Windows Finance CLI, no replacement storage
+        if: github.ref != 'refs/heads/fix/td2-functional-stability'
         id: finance-runtime
         continue-on-error: true
         run: |
@@ -311,16 +317,22 @@ jobs:
           [ordered]@{sourceSha=$env:GITHUB_SHA;buildMode='release';qaPlacement='Existing unpackaged Main target/debug path';sha256=$hash;productMainChanged=$false} | ConvertTo-Json | Set-Content "$env:TD2_EVIDENCE_ROOT/finance-native-resource.json"
       - name: Focused presentation and role-boundary tests only
         run: |
+          if ($env:GITHUB_REF -eq 'refs/heads/fix/td2-functional-stability') {
+            node node_modules/vitest/vitest.mjs run electron-p0/tests/school-profile-ui.test.tsx electron-p0/tests/admin-domain.test.ts electron-p0/tests/admin-preload.test.ts --reporter=json --outputFile="$env:TD2_EVIDENCE_ROOT/excel-regression.json"
+            if ($LASTEXITCODE -ne 0) { throw 'Native Excel UI/IPC regression failed' }
+          }
           node node_modules/vitest/vitest.mjs run electron-p0/tests/td2-workspace-ui.test.tsx electron-p0/tests/soft-rose-surface.test.tsx electron-p0/tests/quick-memo-surface.test.tsx school-workspace/school07/tests/client.test.ts school-workspace/school05/tests/boundary.test.ts school-workspace/instructors/tests/ui.test.tsx school-workspace/instructors/tests/preview-layers.test.tsx --reporter=json --outputFile="$env:TD2_EVIDENCE_ROOT/focused.json"
           if ($LASTEXITCODE -ne 0) { throw 'Focused UI regression failed' }
       - name: Reuse isolated native SCHOOL08 QA fixtures (never Hosted)
+        if: github.ref != 'refs/heads/fix/td2-functional-stability'
         id: school-db
         continue-on-error: true
         run: pwsh -NoProfile -File scripts/qa/school08-native-pg.ps1 -Action Start
       - name: Actual Windows Electron all-menu captures and synthetic shared screens
         env:
           TD2_UI_SYNTHETIC_SCHOOL: ${{ steps.school-db.outcome == 'success' && '1' || '0' }}
-          TD2_UI_REQUIRE_FINANCE: '1'
+          TD2_UI_REQUIRE_FINANCE: ${{ github.ref != 'refs/heads/fix/td2-functional-stability' && '1' || '0' }}
+          TD2_UI_MENUS: ${{ github.ref == 'refs/heads/fix/td2-functional-stability' && 'home,tasks,memo-protected,school-admin-excel' || '' }}
         run: |
           node scripts/qa/td2-workspace-gui.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Actual Windows GUI verification failed; see independent menu records' }

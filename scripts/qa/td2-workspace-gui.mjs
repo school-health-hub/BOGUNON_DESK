@@ -95,6 +95,34 @@ try{
   }
  }
 
+
+ // Only the explicit stability selection enables native Excel/clipboard exercise.
+ // File selection and confirmation answers are synthetic; actual OS dialogs are NOT RUN.
+ if(selected?.has('school-admin-excel'))await visit('school-admin-excel',()=>tool('학교 행정 업무 도우미'),null,async row=>{
+  const csv=join(qaRoot,'synthetic-selected-rows.csv');await writeFile(csv,'업무,수량\n합성 업무,2\n선택하지 않은 업무,99');
+  await app.evaluate(({dialog,clipboard},csv)=>{
+   globalThis.__stabilityOriginalDialogs={open:dialog.showOpenDialog,message:dialog.showMessageBox};
+   globalThis.__stabilityConfirm=false;
+   dialog.showOpenDialog=async(...args)=>args.at(-1)?.title==='학교 행정 검토용 CSV/XLSX 선택'?{canceled:false,filePaths:[csv]}:{canceled:true,filePaths:[]};
+   dialog.showMessageBox=async(...args)=>({response:args.at(-1)?.message==='선택 행을 검토용으로 복사할까요?'&&globalThis.__stabilityConfirm?1:0,checkboxChecked:false});
+   clipboard.writeText('QA unchanged clipboard');
+  },csv);
+  try{
+   await click('CSV/XLSX 가져오기');await page.getByLabel('검토 열 2 형식').selectOption('number');await click('열 매핑·행 검증');await page.getByText('검토 가능',{exact:true}).first().waitFor();
+   await page.getByLabel('2행 선택',{exact:true}).check();
+   await click('업무포털 주소 설정');await page.getByLabel('업무포털 공식 주소',{exact:true}).fill('https://unsaved.synthetic.eduptl.kr/');
+   await click('선택 행 복사');await page.getByText('행 복사를 취소했습니다.',{exact:true}).waitFor();
+   if(await app.evaluate(({clipboard})=>clipboard.readText())!=='QA unchanged clipboard')throw Error('Canceled copy changed clipboard');
+   await app.evaluate(()=>globalThis.__stabilityConfirm=true);await click('선택 행 복사');
+   await page.getByText('선택 행을 복사했습니다. 실제 시스템에 반영하기 전 다시 검토하세요.',{exact:true}).waitFor();
+   if(await app.evaluate(({clipboard})=>clipboard.readText())!=='업무 (1)\t수량 (2)\r\n합성 업무\t2')throw Error('Native selected-row clipboard mismatch');
+   await expect(page.getByLabel('2행 선택',{exact:true})).toBeChecked();await expect(page.getByLabel('3행 선택',{exact:true})).not.toBeChecked();
+   await expect(page.getByLabel('업무포털 공식 주소',{exact:true})).toHaveValue('https://unsaved.synthetic.eduptl.kr/');
+   row.checks.push('Actual Renderer → Preload → Main → original Rust adminReview → Windows clipboard; exact selected-only text', 'Canceled confirmation preserves clipboard; selection and unsaved address retained');
+   row.dialogs='Synthetic file picker/confirmation answers in QA Main only; native OS dialogs NOT RUN';
+  }finally{await app.evaluate(({dialog,clipboard})=>{dialog.showOpenDialog=globalThis.__stabilityOriginalDialogs.open;dialog.showMessageBox=globalThis.__stabilityOriginalDialogs.message;clipboard.clear();delete globalThis.__stabilityOriginalDialogs;delete globalThis.__stabilityConfirm;});}
+ });
+
 }catch(e){report.errors.push({type:'fatal',message:e.message});}
 finally{if(app){
  const pids=await app.evaluate(({app})=>app.getAppMetrics().map(m=>m.pid)).catch(()=>[]);if(app.process()?.pid)pids.push(app.process().pid);
