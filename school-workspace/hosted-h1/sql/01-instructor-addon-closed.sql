@@ -11,6 +11,7 @@ CREATE SCHEMA workspace_instructor AUTHORIZATION ws_owner;
 CREATE SCHEMA workspace_instructor_private AUTHORIZATION ws_owner;
 REVOKE ALL ON SCHEMA workspace_instructor,workspace_instructor_private FROM PUBLIC,anon,authenticated,service_role;
 GRANT USAGE ON SCHEMA workspace_instructor,workspace_instructor_private TO ws_runtime;
+GRANT CREATE ON SCHEMA public TO ws_owner;
 SET LOCAL ROLE ws_owner;
 CREATE TABLE workspace_instructor_private.release(state text PRIMARY KEY CHECK(state IN('closed','active')));
 ALTER TABLE workspace_instructor_private.release ENABLE ROW LEVEL SECURITY;
@@ -21,6 +22,7 @@ INSERT INTO workspace_instructor_private.release VALUES('closed');
 CREATE FUNCTION workspace_instructor_private.parent_open()RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $guard$BEGIN
  IF NOT EXISTS(SELECT 1 FROM workspace_private.h3_release WHERE state='active')OR NOT EXISTS(SELECT 1 FROM workspace_instructor_private.release WHERE state='active')THEN RAISE EXCEPTION 'workspace_closed';END IF;
 END$guard$;
+GRANT CREATE ON SCHEMA workspace_instructor_private TO ws_runtime;
 REVOKE ALL ON FUNCTION workspace_instructor_private.parent_open()FROM PUBLIC,anon,authenticated,service_role;
 GRANT EXECUTE ON FUNCTION workspace_instructor_private.parent_open()TO ws_runtime;
 RESET ROLE;
@@ -36,7 +38,7 @@ GRANT SELECT,INSERT,UPDATE ON workspace_instructor.instructor_schedules TO ws_ru
 CREATE POLICY instructor_read ON workspace_instructor.instructor_schedules FOR SELECT TO ws_runtime USING(workspace_private.allowed(school_id));
 CREATE POLICY instructor_insert ON workspace_instructor.instructor_schedules FOR INSERT TO ws_runtime WITH CHECK(workspace_private.member_role(school_id) IN('HEALTH_TEACHER','SCHOOL_ADMIN'));
 CREATE POLICY instructor_update ON workspace_instructor.instructor_schedules FOR UPDATE TO ws_runtime USING(workspace_private.member_role(school_id) IN('HEALTH_TEACHER','SCHOOL_ADMIN')) WITH CHECK(workspace_private.member_role(school_id) IN('HEALTH_TEACHER','SCHOOL_ADMIN'));
-RESET ROLE;
+SET LOCAL ROLE ws_runtime;
 CREATE FUNCTION workspace_instructor_private.instructor_validate(settings jsonb,logs jsonb) RETURNS void LANGUAGE plpgsql SECURITY INVOKER SET search_path='' AS $$
 DECLARE k text;n numeric;l jsonb;seen text[]:='{}';ident text;BEGIN
  IF jsonb_typeof(settings)<>'object' OR jsonb_typeof(logs)<>'array' OR jsonb_array_length(logs)>5000 OR octet_length(logs::text)>4000000 THEN RAISE EXCEPTION 'input_rejected';END IF;
@@ -102,6 +104,7 @@ END$$;
 ALTER FUNCTION workspace_instructor_private.instructor_write(uuid,text,jsonb,bigint,uuid) OWNER TO ws_runtime;
 REVOKE ALL ON FUNCTION workspace_instructor_private.instructor_validate(jsonb,jsonb),workspace_instructor_private.instructor_read(uuid,text),workspace_instructor_private.instructor_write(uuid,text,jsonb,bigint,uuid) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION workspace_instructor_private.instructor_read(uuid,text),workspace_instructor_private.instructor_write(uuid,text,jsonb,bigint,uuid) TO ws_runtime;
+SET LOCAL ROLE ws_owner;
 CREATE FUNCTION public.ws_v1_instructor_read(p_school_id uuid,p_month text) RETURNS jsonb LANGUAGE sql SECURITY INVOKER SET search_path='' AS $$SELECT workspace_instructor_private.instructor_read(p_school_id,p_month)$$;
 CREATE FUNCTION public.ws_v1_instructor_write(p_school_id uuid,p_kind text,p_payload jsonb,p_expected_version bigint,p_request_id uuid)RETURNS jsonb LANGUAGE sql SECURITY INVOKER SET search_path='' AS $$SELECT workspace_instructor_private.instructor_write(p_school_id,p_kind,p_payload,p_expected_version,p_request_id)$$;
 ALTER FUNCTION public.ws_v1_instructor_read(uuid,text) OWNER TO ws_owner;
@@ -110,14 +113,18 @@ REVOKE ALL ON FUNCTION public.ws_v1_instructor_read(uuid,text),public.ws_v1_inst
 
 
 
-REVOKE ALL ON ALL FUNCTIONS IN SCHEMA workspace_instructor_private FROM PUBLIC,anon,authenticated,service_role;
+SET LOCAL ROLE ws_runtime;
+REVOKE ALL ON FUNCTION workspace_instructor_private.instructor_validate(jsonb,jsonb),workspace_instructor_private.instructor_read(uuid,text),workspace_instructor_private.instructor_write(uuid,text,jsonb,bigint,uuid)FROM PUBLIC,anon,authenticated,service_role;
+SET LOCAL ROLE ws_owner;
+REVOKE CREATE ON SCHEMA workspace_instructor_private FROM ws_runtime;
 REVOKE ALL ON FUNCTION public.ws_v1_instructor_read(uuid,text),public.ws_v1_instructor_write(uuid,text,jsonb,bigint,uuid) FROM PUBLIC,anon,authenticated,service_role;
+RESET ROLE;REVOKE CREATE ON SCHEMA public FROM ws_owner;
 DO $acl$DECLARE x record;BEGIN
- FOR x IN SELECT p.oid::regprocedure AS sig,a.grantee FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace CROSS JOIN LATERAL aclexplode(coalesce(p.proacl,acldefault('f',p.proowner)))a WHERE (n.nspname='workspace_instructor_private' OR(n.nspname='public'AND p.proname IN('ws_v1_instructor_read','ws_v1_instructor_write')))AND a.grantee<>p.proowner AND a.grantee<>(SELECT oid FROM pg_roles WHERE rolname='ws_runtime') LOOP
- EXECUTE format('REVOKE ALL ON FUNCTION %s FROM %s',x.sig,CASE WHEN x.grantee=0 THEN 'PUBLIC' ELSE quote_ident(pg_get_userbyid(x.grantee))END);
+ FOR x IN SELECT p.oid::regprocedure AS sig,a.grantee,p.proowner AS owner FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace CROSS JOIN LATERAL aclexplode(coalesce(p.proacl,acldefault('f',p.proowner)))a WHERE (n.nspname='workspace_instructor_private' OR(n.nspname='public'AND p.proname IN('ws_v1_instructor_read','ws_v1_instructor_write')))AND a.grantee<>p.proowner AND a.grantee<>(SELECT oid FROM pg_roles WHERE rolname='ws_runtime') LOOP
+ EXECUTE format('SET LOCAL ROLE %I',pg_get_userbyid(x.owner));EXECUTE format('REVOKE ALL ON FUNCTION %s FROM %s',x.sig,CASE WHEN x.grantee=0 THEN 'PUBLIC' ELSE quote_ident(pg_get_userbyid(x.grantee))END);RESET ROLE;
  END LOOP;
- FOR x IN SELECT c.oid::regclass AS rel,a.grantee FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace CROSS JOIN LATERAL aclexplode(coalesce(c.relacl,acldefault('r',c.relowner)))a WHERE n.nspname IN('workspace_instructor','workspace_instructor_private')AND c.relkind='r'AND a.grantee<>c.relowner AND a.grantee<>(SELECT oid FROM pg_roles WHERE rolname='ws_runtime') LOOP
- EXECUTE format('REVOKE ALL ON TABLE %s FROM %s',x.rel,CASE WHEN x.grantee=0 THEN 'PUBLIC' ELSE quote_ident(pg_get_userbyid(x.grantee))END);
+ FOR x IN SELECT c.oid::regclass AS rel,a.grantee,c.relowner AS owner FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace CROSS JOIN LATERAL aclexplode(coalesce(c.relacl,acldefault('r',c.relowner)))a WHERE n.nspname IN('workspace_instructor','workspace_instructor_private')AND c.relkind='r'AND a.grantee<>c.relowner AND a.grantee<>(SELECT oid FROM pg_roles WHERE rolname='ws_runtime') LOOP
+ EXECUTE format('SET LOCAL ROLE %I',pg_get_userbyid(x.owner));EXECUTE format('REVOKE ALL ON TABLE %s FROM %s',x.rel,CASE WHEN x.grantee=0 THEN 'PUBLIC' ELSE quote_ident(pg_get_userbyid(x.grantee))END);RESET ROLE;
  END LOOP;
 END$acl$;
 COMMIT;

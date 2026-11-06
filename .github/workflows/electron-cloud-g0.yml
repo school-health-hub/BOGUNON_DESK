@@ -122,7 +122,7 @@ jobs:
 
   school-td2-candidate:
     name: SCHOOL Workspace plus TD2 candidate Windows QA
-    if: github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/integration/school-workspace-td2-candidate'
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && (github.ref == 'refs/heads/integration/school-workspace-td2-candidate' || github.ref == 'refs/heads/feature/school-hosted-h1')
     runs-on: windows-2025
     timeout-minutes: 35
     defaults:
@@ -162,7 +162,10 @@ jobs:
           $checkout=@(git status --porcelain)
           $checkout|Set-Content "$root/evidence/checkout-state.txt"
           if ($LASTEXITCODE -ne 0 -or $checkout.Count) { $checkout|Write-Output;throw 'Canonical checkout changed source' }
-          node scripts/qa/school-td2-scope.mjs
+          if ($env:GITHUB_REF -eq 'refs/heads/feature/school-hosted-h1') {
+            git diff --exit-code 3ed1be5765b9abad4115de0d30b76088407c4539 HEAD -- electron-p0/renderer electron-p0/preload school-workspace/instructors src src-tauri tools package.json package-lock.json
+            if ($LASTEXITCODE -ne 0) { throw 'H1 protected product scope changed' }
+          } else { node scripts/qa/school-td2-scope.mjs }
           python school-workspace/school09d0/tools/verify.py
           if ($LASTEXITCODE -ne 0) { throw 'Frozen D0 boundary failed' }
       - name: Install exact locked dependencies and Electron
@@ -184,6 +187,15 @@ jobs:
           node -e "const m=require('./build/electron-p0-app/build-meta.json');if(m.sourceSha!==process.env.GITHUB_SHA||m.dirty)throw Error('Built source mismatch');"
           node scripts/qa/school05-build-native-provider.mjs
           if ($LASTEXITCODE -ne 0) { throw 'External QA provider build failed' }
+      - name: H1 external provider and strict types
+        if: github.ref == 'refs/heads/feature/school-hosted-h1'
+        run: |
+          node node_modules/typescript/bin/tsc -p school-workspace/hosted-h1/tsconfig.json
+          if ($LASTEXITCODE -ne 0) { throw 'H1 strict types failed' }
+          node scripts/qa/school-h1-build.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'H1 provider build failed' }
+          node node_modules/vitest/vitest.mjs run school-workspace/hosted-h1/tests --reporter=json --outputFile="$env:TD2_EVIDENCE_ROOT/h1-unit.json"
+          if ($LASTEXITCODE -ne 0) { throw 'H1 unit regression failed' }
       - name: Focused UI and business contract tests
         run: |
           node node_modules/vitest/vitest.mjs run electron-p0/tests/quick-memo-surface.test.tsx electron-p0/tests/soft-rose-surface.test.tsx src/dashboard/deskGeometry.test.ts src/dock/AppDock.test.tsx school-workspace/school07/tests/client.test.ts school-workspace/school05/tests/boundary.test.ts school-workspace/instructors/tests/contracts.test.ts school-workspace/instructors/tests/files.test.ts school-workspace/instructors/tests/lifecycle.test.ts school-workspace/instructors/tests/ui.test.tsx school-workspace/instructors/tests/preview-layers.test.tsx --reporter=json --outputFile="$env:TD2_EVIDENCE_ROOT/focused.json"
@@ -195,7 +207,9 @@ jobs:
           node node_modules/vitest/vitest.mjs run --config scripts/qa/school08-windows.vitest.config.ts --reporter=json --outputFile="$env:TD2_EVIDENCE_ROOT/native-db.json"
           if ($LASTEXITCODE -ne 0) { throw 'Native SQL contracts failed' }
       - name: Actual Windows Workspace and Instructor GUI without Portable
-        run: node scripts/qa/school05-windows.mjs
+        run: |
+          if ($env:GITHUB_REF -eq 'refs/heads/feature/school-hosted-h1') { node scripts/qa/school-h1-windows.mjs } else { node scripts/qa/school05-windows.mjs }
+          if ($LASTEXITCODE -ne 0) { throw 'Actual Windows GUI failed' }
       - name: Stop owned SCHOOL08 DB
         if: always() && env.SCHOOL05_PG_DATA != ''
         run: pwsh -NoProfile -File scripts/qa/school08-native-pg.ps1 -Action Stop
@@ -212,7 +226,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'TD2 GUI regression failed' }
       - name: Start separate supported Auth CLOSED candidate DB
         id: supported-db
-        if: ${{ !cancelled() && steps.candidate-build.conclusion == 'success' }}
+        if: ${{ !cancelled() && steps.candidate-build.conclusion == 'success' && github.ref != 'refs/heads/feature/school-hosted-h1' }}
         run: pwsh -NoProfile -File scripts/qa/school09-native-pg.ps1 -Action Start
       - name: Actual supported Auth and CLOSED SQL security assertions
         if: ${{ !cancelled() && steps.supported-db.conclusion == 'success' }}
