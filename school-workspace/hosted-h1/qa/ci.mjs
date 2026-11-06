@@ -1,0 +1,25 @@
+// Dedicated ephemeral runner only. Captures subprocess output; never prints status, SQL or keys.
+import {execFileSync} from 'node:child_process';import {mkdirSync,readFileSync,writeFileSync,copyFileSync,existsSync} from 'node:fs';import {join,resolve} from 'node:path';
+const root=resolve(process.env.RUNNER_TEMP??'/tmp','school-h1-'+(process.env.GITHUB_RUN_ID??'invalid')),out=resolve(process.env.H1_EVIDENCE_ROOT??join(root,'evidence')),repo=process.cwd();mkdirSync(out,{recursive:true});
+let stage='preflight';const report={sourceSha:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),hosted:'NOT RUN',operatingProject:'UNASSIGNED',checks:[],error:null};
+const run=(cmd,args,input,timeout=120000)=>{try{return execFileSync(cmd,args,{input,encoding:'utf8',stdio:['pipe','pipe','pipe'],timeout,maxBuffer:20*1024*1024});}catch{throw Error(stage+'_failed');}};
+const cli=a=>run('npm',['exec','--yes','--package=supabase@2.121.0','--','supabase','--workdir',root,...a],undefined,900000);
+const db=(q)=>run('docker',['exec','-i','supabase_db_school_h1','psql','-X','-qAt','-v','ON_ERROR_STOP=1','-U','postgres','-d','postgres'],q);
+const marker="SET bogunon.workspace_target='xxownwxxajzrviuvvfiu';SET bogunon.workspace_plan='SCHOOL-09D-0:CLOSED';";
+// Frozen D0 review marker is a lexical test precondition, NOT an endpoint/project assignment.
+try{
+ if(process.env.GITHUB_REF!=='refs/heads/feature/school-hosted-h1'||process.env.RUNNER_OS!=='Linux'||!process.env.GITHUB_ACTIONS)throw Error('dedicated_runner_required');
+ run('docker',['info']);if(run('docker',['ps','-a','--filter','name=^/supabase_db_school_h1$','--format','{{.Names}}']).trim())throw Error('existing_stack_denied');
+ const disk=Number(run('df',['-B1','--output=avail',process.env.RUNNER_TEMP]).trim().split(/\s+/).pop()),mem=Number(readFileSync('/proc/meminfo','utf8').match(/^MemAvailable:\s+(\d+)/m)?.[1])*1024;if(disk<8*2**30||mem<3*2**30)throw Error('runner_resources');
+ mkdirSync(join(root,'supabase'),{recursive:true});copyFileSync('school-workspace/hosted-h1/qa/config.toml',join(root,'supabase/config.toml'));
+ stage='cli-help';cli(['start','--help']);cli(['status','--help']);cli(['stop','--help']);
+ stage='stack-start';cli(['start','--exclude','realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor','--yes']);
+ stage='status';const status=JSON.parse(cli(['status','--output','json']));if(status.API_URL!=='http://127.0.0.1:57421'||!status.ANON_KEY)throw Error('local_status_invalid');
+ report.environment={runner:'ubuntu-24.04',cli:'2.121.0',origin:status.API_URL,services:'PostgreSQL/Auth/PostgREST/Kong',operating:false};
+ stage='bundle';await import('vite').then(({build})=>build({configFile:false,logLevel:'error',build:{ssr:'school-workspace/hosted-h1/qa/http-e2e.ts',outDir:join(root,'bundle'),emptyOutDir:true,rollupOptions:{external:['@supabase/supabase-js'],output:{entryFileNames:'http-e2e.mjs'}}}}));
+ // Resolve external locked SDK from this checkout, never from another project.
+ const {symlinkSync}=await import('node:fs');symlinkSync(join(repo,'node_modules'),join(root,'node_modules'),'dir');
+ const{runHttpE2E}=await import('file://'+join(root,'bundle/http-e2e.mjs'));
+ stage='real-auth-http';await runHttpE2E({origin:status.API_URL,publicKey:status.ANON_KEY,db,install:()=>{stage='d0-install';db(marker+readFileSync('school-workspace/school09d0/sql/01-install-closed-candidate.sql','utf8'));stage='instructor-closed-addon';db("SET bogunon.h1_plan='REVIEW-CLOSED';"+readFileSync('school-workspace/hosted-h1/sql/01-instructor-addon-closed.sql','utf8'));},activate:()=>{stage='local-only-activation';db(marker+"SET bogunon.local_test='1';"+readFileSync('school-workspace/school09d0/tests/activate-local-only.sql','utf8'));db("BEGIN;SET LOCAL ROLE ws_owner;UPDATE workspace_instructor_private.release SET state='active';GRANT EXECUTE ON FUNCTION public.ws_v1_instructor_read(uuid,text),public.ws_v1_instructor_write(uuid,text,jsonb,bigint,uuid)TO authenticated;GRANT USAGE ON SCHEMA workspace_instructor_private TO authenticated;SET LOCAL ROLE ws_runtime;GRANT EXECUTE ON FUNCTION workspace_instructor_private.instructor_read(uuid,text),workspace_instructor_private.instructor_write(uuid,text,jsonb,bigint,uuid)TO authenticated;COMMIT;NOTIFY pgrst,'reload schema';");stage='real-postgrest';},close:()=>db(marker+readFileSync('school-workspace/school09d0/sql/03-emergency-close.sql','utf8')),check:(name)=>report.checks.push({name,status:'PASS',classification:'ACTUAL LOCAL AUTH/HTTP/POSTGREST'})});
+}catch(e){report.error=e instanceof Error?e.message:'environment_failed';process.exitCode=1;}
+finally{stage='stop';try{if(existsSync(join(root,'supabase/config.toml')))cli(['stop','--no-backup']);report.cleanup='owned school_h1 stopped';}catch{report.cleanup='FAIL';process.exitCode=1;}writeFileSync(join(out,'http-summary.json'),JSON.stringify(report,null,2));console.log(JSON.stringify({checks:report.checks.length,error:report.error,cleanup:report.cleanup}));}

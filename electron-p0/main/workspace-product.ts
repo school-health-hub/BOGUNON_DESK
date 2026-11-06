@@ -1,13 +1,14 @@
 import{assertSender}from'./policy.js';import{WORKSPACE_METHODS,type WorkspaceProductStatus}from'../workspace-protocol.js';
 export interface ProductRuntime {inventory?(a:string,i:Record<string,unknown>):Promise<unknown>;instructor?(a:string,i:Record<string,unknown>):Promise<unknown>;instructorIdentity?(school:string):Promise<string>;school(a:string,i:Record<string,unknown>):Promise<unknown>;tasks(a:string,i:Record<string,unknown>):Promise<unknown>;activity(a:string,i:Record<string,unknown>):Promise<unknown>;switchAccount(i:Record<string,unknown>):Promise<void>;dispose():Promise<void>;accounts:readonly {id:number;label:string}[];account:number}
-export interface Gate {packaged:boolean;isolated:boolean;mode?:string;nodeEnv?:string;runId?:string}
+export interface Gate {packaged:boolean;isolated:boolean;mode?:string;nodeEnv?:string;runId?:string;h1OptIn?:boolean}
 export const qaAllowed=(g:Gate)=>!g.packaged&&g.isolated&&g.mode==='synthetic'&&g.nodeEnv!=='production'&&/^[a-f0-9-]{36}$/.test(g.runId??'');
+export const h1QaAllowed=(g:Gate)=>!g.packaged&&g.isolated&&g.mode==='hosted-test'&&g.h1OptIn===true&&g.nodeEnv==='development'&&/^[a-f0-9-]{36}$/.test(g.runId??'');
 export interface ProductIpc {handle(c:string,h:(e:{sender:unknown;senderFrame:unknown},...args:unknown[])=>Promise<unknown>):void;removeHandler(c:string):void}
 const input=(v:unknown,max=4096)=>{if(!v||typeof v!=='object'||Array.isArray(v)||JSON.stringify(v).length>max)throw Error('invalid_workspace_input');return v as Record<string,unknown>;};
 export async function registerWorkspaceProduct(ipc:ProductIpc,contents:{mainFrame:unknown;getURL():string},url:string,gate:Gate,factory?:()=>Promise<ProductRuntime>){
  let disposal:Promise<void>|undefined;let runtime:ProductRuntime|undefined,generation=0,disposed=false,transition=false;const channels:string[]=[];let failed=false;
- if(qaAllowed(gate)&&factory)try{runtime=await factory();}catch{failed=true;}
- const status=():WorkspaceProductStatus=>({mode:runtime?'qa':failed?'unavailable':'disabled',connected:!!runtime&&!disposed,message:runtime?'격리된 합성 검증 환경':'공동 기능 연결 준비 중',generation,...(runtime?{accounts:runtime.accounts,account:runtime.account}:{})});
+ if((qaAllowed(gate)||h1QaAllowed(gate))&&factory)try{runtime=await factory();}catch{failed=true;}
+ const status=():WorkspaceProductStatus=>({mode:runtime?'qa':failed?'unavailable':'disabled',connected:!!runtime&&!disposed,message:runtime?(h1QaAllowed(gate)?'격리된 H1 HTTP 검증 환경':'격리된 합성 검증 환경'):'공동 기능 연결 준비 중',generation,...(runtime?{accounts:runtime.accounts,account:runtime.account}:{})});
  const add=(name:string,fn:(i:unknown)=>Promise<unknown>,noInput=false,boundary=false)=>{const c='p2:workspace:'+name;channels.push(c);ipc.handle(c,async(e,...args)=>{assertSender(e,contents,url);if(disposed||args.length!==(noInput?0:1))throw Error('workspace_denied');if(boundary)generation++;const g=generation;const result=await fn(args[0]);assertSender(e,contents,url);if(disposed||g!==generation)throw Error('workspace_stale');return result;});};
  add('status',async()=>status(),true);
  add('switch-account',async raw=>{if(!runtime||transition)throw Error('workspace_unavailable');transition=true;try{await runtime.switchAccount(input(raw));return status();}finally{transition=false;}},false,true);

@@ -106,8 +106,8 @@ else {
   const window = new BrowserWindow({ title:PRODUCT_NAME,...fitBounds(desktop.bounds,screen.getAllDisplays().map(d=>d.workArea)),show:false,
     webPreferences:{ preload:join(app.getAppPath(),'preload','preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webviewTag:false,session:isolated,webSecurity:true } });
   // Closed renderer remains offline. Optional QA provider lives OUTSIDE product app.
-  const workspaceProduct=await registerWorkspaceProduct(ipcMain,window.webContents,url,{packaged:app.isPackaged,isolated:qaPaths.qa,mode:process.env.SCHOOL_WORKSPACE_MODE,nodeEnv:process.env.NODE_ENV,runId:testRun},async()=>{
-    const moduleUrl=pathToFileURL(join(app.getAppPath(),'..','school05-qa','provider.mjs')).href;
+  const workspaceProduct=await registerWorkspaceProduct(ipcMain,window.webContents,url,{packaged:app.isPackaged,isolated:qaPaths.qa,mode:process.env.SCHOOL_WORKSPACE_MODE,nodeEnv:process.env.NODE_ENV,runId:testRun,h1OptIn:process.env.SCHOOL_H1_OPT_IN==='isolated-h1'},async()=>{
+    const moduleUrl=pathToFileURL(join(app.getAppPath(),'..',process.env.SCHOOL_WORKSPACE_MODE==='hosted-test'?'school-h1-qa':'school05-qa','provider.mjs')).href;
     const provider=await import(moduleUrl);
     return provider.createRuntime({safeStorage,profileDirectory:userData});
   });

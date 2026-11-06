@@ -351,3 +351,35 @@ jobs:
           path: ${{ env.TD2_EVIDENCE_ROOT }}
           if-no-files-found: warn
           retention-days: 14
+
+  school-h1-http:
+    name: SCHOOL H1 isolated real Auth HTTP PostgREST
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/feature/school-hosted-h1' && github.repository == 'school-health-hub/BOGUNON_DESK'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Strict H1 types and bounded transport tests
+        run: |
+          node node_modules/typescript/bin/tsc -p school-workspace/hosted-h1/tsconfig.json
+          node node_modules/vitest/vitest.mjs run school-workspace/hosted-h1/tests --reporter=dot
+      - name: Real isolated GoTrue PostgREST and CLOSED database contracts
+        env:
+          H1_EVIDENCE_ROOT: ${{ runner.temp }}/school-h1-evidence
+        run: node school-workspace/hosted-h1/qa/ci.mjs
+      - name: Upload sanitized booleans only, never status sessions or DB
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: school-h1-http-${{ github.run_id }}
+          path: ${{ runner.temp }}/school-h1-evidence/http-summary.json
+          retention-days: 14
+          if-no-files-found: warn
