@@ -26,7 +26,8 @@ export class H1Auth{
   });
  }catch(e){if(g===this.epoch){this.session=null;await this.storage.run(()=>this.vault.clear());this.state={kind:'error',error:'AUTH_SERVER_ERROR'};}throw e instanceof H1Error?e:new H1Error('AUTH');}finally{this.loopback?.close();this.cancelLogin=undefined;}}
  async restore(){const g=this.reset();this.session=null;this.state={kind:'signed_out'};try{const s=await this.storage.run(()=>this.vault.load());this.fresh(g);if(!s)return;this.session=validateSession(s);await this.ensure();this.fresh(g);}catch{if(g===this.epoch){this.session=null;this.state={kind:'expired'};await this.storage.run(()=>this.vault.clear());}}}
- private async ensure(){if(this.disposed||!this.session)throw new H1Error('AUTH');const g=this.epoch;
+ private async ensure(){const g=this.epoch;try{await this.ensureSession();}catch(e){if(!this.disposed&&g===this.epoch&&e instanceof H1Error&&e.code==='AUTH'){const dead=this.reset();this.session=null;this.state={kind:'expired'};this.values.clear();await this.storage.run(async()=>{if(dead===this.epoch)await this.vault.clear();});}throw e;}}
+ private async ensureSession(){if(this.disposed||!this.session)throw new H1Error('AUTH');const g=this.epoch;
   if(this.session.expiresAt<=Date.now()+30000){if(!this.refreshJob)this.refreshJob=(async()=>{const old=this.session!;const{data,error}=await this.client.auth.refreshSession({refresh_token:old.refreshToken});this.fresh(g);if(error||data.session?.user.id!==old.userId)throw new H1Error('AUTH');await this.commit(data.session,g);})().finally(()=>{this.refreshJob=undefined;});await this.refreshJob;}
   await this.verify(this.session!);this.fresh(g);this.state={kind:'authenticated',session:{user:{id:this.session!.userId},expiresAt:this.session!.expiresAt}};
  }

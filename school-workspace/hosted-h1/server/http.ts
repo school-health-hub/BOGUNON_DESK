@@ -40,6 +40,7 @@ export class H1Http{
   if(signal.aborted)throw new H1Error('STALE');
   if(!r.ok){let code='';try{code=String((await r.json()).message??'');}catch{}
    throw new H1Error(r.status===401||/unauthenticated_or_revoked/.test(code)?'AUTH':/conflict|idempotency|version/.test(code)?'CONFLICT':/reauth_required/.test(code)?'REAUTH':r.status===403||/access_denied|admin_required|not_found_or_denied/.test(code)?'DENIED':r.status>=500?'NETWORK':'INPUT');}
-  try{return await r.json();}catch{throw new H1Error('NETWORK');}
+  let value:unknown;try{value=await r.json();}catch{throw new H1Error('NETWORK');}
+  if(value&&typeof value==='object'&&!Array.isArray(value)&&'error'in value)throw new H1Error(value.error==='INPUT_REJECTED'?'INPUT':'NETWORK');return value;
  }
 }
