@@ -2,7 +2,7 @@ $ErrorActionPreference='Stop'
 # Reuse only the immutable Windows native payload; all changed TS/CSS is rebuilt.
 git diff --exit-code 39c775cdd11509fdc6bc930ef62990acdd1e1315 HEAD -- tools src-tauri
 if($LASTEXITCODE -ne 0){throw 'Native source changed; payload reuse forbidden'}
-$prior=@(Get-ChildItem prior-portable/*.exe)
+$prior=@(Get-ChildItem "$env:TD2_ROOT/prior-portable/*.exe")
 if($prior.Count -ne 1 -or (Get-FileHash $prior[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant() -cne '7cb0dc89cc967db9d687bc0f385451f740c21d11d7959f5b4f39aa710a1fdefa'){throw 'Native origin Portable mismatch'}
 7z x $prior[0].FullName "-o$env:TD2_ROOT/prior-container" -y | Out-Null
 if($LASTEXITCODE -ne 0){throw 'Native origin extraction failed'}

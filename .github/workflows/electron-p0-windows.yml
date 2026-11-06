@@ -427,11 +427,11 @@ jobs:
           name: school08-integrated-portable-42046879758-1
           run-id: 42046879758
           github-token: ${{ github.token }}
-          path: prior-portable
+          path: ${{ env.TD2_ROOT }}/prior-portable
       - name: Verify exact historical Portable hash
         if: env.GUI_PRODUCT_UNCHANGED == 'true'
         run: |
-          $files=@(Get-ChildItem prior-portable/*.exe)
+          $files=@(Get-ChildItem "$env:TD2_ROOT/prior-portable/*.exe")
           if($files.Count -ne 1){throw 'Expected one immutable Portable'}
           $hash=(Get-FileHash $files[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
           if($hash -cne '7cb0dc89cc967db9d687bc0f385451f740c21d11d7959f5b4f39aa710a1fdefa'){throw 'Immutable Portable hash mismatch'}
