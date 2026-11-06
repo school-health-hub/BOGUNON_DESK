@@ -203,7 +203,7 @@ let scenarioTimer;try{
   current=await start('h1-restored');page=current.page;
   const restoredShared=await page.evaluate(()=>window.electronWorkspace.school.refresh({}));
   check(restoredShared.workspace.phase==='authenticated_unselected'&&restoredShared.self.memberships.length>0,'H1 encrypted session restore failed');
-  const restoredUi=await openWorkspace(page);await restoredUi.getByRole('button',{name:'신청 현황 새로고침',exact:true}).waitFor();
+  const restoredUi=await openWorkspace(page);await restoredUi.getByText('학교를 선택해 주세요',{exact:true}).first().waitFor();await restoredUi.getByRole('button',{name:'신청 현황 새로고침',exact:true}).waitFor();
   globalThis.__schoolH1FixtureControls.expire();await restoredUi.getByRole('button',{name:'신청 현황 새로고침',exact:true}).click();
   await restoredUi.getByText('로그인 시간이 만료되었습니다',{exact:true}).first().waitFor();
   check(await restoredUi.getByRole('article',{name:'공동 업무 Windows 합성 공동 업무',exact:true}).count()===0,'Expired Auth retained shared task');
