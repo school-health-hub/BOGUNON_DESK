@@ -158,7 +158,7 @@ jobs:
           git config --local core.autocrlf input
           git config --local core.eol lf
           'school-workspace/** -text'|Add-Content .git/info/attributes
-          node -e "const fs=require('fs'),cp=require('child_process');for(const p of cp.execFileSync('git',['ls-files','school-workspace'],{encoding:'utf8'}).trim().split(/\r?\n/))fs.writeFileSync(p,cp.execFileSync('git',['show','HEAD:'+p],{maxBuffer:16777216}));"
+          node scripts/qa/school-td2-canonical.mjs
           $checkout=@(git status --porcelain)
           $checkout|Set-Content "$root/evidence/checkout-state.txt"
           if ($LASTEXITCODE -ne 0 -or $checkout.Count) { $checkout|Write-Output;throw 'Canonical checkout changed source' }
