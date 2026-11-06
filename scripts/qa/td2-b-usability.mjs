@@ -1,37 +1,36 @@
 import {execFileSync} from 'node:child_process';
-export async function checkDockMemo({app,page,dock,snapshot,report}){
- report.memoZoom=[];
- for(const factor of [1.25,1.5]){
-  await app.evaluate(({BrowserWindow})=>{const w=BrowserWindow.getAllWindows()[0];w.unmaximize();w.webContents.setZoomFactor(1);w.setContentSize(1280,800);});
+export async function checkDockMemo({app,page,dock,snapshot,report,cases}){
+ report.memoZoom??=[];
+ const scenarios=cases??['normal','small','maximized'].flatMap(size=>[1,1.25,1.5].map(factor=>({size,factor})));
+ for(const {size,factor} of scenarios){
+  await app.evaluate(({BrowserWindow},size)=>{const w=BrowserWindow.getAllWindows()[0];w.unmaximize();w.webContents.setZoomFactor(1);if(size==='maximized')w.maximize();else w.setContentSize(size==='small'?900:1280,size==='small'?680:800);},size);
   await dock.getByRole('button',{name:'빠른 메모',exact:true}).click();
-  const dialog=page.getByRole('dialog',{name:'빠른 메모',exact:true});
-  await dialog.waitFor();
+  const dialog=page.getByRole('dialog',{name:'빠른 메모',exact:true});await dialog.waitFor();
   await dialog.getByRole('textbox').fill('합성 QA 메모 · 콘텐츠 확대에서 메모 입력·닫기 확인');
+  await dialog.getByRole('textbox').focus();await page.keyboard.type(' · 키보드 입력');
   await dialog.getByRole('button',{name:'메모 저장',exact:true}).click();
   await app.evaluate(({BrowserWindow},v)=>BrowserWindow.getAllWindows()[0].webContents.setZoomFactor(v),factor);
   await page.waitForTimeout(250);
+  const last=dialog.getByRole('button',{name:'업무로 보내기',exact:true});await last.scrollIntoViewIfNeeded();
   const state=await page.evaluate(()=>{
-   const h=document.querySelector('[data-dock-item="home"]'),d=document.querySelector('.dock-zone'),p=[...document.querySelectorAll('[role="dialog"]')].find(e=>e.textContent.includes('빠른 메모'));
+   const h=document.querySelector('[data-dock-item="home"]'),d=document.querySelector('.dock-zone'),p=document.querySelector('.quick-memo-surface .rose-dialog'),body=p.querySelector('.rose-dialog-content');
    const rect=e=>{const r=e.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height,bottom:r.bottom,right:r.right};};
-   const r=h.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);
-   return{home:rect(h),dock:rect(d),popup:rect(p),homeHit:hit?.className,homeHitTarget:h.contains(hit),homeInert:!!h.closest('[inert]'),viewport:{width:innerWidth,height:innerHeight}};
+   const r=h.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2),last=[...p.querySelectorAll('button')].find(e=>e.textContent.includes('업무로 보내기')),end=last.getBoundingClientRect(),target=document.elementFromPoint(end.x+end.width/2,end.y+end.height/2);
+   return{home:rect(h),dock:rect(d),popup:rect(p),homeHitTarget:h.contains(hit),homeInert:!!h.closest('[inert]'),lastActionAccessible:last.contains(target)&&end.bottom<=p.getBoundingClientRect().bottom+1,body:{clientHeight:body.clientHeight,scrollHeight:body.scrollHeight,overflowY:getComputedStyle(body).overflowY},viewport:{width:innerWidth,height:innerHeight}};
   });
-  await snapshot('memo-zoom'+factor*100+'-open');
+  const name='memo-'+size+'-zoom'+factor*100;await snapshot(name+'-open');
   let homeClicked=false,error=null;
-  try{await dock.getByRole('button',{name:'홈',exact:true}).click({timeout:1800});homeClicked=true;}catch(e){error=String(e).split('\n').slice(0,10).join('\n');}
-  const remained=await dialog.isVisible();
-  if(remained)await dialog.getByRole('button',{name:'빠른 메모 닫기',exact:true}).click();
-  await page.getByRole('dialog',{name:'빠른 메모',exact:true}).waitFor({state:'hidden'});
-  await dock.getByRole('button',{name:'빠른 메모',exact:true}).click();
-  await page.keyboard.press('Escape');
-  const escapeClosed=await page.getByRole('dialog',{name:'빠른 메모',exact:true}).count()===0;
-  const result={factor,kind:'Electron content zoom; not OS DPI',...state,homeClicked,homeClickError:error,closeButtonWorked:remained,escapeClosed,verdict:homeClicked?'PASS':'FAIL',escapeIsWorkaroundOnly:!homeClicked};
-  report.memoZoom.push(result);await snapshot('memo-zoom'+factor*100+'-closed');
+  try{await dock.getByRole('button',{name:'홈',exact:true}).click({timeout:2500});homeClicked=true;}catch(e){error=String(e).split('\n').slice(0,10).join('\n');}
+  if(!await dialog.isVisible())await dock.getByRole('button',{name:'빠른 메모',exact:true}).click();
+  await page.getByRole('button',{name:'빠른 메모 닫기',exact:true}).click();await dialog.waitFor({state:'hidden'});
+  await dock.getByRole('button',{name:'빠른 메모',exact:true}).click();await dialog.getByRole('textbox').focus();await page.keyboard.press('Escape');await dialog.waitFor({state:'hidden'});
+  const passed=homeClicked&&state.homeHitTarget&&!state.homeInert&&state.popup.bottom<=state.dock.y&&state.lastActionAccessible;
+  report.memoZoom.push({size,factor,kind:'Electron content zoom; not OS DPI',...state,homeClicked,homeClickError:error,closeButtonWorked:true,escapeClosed:true,verdict:passed?'PASS':'FAIL',escapeIsWorkaroundOnly:!homeClicked});await snapshot(name+'-closed');
  }
- await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].webContents.setZoomFactor(1));
+ await app.evaluate(({BrowserWindow})=>{const w=BrowserWindow.getAllWindows()[0];w.unmaximize();w.webContents.setZoomFactor(1);w.setContentSize(1280,800);});
  const home=dock.getByRole('button',{name:'홈',exact:true});await home.focus();await page.keyboard.press('Tab');
  report.checks.push({dockKeyboard:{tabFocusInsideDock:await dock.evaluate(e=>e.contains(document.activeElement)),focusedLabel:await page.evaluate(()=>document.activeElement?.getAttribute('aria-label'))}});
- await snapshot('dock-keyboard-focus');
+ await snapshot(cases?'custom-dock-keyboard-focus':'dock-keyboard-focus');
 }
 export async function checkLastItems({page,snapshot,report}){
  const candidates=page.locator('.desktop-widget-grid [data-widget-type]');const rows=[];

@@ -1,0 +1,14 @@
+/* Only the nonmodal Quick Memo reserves the measured Dock area. Other dialogs keep their policy. */
+.electron-soft-rose .rose-overlay.quick-memo-surface {
+  box-sizing: border-box;
+  inset: 0 0 auto;
+  height: var(--quick-memo-available-height, calc(100dvh - 120px));
+  padding: 16px 24px;
+}
+.electron-soft-rose .quick-memo-surface .rose-dialog {
+  max-height: max(0px, calc(var(--quick-memo-available-height, 100dvh - 120px) - 32px));
+}
+.electron-soft-rose .quick-memo-surface .rose-dialog-content {
+  min-height: 0;
+  overflow-y: auto;
+}

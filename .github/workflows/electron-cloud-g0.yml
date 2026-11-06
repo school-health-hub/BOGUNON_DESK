@@ -41,7 +41,7 @@ jobs:
 
   td2-floating-b-focused:
     name: Frozen TD2 B home and Dock QA only
-    if: github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/codex/td2-floating-surface-b'
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/fix/td2-b-memo-dock'
     runs-on: windows-2022
     timeout-minutes: 25
     permissions:
@@ -52,6 +52,7 @@ jobs:
     env:
       TD2_DESIGN_SHA: abf6f6f049f01dc57a574825fad8be86e2a4d68a
       TD2_FOCUSED_QA: '1'
+      TD2_MEMO_FIX_REQUIRED: '1'
     steps:
       - name: Checkout immutable approved design source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -66,8 +67,9 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           if ((git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA) { throw 'Controller SHA mismatch' }
-          git diff --exit-code $env:TD2_DESIGN_SHA HEAD -- electron-p0 src package.json package-lock.json
-          if ($LASTEXITCODE -ne 0) { throw 'Frozen product files differ from approved design' }
+          $allowed=@('electron-p0/renderer/P0App.tsx','electron-p0/renderer/QuickMemoSurface.tsx','electron-p0/renderer/quick-memo-surface.css','electron-p0/tests/quick-memo-surface.test.tsx')
+          $changed=@(git diff --name-only $env:TD2_DESIGN_SHA HEAD -- electron-p0 src src-tauri tools config package.json package-lock.json DESIGN.md)
+          if ($LASTEXITCODE -ne 0 -or @($changed|Where-Object{$_ -notin $allowed}).Count) { throw 'Changes exceed the approved quick-memo-only fix boundary' }
           if (git status --porcelain) { throw 'Dirty design source' }
           $root=Join-Path $env:RUNNER_TEMP "td2-b-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
           New-Item -ItemType Directory "$root/evidence","$root/temp","$root/npm-cache" | Out-Null
@@ -76,14 +78,14 @@ jobs:
           "npm_config_cache=$root/npm-cache" >> $env:GITHUB_ENV
           "TD2_QA_TEMP=$root/profile-root" >> $env:GITHUB_ENV
           "TD2_REVIEW_DIR=$root/evidence" >> $env:GITHUB_ENV
-          [ordered]@{designSha=$env:TD2_DESIGN_SHA;controllerSha=$env:GITHUB_SHA;runner='windows-2022';runId=$env:GITHUB_RUN_ID;osDpi='NOT RUN';deployment=$false;portableReplacement=$false} | ConvertTo-Json | Set-Content "$root/evidence/provenance.json"
+          [ordered]@{designSha=$env:TD2_DESIGN_SHA;qaBaseline='985aa25ac5af950191690f59b80217567ce0d0f9';productSha=$env:GITHUB_SHA;controllerSha=$env:GITHUB_SHA;changedProductFiles=$changed;runner='windows-2022';runId=$env:GITHUB_RUN_ID;osDpi='NOT RUN';deployment=$false;portableReplacement=$false} | ConvertTo-Json | Set-Content "$root/evidence/provenance.json"
       - name: Install existing locked dependencies
         run: npm ci
-      - name: Focused 38 tests and renderer types
+      - name: Quick Memo regression and existing focused renderer tests
         run: |
           node node_modules/typescript/bin/tsc -p electron-p0/tsconfig.renderer.json --noEmit
           if ($LASTEXITCODE -ne 0) { throw 'Renderer type check failed' }
-          node node_modules/vitest/vitest.mjs run electron-p0/tests/soft-rose-surface.test.tsx electron-p0/tests/widget-state-notices.test.tsx src/dashboard/deskGeometry.test.ts src/dock/AppDock.test.tsx src/dock/storage.test.ts
+          node node_modules/vitest/vitest.mjs run electron-p0/tests/quick-memo-surface.test.tsx electron-p0/tests/soft-rose-surface.test.tsx electron-p0/tests/widget-state-notices.test.tsx src/dashboard/deskGeometry.test.ts src/dock/AppDock.test.tsx src/dock/storage.test.ts
           if ($LASTEXITCODE -ne 0) { throw 'Focused tests failed' }
       - name: Prepare unpackaged QA runtime without Portable or Rust rebuild
         run: npm run electron:p0:build
