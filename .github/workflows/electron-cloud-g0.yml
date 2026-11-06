@@ -232,3 +232,99 @@ jobs:
           path: ${{ env.TD2_EVIDENCE_ROOT }}
           retention-days: 14
           if-no-files-found: warn
+
+  td2-all-menu-design:
+    name: TD2 all menus Windows UI only (SCHOOL06-08)
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/feature/electron-td2-all-menu-school08' && github.run_attempt == 1
+    runs-on: windows-2025
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CI: 'true'
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Verify UI-only scope and isolate QA data outside uploaded evidence
+        run: |
+          $ErrorActionPreference='Stop'
+          if ((git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA) { throw 'Unexpected source SHA' }
+          $root=Join-Path $env:RUNNER_TEMP "td2-portable-menu-$env:GITHUB_RUN_ID"
+          New-Item -ItemType Directory "$root/evidence","$root/temp","$root/profile","$root/npm-cache","$root/cargo-home"|Out-Null
+          "TD2_ROOT=$root" >> $env:GITHUB_ENV
+          "TD2_EVIDENCE_ROOT=$root/evidence" >> $env:GITHUB_ENV
+          "TD2_UI_EVIDENCE=$root/evidence/menus" >> $env:GITHUB_ENV
+          "TD2_UI_PROFILE_ROOT=$root/profile/menus" >> $env:GITHUB_ENV
+          "TEMP=$root/temp" >> $env:GITHUB_ENV
+          "TMP=$root/temp" >> $env:GITHUB_ENV
+          "npm_config_cache=$root/npm-cache" >> $env:GITHUB_ENV
+          "CARGO_HOME=$root/cargo-home" >> $env:GITHUB_ENV
+          git config --local core.autocrlf input
+          git config --local core.eol lf
+          'school-workspace/** -text'|Add-Content .git/info/attributes
+          node scripts/qa/school-td2-canonical.mjs
+          if ($LASTEXITCODE -ne 0 -or (git status --porcelain)) { throw 'Unclean canonical checkout' }
+          git diff --exit-code ec181a18f94c5ff4730dc6006ea94018db28d5e3 HEAD -- electron-p0/main electron-p0/preload electron-p0/protocol.ts electron-p0/workspace-protocol.ts electron-p0/builder.json school-workspace src tools config package.json package-lock.json electron-p0/renderer/QuickMemoSurface.tsx electron-p0/renderer/quick-memo-surface.css electron-p0/renderer/td2-desktop.css electron-p0/renderer/td2-desktop-v2.css electron-p0/renderer/td2-desktop-b.css
+          if ($LASTEXITCODE -ne 0) { throw 'Protected product contract changed' }
+          [ordered]@{sourceSha=$env:GITHUB_SHA;baseSha='ec181a18f94c5ff4730dc6006ea94018db28d5e3';runner='windows-2025';portableBuilt=$false;hostedActivated=$false;actualApiCalls=$false} | ConvertTo-Json | Set-Content "$root/evidence/provenance.json"
+      - name: Install locked dependencies and exact Windows Electron
+        run: |
+          npm ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed' }
+          if (!(Test-Path node_modules/electron/dist/electron.exe)) { Remove-Item Env:ELECTRON_SKIP_BINARY_DOWNLOAD -ErrorAction SilentlyContinue; node node_modules/electron/install.js }
+          if ($LASTEXITCODE -ne 0 -or !(Test-Path node_modules/electron/dist/electron.exe)) { throw 'Pinned Electron missing' }
+          "ELECTRON_P0_EXECUTABLE=$pwd/node_modules/electron/dist/electron.exe" >> $env:GITHUB_ENV
+      - name: Existing Electron build and original Finance CLI only
+        run: |
+          npm run electron:p0:build
+          if ($LASTEXITCODE -ne 0) { throw 'Electron production build failed' }
+          node -e "const m=require('./build/electron-p0-app/build-meta.json');if(m.sourceSha!==process.env.GITHUB_SHA||m.dirty)throw Error('Build source/clean mismatch');"
+          if ($LASTEXITCODE -ne 0) { throw 'Build provenance failed' }
+          node scripts/qa/school05-build-native-provider.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Existing isolated provider build failed' }
+      - name: Original Windows Finance CLI, no replacement storage
+        id: finance-runtime
+        continue-on-error: true
+        run: |
+          node scripts/electron-p0/build-finance.mjs --release *> "$env:TD2_EVIDENCE_ROOT/finance-build.log"
+          if ($LASTEXITCODE -ne 0) { throw 'Finance unavailable; other independent menu captures continue' }
+      - name: Focused presentation and role-boundary tests only
+        run: |
+          node node_modules/vitest/vitest.mjs run electron-p0/tests/td2-workspace-ui.test.tsx electron-p0/tests/soft-rose-surface.test.tsx electron-p0/tests/quick-memo-surface.test.tsx school-workspace/school07/tests/client.test.ts school-workspace/school05/tests/boundary.test.ts school-workspace/instructors/tests/ui.test.tsx school-workspace/instructors/tests/preview-layers.test.tsx --reporter=json --outputFile="$env:TD2_EVIDENCE_ROOT/focused.json"
+          if ($LASTEXITCODE -ne 0) { throw 'Focused UI regression failed' }
+      - name: Reuse isolated native SCHOOL08 QA fixtures (never Hosted)
+        id: school-db
+        continue-on-error: true
+        run: pwsh -NoProfile -File scripts/qa/school08-native-pg.ps1 -Action Start
+      - name: Actual Windows Electron all-menu captures and synthetic shared screens
+        env:
+          TD2_UI_SYNTHETIC_SCHOOL: ${{ steps.school-db.outcome == 'success' && '1' || '0' }}
+        run: |
+          node scripts/qa/td2-workspace-gui.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Actual Windows GUI verification failed; see independent menu records' }
+      - name: Preserve independent runtime outcomes
+        if: always() && env.TD2_EVIDENCE_ROOT != ''
+        run: |
+          [ordered]@{financeBuild='${{ steps.finance-runtime.outcome }}';schoolFixture='${{ steps.school-db.outcome }}';hosted='NOT RUN';portable='NOT RUN'} | ConvertTo-Json | Set-Content "$env:TD2_EVIDENCE_ROOT/runtime-outcomes.json"
+      - name: Stop only the existing job-owned QA database
+        if: always() && env.SCHOOL05_PG_DATA != ''
+        run: pwsh -NoProfile -File scripts/qa/school08-native-pg.ps1 -Action Stop
+      - name: Upload synthetic screenshots and manifests, never profiles or DB files
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: td2-all-menu-windows-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.TD2_EVIDENCE_ROOT }}
+          if-no-files-found: warn
+          retention-days: 14

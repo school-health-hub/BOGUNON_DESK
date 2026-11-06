@@ -6,14 +6,14 @@ import {join,resolve} from 'node:path';
 import {randomUUID,createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 const out=resolve(process.env.TD2_UI_EVIDENCE??'artifacts/td2-workspace-ui');
-const runId=randomUUID(),qaRoot=join(out,'profile');
+const runId=randomUUID(),qaRoot=resolve(process.env.TD2_UI_PROFILE_ROOT??join(out,'..','td2-ui-profiles',runId));
 await mkdir(qaRoot,{recursive:true});await mkdir(join(out,'screenshots'),{recursive:true});
 const sha=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 const report={sourceSha:sha,dirty:!!execFileSync('git',['status','--porcelain'],{encoding:'utf8'}).trim(),platform:process.platform,runId,realElectron:true,chromiumSandbox:true,records:[],errors:[],notRun:['Windows GUI / OS DPI / native file dialogs / physical print','External services / paid AI / operational SCHOOL WORKSPACE','Windows Finance SQLCipher/DPAPI editor when unavailable'],cleanup:null};
 let app,page;
 const wait=()=>new Promise(r=>setTimeout(r,200));
-async function launch(){
- app=await electron.launch({chromiumSandbox:true,timeout:30000,executablePath:process.env.ELECTRON_P0_EXECUTABLE,args:[resolve('build/electron-p0-app'),...(process.platform==='linux'?['--disable-setuid-sandbox']:[])],env:{...process.env,ELECTRON_P0_TEST_RUN:runId,ELECTRON_P0_QA_PROFILE:'1',ELECTRON_P0_QA_ROOT:qaRoot,RUNNER_TEMP:resolve(out,'..'),ELECTRON_P0_DEV_URL:''}});
+async function launch(syntheticSchool=false){
+ app=await electron.launch({chromiumSandbox:true,timeout:30000,executablePath:process.env.ELECTRON_P0_EXECUTABLE,args:[resolve('build/electron-p0-app'),...(process.platform==='linux'?['--disable-setuid-sandbox']:[])],env:{...process.env,ELECTRON_P0_TEST_RUN:runId,ELECTRON_P0_QA_PROFILE:'1',ELECTRON_P0_QA_ROOT:qaRoot,RUNNER_TEMP:process.env.RUNNER_TEMP??resolve(qaRoot,'..'),ELECTRON_P0_DEV_URL:'',SCHOOL_WORKSPACE_MODE:syntheticSchool?'synthetic':'',NODE_ENV:syntheticSchool?'development':'production'}});
  page=await app.firstWindow();page.setDefaultTimeout(5000);
  page.on('pageerror',e=>report.errors.push({type:'pageerror',message:e.message}));
  page.on('dialog',d=>d.dismiss()); // preserve drafts on every destructive confirmation
@@ -80,6 +80,21 @@ try{
  await visit('school-admin',()=>tool('학교 행정 업무 도우미'),()=>click('보건 업무로'));
  await visit('school-workspace',()=>tool('우리 보건실 · 학교 공유'),async()=>{await click('개인 업무 · 이 PC로 돌아가기');await click('업무 도구 닫기');},async row=>{row.gate=await page.evaluate(()=>window.electronWorkspace.status());if(row.gate.connected)throw Error('Unexpected operational workspace activation');row.checks.push('Existing disconnected gate preserved');});
  await visit('memo-protected',()=>dock('quick-memo').click(),()=>click('빠른 메모 닫기'));
+ if(process.env.TD2_UI_SYNTHETIC_SCHOOL==='1'){
+  await app.close();await launch(true);
+  await dock('toolbox').click();await click('우리 보건실 · 학교 공유');
+  const workspace=page.getByRole('region',{name:'우리 보건실 제품 화면'});
+  const gate=await page.evaluate(()=>window.electronWorkspace.status());if(gate.mode!=='qa'||!gate.connected)throw Error('Existing isolated SCHOOL provider unavailable');
+  report.syntheticSchool={mode:gate.mode,hosted:false,realPurposeIpc:true,backend:'Existing isolated SCHOOL08 Windows PostgreSQL fixture'};
+  await workspace.getByLabel('검증 계정').selectOption('3');await workspace.getByRole('button',{name:'로그인',exact:true}).click();
+  await workspace.getByLabel('학교명',{exact:true}).fill('늘봄');await workspace.getByLabel('시도교육청').selectOption('B10');
+  await workspace.getByRole('button',{name:'학교 검색',exact:true}).click();await workspace.getByRole('button',{name:'이 학교 선택',exact:true}).click();
+  await workspace.getByRole('button',{name:'학교 공동 공간 열기',exact:true}).click();
+  for(const [id,name]of [['shared-home','한눈에 보기'],['shared-tasks','공동 업무'],['shared-events','공동 일정'],['shared-notes','인수인계'],['shared-inventory','공동 물품관리'],['instructor','보건지원강사 근무관리']]){
+   await visit(id,()=>workspace.getByRole('navigation',{name:'우리 보건실 메뉴'}).getByRole('button',{name,exact:true}).click(),null);
+  }
+ }
+
 }catch(e){report.errors.push({type:'fatal',message:e.message});}
 finally{if(app){
  const pids=await app.evaluate(({app})=>app.getAppMetrics().map(m=>m.pid)).catch(()=>[]);if(app.process()?.pid)pids.push(app.process().pid);

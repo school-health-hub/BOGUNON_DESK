@@ -173,6 +173,19 @@
  body.electron-soft-rose .td2-workspace .s05-header h1 {font-size:22px;line-height:1.4}
  body.electron-soft-rose .td2-workspace .s05-account {margin-block:16px;background:#f4e9ef;border:1px solid var(--divider)}
  body.electron-soft-rose .td2-workspace .s05-ready {margin-top:16px;background:#fff9fb;border:1px solid var(--divider)}
+ /* SCHOOL06-08: retain the current role/connection gates and original DOM. */
+ body.electron-soft-rose .td2-workspace :is(.s02,.s03,.s04,.s07) {font-family:inherit;font-size:14px;line-height:1.6;color:var(--td2-ink);background:#fffdfd;border-color:var(--divider);border-radius:16px}
+ body.electron-soft-rose .td2-workspace :is(.s03,.s04,.s07) h2 {font-size:22px;line-height:1.4}
+ body.electron-soft-rose .td2-workspace :is(.s03,.s04,.s07) h3 {font-size:17px;line-height:1.5}
+ body.electron-soft-rose .td2-workspace .s04-nav {display:flex;flex-wrap:wrap;gap:8px;padding:8px;border:1px solid var(--divider);border-radius:14px;background:var(--td2-sheet)}
+ body.electron-soft-rose .td2-workspace :is(.s03-task,.s03-editor,.s03-detail,.s04-card,.s04-form,.s04-detail,.s07-form,.s07-items>article,.s07-lots>article) {background:#fffdfd;border-color:var(--divider);border-radius:16px;min-width:0}
+ body.electron-soft-rose .td2-workspace :is(.s03-tag,.s04-tag,.s07-summary>span) {background:#f4e9ef;color:var(--td2-ink)}
+ body.electron-soft-rose .td2-workspace :is(.s02,.s03,.s04,.s07) :is(button:disabled,fieldset:disabled button) {opacity:1;background:#f1ecee;color:#626874;border-color:var(--control-border);border-style:dashed;cursor:not-allowed}
+ body.electron-soft-rose .td2-workspace :is(.s02,.s03,.s04,.s07) form button:not([type]) {color:white;background:var(--td2-rose);border-color:var(--td2-rose)}
+ body.electron-soft-rose .td2-workspace :is(.s02,.s03,.s04,.s07) form button:not([type]):disabled {color:#626874;background:#f1ecee}
+ body.electron-soft-rose .td2-workspace .s07-tools {display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+ body.electron-soft-rose .td2-workspace .s07-form {padding:16px;gap:12px}
+ body.electron-soft-rose .td2-workspace :is(.s03,.s04,.s07) :is(button,input,textarea,select):focus-visible {outline:3px solid var(--td2-rose);outline-offset:3px}
  body.electron-soft-rose .td2-workspace .instructor-workspace {padding:16px 0}
  body.electron-soft-rose .td2-workspace .instructor-workspace>nav {display:flex;flex-wrap:wrap;gap:8px;margin-block:16px}
  body.electron-soft-rose .td2-workspace .instructor-workspace :is(form,fieldset) {max-width:100%}
@@ -185,6 +198,7 @@
  @media(max-width:1050px) {
   body.electron-soft-rose .td2-workspace {padding:16px}
   body.electron-soft-rose .td2-workspace :is(.od-grid,.finance-workspace.has-editor) {grid-template-columns:minmax(0,1fr)}
+  body.electron-soft-rose .td2-workspace :is(.s03-list,.s04-list,.s07-items,.s07-lots) {grid-template-columns:minmax(0,1fr)}
   body.electron-soft-rose .td2-workspace :is(.td2-workspace-header,.od-header,.ev-header,.finance-hero) {padding:16px 20px}
   body.electron-soft-rose .td2-workspace .purchase-helper-panel {width:calc(100vw - 32px);max-height:calc(100dvh - 32px)}
   body.electron-soft-rose .td2-workspace .purchase-helper-backdrop {padding:16px}

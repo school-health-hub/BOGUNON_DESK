@@ -1,6 +1,8 @@
 # TD2 workspace chrome — implementation handoff
 
-Base: `15b2c6d2e92d40da7614dadcdcbc1c984c2f2f88`.
+Base: `ec181a18f94c5ff4730dc6006ea94018db28d5e3`.
+
+The original design branch at `b053093fe289721f07e6c37d38e3e7054614d747` is preserved. Its three UI-only commits were selected onto this new SCHOOL06–08 integration base. No old Main/Preload/SQL/provider file was copied over the new implementation.
 Audit: `/tmp/BOGUNON-DESK-TD2-MENU-DESIGN-AUDIT.md`.
 
 ## Scope
@@ -33,7 +35,7 @@ Lazy-loaded module CSS remains responsible for specialist content and semantics.
 | Finance | Shared host/control styling including unavailable state | Windows SQLCipher/DPAPI editor cannot be certified by Linux UI review |
 | Local Inventory / nonpersistent preview | Shared workspace and list/control styles | Local/server separation and Purchase handoff unchanged |
 | School admin / school profile / BOGUNON account / AI settings | Shared header, settings controls, readable constraints | No login, external URL execution or address/data changes |
-| SCHOOL-05 / instructor | Existing school/role/connection header and instructor tabs within Electron workspace scope | Existing production gate stays disabled; no Hosted or Cloud B branch changes |
+| SCHOOL-05 / instructor | Existing school/role/connection header, shared tasks/events/handovers, SCHOOL07 Inventory and instructor tabs within Electron workspace scope | Existing production gate stays disabled; no Hosted or Cloud B branch changes |
 | Instructor attendance/payment preview | Protected, excluded from `td2-dialog` | Existing portal stack, white print canvas, stamp roles and payment NOT REQUIRED policy unchanged |
 
 Development-only QA tools remain development-only. A styled disabled screen is
