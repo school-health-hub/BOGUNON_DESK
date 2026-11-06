@@ -7,7 +7,8 @@ assert sys.platform=='win32' and data.is_relative_to(root) and port.isdecimal() 
 ENV={k:v for k,v in os.environ.items()if not k.startswith('PG')};ENV.update(PGCONNECT_TIMEOUT='5',PGCLIENTENCODING='UTF8',PGPASSFILE=str(root/'no-password-file'))
 def native_sql(q,ok=True,role='fixture_root'):
  assert role in ('postgres','fixture_root','fixture_setup','school_client')
- p=subprocess.run([str(binary),'-X','-w','-qAt','-v','ON_ERROR_STOP=1','-v','VERBOSITY=terse','-h','127.0.0.1','-p',port,'-U',role,'-d','postgres','-f','-'],input=q,encoding='utf8',capture_output=True,env=ENV,timeout=60)
+ p=subprocess.run([str(binary),'-X','-w','-qAt','-v','ON_ERROR_STOP=1','-v','VERBOSITY=terse','-h','127.0.0.1','-p',port,'-U',role,'-d','postgres','-f','-'],input=q.encode('utf8'),capture_output=True,env=ENV,timeout=60)
+ p.stdout=p.stdout.decode('utf8').replace('\r\n','\n');p.stderr=p.stderr.decode('utf8').replace('\r\n','\n')
  if ok:assert p.returncode==0,p.stderr[-2200:]
  return p
 
