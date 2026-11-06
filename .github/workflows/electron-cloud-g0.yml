@@ -194,6 +194,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'H1 strict types failed' }
           node scripts/qa/school-h1-build.mjs
           if ($LASTEXITCODE -ne 0) { throw 'H1 provider build failed' }
+          node --test scripts/qa/td2-process-ownership.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'QA process ownership regression failed' }
           node node_modules/vitest/vitest.mjs run school-workspace/hosted-h1/tests --reporter=json --outputFile="$env:TD2_EVIDENCE_ROOT/h1-unit.json"
           if ($LASTEXITCODE -ne 0) { throw 'H1 unit regression failed' }
       - name: Focused UI and business contract tests

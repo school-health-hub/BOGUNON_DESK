@@ -1,3 +1,4 @@
+import {ownedProcessIdentities} from './process-ownership.mjs';
 import {execFileSync} from 'node:child_process';
 export async function checkDockMemo({app,page,dock,snapshot,report,cases}){
  report.memoZoom??=[];
@@ -45,7 +46,7 @@ export function processTracker(){
  const identities=new Map();
  const ps=code=>JSON.parse(execFileSync('pwsh',['-NoProfile','-NonInteractive','-Command',code],{encoding:'utf8',timeout:20000}).trim()||'[]');
  return{
-  capture(root){const rows=ps(`$all=@(Get-CimInstance Win32_Process);$owned=@(${Number(root)});do{$new=@($all|Where-Object{$_.ParentProcessId -in $owned -and $_.ProcessId -notin $owned}|ForEach-Object ProcessId);$owned+=$new}while($new.Count);@($all|Where-Object{$_.ProcessId -in $owned}|Select-Object ProcessId,CreationDate)|ConvertTo-Json -Compress`);for(const r of Array.isArray(rows)?rows:[rows])identities.set(r.ProcessId,r.CreationDate);},
-  async verify(){let remaining=[];for(let i=0;i<5;i++){const rows=ps(`@(Get-CimInstance Win32_Process|Where-Object{$_.ProcessId -in @(${[...identities.keys()].join(',')||0})}|Select-Object ProcessId,CreationDate)|ConvertTo-Json -Compress`);remaining=(Array.isArray(rows)?rows:[rows]).filter(r=>identities.get(r.ProcessId)===r.CreationDate);if(!remaining.length)break;await new Promise(r=>setTimeout(r,500));}return{tracked:identities.size,remaining,zeroResidual:remaining.length===0,scope:'Only captured PID and creation-time identities of this QA Electron tree; no unrelated process termination'};}
+  capture(root){const rows=ps(`@(Get-CimInstance Win32_Process|Select-Object ProcessId,ParentProcessId,CreationDate)|ConvertTo-Json -Compress`);for(const r of ownedProcessIdentities(Array.isArray(rows)?rows:[rows],root))identities.set(r.ProcessId,r.CreationDate);},
+  async verify(){let remaining=[];for(let i=0;i<5;i++){const rows=ps(`@(Get-CimInstance Win32_Process|Where-Object{$_.ProcessId -in @(${[...identities.keys()].join(',')||0})}|Select-Object ProcessId,CreationDate)|ConvertTo-Json -Compress`);remaining=(Array.isArray(rows)?rows:[rows]).filter(r=>identities.get(r.ProcessId)===r.CreationDate);if(!remaining.length)break;await new Promise(r=>setTimeout(r,500));}return{tracked:identities.size,remaining,zeroResidual:remaining.length===0,scope:'Only captured PID + creation time; descendant birth must be >= live parent birth to reject PID reuse; no unrelated process termination'};}
  };
 }

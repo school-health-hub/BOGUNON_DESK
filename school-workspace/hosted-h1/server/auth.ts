@@ -7,15 +7,15 @@ import {WorkspaceRequestScope} from '../../auth/common/rpc.js';
 import type {WorkspaceAuthStatus} from '../../auth/common/types.js';
 import {H1Error,H1Http} from './http.js';
 export class H1Auth{
- readonly scope=new WorkspaceRequestScope();private client:SupabaseClient;private values=new Map<string,string>();private session:SecretSession|null=null;private epoch=0;private storage=new Mutex();private refreshJob?:Promise<void>;private loopback?:AccountLoopback;private cancelLogin?:()=>void;private state:WorkspaceAuthStatus={kind:'signed_out'};
+ readonly scope=new WorkspaceRequestScope();private client:SupabaseClient;private values=new Map<string,string>();private session:SecretSession|null=null;private epoch=0;private disposed=false;private storage=new Mutex();private refreshJob?:Promise<void>;private loopback?:AccountLoopback;private cancelLogin?:()=>void;private state:WorkspaceAuthStatus={kind:'signed_out'};
  constructor(readonly http:H1Http,private vault:SecretVault,private open:(url:string)=>Promise<void>,private qaCredentials?:()=>Promise<{email:string;password:string}>){
   this.client=createClient(http.config.origin,http.config.publicKey,{global:{fetch:http.fetch},auth:{persistSession:true,autoRefreshToken:false,detectSessionInUrl:false,flowType:'pkce',experimental:{appendPkceFlowIdToRedirects:true},debug:false,storageKey:'school-h1-private',storage:{getItem:k=>this.values.get(k)??null,setItem:(k,v)=>{this.values.set(k,v);},removeItem:k=>{this.values.delete(k);}}}});
  }
- private fresh(g:number){if(g!==this.epoch)throw new H1Error('STALE');}
- private reset(){this.scope.invalidate();this.cancelLogin?.();this.cancelLogin=undefined;this.loopback?.close();this.loopback=undefined;return ++this.epoch;}
+ private fresh(g:number){if(this.disposed||g!==this.epoch)throw new H1Error('STALE');}
+ private reset(){this.scope.invalidate();this.http.abortPending();this.cancelLogin?.();this.cancelLogin=undefined;this.loopback?.close();this.loopback=undefined;return ++this.epoch;}
  private async verify(s:SecretSession){const{data,error}=await this.client.auth.getUser(s.accessToken);if(error)throw new H1Error(error.status===0||error.status&&error.status>=500?'NETWORK':'AUTH');if(!data.user||data.user.id!==s.userId||data.user.is_anonymous===true)throw new H1Error('AUTH');}
  private async commit(s:Session|null,g:number){if(!s)throw new H1Error('AUTH');const next=validateSession({userId:s.user.id,accessToken:s.access_token,refreshToken:s.refresh_token,expiresAt:(s.expires_at??0)*1000});await this.verify(next);this.fresh(g);await this.storage.run(async()=>{this.fresh(g);await this.vault.save(next);if(g!==this.epoch){await this.vault.clear();throw new H1Error('STALE');}});this.fresh(g);this.session=next;this.state={kind:'authenticated',session:{user:{id:next.userId},expiresAt:next.expiresAt}};}
- async login(){await this.logout();const g=this.reset();this.state={kind:'signing_in'};try{
+ async login(){if(this.disposed)throw new H1Error('CONFIGURATION');await this.logout();const g=this.reset();this.state={kind:'signing_in'};try{
   if(this.http.config.mode==='isolated-test'&&this.qaCredentials){const c=await this.qaCredentials();this.fresh(g);const{data,error}=await this.client.auth.signInWithPassword(c);if(error)throw new H1Error('AUTH');await this.commit(data.session,g);return;}
   if(this.http.config.mode!=='hosted-candidate')throw new H1Error('CONFIGURATION');
   this.loopback=new AccountLoopback();await new Promise<void>((resolve,reject)=>{
@@ -26,7 +26,7 @@ export class H1Auth{
   });
  }catch(e){if(g===this.epoch){this.session=null;await this.storage.run(()=>this.vault.clear());this.state={kind:'error',error:'AUTH_SERVER_ERROR'};}throw e instanceof H1Error?e:new H1Error('AUTH');}finally{this.loopback?.close();this.cancelLogin=undefined;}}
  async restore(){const g=this.reset();this.session=null;this.state={kind:'signed_out'};try{const s=await this.storage.run(()=>this.vault.load());this.fresh(g);if(!s)return;this.session=validateSession(s);await this.ensure();this.fresh(g);}catch{if(g===this.epoch){this.session=null;this.state={kind:'expired'};await this.storage.run(()=>this.vault.clear());}}}
- private async ensure(){if(!this.session)throw new H1Error('AUTH');const g=this.epoch;
+ private async ensure(){if(this.disposed||!this.session)throw new H1Error('AUTH');const g=this.epoch;
   if(this.session.expiresAt<=Date.now()+30000){if(!this.refreshJob)this.refreshJob=(async()=>{const old=this.session!;const{data,error}=await this.client.auth.refreshSession({refresh_token:old.refreshToken});this.fresh(g);if(error||data.session?.user.id!==old.userId)throw new H1Error('AUTH');await this.commit(data.session,g);})().finally(()=>{this.refreshJob=undefined;});await this.refreshJob;}
   await this.verify(this.session!);this.fresh(g);this.state={kind:'authenticated',session:{user:{id:this.session!.userId},expiresAt:this.session!.expiresAt}};
  }
@@ -37,5 +37,5 @@ export class H1Auth{
    try{const r=await this.http.fetch(`${this.http.config.origin}/auth/v1/logout?scope=local`,{method:'POST',headers:{Authorization:`Bearer ${old.accessToken}`}});if(!r.ok)unconfirmed=true;}catch{unconfirmed=true;}}
   if(g===this.epoch&&unconfirmed)this.state={kind:'signed_out',remoteRevocation:'unconfirmed'};
  }
- async dispose(){this.reset();this.session=null;this.state={kind:'signed_out'};this.values.clear();this.client.auth.dispose();}
+ async dispose(){if(this.disposed)return;this.disposed=true;this.reset();this.session=null;this.state={kind:'signed_out'};this.values.clear();await this.http.drain();this.client.auth.dispose();}
 }
