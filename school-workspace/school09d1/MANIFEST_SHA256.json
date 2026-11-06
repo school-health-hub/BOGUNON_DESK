@@ -3,15 +3,19 @@
   "files": [
     {
       "path": "REPORT.md",
-      "sha256": "f7f56c7381e2c22fc3c690b325c9e5c5534641f10118b097b7b76e87708aca56"
+      "sha256": "ee54fe6118b2abeb3e33aa0a31d4cb821231e622214b77a7f8d32a6c042c781a"
+    },
+    {
+      "path": "SCOPE_POLICY.json",
+      "sha256": "3ea894d883098368ca7416c3ac5dcffeb26dfeeb2ae059ebe08a6ddccc87ccae"
     },
     {
       "path": "connections/MANIFEST_SHA256.json",
-      "sha256": "9dbbcbcbe5b28dcf9719cff9aa5e71c8bf4311394fb76c653aa1433ae6791748"
+      "sha256": "55786ab9c1bc4ea0e329fdc3a572ae7c141d1a22277647f35ce18b3c4332730b"
     },
     {
       "path": "connections/README.md",
-      "sha256": "b913b938264a14ce66f00345ebbf1afd64e8238c43119fc7007f00063bb03704"
+      "sha256": "69cfaad2317f98132a31dadd01a78611db00168ea0ae676be2464a54b9d0f720"
     },
     {
       "path": "connections/baeruri.config.example.toml",

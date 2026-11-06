@@ -1,3 +1,5 @@
+> 고정 정책: 0원 운영, 기존 BogunOn/BAERURI 두 프로젝트만 유지. 추가 프로젝트 생성·확보·비용 검토·유료 전환 없음. Hosted는 READ-ONLY 메타데이터만. 실설치/실계정 시험은 별도 승인 전 NOT RUN. 최신 범위는 `../SCOPE_POLICY.json` 및 `../REPORT.md`를 따른다.
+
 > 2026-11-06 추가 OAuth 이후 상태: 두 연결 모두 조회 성공. 현재 증거와 라우팅은 `../hosted-readonly/connections.json`, 판정은 `../REPORT.md` 참조. 아래는 추가 OAuth 이전 설정/진단 이력이다. 기존 ChatGPT 연결의 인증을 다시 수행할 필요는 없다. CLI 별도 설정이 인증됐다는 뜻은 아니다.
 
 # Concurrent Supabase connections — 2026-11-06

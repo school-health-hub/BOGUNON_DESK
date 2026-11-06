@@ -1,0 +1,17 @@
+{
+  "effective_date": "2026-11-06",
+  "policy": "zero additional cost; existing two projects only; complete cross-project isolation",
+  "allowed_projects": {
+    "BOGUNON_DESK": "xxownwxxajzrviuvvfiu",
+    "BAERURI": "zbdnvdjleipnrprpwqyd"
+  },
+  "create_or_acquire_additional_projects": false,
+  "paid_plan_transition": false,
+  "repeat_project_or_cost_review": false,
+  "bogunon_hosted_scope": "READ_ONLY_METADATA",
+  "cross_project_fallback": false,
+  "preserve_local_pass": true,
+  "repeat_completed_tests": false,
+  "hosted_install_and_real_auth_tests": "NOT RUN; require separate explicit authorization",
+  "current_scope_verdict": "CONDITIONAL; READ-ONLY work complete"
+}
