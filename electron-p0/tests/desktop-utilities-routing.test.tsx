@@ -5,6 +5,7 @@ import {emptyEvents,type EventSave} from '../local-events';
 vi.mock('../renderer/school-profile/SchoolProfile',()=>({SchoolProfileProvider:({children}:{children:ReactNode})=><>{children}</>,SchoolInitialSetup:()=>null,SchoolProfileSettings:()=>null}));
 vi.mock('../../src/components/dashboard/DesktopWidgetLayout',()=>({DesktopWidgetLayout:({widgets}:{widgets:readonly {id:string}[]})=><div data-testid="dashboard-widget-ids">{widgets.map(w=>w.id).join(',')}</div>}));
 vi.mock('../renderer/purchase/PurchaseSession',()=>({PurchaseSession:({open,onClose}:{open:boolean;onClose:()=>void})=>open?<main><h1>품의 도우미 테스트 진입</h1><button onClick={onClose}>품의 작업실 닫기</button></main>:null}));
+vi.mock('../../src/newsletter/NewsletterStudio',()=>({NewsletterStudio:({onClose}:{onClose:()=>void})=><main><h1>소식지 작업실 테스트 진입</h1><button onClick={onClose}>소식지 작업실 닫기</button></main>}));
 afterEach(()=>{cleanup();vi.restoreAllMocks();vi.unstubAllGlobals();});
 function setup(){vi.stubGlobal('ResizeObserver',class{observe(){} unobserve(){} disconnect(){}});const save=vi.fn(async(doc:any)=>({ok:true,data:{document:{...doc,revision:1},recovered:false}}));vi.stubGlobal('electronP0',{info:async()=>({appId:'kr.sungandi.schoolhealthdesk.electronp0',userData:'/synthetic-profile'}),readSettings:async()=>null,writeSettings:vi.fn(async()=>{})});vi.stubGlobal('electronWork',{memo:{read:async()=>({ok:true,data:{version:1,text:''}}),write:vi.fn()},tasks:{load:async()=>({ok:true,data:{document:{version:1,revision:0,tasks:[]},recovered:false}}),save}});return {save};}
 it('opens calculator/command/quick-add from the existing Dock toolbox without changing widget IDs or Dock layout',async()=>{
@@ -25,4 +26,17 @@ it('routes the toolbox, Quick Add and command palette to separate events while p
  fireEvent.click(screen.getByRole('button',{name:'빠른 추가'}));fireEvent.change(screen.getByLabelText('업무 제목'),{target:{value:'기존 업무 입력 보존'}});vi.mocked(window.confirm).mockReturnValueOnce(false);fireEvent.click(screen.getByRole('tab',{name:'일정'}));expect((screen.getByLabelText('업무 제목') as HTMLInputElement).value).toBe('기존 업무 입력 보존');expect(eventSave).not.toHaveBeenCalled();expect(taskSave).not.toHaveBeenCalled();
  fireEvent.click(screen.getByRole('tab',{name:'일정'}));await screen.findByRole('dialog',{name:'독립 로컬 일정'});expect(screen.getAllByRole('dialog')).toHaveLength(1);await waitFor(()=>expect((screen.getByRole('button',{name:'일정 추가'}) as HTMLButtonElement).disabled).toBe(false));fireEvent.click(screen.getByRole('button',{name:'일정 추가'}));fireEvent.change(screen.getByLabelText('일정 제목'),{target:{value:'Quick Add에서 연결한 독립 일정'}});fireEvent.click(screen.getByRole('button',{name:'일정 저장'}));await screen.findByText('독립 로컬 일정을 저장했습니다. Dashboard에 반영됐습니다. 서버로 전송하지 않았습니다.');expect(eventSave).toHaveBeenCalledOnce();expect(taskSave).not.toHaveBeenCalled();fireEvent.keyDown(screen.getByRole('dialog'),{key:'Escape'});await waitFor(()=>expect(screen.queryByRole('dialog')).toBeNull());
  fireEvent.keyDown(window,{key:'k',ctrlKey:true});const input=await screen.findByRole('textbox',{name:'명령 검색'});fireEvent.change(input,{target:{value:'독립 로컬 일정'}});fireEvent.keyDown(input,{key:'Enter'});await screen.findByRole('dialog',{name:'독립 로컬 일정'});expect(screen.getAllByRole('dialog')).toHaveLength(1);expect(screen.getByTestId('dashboard-widget-ids').textContent).toBe(ids);expect([...window.document.querySelectorAll('.dock button')].map(e=>e.getAttribute('data-dock-item'))).toEqual(dock);expect(taskSave).not.toHaveBeenCalled();
+});
+
+it('opens the existing newsletter from tools and labels the real Finder without claiming mock search',async()=>{
+ setup();render(<P0App/>);await screen.findByRole('button',{name:'업무 도구'});
+ const dock=[...document.querySelectorAll('.dock button')].map(e=>e.getAttribute('data-dock-item'));
+ fireEvent.click(screen.getByRole('button',{name:'업무 도구'}));
+ expect(screen.getByRole('button',{name:/교육영상 Finder/}).textContent).toContain('YouTube 검색');
+ expect(screen.queryByRole('button',{name:/교육영상 Finder · 합성 Mock/})).toBeNull();
+ fireEvent.click(screen.getByRole('button',{name:/보건소식지 제작소/}));
+ await screen.findByRole('heading',{name:'소식지 작업실 테스트 진입'});
+ expect(screen.queryByRole('dialog',{name:'업무 도구'})).toBeNull();
+ fireEvent.click(screen.getByRole('button',{name:'소식지 작업실 닫기'}));
+ expect([...document.querySelectorAll('.dock button')].map(e=>e.getAttribute('data-dock-item'))).toEqual(dock);
 });

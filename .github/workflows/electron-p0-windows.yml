@@ -406,7 +406,9 @@ jobs:
       - name: Verify baseline product identity and isolated GUI profile
         run: |
           git diff --exit-code 39c775cdd11509fdc6bc930ef62990acdd1e1315 HEAD -- electron-p0 src src-tauri tools config package.json package-lock.json scripts/electron-p0
-          if($LASTEXITCODE -ne 0){throw 'Product runtime changed; immutable Portable reuse forbidden'}
+          $unchanged=$LASTEXITCODE -eq 0
+          $global:LASTEXITCODE=0
+          "GUI_PRODUCT_UNCHANGED=$($unchanged.ToString().ToLowerInvariant())" >> $env:GITHUB_ENV
           if(git status --porcelain){throw 'QA source is dirty'}
           $root=Join-Path $env:RUNNER_TEMP "td2-portable-$env:GITHUB_RUN_ID"
           New-Item -ItemType Directory "$root/evidence","$root/temp","$root/profile","$root/npm-cache"|Out-Null
@@ -417,7 +419,7 @@ jobs:
           "ELECTRON_P0_QA_ROOT=$root/profile" >> $env:GITHUB_ENV
           "TD2_PRODUCT_ROOT=${{ github.workspace }}" >> $env:GITHUB_ENV
           "npm_config_cache=$root/npm-cache" >> $env:GITHUB_ENV
-          [ordered]@{qaSource='${{ github.sha }}';portableSource=$env:TD2_EXPECTED_SOURCE_SHA;productTreeUnchanged=$true;hosted='NOT RUN';baeruriRequests=0}|ConvertTo-Json|Set-Content "$root/evidence/source-reuse.json"
+          [ordered]@{qaSource='${{ github.sha }}';portableSource=$env:TD2_EXPECTED_SOURCE_SHA;productTreeUnchanged=$unchanged;hosted='NOT RUN';baeruriRequests=0}|ConvertTo-Json|Set-Content "$root/evidence/source-reuse.json"
       - name: Install locked QA tooling
         run: npm ci
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
@@ -427,6 +429,7 @@ jobs:
           github-token: ${{ github.token }}
           path: prior-portable
       - name: Verify exact historical Portable hash
+        if: env.GUI_PRODUCT_UNCHANGED == 'true'
         run: |
           $files=@(Get-ChildItem prior-portable/*.exe)
           if($files.Count -ne 1){throw 'Expected one immutable Portable'}
@@ -434,6 +437,18 @@ jobs:
           if($hash -cne '7cb0dc89cc967db9d687bc0f385451f740c21d11d7959f5b4f39aa710a1fdefa'){throw 'Immutable Portable hash mismatch'}
           "TD2_PORTABLE_EXE=$($files[0].FullName)" >> $env:GITHUB_ENV
           [ordered]@{sourceSha=$env:TD2_EXPECTED_SOURCE_SHA;sha256=$hash;rebuilt=$false}|ConvertTo-Json|Set-Content "$env:TD2_EVIDENCE_ROOT/portable.json"
+      - name: Rebuild changed product using verified native resources
+        if: env.GUI_PRODUCT_UNCHANGED != 'true'
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.public_url }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.public_key }}
+        run: pwsh -NoProfile -File scripts/qa/gui-survey-build.ps1
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: gui-design-survey-42174863338-1
+          run-id: 42174863338
+          github-token: ${{ github.token }}
+          path: ${{ env.TD2_EVIDENCE_ROOT }}/before
       - name: Actual Windows full module GUI survey and screenshot index
         run: node scripts/qa/school05-windows.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -441,5 +456,12 @@ jobs:
         with:
           name: gui-design-survey-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ env.TD2_EVIDENCE_ROOT }}
+          retention-days: 14
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: success() && env.GUI_PRODUCT_UNCHANGED != 'true'
+        with:
+          name: gui-survey-portable-${{ github.sha }}
+          path: release-electron-p0/*.exe
           retention-days: 14
           if-no-files-found: error
