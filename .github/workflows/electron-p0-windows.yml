@@ -332,6 +332,18 @@ jobs:
           [ordered]@{qaSource='${{ github.sha }}';portableSource=$env:TD2_EXPECTED_SOURCE_SHA;productTreeUnchanged=$true;hosted='NOT RUN';baeruriRequests=0}|ConvertTo-Json|Set-Content "$root/evidence/source-reuse.json"
       - name: Install locked QA tooling
         run: npm ci
+      - name: Preserve canonical Git bytes for immutable SQL package hashes
+        run: |
+          git config --local core.autocrlf false
+          'school-workspace/** -text' | Add-Content .git/info/attributes
+          git archive --format=zip "--output=$env:TD2_ROOT/canonical-school-source.zip" HEAD school-workspace
+          if($LASTEXITCODE -ne 0){throw 'Canonical source archive failed'}
+          python -c "import zipfile,os;zipfile.ZipFile(os.environ['TD2_ROOT']+'/canonical-school-source.zip').extractall('.')"
+          if($LASTEXITCODE -ne 0){throw 'Canonical source restoration failed'}
+          git add --renormalize -- school-workspace
+          git diff --cached --exit-code HEAD
+          if($LASTEXITCODE -ne 0){throw 'Canonical SQL checkout changed the source tree'}
+          if(git status --porcelain){throw 'Canonical QA checkout is dirty'}
       - name: Verify immutable supported Auth and CLOSED install package
         run: python school-workspace/school09d0/tools/verify.py
       - name: Start owned native PostgreSQL17
