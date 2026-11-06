@@ -1,3 +1,4 @@
+import {checkDockMemo,checkLastItems,processTracker} from './td2-b-usability.mjs';
 import { _electron as electron, expect } from '@playwright/test';
 import { randomUUID, createHash } from 'node:crypto';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
@@ -11,6 +12,7 @@ await mkdir(output, { recursive: true });
 await mkdir(qaRoot, { recursive: true });
 const focused=process.env.TD2_FOCUSED_QA==='1';
 const runId = randomUUID();
+const processes=processTracker();
 let app = await electron.launch({ executablePath: process.env.TD2_ELECTRON_PATH, chromiumSandbox: true, args: [resolve('build/electron-p0-app')], env: {
 ...process.env, RUNNER_TEMP: tempRoot, ELECTRON_P0_QA_PROFILE: '1', ELECTRON_P0_QA_ROOT: qaRoot,
 ELECTRON_P0_TEST_RUN: runId, ELECTRON_P0_DEV_URL: '',
@@ -30,6 +32,8 @@ await setup.getByRole('button', { name: '나중에 설정' }).click();
 await expect(page.locator('[data-p0-save]')).toContainText('저장됨');
 };
 await dismissSetup();
+const paths=await app.evaluate(({app})=>({appData:app.getPath('appData'),userData:app.getPath('userData'),sessionData:app.getPath('sessionData')}));
+for(const path of Object.values(paths))expect(resolve(path).toLowerCase().startsWith(resolve(qaRoot).toLowerCase()+'\\')).toBe(true);report.profilePaths=paths;
 const initial = await page.evaluate(() => window.electronP0.readSettings());
 const snapshot = async name => {
 await page.evaluate(() => document.fonts.ready);
@@ -84,11 +88,12 @@ if(mode!=='900x680'&&!mode.startsWith('zoom')&&bounds.width>1100){
  expect(metrics.memoHeight).toBeGreaterThanOrEqual(90);
  expect(metrics.scrollHeight).toBeLessThanOrEqual(metrics.clientHeight+2);
 }
+ if(mode==='900x680')await checkLastItems({page,snapshot,report});
  await main.evaluate(e=>{e.scrollTop=e.scrollHeight});await snapshot(mode+'-bottom');
  expect(await page.evaluate(()=>window.electronP0.readSettings())).toEqual(stored);
 }
 await dock.getByRole('button',{name:'홈',exact:true}).focus();await page.keyboard.press('Tab');await snapshot('dock-focus');
-await dock.getByRole('button',{name:'빠른 메모',exact:true}).click();await expect(dock.getByRole('button',{name:'빠른 메모',exact:true})).toHaveAttribute('aria-current','page');await snapshot('dock-selected-memo');await page.keyboard.press('Escape');await dock.getByRole('button',{name:'홈',exact:true}).click();
+await checkDockMemo({app,page,dock,snapshot,report});await dock.getByRole('button',{name:'홈',exact:true}).click();
 await dock.getByRole('button',{name:'홈',exact:true}).hover();await snapshot('dock-hover');
 if(focused){
  report.checks.push({mealReadyLongData:'NOT RUN: Electron meal adapter is signedOut; no production binding change or fake ready data',osDpi125150:'NOT RUN; zoom125/150 are Electron content zoom only'});
@@ -105,7 +110,7 @@ if(focused){
  await expect.poll(async()=>{const s=await page.evaluate(()=>window.electronP0.readSettings());const a=afterMove.dashboard.widgets.find(w=>w.type==='clock'),b=s.dashboard.widgets.find(w=>w.type==='clock');return a.w!==b.w||a.h!==b.h}).toBe(true);
  await page.getByRole('button',{name:'완료',exact:true}).click();await expect(page.locator('[data-p0-save]')).toContainText('저장됨');
  const beforeRestart=await page.evaluate(()=>window.electronP0.readSettings());await snapshot('drag-resize-saved');
- await app.close();
+ processes.capture(app.process().pid);await app.close();
  app=await electron.launch({executablePath:process.env.TD2_ELECTRON_PATH,chromiumSandbox:true,args:[resolve('build/electron-p0-app')],env:{...process.env,RUNNER_TEMP:tempRoot,ELECTRON_P0_QA_PROFILE:'1',ELECTRON_P0_QA_ROOT:qaRoot,ELECTRON_P0_TEST_RUN:runId,ELECTRON_P0_DEV_URL:''}});
  page=await app.firstWindow();dock=page.getByRole('navigation',{name:'주요 기능'});main=page.locator('.workspace-dashboard');await dismissSetup();
  expect(await page.evaluate(()=>window.electronP0.readSettings())).toEqual(beforeRestart);
@@ -118,6 +123,6 @@ await page.evaluate(v=>window.electronP0.writeSettings(v),custom);await page.rel
 expect(await page.evaluate(()=>window.electronP0.readSettings())).toEqual(custom);
 await main.evaluate(e=>{e.scrollTop=e.scrollHeight});await snapshot('custom-layout');
 report.checks.push({savedCustomLayout:'PASS',resizeSettingsUnchanged:'PASS'});
-expect(report.errors).toEqual([]);report.result='PASS';
+expect(report.errors).toEqual([]);report.result='PASS';report.usability=report.memoZoom.some(x=>x.verdict==='FAIL')?'FAIL: memo popup blocks Home pointer access; Escape is workaround only':'PASS';
 }catch(error){report.result='FAIL';report.failure=String(error);const p=app.windows()[0];if(p){report.layoutDiagnostics=await p.locator('.quick-launcher').evaluate(e=>[e,...e.querySelectorAll('*')].map(n=>{const s=getComputedStyle(n);return{class:n.className,tag:n.tagName,h:n.clientHeight,scroll:n.scrollHeight,padding:s.padding,gap:s.gap,margin:s.margin,minHeight:s.minHeight,rows:s.gridTemplateRows}}));await p.screenshot({path:join(output,'failure.png')});}throw error;
-}finally{await app.close();report.cleanup='Isolated Electron closed; synthetic E profile retained.';await writeFile(join(output,'review.json'),JSON.stringify(report,null,2));}
+}finally{processes.capture(app.process().pid);await app.close();report.processCleanup=await processes.verify();if(!report.processCleanup.zeroResidual){report.result='FAIL';process.exitCode=1;}report.cleanup='Own isolated Electron closed and PID identities checked; synthetic runner profile only.';await writeFile(join(output,'review.json'),JSON.stringify(report,null,2));}

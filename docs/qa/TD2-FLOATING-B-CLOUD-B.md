@@ -73,3 +73,7 @@ Machine-local originals remain under E:/BOGUNON_DEV/design-runtime/td2-electron-
 No screenshots, profiles, real databases, credentials, Finance/DPAPI state or unrelated WIP are included in Git. Secret scanner binaries were unavailable; strict staged credential/JWT/private-key/ID patterns and manual source/fixture inspection found no secrets/personal records. Residual risk: best-effort scanning is not exhaustive.
 
 **Handoff scope:** source/controller/instructions for Cloud B QA. It does not grant Windows usability approval or product integration. Remote-only source restoration must be recorded in the final session report. Existing local-only v1/v2 QA scripts remain preserved and are not dependencies of the self-contained B harness.
+
+## Cloud B usability evidence supplement (2026-11-06)
+
+The subsequent QA-only controller adds actual Home pointer click attempts at Electron zoom 125% and 150%, popup/Dock rectangles and hit tests, close-button versus Escape results, keyboard focus and rendered small-widget end-of-scroll inspection. It also checks actual appData/userData/sessionData under the isolated root and records PID/creation-time identities after both QA Electron sessions close. Product files, design geometry, Main/Preload/IPC and workflows are unchanged. The controller source SHA is the immutable `github.sha` in provenance.json. The Actions harness can finish green while `review.json.usability` is FAIL; do not treat the open memo defect as fixed. OS DPI and meal ready binding remain NOT RUN. No integration is performed.
