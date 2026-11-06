@@ -304,6 +304,8 @@ jobs:
     env:
       CI: 'true'
       SCHOOL09_IMMUTABLE_GATE_ONLY: '1'
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
       TD2_EXPECTED_SOURCE_SHA: 39c775cdd11509fdc6bc930ef62990acdd1e1315
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
