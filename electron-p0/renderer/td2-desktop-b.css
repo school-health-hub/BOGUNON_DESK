@@ -1,0 +1,81 @@
+/* B is a view projection only. RGL remains the owner of stored/edit geometry. */
+@media (min-width: 1101px) {
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid { height: 574px !important; min-height: 574px; position: relative; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid > .react-grid-item { position: absolute !important; transform: none !important; padding: 0; margin: 0; left: var(--b-x) !important; top: var(--b-y) !important; width: var(--b-w) !important; height: var(--b-h) !important; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid > [data-widget-type=clock] { --b-x: 0%; --b-y: 0px; --b-w: 18.5%; --b-h: 128px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid > [data-widget-type=weather] { --b-x: 22.1%; --b-y: 28px; --b-w: 14.7%; --b-h: 112px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid > [data-widget-type=today-summary] { --b-x: 41.2%; --b-y: 0px; --b-w: 30.2%; --b-h: 132px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid > [data-widget-type=priority-task] { --b-x: 76.3%; --b-y: 0px; --b-w: 23.7%; --b-h: 112px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid > [data-widget-type=monthly-calendar] { --b-x: 0%; --b-y: 158px; --b-w: 36.8%; --b-h: 270px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid > [data-widget-type=today-tasks] { --b-x: 41.2%; --b-y: 154px; --b-w: 25.7%; --b-h: 184px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid > [data-widget-type=upcoming-schedule] { --b-x: 70.9%; --b-y: 224px; --b-w: 29.1%; --b-h: 142px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid > [data-widget-type=meal] { --b-x: 76.3%; --b-y: 132px; --b-w: 23.7%; --b-h: 78px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid > [data-widget-type=dday] { --b-x: 76.3%; --b-y: 372px; --b-w: 23.7%; --b-h: 64px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid > [data-widget-type=weekly-schedule] { --b-x: 0%; --b-y: 446px; --b-w: 36.8%; --b-h: 128px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid > [data-widget-type=quick-memo] { --b-x: 41.2%; --b-y: 360px; --b-w: 25.7%; --b-h: 214px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid > [data-widget-type=quick-launcher] { --b-x: 70.9%; --b-y: 444px; --b-w: 29.1%; --b-h: 130px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid .widget-frame { transform: none; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=monthly-calendar] .calendar-grid { min-height: 0; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=today-summary] .summary-stats { grid-template-columns: 1fr 1fr; gap: 4px 12px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=today-summary] .summary-stats__dday { grid-column: 1 / -1; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=today-tasks] .task-title { font-size: 14px; line-height: 1.5; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=today-tasks] .task-list li { min-height: 56px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=quick-launcher] .quick-launcher { padding: 6px 10px; gap: 3px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=quick-launcher] .quick-launcher__actions { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 4px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=quick-launcher] .quick-launcher__actions > button { display: flex; justify-content: center; min-height: 32px; padding: 4px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=quick-launcher] .quick-launcher__actions > button > span { min-width: 0; overflow-wrap: anywhere; }
+ .electron-soft-rose .workspace-shell:is(.is-view-mode,.is-edit-mode) { --desktop-dock-height: 96px; --desktop-dock-hit-size: 64px; --desktop-dock-gap: 12px; }
+ .electron-soft-rose .workspace-shell:is(.is-view-mode,.is-edit-mode) .dock__icon { width: 52px; height: 52px; border-radius: 17px; }
+}
+/* The active dot means current in-app action, never an external running process. */
+.electron-soft-rose .workspace-shell .dock button:not(.is-active) .dock__active-indicator { background: transparent; box-shadow: none; }
+@media (min-width: 1101px) {
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=today-summary] .summary-card { padding: 6px 12px; gap: 2px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=today-summary] .summary-stats { margin-top: 2px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=today-summary] .summary-stats > div { gap: 2px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=today-summary] .summary-stats__dday strong { font-size: 12px; line-height: 1.3; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=meal] .panel { padding: 6px 12px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=meal] .panel__header { margin-bottom: 2px; min-height: 20px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=meal] .meal-state { margin: 0; line-height: 1.35; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=quick-memo] .memo-panel { display: grid; grid-template-rows: auto minmax(0,1fr) auto; gap: 4px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=quick-memo] fieldset { height: 100% !important; min-height: 0; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=quick-memo] .quick-memo-editor.is-widget { height: 100%; min-height: 0; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=quick-memo] textarea { height: 100%; min-height: 90px; }
+}
+@media (max-width: 1100px) {
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid > [data-widget-type=clock] { order: 0; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid > [data-widget-type=weather] { order: 1; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid > [data-widget-type=today-summary] { order: 2; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid > [data-widget-type=priority-task] { order: 3; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid > [data-widget-type=today-tasks] { order: 4; grid-column: 1 / -1; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid > [data-widget-type=monthly-calendar] { order: 5; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid > :is([data-widget-type=weekly-schedule],[data-widget-type=quick-memo],[data-widget-type=quick-launcher],[data-widget-type=upcoming-schedule],[data-widget-type=meal],[data-widget-type=dday]) { order: 6; }
+}
+@media (min-width: 1101px) {
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=dday] .dday-panel { padding: 5px 12px; display: grid; grid-template-rows: 20px minmax(0,1fr); gap: 2px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=dday] .panel__header { min-height: 20px; margin: 0; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=dday] .dday-list { margin: 0; gap: 0; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=dday] .dday-list li { min-height: 24px; padding-block: 0; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=today-tasks] .task-list li { min-height: 50px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=upcoming-schedule] .schedule-panel { padding: 6px 12px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=upcoming-schedule] .panel__header { min-height: 20px; margin-bottom: 4px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=upcoming-schedule] .upcoming-list li { padding-block: 3px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=upcoming-schedule] .upcoming-list p { margin-top: 2px; line-height: 1.3; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=weekly-schedule] .panel { padding: 6px 10px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=weekly-schedule] .panel__header { min-height: 20px; margin-bottom: 4px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=weekly-schedule] .week-grid { min-height: 0; overflow-y: auto; }
+}
+@media (min-width: 1101px) {
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=weekly-schedule] .week-grid article p { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 18px; }
+}
+@media (min-width: 1101px) {
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=quick-launcher] .quick-launcher__folders:has(.quick-launcher__empty) { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 6px; padding-top: 2px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=quick-launcher] .quick-launcher__folders:has(.quick-launcher__empty) header strong { display: none; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid [data-widget-type=quick-launcher] .quick-launcher__folders:has(.quick-launcher__empty) .quick-launcher__empty { min-height: 24px; margin: 0; padding: 0; font-size: 12px; line-height: 1.3; }
+}
+@media (min-width: 1101px) {
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid .react-grid-item[data-widget-type=quick-launcher] .widget-frame__body .quick-launcher { padding: 2px 10px; gap: 2px; grid-template-rows: 20px 68px minmax(24px,auto); }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid .react-grid-item[data-widget-type=quick-launcher] .quick-launcher .panel__header { min-height: 20px; height: 20px; margin-bottom: 0; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid .react-grid-item[data-widget-type=quick-launcher] .quick-launcher .quick-launcher__actions { gap: 4px; }
+ .electron-soft-rose .workspace-shell.is-floating-b.is-view-mode .desktop-widget-grid .react-grid-item[data-widget-type=quick-launcher] .quick-launcher .quick-launcher__actions > button { height: 32px; min-height: 32px; padding: 2px; }
+}

@@ -38,7 +38,7 @@ import { createDefaultDashboardLayout } from '../../src/dashboard/layouts';
 import { createDefaultDockLayout, parseDockLayoutValue } from '../../src/dock/storage';
 import { parseDashboardLayoutValue } from '../../src/dashboard/storage';
 import { hideWidget, restoreWidget } from '../../src/dashboard/layoutTransforms';
-import { mergeRenderedGridLayout, resolveDeskGeometry } from '../../src/dashboard/deskGeometry';
+import { isCanonicalDeskLayout, mergeRenderedGridLayout, resolveDeskGeometry } from '../../src/dashboard/deskGeometry';
 import { applyPreset, calculateDashboardGridMetrics, useElementWidth, useViewportHeight, useViewportWidth } from '../../src/components/dashboard/dashboardCanvasSupport';
 import type { DashboardLayout } from '../../src/dashboard/types';
 import type { DockLayout } from '../../src/dock/types';
@@ -155,7 +155,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
     if(['home','settings','quick-memo','toolbox','work-folder'].includes(id)){if(id==='settings')settingsHandoffRef.current=false;setActive(id);setPanel(null);setEditing(false);setNotice(null)}else excluded();
   };
   return <WidgetSessionProvider><LocalCalendarProvider><LocalWorkspaceProvider><PersistentMemoProvider><DesktopPanelProvider notify={setNotice} openInbox={()=>openTasks()} openBogunonTask={async id=>openTasks({id})} openQuickAddEventForDate={date=>openUtility('calendar',{date})} openQuickAddFromMemo={title=>openUtility('quick-add',{title})} openQuickMemoUrl={async url=>{try{await openMemoUrl(url);}catch(e){setNotice(e instanceof Error?e.message:'링크를 열지 못했습니다.');}}} runDesktopAction={async id=>navigate(id)} workFolderFavorites={folders.snapshot?.favorites??[]} openWorkFolderFavorite={async folder=>{const message=await folders.open(folder.id);if(message)setNotice(message);}}>
-    <div inert={workspaceOpen} hidden={recordOpen||newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen||financeOpen||adminOpen} style={{display:recordOpen||newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen||financeOpen||adminOpen?"none":undefined}} className={`app-shell workspace-shell ${editing?'is-edit-mode':'is-view-mode'} bg-${layout.appearance.background} card-${layout.appearance.cardStyle} corner-${layout.appearance.cornerStyle}`}>
+    <div inert={workspaceOpen} hidden={recordOpen||newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen||financeOpen||adminOpen} style={{display:recordOpen||newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen||financeOpen||adminOpen?"none":undefined}} className={`app-shell workspace-shell ${isCanonicalDeskLayout(layout)?'is-floating-b':''} ${editing?'is-edit-mode':'is-view-mode'} bg-${layout.appearance.background} card-${layout.appearance.cardStyle} corner-${layout.appearance.cornerStyle}`}>
       <header className="rose-surface-header"><strong>BOGUNON DESK</strong><SurfaceDate/><span>Electron 전용 로컬 업무 저장 · 계정·AI 연결은 별도 설정</span></header>
       {School04Entry&&<Suspense fallback={null}><School04Entry/></Suspense>}
       {!School04Entry&&School03Entry&&<Suspense fallback={null}><School03Entry/></Suspense>}

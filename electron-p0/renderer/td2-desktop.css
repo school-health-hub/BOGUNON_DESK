@@ -1,0 +1,213 @@
+/* Approval-pending home/Dock proposal. Stored grid coordinates remain owned by RGL. */
+.electron-soft-rose .workspace-shell {
+  --td2-canvas: radial-gradient(ellipse at 8% 0%, rgb(255 239 239 / 65%), transparent 52%), radial-gradient(ellipse at 96% 78%, rgb(190 206 232 / 28%), transparent 55%), linear-gradient(138deg, #d9afbf, #bf91aa 52%, #9b7c9f);
+  --td2-ink: #343044;
+  --td2-secondary: #62576a;
+  --td2-rose: #87465f;
+  --td2-rose-hover: #71384f;
+  --td2-mist: #557b91;
+  --td2-mint: #407d70;
+  --td2-lavender: #77648d;
+  --td2-opaque: #fff9fb;
+  --td2-glass: linear-gradient(145deg, rgb(255 255 255 / 80%), rgb(255 246 250 / 66%));
+  --td2-sheet: linear-gradient(145deg, rgb(255 255 255 / 88%), rgb(255 247 251 / 76%));
+  --td2-weather: linear-gradient(145deg, rgb(247 253 255 / 85%), rgb(219 235 245 / 72%));
+  --td2-memo: linear-gradient(145deg, rgb(255 249 245 / 90%), rgb(251 225 225 / 78%));
+  --td2-dday: linear-gradient(145deg, rgb(252 247 255 / 84%), rgb(229 218 244 / 72%));
+  --td2-rim: rgb(255 255 255 / 76%);
+  --td2-highlight: inset 0 1px 0 rgb(255 255 255 / 92%);
+  --td2-contact: 0 2px 5px rgb(77 41 58 / 8%);
+  --td2-ambient: 0 14px 32px rgb(75 40 62 / 14%);
+  --td2-dock-shadow: 0 14px 32px rgb(75 40 62 / 23%);
+  --td2-rose-tile: linear-gradient(145deg, #fff0f3, #eac6d3);
+  --td2-mist-tile: linear-gradient(145deg, #f2faff, #c5dae7);
+  --td2-mint-tile: linear-gradient(145deg, #f0fff9, #c7e3d9);
+  --td2-lavender-tile: linear-gradient(145deg, #fcf6ff, #ddd0ec);
+  --td2-blur: 18px;
+  --td2-radius: 20px;
+  --td2-slot-inset: 4px;
+  --td2-gutter: 24px;
+  --td2-motion: 160ms cubic-bezier(.2, .8, .2, 1);
+  --text-primary: var(--td2-ink);
+  --text-secondary: var(--td2-secondary);
+  --text-muted: var(--td2-secondary);
+  --accent: var(--td2-rose);
+  --accent-hover: var(--td2-rose-hover);
+  --desktop-dock-height: 72px;
+  --desktop-dock-hit-size: 48px;
+  --desktop-dock-gap: 8px;
+  --desktop-dock-bg: var(--td2-glass);
+  --desktop-dock-shadow: var(--td2-highlight), var(--td2-contact), var(--td2-dock-shadow);
+  --desktop-dock-tile-mint: var(--td2-mint-tile);
+  --desktop-dock-tile-blue: var(--td2-mist-tile);
+  --desktop-dock-tile-lavender: var(--td2-lavender-tile);
+  color: var(--td2-ink);
+}
+
+.electron-soft-rose .workspace-shell.bg-blue-gray { background: var(--td2-canvas); }
+.electron-soft-rose .workspace-shell.corner-compact { --td2-radius: 12px; }
+.electron-soft-rose .workspace-shell .rose-surface-header { color: var(--td2-ink); }
+.electron-soft-rose .workspace-shell .rose-surface-header span { color: var(--td2-secondary); }
+.electron-soft-rose .workspace-shell .rose-surface-header strong { letter-spacing: -.02em; }
+.electron-soft-rose .workspace-shell:is(.is-view-mode, .is-edit-mode) .workspace-dashboard {
+  padding-inline: var(--td2-gutter);
+  padding-bottom: 16px;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(109 70 96 / 42%) transparent;
+}
+.electron-soft-rose .workspace-shell .desktop-widget-grid > .react-grid-item {
+  box-sizing: border-box;
+  padding: var(--td2-slot-inset);
+}
+.electron-soft-rose .workspace-shell .widget-frame { container: td2-widget / size; }
+.electron-soft-rose .workspace-shell:is(.is-view-mode, .is-edit-mode) .react-grid-item[data-widget-type] .widget-frame:is(.is-viewing, .is-editing) {
+  background: var(--td2-object-fill, var(--td2-glass));
+  border-color: var(--td2-rim);
+  border-radius: var(--td2-radius);
+  box-shadow: var(--td2-highlight), var(--td2-contact), var(--td2-ambient);
+  backdrop-filter: blur(var(--td2-blur)) saturate(132%);
+  -webkit-backdrop-filter: blur(var(--td2-blur)) saturate(132%);
+}
+.electron-soft-rose .workspace-shell:is(.is-view-mode, .is-edit-mode) .react-grid-item[data-widget-type] .widget-frame[data-widget-family=primary] { --td2-object-fill: var(--td2-sheet); }
+.electron-soft-rose .workspace-shell:is(.is-view-mode, .is-edit-mode) .react-grid-item[data-widget-type=weather] .widget-frame { --td2-object-fill: var(--td2-weather); }
+.electron-soft-rose .workspace-shell:is(.is-view-mode, .is-edit-mode) .react-grid-item[data-widget-type=quick-memo] .widget-frame { --td2-object-fill: var(--td2-memo); }
+.electron-soft-rose .workspace-shell:is(.is-view-mode, .is-edit-mode) .react-grid-item[data-widget-type=dday] .widget-frame { --td2-object-fill: var(--td2-dday); }
+.electron-soft-rose .workspace-shell.is-edit-mode .react-grid-item[data-widget-type] .widget-frame.is-editing:is(.is-selected, :focus-within, :hover),
+.electron-soft-rose .workspace-shell.is-edit-mode .react-grid-item:is(.react-draggable-dragging, .react-resizable-resizing) .widget-frame.is-editing {
+  border-color: var(--td2-rose);
+  outline: 2px solid var(--td2-rose);
+  outline-offset: 2px;
+}
+.electron-soft-rose .workspace-shell .desktop-widget-grid .panel__title { color: var(--td2-ink); font-size: 14px; }
+.electron-soft-rose .workspace-shell .desktop-widget-grid .panel__title > svg { color: var(--td2-lavender); }
+.electron-soft-rose .workspace-shell .summary-card__heading > svg { color: var(--td2-mint); }
+.electron-soft-rose .workspace-shell .weather-state { color: var(--td2-secondary); }
+.electron-soft-rose .workspace-shell .desktop-widget-grid .calendar-grid { border-color: rgb(119 100 141 / 18%); }
+.electron-soft-rose .workspace-shell .desktop-widget-grid .calendar-date.is-today { background: var(--td2-rose); color: var(--td2-opaque); }
+.electron-soft-rose .workspace-shell .desktop-widget-grid .date-card__time { font-variant-numeric: tabular-nums; }
+.electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .summary-stats__dday strong { word-break: keep-all; overflow-wrap: break-word; }
+.electron-soft-rose .workspace-shell .desktop-widget-grid .quick-memo-editor.is-widget textarea { min-height: 80px; }
+.electron-soft-rose .workspace-shell .desktop-widget-grid .quick-launcher__folders { overflow: visible; }
+
+@container td2-widget (max-height: 200px) {
+  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .widget-frame__body > :is(.panel, .widget-surface) { padding: 8px 12px; }
+  .electron-soft-rose .workspace-shell .desktop-widget-grid .panel__header { margin-bottom: 4px; }
+  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .summary-stats > div { gap: 4px; }
+  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .summary-stats strong { font-size: 22px; }
+  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .summary-stats__dday strong { font-size: 13px; line-height: 1.3; }
+  .electron-soft-rose .workspace-shell .desktop-widget-grid .quick-launcher__actions { gap: 4px; }
+  .electron-soft-rose .workspace-shell .desktop-widget-grid .quick-launcher__actions > button { min-height: 32px; padding-block: 2px; }
+  .electron-soft-rose .workspace-shell .desktop-widget-grid .quick-launcher { grid-template-rows: auto auto auto; gap: 4px; }
+  .electron-soft-rose .workspace-shell .desktop-widget-grid .quick-launcher__empty { min-height: 24px; padding-block: 2px; }
+  .electron-soft-rose .workspace-shell .desktop-widget-grid .quick-launcher__folders { flex-shrink: 0; overflow: visible; padding-top: 4px; }
+  .electron-soft-rose .workspace-shell .desktop-widget-grid .memo-panel { display: flex; flex-direction: column; }
+  .electron-soft-rose .workspace-shell .desktop-widget-grid .memo-panel fieldset { flex: 1; height: auto !important; overflow: visible !important; }
+  .electron-soft-rose .workspace-shell .desktop-widget-grid .quick-memo-editor.is-widget { height: 100%; gap: 4px; }
+  .electron-soft-rose .workspace-shell .desktop-widget-grid .quick-memo-editor.is-widget textarea { min-height: 40px; padding-block: 4px; }
+  .electron-soft-rose .workspace-shell .desktop-widget-grid .memo-panel [data-memo-status] { margin-block: 4px 0; font-size: 12px; }
+}
+@container td2-widget (max-height: 450px) {
+  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .calendar-cell { grid-template-rows: 18px minmax(0, 1fr); gap: 2px; overflow: visible; }
+  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .calendar-date { height: 18px; }
+  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .calendar-event { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 18px; }
+}
+@container td2-widget (max-width: 900px) {
+  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .calendar-cell { grid-template-columns: 20px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); align-items: center; overflow: visible; }
+  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .calendar-event { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 18px; }
+}
+
+.electron-soft-rose .workspace-shell .dock-zone { margin-bottom: 12px; }
+.electron-soft-rose .workspace-shell:is(.is-view-mode, .is-edit-mode) .dock {
+  height: var(--desktop-dock-height);
+  padding: 8px 12px;
+  border-radius: 24px;
+  background: var(--td2-glass);
+  border-color: var(--td2-rim);
+  box-shadow: var(--desktop-dock-shadow);
+  backdrop-filter: blur(var(--td2-blur)) saturate(132%);
+  -webkit-backdrop-filter: blur(var(--td2-blur)) saturate(132%);
+}
+.electron-soft-rose .workspace-shell:is(.is-view-mode, .is-edit-mode) .dock__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  box-shadow: var(--td2-highlight), var(--td2-contact);
+}
+.electron-soft-rose .workspace-shell .dock__icon svg { width: 28px; height: 28px; }
+.electron-soft-rose .workspace-shell .dock button { color: var(--td2-secondary); transition: transform var(--td2-motion); }
+.electron-soft-rose .workspace-shell .dock button[data-dock-item=home] .dock__icon { background: var(--td2-rose-tile); }
+.electron-soft-rose .workspace-shell .dock button.is-active { color: var(--td2-rose); background: transparent; }
+.electron-soft-rose .workspace-shell .dock button:hover { color: var(--td2-rose-hover); background: transparent; transform: translateY(-3px); }
+.electron-soft-rose .workspace-shell .dock button:active { transform: translateY(-1px); }
+.electron-soft-rose .workspace-shell .dock button:focus-visible { outline: 3px solid var(--td2-rose); outline-offset: 3px; }
+.electron-soft-rose .workspace-shell .workspace-view-actions { background: var(--td2-glass); border-color: var(--td2-rim); box-shadow: var(--td2-highlight), var(--td2-contact); }
+
+@container td2-widget (max-width: 280px) {
+  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .summary-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 8px; }
+  .electron-soft-rose .workspace-shell .summary-stats__dday { grid-column: 1 / -1; }
+  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item .date-card__time { font-size: 24px; }
+  .electron-soft-rose .workspace-shell .date-card__date { white-space: normal; overflow-wrap: anywhere; }
+}
+
+@media (min-width: 901px) and (max-width: 1100px) {
+  .electron-soft-rose .workspace-shell.is-view-mode { --td2-gutter: 16px; --td2-slot-inset: 0px; --desktop-dock-hit-size: 42px; --desktop-dock-gap: 4px; }
+  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; height: auto !important; min-height: 0; }
+  .electron-soft-rose .workspace-shell.is-view-mode .widget-frame { container-type: inline-size; }
+  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item { position: relative !important; width: 100% !important; height: auto !important; transform: none !important; margin: 0; }
+  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .react-grid-item:is([data-widget-type=monthly-calendar], [data-widget-type=weekly-schedule]) { grid-column: 1 / -1; }
+  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .widget-frame,
+  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .widget-frame__body { height: auto; }
+  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .widget-frame__body > :is(.panel, .widget-surface) { height: auto; min-height: 0; }
+  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .calendar-panel > :is(.calendar-grid, .calendar-legend),
+  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .week-grid { min-width: 0; width: 100%; }
+  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .calendar-panel { min-height: 360px; }
+  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .calendar-grid { min-height: 240px; }
+  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .week-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .week-grid article { min-width: 0; overflow-wrap: anywhere; }
+  .electron-soft-rose .workspace-shell.is-view-mode .desktop-widget-grid .week-grid article p { -webkit-line-clamp: unset; }
+}
+@media (max-width: 900px) {
+  .electron-soft-rose .workspace-shell { --td2-gutter: 16px; --td2-slot-inset: 0px; --desktop-dock-hit-size: 42px; --desktop-dock-gap: 4px; }
+  .electron-soft-rose .workspace-shell .desktop-widget-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; height: auto !important; min-height: 0; }
+  .electron-soft-rose .workspace-shell .widget-frame { container-type: inline-size; }
+  .electron-soft-rose .workspace-shell .desktop-widget-grid .react-grid-item { position: relative !important; width: 100% !important; height: auto !important; transform: none !important; margin: 0; }
+  .electron-soft-rose .workspace-shell .desktop-widget-grid .react-grid-item:is([data-widget-type=monthly-calendar], [data-widget-type=weekly-schedule]) { grid-column: 1 / -1; }
+  .electron-soft-rose .workspace-shell .desktop-widget-grid .widget-frame,
+  .electron-soft-rose .workspace-shell .desktop-widget-grid .widget-frame__body { height: auto; }
+  .electron-soft-rose .workspace-shell .desktop-widget-grid .widget-frame__body > :is(.panel, .widget-surface) { height: auto; min-height: 0; }
+  .electron-soft-rose .workspace-shell .desktop-widget-grid .calendar-panel > :is(.calendar-grid, .calendar-legend),
+  .electron-soft-rose .workspace-shell .desktop-widget-grid .week-grid { min-width: 0; width: 100%; }
+  .electron-soft-rose .workspace-shell .desktop-widget-grid .calendar-panel { min-height: 360px; }
+  .electron-soft-rose .workspace-shell .desktop-widget-grid .calendar-grid { min-height: 240px; }
+  .electron-soft-rose .workspace-shell .desktop-widget-grid .week-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .electron-soft-rose .workspace-shell .desktop-widget-grid .week-grid article { min-width: 0; overflow-wrap: anywhere; }
+  .electron-soft-rose .workspace-shell .desktop-widget-grid .week-grid article p { -webkit-line-clamp: unset; }
+}
+@media (max-width: 600px) {
+  .electron-soft-rose .workspace-shell .desktop-widget-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 480px) {
+  .electron-soft-rose .workspace-shell { --desktop-dock-gap: 0px; }
+  .electron-soft-rose .workspace-shell:is(.is-view-mode, .is-edit-mode) .dock { padding-inline: 8px; }
+  .electron-soft-rose .workspace-shell .desktop-widget-grid .week-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .electron-soft-rose .workspace-shell .dock button,
+  .electron-soft-rose .workspace-shell .dock button:is(:hover, :focus-visible, :active) { transform: none; transition: none; }
+}
+.electron-soft-rose .workspace-shell.card-flat {
+  --td2-glass: var(--td2-opaque); --td2-sheet: var(--td2-opaque); --td2-weather: var(--td2-opaque); --td2-memo: var(--td2-opaque); --td2-dday: var(--td2-opaque); --td2-blur: 0px;
+}
+.electron-soft-rose .workspace-shell.card-flat:is(.is-view-mode, .is-edit-mode) .react-grid-item[data-widget-type] .widget-frame,
+.electron-soft-rose .workspace-shell.card-flat .dock { box-shadow: none; }
+@media (prefers-reduced-transparency: reduce) {
+  .electron-soft-rose .workspace-shell { --td2-glass: var(--td2-opaque); --td2-sheet: var(--td2-opaque); --td2-weather: var(--td2-opaque); --td2-memo: var(--td2-opaque); --td2-dday: var(--td2-opaque); --td2-blur: 0px; }
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .electron-soft-rose .workspace-shell { --td2-glass: var(--td2-opaque); --td2-sheet: var(--td2-opaque); --td2-weather: var(--td2-opaque); --td2-memo: var(--td2-opaque); --td2-dday: var(--td2-opaque); }
+}
+@media (forced-colors: active) {
+  .electron-soft-rose .workspace-shell .widget-frame,
+  .electron-soft-rose .workspace-shell .dock { border: 1px solid CanvasText; }
+  .electron-soft-rose .workspace-shell .dock button:focus-visible { outline-color: Highlight; }
+}

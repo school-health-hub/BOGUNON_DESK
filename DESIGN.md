@@ -1,4 +1,128 @@
+## Approved B implementation — desktop floating surface
+
+User approved B direction and actual Electron1280×800 visual implementation on2026-11-06. Design is frozen; Windows usability, integration and deployment remain unapproved.
+Only the canonical default desk in View mode receives an independent presentation projection.
+The existing isCanonicalDeskLayout guard checks every saved widget identity, visibility, geometry
+and settings. Custom layouts and Edit mode retain the original RGL coordinates and persistence.
+No data, registry, Main, preload, IPC, storage or action changes. No dependency installation.
+B uses three asymmetric object groups: calendar/week left; task/memo center; priority/schedule/
+launcher right, with clock/weather/summary separated above. At <=1100px the existing adaptive
+2-column/1-column flow returns. Desktop projection is 574px tall and scrolls as a workspace;
+no action is hidden. Geometry is CSS only and never passed to storage callbacks.
+Reuse v2 rose canvas, differentiated glass, 12px blur, lit rims and layered object shadows.
+Clock 32px (24px narrow), titles15px, secondary12px; task title14px and generous task rows. Compact flow places live tasks before calendar.
+Calendar/week vertical separation18px. Dock tiles52px, SVG36px, targets64px, shelf96px;
+compact uses existing safe sizes. Active ring and existing truthfully supplied active indicator,
+hover lift and focus ring retain existing action/order. Inactive dots are transparent; the existing active dot denotes current in-app action only. No OS running state is available, and none is invented.
+All originals and v2 evidence remain on E. Native QA belongs to root reviewer after build.
 # BOGUNON DESK Integrated Work Desk 디자인 시스템
+
+## TD2 proposal v2 — depth and desktop launcher (2026-11-06)
+
+User approved the v1 Soft Rose palette and adaptive layout only. Final screen
+approval remains PENDING. Preserve v1 originals on E; no integration or release.
+This section extends the existing WidgetFrame/AppDock primitives, not data or
+geometry. Use frontend design/perfection/soft-material and visual-qa guidance;
+keep the existing fonts, icons and infrastructure.
+
+- Keep the exact v1 canvas. Reduce blur from 18 to 12px; depth comes from
+  differentiated alpha, lit upper/left edges, tight contact and broad low-opacity
+  shadows, never neon, animated decoration or more blur.
+- Information glass alpha .72→.48, work sheet .86→.72, weather .78→.58,
+  memo .92→.78, lavender D-Day .76→.58. Existing opaque/Flat/reduced-transparency
+  fallbacks remain. Ink #343044; secondary #554d60; small content floor 12px.
+- `--td2-object-shadow`: inset top/left white rim, 0 2px 3px rose .12 contact,
+  0 8px 16px rose .10 separation, 0 24px 42px mauve .18 ambient. Primary work
+  panels use .14 ambient; information objects use .21 ambient. No hover on
+  noninteractive objects. Selected/focus/drag outlines remain on top.
+- Saved widget x/y/w/h unchanged. At >=1101px and >=860px tall only, weather
+  sits 6px lower, priority 8px lower, memo 4px higher inside the existing gaps.
+  These are View-only material offsets, never persisted. Custom sizes still
+  use their saved slots; offsets disable in edit, compact and reduced motion.
+- Radius varies by object role: clock 26px, weather 24px, work 18px, memo22px,
+  D-Day24px; saved compact remains12px. No enclosing desktop panel.
+- Dock shelf 92px high, 60px click targets, 48px lit tiles, 36px existing SVG,
+  10px gaps and16px horizontal inset. Active icon has a fine rose inset ring
+  plus existing active dot. <=1100px: 80px shelf,52px targets,44px tiles,32pxSVG;
+  <=480px:72px shelf,42px targets,36px tiles,28pxSVG,0 gap. Tooltips12px and
+  3px focus rings retained. Order/action IDs never change.
+  `--td2-launcher-fill` owns shelf opacity including reduced-transparency and
+  unsupported-blur fallback, at the same specificity as the normal material.
+- Titles15px/600, secondary/body12–13px, calendar dates13px, clock32px (24px
+  in narrow widget); no essential text shrunk to compensate. Lists/textarea
+  scroll only when necessary; retain the approved adaptive2-column/1-column
+  projection and primary calendar/week/task readability.
+  Short summary uses4px vertical padding/gap. Short launcher uses6px vertical
+  padding (2px only below160px height), retains32px secondary launch targets,
+  and gives single-line tiles no empty second text row. Folder contents retain
+  their natural height inside one parent scroll region only when populated
+  content actually requires it. Compact memo fits its row and scrolls.
+- Compare approved TD2 CSS at0ee459df, frozen v1 and v2 at identical content
+  sizes1280×800,1440×900,900×680 and actual maximize. Historical originals exist
+  only at1280/1440: label other historical renders as style reconstructions
+  using current components and synthetic data, never newly approved originals.
+  All build, profiles, captures and comparison packets stay on E.
+
+## TD2 Desktop Surface restoration proposal — 2026-11-06 (approval pending)
+
+Scope: Electron home and Dock presentation only, based on remote baseline
+`243ae95e69483dfbe8d2438c41f858577d748048`. This proposal does not inherit the
+approval of the earlier TD2 captures. No integration, packaging or deployment
+before a new user screen approval. Main/preload/IPC, widget registry, data,
+layout calculation and persistence remain unchanged.
+
+The existing approved BOGUNON captures and OPTION C QA define the reference:
+rose/mauve atmosphere, independent frosted objects, raised launcher shelf,
+separate scrollable workspace and Dock. TeacherDesk assets are not used.
+The frontend design/perfection and soft-material guidance inform the material
+only; existing Pretendard/Lucide and application infrastructure are retained.
+No new instrumentation dependencies, services, fonts or runtime hooks.
+
+### Proposal tokens and reusable primitives
+
+- Canvas (`--td2-canvas`): dusty rose `#d9afbf → #bf91aa → #9b7c9f`, warm
+  top light and restrained mist-blue/lavender ambient illumination. Never navy.
+- Ink `#343044`, secondary `#62576a`, rose accent `#87465f`, hover `#71384f`;
+  muted blue `#557b91`, mint `#407d70`, lavender `#77648d`. Existing status
+  text and semantic error colors stay intact.
+- Glass (`--td2-object-fill`): warm white alpha .80 → .66; work-sheet alpha
+  .88 → .76. Weather mist-blue, memo warm rose and D-Day lavender use subtle
+  tint variants. Rim white .76, highlight white .92, 18px blur, 132% saturation.
+- Elevation: inset top highlight, 0 2px 5px rose contact shadow at .08 and
+  0 14px 32px mauve ambient shadow at .14. Dock uses .23 ambient shadow.
+- Geometry: keep every stored x/y/w/h; visual inset 4px within existing slots
+  at desktop sizes yields 20px object separation without saving new geometry.
+  Radius 20px, saved compact 12px. Workspace outer gutter 24px; small 16px.
+- Type: existing Pretendard; title 14px/600, body 13px, secondary 12px,
+  clock 32px with tabular numerals. Existing 4px spacing scale retained.
+- `WidgetFrame` remains the reusable surface primitive. Its family/type
+  selects CSS tokens; no wrapper panel encloses the collection. Default is
+  frosted, selected retains existing editing outline, focus uses 3px rose ring.
+  Loading/empty/error are existing live widgets, never decorative fixtures.
+- `AppDock` remains the launcher primitive: 48px targets, 36px icon tiles,
+  28px existing SVGs, 8px gaps, 12px padding, 24px shelf radius, 12px bottom
+  clearance. Small windows retain 42px targets and 4px gaps. Identity-based
+  rose/mist/mint/lavender tiles, existing active dot and ARIA names retained.
+  Hover lifts 3px in 160ms with cubic-bezier(.2,.8,.2,1); focus exposes the
+  existing tooltip; active presses 1px. Disabled/loading unchanged.
+- Compact widgets adapt by container width: wrap summary into two columns,
+  shrink clock to 24px, retain full dates and actions; no business text is
+  removed. In View mode at <=1100px use a presentation-only two-column compact layout
+  (Edit mode retains the existing grid until <=900px),
+  <=600px a single column; calendar/week span the full width and reflow
+  within the panel instead of forcing 620/700px widths. Workspace scroll is
+  the primary fallback; lists and textarea scroll only when content requires.
+- Flat, reduced transparency and unsupported backdrop-filter use opaque
+  `#fff9fb` with no blur. Reduced motion disables new transforms/transitions.
+  Forced-colors retains system outlines and visible boundaries.
+
+Validation contract: native Electron default window, 900×680 outer bounds and
+actual maximize; record actual content dimensions and Windows display scale.
+Also check 1280×800 content and 125%/150% renderer zoom. Capture top/bottom,
+Dock hover/focus, edit controls, memo/task persistence and custom geometry.
+Comparison sheet labels historical approved TD2 versus this new proposal;
+historical content/date differences are explicit. Only isolated synthetic QA
+profiles may be written. User screen approval remains PENDING after QA.
 
 ## OPTION C — Electron Soft Rose usability
 
