@@ -87,6 +87,16 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Focused tests failed' }
       - name: Prepare unpackaged QA runtime without Portable or Rust rebuild
         run: npm run electron:p0:build
+      - name: Ensure the lockfile-pinned Windows Electron executable
+        run: |
+          $ErrorActionPreference='Stop'
+          if (!(Test-Path 'node_modules/electron/dist/electron.exe')) {
+            Remove-Item Env:ELECTRON_SKIP_BINARY_DOWNLOAD -ErrorAction SilentlyContinue
+            node node_modules/electron/install.js
+            if ($LASTEXITCODE -ne 0) { throw 'Pinned Electron runtime installation failed' }
+          }
+          node -e "const fs=require('fs');const version=require('electron/package.json').version;if(version!=='45.2.1'||!fs.existsSync('node_modules/electron/dist/electron.exe'))throw Error('Pinned Windows Electron executable missing');"
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned Windows Electron verification failed' }
       - name: Native Electron synthetic long-data and restart checks
         run: |
           $env:TD2_ELECTRON_PATH=Join-Path $pwd 'node_modules/electron/dist/electron.exe'
