@@ -7,7 +7,7 @@ on:
       h1_focus:
         description: H1 only; other approved jobs keep their existing scope
         type: choice
-        options: [all, http-only]
+        options: [all, http-only, windows-only]
         default: all
 permissions:
   contents: read
@@ -376,7 +376,7 @@ jobs:
 
   school-h1-http:
     name: SCHOOL H1 isolated real Auth HTTP PostgREST
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/feature/school-hosted-h1' && github.repository == 'school-health-hub/BOGUNON_DESK'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/feature/school-hosted-h1' && inputs.h1_focus != 'windows-only' && github.repository == 'school-health-hub/BOGUNON_DESK'
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     permissions:
