@@ -1,0 +1,195 @@
+/* Electron workspace chrome. Home B, Dock, QuickMemoSurface and print are excluded.
+ * Tokens use the approved td2-desktop/v2 material, not a new provider theme.
+ * :where keeps module-specific layouts and semantic states in charge.
+ */
+@media screen {
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) {
+  --td2-ink:#343044; --td2-secondary:#554d60;
+  --td2-rose:#87465f; --td2-rose-hover:#71384f; --td2-opaque:#fff9fb;
+  --td2-sheet:linear-gradient(145deg,rgb(255 255 255 / 86%),rgb(255 247 251 / 72%));
+  --td2-glass:linear-gradient(145deg,rgb(255 255 255 / 72%),rgb(255 246 250 / 48%));
+  --td2-rim:rgb(255 255 255 / 76%);
+  --td2-chrome-shadow:inset 0 1px 0 rgb(255 255 255 / 96%),0 2px 3px rgb(77 41 58 / 8%),0 14px 32px rgb(75 40 62 / 12%);
+  --text-primary:var(--td2-ink); --text-secondary:var(--td2-secondary); --text-muted:var(--td2-secondary);
+  --accent:var(--td2-rose); --accent-hover:var(--td2-rose-hover); --accent-soft:#f7dce4;
+  --border:#d8c4ce; --divider:#e9dde2; --control-border:#8a7680; --accent-border:#8a7680;
+  --widget-bg:var(--td2-opaque); --surface-muted:#f7f0f4; --workspace-bg:var(--td2-opaque);
+  color:var(--td2-ink); font-family:"Pretendard","Noto Sans KR",system-ui,sans-serif;
+  font-size:14px; line-height:1.6; overflow-wrap:anywhere;
+ }
+ body.electron-soft-rose .td2-workspace {
+  box-sizing:border-box; min-width:0; min-height:100dvh; padding:24px;
+  background:linear-gradient(145deg,#f7e9ef,#f5f0f7);
+ }
+ body.electron-soft-rose .td2-workspace-overlay {display:contents}
+ body.electron-soft-rose .td2-workspace :where(main,section,article,fieldset,form,header,nav,div) {min-width:0}
+ /* App controls only. Printed paper, exported canvases and their text are not components. */
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(button) {
+  box-sizing:border-box; min-height:40px; max-width:100%; padding:8px 12px;
+  border:1px solid var(--control-border); border-radius:10px;
+  background:#fffdfd; color:var(--td2-ink); font:inherit; line-height:1.4;
+  white-space:normal; overflow-wrap:anywhere; cursor:pointer;
+ }
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(button:hover:not(:disabled)) {background:#fff0f5;border-color:var(--td2-rose)}
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(button:is([aria-pressed=true],[aria-selected=true],.is-active)) {
+  color:var(--td2-rose-hover); background:#f7dce4; border-color:var(--td2-rose);
+ }
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(.is-primary,.ev-primary,.finance-primary,.primary-action,button[type=submit],.td2-primary) {
+  background:var(--td2-rose); border-color:var(--td2-rose); color:white;
+ }
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(.is-primary,.ev-primary,.finance-primary,.primary-action,button[type=submit],.td2-primary):hover:not(:disabled) {
+  background:var(--td2-rose-hover); color:white;
+ }
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(.is-danger,.danger,.td2-danger) {color:#8b3048;border-color:#a64b61;background:#fff4f6}
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(button:disabled) {
+  color:#626874; background:#f1ecee; border-color:#8a7680; border-style:dashed; opacity:1; cursor:not-allowed;
+ }
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file]),select,textarea) {
+  box-sizing:border-box; min-width:0; max-width:100%; width:100%; padding:9px 11px;
+  border:1px solid var(--control-border); border-radius:10px; background:#fffdfd;
+  color:var(--td2-ink); font:inherit; line-height:1.5;
+ }
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(input:not([type=checkbox],[type=radio],[type=range],[type=color]),select) {min-height:40px}
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(textarea) {resize:vertical;overflow-wrap:anywhere}
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(input[type=checkbox],input[type=radio]) {accent-color:var(--td2-rose);flex-shrink:0}
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(input:disabled,select:disabled,textarea:disabled) {color:#626874;background:#f1ecee;border-style:dashed;opacity:1}
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(input[readonly],textarea[readonly]) {background:#f8f3f6}
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(button,input,select,textarea,a,summary):focus-visible {outline:3px solid var(--td2-rose);outline-offset:3px}
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where([role=status]:not(:empty)) {color:var(--td2-secondary);line-height:1.6}
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where([role=alert]) {color:#803246;background:#fff1f4;border-inline-start:3px solid #a64b61;padding:10px 12px;border-radius:8px}
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where([role=tablist],.od-tabs,.finance-area-tabs,.finance-phase2-tabs,.lc-toolbar,.lc-actions,.od-actions,.od-ai-actions) {display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(table) {font-size:13px;line-height:1.5;font-variant-numeric:tabular-nums}
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(th) {color:var(--td2-ink);background:#f7f0f4}
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(td,th) {overflow-wrap:anywhere}
+
+ /* One header language for existing expert editors; no new routing or state owners. */
+ body.electron-soft-rose .td2-workspace :is(.td2-workspace-header,.od-header,.ev-header,.finance-hero,.inventory-header) {
+  display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:16px;
+  margin:0 0 20px;padding:20px 24px;border:1px solid var(--td2-rim);border-radius:20px;
+  background:var(--td2-sheet);box-shadow:var(--td2-chrome-shadow);backdrop-filter:blur(12px);
+ }
+ body.electron-soft-rose .td2-workspace :is(.td2-workspace-header,.od-header,.ev-header,.finance-hero,.inventory-header) h1 {font-size:24px;line-height:1.3;margin:10px 0 6px;letter-spacing:-.025em}
+ body.electron-soft-rose .td2-workspace :is(.td2-workspace-header,.od-header,.ev-header,.finance-hero,.inventory-header) p {margin:4px 0;color:var(--td2-secondary);font-size:14px}
+ body.electron-soft-rose .td2-workspace :is(.td2-context,.ev-eyebrow,.od-header>div>span) {display:inline-block;margin:0 0 0 12px;color:var(--td2-secondary);font-size:12px;letter-spacing:0}
+ body.electron-soft-rose .td2-header-actions {display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+ body.electron-soft-rose .td2-workspace :is(.od-workspace,.ev-finder,.school-admin,.electron-finance-host,.finance-screen) {min-height:0;background:transparent;padding:0;max-width:1440px;margin-inline:auto}
+ body.electron-soft-rose .td2-workspace :is(.od-form,.od-paper,.ev-search,.ev-results,.ev-library,.ev-editor,.od-ai-workflow,.school-admin>section,.finance-summary-card,.finance-form-card,.inventory-card) {
+  border:1px solid var(--divider);border-radius:16px;background:#fffdfd;box-shadow:0 2px 6px rgb(77 41 58 / 4%);
+ }
+ body.electron-soft-rose .td2-workspace :is(.od-form,.od-paper,.ev-search,.ev-library,.ev-editor,.school-admin>section) {padding:20px}
+ body.electron-soft-rose .td2-workspace .od-grid {grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:20px}
+ body.electron-soft-rose .td2-workspace .od-grid>* {min-width:0}
+ body.electron-soft-rose .td2-workspace .od-ai-workflow {margin-bottom:20px}
+ body.electron-soft-rose .td2-workspace .od-empty {min-height:160px}
+ body.electron-soft-rose .td2-workspace .ev-finder {--ev-accent:var(--td2-rose);--ev-accent-soft:#f7dce4;--ev-paper:#fffdfd}
+ body.electron-soft-rose .td2-workspace .ev-mock-badge {white-space:normal}
+ body.electron-soft-rose .td2-workspace .ev-search form {gap:12px}
+ body.electron-soft-rose .td2-workspace .electron-finance-isolation {padding:0 4px 12px;background:transparent;border:0}
+ body.electron-soft-rose .td2-workspace :is(.finance-screen,.inventory-workspace) {color:var(--td2-ink)}
+ body.electron-soft-rose .td2-workspace .finance-hero h1 {font-size:26px}
+ body.electron-soft-rose .td2-workspace :is(.finance-summary,.inventory-summary) {gap:12px}
+ body.electron-soft-rose .td2-workspace :is(.finance-summary-card,.inventory-stat-card) {padding:16px;border-radius:16px}
+ body.electron-soft-rose .td2-workspace .inventory-local-mode {display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:var(--td2-sheet);border:1px solid var(--td2-rim);border-radius:16px;padding:12px 16px;margin-bottom:16px}
+
+ /* Shared dialog presentation; SurfaceDialog still owns all accessibility behavior.
+  * Quick memo and instructor print preview intentionally do not have td2-dialog. */
+ body.electron-soft-rose .rose-dialog.td2-dialog {background:#fff9fb;border-color:var(--td2-rim);box-shadow:var(--td2-chrome-shadow);container:td2-dialog / inline-size}
+ body.electron-soft-rose .td2-dialog>.rose-dialog-header {padding:18px 24px;background:var(--td2-sheet);border-color:var(--divider);border-radius:20px 20px 0 0}
+ body.electron-soft-rose .td2-dialog>.rose-dialog-header h1 {font-size:22px;line-height:1.35}
+ body.electron-soft-rose .td2-dialog>.rose-dialog-content {padding:24px;scrollbar-gutter:stable}
+ body.electron-soft-rose .td2-dialog .rose-settings {grid-template-columns:112px minmax(0,1fr);gap:20px}
+ body.electron-soft-rose .td2-dialog .rose-settings nav button {text-align:start}
+ body.electron-soft-rose .td2-dialog .p0-tool-card {text-align:start;padding:16px;gap:12px;border-color:var(--divider);background:var(--td2-sheet);min-height:100px}
+ body.electron-soft-rose .td2-dialog .p0-tool-card strong {font-size:15px;line-height:1.5}
+ body.electron-soft-rose .td2-dialog .p0-tool-card small {font-size:12px;color:var(--td2-secondary);line-height:1.6}
+ body.electron-soft-rose .td2-dialog .work-folders-panel {background:transparent}
+ body.electron-soft-rose .td2-dialog .work-folders-panel__header {display:none}
+ body.electron-soft-rose .td2-dialog .work-folders-panel__list {min-height:72px}
+ body.electron-soft-rose .td2-dialog .work-folder-row {gap:10px;padding:12px 0}
+ body.electron-soft-rose .td2-dialog .p0-work-folder-actions {display:flex;flex-wrap:wrap;gap:8px}
+ body.electron-soft-rose .td2-dialog .calculator-panel__keys button {min-height:44px}
+ body.electron-soft-rose .td2-dialog .command-palette__result {min-height:44px}
+ body.electron-soft-rose .td2-dialog .lc-columns {grid-template-columns:minmax(0,1fr)}
+ body.electron-soft-rose .td2-dialog .lc-grid button {padding:6px 2px;min-height:44px;background:#fffdfd}
+ body.electron-soft-rose .td2-dialog .lc-grid button[aria-pressed=true] {background:#f7dce4;color:var(--td2-rose-hover);border-color:var(--td2-rose)}
+ body.electron-soft-rose .td2-dialog .lc-actions {z-index:1;background:var(--td2-opaque)}
+ body.electron-soft-rose .td2-task-fields {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0;padding:0}
+ body.electron-soft-rose .td2-task-fields>legend {font-size:17px;font-weight:700;margin-bottom:12px}
+ body.electron-soft-rose .td2-task-fields>label {display:grid;gap:6px;align-content:start}
+ body.electron-soft-rose .td2-task-fields>.td2-wide {grid-column:1/-1}
+ body.electron-soft-rose .td2-task-fields>label:has(>input[type=checkbox]) {display:flex;align-items:center;gap:8px}
+ body.electron-soft-rose .td2-task-actions {grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;padding:10px 0}
+ body.electron-soft-rose .td2-task-list {list-style:none;padding:0;display:grid;gap:8px}
+ body.electron-soft-rose .td2-task-list>li {display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px;border:1px solid var(--divider);border-radius:12px;background:#fffdfd}
+ body.electron-soft-rose .td2-task-list>li>label {flex:1 1 240px;display:flex;align-items:center;gap:8px;min-width:0}
+ body.electron-soft-rose .td2-task-filter {display:grid;gap:6px;margin-block:16px;max-width:240px}
+
+ /* Purchase remains the existing expert panel and table, not a replacement editor. */
+ body.electron-soft-rose .td2-workspace .purchase-helper-panel {min-height:0;max-height:calc(100dvh - 40px);border-radius:20px;border-color:var(--td2-rim);background:var(--td2-opaque);box-shadow:var(--td2-chrome-shadow)}
+ body.electron-soft-rose .td2-workspace .purchase-helper-panel__header {background:var(--td2-sheet);padding:16px 20px}
+ body.electron-soft-rose .td2-workspace .purchase-helper-panel__toolbar {flex-wrap:wrap;gap:8px;padding:12px 20px;flex-shrink:0}
+ body.electron-soft-rose .td2-workspace .purchase-helper-panel__toolbar>button {flex-shrink:0}
+ body.electron-soft-rose .td2-workspace .purchase-helper-panel__toolbar>label {display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+ body.electron-soft-rose .td2-workspace .purchase-helper-panel__toolbar select {width:auto;max-width:100%}
+ body.electron-soft-rose .td2-workspace .purchase-helper-tabs {display:flex;flex-wrap:wrap;gap:4px;padding:6px 16px;background:#f7f0f4}
+ body.electron-soft-rose .td2-workspace .purchase-helper-panel__body {min-height:0;overflow:auto;overscroll-behavior:contain}
+ body.electron-soft-rose .td2-workspace .purchase-helper-panel__footer {flex-shrink:0;flex-wrap:wrap;gap:8px;background:#fffdfd;padding:12px 16px}
+ body.electron-soft-rose .td2-workspace :is(.purchase-helper-dropzone span,.purchase-helper-dropzone small) {font-size:12px}
+ body.electron-soft-rose .td2-workspace .purchase-helper-review {flex-wrap:wrap}
+ body.electron-soft-rose .td2-workspace .purchase-helper-table-wrap {max-width:100%;overflow:auto}
+
+ /* Session privacy flow and focus/teardown stay in RecordHelperHost. */
+ body.electron-soft-rose .td2-record-workspace {padding:0;min-height:0;background:none}
+ body.electron-soft-rose .td2-record-workspace .record-helper-panel {border-radius:20px;border-color:var(--td2-rim);background:var(--td2-opaque);max-height:calc(100dvh - 32px)}
+ body.electron-soft-rose .td2-record-workspace .record-helper-panel>header {background:var(--td2-sheet)}
+ body.electron-soft-rose .td2-record-workspace .record-helper-panel__toolbar {display:flex;flex-wrap:wrap;gap:8px}
+ body.electron-soft-rose .td2-record-workspace .record-helper-empty {min-height:160px}
+
+ /* Newsletter: only app chrome. Do not select SVG/canvas/exported page contents. */
+ body.electron-soft-rose .td2-workspace[data-workspace=newsletter] {padding:0}
+ body.electron-soft-rose .td2-workspace .newsletter-product-host {background:transparent}
+ body.electron-soft-rose .td2-workspace .newsletter-file-toolbar {padding:16px 24px;background:var(--td2-sheet);border-bottom:1px solid var(--divider);gap:12px}
+ body.electron-soft-rose .td2-workspace .newsletter-file-toolbar h1 {font-size:22px;color:var(--td2-ink)}
+ body.electron-soft-rose .td2-workspace .newsletter-file-toolbar>label {min-width:0}
+ body.electron-soft-rose .td2-workspace .newsletter-file-toolbar input[type=file] {max-width:100%}
+ body.electron-soft-rose .td2-workspace .newsletter-product-host>.electron-ai {margin:16px 24px}
+
+ /* Existing SCHOOL-05 connection/role gates are untouched. No Hosted activation. */
+ body.electron-soft-rose .td2-workspace[data-workspace=school] {padding:12px;min-height:0;background:transparent}
+ body.electron-soft-rose .td2-workspace .s05-product {max-width:1280px;margin:0 auto;padding:20px;background:var(--td2-sheet);border-color:var(--td2-rim);box-shadow:var(--td2-chrome-shadow)}
+ body.electron-soft-rose .td2-workspace .s05-header {gap:12px;padding-bottom:16px;border-bottom:1px solid var(--divider)}
+ body.electron-soft-rose .td2-workspace .s05-header h1 {font-size:22px;line-height:1.4}
+ body.electron-soft-rose .td2-workspace .s05-account {margin-block:16px;background:#f4e9ef;border:1px solid var(--divider)}
+ body.electron-soft-rose .td2-workspace .s05-ready {margin-top:16px;background:#fff9fb;border:1px solid var(--divider)}
+ body.electron-soft-rose .td2-workspace .instructor-workspace {padding:16px 0}
+ body.electron-soft-rose .td2-workspace .instructor-workspace>nav {display:flex;flex-wrap:wrap;gap:8px;margin-block:16px}
+ body.electron-soft-rose .td2-workspace .instructor-workspace :is(form,fieldset) {max-width:100%}
+
+ @container td2-dialog (max-width:620px) {
+  body.electron-soft-rose .td2-dialog .rose-settings {grid-template-columns:minmax(0,1fr)}
+  body.electron-soft-rose .td2-dialog .rose-settings nav {display:flex;flex-wrap:wrap;gap:6px}
+  body.electron-soft-rose .td2-dialog .td2-task-fields {grid-template-columns:minmax(0,1fr)}
+ }
+ @media(max-width:1050px) {
+  body.electron-soft-rose .td2-workspace {padding:16px}
+  body.electron-soft-rose .td2-workspace :is(.od-grid,.finance-workspace.has-editor) {grid-template-columns:minmax(0,1fr)}
+  body.electron-soft-rose .td2-workspace :is(.td2-workspace-header,.od-header,.ev-header,.finance-hero) {padding:16px 20px}
+  body.electron-soft-rose .td2-workspace .purchase-helper-panel {width:calc(100vw - 32px);max-height:calc(100dvh - 32px)}
+  body.electron-soft-rose .td2-workspace .purchase-helper-backdrop {padding:16px}
+  body.electron-soft-rose .td2-workspace .purchase-helper-panel__toolbar {max-height:30dvh;overflow:auto;padding:12px 16px}
+  body.electron-soft-rose .td2-workspace .purchase-helper-panel__footer {max-height:24dvh;overflow:auto}
+  body.electron-soft-rose .td2-workspace .newsletter-studio .studio-body {grid-template-columns:minmax(0,1fr)}
+  body.electron-soft-rose .td2-workspace .newsletter-studio .editor-panel {border-right:0;border-bottom:1px solid var(--divider)}
+ }
+ @media(max-height:740px) {
+  body.electron-soft-rose .td2-dialog>.rose-dialog-header {padding:12px 20px}
+  body.electron-soft-rose .td2-dialog>.rose-dialog-content {padding:16px 20px}
+ }
+ @media(prefers-reduced-transparency:reduce) {
+  body.electron-soft-rose :is(.td2-workspace,.td2-dialog) {--td2-sheet:#fff9fb;--td2-glass:#fff9fb}
+  body.electron-soft-rose .td2-workspace :is(.td2-workspace-header,.od-header,.ev-header,.finance-hero) {backdrop-filter:none}
+ }
+ @media(prefers-reduced-motion:reduce) {
+  body.electron-soft-rose :is(.td2-workspace,.td2-dialog) * {transition:none;scroll-behavior:auto}
+ }
+}

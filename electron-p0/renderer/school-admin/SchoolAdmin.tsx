@@ -1,3 +1,4 @@
+import {WorkspaceHeader} from '../ui/WorkspaceShell';
 import {adminNetworkGuide} from '../../admin-connection';
 import {SchoolLauncherProfile} from '../school-profile/SchoolProfile';
 import {useEffect,useRef,useState} from 'react';
@@ -46,7 +47,7 @@ export function SchoolAdmin({onClose}:{onClose:()=>void}){
  const draftIssues=(()=>{try{validateLeaveDraft(editor);return '';}catch{return '기간·시간·사유를 입력하고 검토할 초안을 만들어 주세요.';}})();
  const privacy=inspectOfficialDocumentPrivacy(editor.reason+'\n'+editor.text);
  if(!api)return <main className="school-admin"><h1>학교 행정 업무 도우미</h1><p role="alert">학교 행정 연결을 사용할 수 없습니다.</p><button onClick={onClose}>보건 업무로</button></main>;
- return <main className="school-admin" aria-busy={busy}><header><div><p>BOGUNON DESK · LOCAL ONLY</p><h1>학교 행정 업무 도우미</h1><p>바로가기 → 복무 초안 → Excel 검토 · 로그인과 제출은 직접 진행합니다.</p></div><button type="button" disabled={busy} onClick={close}>보건 업무로</button></header>
+ return <main className="school-admin" aria-busy={busy}><WorkspaceHeader title="학교 행정 업무 도우미" context="이 PC의 학교 설정 · 공식 로그인은 별도" description="바로가기 → 복무 초안 → Excel 검토 · 로그인과 제출은 직접 진행합니다." onBack={close} backDisabled={busy}/>
  <p className="admin-notice" role="status">{notice}</p>{locked&&<button disabled={busy} onClick={()=>{if(window.confirm('저장소의 최신 주소·양식을 다시 읽을까요? 작성 중인 복무 원고는 유지합니다.'))void run(load);}}>저장소 다시 읽기</button>}
  {busy&&<button type="button" onClick={()=>{void api.cancel();setNotice('취소를 요청했습니다. 진행 중인 파일 처리·전송 전 확인을 중단합니다. 이미 완료된 저장·복사는 취소되지 않습니다.');}}>진행 작업 취소</button>}
  <section className="admin-card" aria-labelledby="admin-systems"><h2 id="admin-systems">1. 학교 업무 시스템</h2>
