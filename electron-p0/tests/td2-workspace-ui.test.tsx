@@ -2,7 +2,7 @@
 import {useState} from 'react';
 import {afterEach,describe,expect,it,vi} from 'vitest';
 import {cleanup,fireEvent,render,screen} from '@testing-library/react';
-import {WorkspaceHeader,WorkspaceShell} from '../renderer/ui/WorkspaceShell';
+import {WorkspaceHeader,WorkspaceShell,WorkspaceDisclosure} from '../renderer/ui/WorkspaceShell';
 import {SurfaceDialog} from '../renderer/SurfaceDialog';
 
 afterEach(cleanup);
@@ -23,6 +23,12 @@ describe('TD2 workspace presentation boundaries',()=>{
   fireEvent.click(screen.getByRole('button',{name:'보건 업무로'}));expect(back).not.toHaveBeenCalled();
   view.rerender(<WorkspaceHeader title="학교 행정 업무 도우미" onBack={back}/>);
   fireEvent.click(screen.getByRole('button',{name:'보건 업무로'}));expect(back).toHaveBeenCalledOnce();
+ });
+ it('keeps an AI review draft in the DOM when its disclosure closes',()=>{
+  render(<WorkspaceDisclosure title="AI 전송 전 검토"><textarea aria-label="AI 수정 요청" defaultValue="검토 중인 합성 요청"/></WorkspaceDisclosure>);
+  const input=screen.getByLabelText('AI 수정 요청') as HTMLTextAreaElement,details=input.closest('details')!;
+  details.open=true;fireEvent.change(input,{target:{value:'수정 후에도 승인 전인 요청'}});details.open=false;details.open=true;
+  expect(screen.getByLabelText('AI 수정 요청')).toBe(input);expect(input.value).toBe('수정 후에도 승인 전인 요청');
  });
  it.each(['quick-memo-surface','instructor-preview-overlay'])('does not retheme the protected %s surface',overlayClassName=>{
   render(<SurfaceDialog title="기존 화면" overlayClassName={overlayClassName} modal={false} onClose={()=>{}}><button>기존 행동</button></SurfaceDialog>);

@@ -31,20 +31,20 @@
   white-space:normal; overflow-wrap:anywhere; cursor:pointer;
  }
  body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(button:hover:not(:disabled)) {background:#fff0f5;border-color:var(--td2-rose)}
- body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(button:is([aria-pressed=true],[aria-selected=true],.is-active)) {
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :is(button[aria-pressed=true],button[aria-selected=true],button.is-active) {
   color:var(--td2-rose-hover); background:#f7dce4; border-color:var(--td2-rose);
  }
- body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(.is-primary,.ev-primary,.finance-primary,.primary-action,button[type=submit],.td2-primary) {
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :is(.is-primary,.ev-primary,.finance-primary,.primary-action,button[type=submit],.td2-primary) {
   background:var(--td2-rose); border-color:var(--td2-rose); color:white;
  }
- body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(.is-primary,.ev-primary,.finance-primary,.primary-action,button[type=submit],.td2-primary):hover:not(:disabled) {
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :is(.is-primary,.ev-primary,.finance-primary,.primary-action,button[type=submit],.td2-primary):hover:not(:disabled) {
   background:var(--td2-rose-hover); color:white;
  }
- body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(.is-danger,.danger,.td2-danger) {color:#8b3048;border-color:#a64b61;background:#fff4f6}
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :is(.is-danger,.danger,.td2-danger) {color:#8b3048;border-color:#a64b61;background:#fff4f6}
  body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(button:disabled) {
   color:#626874; background:#f1ecee; border-color:#8a7680; border-style:dashed; opacity:1; cursor:not-allowed;
  }
- body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file]),select,textarea) {
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :is(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file]),select,textarea) {
   box-sizing:border-box; min-width:0; max-width:100%; width:100%; padding:9px 11px;
   border:1px solid var(--control-border); border-radius:10px; background:#fffdfd;
   color:var(--td2-ink); font:inherit; line-height:1.5;
@@ -54,6 +54,7 @@
  body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(input[type=checkbox],input[type=radio]) {accent-color:var(--td2-rose);flex-shrink:0}
  body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(input:disabled,select:disabled,textarea:disabled) {color:#626874;background:#f1ecee;border-style:dashed;opacity:1}
  body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(input[readonly],textarea[readonly]) {background:#f8f3f6}
+ body.electron-soft-rose :is(.td2-workspace,.td2-dialog) input[type=file]::file-selector-button {min-height:40px;padding:8px 12px;margin-inline-end:8px;border:1px solid var(--control-border);border-radius:10px;background:#fffdfd;color:var(--td2-ink);font:inherit;cursor:pointer}
  body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where(button,input,select,textarea,a,summary):focus-visible {outline:3px solid var(--td2-rose);outline-offset:3px}
  body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where([role=status]:not(:empty)) {color:var(--td2-secondary);line-height:1.6}
  body.electron-soft-rose :is(.td2-workspace,.td2-dialog) :where([role=alert]) {color:#803246;background:#fff1f4;border-inline-start:3px solid #a64b61;padding:10px 12px;border-radius:8px}
@@ -91,6 +92,11 @@
  body.electron-soft-rose .td2-workspace :is(.finance-summary-card,.inventory-stat-card) {padding:16px;border-radius:16px}
  body.electron-soft-rose .td2-workspace .inventory-local-mode {display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:var(--td2-sheet);border:1px solid var(--td2-rim);border-radius:16px;padding:12px 16px;margin-bottom:16px}
 
+ body.electron-soft-rose .td2-workspace-disclosure {margin:0 0 20px;border:1px solid var(--divider);border-radius:16px;background:#fffdfd}
+ body.electron-soft-rose .td2-workspace-disclosure>summary {padding:16px 20px;cursor:pointer;font-weight:700;color:var(--td2-ink)}
+ body.electron-soft-rose .td2-workspace-disclosure[open]>summary {border-bottom:1px solid var(--divider)}
+ body.electron-soft-rose .td2-workspace-disclosure .od-ai-workflow {margin:0;border:0;box-shadow:none}
+
  /* Shared dialog presentation; SurfaceDialog still owns all accessibility behavior.
   * Quick memo and instructor print preview intentionally do not have td2-dialog. */
  body.electron-soft-rose .rose-dialog.td2-dialog {background:#fff9fb;border-color:var(--td2-rim);box-shadow:var(--td2-chrome-shadow);container:td2-dialog / inline-size}
@@ -125,18 +131,18 @@
  body.electron-soft-rose .td2-task-filter {display:grid;gap:6px;margin-block:16px;max-width:240px}
 
  /* Purchase remains the existing expert panel and table, not a replacement editor. */
- body.electron-soft-rose .td2-workspace .purchase-helper-panel {min-height:0;max-height:calc(100dvh - 40px);border-radius:20px;border-color:var(--td2-rim);background:var(--td2-opaque);box-shadow:var(--td2-chrome-shadow)}
- body.electron-soft-rose .td2-workspace .purchase-helper-panel__header {background:var(--td2-sheet);padding:16px 20px}
+ body.electron-soft-rose .td2-workspace .purchase-helper-panel {min-height:0;max-height:calc(100dvh - 40px);border-radius:20px;border-color:var(--td2-rim);background:var(--td2-opaque);box-shadow:var(--td2-chrome-shadow);display:block;overflow-y:auto;scroll-padding-block:96px 160px}
+ body.electron-soft-rose .td2-workspace .purchase-helper-panel__header {position:sticky;top:0;z-index:2;background:#fff9fb;padding:16px 20px}
  body.electron-soft-rose .td2-workspace .purchase-helper-panel__toolbar {flex-wrap:wrap;gap:8px;padding:12px 20px;flex-shrink:0}
  body.electron-soft-rose .td2-workspace .purchase-helper-panel__toolbar>button {flex-shrink:0}
  body.electron-soft-rose .td2-workspace .purchase-helper-panel__toolbar>label {display:flex;flex-wrap:wrap;align-items:center;gap:6px}
  body.electron-soft-rose .td2-workspace .purchase-helper-panel__toolbar select {width:auto;max-width:100%}
  body.electron-soft-rose .td2-workspace .purchase-helper-tabs {display:flex;flex-wrap:wrap;gap:4px;padding:6px 16px;background:#f7f0f4}
  body.electron-soft-rose .td2-workspace .purchase-helper-panel__body {min-height:0;overflow:auto;overscroll-behavior:contain}
- body.electron-soft-rose .td2-workspace .purchase-helper-panel__footer {flex-shrink:0;flex-wrap:wrap;gap:8px;background:#fffdfd;padding:12px 16px}
+ body.electron-soft-rose .td2-workspace .purchase-helper-panel__footer {position:sticky;bottom:0;z-index:2;box-shadow:0 -1px 8px rgb(77 41 58 / 8%);flex-shrink:0;flex-wrap:wrap;gap:8px;background:#fffdfd;padding:12px 16px}
  body.electron-soft-rose .td2-workspace :is(.purchase-helper-dropzone span,.purchase-helper-dropzone small) {font-size:12px}
  body.electron-soft-rose .td2-workspace .purchase-helper-review {flex-wrap:wrap}
- body.electron-soft-rose .td2-workspace .purchase-helper-table-wrap {max-width:100%;overflow:auto}
+ body.electron-soft-rose .td2-workspace .purchase-helper-table-wrap {max-width:100%;min-height:120px;max-height:40dvh;overflow:auto}
 
  /* Session privacy flow and focus/teardown stay in RecordHelperHost. */
  body.electron-soft-rose .td2-record-workspace {padding:0;min-height:0;background:none}
@@ -153,6 +159,12 @@
  body.electron-soft-rose .td2-workspace .newsletter-file-toolbar>label {min-width:0}
  body.electron-soft-rose .td2-workspace .newsletter-file-toolbar input[type=file] {max-width:100%}
  body.electron-soft-rose .td2-workspace .newsletter-product-host>.electron-ai {margin:16px 24px}
+ body.electron-soft-rose .td2-workspace .newsletter-product-host>:is(p,details) {margin:16px 24px;line-height:1.6}
+ body.electron-soft-rose .td2-workspace .newsletter-studio :is(.studio-header,.mode-tabs,.editor-panel) {background:#fff9fb;border-color:var(--divider);color:var(--td2-ink)}
+ body.electron-soft-rose .td2-workspace .newsletter-studio .studio-header {padding:20px 24px;gap:16px;flex-wrap:wrap;align-items:center}
+ body.electron-soft-rose .td2-workspace .newsletter-studio .studio-header h1 {font-size:22px}
+ body.electron-soft-rose .td2-workspace .newsletter-studio .editor-panel :is(label,.control-label,small,.panel-heading) {color:var(--td2-secondary);font-size:12px}
+ body.electron-soft-rose .td2-workspace .newsletter-studio .mode-tabs {padding:12px 24px;flex-wrap:wrap}
 
  /* Existing SCHOOL-05 connection/role gates are untouched. No Hosted activation. */
  body.electron-soft-rose .td2-workspace[data-workspace=school] {padding:12px;min-height:0;background:transparent}
@@ -176,7 +188,7 @@
   body.electron-soft-rose .td2-workspace :is(.td2-workspace-header,.od-header,.ev-header,.finance-hero) {padding:16px 20px}
   body.electron-soft-rose .td2-workspace .purchase-helper-panel {width:calc(100vw - 32px);max-height:calc(100dvh - 32px)}
   body.electron-soft-rose .td2-workspace .purchase-helper-backdrop {padding:16px}
-  body.electron-soft-rose .td2-workspace .purchase-helper-panel__toolbar {max-height:30dvh;overflow:auto;padding:12px 16px}
+  body.electron-soft-rose .td2-workspace .purchase-helper-panel__toolbar {max-height:none;overflow:visible;padding:12px 16px}
   body.electron-soft-rose .td2-workspace .purchase-helper-panel__footer {max-height:24dvh;overflow:auto}
   body.electron-soft-rose .td2-workspace .newsletter-studio .studio-body {grid-template-columns:minmax(0,1fr)}
   body.electron-soft-rose .td2-workspace .newsletter-studio .editor-panel {border-right:0;border-bottom:1px solid var(--divider)}
