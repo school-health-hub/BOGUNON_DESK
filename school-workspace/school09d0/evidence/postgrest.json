@@ -1,0 +1,7 @@
+{
+  "checks": 15,
+  "classification": "LOCAL PostgREST13.0.4 synthetic HS256/Auth only",
+  "hosted": "NOT RUN",
+  "tokens_keys_saved": false,
+  "network": "none; loopback only"
+}

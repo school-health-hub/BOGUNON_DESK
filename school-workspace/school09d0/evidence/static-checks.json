@@ -1,0 +1,9 @@
+{
+  "python_compile": "PASS",
+  "bash_syntax": "PASS",
+  "source_SQL_body_hashes": "PASS",
+  "secret_pattern_scan": "PASS",
+  "product_source_changed": false,
+  "Hosted": "NOT RUN",
+  "Windows": "NOT RUN"
+}

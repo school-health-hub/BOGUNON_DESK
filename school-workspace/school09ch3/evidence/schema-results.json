@@ -1,0 +1,101 @@
+{
+  "checks": [
+    {
+      "name": "installer NOSUPERUSER cannot SET Auth owner or CREATE in auth",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "mid-install forced failure rolls back schemas roles and default privileges",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "late installation failure rolls back business schemas roles and permissions",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "fresh full S01-S07 business installation without Auth role grants",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "all54 public RPC default CLOSED",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "managed Auth objects and ACL byte fingerprints unchanged",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "existing public objects and personal rows unchanged",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "no Workspace role has Auth USAGE or table or column SELECT",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "all Workspace tables FORCE RLS with nonbypass owner",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "no temporary seed policy or reader/runtime schema CREATE remains",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "all54 public signatures bodies owners and security flags unchanged",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "only two parameterless postgres-owned session booleans, private EXECUTE reader only",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "no permanent Workspace function owned by postgres outside boolean boundary",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "temporary NOBYPASS installer is removed completely",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "direct bridge SELECT and arbitrary UUID oracle denied anon",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "direct bridge SELECT and arbitrary UUID oracle denied authenticated",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "direct bridge SELECT and arbitrary UUID oracle denied ws_owner",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "direct bridge SELECT and arbitrary UUID oracle denied ws_runtime",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "full installer replay is checked no-op",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    }
+  ],
+  "hosted": "NOT RUN",
+  "prior_results": "REFERENCED only; not added to these counts"
+}

@@ -1,0 +1,26 @@
+
+ RUN  v5.0.1 /workspace/work/school-09ch3/repo
+
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > admin/teacher 1: create edit cancel event with history 1456ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > admin/teacher 3: create edit cancel event with history 1378ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > assistant read only; other school and pending event access denied 2064ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > all-day endpoints at Seoul midnight, timed dates and positive exclusive ranges 1336ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > event concurrent version conflict and idempotency prevent double side effects 1378ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > direct targets visible only to target/author/admin, not unrelated teacher/assistant or other school 3040ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > ack is self-only, duplicate state is unique; completion is separate from acknowledgement 2278ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > edit forces new revision/ack; stale replay cannot acknowledge new content 1945ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > role targets snapshot at publish; new join/rejoin has no past obligation or old revision access 2186ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > assistant default creation/edit/complete denied; explicit create and targeted complete grants stay bounded 2076ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > revocation, expiry, suspended and raw table/audit/revision mutations fail closed 2355ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > privacy rejection persists nowhere; audit failure rolls back event/revision/target changes 2185ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > deny overrides and suspended/live-expired sessions override cached school approval 1681ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > direct authenticated SQL cannot bypass expected_version with NULL and roles remain nonowner/NOBYPASSRLS 1315ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > focus/manual refresh replaces open detail after edited content and requires fresh ack 5928ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > teacher completion requires current target and cross-school target assignment rolls back 1966ms
+
+ Test Files  1 passed (1)
+      Tests  16 passed (16)
+   Start at  23:45:19
+   Duration  35.00s (tests 99%, transform 1%)
+
+JSON report written to /workspace/work/school-09ch3/repo/school-workspace/school09ch3/evidence/school04-db-contracts.json

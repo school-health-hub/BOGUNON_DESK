@@ -1,0 +1,16 @@
+{
+  "personal_focus": {
+    "pass": 75,
+    "fail": 1
+  },
+  "baseline_finance": {
+    "pass": 3,
+    "fail": 1
+  },
+  "same_failure_names": [
+    "uses actual electron-builder extraResources merging to include all three Windows engines"
+  ],
+  "classification": "existing test expectation six resources vs actual seven inherited Instructor resource; no S08 product change in Finance/builder",
+  "first_missing_boundary_artifact": "resolved after real renderer build, not suppressed",
+  "old_S07_auth59_personal69": "REFERENCED unchanged sources, not new PASS count"
+}

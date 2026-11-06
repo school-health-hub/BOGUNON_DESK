@@ -1,0 +1,19 @@
+PASS H3 creator-default table exposure reproduced and rolled back
+PASS wrong project/plan markers rejected before installation
+PASS SELECT preflight executes with non-super installer
+PASS mid-install failure rolls back roles schema and creator defaults
+PASS late-install failure rolls back all cumulative objects
+PASS exact candidate fresh installation in empty PostgreSQL17.6 postgres database
+PASS SELECT postflight executes without new raw table grants
+PASS all54 public/private pairs CLOSED and PUBLIC has no function EXECUTE
+PASS all creator-default client/table/column privileges stripped from new relations
+PASS new table hardening never changes global default ACL or legacy public/Auth objects
+PASS no Workspace Auth raw SELECT USAGE or BYPASSRLS; owner FORCE RLS
+PASS all161 function definitions owners and results identical to H3, public54 unchanged
+PASS new installer replay is checked no-op under same explicit CLOSED plan
+PASS Auth boolean is not a direct session/UUID oracle for anon
+PASS Auth boolean is not a direct session/UUID oracle for authenticated
+PASS Auth boolean is not a direct session/UUID oracle for ws_runtime
+PASS Auth boolean is not a direct session/UUID oracle for ws_owner
+PASS Auth boolean is not a direct session/UUID oracle for service_role
+PASS focused schema/object export; repeat checks not added to44

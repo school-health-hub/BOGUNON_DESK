@@ -1,0 +1,23 @@
+{
+  "source_scope": "VERIFIED LOCAL; no Hosted install",
+  "functions": 161,
+  "public_rpc": 54,
+  "security_definer": 79,
+  "postgres_security_definer": [
+    "workspace_auth_bridge.recent_login",
+    "workspace_auth_bridge.session_valid"
+  ],
+  "nonbypass_security_definer": 77,
+  "tables": 33,
+  "indexes": 68,
+  "constraints": 184,
+  "policies": 87,
+  "owner_grant_requirements": {
+    "postgres": "existing Auth USAGE,4-column SELECT,uid/jwt EXECUTE,users.id REFERENCES; DB CREATE/CREATEROLE; public CREATE grant option; SET to new owner roles",
+    "ws_owner": "NOLOGIN/NOBYPASS; owns33 tables; private authenticated USAGE only; no raw client table privileges",
+    "ws_runtime": "NOLOGIN/NOBYPASS; purpose RPC + RLS operations only",
+    "ws_authz_reader": "NOLOGIN/NOBYPASS; authorization metadata + private self-session boolean EXECUTE",
+    "ws_bootstrap_executor/operator": "private draft command remains CLOSED; no new operator provisioned"
+  },
+  "session_bridge_risk": "postgres has BYPASSRLS. Only2 fixed no-argument booleans read current Auth session; no Workspace content query, caller UUID, dynamic SQL or direct client EXECUTE. Real Managed behavior NOT VERIFIED."
+}

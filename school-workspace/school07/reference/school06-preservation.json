@@ -1,0 +1,11 @@
+{
+  "zip_sha256": "34c1eec8d7e8d24239d8e0b2e98d14c89bcf865340161bf809b7ee6c1f511287",
+  "verified_manifest_files": 66,
+  "source_sha": "eca3ef6bcb62bd2a78526e4c12a02e8db5f381c6",
+  "source_folder_changed": false,
+  "recovery": "exact Git parent contains immutable SCHOOL06; no duplicate overlay of original ZIP",
+  "integration_sha": "243ae95e69483dfbe8d2438c41f858577d748048",
+  "baseline_relation_left_right": "SCHOOL06 1 / integration0",
+  "school05": "6af60d6a071039a048833f27226f2a3c698fe80c",
+  "windows_qa_completion": "not assumed"
+}

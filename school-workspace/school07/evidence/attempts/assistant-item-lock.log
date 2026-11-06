@@ -1,0 +1,35 @@
+PASS SCHOOL06 initial39 RPCs remain CLOSED
+PASS inventory15 default CLOSED; raw tables not exposed
+PASS admin creates item with zero stock
+PASS teacher edits metadata
+PASS assistant cannot edit metadata
+PASS cross school item lookup denied
+PASS receive increases stock and30day inclusive boundary
+PASS assistant default receive denied
+FAIL explicit own use permission decreases stock ERROR:  access_denied
+CONTEXT:  PL/pgSQL function workspace_private.s07_write(uuid,text,jsonb,bigint,uuid) line 23 at RAISE
+SQL function "s07_use_inventory" statement 1
+SQL function "ws_v1_use_inventory" statement 1
+
+Traceback (most recent call last):
+  File "/workspace/work/school-07/repo/school-workspace/school07/tests/run.py", line 103, in <module>
+    if __name__=='__main__':main()
+                            ^^^^^^
+  File "/workspace/work/school-07/repo/school-workspace/school07/tests/run.py", line 54, in main
+    case('explicit own use permission decreases stock',use)
+  File "/workspace/work/school-07/repo/school-workspace/school07/tests/run.py", line 22, in case
+    try:fn();results.append({'name':n,'status':'PASS','classification':'LOCAL DB'});print('PASS',n,flush=True)
+        ^^^^
+  File "/workspace/work/school-07/repo/school-workspace/school07/tests/run.py", line 53, in use
+    def use():lot.update(rpc(4,'use_inventory',{'item_id':item['item_id'],'lot_id':lot['lot_id'],'quantity':3},lot['version']));assert lot['quantity']==7
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/school-07/repo/school-workspace/school07/tests/run.py", line 18, in rpc
+    x=sql(q,ok);return json.loads(x.stdout.strip().splitlines()[-1])if ok else x
+      ^^^^^^^^^
+  File "/workspace/work/school-07/repo/school-workspace/school07/tests/run.py", line 8, in sql
+    if ok and p.returncode:raise AssertionError(p.stderr[-2200:])
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ERROR:  access_denied
+CONTEXT:  PL/pgSQL function workspace_private.s07_write(uuid,text,jsonb,bigint,uuid) line 23 at RAISE
+SQL function "s07_use_inventory" statement 1
+SQL function "ws_v1_use_inventory" statement 1

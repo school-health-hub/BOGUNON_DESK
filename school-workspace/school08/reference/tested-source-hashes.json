@@ -1,0 +1,20 @@
+{
+  "school-workspace/school07/ui/InventoryWorkspace.tsx": "3ddfd0047b69b2862e6a9d7c44ea1b249ed84d7123c063b980a49ab08abca973",
+  "school-workspace/school08/browser-check.mjs": "ac66e302df7a751b764b22a5efa9e98ad2ec64d558441561f2aeaa90a298a8d1",
+  "school-workspace/school08/run-browser.sh": "f13d107ebf1968f386ce9ca78408a0479597afe16a4451259ac2b2dc25e3c1fe",
+  "school-workspace/school08/run-local.sh": "36242d09bf6795993901423a6efb3b00e6a9957e9a24d60cfcbdb435b1e0baa1",
+  "school-workspace/school08/sql/01-foundation.sql": "2830f5f2179acf2f99f1664fbc629e2fca4216a41fc95db2a5cbe7e71a4a487c",
+  "school-workspace/school08/sql/activate-local.sql": "5d16fd3c17a04f3b185406b078989af110df18f2a00788ecfffebf2ffacafb26",
+  "school-workspace/school08/sql/close-local.sql": "590e1888659f97e72984a78507ff78775a7940dc8f4b89353131730f80624b3d",
+  "school-workspace/school08/sql/fingerprint.sql": "fa69afa67d652e196d16face725d1f1510514cd4d8a6482fbe80e95ec15df67e",
+  "school-workspace/school08/sql/install-candidate.sql": "554e1ea39a6ee27a1c32f2d580bbb9ab722c85af8f76e7bde270aae91806866d",
+  "school-workspace/school08/supabase/migrations/20261105130003_cumulative_workspace.sql": "52a4cb62ae675c0986158e7baf3940b07a6caee24e5262e0421d4513812d0062",
+  "school-workspace/school08/tests/flow.test.ts": "ea455080a3f5eab3ee114a9e3e590e557a83b06d19d987aa953dd191a910e978",
+  "school-workspace/school08/tests/install.py": "424243c1ce3c14f18f393b792939fa9c56c10186d9718966a66f92751e96ca00",
+  "school-workspace/school08/tools/build_handoff.py": "e24783d0c726a9fc8defa6d294e9b3d12c811f4688107d9deeb8c268728630e5",
+  "school-workspace/school08/tools/build_sql.py": "78ecb3dc7ec25c0f0165e64c0e43ec82b108d51fc6339d12c96dcb3298c4144b",
+  "school-workspace/school08/tools/check_static.py": "528af79592fb84aa5731b9f0033c911bb6506bac57f3b5c1f2d459ee0486851e",
+  "school-workspace/school08/tools/verify_package.py": "64ffb5368d1f0380036572f000930cafd92e8ba49c4d3ea844ff819d3765f0ae",
+  "school-workspace/school08/tsconfig.json": "bedc12e0d21d56d4fedf603720324b5229dfc35d9246198ef2fcf6b23ec90005",
+  "school-workspace/school08/vitest.config.ts": "74fbfae4f039ae76c1a1ea1b689fd36c7dd699f88ce36441a56047fd01c58421"
+}

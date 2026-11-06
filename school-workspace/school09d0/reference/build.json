@@ -1,0 +1,12 @@
+{
+  "h3_release": "4c787101ba5b4c78f166ef56dd9d233cc53aa7d100e996fbaad2970133a0dd1a",
+  "candidate_release": "16243d5a443e6b7d40fc92a1ea14f3cd451798583aca740f3f1550d80354360f",
+  "public_rpc_count": 54,
+  "changes": [
+    "outer install guard for database postgres and explicit review plan markers",
+    "new table/sequence creator-default ACL hardening",
+    "separate canonical emergency close; no fingerprint adoption"
+  ],
+  "h3_business_function_bodies_changed": false,
+  "hosted_executed": false
+}

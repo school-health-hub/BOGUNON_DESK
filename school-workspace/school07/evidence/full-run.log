@@ -1,0 +1,100 @@
+PASS SCHOOL06 initial39 RPCs remain CLOSED
+PASS inventory15 default CLOSED; raw tables not exposed
+PASS S07 closed child release repeat is no-op
+PASS S07 active child release repeat is no-op
+PASS t01
+PASS t02
+PASS t03
+PASS t04
+PASS t05
+PASS t06
+PASS t07
+PASS t08
+PASS t09
+PASS t10
+PASS t11
+PASS t12
+PASS t13
+PASS t14
+PASS t15
+PASS t16
+PASS t17
+PASS t18
+PASS t19
+PASS t20
+PASS t21
+PASS t22
+PASS t23
+PASS t24
+PASS t25
+PASS t26
+PASS t27
+PASS t28
+PASS t29
+PASS t30
+PASS t31
+PASS t32
+PASS t33
+PASS t34
+PASS admin creates item with zero stock
+PASS location register/rename uses version; assistant cannot manage
+PASS teacher edits metadata
+PASS assistant cannot edit metadata
+PASS cross school item lookup denied
+PASS receive increases stock and30day inclusive boundary
+PASS assistant default receive denied
+PASS explicit own use permission decreases stock
+PASS negative stock denied
+PASS assistant adjust/dispose forbidden
+PASS request_id replay applies once
+PASS request_id changed payload rejected
+PASS stale expected_version rejected
+PASS concurrent actual connections cannot overdraw
+PASS expired use rejected
+PASS no-expiry lot and separate quantities
+PASS expired excluded from usable; holding includes all
+PASS adjust/dispose append history and low stock uses usable count
+PASS unusable lot excluded and use forbidden
+PASS different school lot movement denied
+PASS pending/expired denied 5
+PASS pending/expired denied 8
+PASS live suspension rejects previous session
+PASS all quantity transactions have atomic audit entries
+PASS audit failure rolls back lot/movement/receipt
+PASS raw tables and movement delete denied
+PASS privacy rejected before any persistent receipt
+PASS Seoul dates: expiry today/30 inclusive,31 excluded, yesterday expired
+PASS explicit own receive works; deny override wins over allow
+PASS valid school B item cannot reference school A lot
+PASS SCHOOL06 replay fails closed on intentional extension, originals preserved
+PASS LOCAL POSTGREST signed teacher inventories actual SQL
+PASS LOCAL POSTGREST anonymous inventory denied
+PASS LOCAL POSTGREST expired JWT inventory denied
+PASS LOCAL POSTGREST assistant read, direct manage RPC forbidden
+PASS LOCAL POSTGREST school A-only user cannot fetch school B inventory
+PASS LOCAL POSTGREST raw inventory tables absent
+PASS LOCAL POSTGREST private dispatch function not a resource
+DB PASS 42
+PASS teacher creates item through product menu/BFF/local RPC
+PASS receive commits lot and refreshes server quantity
+PASS desktop-980x700
+PASS desktop-900x680
+PASS delegated assistant uses own quantity and has no metadata/adjust controls
+PASS mobile-390
+PASS mobile-320
+PASS network failure preserves prior amount and shows no saved success
+PASS actual P0 Dashboard/Dock product entry -> inventory, Preload MOCK to local BFF
+PASS actual Electron product renderer 980x700 in Chromium, Preload MOCK
+PASS actual Electron product renderer 900x680 in Chromium, Preload MOCK
+PASS actual product returns to personal Dashboard without modifying local inventory
+PASS inventory BFF blocks Origin/CSRF forgery
+PASS account switch clears inventory view
+PASS logout clears shared inventory
+PASS all four inventory tables FORCE RLS, owner differs from runtime
+PASS child ledger cannot be rewritten by runtime or authenticated
+PASS combined release replay after full old/new suites remains no-op
+PASS inventory close disables new authenticated execution without deleting data
+PASS normal close repeat/reopen is controlled and preserves data
+PASS public inventory wrapper drift is detected by child fingerprint
+PASS activation refuses drift instead of blessing new metadata
+PASS emergency close marks unverified and retains history

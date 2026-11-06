@@ -1,0 +1,218 @@
+[
+  {
+    "public_signature": "ws_c_membership_status(uuid)",
+    "private_signature": "workspace_private.c_membership_status(uuid)"
+  },
+  {
+    "public_signature": "ws_s02_admin(uuid)",
+    "private_signature": "workspace_private.s02_admin(uuid)"
+  },
+  {
+    "public_signature": "ws_s02_directory(text,text)",
+    "private_signature": "workspace_private.s02_directory(text,text)"
+  },
+  {
+    "public_signature": "ws_s02_expiry(uuid,uuid,timestamp with time zone,bigint,uuid)",
+    "private_signature": "workspace_private.s02_expiry(uuid,uuid,timestamp with time zone,bigint,uuid)"
+  },
+  {
+    "public_signature": "ws_s02_self()",
+    "private_signature": "workspace_private.s02_self()"
+  },
+  {
+    "public_signature": "ws_s02_space(uuid,uuid)",
+    "private_signature": "workspace_private.s02_space(uuid,uuid)"
+  },
+  {
+    "public_signature": "ws_s02_transfers(uuid)",
+    "private_signature": "workspace_private.s02_transfers(uuid)"
+  },
+  {
+    "public_signature": "ws_s02_withdraw(uuid,uuid,bigint,uuid)",
+    "private_signature": "workspace_private.s02_withdraw(uuid,uuid,bigint,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_accept_admin_change(uuid,uuid,bigint,uuid)",
+    "private_signature": "workspace_private.accept_admin_change(uuid,uuid,bigint,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_ack_handover(uuid,uuid,uuid,bigint,uuid)",
+    "private_signature": "workspace_private.s04_note_ack(uuid,uuid,uuid,bigint,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_adjust_inventory(uuid,jsonb,bigint,uuid)",
+    "private_signature": "workspace_private.s07_adjust_inventory(uuid,jsonb,bigint,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_assign_task(uuid,uuid,uuid[],bigint,uuid)",
+    "private_signature": "workspace_private.s03_reassign(uuid,uuid,uuid[],bigint,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_bootstrap()",
+    "private_signature": "workspace_private.bootstrap()"
+  },
+  {
+    "public_signature": "ws_v1_cancel_event(uuid,uuid,bigint,uuid)",
+    "private_signature": "workspace_private.s04_event_cancel(uuid,uuid,bigint,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_change_assigned_task_status(uuid,uuid,text,bigint,uuid)",
+    "private_signature": "workspace_private.s03_status(uuid,uuid,text,bigint,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_close_task(uuid,uuid,text,bigint,uuid)",
+    "private_signature": "workspace_private.s03_close(uuid,uuid,text,bigint,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_complete_handover(uuid,uuid,boolean,bigint,uuid)",
+    "private_signature": "workspace_private.s04_note_complete(uuid,uuid,boolean,bigint,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_create_handover(uuid,text,text,uuid[],text[],bigint,uuid)",
+    "private_signature": "workspace_private.s04_note_create(uuid,text,text,uuid[],text[],bigint,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_create_inventory_item(uuid,jsonb,bigint,uuid)",
+    "private_signature": "workspace_private.s07_create_inventory_item(uuid,jsonb,bigint,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_create_task(uuid,text,text,text,date,uuid[],uuid)",
+    "private_signature": "workspace_private.s03_create(uuid,text,text,text,date,uuid[],uuid)"
+  },
+  {
+    "public_signature": "ws_v1_decide_join(uuid,uuid,text,text,timestamp with time zone,bigint,uuid)",
+    "private_signature": "workspace_private.decide_join(uuid,uuid,text,text,timestamp with time zone,bigint,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_dispose_inventory(uuid,jsonb,bigint,uuid)",
+    "private_signature": "workspace_private.s07_dispose_inventory(uuid,jsonb,bigint,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_edit_handover(uuid,uuid,text,text,uuid[],text[],bigint,uuid)",
+    "private_signature": "workspace_private.s04_note_edit(uuid,uuid,text,text,uuid[],text[],bigint,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_edit_inventory_item(uuid,jsonb,bigint,uuid)",
+    "private_signature": "workspace_private.s07_edit_inventory_item(uuid,jsonb,bigint,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_edit_task(uuid,uuid,text,text,text,date,bigint,uuid)",
+    "private_signature": "workspace_private.s03_edit(uuid,uuid,text,text,text,date,bigint,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_get_activity_context(uuid)",
+    "private_signature": "workspace_private.s04_context(uuid)"
+  },
+  {
+    "public_signature": "ws_v1_get_context(uuid)",
+    "private_signature": "workspace_private.get_context(uuid)"
+  },
+  {
+    "public_signature": "ws_v1_get_event(uuid,uuid)",
+    "private_signature": "workspace_private.s04_event_get(uuid,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_get_handover(uuid,uuid)",
+    "private_signature": "workspace_private.s04_note_get(uuid,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_get_inventory_context(uuid,jsonb)",
+    "private_signature": "workspace_private.s07_get_inventory_context(uuid,jsonb)"
+  },
+  {
+    "public_signature": "ws_v1_get_inventory_item(uuid,jsonb)",
+    "private_signature": "workspace_private.s07_get_inventory_item(uuid,jsonb)"
+  },
+  {
+    "public_signature": "ws_v1_get_task(uuid,uuid)",
+    "private_signature": "workspace_private.s03_get(uuid,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_leave_school(uuid,bigint,uuid)",
+    "private_signature": "workspace_private.leave_school(uuid,bigint,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_list_event_history(uuid,uuid)",
+    "private_signature": "workspace_private.s04_event_history(uuid,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_list_events(uuid,timestamp with time zone,timestamp with time zone)",
+    "private_signature": "workspace_private.s04_event_list(uuid,timestamp with time zone,timestamp with time zone)"
+  },
+  {
+    "public_signature": "ws_v1_list_handover_history(uuid,uuid)",
+    "private_signature": "workspace_private.s04_note_history(uuid,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_list_handovers(uuid)",
+    "private_signature": "workspace_private.s04_note_list(uuid)"
+  },
+  {
+    "public_signature": "ws_v1_list_inventory_alerts(uuid,jsonb)",
+    "private_signature": "workspace_private.s07_list_inventory_alerts(uuid,jsonb)"
+  },
+  {
+    "public_signature": "ws_v1_list_inventory_items(uuid,jsonb)",
+    "private_signature": "workspace_private.s07_list_inventory_items(uuid,jsonb)"
+  },
+  {
+    "public_signature": "ws_v1_list_inventory_locations(uuid,jsonb)",
+    "private_signature": "workspace_private.s07_list_inventory_locations(uuid,jsonb)"
+  },
+  {
+    "public_signature": "ws_v1_list_inventory_lots(uuid,jsonb)",
+    "private_signature": "workspace_private.s07_list_inventory_lots(uuid,jsonb)"
+  },
+  {
+    "public_signature": "ws_v1_list_inventory_movements(uuid,jsonb)",
+    "private_signature": "workspace_private.s07_list_inventory_movements(uuid,jsonb)"
+  },
+  {
+    "public_signature": "ws_v1_list_task_history(uuid,uuid)",
+    "private_signature": "workspace_private.s03_history(uuid,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_list_tasks(uuid,text,text,text,boolean)",
+    "private_signature": "workspace_private.s03_list(uuid,text,text,text,boolean)"
+  },
+  {
+    "public_signature": "ws_v1_propose_admin_change(uuid,uuid,text,uuid)",
+    "private_signature": "workspace_private.propose_admin_change(uuid,uuid,text,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_receive_inventory(uuid,jsonb,bigint,uuid)",
+    "private_signature": "workspace_private.s07_receive_inventory(uuid,jsonb,bigint,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_request_join(uuid,text,uuid)",
+    "private_signature": "workspace_private.s02_request_join(uuid,text,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_revoke_current_session(uuid)",
+    "private_signature": "workspace_private.revoke_current_session(uuid)"
+  },
+  {
+    "public_signature": "ws_v1_save_event(uuid,uuid,text,text,timestamp with time zone,timestamp with time zone,boolean,bigint,uuid)",
+    "private_signature": "workspace_private.s04_event_save(uuid,uuid,text,text,timestamp with time zone,timestamp with time zone,boolean,bigint,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_save_inventory_location(uuid,jsonb,bigint,uuid)",
+    "private_signature": "workspace_private.s07_save_inventory_location(uuid,jsonb,bigint,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_set_inventory_lot_state(uuid,jsonb,bigint,uuid)",
+    "private_signature": "workspace_private.s07_set_inventory_lot_state(uuid,jsonb,bigint,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_set_member_role(uuid,uuid,text,bigint,uuid)",
+    "private_signature": "workspace_private.set_member_role(uuid,uuid,text,bigint,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_set_membership_state(uuid,uuid,text,bigint,uuid)",
+    "private_signature": "workspace_private.set_membership_state(uuid,uuid,text,bigint,uuid)"
+  },
+  {
+    "public_signature": "ws_v1_use_inventory(uuid,jsonb,bigint,uuid)",
+    "private_signature": "workspace_private.s07_use_inventory(uuid,jsonb,bigint,uuid)"
+  }
+]

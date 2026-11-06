@@ -1,0 +1,16 @@
+-- Read-only post-install metadata; no Auth rows or credentials.
+SELECT current_user,current_database(),current_setting('server_version')AS version;
+SELECT count(*)AS public_rpc_count,bool_and(NOT has_function_privilege('anon',p.oid,'EXECUTE')AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE'))AS public_closed FROM pg_proc p WHERE p.pronamespace='public'::regnamespace AND left(p.proname,3)='ws_';
+SELECT pg_get_userbyid(p.proowner)AS owner,p.prosecdef,p.proconfig,p.proname,p.pronargs,pg_get_function_result(p.oid)AS result,p.proacl FROM pg_proc p WHERE p.pronamespace='workspace_auth_bridge'::regnamespace;
+SELECT rolname,rolsuper,rolbypassrls,rolcanlogin,has_schema_privilege(oid,'auth','USAGE')AS auth_usage,has_any_column_privilege(oid,'auth.sessions','SELECT')AS auth_select FROM pg_roles WHERE rolname IN('ws_owner','ws_runtime','ws_authz_reader','ws_bootstrap_executor','ws_bootstrap_operator');
+SELECT n.nspname,c.relname,pg_get_userbyid(c.relowner)AS owner,c.relrowsecurity,c.relforcerowsecurity,c.relacl FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN('workspace','workspace_private','workspace_bootstrap')AND c.relkind='r';
+SELECT conrelid::regclass AS table_name,conname,pg_get_constraintdef(oid)AS definition FROM pg_constraint WHERE connamespace IN('workspace'::regnamespace,'workspace_private'::regnamespace,'workspace_bootstrap'::regnamespace)ORDER BY conrelid::regclass::text,conname;
+SELECT p.proname,pg_get_function_identity_arguments(p.oid)AS arguments,pg_get_function_result(p.oid)AS result,pg_get_userbyid(p.proowner)AS owner,p.prosecdef,p.proconfig FROM pg_proc p WHERE p.pronamespace='public'::regnamespace AND left(p.proname,3)='ws_'ORDER BY p.proname;
+-- Full object inventory, metadata only. No application/Auth row values.
+SELECT jsonb_build_object(
+ 'schemas',(SELECT jsonb_agg(jsonb_build_object('name',nspname,'owner',pg_get_userbyid(nspowner),'acl',nspacl::text)ORDER BY nspname)FROM pg_namespace WHERE nspname IN('workspace','workspace_private','workspace_auth_bridge','workspace_bootstrap')),
+ 'tables',(SELECT jsonb_agg(jsonb_build_object('schema',n.nspname,'name',c.relname,'owner',pg_get_userbyid(c.relowner),'rls',c.relrowsecurity,'force',c.relforcerowsecurity,'acl',c.relacl::text)ORDER BY n.nspname,c.relname)FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN('workspace','workspace_private','workspace_bootstrap')AND c.relkind='r'),
+ 'indexes',(SELECT jsonb_agg(jsonb_build_object('schema',schemaname,'table',tablename,'name',indexname,'definition',indexdef)ORDER BY schemaname,indexname)FROM pg_indexes WHERE schemaname IN('workspace','workspace_private','workspace_bootstrap')),
+ 'constraints',(SELECT jsonb_agg(jsonb_build_object('table',conrelid::regclass::text,'name',conname,'definition',pg_get_constraintdef(oid))ORDER BY conrelid::regclass::text,conname)FROM pg_constraint WHERE connamespace IN('workspace'::regnamespace,'workspace_private'::regnamespace,'workspace_bootstrap'::regnamespace)),
+ 'policies',(SELECT jsonb_agg(jsonb_build_object('schema',schemaname,'table',tablename,'name',policyname,'roles',roles,'command',cmd,'using',qual,'check',with_check)ORDER BY schemaname,tablename,policyname)FROM pg_policies WHERE schemaname IN('workspace','workspace_private','workspace_bootstrap'))
+);

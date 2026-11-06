@@ -1,0 +1,91 @@
+PASS SCHOOL06 initial39 RPCs remain CLOSED
+PASS inventory15 default CLOSED; raw tables not exposed
+PASS S07 closed child release repeat is no-op
+PASS S07 active child release repeat is no-op
+PASS t01
+PASS t02
+PASS t03
+PASS t04
+PASS t05
+PASS t06
+PASS t07
+PASS t08
+PASS t09
+PASS t10
+PASS t11
+PASS t12
+PASS t13
+PASS t14
+PASS t15
+PASS t16
+PASS t17
+PASS t18
+PASS t19
+PASS t20
+PASS t21
+PASS t22
+PASS t23
+PASS t24
+PASS t25
+PASS t26
+PASS t27
+PASS t28
+PASS t29
+PASS t30
+PASS t31
+PASS t32
+PASS t33
+PASS t34
+PASS admin creates item with zero stock
+PASS teacher edits metadata
+PASS assistant cannot edit metadata
+PASS cross school item lookup denied
+PASS receive increases stock and30day inclusive boundary
+PASS assistant default receive denied
+PASS explicit own use permission decreases stock
+PASS negative stock denied
+PASS assistant adjust/dispose forbidden
+PASS request_id replay applies once
+PASS request_id changed payload rejected
+PASS stale expected_version rejected
+PASS concurrent actual connections cannot overdraw
+PASS expired use rejected
+PASS no-expiry lot and separate quantities
+PASS expired excluded from usable; holding includes all
+PASS adjust/dispose append history and low stock uses usable count
+PASS unusable lot excluded and use forbidden
+PASS different school lot movement denied
+PASS pending/expired denied 5
+PASS pending/expired denied 8
+PASS live suspension rejects previous session
+PASS all quantity transactions have atomic audit entries
+PASS audit failure rolls back lot/movement/receipt
+PASS raw tables and movement delete denied
+PASS privacy rejected before any persistent receipt
+PASS Seoul dates: expiry today/30 inclusive,31 excluded, yesterday expired
+PASS explicit own receive works; deny override wins over allow
+PASS valid school B item cannot reference school A lot
+PASS SCHOOL06 replay fails closed on intentional extension, originals preserved
+PASS LOCAL POSTGREST signed teacher inventories actual SQL
+PASS LOCAL POSTGREST anonymous inventory denied
+PASS LOCAL POSTGREST expired JWT inventory denied
+PASS LOCAL POSTGREST assistant read, direct manage RPC forbidden
+FAIL LOCAL POSTGREST school A user cannot fetch school B inventory (200, "[{'unit': '개', 'active': True, 'is_low': False, 'item_id': 'e500643b-4045-4e58-aae0-2b280cf2d6eb', 'version': 1, 'category': '', 'item_name': '학교 B 소모품', 'school_id': '10000000-0000-0000-0000-000000000002', 'created_at': '2026-11-05T12:06:05.923281+00:00', 'created_by': '20000000-0000-0000-0000-0000")
+Traceback (most recent call last):
+  File "/workspace/work/school-07/repo/school-workspace/school07/tests/run.py", line 125, in <module>
+    if __name__=='__main__':main()
+                            ^^^^^^
+  File "/workspace/work/school-07/repo/school-workspace/school07/tests/run.py", line 121, in main
+    runpy.run_path(str(R/'tests/postgrest.py'))['run'](sql,case,R,D,NAME,ENV)
+  File "/workspace/work/school-07/repo/school-workspace/school07/tests/postgrest.py", line 46, in run
+    case('LOCAL POSTGREST school A user cannot fetch school B inventory',lambda:expect_status(request(name,{**body,'p_school_id':B},token(3)),[400,403]))
+  File "/workspace/work/school-07/repo/school-workspace/school07/tests/run.py", line 22, in case
+    try:fn();results.append({'name':n,'status':'PASS','classification':'LOCAL POSTGREST'if n.startswith('LOCAL POSTGREST')else'LOCAL DB'});print('PASS',n,flush=True)
+        ^^^^
+  File "/workspace/work/school-07/repo/school-workspace/school07/tests/postgrest.py", line 46, in <lambda>
+    case('LOCAL POSTGREST school A user cannot fetch school B inventory',lambda:expect_status(request(name,{**body,'p_school_id':B},token(3)),[400,403]))
+                                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/school-07/repo/school-workspace/school07/tests/postgrest.py", line 40, in expect_status
+    def expect_status(actual,status):assert actual[0]in status,(actual[0],str(actual[1])[:300])
+                                            ^^^^^^^^^^^^^^^^^^
+AssertionError: (200, "[{'unit': '개', 'active': True, 'is_low': False, 'item_id': 'e500643b-4045-4e58-aae0-2b280cf2d6eb', 'version': 1, 'category': '', 'item_name': '학교 B 소모품', 'school_id': '10000000-0000-0000-0000-000000000002', 'created_at': '2026-11-05T12:06:05.923281+00:00', 'created_by': '20000000-0000-0000-0000-0000")

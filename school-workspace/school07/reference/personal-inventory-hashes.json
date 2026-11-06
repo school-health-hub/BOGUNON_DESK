@@ -1,0 +1,17 @@
+{
+  "electron-p0/inventory-qa-protocol.ts": "532d7508d21efcc9aeb7433408df5612052527a1d38b72a0b85a082a6fcacab5",
+  "electron-p0/main/inventory-connection/contracts.ts": "a61a38968a47abd218d6eca1e9d2ef67cba1f5553e9599a4330063d73a15671a",
+  "electron-p0/main/inventory-connection/electron.ts": "2ed8079e7b0c1e4d4165d58649b44404e550e178f8394e7cd74adfcb7b1fc6ad",
+  "electron-p0/main/inventory-connection/localQa.ts": "8ef84644b47694460ccb95212091089a34ee45173fbf481ad44877441e0737f0",
+  "electron-p0/main/inventory-connection/responses.ts": "ccaa1a4799fc9efbde1132807ede4febb21e53242756d941b5f5d2a605eeaebb",
+  "electron-p0/main/inventory-connection/transport.ts": "b24af843de003aad807ad803147c52e0365f15fc3aba8278ebdfd4846b04c972",
+  "electron-p0/main/inventory-connection/validation.ts": "da8d7c5d648fec7d730bca1061060caeaea458a14370e9d2439481a5a2750432",
+  "electron-p0/main/inventory-env.d.ts": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
+  "electron-p0/main/inventory-local-qa.ts": "691e0d29cda334bbe5e696f61ec509284578a42b051d7927796d8481d9b765d8",
+  "electron-p0/main/inventory-qa-service.ts": "e13f3801e8bc10061acd68a2dc289edccb815e2b1ddc3495f5fd0046936ebb40",
+  "electron-p0/main/inventory-qa-transport.ts": "e2fba4a65fccca8ae16a2f1b48d176ebd13de32bdd251454fde2ea6ed318bb2f",
+  "electron-p0/main/inventory-store.ts": "4e0138619b4d9ede17751a40cd359416274eae6e03cb8f86a50e01ccb3b7bcf2",
+  "src/inventory-management/InventoryWorkspace.tsx": "692162fbc27ae4958226827852c4fd8883b779a0b5b0d19b5e9e8a03c2c2abb7",
+  "src/inventory-management/inventory.css": "1983bd6f7132da949cb72b9317977b2b5b84720edc53a1eca8e51b48b6b27aae",
+  "src/inventory-management/model.ts": "0c013e86ef8be55832b257261631a39776e19f1460180ea8c935746afe331fda"
+}

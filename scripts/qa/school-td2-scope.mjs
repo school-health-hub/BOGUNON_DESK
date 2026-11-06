@@ -1,0 +1,12 @@
+import {execFileSync} from 'node:child_process';
+import {readFile,writeFile} from 'node:fs/promises';
+import {join} from 'node:path';
+const base='15b2c6d2e92d40da7614dadcdcbc1c984c2f2f88';
+const protectedPaths=['electron-p0/renderer/P0App.tsx','electron-p0/renderer/main.tsx','electron-p0/renderer/td2-desktop.css','electron-p0/renderer/td2-desktop-v2.css','electron-p0/renderer/td2-desktop-b.css','electron-p0/renderer/QuickMemoSurface.tsx','electron-p0/renderer/quick-memo-surface.css','electron-p0/renderer/SurfaceDialog.tsx','school-workspace/instructors','src','src-tauri','tools','package.json','package-lock.json'];
+execFileSync('git',['diff','--exit-code',base,'HEAD','--',...protectedPaths],{stdio:'inherit'});
+const rpcs=JSON.parse(await readFile('school-workspace/school08/reference/sql-provenance.json','utf8')).public_rpc_names;
+if(rpcs.length!==54||rpcs.some(n=>n.includes('instructor')))throw Error('54 + separate Instructor contract changed');
+const sourceSha=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
+const result={sourceSha,base,protectedPathsUnchanged:true,workspaceRpcCount:54,instructorRpcCount:2,instructorInstall:'local synthetic extension only; excluded from D0 Hosted candidate',hosted:'NOT RUN',portableBuilt:false};
+if(process.env.TD2_EVIDENCE_ROOT)await writeFile(join(process.env.TD2_EVIDENCE_ROOT,'candidate-scope.json'),JSON.stringify(result,null,2));
+console.log('PASS protected TD2/Instructor/personal source, 54 + 2 boundary');

@@ -1,0 +1,83 @@
+{
+  "checks": [
+    {
+      "name": "teacher creates item through product menu/BFF/local RPC",
+      "status": "PASS",
+      "classification": "BROWSER Chromium + LOCAL DB + BFF, Auth MOCK"
+    },
+    {
+      "name": "receive commits lot and refreshes server quantity",
+      "status": "PASS",
+      "classification": "BROWSER Chromium + LOCAL DB + BFF, Auth MOCK"
+    },
+    {
+      "name": "desktop-980x700",
+      "status": "PASS",
+      "classification": "BROWSER Chromium + LOCAL DB + BFF, Auth MOCK"
+    },
+    {
+      "name": "desktop-900x680",
+      "status": "PASS",
+      "classification": "BROWSER Chromium + LOCAL DB + BFF, Auth MOCK"
+    },
+    {
+      "name": "delegated assistant uses own quantity and has no metadata/adjust controls",
+      "status": "PASS",
+      "classification": "BROWSER Chromium + LOCAL DB + BFF, Auth MOCK"
+    },
+    {
+      "name": "mobile-390",
+      "status": "PASS",
+      "classification": "BROWSER Chromium + LOCAL DB + BFF, Auth MOCK"
+    },
+    {
+      "name": "mobile-320",
+      "status": "PASS",
+      "classification": "BROWSER Chromium + LOCAL DB + BFF, Auth MOCK"
+    },
+    {
+      "name": "network failure preserves prior amount and shows no saved success",
+      "status": "PASS",
+      "classification": "BROWSER Chromium + LOCAL DB + BFF, Auth MOCK"
+    },
+    {
+      "name": "actual P0 Dashboard/Dock product entry -> inventory, Preload MOCK to local BFF",
+      "status": "PASS",
+      "classification": "BROWSER Chromium + LOCAL DB + BFF, Auth MOCK"
+    },
+    {
+      "name": "actual Electron product renderer 980x700 in Chromium, Preload MOCK",
+      "status": "PASS",
+      "classification": "BROWSER Chromium + LOCAL DB + BFF, Auth MOCK"
+    },
+    {
+      "name": "actual Electron product renderer 900x680 in Chromium, Preload MOCK",
+      "status": "PASS",
+      "classification": "BROWSER Chromium + LOCAL DB + BFF, Auth MOCK"
+    },
+    {
+      "name": "actual product returns to personal Dashboard without modifying local inventory",
+      "status": "PASS",
+      "classification": "BROWSER Chromium + LOCAL DB + BFF, Auth MOCK"
+    },
+    {
+      "name": "inventory BFF blocks Origin/CSRF forgery",
+      "status": "PASS",
+      "classification": "BROWSER Chromium + LOCAL DB + BFF, Auth MOCK"
+    },
+    {
+      "name": "account switch clears inventory view",
+      "status": "PASS",
+      "classification": "BROWSER Chromium + LOCAL DB + BFF, Auth MOCK"
+    },
+    {
+      "name": "logout clears shared inventory",
+      "status": "PASS",
+      "classification": "BROWSER Chromium + LOCAL DB + BFF, Auth MOCK"
+    }
+  ],
+  "pass": 15,
+  "fail": 0,
+  "windowsReal": "NOT RUN",
+  "hosted": "NOT RUN"
+}

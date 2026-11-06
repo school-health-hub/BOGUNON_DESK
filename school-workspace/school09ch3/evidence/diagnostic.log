@@ -1,0 +1,15 @@
+PASS installer NOSUPERUSER cannot SET Auth owner or CREATE in auth
+FAIL mid-install forced failure rolls back schemas roles and default privileges ('division by zero', 'ERROR:  ADMIN option cannot be granted back to your own grantor\n')
+Traceback (most recent call last):
+  File "/workspace/work/school-09ch3/repo/school-workspace/school09ch3/tests/run.py", line 31, in <module>
+    case('mid-install forced failure rolls back schemas roles and default privileges',lambda:(deny(run_file('postgres','01-fresh-local.sql',False,lambda s:s.replace('EXECUTE $business$','SELECT 1/0;EXECUTE $business$',1)),'division by zero'),check(scalar("SELECT to_regnamespace('workspace')IS NULL AND NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname LIKE 'ws_%')")=='t'),check(auth_hash()==auth_before)))
+  File "/workspace/work/school-09ch3/repo/school-workspace/school09ch3/tests/run.py", line 12, in case
+    try:fn();results.append({'name':n,'status':'PASS','classification':'LOCAL POSTGREST'if n.startswith('HTTP')else'MOCK'if n.startswith('MOCK')else'LOCAL DB'});print('PASS',n,flush=True)
+        ^^^^
+  File "/workspace/work/school-09ch3/repo/school-workspace/school09ch3/tests/run.py", line 31, in <lambda>
+    case('mid-install forced failure rolls back schemas roles and default privileges',lambda:(deny(run_file('postgres','01-fresh-local.sql',False,lambda s:s.replace('EXECUTE $business$','SELECT 1/0;EXECUTE $business$',1)),'division by zero'),check(scalar("SELECT to_regnamespace('workspace')IS NULL AND NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname LIKE 'ws_%')")=='t'),check(auth_hash()==auth_before)))
+                                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/school-09ch3/repo/school-workspace/school09ch3/tests/run.py", line 18, in deny
+    def deny(p,marker):assert p.returncode and marker in p.stderr,(marker,p.stderr[-1000:])
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('division by zero', 'ERROR:  ADMIN option cannot be granted back to your own grantor\n')

@@ -1,0 +1,201 @@
+{
+  "checks": [
+    {
+      "name": "workspace installer cannot SET Auth owner; provider cannot SET Workspace owners",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "both actual installer LOGINs are NOSUPERUSER NOBYPASSRLS NOINHERIT",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "no Auth authority fails provider phase before DDL",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "workspace phase without provider bridge fails CLOSED",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "provider transaction error leaks no schema or new rights",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "pre-existing public wrapper setting drift cannot be adopted",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "client role membership escalation cannot be adopted",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "Auth-owned provider phase installs without Workspace role SET",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "provider phase preserves54 CLOSED and removes reader raw Auth SELECT",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "provider retry verifies identical bridge without rewriting it",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "mid-binding CREATE grant failure is rolled back before commit",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "binding failure keeps committed provider but rolls back all Workspace changes",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "Workspace binding succeeds without any Auth owner SET capability",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "unexpected helper EXECUTE is removed at binding boundary",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "all54 signatures and public bodies owners unchanged",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "closed binder replay is verified no-op",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "QA activation grants via each actual function owner, no bypass",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "active binding replay preserves exact release fingerprint",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "Auth bridge remains private, reader CREATE absent, raw tables inaccessible",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "MOCK failed REST startup never exposes signing material in traceback",
+      "status": "PASS",
+      "classification": "MOCK"
+    },
+    {
+      "name": "HTTP approved teacher public\u2192private\u2192reader\u2192Auth owner chain",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP anon and expired signed JWT denied",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP pending and other-school user denied",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP teacher write traverses unchanged business RPC",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP live role downgrade blocks old JWT teacher write",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP live membership suspension blocks next request",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP two distinct sessions for same subject both initially valid",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP current revoked session denied while other session remains valid",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP current session not_after expiry overrides valid JWT signature",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP purpose revocation RPC records current session",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP app-revoked session denied with Auth row still present",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP mismatched sub/session binding and forged Auth role denied",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP private/raw endpoints are not resources",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP all54 CLOSED deny both anon/authenticated (108 requests,one grouped case)",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "HTTP closure retains existing task data",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "closing/replaying/reopening preserves release coherence",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "existing public contract remains unchanged after lifecycle",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "bridge drift rejects provider replay, bind and activation",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "emergency closure on drift retains data and marks unverified",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    }
+  ],
+  "hosted": "NOT RUN",
+  "old177_23_26": "REFERENCED not rerun"
+}

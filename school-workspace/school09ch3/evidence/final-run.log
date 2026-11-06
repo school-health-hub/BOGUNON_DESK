@@ -1,0 +1,179 @@
+PASS installer NOSUPERUSER cannot SET Auth owner or CREATE in auth
+PASS mid-install forced failure rolls back schemas roles and default privileges
+PASS late installation failure rolls back business schemas roles and permissions
+PASS fresh full S01-S07 business installation without Auth role grants
+PASS all54 public RPC default CLOSED
+PASS managed Auth objects and ACL byte fingerprints unchanged
+PASS existing public objects and personal rows unchanged
+PASS no Workspace role has Auth USAGE or table or column SELECT
+PASS all Workspace tables FORCE RLS with nonbypass owner
+PASS no temporary seed policy or reader/runtime schema CREATE remains
+PASS all54 public signatures bodies owners and security flags unchanged
+PASS only two parameterless postgres-owned session booleans, private EXECUTE reader only
+PASS no permanent Workspace function owned by postgres outside boolean boundary
+PASS temporary NOBYPASS installer is removed completely
+PASS direct bridge SELECT and arbitrary UUID oracle denied anon
+PASS direct bridge SELECT and arbitrary UUID oracle denied authenticated
+PASS direct bridge SELECT and arbitrary UUID oracle denied ws_owner
+PASS direct bridge SELECT and arbitrary UUID oracle denied ws_runtime
+PASS full installer replay is checked no-op
+PASS explicit isolated QA activation
+PASS REGRESSION S01 t01
+PASS REGRESSION S01 t02
+PASS REGRESSION S01 t03
+PASS REGRESSION S01 t04
+PASS REGRESSION S01 t05
+PASS REGRESSION S01 t06
+PASS REGRESSION S01 t07
+PASS REGRESSION S01 t08
+PASS REGRESSION S01 t09
+PASS REGRESSION S01 t10
+PASS REGRESSION S01 t11
+PASS REGRESSION S01 t12
+PASS REGRESSION S01 t13
+PASS REGRESSION S01 t14
+PASS REGRESSION S01 t15
+PASS REGRESSION S01 t16
+PASS REGRESSION S01 t17
+PASS REGRESSION S01 t18
+PASS REGRESSION S01 t19
+PASS REGRESSION S01 t20
+PASS REGRESSION S01 t21
+PASS REGRESSION S01 t22
+PASS REGRESSION S01 t23
+PASS REGRESSION S01 t24
+PASS REGRESSION S01 t25
+PASS REGRESSION S01 t26
+PASS REGRESSION S01 t27
+PASS REGRESSION S01 t28
+PASS REGRESSION S01 t29
+PASS REGRESSION S01 t30
+PASS REGRESSION S01 t31
+PASS REGRESSION S01 t32
+PASS REGRESSION S01 t33
+PASS REGRESSION S01 t34
+PASS REGRESSION Inventory admin creates item with zero stock
+PASS REGRESSION Inventory inactive create is honored and archived holding never appears usable
+PASS REGRESSION Inventory location register/rename uses version; assistant cannot manage
+PASS REGRESSION Inventory teacher edits metadata
+PASS REGRESSION Inventory assistant cannot edit metadata
+PASS REGRESSION Inventory cross school item lookup denied
+PASS REGRESSION Inventory receive increases stock and30day inclusive boundary
+PASS REGRESSION Inventory assistant default receive denied
+PASS REGRESSION Inventory explicit own use permission decreases stock
+PASS REGRESSION Inventory negative stock denied
+PASS REGRESSION Inventory assistant adjust/dispose forbidden
+PASS REGRESSION Inventory request_id replay applies once
+PASS REGRESSION Inventory request_id changed payload rejected
+PASS REGRESSION Inventory stale expected_version rejected
+PASS REGRESSION Inventory concurrent actual connections cannot overdraw
+PASS REGRESSION Inventory expired use rejected
+PASS REGRESSION Inventory no-expiry lot and separate quantities
+PASS REGRESSION Inventory expired excluded from usable; holding includes all
+PASS REGRESSION Inventory adjust/dispose append history and low stock uses usable count
+PASS REGRESSION Inventory unusable lot excluded and use forbidden
+PASS REGRESSION Inventory different school lot movement denied
+PASS REGRESSION Inventory pending/expired denied 5
+PASS REGRESSION Inventory pending/expired denied 8
+PASS REGRESSION Inventory live suspension rejects previous session
+PASS REGRESSION Inventory all quantity transactions have atomic audit entries
+PASS REGRESSION Inventory audit failure rolls back lot/movement/receipt
+PASS REGRESSION Inventory raw tables and movement delete denied
+PASS REGRESSION Inventory privacy rejected before any persistent receipt
+PASS REGRESSION Inventory Seoul dates: expiry today/30 inclusive,31 excluded, yesterday expired
+PASS REGRESSION Inventory explicit own receive works; deny override wins over allow
+PASS REGRESSION Inventory valid school B item cannot reference school A lot
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only electron: teacher/assistant requests -> admin approval/rejection -> refreshed role
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only web: teacher/assistant requests -> admin approval/rejection -> refreshed role
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only same-name directory preserves code strings and office disambiguation
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only duplicate join blocked server-side and never becomes active
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only assistant approval requires future expiry; teacher admin role is not a join choice
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only withdraw pending -> withdrawn display -> rejoin creates a new epoch
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only opening request is pending only; duplicate request and forged directory rejected
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only self approval denied even with direct public RPC; no cross-school applicant access
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only assistant cannot list admin records, change role, or propose administrator
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only role refresh, expiry mutation and live suspension/revocation all enforced
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only expired assistant is denied and last admin leave/demotion/suspension is blocked
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only administrator add: recent reauth -> propose -> target accept -> server roles
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only administrator transfer: recent reauth -> propose -> target accept -> server roles
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only assistant cannot be proposed for admin and stale member versions do not partially update
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only late school A response cannot replace B; logout and expired session clear all school state
+PASS REGRESSION school02 LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only raw tables, audits, anon RPC and runtime/reader ownership remain protected
+PASS REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted admin/teacher 1 creates with server actor/time and valid same-school multiassignment
+PASS REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted admin/teacher 3 creates with server actor/time and valid same-school multiassignment
+PASS REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted assistant cannot create/edit/assign/close/history even through direct public RPC
+PASS REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted cross-school/pending/expired/inactive assignees are rejected and create rolls back
+PASS REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted assigned assistant TODO -> IN_PROGRESS -> DONE only; other assistant denied
+PASS REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted teachers complete/cancel/archive; archived records stay school-owned and hidden by default
+PASS REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted server due/priority sorting and my/today scopes
+PASS REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted school isolation, pending/expired/suspended and revoked sessions deny new reads
+PASS REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted optimistic concurrency permits one edit only and has no partial loser history
+PASS REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted request id replay deduplicates, different payload conflicts, receipts have hashes not prose
+PASS REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted blocked synthetic sensitive markers/long input leave no task/audit/history/receipt
+PASS REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted audit failure atomically rolls back task/assignment/history/receipt
+PASS REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted raw tables/audit/history mutation forbidden, epoch prevents stale assignment restoration
+PASS REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted individual task.read denial and live session expiry override cached approved role
+PASS REGRESSION school03 LOCAL DB shared tasks + actual adapters; MOCK Auth/cipher, no hosted reassignment validates candidates, increments version and records same transaction history
+PASS REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN admin/teacher 1: create edit cancel event with history
+PASS REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN admin/teacher 3: create edit cancel event with history
+PASS REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN assistant read only; other school and pending event access denied
+PASS REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN all-day endpoints at Seoul midnight, timed dates and positive exclusive ranges
+PASS REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN event concurrent version conflict and idempotency prevent double side effects
+PASS REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN direct targets visible only to target/author/admin, not unrelated teacher/assistant or other school
+PASS REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN ack is self-only, duplicate state is unique; completion is separate from acknowledgement
+PASS REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN edit forces new revision/ack; stale replay cannot acknowledge new content
+PASS REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN role targets snapshot at publish; new join/rejoin has no past obligation or old revision access
+PASS REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN assistant default creation/edit/complete denied; explicit create and targeted complete grants stay bounded
+PASS REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN revocation, expiry, suspended and raw table/audit/revision mutations fail closed
+PASS REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN privacy rejection persists nowhere; audit failure rolls back event/revision/target changes
+PASS REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN deny overrides and suspended/live-expired sessions override cached school approval
+PASS REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN direct authenticated SQL cannot bypass expected_version with NULL and roles remain nonowner/NOBYPASSRLS
+PASS REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN focus/manual refresh replaces open detail after edited content and requires fresh ack
+PASS REGRESSION school04 LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN teacher completion requires current target and cross-school target assignment rolls back
+PASS REGRESSION bootstrap school request remains pending and has no admin
+PASS REGRESSION bootstrap applicant cannot self assign admin through existing RPC
+PASS REGRESSION bootstrap applicant cannot call private operator function
+PASS REGRESSION bootstrap operator has no raw table UPDATE
+PASS REGRESSION bootstrap NULL expected_version denied
+PASS REGRESSION bootstrap missing external proof or consent fails
+PASS REGRESSION bootstrap verified operator proposal still cannot activate school
+PASS REGRESSION bootstrap proposal replay is idempotent
+PASS REGRESSION bootstrap request_id payload mismatch denied
+PASS REGRESSION bootstrap proposer cannot approve own case
+PASS REGRESSION bootstrap wrong school case ID denied
+PASS REGRESSION bootstrap mismatched consent evidence denied
+PASS REGRESSION bootstrap expected version required
+PASS REGRESSION bootstrap expired verification cannot activate
+PASS REGRESSION bootstrap operator authority can be revoked immediately
+PASS REGRESSION bootstrap audit failure rolls back all activation
+PASS REGRESSION bootstrap second operator approves, school active with one admin
+PASS REGRESSION bootstrap approval replay cannot duplicate membership/audit
+PASS REGRESSION bootstrap new approval command after completion rejected
+PASS REGRESSION bootstrap cannot seize an existing active school
+PASS REGRESSION bootstrap app administrator cannot modify operator audit
+PASS REGRESSION bootstrap last admin still cannot leave
+PASS REGRESSION bootstrap cannot promote an existing assistant target
+PASS REGRESSION bootstrap ownership and RLS separation remains intact
+PASS REGRESSION bootstrap Hosted supplemental metadata SELECT is executable locally
+PASS MOCK failed REST startup never exposes signing material in traceback
+PASS HTTP approved teacher public→private→reader→limited postgres boolean chain
+PASS HTTP anon and expired signed JWT denied
+PASS HTTP pending and other-school user denied
+PASS HTTP teacher write traverses unchanged business RPC
+PASS HTTP live role downgrade blocks old JWT teacher write
+PASS HTTP live membership suspension blocks next request
+PASS HTTP two distinct sessions for same subject both initially valid
+PASS HTTP current revoked session denied while other session remains valid
+PASS HTTP current session not_after expiry overrides valid JWT signature
+PASS HTTP purpose revocation RPC records current session
+PASS HTTP app-revoked session denied with Auth row still present
+PASS HTTP mismatched sub/session binding and forged Auth role denied
+PASS HTTP private/raw endpoints are not resources
+PASS HTTP all54 CLOSED deny both anon/authenticated (108 requests,one grouped case)
+PASS HTTP closure retains existing task data
+PASS fresh installation and Auth ACL still unchanged after API lifecycle
+PASS manifest row substitution cannot be adopted or activated
+PASS external Auth usage grant is rejected by install and activation guards
+PASS bridge definition drift cannot be adopted or activated
+PASS restored exact reviewed metadata permits checked replay without data deletion
+PASS H3 checks 178 Hosted NOT RUN

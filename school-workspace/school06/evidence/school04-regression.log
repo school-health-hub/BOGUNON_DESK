@@ -1,0 +1,32 @@
+
+ RUN  v5.0.1 /workspace/work/school-06/repo
+
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > admin/teacher 1: create edit cancel event with history 1269ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > admin/teacher 3: create edit cancel event with history 1219ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > assistant read only; other school and pending event access denied 1835ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > all-day endpoints at Seoul midnight, timed dates and positive exclusive ranges 1218ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > event concurrent version conflict and idempotency prevent double side effects 1261ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > direct targets visible only to target/author/admin, not unrelated teacher/assistant or other school 2650ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > ack is self-only, duplicate state is unique; completion is separate from acknowledgement 2003ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > edit forces new revision/ack; stale replay cannot acknowledge new content 1718ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > role targets snapshot at publish; new join/rejoin has no past obligation or old revision access 2476ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > assistant default creation/edit/complete denied; explicit create and targeted complete grants stay bounded 1832ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > revocation, expiry, suspended and raw table/audit/revision mutations fail closed 2105ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > privacy rejection persists nowhere; audit failure rolls back event/revision/target changes 1917ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > deny overrides and suspended/live-expired sessions override cached school approval 1433ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > direct authenticated SQL cannot bypass expected_version with NULL and roles remain nonowner/NOBYPASSRLS 1168ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > focus/manual refresh replaces open detail after edited content and requires fresh ack 5385ms
+ ✓ school-workspace/school04/tests/contracts.test.ts > LOCAL DB04, actual Main/BFF classes; Auth/cipher MOCK, hosted NOT RUN > teacher completion requires current target and cross-school target assignment rolls back 1860ms
+ ✓ school-workspace/school04/tests/ui-db.test.tsx > LOCAL DB + React + actual Electron Main; MOCK IPC/Auth/cipher; WINDOWS REAL NOT RUN > event form -> scoped preload -> Main -> DB, private calendar unchanged and tokens absent 3292ms
+ ✓ school-workspace/school04/tests/ui-db.test.tsx > LOCAL DB + React + actual Electron Main; MOCK IPC/Auth/cipher; WINDOWS REAL NOT RUN > assistant read acknowledgement confirms DB save; network failure never marks read; private calendar still works 5541ms
+ ✓ school-workspace/school04/tests/ui-db.test.tsx > LOCAL DB + React + actual Electron Main; MOCK IPC/Auth/cipher; WINDOWS REAL NOT RUN > delayed school A activities cannot replace B; revoked and expired session clear tasks/events/notes 4826ms
+ ✓ school-workspace/school04/tests/state.test.ts > MOCK network/Renderer only > late school response after logout clear is discarded 18ms
+ ✓ school-workspace/school04/tests/state.test.ts > MOCK network/Renderer only > failed ack never claims success and keeps same request id for explicit retry 2ms
+ ✓ school-workspace/school04/tests/state.test.ts > MOCK network/Renderer only > HTTP401 discards events/notes/tasks and presents denied state 23ms
+
+ Test Files  3 passed (3)
+      Tests  22 passed (22)
+   Start at  11:12:02
+   Duration  47.08s (tests 96%, environment 2%, transform 1%, import 1%)
+
+JSON report written to /workspace/work/school-06/repo/school-workspace/school06/evidence/school04-regression.json

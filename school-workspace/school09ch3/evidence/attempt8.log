@@ -1,0 +1,29 @@
+PASS installer NOSUPERUSER cannot SET Auth owner or CREATE in auth
+PASS mid-install forced failure rolls back schemas roles and default privileges
+PASS fresh full S01-S07 business installation without Auth role grants
+PASS all54 public RPC default CLOSED
+PASS managed Auth objects and ACL byte fingerprints unchanged
+PASS existing public objects and personal rows unchanged
+PASS no Workspace role has Auth USAGE or table or column SELECT
+PASS all Workspace tables FORCE RLS with nonbypass owner
+PASS no temporary seed policy or reader/runtime schema CREATE remains
+PASS full installer replay is checked no-op
+PASS explicit isolated QA activation
+PASS MOCK failed REST startup never exposes signing material in traceback
+PASS HTTP approved teacher public→private→reader→limited postgres boolean chain
+PASS HTTP anon and expired signed JWT denied
+PASS HTTP pending and other-school user denied
+PASS HTTP teacher write traverses unchanged business RPC
+PASS HTTP live role downgrade blocks old JWT teacher write
+PASS HTTP live membership suspension blocks next request
+PASS HTTP two distinct sessions for same subject both initially valid
+PASS HTTP current revoked session denied while other session remains valid
+PASS HTTP current session not_after expiry overrides valid JWT signature
+PASS HTTP purpose revocation RPC records current session
+PASS HTTP app-revoked session denied with Auth row still present
+PASS HTTP mismatched sub/session binding and forged Auth role denied
+PASS HTTP private/raw endpoints are not resources
+PASS HTTP all54 CLOSED deny both anon/authenticated (108 requests,one grouped case)
+PASS HTTP closure retains existing task data
+PASS fresh installation and Auth ACL still unchanged after API lifecycle
+PASS H3 checks 28 Hosted NOT RUN

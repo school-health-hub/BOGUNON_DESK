@@ -1,0 +1,6 @@
+{
+  "resolved_Docker_version_call": "PASS",
+  "fixture_DBA_mapping": "PASS",
+  "authenticated_RPC_identity_unchanged": "PASS",
+  "classification": "LOCAL CLI + MOCK argv capture; not added to178 domain checks"
+}

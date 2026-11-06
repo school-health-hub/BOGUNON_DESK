@@ -119,3 +119,114 @@ jobs:
           path: ${{ env.TD2_REVIEW_DIR }}
           retention-days: 14
           if-no-files-found: warn
+
+  school-td2-candidate:
+    name: SCHOOL Workspace plus TD2 candidate Windows QA
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'school-health-hub/BOGUNON_DESK' && github.ref == 'refs/heads/integration/school-workspace-td2-candidate'
+    runs-on: windows-2025
+    timeout-minutes: 35
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CI: 'true'
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+      SCHOOL_TD2_CANDIDATE: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Isolate current source and canonical frozen SQL
+        run: |
+          if ((git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA -or (git status --porcelain)) { throw 'Dirty or unexpected source' }
+          $root=Join-Path $env:RUNNER_TEMP "td2-portable-$env:GITHUB_RUN_ID"
+          New-Item -ItemType Directory "$root/evidence","$root/temp","$root/profile","$root/npm-cache"|Out-Null
+          "TD2_ROOT=$root" >> $env:GITHUB_ENV
+          "TD2_EVIDENCE_ROOT=$root/evidence" >> $env:GITHUB_ENV
+          "TD2_EXPECTED_SOURCE_SHA=$env:GITHUB_SHA" >> $env:GITHUB_ENV
+          "TD2_PRODUCT_ROOT=$pwd" >> $env:GITHUB_ENV
+          "TEMP=$root/temp" >> $env:GITHUB_ENV
+          "TMP=$root/temp" >> $env:GITHUB_ENV
+          "ELECTRON_P0_QA_ROOT=$root/profile" >> $env:GITHUB_ENV
+          "npm_config_cache=$root/npm-cache" >> $env:GITHUB_ENV
+          git config --local core.autocrlf input
+          git config --local core.eol lf
+          'school-workspace/** text eol=lf'|Add-Content .git/info/attributes
+          node -e "const fs=require('fs'),cp=require('child_process');for(const p of cp.execFileSync('git',['ls-files','school-workspace'],{encoding:'utf8'}).trim().split(/\r?\n/))fs.writeFileSync(p,cp.execFileSync('git',['show','HEAD:'+p],{maxBuffer:16777216}));"
+          if ($LASTEXITCODE -ne 0 -or (git status --porcelain)) { throw 'Canonical checkout changed source' }
+          node scripts/qa/school-td2-scope.mjs
+          python school-workspace/school09d0/tools/verify.py
+          if ($LASTEXITCODE -ne 0) { throw 'Frozen D0 boundary failed' }
+      - name: Install exact locked dependencies and Electron
+        run: |
+          npm ci
+          if ($LASTEXITCODE -ne 0) { throw 'Locked installation failed' }
+          if (!(Test-Path node_modules/electron/dist/electron.exe)) { Remove-Item Env:ELECTRON_SKIP_BINARY_DOWNLOAD -ErrorAction SilentlyContinue; node node_modules/electron/install.js }
+          if ($LASTEXITCODE -ne 0 -or !(Test-Path node_modules/electron/dist/electron.exe)) { throw 'Pinned Electron missing' }
+          "TD2_PORTABLE_EXE=$pwd/node_modules/electron/dist/electron.exe" >> $env:GITHUB_ENV
+      - name: Build new unpackaged source without Portable or native rebuild
+        id: candidate-build
+        run: |
+          npm run electron:p0:build
+          if ($LASTEXITCODE -ne 0) { throw 'Electron build failed' }
+          node node_modules/typescript/bin/tsc -p school-workspace/school05/tsconfig.json
+          if ($LASTEXITCODE -ne 0) { throw 'Workspace strict types failed' }
+          node node_modules/vite/bin/vite.js build --config school-workspace/school05/vite.config.ts
+          if ($LASTEXITCODE -ne 0) { throw 'Workspace Web build failed' }
+          node -e "const m=require('./build/electron-p0-app/build-meta.json');if(m.sourceSha!==process.env.GITHUB_SHA||m.dirty)throw Error('Built source mismatch');"
+          node scripts/qa/school05-build-native-provider.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'External QA provider build failed' }
+      - name: Focused UI and business contract tests
+        run: |
+          node node_modules/vitest/vitest.mjs run electron-p0/tests/quick-memo-surface.test.tsx electron-p0/tests/soft-rose-surface.test.tsx src/dashboard/deskGeometry.test.ts src/dock/AppDock.test.tsx school-workspace/school07/tests/client.test.ts school-workspace/school05/tests/boundary.test.ts school-workspace/instructors/tests/contracts.test.ts school-workspace/instructors/tests/files.test.ts school-workspace/instructors/tests/lifecycle.test.ts school-workspace/instructors/tests/ui.test.tsx school-workspace/instructors/tests/preview-layers.test.tsx --reporter=json --outputFile="$env:TD2_EVIDENCE_ROOT/focused.json"
+          if ($LASTEXITCODE -ne 0) { throw 'Focused regression failed' }
+      - name: Start isolated SCHOOL08 cumulative DB and separate Instructor fixture
+        run: pwsh -NoProfile -File scripts/qa/school08-native-pg.ps1 -Action Start
+      - name: Actual local PostgreSQL domain and Instructor contracts
+        run: |
+          node node_modules/vitest/vitest.mjs run --config scripts/qa/school08-windows.vitest.config.ts --reporter=json --outputFile="$env:TD2_EVIDENCE_ROOT/native-db.json"
+          if ($LASTEXITCODE -ne 0) { throw 'Native SQL contracts failed' }
+      - name: Actual Windows Workspace and Instructor GUI without Portable
+        run: node scripts/qa/school05-windows.mjs
+      - name: Stop owned SCHOOL08 DB
+        if: always() && env.SCHOOL05_PG_DATA != ''
+        run: pwsh -NoProfile -File scripts/qa/school08-native-pg.ps1 -Action Stop
+      - name: TD2 and Quick Memo actual Windows regression
+        if: ${{ !cancelled() && steps.candidate-build.conclusion == 'success' }}
+        env:
+          TD2_FOCUSED_QA: '1'
+          TD2_MEMO_FIX_REQUIRED: '1'
+        run: |
+          $env:TD2_ELECTRON_PATH=Join-Path $pwd 'node_modules/electron/dist/electron.exe'
+          $env:TD2_QA_TEMP=Join-Path $env:TD2_ROOT 'td2-profile'
+          $env:TD2_REVIEW_DIR=Join-Path $env:TD2_EVIDENCE_ROOT 'td2'
+          node scripts/qa/td2-b-review.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'TD2 GUI regression failed' }
+      - name: Start separate supported Auth CLOSED candidate DB
+        id: supported-db
+        if: ${{ !cancelled() && steps.candidate-build.conclusion == 'success' }}
+        run: pwsh -NoProfile -File scripts/qa/school09-native-pg.ps1 -Action Start
+      - name: Actual supported Auth and CLOSED SQL security assertions
+        if: ${{ !cancelled() && steps.supported-db.conclusion == 'success' }}
+        run: python scripts/qa/school09-native-security.py
+      - name: Stop owned supported Auth DB
+        if: always() && env.SCHOOL05_PG_DATA != ''
+        run: |
+          if ((Split-Path $env:SCHOOL05_PG_DATA -Leaf) -eq 'school09-pg-data') { pwsh -NoProfile -File scripts/qa/school09-native-pg.ps1 -Action Stop }
+      - name: Hash synthetic evidence
+        if: always()
+        run: |
+          if (Test-Path $env:TD2_EVIDENCE_ROOT) { Get-ChildItem $env:TD2_EVIDENCE_ROOT -File -Recurse|Where-Object Name -ne SHA256SUMS.txt|ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash)  $([IO.Path]::GetRelativePath($env:TD2_EVIDENCE_ROOT,$_.FullName).Replace('\','/'))" }|Set-Content "$env:TD2_EVIDENCE_ROOT/SHA256SUMS.txt" }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: school-td2-candidate-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.TD2_EVIDENCE_ROOT }}
+          retention-days: 14
+          if-no-files-found: warn

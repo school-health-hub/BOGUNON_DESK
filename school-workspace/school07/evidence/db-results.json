@@ -1,0 +1,223 @@
+{
+  "checks": [
+    {
+      "name": "SCHOOL06 initial39 RPCs remain CLOSED",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "inventory15 default CLOSED; raw tables not exposed",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "S07 closed child release repeat is no-op",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "S07 active child release repeat is no-op",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "admin creates item with zero stock",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "inactive create is honored and archived holding never appears usable",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "location register/rename uses version; assistant cannot manage",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "teacher edits metadata",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "assistant cannot edit metadata",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "cross school item lookup denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "receive increases stock and30day inclusive boundary",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "assistant default receive denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "explicit own use permission decreases stock",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "negative stock denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "assistant adjust/dispose forbidden",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "request_id replay applies once",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "request_id changed payload rejected",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "stale expected_version rejected",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "concurrent actual connections cannot overdraw",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "expired use rejected",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "no-expiry lot and separate quantities",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "expired excluded from usable; holding includes all",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "adjust/dispose append history and low stock uses usable count",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "unusable lot excluded and use forbidden",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "different school lot movement denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "pending/expired denied 5",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "pending/expired denied 8",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "live suspension rejects previous session",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "all quantity transactions have atomic audit entries",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "audit failure rolls back lot/movement/receipt",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "raw tables and movement delete denied",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "privacy rejected before any persistent receipt",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "Seoul dates: expiry today/30 inclusive,31 excluded, yesterday expired",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "explicit own receive works; deny override wins over allow",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "valid school B item cannot reference school A lot",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "SCHOOL06 replay fails closed on intentional extension, originals preserved",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "LOCAL POSTGREST signed teacher inventories actual SQL",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST anonymous inventory denied",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST expired JWT inventory denied",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST assistant read, direct manage RPC forbidden",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST school A-only user cannot fetch school B inventory",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST raw inventory tables absent",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST private dispatch function not a resource",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    }
+  ],
+  "pass": 43,
+  "fail": 0,
+  "hosted": "NOT RUN",
+  "windows": "NOT RUN"
+}

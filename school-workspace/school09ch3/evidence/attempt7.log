@@ -1,0 +1,28 @@
+PASS installer NOSUPERUSER cannot SET Auth owner or CREATE in auth
+PASS mid-install forced failure rolls back schemas roles and default privileges
+PASS fresh full S01-S07 business installation without Auth role grants
+PASS all54 public RPC default CLOSED
+PASS managed Auth objects and ACL byte fingerprints unchanged
+PASS existing public objects and personal rows unchanged
+PASS no Workspace role has Auth USAGE or table or column SELECT
+PASS all Workspace tables FORCE RLS with nonbypass owner
+PASS no temporary seed policy or reader/runtime schema CREATE remains
+PASS full installer replay is checked no-op
+FAIL explicit isolated QA activation ERROR:  permission denied for table h3_rpc_manifest
+
+Traceback (most recent call last):
+  File "/workspace/work/school-09ch3/repo/school-workspace/school09ch3/tests/run.py", line 40, in <module>
+    case('explicit isolated QA activation',lambda:run_file('postgres','02-activate-qa-only.sql'))
+  File "/workspace/work/school-09ch3/repo/school-workspace/school09ch3/tests/run.py", line 12, in case
+    try:fn();results.append({'name':n,'status':'PASS','classification':'LOCAL POSTGREST'if n.startswith('HTTP')else'MOCK'if n.startswith('MOCK')else'LOCAL DB'});print('PASS',n,flush=True)
+        ^^^^
+  File "/workspace/work/school-09ch3/repo/school-workspace/school09ch3/tests/run.py", line 40, in <lambda>
+    case('explicit isolated QA activation',lambda:run_file('postgres','02-activate-qa-only.sql'))
+                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/school-09ch3/repo/school-workspace/school09ch3/tests/run.py", line 17, in run_file
+    return sql("SET bogunon.ws_install_mode='isolated';"+s,ok,role='postgres')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/school-09ch3/repo/school-workspace/school09ch3/tests/run.py", line 7, in sql
+    if ok:assert not p.returncode,p.stderr[-2200:]
+                 ^^^^^^^^^^^^^^^^
+AssertionError: ERROR:  permission denied for table h3_rpc_manifest

@@ -1,0 +1,69 @@
+PASS default approval guard fails before roles/DDL
+PASS missing foundation blocks application migration
+PASS foreign namespace collision rejected
+PASS preexisting role collision rejected
+PASS foundation installs new roles/schemas only
+PASS foundation repeat safe
+PASS Auth prerequisites fail closed, no automatic Auth grants
+PASS Auth capability refusal leaves zero app tables
+PASS local Auth owner supplies column capabilities as FIXTURE ONLY
+PASS excessive Auth column capability rejected
+PASS public RPC collision rejected without replacement
+PASS failure after A/C/02/03 DDL rolls back entire app install
+PASS atomic core installs after failed transaction
+PASS default CLOSED RPC gate denies authenticated EXECUTE
+PASS unexpected default client ACL removed only on new functions
+PASS repeat core closed is no-op
+PASS concurrent repeat serialized without duplicate objects
+PASS activate isolated RPC gate explicitly
+PASS repeat core active and foundation active safe
+PASS least-privilege function/role/GRANT chain
+PASS t01
+PASS t02
+PASS t03
+PASS t04
+PASS t05
+PASS t06
+PASS t07
+PASS t08
+PASS t09
+PASS t10
+PASS t11
+PASS t12
+PASS t13
+PASS t14
+PASS t15
+PASS t16
+PASS t17
+PASS t18
+PASS t19
+PASS t20
+PASS t21
+PASS t22
+PASS t23
+PASS t24
+PASS t25
+PASS t26
+PASS t27
+PASS t28
+PASS t29
+PASS t30
+PASS t31
+PASS t32
+PASS t33
+PASS t34
+PASS LOCAL POSTGREST valid signed JWT → public invoker → private definer/RLS
+PASS LOCAL POSTGREST anonymous EXECUTE denied
+PASS LOCAL POSTGREST wrong JWT signature rejected
+PASS LOCAL POSTGREST expired JWT rejected
+PASS LOCAL POSTGREST approved A cannot access B
+PASS LOCAL POSTGREST pending denied
+PASS LOCAL POSTGREST helper not callable and private schema not exposed
+PASS LOCAL POSTGREST owner/runtime role escalation rejected
+PASS LOCAL POSTGREST raw Workspace table is not a public resource
+PASS LOCAL POSTGREST membership suspension rejects previously issued JWT
+PASS LOCAL POSTGREST Auth session deletion rejects still-signed JWT
+PASS legacy public metadata/data/Auth capabilities unchanged by package
+PASS data-preserving close revokes new RPCs only
+PASS catalog drift rejected instead of overwriting installed functions
+PASS emergency close after drift retains data and marks unverified

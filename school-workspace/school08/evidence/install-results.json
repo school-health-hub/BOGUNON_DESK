@@ -1,0 +1,144 @@
+{
+  "checks": [
+    {
+      "name": "cumulative install without foundation fails closed",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "frozen foundation installs unchanged",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "full entry missing Auth prerequisite stops safely in fresh branch",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "missing Managed Auth capability blocks all app DDL",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "late inventory failure rolls back entire cumulative app install",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "empty PG17 cumulative install succeeds",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "all54 raw/public/private new purpose endpoints CLOSED",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "repeat CLOSED candidate no-op",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "complete installer entry replay skips immutable parent foundation",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "concurrent repeated install serialized",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "explicit cumulative activation opens only54 fixed wrappers",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "54 exact EXECUTE chains, private helpers denied, all tables FORCE RLS/nonowner runtime",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "repeat ACTIVE candidate no-op",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "complete ACTIVE installer entry replay preserves permissions",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "legacy public metadata/policies/personal fixture rows unchanged",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "LOCAL POSTGREST signed teacher inventories actual SQL",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST anonymous inventory denied",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST expired JWT inventory denied",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST assistant read, direct manage RPC forbidden",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST school A-only user cannot fetch school B inventory",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST raw inventory tables absent",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "LOCAL POSTGREST private dispatch function not a resource",
+      "status": "PASS",
+      "classification": "LOCAL POSTGREST"
+    },
+    {
+      "name": "cumulative schema still matches after all domain/UI tests",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "close all54 atomically without deleting business data",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "closed candidate replays and reopens coherently",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "public wrapper drift blocks install and activation",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    },
+    {
+      "name": "drift emergency closure keeps data and marks unverified",
+      "status": "PASS",
+      "classification": "LOCAL DB"
+    }
+  ],
+  "pass": 27,
+  "fail": 0,
+  "classification": "LOCAL DB / LOCAL POSTGREST per check",
+  "hosted": "NOT RUN",
+  "windows": "NOT RUN"
+}

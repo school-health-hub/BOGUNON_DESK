@@ -1,0 +1,42 @@
+{
+  "run": "178 checks final-run.log/results.json",
+  "sql_release": "4c787101ba5b4c78f166ef56dd9d233cc53aa7d100e996fbaad2970133a0dd1a",
+  "files": [
+    {
+      "path": "school-workspace/school09ch3/sql/03-close-local.sql",
+      "sha256": "83a3e0a4db6d941172f08e7a6deb913396f4eb2742d69541f65de939c4ccc6f6"
+    },
+    {
+      "path": "school-workspace/school09ch3/sql/02-activate-qa-only.sql",
+      "sha256": "b4df754725adbaac4eb23d4e1d061ba681b7b1475eb44cb1ad70607347761623"
+    },
+    {
+      "path": "school-workspace/school09ch3/sql/04-hosted-readonly.sql",
+      "sha256": "c5948b6bbafdc8b3af9e85e41bd562544fd5a5b63fa355fb75738b9e46f93bd4"
+    },
+    {
+      "path": "school-workspace/school09ch3/sql/01-fresh-local.sql",
+      "sha256": "4f80e5d08be07862b17deaf18620886a05e3fed1b3ce46eaed3246f043191122"
+    },
+    {
+      "path": "school-workspace/school09ch3/tests/run.py",
+      "sha256": "0a3a687705dcd1d87ece0d0e533d407e0276eac25aee322a7cea77d6ad7a772b"
+    },
+    {
+      "path": "school-workspace/school09ch3/tests/regression.py",
+      "sha256": "b8e631b9b60bc7a607a815ff419f1b5b342e4cce257e4c3650ee3d305deb41fc"
+    },
+    {
+      "path": "school-workspace/school09ch3/tests/rest.py",
+      "sha256": "8b62fe91aadfd76c9d6e0d9a6c93f13ef894a4adb814afe816e366962fdb00f5"
+    },
+    {
+      "path": "school-workspace/school09ch3/tools/build.py",
+      "sha256": "738019aeec43734c3191ef4524a2c9a650cac067b511f384c6225b0dda8191f2"
+    },
+    {
+      "path": "school-workspace/school09ch3/tools/docker-shim.py",
+      "sha256": "86dacc9182036686403e31962e474f162c2fd83c7059f6f98b0eed6a181f1808"
+    }
+  ]
+}

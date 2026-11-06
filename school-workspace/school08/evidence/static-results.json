@@ -1,0 +1,17 @@
+{
+  "classification": "STATIC",
+  "pass": 9,
+  "fail": 0,
+  "checks": [
+    "deterministic generated candidate",
+    "frozen S06/S07 SQL and S05 wiring unchanged",
+    "only two nullable guards outside S08",
+    "personal/auth/integration source hash identity",
+    "54 exact registered RPC names",
+    "parent source provenance SHA256",
+    "no Auth GRANT in candidate",
+    "no reuse old owns_project/receive_medication",
+    "no private key/JWT literals/binaries"
+  ],
+  "protected_file_count": 644
+}

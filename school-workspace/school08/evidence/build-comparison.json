@@ -1,0 +1,17 @@
+{
+  "base": "282b6bcd905584bd0504f65d297133a3d563611d",
+  "root": "FAIL identical13",
+  "root_new_errors": 0,
+  "stock_nullable_error": "baseline S07 TS18048 fixed in S08; current strict PASS",
+  "full_scope_old_errors": 9,
+  "full_scope_new_errors": 8,
+  "remaining_full_scope": "8 xlsx missing-dependency diagnostics",
+  "electron_full": "BLOCKED locked xlsx import unresolved; current Main/Preload/Renderer/test types passed",
+  "web_bff_renderer": "PASS",
+  "npm_lint_typecheck": "NOT RUN scripts absent; explicit tsc checks run",
+  "cargo": "installed1.99.1; default PATH/HOME misconfigured; command-scoped CARGO_HOME/RUSTUP_HOME works",
+  "cargo_native_tests": "NOT RUN no Rust changes, Windows belongs to Cloud B",
+  "native_workerw": "unchanged/excluded",
+  "hosted": "NOT RUN",
+  "windows_new_source": "NOT RUN"
+}

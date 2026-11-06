@@ -1,0 +1,7 @@
+curl: (56) CONNECT tunnel failed, response 403
+HTTP/1.1 403 Forbidden
+content-length: 16
+content-type: text/plain
+date: Thu, 05 Nov 2026 13:04:45 GMT
+server: envoy
+connection: close
