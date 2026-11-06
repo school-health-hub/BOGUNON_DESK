@@ -98,7 +98,7 @@ const waitForCdp=async()=>{
     if(child.exitCode!==null)throw new Error(`Portable wrapper exited before CDP: ${child.exitCode}`);
     try{
       const response=await fetch(`http://127.0.0.1:${port}/json/version`);
-      if(response.ok)return;
+      if(response.ok){const targets=await(await fetch(`http://127.0.0.1:${port}/json/list`)).json();if(targets.some(t=>t.type==='page'&&t.url.startsWith('file:')))return;}
     }catch(error){
       if(!(error instanceof TypeError))throw error;
     }
