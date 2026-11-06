@@ -12,3 +12,8 @@ export function WorkspaceHeader({title,description,context,onBack,backDisabled=f
   {actions&&<div className="td2-header-actions">{actions}</div>}
  </header>;
 }
+
+/** Native disclosure keeps the editor mounted, including unsaved review state. */
+export function WorkspaceDisclosure({title,children}:{title:string;children:ReactNode}){
+ return <details className="td2-workspace-disclosure"><summary>{title}</summary>{children}</details>;
+}
