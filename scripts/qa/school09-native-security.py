@@ -21,6 +21,12 @@ def native_security(sql,case,_root,_docker,_name,_env,recovery,check):
   return sql('BEGIN;SET LOCAL ROLE authenticated;SET LOCAL "request.jwt.claims"='+lit(json.dumps(claims))+';SELECT public.'+args+';COMMIT;',ok,role='school_client')
  def ctx(s=A):return 'ws_v1_get_context('+lit(s)+')'
  case('NATIVE approved supported Auth boolean and school context',lambda:rpc(3,ctx()))
+ def task():return 'ws_v1_create_task('+lit(A)+','+lit('합성 SCHOOL09 보안 검증')+','+lit('개인자료 없는 운영 업무')+",'NORMAL',NULL,'{}'::uuid[],"+lit(uuid.uuid4())+')'
+ case('NATIVE approved teacher writes through supported Auth business RPC',lambda:rpc(3,task()))
+ sql("UPDATE workspace.school_memberships SET role='HEALTH_ASSISTANT' WHERE id='20000000-0000-0000-0000-000000000003'")
+ case('NATIVE live role downgrade denies prior teacher write',lambda:check(rpc(3,task(),ok=False).returncode!=0))
+ sql("UPDATE workspace.school_memberships SET role='HEALTH_TEACHER' WHERE id='20000000-0000-0000-0000-000000000003'")
+
  case('NATIVE pending and cross-school requests denied',lambda:(check(rpc(5,ctx(),ok=False).returncode!=0),check(rpc(4,ctx(B),ok=False).returncode!=0)))
  sql("UPDATE workspace.school_memberships SET status='suspended' WHERE id='20000000-0000-0000-0000-000000000003'")
  case('NATIVE live membership suspension denies next request',lambda:check(rpc(3,ctx(),ok=False).returncode!=0))
