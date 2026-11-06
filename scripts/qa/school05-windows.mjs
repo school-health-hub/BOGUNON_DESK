@@ -36,7 +36,8 @@ const result={
 
 const isolatedAppData=join(qaRoot,'appdata'),isolatedLocalAppData=join(qaRoot,'localappdata');
 await mkdir(isolatedAppData,{recursive:true});await mkdir(isolatedLocalAppData,{recursive:true});
-const electronExecutable=requireFromProduct('electron');
+const school09Gate=process.env.SCHOOL09_IMMUTABLE_GATE_ONLY==='1';
+const electronExecutable=school09Gate?executable:requireFromProduct('electron');
 const launch=(mode)=>spawn(mode.startsWith('packaged')?executable:electronExecutable,[...(mode.startsWith('packaged')?[]:[join(productRoot,'build/electron-p0-app')]),`--remote-debugging-port=${port}`,'--inspect=127.0.0.1:19228'],{
   cwd:process.cwd(),
   env:{...process.env,APPDATA:isolatedAppData,LOCALAPPDATA:isolatedLocalAppData,ELECTRON_P0_QA_PROFILE:'1',ELECTRON_P0_TEST_RUN:qaRun,ELECTRON_P0_QA_ROOT:qaRoot,ELECTRON_P0_DEV_URL:'',SCHOOL_WORKSPACE_MODE:mode==='packaged-default'?'':'synthetic',NODE_ENV:mode==='unpackaged-production'?'production':'development'},
@@ -135,6 +136,16 @@ let mainCall;
 let scenarioTimer;try{
  await Promise.race([(async()=>{
  let current=await start('packaged-default');let page=current.page;
+ if(school09Gate){
+  result.controllerSourceSha=process.env.GITHUB_SHA;result.verificationScope='SCHOOL09 unchanged product runtime reuse, not a newly built Portable';
+  const a=await page.evaluate(()=>window.electronWork.account.status());check(a.ok&&a.data.configured,'Existing public auth configuration lost');result.account={configured:true,actualLogin:'NOT RUN'};
+  const gate=await page.evaluate(()=>window.electronWorkspace.status());check(gate.mode==='disabled'&&!gate.connected,'Default Workspace gate opened');
+  const denied=await page.evaluate(async()=>{try{await window.electronWorkspace.school.signIn({});return false;}catch{return true;}});check(denied,'Disabled Workspace accepted login');
+  const dpapi=await mainCall(async function(){const e=globalThis.__school05qa.e;const sample='synthetic SCHOOL09 memory-only check';return {available:e.safeStorage.isEncryptionAvailable(),roundTrip:e.safeStorage.decryptString(e.safeStorage.encryptString(sample))===sample};});check(dpapi.available&&dpapi.roundTrip,'Actual Windows DPAPI failed');result.dpapi=dpapi;
+  await openWorkspace(page);await page.getByText('공동 기능 연결 준비 중',{exact:true}).waitFor();check(await page.getByLabel('검증 계정').count()===0,'Synthetic login leaked');native('Resize',['-Width','900','-Height','680']);await capture(page,'school09-immutable-portable-closed-900');result.workspaceGate={verdict:'PASS',packaged:true,mode:'disabled'};
+  await stop('packaged-default');current=await start('packaged-default');page=current.page;check((await page.evaluate(()=>window.electronWorkspace.status())).mode==='disabled','Restart opened Workspace');await stop('packaged-default');result.verdict='PASS';result.hosted='NOT RUN';return;
+ }
+
  const account=await page.evaluate(()=>window.electronWork.account.status());check(account.ok&&account.data.configured,'ACCOUNT-02B public injection lost');result.account={configured:true,previousRun:41969614375,actualLogin:'NOT RUN; not repeated'};
  const personal=await page.evaluate(async()=>{const api=window.electronWork;const t=await api.tasks.load();if(!t.ok)throw Error('Task load');const doc={...t.data.document,tasks:[{id:crypto.randomUUID(),title:'SCHOOL05 개인 업무 보존',scheduledDate:'2026-11-05',dueDate:null,completed:false,priority:'normal',category:'보고',dday:false}]};const saved=await api.tasks.save(doc,t.data.document.revision);const memo=await api.memo.write({version:1,text:'SCHOOL05 개인 메모 보존'});const e=await api.events.load();if(!e.ok)throw Error('Event load');const event=await api.events.save({event:{id:crypto.randomUUID(),title:'SCHOOL05 개인 일정 보존',startDate:'2026-11-05',endDate:'2026-11-05',startTime:null,endTime:null,allDay:true,description:'합성 QA',location:'',category:'교육'},expectedRevision:e.data.document.revision,expectedUpdatedAt:null});return {task:saved.ok,memo:memo.ok,event:event.ok};});check(personal.task&&personal.memo&&personal.event,'Personal seed persistence failed');
  const status=await page.evaluate(()=>window.electronWorkspace.status());check(status.mode==='disabled'&&!status.connected,'Default Workspace gate open');const denied=await page.evaluate(async()=>{try{await window.electronWorkspace.school.signIn({});return false;}catch{return true;}});check(denied,'Disabled packaged Workspace accepted signIn');await openWorkspace(page);await page.getByText('공동 기능 연결 준비 중',{exact:true}).waitFor();check(await page.getByLabel('검증 계정').count()===0,'Synthetic controls leaked into packaged product');
