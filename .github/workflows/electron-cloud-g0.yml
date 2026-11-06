@@ -157,9 +157,11 @@ jobs:
           "npm_config_cache=$root/npm-cache" >> $env:GITHUB_ENV
           git config --local core.autocrlf input
           git config --local core.eol lf
-          'school-workspace/** text eol=lf'|Add-Content .git/info/attributes
+          'school-workspace/** -text'|Add-Content .git/info/attributes
           node -e "const fs=require('fs'),cp=require('child_process');for(const p of cp.execFileSync('git',['ls-files','school-workspace'],{encoding:'utf8'}).trim().split(/\r?\n/))fs.writeFileSync(p,cp.execFileSync('git',['show','HEAD:'+p],{maxBuffer:16777216}));"
-          if ($LASTEXITCODE -ne 0 -or (git status --porcelain)) { throw 'Canonical checkout changed source' }
+          $checkout=@(git status --porcelain)
+          $checkout|Set-Content "$root/evidence/checkout-state.txt"
+          if ($LASTEXITCODE -ne 0 -or $checkout.Count) { $checkout|Write-Output;throw 'Canonical checkout changed source' }
           node scripts/qa/school-td2-scope.mjs
           python school-workspace/school09d0/tools/verify.py
           if ($LASTEXITCODE -ne 0) { throw 'Frozen D0 boundary failed' }
