@@ -1,3 +1,5 @@
+> 2026-11-06 추가 OAuth 이후 상태: 두 연결 모두 조회 성공. 현재 증거와 라우팅은 `../hosted-readonly/connections.json`, 판정은 `../REPORT.md` 참조. 아래는 추가 OAuth 이전 설정/진단 이력이다. 기존 ChatGPT 연결의 인증을 다시 수행할 필요는 없다. CLI 별도 설정이 인증됐다는 뜻은 아니다.
+
 # Concurrent Supabase connections — 2026-11-06
 
 ## Verified scope
