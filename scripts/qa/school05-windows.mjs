@@ -137,7 +137,7 @@ let mainCall;
 let scenarioTimer;try{
  await Promise.race([(async()=>{
  let current=await start('packaged-default');let page=current.page;
- if(guiDesignSurvey){const {runSurvey}=await import('./gui-design-survey.mjs');result.survey=await runSurvey({page,native,mainCall,screenshots,evidenceRoot,qaRoot,result,mark,restart:async()=>{try{native('DialogCancel');}catch{}await stop('packaged-default');const next=await start('packaged-default');return next.page;}});await stop('packaged-default');result.verdict=result.survey.records.some(r=>r.error)?'FAIL':'PASS';result.hosted='NOT RUN';return;}
+ if(guiDesignSurvey){const {runSurvey}=await import('./gui-design-survey.mjs');result.survey=await runSurvey({page,native,mainCall:fn=>mainCall(fn),screenshots,evidenceRoot,qaRoot,result,mark,restart:async()=>{try{native('DialogCancel');}catch{}await stop('packaged-default');const next=await start('packaged-default');return next.page;}});await stop('packaged-default');result.verdict=result.survey.records.some(r=>r.error)?'FAIL':'PASS';result.hosted='NOT RUN';return;}
  if(school09Gate){
   result.controllerSourceSha=process.env.GITHUB_SHA;result.verificationScope='SCHOOL09 unchanged product runtime reuse, not a newly built Portable';
   const a=await page.evaluate(()=>window.electronWork.account.status());check(a.ok&&a.data.configured,'Existing public auth configuration lost');result.account={configured:true,actualLogin:'NOT RUN'};
