@@ -1,0 +1,37 @@
+{
+  "sourceSha": "a95269fa4dba1ccef4000effe24cb893e3a8e1a2",
+  "recordedUtc": "2026-11-07T04:20:24.320428+00:00",
+  "productSha": "37ed6d435e57658336c244f847caf4d95df4002a",
+  "reusedP4": {
+    "sourceSha": "c7b13d22bc827215379959a0c0adc431560ee6be",
+    "checks": 31,
+    "rerun": false
+  },
+  "cliChecks": {
+    "npmLatest": "3.0.0",
+    "executedVersionAndDumpHelp": [
+      "3.0.0",
+      "2.121.0"
+    ],
+    "dbCommandsExecuted": false,
+    "selectedTemplates": "official v2.121.0 immutable source; explicit TLS PG17.6 container; no CLI linked/temporary-role path",
+    "major3BreakingChange": "local default / --remote replaces --db-url and --linked"
+  },
+  "offlineSafetyTests": {
+    "count": 6,
+    "result": "PASS",
+    "classification": "filesystem+encryption guards, not SQL/Hosted/Windows"
+  },
+  "officialScriptHashesAndShellSyntax": "PASS",
+  "secretPatternScan": "PASS",
+  "operatingAccess": "NOT RUN",
+  "backupExecution": "BLOCKED pending explicit approval and assigned plan",
+  "newQAStageRequired": false,
+  "changelogIndex": "HTTP403; official release/source/docs used",
+  "files": {
+    "school-workspace/hosted-h1/qa/h2-p5/preflight.py": "b463be35fd097a585f74dfab80c68cda5d44978388ec52af6f3ca9a3b46214f9",
+    "school-workspace/hosted-h1/qa/h2-p5/seal.py": "b8f23a95ca35ab11028c86da22785569c93c7e21ab4d5c0c196963c240d37cc3",
+    "school-workspace/hosted-h1/qa/h2-p5/test_offline.py": "0c53e20c409ab75cfb61bfcaa722908357061cfd1cb41562893a4f7874aa6c4b",
+    "docs/qa/SCHOOL-H2-P5-BACKUP-EXECUTION.md": "43df210e3d1a853ebcfce6e0128c343a50666bc66274034f26675858353d31ad"
+  }
+}
