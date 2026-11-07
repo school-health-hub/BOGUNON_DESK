@@ -1,0 +1,17 @@
+{
+  "repository": "https://github.com/supabase/cli",
+  "tag": "v2.121.0",
+  "commit": "97531eb590ccd2c5cf215287ae03e877180810b4",
+  "upstreamFiles": [
+    "apps/cli/src/command-internal/pg-dump.scripts.ts",
+    "apps/cli/src/command-internal/pg-dump.env.ts"
+  ],
+  "note": "Shell strings extracted unchanged from official exported templates; policy arrays from official exports. MIT license retained. No templates executed.",
+  "sha256": {
+    "LICENSE": "81f7d60afa4316010b1c0df8eb8f0c80b27586a86b72f1bde85e129bfd10d52a",
+    "data.sh": "c943c7a926122ea0649ddd4bf9b8fb9b12bed23ac9f33da0b489ac83e687d241",
+    "policy.json": "56d8cc48010d8304a53d4b40d6af3a6475c84e75d1b71a71f37bf3ebc85ab722",
+    "roles.sh": "cc442e4f19d349b7db1dde69913ed06ef20f68198391d9beef33f63493cf26c8",
+    "schema.sh": "5cd57189f6565ddf651ff149995398a4c9b1971ca34a0093a77c011a41f21d64"
+  }
+}

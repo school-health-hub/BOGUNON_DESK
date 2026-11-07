@@ -1,0 +1,17 @@
+{
+  "project_ref": "xxownwxxajzrviuvvfiu",
+  "approval_record": "UNASSIGNED",
+  "output_root": "UNASSIGNED",
+  "key_root": "UNASSIGNED",
+  "key_file": "UNASSIGNED",
+  "db_env_file": "UNASSIGNED",
+  "cli_workdir": "UNASSIGNED",
+  "required_free_bytes": null,
+  "max_plain_file_bytes": null,
+  "rpo": "UNASSIGNED",
+  "rto": "UNASSIGNED",
+  "retention": "UNASSIGNED",
+  "key_custodian": "UNASSIGNED",
+  "restore_target": "UNASSIGNED",
+  "snapshot_plan": "UNASSIGNED"
+}
