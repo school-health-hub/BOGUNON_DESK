@@ -2,10 +2,14 @@ import{type ReactNode,useRef,useState,useSyncExternalStore}from'react';
 import{School,Users,Search,ShieldCheck,LogIn,LogOut,RefreshCw}from'lucide-react';
 import{EDUCATION_OFFICES}from'../../../electron-p0/school-protocol.js';
 import type{Action,Member,PendingRequest}from'../core/types.js';import{SchoolClientStore}from'../core/client-store.js';
+import{SEOUL,seoulDate,toInstant}from'../../school04/core/time.js';
 import'./school02.css';
 const roleName=(r:string|null)=>r==='SCHOOL_ADMIN'?'학교 관리자':r==='HEALTH_TEACHER'?'보건교사':r==='HEALTH_ASSISTANT'?'보건지원강사':'미지정';
 const states:Record<string,string>={space_pending:'관리자 검증 대기',signed_out:'로그인 전',signing_in:'로그인 중',authenticated_unselected:'학교를 선택해 주세요',pending:'관리자 승인 대기',approved:'승인 완료',active:'승인 완료',rejected:'반려',withdrawn:'신청 철회',left:'탈퇴',revoked:'접근 권한 회수',suspended:'이용 정지',expired:'멤버십 만료',expired_membership:'멤버십 만료',recovery_locked:'학교 복구 확인 중',expired_session:'로그인 시간이 만료되었습니다',network_error:'연결 확인 필요',access_denied:'학교 가입 전',conflict:'변경 정보 확인 필요'};
 const date=(v:string|null)=>v?new Date(v).toLocaleDateString('ko-KR'):'미기록';
+// Membership expiry is exclusive, including when it lands exactly at midnight.
+const lastValidInstant=(value:string)=>Date.parse(value)-1;
+const expiryDate=(value:string|null)=>value?new Date(lastValidInstant(value)).toLocaleDateString('ko-KR',{timeZone:SEOUL}):'미기록';
 type Invoke=(action:Action,input?:Record<string,unknown>)=>Promise<void>;
 function RoleOptions(){return <><option value="HEALTH_TEACHER">보건교사</option><option value="HEALTH_ASSISTANT">보건지원강사</option></>;}
 function RequestCard({request,act}:{request:PendingRequest;act:Invoke}){
@@ -13,14 +17,15 @@ function RequestCard({request,act}:{request:PendingRequest;act:Invoke}){
  return <article className="s02-row" aria-label={`가입 신청 ${request.member_code}`}><strong>{request.member_code}</strong><p>희망 역할: {roleName(request.requested_role)} · 신청일 {date(request.requested_at)}</p>
  <label>승인 역할<select value={role} onChange={e=>setRole(e.target.value)}><RoleOptions/></select></label>
  <label>지원강사 유효기간<input type="date" value={until} onChange={e=>setUntil(e.target.value)}/></label>
- <div className="s02-actions"><button disabled={role==='HEALTH_ASSISTANT'&&!until} onClick={()=>void act('decide',{id:request.id,version:request.version,decision:'approve',role,until:until?new Date(until+'T23:59:59Z').toISOString():null})}>가입 승인</button><button className="secondary" onClick={()=>void act('decide',{id:request.id,version:request.version,decision:'reject'})}>반려</button></div></article>;
+ <div className="s02-actions"><button disabled={role==='HEALTH_ASSISTANT'&&!until} onClick={()=>void act('decide',{id:request.id,version:request.version,decision:'approve',role,until:until?toInstant(until,true,true):null})}>가입 승인</button><button className="secondary" onClick={()=>void act('decide',{id:request.id,version:request.version,decision:'reject'})}>반려</button></div></article>;
 }
 function MemberCard({member,confirm}:{member:Member;confirm:(label:string,action:Action,input:Record<string,unknown>)=>void}){
- const[role,setRole]=useState<string>(member.role??'HEALTH_TEACHER'),[until,setUntil]=useState(member.valid_until?.slice(0,10)??'');
+ const currentExpiry=member.valid_until?seoulDate(lastValidInstant(member.valid_until)):'';
+ const[role,setRole]=useState<string>(member.role??'HEALTH_TEACHER'),[until,setUntil]=useState(currentExpiry);
  const base={id:member.id,version:member.version};
- return <article className="s02-row" aria-label={`구성원 ${member.member_code}`}><strong>{member.member_code}</strong><p>{roleName(member.role)} · {states[member.status]??'상태 확인 필요'}</p><p>승인일 {date(member.approved_at)} · 유효기간 {date(member.valid_until)}</p>
+ return <article className="s02-row" aria-label={`구성원 ${member.member_code}`}><strong>{member.member_code}</strong><p>{roleName(member.role)} · {states[member.status]??'상태 확인 필요'}</p><p>승인일 {date(member.approved_at)} · 유효기간 {expiryDate(member.valid_until)}</p>
  {member.status==='active'&&<><label>변경할 역할<select value={role} onChange={e=>setRole(e.target.value)}>{member.role==='SCHOOL_ADMIN'&&<option value="SCHOOL_ADMIN" disabled>학교 관리자</option>}<RoleOptions/></select></label><button className="secondary" disabled={role===member.role||role==='SCHOOL_ADMIN'} onClick={()=>confirm('역할을 변경하시겠습니까?','role',{...base,role})}>역할 변경</button></>}
- {member.role==='HEALTH_ASSISTANT'&&['active','suspended'].includes(member.status)&&<><label>새 유효기간<input type="date" value={until} onChange={e=>setUntil(e.target.value)}/></label><button className="secondary" disabled={!until} onClick={()=>confirm('지원강사 유효기간을 변경하시겠습니까?','expiry',{...base,until:new Date(until+'T23:59:59Z').toISOString()})}>유효기간 변경</button></>}
+ {member.role==='HEALTH_ASSISTANT'&&['active','suspended'].includes(member.status)&&<><label>새 유효기간<input type="date" value={until} onChange={e=>setUntil(e.target.value)}/></label><button className="secondary" disabled={!until||until===currentExpiry} onClick={()=>confirm('지원강사 유효기간을 변경하시겠습니까?','expiry',{...base,until:toInstant(until,true,true)})}>유효기간 변경</button></>}
  {['active','suspended'].includes(member.status)&&<div className="s02-actions"><button className="secondary" onClick={()=>confirm(member.status==='active'?'이용을 정지하시겠습니까?':'이용 정지를 해제하시겠습니까?','membership',{...base,state:member.status==='active'?'suspended':'active'})}>{member.status==='active'?'이용 정지':'정지 해제'}</button><button className="danger" onClick={()=>confirm('이 학교의 접근 권한을 회수하시겠습니까?','membership',{...base,state:'revoked'})}>권한 회수</button></div>}</article>;
 }
 export function SchoolWorkspace({store,client='web',connected=false,prefill='',sharedTasks}:{store:SchoolClientStore;client?:'web'|'electron';connected?:boolean;prefill?:string;sharedTasks?:ReactNode}){
@@ -36,7 +41,7 @@ export function SchoolWorkspace({store,client='web',connected=false,prefill='',s
  <fieldset disabled={busy||!connected} className="s02-controls"><legend className="s02-sr">학교 공동 공간</legend>
  <div className="s02-card"><div className="s02-card-title"><h2>학교와 연결 상태</h2><span className="s02-pill" role="status">{states[status]??'상태 확인 필요'}</span></div>
  <p>{mine?.school_name??school?.school_name??opening?.school_name??'선택된 학교가 없습니다.'}{mine?.role&&` · ${roleName(mine.role)}`}</p>
- {mine?.valid_until&&<p>이용 기한 {date(mine.valid_until)}</p>}
+ {mine?.valid_until&&<p>이용 기한 {expiryDate(mine.valid_until)}</p>}
  <div className="s02-actions"><button onClick={()=>void act('login')}><LogIn aria-hidden="true"/>로그인</button><button className="secondary" disabled={!authenticated} onClick={()=>void act('logout')}><LogOut aria-hidden="true"/>로그아웃</button><button className="secondary" disabled={!authenticated} onClick={()=>void act('refresh')}><RefreshCw aria-hidden="true"/>신청 현황 새로고침</button></div>
  </div>
  {authenticated&&<><div className="s02-card"><h2><Search aria-hidden="true"/>학교 찾기</h2><p>검색 결과와 개인 학교 프로필은 가입 승인 근거가 아닙니다.</p><form onSubmit={e=>{e.preventDefault();void act('search',{name,office});}}><div className="s02-form-grid"><label>시도교육청<select value={office} onChange={e=>setOffice(e.target.value)}><option value="">전체 교육청</option>{Object.entries(EDUCATION_OFFICES).map(([code,label])=><option key={code} value={code}>{label}</option>)}</select></label><label>학교명<input value={name} minLength={2} maxLength={60} required onChange={e=>setName(e.target.value)}/></label></div><button type="submit">학교 검색</button></form>
