@@ -89,3 +89,96 @@ Dormant hosted-candidate 생성자가 있다고 일반 사용자가 운영 연�
 5. 제한 테스트 런타임/Gate 및 이후 일반 사용자 활성화·배포는 각각 별도 승인. 본 H1 통합으로 어느 것도 자동 승인되지 않는다.
 
 H1 제품 통합 가능. **H2 운영 적용은 CONDITIONAL: 대상/백업/복원/Hosted 권한·OAuth/운영 정책 미검증.**
+
+## H2-P0 프로젝트 적합성 검증 (2026-11-07)
+
+현재 제품 기준 `37ed6d435e57658336c244f847caf4d95df4002a`는 변경하지 않았다.
+아래는 코드/격리 환경에서 확인한 계약이며, 운영 현황 조사·개인정보 열람이 아니다.
+**운영 대상 적합성은 아직 NOT VERIFIED**. 정책상 기존 프로젝트 유지·무료 플랜·추가 프로젝트 생성 금지 조건이 우선한다.
+
+### 프로젝트 선택 판단표
+
+| 판단 항목 | 기존 BogunOn 사용 | 별도 SCHOOL 프로젝트 (비교만, 생성 미승인) |
+|---|---|---|
+| 기존 계정 연계 | 동일 Auth의 UUID/FK 사용 가능, 추가 로그인·계정 복제 불필요 | 독립 Auth UUID/issuer/JWKS. 같은 이메일도 동일 UUID 아님. 기존 JWT를 새 DB로 전달 불가 |
+| 데이터·장애 분리 | Workspace/개인 기능이 같은 DB·요금제·용량·관리자 영향 범위 공유 | 장애/백업/쿼터/운영 권한 분리 가능하지만 클라이언트 설정과 운영 책임 증가 |
+| 설치 위험 | 기존 schema/role/RPC/default ACL 및 Auth 권한 충돌 조사 필수 | 별도 대상에서도 managed Auth 권한/기본 ACL/설치 호환성 검증 필요. 빈 DB라고 안전 보장 안 됨 |
+| 무료 운영 | 기존 쿼터 사용량에 공동 데이터/트래픽 추가. 현재 사용량 미조회 | 추가 프로젝트 quota/비용 조건 미확인. 현 무료 정책에서 생성 금지; 우회 대안으로 요구하지 않음 |
+| 사용자/학교 이전 | 기존 Auth 보존, 승인된 membership만 별도 생성. 개인 설정 자동 업로드 없음 | 계정 연결·사용자 동의·중복/탈퇴 처리 별도 설계 필요. 이메일 자동 병합/기존 UUID 강제 주입 금지 |
+| 결론 | **우선 평가 후보**. 적합성 조사·복원 증거·보안 게이트 모두 충족해야 확정 가능 | 비교자료만 제공. 기존 프로젝트가 부적합해도 임의 생성·BAERURI 전용/공유 사용 금지 |
+
+### 실제 Auth UUID → membership 계약
+
+소스 근거: D0 `01-install-closed-candidate.sql`의 `workspace.accounts`, `school_memberships`, `workspace_auth_bridge.session_valid`; H1 `server/auth.ts`와 `runtime.ts`.
+
+- 공식 Auth 검증으로 확인한 `auth.users.id`가 `workspace.accounts.user_id`(UNIQUE FK)에 연결된다. Workspace 내부 `accounts.id`와 Auth UUID는 서로 다른 키다. `school_memberships.actor_id`는 **accounts.id**를 참조한다.
+- 학교 권한 키는 `(school_id, actor_id)` 및 membership id/epoch다. 로그인 성공만으로 active membership·학교 관리자 권한을 만들지 않는다. pending은 role NULL, active는 서버 승인된 role 필요.
+- 기존 UUID는 변경하지 않는다. 계정 탈퇴 시 FK의 ON DELETE SET NULL은 작성자 계정을 보존하는 구조이며, membership/기록 삭제 또는 JWT 즉시 무효화를 보장하는 정책이 아니다. 회수/감사/기록 보존은 별도 승인 대상이다.
+- 서버는 현재 `sub`/`session_id`와 managed Auth session, 정지/만료/회수·membership epoch를 검증한다. 이메일/user_metadata/클라이언트 role을 인가 근거로 사용하지 않는다.
+- 다른 프로젝트를 선택하면 H1 개인 계정 세션을 그대로 재사용할 수 없다. issuer+project+subject를 구분해야 하며, cross-project SSO/신뢰 federation은 현재 구현·승인 범위가 아니다.
+
+### 사전점검 SQL의 읽기 전용 검토와 실행 절차
+
+**이번에는 두 파일 모두 로컬 합성 DB에서만 실행했다. 운영 SQL 실행 승인은 없다.**
+
+1. 원본 `school-workspace/school09d0/sql/00-hosted-preflight-select.sql`은 SELECT/catalog/권한 검사만 포함한다. Auth/업무 행·키·JWT·session UUID를 조회하지 않는다. 함수 본문은 출력하지 않고 기존 SECURITY DEFINER의 md5와 문자열 참조 flag만 반환한다. 정의/제약/역할명도 내부 metadata이므로 공개 artifact에 자동 게시하지 않는다.
+2. `school-workspace/hosted-h1/qa/h2-p0/preflight-catalog.sql`은 원본을 대체하지 않는 보조 자료다. BEGIN READ ONLY, timeout, pg_catalog search_path, 마지막 ROLLBACK. 54 SCHOOL/2 Instructor 이름·타입을 별도 경계로 명시하고 동명 overload, 소유자/definer/search_path/ACL·실효 EXECUTE, schema/role/role 상속/default ACL/extension/RLS/FORCE RLS를 조회한다. SQL은 메타데이터만 반환하며 업무 테이블 SELECT·Auth 행 SELECT 없음.
+3. 보조 SQL은 PostgreSQL17 catalog 기준이다. 서버 버전이 다르거나 catalog field/관리 권한 때문에 실패하면 별도 호환 검토하며 GRANT/role 상속/설치로 해결하지 않는다. 원본도 Auth schema/table/function이 없으면 실패할 수 있으며 이를 적합성 미충족/추가 검토로 기록한다.
+4. 실제 실행 전 사용자가 대상 ref/region/소유권과 READ-ONLY 접속 범위를 승인한다. 접속 role은 필요한 pg_catalog metadata 및 has_* 조회만 허용하고 비밀정보를 제공하지 않는다. 원본은 installer 권한을 current_user 기준으로 판정하므로 임의 metadata role 결과를 installer 능력으로 오인하지 않는다.
+5. 승인된 세션에서 원본을 READ ONLY transaction으로 감싸고 보조 SQL은 독립 실행한다. 저장은 비공개 접근제한 증거에 최소화한다. READ ONLY는 조회 결과의 기밀성을 보장하지 않으므로 원문 배포 금지. 설치/활성화 SQL과 이어 붙이지 않는다.
+6. 설치 전 새 namespace/role/예약 함수 이름·signature가 존재하면 **부재/동일 설치/충돌**을 분리한다. 정의 지문·owner·ACL·상태까지 승인된 패키지와 일치하지 않으면 덮어쓰기/IF NOT EXISTS 금지. 동명 다른 인자 overload도 충돌 후보로 기록한다.
+7. 54 public/private manifest와 별도2는 각각 정확한 서명·반환형·SECURITY INVOKER/DEFINER·빈 search_path·owner/runtime 역할·PUBLIC/anon/authenticated/service_role 및 상속/default EXECUTE를 확인한다. PostgREST exposed schemas/cache·private schema 노출 여부도 별도 승인된 설정 metadata로 확인한다. 기존 다른 RPC 권한은 건드리지 않는다.
+8. 사전점검이 통과해도 설치 승인이 아니다. CLOSED 설치/54+2 postflight/복구 리허설/백업 증거를 승인 후 단계별 수행한다. 원본 D0 postflight의 `public ws_` 총수는 addon 후56일 수 있으므로, 그 숫자만으로 core54 위반이라고 하지 않는다. 동결 manifest54와 별도2를 각각 대조한다.
+
+### 백업 범위·보호·실제 필요한 권한
+
+| 범위 | 보존/복원 합격 기준 | 필요한 권한과 제한 |
+|---|---|---|
+| 역할/스키마/권한/RLS/함수 | 별도 roles/schema dump, owner·default ACL·RLS/FORCE·함수/search_path/시그니처 목록 대조 | 승인된 dump 계정의 schema USAGE/catalog 가시성. 역할 정의 추출에 필요한 범위를 사전 확인; 비밀번호 hash 접근을 임의 허용하지 않음 |
+| 업무 rows·sequences | 승인 범위 전체 테이블 건수/참조·sequence 현재값·다음값·대형 객체 포함/제외 명시, 일관된 시점 보장 | 실제 SELECT·sequence 읽기 권한 및 dump snapshot 잠금/접속 허용 필요. RLS로 일부만 보이면 전체 백업 아님; --enable-row-security로 누락을 숨기지 않음. 슈퍼유저/BYPASSRLS를 새로 부여하지 않음 |
+| Auth/Storage | managed schema의 CLI 제외와 사용자 변경사항을 확인. Auth users/identities 및 복원 호환 범위 명시. Storage DB metadata와 object bytes 별도 | 별도 승인 없이는 Auth 개인정보/session/secret 조회 금지. 복원 권한과 API object 다운로드 권한은 DB SELECT와 별개 |
+| migration 이력/설정 | `supabase_migrations` schema/data 명시 백업, extension/version·Data API·OAuth/provider 설정 의존성 inventory | 읽기 승인된 범위만, provider secret/password/JWT 원문은 별도 비공개 보관. CLI 기본 dump에 모두 들어간다고 가정 금지 |
+| 암호화/manifest | 전송 TLS+저장 암호화, 접근자/보존기간/키 복구 책임자·UTC/ref/크기/hash/제외목록 명시 | 암호화 키는 백업과 분리, Git/Actions artifact/채팅 금지. 이미 준비된 credential만 승인 후 사용; reset/토큰 신규 발급 금지 |
+| 복원 리허설 | 기존 격리 로컬 환경에서 restore exit0 + 권한/RLS/FK/sequence/건수/합성 smoke·복구 시간 실측, 실패 로그 보존 | 격리 대상의 역할/DB/extension 생성 권한을 별도 확인. 운영 대상 restore 금지. 관리 역할 충돌을 무시하거나 무조건 owner 변경 금지 |
+
+읽기 전용 metadata 접근 권한은 **운영 데이터 dump 권한이 아니다**. 데이터 SELECT 자체도 승인 대상이다.
+현재 백업 추출·실제 운영 덤프 복원은 NOT RUN. 보관 장소·키 담당자·RPO/RTO·보존기간도 미확정이며 임의 값으로 승인하지 않았다.
+
+### 독립 Instructor CLOSED 복구 리허설
+
+재현 스크립트: `school-workspace/hosted-h1/qa/h2-p0/rehearse.py`.
+동일 fixed-image PostgreSQL17.6 digest를 `--pull=never`, network none, host port 없음, tmpfs/512MiB/CPU1, UUID 전용 컨테이너로 실행한다. 기존 컨테이너/프로필을 재사용하지 않는다.
+서버 쿼리는 해당 컨테이너 ID의 docker exec psql만 사용하며 외부 endpoint/credential 입력 기능이 없다.
+
+- 원본/보조 preflight는 합성 catalog의 READ ONLY transaction에서 실행한다.
+- 동결 core54 CLOSED와 별도 addon2 CLOSED를 실제 SQL로 설치한 뒤 **로컬 전용** 승인 fixture로 active 상태를 구성한다. 이는 운영 활성화 절차가 아니다.
+- 실제 PostgreSQL authenticated teacher 호출 성공 후, **변경하지 않은 독립 복구 SQL**을 nonsuper postgres로 실행한다.
+- public2/private2의 anon/authenticated/service_role EXECUTE 거부, 부모 active 유지, 54개 서명/정의/ACL·manifest 보존, 합성 Instructor/학교/Auth/개인 행 보존, 실제 호출 permission denied 및 core context 계속 동작을 확인한다.
+- 복구 반복 실행의 멱등성, 강제 중간 오류 시 transaction/ACL/state rollback, 부모 emergency closed_unverified 이후 addon 복구가 부모를 재개하지 않음도 검사한다.
+- 완료 시 자신의 컨테이너 ID만 제거하고 tmpfs 파기 여부를 확인한다. 운영 백업/실제 Auth/HTTP/Windows/Hosted 테스트가 아니다.
+
+실행: `python school-workspace/hosted-h1/qa/h2-p0/rehearse.py <비공개-또는-합성-결과파일.json>`.
+정확한 검증 source/harness/복구 SQL/image hash·UTC·개별 결과는 이 디렉터리 `evidence/rehearsal.json`에 보존한다.
+제품/복구 SQL 수정은 없으며, 보조 QA 작성 중 빈 인자 RPC 생성 처리 누락을 바로잡았다. 해당 중간 실행은 FAIL로 유지하고 최종 결과와 혼동하지 않는다.
+
+### Google/loopback 요구사항 및 제한 시험 정책
+
+- Google provider callback과 Supabase Electron redirect는 위 기존 계획의 두 주소로 구분한다. `AccountLoopback`은 127.0.0.1에 동적 port0 바인딩, 무작위24bytes 경로, GET/Host/origin·허용 query·중복 query·sb_flow_id 검사, 180초 timeout/1회성·종료 정리를 사용한다. H1은 별도 인스턴스와 SDK PKCE verifier/session을 소유한다.
+- 공식 redirect 문서는 wildcard 지원과 운영의 정확한 URL 권장을 명시한다. 동적 포트/무작위 경로 때문에 제안한 wildcard는 **검토 후보**이며 실제 dashboard 허용/거부를 확인하지 않았다. 광범위 `**`, localhost/외부 host 대체나 Site URL 자동 변경 금지. OAuth provider state는 SDK/provider가 담당하며 Renderer가 임의 state로 권한을 부여하지 않는다.
+- 최초 시험은 담당자가 승인한 기존 테스트 계정 alias와 별도 학교 식별자 A/B만 사용한다. 계정 UUID 원문은 비공개 명부에만, 공개 결과에는 역할 alias만 기록한다. 실학교를 테스트 학교로 자동 등록하거나 실교직원/학생 정보를 복제하지 않는다.
+- 최소 역할 매트릭스: A 관리자/보건교사/강사, A pending·suspended·expired·revoked, B 관리자. 강사는 인가된 제한 조회/업무만, 임금·계산 상세/관리 쓰기 거부. 요청자 본인의 승인·최초 관리자 검증 우회 금지.
+- 시험 시작/종료 UTC·승인자·학교/계정·허용 CRUD·실패 중단 조건·회수 담당자·데이터 보존/삭제일을 사용자 지정한다. 미지정이면 실제 시험 BLOCKED. 비용 발생 외부 호출/실제 학교 로그인은 제외.
+- 종료 순서: 사용중 요청 중단→테스트 세션/멤버십 회수·이전 JWT 거부 확인→앱 Gate CLOSED→검토된 RPC CLOSED 확인→합성 데이터/로그 inventory 대조. 데이터 삭제는 승인된 테스트 UUID/학교에만 별도 명시; Auth users DELETE·TRUNCATE·개인 파일 정리 금지. 감사/업무 기록의 법적 보존 요구가 있으면 삭제 대신 접근 회수하며 담당자가 결정한다.
+- 네트워크/원격 회수 실패면 unconfirmed로 기록하고 담당자에게 전달한다. 로컬 logout만으로 서버 세션 폐기를 PASS로 표시하지 않는다.
+
+### 공식 문서 및 남은 승인 게이트
+
+문서 MCP로 확인: [CLI backup/restore](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore), [self-hosted restore](https://supabase.com/docs/guides/self-hosting/restore-from-platform), [redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls).
+Changelog index 직접 fetch는 환경 proxy 403으로 미확인; 우회하지 않았다. 문서 예시의 프로젝트 생성/비밀번호 reset/role 삭제는 이 작업의 승인 범위가 아니다.
+
+- **BLOCKED / 승인 대기:** 운영 대상 소유권·ref/region 확정 및 metadata READ-ONLY 접근. 이번 단계에서 운영 SQL/데이터 조회는 전혀 하지 않음.
+- **BLOCKED / 증거 미확보:** 기존 Auth UUID 실제 매칭, schema/role/RPC 충돌·권한·보안 Advisor 기준선, 실제 backup/restore·안전 보관처·권한·RPO/RTO.
+- **BLOCKED / 별도 승인:** 운영 54+2 CLOSED 설치/복구, OAuth allowlist/provider 변경, 실제 계정 로그인·테스트 학교/membership 쓰기, 제한 연결/일반 Gate 활성화.
+- **NOT RUN:** Hosted Auth/HTTP·실계정·운영 dump/restore·Windows 신규 QA. 기존 H1 Windows/로컬 Auth 증거의 범위를 확장하지 않음.
+
+H2-P0 문서·격리 검증 범위는 완료 가능하며, **운영 설치/활성화 준비 완료 판정은 보류**한다.
