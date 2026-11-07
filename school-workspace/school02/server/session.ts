@@ -29,11 +29,13 @@ export function createSchoolSession(kind:'electron'|'web',index=11,options:{data
  const controller=new SchoolController({workspace,call:(name,args,signal)=>run(async token=>{
   if(name.startsWith('ws_v1_')&&!['ws_v1_propose_admin_change','ws_v1_accept_admin_change'].includes(name))return userScopedRpc(token,database).call(name as Parameters<typeof database.original>[1],args as never,signal);
   return database.invoke(token,name,args,signal);
- }),reauth:async()=>{
+ }),reauthenticate:async signal=>{
   // MOCK reauthentication only: test fixture explicitly updates synthetic session evidence.
   // No hosted/real Auth action is implemented or implied.
   const status=await port.authStatus();if(status.kind!=='authenticated')throw new WorkspaceAuthError('UNAUTHENTICATED');
-  await (options.execute??sql)(`UPDATE auth.sessions SET created_at=statement_timestamp() WHERE id='${sid(index)}' AND user_id='${uid(index)}'`);
+  if(status.session.user.id!==uid(index))return 'failed';
+  const updated=await (options.execute??sql)(`UPDATE auth.sessions SET created_at=statement_timestamp() WHERE id='${sid(index)}' AND user_id='${uid(index)}' RETURNING id`,'postgres',signal);
+  return updated===sid(index)?'verified':'failed';
  }});
  return{run,controller,workspace,auth,bff,provider,database,registry,blob,safe,getRequest:()=>request,setRequest:(v:BffRequest)=>{request=v;},getCookies:()=>setCookies};
 }
