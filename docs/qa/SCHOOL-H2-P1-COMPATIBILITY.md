@@ -10,7 +10,7 @@
 확인한 정보: public64 tables/RLS64, policies232, functions41, definer20/authenticated callable19; SCHOOL6 schemas/ws_ public RPC/전용 roles 없음; Auth users/sessions/필수4열 존재, users.id REFERENCES와 uid/jwt EXECUTE 있음, Auth CREATE와 supabase_auth_admin SET 없음; postgres public default ACL이 클라이언트에 광범위 권한 부여.
 로컬 시험은 실제 PostgreSQL17.6에서 **이 기본 ACL 위험과 역할/객체 경계를 합성 재현**한 것이다. 운영의64개 테이블/232정책/41함수의 본문·행을 복제하지 않았으며 운영 무회귀/Hosted 설치 PASS가 아니다.
 
-## 설치 호환성 판단표
+## 설치 호환성 판단표 (H2-P2 제공 증거 반영)
 
 | 요구사항 | 제공된 운영 근거 | 판정/남은 확인 |
 |---|---|---|
@@ -18,16 +18,19 @@
 | SCHOOL schema6/public ws_/역할 부재 | 모두 없음 | 제공 범위 충돌 없음. 정확한 예약 이름/동명 overload·role memberships/default ACL을 설치 직전 재확인 |
 | Auth users.id FK REFERENCES | 있음 | 제공 근거 충족. UNIQUE/타입/FK owner 이관 및 managed 지원 동작은 실제 postflight 미검증 |
 | uid/jwt EXECUTE | 있음 | 제공 근거 충족. Auth schema USAGE 및 함수 정의/실행 의미·session/claims 호환 별도 확인 |
-| auth.sessions4열 | 구조 존재 | **BLOCKED: postgres에 각 열 SELECT 있음은 아직 미확인**. 구조와 권한은 별개 |
+| auth.sessions4열 | H2-P2: id/user_id/created_at/not_after 각 SELECT=true | 제공 근거 충족. 구조뿐 아니라 필수 열 읽기 권한도 확인됨 |
 | Auth CREATE/owner SET 금지 | 둘 다 없음 | 후보 설치 경계에 부합. 추가 Auth role/CREATE/BYPASSRLS 부여 금지 |
-| current_user=session_user=postgres, DB postgres, nonsuper | 명시되지 않음 | **BLOCKED: 실제 installer identity/rolsuper 미확인** |
-| CREATEROLE/신규 역할 admin·SET/소유권 | 미제공 | **BLOCKED: 역할 생성·grant/SET 및 owner 전환 가능성 미확인** |
-| DB CREATE/public CREATE WITH GRANT OPTION | 미제공 | **BLOCKED: schema 생성 및 새 owner에 임시 CREATE 부여 가능성 미확인** |
+| nonsuper / 기존 BYPASSRLS | H2-P2: postgres rolsuper=false, rolbypassrls=true | nonsuper 조건 충족. 기존 관리형 BYPASSRLS를 변경하거나 신규 역할에 부여하지 않음 |
+| 실제 설치 세션 identity/DB | current_user/session_user/current_database 원문 미제공 | 설치 직전 대상 고정·현재 세션 identity 재확인 필요. 새로운 권한 부족으로 단정하지 않음 |
+| CREATEROLE | H2-P2: true | 제공 근거 충족. 신규 역할 생성 후의 admin/SET/ownership 경로는 아래와 같이 별도 검토 |
+| 신규 역할 admin·SET/소유권 | 역할은 아직 없음; 소스/격리 검증 근거 있음 | 생성할 역할에 미리 SET 권한이 없다는 이유로 결함 판정하지 않음. 설치자가 생성·grant/SET·owner 이관할 수 있는 실제 관리형 경로는 추가 검토 |
+| DB CREATE | H2-P2: true | 제공 근거 충족 (기존 조회 세션 기준) |
+| public CREATE WITH GRANT OPTION | 미제공 | **미확인 유지**. public CREATE 또는 default ACL이 있다는 사실로 grant option을 추론하지 않음 |
 | 기본 ACL | postgres public에 광범위 권한 | 위험은 확인됨. 새 객체별 ACL 정리 필요. 격리 시험 통과가 실제 ACL 검토를 대체하지 않음 |
 | 기존 definer20/19 callable | 개수만 제공 | **BLOCKED: 본문·소유자·직/간접 호출·동적 SQL 검토 없이 교차 위험 판정 불가** |
 | 백업·복원 | 실백업 증거 미제공 | **BLOCKED: 추출 승인/보관소/복원 합격 증거 없음** |
 
-**결론:** 기존 BogunOn을 우선 평가할 근거는 있으나, 현재 권한으로 운영 설치 가능하다고 확정할 수 없다. 미확인 권한을 없다고 단정하지도, 자동 GRANT로 해결하지도 않는다.
+**H2-P2 반영 결론:** 주요 기본 권한은 제공 근거로 확인됐다. public CREATE grant option 및 실제 관리형 설치 경로·교차 보안·복구 준비를 포함한 설치 가능성은 아직 확정하지 않는다. 미확인 권한을 없다고 단정하지도, 자동 GRANT로 해결하지도 않는다.
 
 ## D0 CREATE ROLE / SET ROLE / Auth / owner 요구사항
 
@@ -98,7 +101,7 @@
 
 - **PASS (STATIC/LOCAL SQL):** 후보 SQL·기존 H1/TD2/저장 계약 무변경, 범위 내 기본 ACL/권한 누락/rollback/CLOSED/합성 비간섭 검증. 정확한 실행 source·개별 결과·SQL/hash·정리는 `school-workspace/hosted-h1/qa/h2-p1/evidence/` 참조.
 - **NOT RUN:** 운영 접속/SQL/rows/백업 추출·실덤프 restore·OAuth·실계정·Hosted/Windows 추가 QA. 이전 H1 PASS를 확장하지 않음.
-- **BLOCKED:** 설치자 미확인 권한,19 definer 본문/교차 위험, 최신 실제 catalog 지문·backup/restore 증거·설치/로그인 별도 승인.
+- **BLOCKED (H2-P2 반영):** public CREATE grant option/실제 설치자 경로 미확인, 기존 definer 교차 위험 미평가, backup/restore 증거와 운영 설치 승인 없음. CREATEROLE·DB CREATE·Auth4열 SELECT·nonsuper는 더 이상 미확인 항목이 아니다. OAuth/실계정 승인은 CLOSED 설치 자체의 기술 필수조건과 분리한다.
 
 **운영 CLOSED 설치 가능성: 조건부 후보. 실제 운영 설치 실행은 BLOCKED 유지.**
 
@@ -108,3 +111,65 @@
 - `school-workspace/hosted-h1/qa/h2-p1/evidence/compatibility.json`과 `SHA256SUMS`에 개별 결과·harness/원본 SQL hash·UTC 보존. 후속 증거 커밋은 source SHA를 재라벨하지 않는다.
 - 실제 운영 함수 본문/데이터를 가져오지 않았다. 기존 서비스 무변경 검증은 합성 sentinel에 한정한다. 실제 운영 설치·비간섭·Hosted PASS 판정 아님.
 - 일반 제품/Gate/TD2/H1/원본 설치·복구 SQL 무변경. integration/main 미반영. 수정은 QA assertion 및 문서뿐이며 제품 결함 수정은 없었다.
+
+
+## H2-P2 — 추가 운영 권한 증거 반영
+
+### 증거 성격
+
+사용자가 제공한 기존 ChatGPT READ-ONLY 결과만 반영했다. 운영 후보 ref `xxownwxxajzrviuvvfiu`에 이번 작업에서 접속하지 않았다. 조회 UTC·원문 결과/서명은 미제공이며, 새 운영 조회로 검증했다고 표시하지 않는다. 제품37ed6d4·QA203bf1c 계보와 원본 SQL을 대조했으며 문서만 변경했다.
+
+확인된 값: postgres `rolsuper=false`, `rolbypassrls=true`, `rolcreaterole=true`; 조회 세션 DB CREATE=true; Auth users.id REFERENCES=true; uid()/jwt() EXECUTE=true; sessions id/user_id/created_at/not_after 각각 SELECT=true; Auth CREATE=false; supabase_auth_admin SET=false. 기존 SCHOOL schema/ws_ RPC 부재와 public64/232/41·definer20/19 기준선은 사용자 제공 증거로 유지한다.
+
+### 확인된 권한의 정확한 의미
+
+- D0의 nonsuper 검사·역할 생성 기본 능력·DB schema 생성 기본 능력·Auth FK/필수 읽기/함수 실행 요건은 위 제공 결과와 부합한다. CREATEROLE/DB CREATE/Auth sessions SELECT를 계속 미확인 또는 결여로 기재했던 P1 상태를 정정했다.
+- postgres의 **기존** 관리형 BYPASSRLS=true는 신규 권한 부여가 아니며 D0가 거부하는 값도 아니다. 후보는 rolsuper를 거부하고, 새 Workspace 역할의 BYPASSRLS 등을 거부한다. 이를 false로 바꾸거나 신규 업무 역할에 복제할 필요가 없다. P1의 NOBYPASSRLS 로컬 성공은 제한 fixture 결과일 뿐 운영 역할을 변경하라는 요구가 아니다.
+- Auth CREATE=false·supabase_auth_admin SET=false는 부족한 권한이 아니라 지켜야 할 경계다. 설치를 위해 확대하지 않는다.
+- 현재 증거에 Auth schema USAGE의 명시 결과는 없다. D0가 직접 검사하므로 기존 제공 결과/privilege report에서 확인할 필요는 있으나, 개별 Auth 함수/컬럼 권한=true만으로 schema USAGE까지 입증했다고 표시하지 않는다.
+
+### 남은 기술 확인 — 없는 권한이라고 단정하지 않음
+
+| 항목 | 왜 필요한가 | 최소 다음 READ-ONLY 검토 |
+|---|---|---|
+| public CREATE WITH GRANT OPTION | 설치 중 ws_owner/임시 설치자에 public CREATE를 부여하고 철회함 | 기존00의 `has_schema_privilege(current_user,'public','CREATE WITH GRANT OPTION')`, public owner/ACL 확인. false면 설치 보류; 자동 GRANT 금지 |
+| Auth schema USAGE | D0가 명시 검사하며 bridge 실행 의존 | 기존00의 auth_usage 확인. Auth CREATE와 혼동하지 않음 |
+| 실제 installer identity·DB·세션 | D0 current_user=session_user=postgres, DB=postgres, nonsuper 고정 | current_user/session_user/current_database 및 대상 소유권/endpoint를 허가된 metadata 범위에서 확인. 단순 GUC marker 신뢰 금지 |
+| 신규 role 생성→admin/grant/SET 경로 | CREATEROLE=true 외에 역할 생성자의 PostgreSQL17 grant/SET semantics, 관리형 제한·기존 memberships 영향 확인 | 서버17.6 정책/creator self-grant 설정(예: `createrole_self_grant`)·관리형 지원 제약·현재 관련 role membership/SET/admin metadata 검토. 새 역할을 만들거나 SET ROLE하여 시험하지 않음 |
+| owner 이관·임시 CREATE 정리 | schema AUTHORIZATION, tables/functions ALTER OWNER, CREATE 회수·임시 역할 DROP 필요 | SQL의 각 owner/SET 경로와 실제 public ACL·creator rights 대조. 새 ws_owner는 아직 없으므로 설치 전 실제 owner 이관 성공을 READ-ONLY로 증명할 수는 없음 |
+| 현재 namespace/RPC/ACL/defaults | 과거 부재·광범위 default grant는 설치 직전 불변 보장이 아님 | 기존00/P0 catalog 보조 SQL로 exact 이름/overload·owner/default ACL·실효 EXECUTE metadata 확인. 기존19함수 권한은 변경하지 않음 |
+
+신규 Workspace 역할이 없으므로 그 역할에 대한 현재 SET 권한 부재를 독립적인 운영 결함으로 부풀리지 않는다. PostgreSQL17의 생성/위임 경로는 원본 소스와 P1 격리 검증에서 성립했으며, 관리형 환경의 지원 여부·위 최소 metadata가 남은 확인 대상이다. 실제 설치 성공은 별도 승인 후에만 판정할 수 있다.
+
+### 기존 SECURITY DEFINER 19개: 확정 가능한 것과 불가능한 것
+
+**확정 가능 (사용자 제공 metadata 범위):** public definer20 중 authenticated가19개를 실행할 수 있음; 신규 ws_ RPC는 아직 없음. 이는 검토할 기존 공개 권한 경계이며, 경고 개수 자체는 취약점 판정이 아니다. 원본 설치는 이 기존 함수의 본문/ACL을 수정하지 않는다.
+
+**현재 확정 불가:** 각 함수의 owner/search_path/입력 인가·tenant/session 검사·동적 SQL 안전성·직접/간접 권한 상승·신규 schema 도달 가능성. auth.uid 언급이나 literal workspace 미포함만으로 안전을 판정할 수 없다. CLOSED RPC가 기존 취약 definer를 통한 우회까지 자동 차단한다는 보장도 없다.
+
+따라서19개를 모두 취약하다고 표시하지도, 기존 기준선이라는 이유로 안전 PASS로 표시하지도 않는다. 다음 승인 범위는 **해당 함수의 정의·owner·proconfig·ACL·관련 의존성만 비공개 검토**다. 업무/Auth rows·UUID·이메일·함수 실행·REVOKE는 제외한다. 정적 dependency는 dynamic SQL을 완전히 포착하지 못하므로 본문과 호출 경로 검토가 필요하다. 실제 취약성 발견 시 별도 보안 작업 승인으로 분리한다.
+
+### 실제 CLOSED 설치 차단 조건과 후속 활성화 조건의 분리
+
+운영 CLOSED 설치는 다음 이유로 **BLOCKED**다.
+
+1. public CREATE grant option/Auth USAGE/실제 관리형 role·owner 경로의 잔여 확인이 완료되지 않았다. 확인된 기존 권한을 재요구하거나 권한 확대하지 않는다.
+2. 기존 공개 definer의 교차 권한 위험 평가가 없다. 기존 서비스 변경 없이 안전한 설치인지 판단할 검토 근거가 필요하다.
+3. 실제 백업·안전한 보관·격리 복원 합격 증거와 복구 책임자/시간창이 없다. 원본54 및 별도2의 로컬 CLOSED/긴급복구 PASS는 운영 백업의 대체물이 아니다.
+4. exact SQL/hash·54+별도2 설치/복구·대상·담당자에 대한 운영 실행 승인이 없다.
+
+**OAuth 설정·실제 로그인·시험 학교/membership 쓰기·일반 Workspace 활성화 승인은 CLOSED SQL 설치의 기술 권한 요건이 아니다.** 이후 연결/활성화 단계의 별도 게이트로 남기며, 이들 미실행을 현재 SQL 권한 결함으로 기재하지 않는다. CLOSED 상태 설치가 승인되어도 실제 인증·Gate 개방은 자동 승인되지 않는다.
+
+### 다음 승인에 필요한 최소 범위
+
+**A. READ-ONLY 검토 승인:** 지정 BogunOn 대상에서 위 잔여 metadata와 기존19개 함수 정의/owner/search_path/ACL/호출 의존성만 조회. 실데이터/계정 원문·비밀값·함수 실행 제외, 비공개 증거 보관. 기존00 및 P0 보조 SQL은 검토 자료이며 이번에는 실행하지 않았다.
+
+**B. 백업·복원 승인:** 대상 범위(역할/스키마/업무 데이터/sequence/권한/RLS/함수/migration 이력·Auth/Storage 포함/제외)·승인된 기존 credential/접속 경로·접근제한 암호화 보관처/복구 키 담당자·일관된 snapshot/쓰기 정지 창·보존기간·RPO/RTO·격리 복원 환경·합격 기준을 지정. 운영 dump는 Git/CI artifact/채팅에 게시하지 않음. 별도 SELECT/sequence/catalog 권한과 전체성 검토 필요; 현재 BYPASSRLS=true만으로 모든 백업 범위/안전성이 입증되지는 않는다. reset·새 token·운영 restore 금지.
+
+A/B 증거 확보 후 exact hash의54 CLOSED→postflight→별도2 CLOSED→분리 postflight/긴급복구 절차를 운영 설치 승인 대상으로 제출한다. 현재는 설치 승인 요청 또는 실행 단계가 아니다.
+
+### P2 검증 및 보존
+
+문서 변경만으로 새로 확인할 DB 동작이 없으므로 P1의21개 로컬 SQL PASS와 P0 독립 복구 증거를 범위 그대로 재사용했다. Docker/Windows/Hosted 테스트를 반복하거나 새 PASS로 합산하지 않았다. 원본 설치 SQL의 요구사항을 소스와 대조하고 문서의 권한 상태·차단 사유를 정정했다. 제품/H1/TD2/SQL/계정/Gate 무변경, 운영 접속 없음.
+
+**판정: P2 증거 반영 완료. 운영 설치 BLOCKED 유지.**
