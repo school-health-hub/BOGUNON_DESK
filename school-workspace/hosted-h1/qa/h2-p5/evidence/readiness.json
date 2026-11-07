@@ -33,5 +33,33 @@
     "school-workspace/hosted-h1/qa/h2-p5/seal.py": "b8f23a95ca35ab11028c86da22785569c93c7e21ab4d5c0c196963c240d37cc3",
     "school-workspace/hosted-h1/qa/h2-p5/test_offline.py": "0c53e20c409ab75cfb61bfcaa722908357061cfd1cb41562893a4f7874aa6c4b",
     "docs/qa/SCHOOL-H2-P5-BACKUP-EXECUTION.md": "43df210e3d1a853ebcfce6e0128c343a50666bc66274034f26675858353d31ad"
+  },
+  "executionEnvironmentCheck": {
+    "checkedFromSha": "251f0136d57a256b34d5ed9fa377c3ba85dc64fe",
+    "utc": "2026-11-07T04:30:58.297708+00:00",
+    "environment": "managed Codex Cloud Linux x86_64",
+    "dockerServer": "28.4.0",
+    "fixedPostgresImageCached": true,
+    "clients": "pg_dump/pg_dumpall/psql 17.6, version-only network-none containers; no DB started",
+    "supabaseCli": "2.121.0 available through cached npm offline execution; version only",
+    "cryptography": "50.0.0",
+    "availableDiskBytes": 21500297216,
+    "observedMemAvailableBytes": 17885106176,
+    "capacitySufficientForOperatingBackup": "NOT VERIFIED; approved size/snapshot/restore budget absent",
+    "managedSecretAndRuntimeVariableCount": 0,
+    "knownCredentialEnvPresent": false,
+    "standardPgpassOrPgservicePresent": false,
+    "approvedPlanInKnownH2TaskLocations": false,
+    "approvedEncryptedRepositoryAndKeyCustodian": "NOT PROVIDED; no global filesystem credential search",
+    "privateStoreAclEncryptionKeySeparationChecks": "NOT RUN: no approved path/key reference supplied",
+    "existingPreflightAndSeal": "unchanged/reused; no seal invocation or synthetic QA repeat",
+    "blockingConditions": [
+      "approved existing backup credential and target path not configured here",
+      "approved encrypted storage/key/custodian/retention and restore budget plan absent",
+      "operating backup execution approval absent"
+    ],
+    "operatingAccess": "NOT RUN",
+    "newBranchOrQAStage": false,
+    "temporarySyntheticBackupOrKeyLocationsRemaining": 0
   }
 }

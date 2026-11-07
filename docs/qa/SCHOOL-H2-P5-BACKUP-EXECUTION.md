@@ -124,3 +124,14 @@ run_dump data '' supabase_migrations '' 2>/dev/null |
 ## 검증 범위
 
 오프라인 안전검사6개: 비공개 plan, 승인 미입력 거부, symlink 거부, 공유 권한 거부, 공간 부족 거부, AESGCM 왕복/기존 파일 덮어쓰기 거부. 이는 합성 SQL/Windows/운영 테스트가 아니며 P4의31 PASS와 합산하지 않는다. 비밀정보 패턴·diff 검사 및 공식 template hash 대조 결과를 QA evidence에 보존한다.
+
+## 기존 P5 실행 환경 확인 반영 (2026-11-07)
+
+확인 기준251f013. 새 브랜치/QA 단계/합성 SQL·Windows 재검증 없이 현재 환경만 조사했다.
+
+- Linux x64 Cloud, Docker28.4.0, 고정 PostgreSQL17.6 이미지 cached. pg_dump/pg_dumpall/psql17.6은 network-none 일회 컨테이너의 version만 실행, DB 시작/연결 없음. Supabase2.121.0은 npm offline cache로 version 확인. Python cryptography50.0.0 사용 가능.
+- /workspace 여유21,500,297,216 bytes, 관찰 메모리17,885,106,176 bytes. 운영 크기/복원/암호화 budget이 없으므로 충분하다고 승인하지 않음. host 기본 pg_dump/psql/supabase executable은 없지만 위 고정 경로로 실행 가능해 도구 부재 차단은 아님. 추가 설치/다운로드 없음.
+- 현재 managed 환경 secrets/runtime vars/outbound identity 미설정. 알려진 PG/Supabase credential env와 표준 .pgpass/.pg_service.conf 없음. 기존 H2 작업 위치의 승인 plan 후보 없음. 이는 사용자 다른 PC/보관소에 credential이 없다는 단정이 아니다. 연결된 문서 MCP를 dump credential/실행 승인으로 간주하지 않음.
+- 승인된 보관처/키 경로가 없으므로 실제 ACL·at-rest 암호화·키 분리·해당 volume 공간 검사는 NOT RUN. 일반 workspace를 승인 암호화 저장소로 대체하지 않았고 비밀파일/개인 폴더 전역 검색·키 발급·credential 생성 없음. 기존 P5 preflight/seal 원문 무변경. plan 미확정 상태에서 임의 값으로 preflight PASS를 만들거나 합성 테스트를 반복하지 않음.
+- 실제 남은 조건: 기존 승인 credential과 접속 경로의 안전한 공급, 승인 암호화 보관처/분리 키·복구 담당자/보존·공간·복원 budget·RPO/RTO·일관성 plan, 운영 백업 실행 승인. 값이 준비되면 **기존** preflight/실행 절차를 사용한다. 새로운 QA 단계는 추가하지 않는다.
+- 현재 **도구 실행 가능 / 운영 백업 실행 BLOCKED**. 제품/integration/main·운영 DB·Gate 무변경. 세부 확인은 기존 evidence/readiness.json의 executionEnvironmentCheck에 보존한다.
