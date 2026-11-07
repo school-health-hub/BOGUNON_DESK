@@ -1,0 +1,104 @@
+{
+  "classification": "QA harness development; not product fixes or Hosted runs",
+  "attempts": [
+    {
+      "attempt": "attempt1",
+      "sourceSha": "d7e919f281766868e8e9d71790713445cd82f228",
+      "sourceWasUncommitted": true,
+      "result": "FAIL",
+      "passedChecks": 1,
+      "error": "synthetic_fixture_subprocess_failed",
+      "cleanup": "PASS owned containers/tmpfs/encrypted synthetic files/key removed"
+    },
+    {
+      "attempt": "attempt2",
+      "sourceSha": "d7e919f281766868e8e9d71790713445cd82f228",
+      "sourceWasUncommitted": true,
+      "result": "FAIL",
+      "passedChecks": 12,
+      "error": "restore: ERROR:  permission denied to grant privileges as role \"h2_root\"",
+      "cleanup": "PASS owned containers/tmpfs/encrypted synthetic files/key removed"
+    },
+    {
+      "attempt": "attempt3",
+      "sourceSha": "d7e919f281766868e8e9d71790713445cd82f228",
+      "sourceWasUncommitted": true,
+      "result": "FAIL",
+      "passedChecks": 12,
+      "error": "restore: ERROR:  permission denied to grant privileges as role \"h2_root\"",
+      "cleanup": "PASS owned containers/tmpfs/encrypted synthetic files/key removed"
+    },
+    {
+      "attempt": "attempt4",
+      "sourceSha": "d7e919f281766868e8e9d71790713445cd82f228",
+      "sourceWasUncommitted": true,
+      "result": "FAIL",
+      "passedChecks": 14,
+      "error": "functions owners ACL RLS policies and FK metadata identical",
+      "cleanup": "PASS owned containers/tmpfs/encrypted synthetic files/key removed"
+    },
+    {
+      "attempt": "attempt5",
+      "sourceSha": "d7e919f281766868e8e9d71790713445cd82f228",
+      "sourceWasUncommitted": true,
+      "result": "FAIL",
+      "passedChecks": 14,
+      "error": "functions owners ACL RLS policies and FK metadata identical",
+      "cleanup": "PASS owned containers/tmpfs/encrypted synthetic files/key removed"
+    },
+    {
+      "attempt": "attempt6",
+      "sourceSha": "d7e919f281766868e8e9d71790713445cd82f228",
+      "sourceWasUncommitted": true,
+      "result": "FAIL",
+      "passedChecks": 19,
+      "error": "restored D0 immutable fingerprint supports checked no-op replay",
+      "cleanup": "PASS owned containers/tmpfs/encrypted synthetic files/key removed"
+    },
+    {
+      "attempt": "attempt7",
+      "sourceSha": "d7e919f281766868e8e9d71790713445cd82f228",
+      "sourceWasUncommitted": true,
+      "result": "FAIL",
+      "passedChecks": 21,
+      "error": "restored D0 immutable fingerprint supports checked no-op replay",
+      "cleanup": "PASS owned containers/tmpfs/encrypted synthetic files/key removed"
+    },
+    {
+      "attempt": "attempt8",
+      "sourceSha": "d7e919f281766868e8e9d71790713445cd82f228",
+      "sourceWasUncommitted": true,
+      "result": "FAIL",
+      "passedChecks": 21,
+      "error": "restored D0 immutable fingerprint supports checked no-op replay",
+      "cleanup": "PASS owned containers/tmpfs/encrypted synthetic files/key removed"
+    },
+    {
+      "attempt": "attempt9",
+      "sourceSha": "d7e919f281766868e8e9d71790713445cd82f228",
+      "sourceWasUncommitted": true,
+      "result": "FAIL",
+      "passedChecks": 21,
+      "error": "restored D0 immutable fingerprint supports checked no-op replay",
+      "cleanup": "PASS owned containers/tmpfs/encrypted synthetic files/key removed"
+    },
+    {
+      "attempt": "attempt10",
+      "sourceSha": "d7e919f281766868e8e9d71790713445cd82f228",
+      "sourceWasUncommitted": true,
+      "result": "FAIL",
+      "passedChecks": 24,
+      "error": "restored source roles attrs and memberships",
+      "cleanup": "PASS owned containers/tmpfs/encrypted synthetic files/key removed"
+    },
+    {
+      "attempt": "attempt11",
+      "sourceSha": "d7e919f281766868e8e9d71790713445cd82f228",
+      "sourceWasUncommitted": true,
+      "result": "PASS",
+      "passedChecks": 29,
+      "error": null,
+      "cleanup": "PASS owned containers/tmpfs/encrypted synthetic files/key removed"
+    }
+  ]
+}

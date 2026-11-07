@@ -1,0 +1,199 @@
+{
+  "sourceSha": "c7b13d22bc827215379959a0c0adc431560ee6be",
+  "harnessSha256": "cfa90e740bc42fa2815efd91a14800342d16f752165be59d529cce630aeb0967",
+  "classification": "SYNTHETIC LOCAL PostgreSQL backup/restore; not Supabase CLI or Hosted",
+  "operating": "NOT RUN",
+  "image": "postgres@sha256:f3bd19c606e442c3d7bdfa8002e03fe260a1023351e0ea4598032022b68dd6e3",
+  "startedUtc": "2026-11-07T04:04:05.809425+00:00",
+  "checks": [
+    {
+      "name": "isolated container network none/no ports h2_root",
+      "status": "PASS"
+    },
+    {
+      "name": "source synthetic core54 and separate addon2 CLOSED",
+      "status": "PASS"
+    },
+    {
+      "name": "pg_dump pg_dumpall psql pinned 17.6",
+      "status": "PASS"
+    },
+    {
+      "name": "dump commands produce nonempty files and no role passwords",
+      "status": "PASS"
+    },
+    {
+      "name": "AEAD decrypt and hash canonical-checks.json",
+      "status": "PASS"
+    },
+    {
+      "name": "AEAD decrypt and hash roles.sql",
+      "status": "PASS"
+    },
+    {
+      "name": "AEAD decrypt and hash schema.sql",
+      "status": "PASS"
+    },
+    {
+      "name": "AEAD decrypt and hash data.sql",
+      "status": "PASS"
+    },
+    {
+      "name": "AEAD decrypt and hash storage-objects.json",
+      "status": "PASS"
+    },
+    {
+      "name": "AEAD decrypt and hash acl-representation.json",
+      "status": "PASS"
+    },
+    {
+      "name": "AEAD rejects tamper",
+      "status": "PASS"
+    },
+    {
+      "name": "AEAD rejects wrong key",
+      "status": "PASS"
+    },
+    {
+      "name": "private encrypted files and key mode restrictions",
+      "status": "PASS"
+    },
+    {
+      "name": "isolated container network none/no ports h2_root",
+      "status": "PASS"
+    },
+    {
+      "name": "failed schema restore stops and rolls back all new user schemas",
+      "status": "PASS"
+    },
+    {
+      "name": "authenticated sidecar restores exact default-owner ACL without changing effective grants",
+      "status": "PASS"
+    },
+    {
+      "name": "original-source CHECK parse shape restored and constraints revalidated",
+      "status": "PASS"
+    },
+    {
+      "name": "all table counts row digests incl Auth migration and storage metadata identical",
+      "status": "PASS"
+    },
+    {
+      "name": "schema owners and effective schema ACL identical",
+      "status": "PASS"
+    },
+    {
+      "name": "creator default privileges identical",
+      "status": "PASS"
+    },
+    {
+      "name": "functions owners ACL RLS policies and FK metadata identical",
+      "status": "PASS"
+    },
+    {
+      "name": "all FK constraints validated",
+      "status": "PASS"
+    },
+    {
+      "name": "restored sequence state and next value correct",
+      "status": "PASS"
+    },
+    {
+      "name": "restored FK actually rejects missing parent",
+      "status": "PASS"
+    },
+    {
+      "name": "SCHOOL54 and separate Instructor2 remain CLOSED",
+      "status": "PASS"
+    },
+    {
+      "name": "restored D0 immutable fingerprint supports checked no-op replay",
+      "status": "PASS"
+    },
+    {
+      "name": "restored roleAttributes identical",
+      "status": "PASS"
+    },
+    {
+      "name": "restored memberships identical",
+      "status": "PASS"
+    },
+    {
+      "name": "separate synthetic Storage bytes restored",
+      "status": "PASS"
+    },
+    {
+      "name": "encrypted backups unchanged after restore",
+      "status": "PASS"
+    },
+    {
+      "name": "source DB unchanged by backup and restore",
+      "status": "PASS"
+    }
+  ],
+  "files": {
+    "canonical-checks.json": {
+      "plainBytes": 354,
+      "plainSha256": "39ef05d1826cd66223ed561a9ad66a80f37863a743d9caa3d1ce1255ffbc5b20",
+      "encryptedBytes": 382,
+      "encryptedSha256": "7fc31d6fc6ad45586640ff60124c5ebb7f21aae77f9f35fdcd71ce3008206a56"
+    },
+    "roles.sql": {
+      "plainBytes": 3593,
+      "plainSha256": "fdc5e6da36c3e009a708dd46d085e6cfa4e904c4548e392013143307cf694fbe",
+      "encryptedBytes": 3621,
+      "encryptedSha256": "36b526ffb939e224fbff15e5ea8560f2eedfdfce6d30ae0d8fb726f4ea8a1fd8"
+    },
+    "schema.sql": {
+      "plainBytes": 327133,
+      "plainSha256": "a86fc6a16060b3898a4553c55bdb8064e9356301e710a914fda03d9a1d4c66ad",
+      "encryptedBytes": 327161,
+      "encryptedSha256": "d013847fef27bad3225d55394b294c6e06d7848575c35a95979cffe1d951a7e7"
+    },
+    "data.sql": {
+      "plainBytes": 25034,
+      "plainSha256": "fb54a8441bd496886c69d41fedbfba8b1cd4b70bb51108889d9bf65586392f8d",
+      "encryptedBytes": 25062,
+      "encryptedSha256": "592429af40203a3fd805d11cba68466b8204641ff1929f1d6a3acd44390418cf"
+    },
+    "storage-objects.json": {
+      "plainBytes": 52,
+      "plainSha256": "116a6201040b37f756b7768da54558b1e806f9847624738f51eb7ee3fcbe7ee4",
+      "encryptedBytes": 80,
+      "encryptedSha256": "83ab8d404c123ce0bdcf861c6ee1647ec45b051c52047d35138af4ff13e5bcfc"
+    },
+    "acl-representation.json": {
+      "plainBytes": 621,
+      "plainSha256": "184f7077547cc88de2a009721d3839af741af3b57219261444e09b44bd78ea1c",
+      "encryptedBytes": 649,
+      "encryptedSha256": "d96927768bd92e680279e588665a48953d772e319df754f0d798fce5b72bac02"
+    }
+  },
+  "cleanup": "PASS owned containers/tmpfs/encrypted synthetic files/key removed",
+  "sqlSha256": {
+    "school-workspace/school09d0/sql/01-install-closed-candidate.sql": "bb18855935e71646343312b83c3d77428eb56ae235419220c01b4aa2b08dedac",
+    "school-workspace/hosted-h1/sql/01-instructor-addon-closed.sql": "5391cf78bacc5d4fca3a9584f6c073b416dbbf7b92203f297aaff7df47285bb0"
+  },
+  "sourceTableCount": 46,
+  "sourceRowCount": 152,
+  "versions": {
+    "pg_dump": "pg_dump (PostgreSQL) 17.6 (Debian 17.6-2.pgdg12+1)",
+    "pg_dumpall": "pg_dumpall (PostgreSQL) 17.6 (Debian 17.6-2.pgdg12+1)",
+    "psql": "psql (PostgreSQL) 17.6 (Debian 17.6-2.pgdg12+1)",
+    "encryption": "Python cryptography AES-256-GCM"
+  },
+  "backupSeconds": 0.444,
+  "restoreSeconds": 1.669,
+  "d0Replay": {
+    "result": "PASS",
+    "catalogDrift": false
+  },
+  "omissions": [
+    "Real managed Auth internals/provider config/passwords/token restoration NOT RUN",
+    "Actual Storage download/API permissions NOT RUN; synthetic bytes only",
+    "Operating data consistency RPO/RTO and encrypted key custody NOT RUN",
+    "Supabase CLI filtering/managed role restoration NOT RUN; raw pg_dump synthetic fixture only"
+  ],
+  "result": "PASS",
+  "finishedUtc": "2026-11-07T04:04:31.002688+00:00"
+}

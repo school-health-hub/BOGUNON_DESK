@@ -70,3 +70,13 @@ H2-P3로 과거 기본 권한 미확인 항목은 해소했지만 **운영 백�
 
 정확한 source/harness/SQL/image hash·tool versions·개별 검사·파일별 크기/hash·UTC·backup/restore 시간·누락목록·cleanup은 `school-workspace/hosted-h1/qa/h2-p4/evidence/`에 보존한다. 실제 암호화 백업/키는 업로드하지 않는다.
 개발 중 fixture role 생성 순서, PostgreSQL17 grantor 실행 경계와 dump의 ACL/CHECK 표현 정규화 차이를 확인해 격리 restore 절차를 보완했으며 원본 제품/설치·복구 SQL은 수정하지 않았다. 실패한 중간 시도도 최종 PASS로 바꾸지 않고 sanitized 결과로 구분한다.
+
+## 최종 결과
+
+- 검증 Source: `c7b13d22bc827215379959a0c0adc431560ee6be`. 최종 **31 PASS**, PostgreSQL17.6, 원본 SQL/제품 변경 없음。
+- 합성 user tables **46개**, rows **152개**, 암호화 파일 **6개**. 실제 운영 크기/테이블 수의 재현이 아니다.
+- 측정: dump+암호화 0.444초, restore 적용 1.669초 (검증 포함 RTO 아님), 준비·검증·정리 포함 전체 25.193초. 운영 RPO/RTO는 미확정.
+- source/runtime role 속성·멤버십, schema owner/실효 ACL, creator defaults 및 의미상 catalog 대조 PASS. 동결 installer fingerprint checked replay PASS. 원본 release/fingerprint는 갱신하지 않았다.
+- `evidence/backup-restore.json`의 source/harness/image/SQL·파일별 평문/암호문 hash와 크기, tool version/UTC/누락목록 및 `SHA256SUMS`를 보존한다. 최종 증거 커밋은 실행 source를 재라벨하지 않는다.
+- `evidence/development-attempts.json`에 중간 FAIL을 기록했다. ACL 비교는 OID/순서 대신 실효 권한 tuple로 대조하고, 멤버십은 grantor까지 정렬해 동일성 검사한다. source 원문 ACL/CHECK 형태는 별도 sidecar로 유지해 D0 지문 검사를 통과했다. assertion 제거/지문 갱신/제품 SQL 완화 없음.
+- 실제 운영 백업/복원·Supabase CLI filtering·managed Auth/Storage API·OAuth/실계정·Windows: **NOT RUN**. 운영 설치/백업 추출: **BLOCKED (승인 및 보관/복구 조건 미확정)**. 합성 백업·격리 복원: **PASS**.
