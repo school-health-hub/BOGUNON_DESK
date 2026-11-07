@@ -101,3 +101,10 @@
 - **BLOCKED:** 설치자 미확인 권한,19 definer 본문/교차 위험, 최신 실제 catalog 지문·backup/restore 증거·설치/로그인 별도 승인.
 
 **운영 CLOSED 설치 가능성: 조건부 후보. 실제 운영 설치 실행은 BLOCKED 유지.**
+
+## 최종 로컬 실행 증거
+
+- 검증 source: `9c264501c473f2342248798fb206e4b614ba2442`. **21 PASS**, PostgreSQL17.6/network none, NOSUPERUSER/NOBYPASSRLS 양성 installer. 자신의 컨테이너 제거·tmpfs 파기 PASS.
+- `school-workspace/hosted-h1/qa/h2-p1/evidence/compatibility.json`과 `SHA256SUMS`에 개별 결과·harness/원본 SQL hash·UTC 보존. 후속 증거 커밋은 source SHA를 재라벨하지 않는다.
+- 실제 운영 함수 본문/데이터를 가져오지 않았다. 기존 서비스 무변경 검증은 합성 sentinel에 한정한다. 실제 운영 설치·비간섭·Hosted PASS 판정 아님.
+- 일반 제품/Gate/TD2/H1/원본 설치·복구 SQL 무변경. integration/main 미반영. 수정은 QA assertion 및 문서뿐이며 제품 결함 수정은 없었다.

@@ -1,0 +1,105 @@
+{
+  "sourceSha": "9c264501c473f2342248798fb206e4b614ba2442",
+  "classification": "LOCAL SQL adversarial ACL simulation; operating metadata USER SUPPLIED",
+  "operatingAccess": "NOT RUN",
+  "image": "postgres@sha256:f3bd19c606e442c3d7bdfa8002e03fe260a1023351e0ea4598032022b68dd6e3",
+  "harnessSha256": "b529f92c4832095a8cff05f2059a07d68ca3e2217baa30cf03bae122770ad461",
+  "startedUtc": "2026-11-07T03:37:22.499315+00:00",
+  "checks": [
+    {
+      "name": "network none and zero published host ports",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic baseline has 20 definer sentinels and 19 authenticated callable",
+      "status": "PASS"
+    },
+    {
+      "name": "missing one required Auth session column fails closed",
+      "status": "PASS"
+    },
+    {
+      "name": "missing CREATEROLE fails with transaction rollback",
+      "status": "PASS"
+    },
+    {
+      "name": "missing database CREATE fails with transaction rollback",
+      "status": "PASS"
+    },
+    {
+      "name": "missing public CREATE grant option fails with transaction rollback",
+      "status": "PASS"
+    },
+    {
+      "name": "positive installer is neither SUPERUSER nor BYPASSRLS",
+      "status": "PASS"
+    },
+    {
+      "name": "core54 manifest exact and release CLOSED",
+      "status": "PASS"
+    },
+    {
+      "name": "Instructor separate addon CLOSED",
+      "status": "PASS"
+    },
+    {
+      "name": "existing public and Auth definitions owners ACL RLS unchanged",
+      "status": "PASS"
+    },
+    {
+      "name": "global creator defaults unchanged",
+      "status": "PASS"
+    },
+    {
+      "name": "existing synthetic personal rows unchanged",
+      "status": "PASS"
+    },
+    {
+      "name": "all core54 public private EXECUTE closed to clients",
+      "status": "PASS"
+    },
+    {
+      "name": "all addon public private functions closed to unknown legacy client too",
+      "status": "PASS"
+    },
+    {
+      "name": "new tables and sequences have no client privileges",
+      "status": "PASS"
+    },
+    {
+      "name": "new schema client CREATE and private Auth bridge usage blocked",
+      "status": "PASS"
+    },
+    {
+      "name": "all new tables FORCE RLS nonbypass owner",
+      "status": "PASS"
+    },
+    {
+      "name": "no runtime Auth grants and no new privileged roles",
+      "status": "PASS"
+    },
+    {
+      "name": "temporary installer role and public CREATE grants removed",
+      "status": "PASS"
+    },
+    {
+      "name": "split recovery leaves 54+2 CLOSED and parent closed_unverified",
+      "status": "PASS"
+    },
+    {
+      "name": "legacy metadata defaults and rows preserved after recovery",
+      "status": "PASS"
+    }
+  ],
+  "cleanup": "PASS: owned container removed, tmpfs destroyed",
+  "recoverySha256": "1fab06b2addccf71179b36290cbc620acfca80083fbe22138a6f9955f91d0674",
+  "sourceFilesSha256": {
+    "school-workspace/school09d0/sql/00-hosted-preflight-select.sql": "be541aaa486d4dae5074a721e069898abe7216d74fb1642534588b9fc381e426",
+    "school-workspace/school09d0/sql/01-install-closed-candidate.sql": "bb18855935e71646343312b83c3d77428eb56ae235419220c01b4aa2b08dedac",
+    "school-workspace/hosted-h1/sql/01-instructor-addon-closed.sql": "5391cf78bacc5d4fca3a9584f6c073b416dbbf7b92203f297aaff7df47285bb0",
+    "school-workspace/hosted-h1/sql/02-emergency-close-addon.sql": "1fab06b2addccf71179b36290cbc620acfca80083fbe22138a6f9955f91d0674"
+  },
+  "postgresVersion": "PostgreSQL 17.6 (Debian 17.6-2.pgdg12+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit",
+  "result": "PASS",
+  "finishedUtc": "2026-11-07T03:37:31.300804+00:00"
+}
