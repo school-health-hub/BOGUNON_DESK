@@ -1,0 +1,25 @@
+{
+  "classification": "QA harness development, not product fixes",
+  "attempts": [
+    {
+      "result": "PASS",
+      "checks": 18,
+      "scope": "initial independent addon recovery",
+      "sourceWorktree": "uncommitted harness on d4fbe5d"
+    },
+    {
+      "result": "FAIL",
+      "checks": 2,
+      "stage": "readonly_preflight",
+      "cause": "QA generator did not handle two zero-argument RPCs; supplemental file not generated",
+      "cleanup": "owned container removed",
+      "fix": "handle empty identity_arguments in QA-only expected-list generation"
+    },
+    {
+      "result": "PASS",
+      "checks": 20,
+      "scope": "expanded preflight and recovery",
+      "sourceWorktree": "uncommitted harness on d4fbe5d"
+    }
+  ]
+}

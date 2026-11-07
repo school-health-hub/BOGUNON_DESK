@@ -34,7 +34,7 @@ Dormant hosted-candidate 생성자가 있다고 일반 사용자가 운영 연�
 - [Windows artifact 13526591852](https://github.com/school-health-hub/BOGUNON_DESK/actions/runs/42264024323/artifacts/13526591852): ZIP SHA-256 `4322b3c9fe8509c9f984a9cb4dd3c02fd41f1af9d5201b0f9303dbde8718949c`; 54 PNG/66 파일 해시 증거.
 - [Linux artifact 13524288134](https://github.com/school-health-hub/BOGUNON_DESK/actions/runs/42259569199/artifacts/13524288134): ZIP SHA-256 `38b0980b717c299e5b8b0dd4b538b44832c8518458d412167b11460b856823ff`.
 - 실제 Hosted, Google OAuth, 운영 학교/세션/권한, 새 Portable, OS DPI, 물리 인쇄/Excel 앱은 NOT RUN. Windows의 개인 Finance 확인은 격리 marker이며 SQLCipher 전체 검증이 아니다.
-- addon 설치 rollback/중복 거부/부모 D0 재실행/부모 긴급 CLOSED로 Instructor 차단은 로컬 검증됨. **독립 addon 복구 SQL 파일 자체의 실행 리허설은 NOT RUN**; 운영 승인 전 수행 필요.
+- addon 설치 rollback/중복 거부/부모 D0 재실행/부모 긴급 CLOSED로 Instructor 차단은 로컬 검증됨. H1 당시 **독립 addon 복구 SQL 파일 자체의 실행 리허설은 NOT RUN**이었다. 아래 H2-P0에서 해당 파일의 실제 로컬 리허설을 추가 완료했다 (Hosted NOT RUN 유지).
 
 ## H2 대상 선택 판단자료 — 현재 모두 승인 전
 
@@ -182,3 +182,11 @@ Changelog index 직접 fetch는 환경 proxy 403으로 미확인; 우회하지 �
 - **NOT RUN:** Hosted Auth/HTTP·실계정·운영 dump/restore·Windows 신규 QA. 기존 H1 Windows/로컬 Auth 증거의 범위를 확장하지 않음.
 
 H2-P0 문서·격리 검증 범위는 완료 가능하며, **운영 설치/활성화 준비 완료 판정은 보류**한다.
+
+### H2-P0 최종 증거
+
+- QA 실행 Source: `818135ede6f43f7448225e963e7c1cc4e5270e7e`. 최종 **21 PASS**, PostgreSQL17.6, network-none 로컬 SQL/합성 Auth claims. 실제 JWT/HTTP/Hosted 결과가 아니다.
+- 증거: `school-workspace/hosted-h1/qa/h2-p0/evidence/rehearsal.json`, `SHA256SUMS`. Harness/복구/설치 SQL hash, UTC, 개별21항목, 정리 PASS 포함. 후속 증거 커밋은 이 실행의 Source SHA를 다시 이름붙이지 않는다.
+- 원본 독립 복구 SQL SHA-256: `1fab06b2addccf71179b36290cbc620acfca80083fbe22138a6f9955f91d0674`. 수정 없음.
+- 전체 제품/H1/TD2/Gate/저장 계약 변경 없음. QA 보조파일과 문서·합성 증거만 추가. Windows 빌드·기존 전체 QA는 반복하지 않았다.
+- QA 브랜치 `qa/school-h2-p0-preflight`에만 보존. integration/main 미반영, 운영 프로젝트 미접속, Workspace CLOSED 유지.
