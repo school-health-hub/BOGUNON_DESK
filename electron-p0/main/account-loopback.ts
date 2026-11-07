@@ -1,8 +1,8 @@
 import {createServer,type Server} from 'node:http';import {randomBytes} from 'node:crypto';
-export type AccountReturn=Readonly<{code?:string;flowId:string;error:boolean}>;
+export type AccountReturn=Readonly<{code?:string;flowId:string;error:boolean;cancelled?:true}>;
 export function parseAccountReturn(value:string,expected:string,flowId:string):AccountReturn|null{
  try{if(value.length>8192)return null;const u=new URL(value),e=new URL(expected),keys=[...u.searchParams.keys()];if(u.origin!==e.origin||u.pathname!==e.pathname||u.username||u.password||u.hash||new Set(keys).size!==keys.length||keys.some(k=>!['code','sb_flow_id','error','error_code','error_description'].includes(k))||u.searchParams.get('sb_flow_id')!==flowId)return null;
- if(u.searchParams.has('error'))return {flowId,error:true};const code=u.searchParams.get('code');if(!code||code.length>2048||/[\s\x00-\x1f\x7f]/.test(code))return null;return {code,flowId,error:false};}catch{return null;}
+ if(u.searchParams.has('error'))return {flowId,error:true,...(u.searchParams.get('error')==='access_denied'?{cancelled:true}:{})};const code=u.searchParams.get('code');if(!code||code.length>2048||/[\s\x00-\x1f\x7f]/.test(code))return null;return {code,flowId,error:false};}catch{return null;}
 }
 export class AccountLoopback{
  private server:Server|undefined;private expected='';private flowId='';private consumed=false;private timer:ReturnType<typeof setTimeout>|undefined;

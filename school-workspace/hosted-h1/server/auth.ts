@@ -4,7 +4,7 @@ import {AccountLoopback} from '../../../electron-p0/main/account-loopback.js';
 import {Mutex,type SecretSession,type SecretVault} from '../../auth/server/ports.js';
 import {validateSession} from '../../auth/server/session.js';
 import {WorkspaceRequestScope} from '../../auth/common/rpc.js';
-import type {WorkspaceAuthStatus} from '../../auth/common/types.js';
+import {WorkspaceAuthError,type WorkspaceAuthStatus} from '../../auth/common/types.js';
 import {H1Error,H1Http} from './http.js';
 export class H1Auth{
  readonly scope=new WorkspaceRequestScope();private client:SupabaseClient;private values=new Map<string,string>();private session:SecretSession|null=null;private epoch=0;private disposed=false;private storage=new Mutex();private refreshJob?:Promise<void>;private loopback?:AccountLoopback;private cancelLogin?:()=>void;private state:WorkspaceAuthStatus={kind:'signed_out'};
@@ -15,16 +15,73 @@ export class H1Auth{
  private reset(){this.scope.invalidate();this.http.abortPending();this.cancelLogin?.();this.cancelLogin=undefined;this.loopback?.close();this.loopback=undefined;return ++this.epoch;}
  private async verify(s:SecretSession){const{data,error}=await this.client.auth.getUser(s.accessToken);if(error)throw new H1Error(error.status===0||error.status&&error.status>=500?'NETWORK':'AUTH');if(!data.user||data.user.id!==s.userId||data.user.is_anonymous===true)throw new H1Error('AUTH');}
  private async commit(s:Session|null,g:number){if(!s)throw new H1Error('AUTH');const next=validateSession({userId:s.user.id,accessToken:s.access_token,refreshToken:s.refresh_token,expiresAt:(s.expires_at??0)*1000});await this.verify(next);this.fresh(g);await this.storage.run(async()=>{this.fresh(g);await this.vault.save(next);if(g!==this.epoch){await this.vault.clear();throw new H1Error('STALE');}});this.fresh(g);this.session=next;this.state={kind:'authenticated',session:{user:{id:next.userId},expiresAt:next.expiresAt}};}
- async login(){if(this.disposed)throw new H1Error('CONFIGURATION');await this.logout();const g=this.reset();this.state={kind:'signing_in'};try{
-  if(this.http.config.mode==='isolated-test'&&this.qaCredentials){const c=await this.qaCredentials();this.fresh(g);const{data,error}=await this.client.auth.signInWithPassword(c);if(error)throw new H1Error('AUTH');await this.commit(data.session,g);return;}
-  if(this.http.config.mode!=='hosted-candidate')throw new H1Error('CONFIGURATION');
-  this.loopback=new AccountLoopback();await new Promise<void>((resolve,reject)=>{
-   this.cancelLogin=()=>reject(new H1Error('STALE'));
-   void this.loopback!.start(value=>{if(value.error||!value.code){reject(new H1Error('AUTH'));return;}void this.client.auth.exchangeCodeForSession(value.code,{flowId:value.flowId}).then(async r=>{if(r.error)throw new H1Error('AUTH');await this.commit(r.data.session,g);resolve();}).catch(()=>reject(new H1Error('AUTH')));},()=>reject(new H1Error('AUTH'))).then(async redirect=>{
-    const r=await this.client.auth.signInWithOAuth({provider:'google',options:{redirectTo:redirect,skipBrowserRedirect:true,queryParams:{prompt:'select_account'}}});this.fresh(g);if(r.error||!r.data.url||!r.data.flowId)throw new H1Error('AUTH');const u=new URL(r.data.url),back=new URL(u.searchParams.get('redirect_to')??'');if(u.origin!==this.http.config.origin||u.pathname!=='/auth/v1/authorize'||u.searchParams.get('provider')!=='google'||u.searchParams.get('code_challenge_method')!=='s256'||back.origin!==new URL(redirect).origin||back.pathname!==new URL(redirect).pathname)throw new H1Error('CONFIGURATION');this.loopback!.arm(r.data.flowId);await this.open(u.href);
-   }).catch(()=>reject(new H1Error('AUTH')));
-  });
- }catch(e){if(g===this.epoch){this.session=null;await this.storage.run(()=>this.vault.clear());this.state={kind:'error',error:'AUTH_SERVER_ERROR'};}throw e instanceof H1Error?e:new H1Error('AUTH');}finally{this.loopback?.close();this.cancelLogin=undefined;}}
+ private async googleLogin(g:number,signal?:AbortSignal){
+  const loopback=new AccountLoopback();
+  this.loopback=loopback;
+  const check=()=>{this.fresh(g);if(signal?.aborted)throw new H1Error('STALE');};
+  let abort:()=>void=()=>{};
+  try{
+   await new Promise<void>((resolve,reject)=>{
+    abort=()=>reject(new H1Error('STALE'));
+    this.cancelLogin=abort;
+    if(signal?.aborted){abort();return;}
+    signal?.addEventListener('abort',abort,{once:true});
+    void loopback.start(value=>{
+     if(value.cancelled){reject(new WorkspaceAuthError('AUTH_CANCELLED'));return;}
+     if(value.error||!value.code){reject(new H1Error('AUTH'));return;}
+     const code=value.code;
+     void (async()=>{
+      check();
+      const result=await this.client.auth.exchangeCodeForSession(code,{flowId:value.flowId});
+      check();
+      if(result.error)throw new H1Error('AUTH');
+      await this.commit(result.data.session,g);
+     })().then(resolve,reject);
+    },()=>reject(new WorkspaceAuthError('FLOW_EXPIRED'))).then(async redirect=>{
+     check();
+     const result=await this.client.auth.signInWithOAuth({provider:'google',options:{redirectTo:redirect,skipBrowserRedirect:true,queryParams:{prompt:'select_account'}}});
+     check();
+     if(result.error||!result.data.url||!result.data.flowId)throw new H1Error('AUTH');
+     const url=new URL(result.data.url),back=new URL(url.searchParams.get('redirect_to')??''),expected=new URL(redirect);
+     if(url.origin!==this.http.config.origin||url.pathname!=='/auth/v1/authorize'||url.searchParams.get('provider')!=='google'||url.searchParams.get('code_challenge_method')!=='s256'||back.origin!==expected.origin||back.pathname!==expected.pathname||back.searchParams.get('sb_flow_id')!==result.data.flowId)throw new H1Error('CONFIGURATION');
+     loopback.arm(result.data.flowId);
+     await this.open(url.href);
+    }).catch(reject);
+   });
+  }finally{
+   signal?.removeEventListener('abort',abort);
+   loopback.close();
+   if(this.loopback===loopback){this.loopback=undefined;this.cancelLogin=undefined;}
+  }
+ }
+ async login(signal?:AbortSignal){
+  if(this.disposed)throw new H1Error('CONFIGURATION');
+  if(signal?.aborted)throw new H1Error('STALE');
+  const signOut=this.logout(),previous=this.epoch;
+  await signOut;
+  this.fresh(previous);
+  if(signal?.aborted)throw new H1Error('STALE');
+  const g=this.reset();this.state={kind:'signing_in'};
+  try{
+   if(this.http.config.mode==='isolated-test'&&this.qaCredentials){
+    const c=await this.qaCredentials();this.fresh(g);
+    const{data,error}=await this.client.auth.signInWithPassword(c);
+    if(signal?.aborted)throw new H1Error('STALE');
+    if(error)throw new H1Error('AUTH');
+    await this.commit(data.session,g);
+   }else if(this.http.config.mode==='hosted-candidate')await this.googleLogin(g,signal);
+   else throw new H1Error('CONFIGURATION');
+   if(signal?.aborted)throw new H1Error('STALE');
+  }catch(e){
+   if(g===this.epoch){
+    const failed=this.reset();
+    this.session=null;this.values.clear();
+    this.state=signal?.aborted?{kind:'signed_out'}:{kind:'error',error:e instanceof WorkspaceAuthError?e.code:'AUTH_SERVER_ERROR'};
+    await this.storage.run(async()=>{if(failed===this.epoch)await this.vault.clear();});
+   }
+   throw e instanceof H1Error||e instanceof WorkspaceAuthError?e:new H1Error('AUTH');
+  }
+ }
  async restore(){const g=this.reset();this.session=null;this.state={kind:'signed_out'};try{const s=await this.storage.run(()=>this.vault.load());this.fresh(g);if(!s)return;this.session=validateSession(s);await this.ensure();this.fresh(g);}catch{if(g===this.epoch){this.session=null;this.state={kind:'expired'};await this.storage.run(()=>this.vault.clear());}}}
  private async ensure(){const g=this.epoch;try{await this.ensureSession();}catch(e){if(!this.disposed&&g===this.epoch&&e instanceof H1Error&&e.code==='AUTH'){const dead=this.reset();this.session=null;this.state={kind:'expired'};this.values.clear();await this.storage.run(async()=>{if(dead===this.epoch)await this.vault.clear();});}throw e;}}
  private async ensureSession(){if(this.disposed||!this.session)throw new H1Error('AUTH');const g=this.epoch;

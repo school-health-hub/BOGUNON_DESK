@@ -5,13 +5,13 @@ export type WorkspacePhase = 'signed_out'|'signing_in'|'authenticated_unselected
 export class WorkspaceFault extends Error { constructor(readonly kind:Exclude<WorkspacePhase,'signed_out'|'signing_in'|'authenticated_unselected'|'approved'>) { super(kind); } }
 export interface MembershipSnapshot { status:'active'|'pending'|'suspended'|'expired_membership'|'recovery_locked'|'access_denied' }
 export interface IntegratedWorkspacePort {
-  authStatus():Promise<WorkspaceAuthStatus>; login():Promise<void>; logout():Promise<void>; invalidate():void;
+  authStatus():Promise<WorkspaceAuthStatus>; login(signal:AbortSignal):Promise<void>; logout():Promise<void>; invalidate():void;
   bootstrap(signal:AbortSignal):Promise<{actor_id:string}>;
   membership(schoolId:string,signal:AbortSignal):Promise<MembershipSnapshot>;
   context(schoolId:string,signal:AbortSignal):Promise<WorkspaceMembershipContext>;
   rpc<N extends WorkspaceRpcName>(name:N,args:WorkspaceRpcContracts[N]['args'],signal:AbortSignal):Promise<WorkspaceRpcContracts[N]['result']>;
 }
-export interface WorkspaceViewState { phase:WorkspacePhase; schoolId?:string; context?:WorkspaceMembershipContext }
+export interface WorkspaceViewState { phase:WorkspacePhase; schoolId?:string; context?:WorkspaceMembershipContext; loginIssue?:'AUTH_CANCELLED'|'FLOW_EXPIRED'|'AUTH_SERVER_ERROR' }
 export class WorkspaceCoordinator {
   #state:Readonly<WorkspaceViewState>=Object.freeze({phase:'signed_out'});
   #generation=0; #abort=new AbortController(); #listeners=new Set<()=>void>();
@@ -35,7 +35,13 @@ export class WorkspaceCoordinator {
   }
   async login():Promise<void>{
     const g=this.reset();this.#lastUser=null;this.set({phase:'signing_in'});
-    try{await this.port.login();this.current(g);await this.finishAuthentication(g);}catch(e){this.fail(e,g);}
+    try{await this.port.login(this.#abort.signal);this.current(g);await this.finishAuthentication(g);}catch(e){
+      if(g!==this.#generation)return;
+      const issue=e instanceof WorkspaceAuthError?e.code:undefined;
+      if(issue!=='AUTH_CANCELLED'&&issue!=='FLOW_EXPIRED'&&issue!=='AUTH_SERVER_ERROR'){this.fail(e,g);return;}
+      this.reset();
+      this.set({phase:'signed_out',loginIssue:issue});
+    }
   }
   async refreshAuth():Promise<void>{
     let g=this.#generation;

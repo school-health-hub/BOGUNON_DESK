@@ -34,6 +34,12 @@ export class SchoolController implements SchoolBridge{
    if(action==='login')await this.port.workspace.login();else await this.port.workspace.refreshAuth();check();
    this.#state.workspace=this.port.workspace.snapshot();
    if(!this.hasAdminProof())this.#adminProof=undefined;
+   const loginIssue=this.#state.workspace.loginIssue;
+   if(action==='login'&&loginIssue){
+    const notice=loginIssue==='AUTH_CANCELLED'?'공동 계정 로그인을 취소했습니다.':loginIssue==='FLOW_EXPIRED'?'로그인 시간이 초과되었습니다. 다시 시작해 주세요.':'공동 계정 로그인에 실패했습니다. 다시 시도해 주세요.';
+    this.#state={...empty(),workspace:this.#state.workspace,notice};
+    return this.snapshot();
+   }
    if(['signed_out','expired_session','network_error'].includes(this.#state.workspace.phase)){this.#state={...empty(),workspace:this.#state.workspace};return this.snapshot();}
    let selected=action==='select'?String(input.school??''):this.#state.selected;
    if(selected&&!/^[0-9a-f-]{36}$/i.test(selected))throw Error('input');

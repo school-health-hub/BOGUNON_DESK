@@ -45,7 +45,7 @@ export function SchoolWorkspace({store,client='web',connected=false,prefill='',s
  <p className="s02-banner">로컬 합성 검증 환경 · 실제 학교·계정과 연결되지 않습니다.</p>
  {!connected&&<p role="status">로컬 합성 연결을 준비해 주세요. 운영 로그인과 가입은 아직 사용할 수 없습니다.</p>}
  <fieldset disabled={busy!==null||!connected} className="s02-controls"><legend className="s02-sr">학교 공동 공간</legend>
- <div className="s02-card"><div className="s02-card-title"><h2>학교와 연결 상태</h2><span className="s02-pill" role="status">{states[status]??'상태 확인 필요'}</span></div>
+ <div className="s02-card"><div className="s02-card-title"><h2>학교와 연결 상태</h2><span className="s02-pill" role="status">{busy==='login'?states.signing_in:states[status]??'상태 확인 필요'}</span></div>
  <p>{mine?.school_name??school?.school_name??opening?.school_name??'선택된 학교가 없습니다.'}{mine?.role&&` · ${roleName(mine.role)}`}</p>
  {mine?.valid_until&&<p>이용 기한 {expiryDate(mine.valid_until)}</p>}
  <div className="s02-actions"><button onClick={()=>void act('login')}><LogIn aria-hidden="true"/>로그인</button><button className="secondary" disabled={!authenticated} onClick={()=>void act('logout')}><LogOut aria-hidden="true"/>로그아웃</button><button className="secondary" disabled={!authenticated} onClick={()=>void act('refresh')}><RefreshCw aria-hidden="true"/>신청 현황 새로고침</button></div>
