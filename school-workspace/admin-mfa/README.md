@@ -17,6 +17,21 @@
 
 기존 D0 및 Instructor 설치 순서에는 이 후보가 포함되지 않습니다. 54+2 CLOSED 설치나 일반 Workspace Gate를 여는 근거로 사용할 수 없습니다.
 
+## 신뢰 서버 계약 후보
+
+`trusted-server.ts`는 실제 네트워크·DB 자격증명을 포함하지 않는 닫힌 오케스트레이션 계약입니다. 요청과 공급자 응답을 런타임 파싱하고 다음 순서를 고정합니다.
+
+1. 서버가 원래 access token의 서명·issuer·audience·만료와 live `session_id`를 검증합니다.
+2. 같은 access token과 factor ID로 Supabase Auth challenge를 생성합니다.
+3. 반환된 challenge ID를 사용자·세션·factor와 함께 `bind_factor` 어댑터에 전달합니다.
+4. 같은 access token·factor ID·challenge ID로만 verify를 호출합니다.
+5. verify가 반환한 새 access token을 다시 검증하고 `sub`와 `session_id`가 원본과 같으며 `aal2`인지 확인합니다.
+6. 모두 일치할 때만 같은 증거를 `attest_factor`에 전달합니다. verify 또는 토큰 대조가 실패하면 사용자 세션으로 `cancel_intent`를 호출하는 reject 어댑터가 증거를 닫아야 합니다.
+
+토큰 검증 어댑터는 단순 JWT decode가 아니라 Supabase 프로젝트 issuer/JWKS 검증과 민감 작업용 live `auth.sessions` 확인을 책임집니다. proof 어댑터는 상시 `postgres` 또는 `service_role` 호출로 대체하지 않습니다. 운영 연결용 로그인 역할·역할 멤버십·secret·HTTP 라우트는 여전히 미구현이며 별도 승인 대상입니다.
+
 ## 집중 검증
 
 `qa.mjs`는 `BOGUNON_MFA_PG_BIN`에 지정한 PostgreSQL 17의 실행 파일을 사용하고 `BOGUNON_MFA_QA_TEMP` 아래에 독립된 루프백 DB를 생성합니다. `node school-workspace/admin-mfa/qa.mjs`로 실행합니다. 합성 Auth와 합성 검증 역할만 사용합니다. 실제 Google·Supabase MFA와 Electron은 이 실행 범위에 포함되지 않습니다.
+
+`npx vitest run school-workspace/admin-mfa/trusted-server.test.ts`는 동일 세션·factor·challenge 순서, AAL2 재검증, 실패 시 reject 및 입력 경계 파싱을 합성 어댑터로 검증합니다. `npx tsc -p school-workspace/admin-mfa/tsconfig.json`은 이 계약만 독립적으로 타입 검사합니다.
