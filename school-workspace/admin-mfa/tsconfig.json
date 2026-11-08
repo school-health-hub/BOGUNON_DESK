@@ -14,5 +14,5 @@
     "exactOptionalPropertyTypes": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["trusted-server.ts", "trusted-server.test.ts"]
+  "include": ["*.ts"]
 }

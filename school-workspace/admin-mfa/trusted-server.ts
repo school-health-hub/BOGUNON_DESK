@@ -25,15 +25,22 @@ const VerifiedClaimsSchema = z.object({
 
 const ChallengeResponseSchema = z.object({ id: ChallengeIdSchema }).strict();
 const VerifyResponseSchema = z.object({ accessToken: AccessTokenSchema }).strict();
+const BoundProofSchema = z.object({
+  intentId: IntentIdSchema,
+  userId: UserIdSchema,
+  sessionId: SessionIdSchema,
+  factorId: FactorIdSchema,
+  challengeId: ChallengeIdSchema,
+}).strict();
 
-type AccessToken = z.infer<typeof AccessTokenSchema>;
-type UserId = z.infer<typeof UserIdSchema>;
-type SessionId = z.infer<typeof SessionIdSchema>;
-type IntentId = z.infer<typeof IntentIdSchema>;
-type FactorId = z.infer<typeof FactorIdSchema>;
-type ChallengeId = z.infer<typeof ChallengeIdSchema>;
+export type AccessToken = z.infer<typeof AccessTokenSchema>;
+export type UserId = z.infer<typeof UserIdSchema>;
+export type SessionId = z.infer<typeof SessionIdSchema>;
+export type IntentId = z.infer<typeof IntentIdSchema>;
+export type FactorId = z.infer<typeof FactorIdSchema>;
+export type ChallengeId = z.infer<typeof ChallengeIdSchema>;
 
-type BoundProof = {
+export type BoundProof = {
   readonly intentId: IntentId;
   readonly userId: UserId;
   readonly sessionId: SessionId;
@@ -41,12 +48,16 @@ type BoundProof = {
   readonly challengeId: ChallengeId;
 };
 
-interface VerifiedTokenService {
+export function parseBoundProof(rawProof: unknown): BoundProof {
+  return BoundProofSchema.parse(rawProof);
+}
+
+export interface VerifiedTokenService {
   readonly expectedIssuer: string;
   verify(accessToken: AccessToken): Promise<unknown>;
 }
 
-interface MfaProvider {
+export interface MfaProvider {
   challenge(input: { readonly accessToken: AccessToken; readonly factorId: FactorId }): Promise<unknown>;
   verify(input: {
     readonly accessToken: AccessToken;
@@ -56,13 +67,13 @@ interface MfaProvider {
   }): Promise<unknown>;
 }
 
-interface IntentProofStore {
+export interface IntentProofStore {
   bind(proof: BoundProof): Promise<void>;
   attest(proof: BoundProof): Promise<void>;
   reject(proof: BoundProof): Promise<void>;
 }
 
-type TrustedServerDependencies = {
+export type TrustedServerDependencies = {
   readonly tokens: VerifiedTokenService;
   readonly provider: MfaProvider;
   readonly proofs: IntentProofStore;
@@ -106,13 +117,13 @@ export async function completeAdminMfa(
     accessToken: request.accessToken,
     factorId: request.factorId,
   }));
-  const proof = {
+  const proof = parseBoundProof({
     intentId: request.intentId,
     userId: initialClaims.sub,
     sessionId: initialClaims.session_id,
     factorId: request.factorId,
     challengeId: challenge.id,
-  } satisfies BoundProof;
+  });
 
   await dependencies.proofs.bind(proof);
   try {
