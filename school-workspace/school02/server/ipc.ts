@@ -1,6 +1,6 @@
 import{assertSender}from'../../../electron-p0/main/policy.js';import type{Action,SchoolBridge,SchoolState}from'../core/types.js';
 export const CHANNEL='workspace:school02';
-const actions=new Set<Action>(['state','login','logout','search','select','refresh','join','space','withdraw','decide','role','membership','expiry','leave','propose','accept','reauth']);
+const actions=new Set<Action>(['state','login','logout','search','select','refresh','join','space','withdraw','decide','role','membership','expiry','leave','propose','accept','mfaVerify','mfaCancel']);
 export interface IpcPort{handle(name:string,fn:(event:{sender:unknown;senderFrame:unknown},action:unknown,input:unknown)=>Promise<SchoolState>):void;removeHandler(name:string):void}
 export function registerSchoolIpc(ipc:IpcPort,contents:{mainFrame:unknown;getURL():string},url:string,controller:SchoolBridge,localSynthetic:boolean){
  if(!localSynthetic)throw Error('local_synthetic_only');

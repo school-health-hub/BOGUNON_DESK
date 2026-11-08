@@ -11,16 +11,17 @@ import {ActivityController} from '../../school04/core/controller.js';
 import type {Action as ActivityAction} from '../../school04/core/types.js';
 import {InventoryController} from '../../school07/core/controller.js';
 import {InstructorController} from '../../instructors/core/controller.js';
+import type {SchoolAdminMfaPort} from '../../school02/core/controller.js';
 import {H1Auth} from './auth.js';
 import {H1Error} from './http.js';
 /** Existing DTO/controllers, real user-scoped HTTP; no SQL executor or synthetic identity registry. */
-export function createH1Runtime(auth:H1Auth):ProductRuntime{
+export function createH1Runtime(auth:H1Auth,adminMfa?:SchoolAdminMfaPort):ProductRuntime{
  let disposed=false,disposal:Promise<void>|undefined;const context=new WorkspaceRequestScope();
  const invoke=async(n:string,a:object,s:AbortSignal)=>{if(disposed||s.aborted)throw new WorkspaceAuthError('STALE_RESPONSE');try{return await auth.authorized((token,owned)=>auth.http.rpc(token,n,a,AbortSignal.any([s,owned])));}catch(e){if(e instanceof H1Error){if(e.code==='AUTH')throw new WorkspaceAuthError('UNAUTHENTICATED');if(e.code==='DENIED')throw new WorkspaceAuthError('ACCESS_DENIED');if(e.code==='STALE')throw new WorkspaceAuthError('STALE_RESPONSE');throw Error(e.code==='CONFLICT'?'conflict':e.code==='REAUTH'?'reauth':e.code==='INPUT'?'input':'network');}throw e;}};
  const port:IntegratedWorkspacePort={authStatus:()=>auth.status(),login:async signal=>{try{await auth.login(signal);}catch(e){if(e instanceof WorkspaceAuthError)throw e;throw new WorkspaceAuthError(e instanceof H1Error&&e.code==='STALE'?'STALE_RESPONSE':'AUTH_SERVER_ERROR');}},logout:()=>auth.logout(),invalidate:()=>{context.invalidate();auth.scope.invalidate();},bootstrap:s=>invoke('ws_v1_bootstrap',{},s)as Promise<{actor_id:string}>,membership:(school,s)=>invoke('ws_c_membership_status',{p_school_id:school},s)as Promise<MembershipSnapshot>,context:(school,_s)=>auth.authorized(token=>context.switchSchool(userScopedRpc(token,{evidence:'SERVER',invoke:(_t,n,a,s)=>invoke(n,a,s)}),school)),rpc:(n,a,s)=>invoke(n,a,s)as never};
  // Context validation uses the current verified access token and the shared strict DTO decoder.
  // Keep admin changes closed until the server can verify and consume purpose-bound step-up evidence.
- const coordinator=new WorkspaceCoordinator(port),school=new SchoolController({workspace:coordinator,call:invoke});
+ const coordinator=new WorkspaceCoordinator(port),school=new SchoolController({workspace:coordinator,call:invoke,...(adminMfa?{adminMfa}:{})});
  const taskCall=async(n:string,a:object,s:AbortSignal)=>{try{return await invoke(n,a,s);}catch(e){if(e instanceof WorkspaceAuthError)throw new TaskFault(e.code==='UNAUTHENTICATED'?'EXPIRED':e.code==='STALE_RESPONSE'?'STALE':'DENIED');throw new TaskFault(e instanceof Error&&e.message==='conflict'?'CONFLICT':e instanceof Error&&e.message==='input'?'INPUT':'NETWORK');}};
  const schoolPort=(a:'select'|'refresh',i?:Record<string,unknown>)=>school.command(a,i);
  const tasks=new TaskController({school:schoolPort,call:taskCall}),activity=new ActivityController({school:schoolPort,call:taskCall,tasks:(s,signal)=>taskCall('ws_v1_list_tasks',{p_school_id:s,p_status:null,p_sort:'DUE',p_scope:'MINE',p_include_archived:false},signal)as Promise<Board>}),inventory=new InventoryController({school:schoolPort,call:taskCall}),instructor=new InstructorController({school:()=>school.command('refresh'),call:taskCall});

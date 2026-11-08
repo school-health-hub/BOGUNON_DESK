@@ -7,7 +7,10 @@ export interface Member{id:string;member_code:string;role:WorkspaceRole|null;sta
 export interface PendingRequest extends JoinRequest{member_code:string}
 export interface Transfer{id:string;version:number;mode:'add'|'transfer';state:string;expires_at:string;to_code:string;can_accept:boolean}
 export interface SelfData{memberships:Membership[];space_requests:{school_id:string;state:string;school_name?:string;space_state?:string}[]}
-export type AdminReauthStatus = 'unsupported' | 'required' | 'verified';
-export interface SchoolState{adminReauth?:AdminReauthStatus;reauthNotice?:string;workspace:Readonly<WorkspaceViewState>;directory:DirectorySchool[];self:SelfData;selected?:string;admin?:{members:Member[];requests:PendingRequest[]};transfers:Transfer[];notice?:string}
-export type Action='state'|'login'|'logout'|'search'|'select'|'refresh'|'join'|'space'|'withdraw'|'decide'|'role'|'membership'|'expiry'|'leave'|'propose'|'accept'|'reauth';
+export type AdminMfaState =
+ | Readonly<{status:'unsupported'}>
+ | Readonly<{status:'ready'}>
+ | Readonly<{status:'challenge';purpose:'propose'|'accept';expiresAt:number}>;
+export interface SchoolState{adminMfa?:AdminMfaState;reauthNotice?:string;workspace:Readonly<WorkspaceViewState>;directory:DirectorySchool[];self:SelfData;selected?:string;admin?:{members:Member[];requests:PendingRequest[]};transfers:Transfer[];notice?:string}
+export type Action='state'|'login'|'logout'|'search'|'select'|'refresh'|'join'|'space'|'withdraw'|'decide'|'role'|'membership'|'expiry'|'leave'|'propose'|'accept'|'mfaVerify'|'mfaCancel';
 export interface SchoolBridge{command(action:Action,input?:Record<string,unknown>):Promise<SchoolState>}

@@ -37,7 +37,7 @@ export class TrustedMfaClient {
     this.timeoutMs = config.timeoutMs ?? 10_000;
   }
 
-  private async post(path: string, accessToken: string, payload: Readonly<Record<string, string>>) {
+  private async post(path: string, accessToken: string, payload: Readonly<Record<string, string>>, signal?: AbortSignal) {
     const response = await this.fetcher(`${this.baseUrl}${path}`, {
       method: "POST",
       headers: {
@@ -45,24 +45,24 @@ export class TrustedMfaClient {
         "content-type": "application/json",
       },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(this.timeoutMs),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(this.timeoutMs)]) : AbortSignal.timeout(this.timeoutMs),
     });
     if (!response.ok) throw new TrustedMfaClientError(response.status);
     return response;
   }
 
-  async verify(rawInput: unknown) {
+  async verify(rawInput: unknown, signal?: AbortSignal) {
     const input = VerifyInputSchema.parse(rawInput);
     const response = await this.post("/trusted-mfa/v1/verify", input.accessToken, {
       intentId: input.intentId,
       factorId: input.factorId,
       code: input.code,
-    });
+    }, signal);
     return VerifyResponseSchema.parse(await response.json());
   }
 
-  async cancel(rawInput: unknown) {
+  async cancel(rawInput: unknown, signal?: AbortSignal) {
     const input = CancelInputSchema.parse(rawInput);
-    await this.post("/trusted-mfa/v1/cancel", input.accessToken, { intentId: input.intentId });
+    await this.post("/trusted-mfa/v1/cancel", input.accessToken, { intentId: input.intentId }, signal);
   }
 }

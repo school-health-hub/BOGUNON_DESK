@@ -57,7 +57,7 @@ it('accepts only the current Google PKCE callback and verifies the user before s
   expect(f.calls).toEqual([]);
   redirect.searchParams.set('code', 'synthetic-code');
   expect((await fetch(redirect)).ok).toBe(true);
-  expect(await login).toMatchObject({ workspace: { phase: 'authenticated_unselected' }, adminReauth: 'unsupported' });
+  expect(await login).toMatchObject({ workspace: { phase: 'authenticated_unselected' }, adminMfa: { status: 'unsupported' } });
   expect(f.calls.slice(0, 2)).toEqual(['/auth/v1/token', '/auth/v1/user']);
   expect(f.saved?.userId).toBe(uid);
   await f.runtime.school('propose', { id: 'target', mode: 'transfer' });
@@ -75,7 +75,7 @@ it.each([
   const redirect = await f.callback();
   redirect.searchParams.set('error', error);
   expect((await fetch(redirect)).ok).toBe(true);
-  expect(await login).toMatchObject({ notice: expect.stringContaining(notice), adminReauth: 'unsupported' });
+  expect(await login).toMatchObject({ notice: expect.stringContaining(notice), adminMfa: { status: 'unsupported' } });
   expect(f.saved).toBeNull();
   expect(f.calls).toEqual([]);
  } finally { await f.runtime.dispose(); }
@@ -155,7 +155,7 @@ it('keeps only the newer account login callback after starting over', async () =
   await expect(fetch(oldCallback)).rejects.toThrow();
   newCallback.searchParams.set('code', 'new-code');
   expect((await fetch(newCallback)).ok).toBe(true);
-  expect(await second).toMatchObject({ workspace: { phase: 'authenticated_unselected' }, adminReauth: 'unsupported' });
+  expect(await second).toMatchObject({ workspace: { phase: 'authenticated_unselected' }, adminMfa: { status: 'unsupported' } });
   expect(f.calls.filter(path => path === '/auth/v1/token')).toHaveLength(1);
  } finally { await f.runtime.dispose(); }
 });

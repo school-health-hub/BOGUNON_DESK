@@ -36,6 +36,9 @@
 - `supabase-adapters.ts`는 공식 Auth challenge/verify 경로를 같은 사용자 access token으로 호출합니다. 반환된 새 토큰은 서명된 claims, Auth 사용자, live session을 다시 확인한 뒤에만 증거를 승인합니다.
 - `SqlIntentProofStore`는 `bind_factor`와 `attest_factor`를 검증자 전용 실행 경계로 호출하고, 실패·취소는 원래 사용자 JWT 범위의 `cancel_intent`로 분리합니다. 모든 SQL 값은 매개변수로 전달합니다.
 - `trusted-runtime.ts`는 위 어댑터를 하나의 HTTP handler로 조합합니다. `trusted-client.ts`는 기존 관리자 UI가 verify/cancel을 호출할 수 있는 최소 클라이언트 인터페이스이며 DB 권한이나 비밀키를 포함하지 않습니다.
+- `school02-adapter.ts`는 H1Auth의 서버 전용 access token을 renderer에 노출하지 않고 `TrustedMfaClient`와 목적 결합 begin/execute 백엔드 경계에 전달합니다. SCHOOL02 컨트롤러는 같은 intent의 검증 성공 뒤에만 execute를 호출하며 이전 이관 RPC를 직접 호출하지 않습니다.
+
+SCHOOL02 UI는 서버 포트가 주입됐을 때만 관리자 변경 버튼을 활성화하고 6자리 TOTP 입력 dialog를 표시합니다. 취소·실패·만료, 학교·계정 전환과 중복 제출은 진행 중 intent를 폐기하거나 재사용하지 않습니다. 포트가 없는 현재 기본 H1 runtime은 명시적인 미지원 안내와 비활성 버튼을 유지합니다.
 
 운영 활성화에는 아직 서버 전용 배포 위치와 secret 보관, `ws_admin_mfa_verifier` NOLOGIN 역할을 대신해 제한된 함수만 실행하는 전용 로그인/멤버십, live `auth.sessions`를 최소 권한으로 확인하는 실행 경계, 사용자 JWT claims를 설정해 `cancel_intent`를 호출하는 DB 구현이 필요합니다. 다중 서버의 중복 요청은 DB의 open-intent 제약과 bind/attest 조건이 최종 권위이며 메모리 gate만 신뢰하면 안 됩니다. 이 조건과 실제 Supabase 격리 연결 검증 전까지 일반 Workspace Gate는 CLOSED입니다.
 

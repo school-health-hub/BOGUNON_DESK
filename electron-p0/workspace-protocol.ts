@@ -1,7 +1,7 @@
 /** Purpose-only product IPC. No arbitrary RPC/SQL/HTTP capability. */
 export const WORKSPACE_METHODS = {
  inventory: {selectSchool:'select',refresh:'refresh',getItem:'detail',createItem:'create',editItem:'edit',saveLocation:'location',receive:'receive',use:'use',adjust:'adjust',dispose:'dispose',setLotState:'state'},
- school: {state:'state',signIn:'login',signOut:'logout',findSchool:'search',selectSchool:'select',refresh:'refresh',requestJoin:'join',requestSpace:'space',withdraw:'withdraw',decideJoin:'decide',setRole:'role',setMembership:'membership',setExpiry:'expiry',leave:'leave',proposeAdmin:'propose',acceptAdmin:'accept',reauthenticate:'reauth'},
+ school: {state:'state',signIn:'login',signOut:'logout',findSchool:'search',selectSchool:'select',refresh:'refresh',requestJoin:'join',requestSpace:'space',withdraw:'withdraw',decideJoin:'decide',setRole:'role',setMembership:'membership',setExpiry:'expiry',leave:'leave',proposeAdmin:'propose',acceptAdmin:'accept',verifyAdminMfa:'mfaVerify',cancelAdminMfa:'mfaCancel'},
  instructor: {read:'read',settings:'settings',save:'save',remove:'delete',import:'import'},
  tasks: {selectSchool:'select',refresh:'refresh',getTask:'detail',createTask:'create',editTask:'edit',assignTask:'assign',changeStatus:'status',closeTask:'close',history:'history'},
  activity: {selectSchool:'select',refresh:'refresh',getEvent:'event_get',saveEvent:'event_save',cancelEvent:'event_cancel',eventHistory:'event_history',getHandover:'note_get',createHandover:'note_create',editHandover:'note_edit',acknowledge:'note_ack',completeHandover:'note_complete',handoverHistory:'note_history'},
