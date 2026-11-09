@@ -1,3 +1,4 @@
+import {X} from 'lucide-react';
 import {useEffect,useRef,useState} from 'react';
 import type {PurchaseCsvSelection} from '../../protocol';
 import type {PurchaseColumnMapping,PurchaseItem,PurchaseImportTemplate} from './purchase/types';
@@ -61,7 +62,7 @@ export function PurchaseImportControls({items,onApply,onNotice,format="csv",temp
   {(busy||selection)&&<button type="button" onClick={cancel}>{label} 분석 취소</button>}
   {busy&&<span role="status">{label} 선택·분석 중…</span>}
   {candidate&&option&&<div className="purchase-mapping-backdrop"><section className="purchase-mapping-dialog" role="dialog" aria-modal="true" aria-label={`${label} 열 지정`}>
-   <header><h3>열 지정 · {candidate.sourceName}</h3><button type="button" onClick={cancel}>열 지정 닫기</button></header>
+   <header><h3>열 지정 · {candidate.sourceName}</h3><button type="button" aria-label="열 지정 닫기" onClick={cancel}><X size={17} aria-hidden="true"/></button></header>
    <label>머리글 행<select aria-label="머리글 행 선택" value={header} onChange={e=>{setHeader(Number(e.target.value));setMapping({});setRemember(false);setTemplateName('');}}>{candidate.headerOptions.map(o=><option key={o.rowIndex} value={o.rowIndex}>{o.rowIndex+1}행: {o.headers.filter(Boolean).join(' | ')}</option>)}</select></label>
    {format!=='pdf'&&<><label>저장된 열 설정<select aria-label="저장된 가져오기 템플릿" disabled={settingsBusy||busy} value="" onChange={e=>{const t=templates.find(t=>t.id===e.target.value);if(t&&JSON.stringify(t.headerSignature)===JSON.stringify(option.signature)){setMapping(t.mapping);setTemplateName(t.name);}}}><option value="">같은 머리글의 설정 선택</option>{templates.filter(t=>JSON.stringify(t.headerSignature)===JSON.stringify(option.signature)).map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label><label><input type="checkbox" aria-label="이 열 구성을 기억하기" disabled={settingsBusy||busy} checked={remember} onChange={e=>setRemember(e.target.checked)}/> 이 열 구성을 기억하기</label>{remember&&<input aria-label="가져오기 템플릿 이름" maxLength={40} value={templateName} disabled={settingsBusy||busy} onChange={e=>setTemplateName(e.target.value)}/>}</>}
    <div className="purchase-mapping-preview"><table><tbody>{candidate.rows.slice(header,header+5).map((row,i)=><tr key={i}>{option.headers.map((_,j)=><td key={j}>{row[j]??''}</td>)}</tr>)}</tbody></table></div>
