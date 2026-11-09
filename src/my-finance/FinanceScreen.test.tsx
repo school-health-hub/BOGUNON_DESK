@@ -41,6 +41,47 @@ describe("local finance management", () => {
     expect(screen.queryByRole("alert")).toBeNull();
     expect(api.replaceFinancePhase2).toHaveBeenCalledWith(snapshot().identity, expect.objectContaining({ investmentAccounts: [expect.objectContaining({ name: "합성 증권", currency: "KRW" })] }));
   });
+
+  it("keeps an unsaved planning draft when canceling section changes, refresh, or leaving", async () => {
+    await ready();
+    fireEvent.click(screen.getByRole("button", { name: "세금·투자·자산" }));
+    fireEvent.click(screen.getByRole("button", { name: "자산" }));
+    fireEvent.change(screen.getByPlaceholderText("자산 이름"), { target: { value: "합성 미저장 자산" } });
+    for (const name of ["투자", "수입 관리", "최신 목록 새로고침", "보건 업무로"]) {
+      fireEvent.click(screen.getByRole("button", { name }));
+      const dialog = screen.getByRole("alertdialog");
+      fireEvent.click(within(dialog).getByRole("button", { name: "취소" }));
+      expect(screen.getByPlaceholderText("자산 이름")).toHaveProperty("value", "합성 미저장 자산");
+    }
+    expect(api.replaceFinancePhase2).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "투자" }));
+    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "확인" }));
+    expect(screen.getByPlaceholderText("계좌 이름")).toBeTruthy();
+  });
+
+  it("keeps the planning section and clears its draft only after a successful confirmed refresh", async () => {
+    await ready();
+    fireEvent.click(screen.getByRole("button", { name: "세금·투자·자산" }));
+    fireEvent.click(screen.getByRole("button", { name: "투자" }));
+    let finishReload: (value: FinanceSnapshot) => void = () => { throw new Error("Refresh did not start"); };
+    api.listFinanceIncome.mockImplementationOnce(() => new Promise<FinanceSnapshot>(resolve => { finishReload = resolve; }));
+    fireEvent.click(screen.getByRole("button", { name: "최신 목록 새로고침" }));
+    expect(screen.getByPlaceholderText("계좌 이름").closest("[inert]")).not.toBeNull();
+    await act(async () => finishReload(snapshot()));
+    expect(screen.getByPlaceholderText("계좌 이름").closest("[inert]")).toBeNull();
+
+    fireEvent.change(screen.getByPlaceholderText("계좌 이름"), { target: { value: "합성 새로고침 전 초안" } });
+    fireEvent.click(screen.getByRole("button", { name: "최신 목록 새로고침" }));
+    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "확인" }));
+    await waitFor(() => expect(screen.getByPlaceholderText("계좌 이름")).toHaveProperty("value", ""));
+  });
+
+  it("opens the income editor when registration starts from planning", async () => {
+    await ready();
+    fireEvent.click(screen.getByRole("button", { name: "세금·투자·자산" }));
+    fireEvent.click(screen.getByRole("button", { name: "수입 등록" }));
+    expect(screen.getByLabelText("지급처")).toBeTruthy();
+  });
   it("filters income and recomputes annual cards using occurrence dates", async () => {
     await ready(snapshot([item, { ...item, id: "synthetic-b", sourceName: "합성 전자책", incomeKind: "ebook", paidOn: `${year + 1}-01-01` }, { ...item, id: "synthetic-c", sourceName: "합성 이전 연도", earnedOn: `${year - 1}-12-31` }]));
     const cards = within(screen.getByRole("region", { name: "연간 수입 집계" }));

@@ -10,9 +10,10 @@ import { Phase2Workspace } from "./Phase2Workspace";
 import "./finance.css";
 
 type Editor = { value: IncomeFormValue; expected: FinanceIdentity; editing: boolean };
-type Confirmation = { kind: "save"; entry: IncomeRecord; expected: FinanceIdentity; editing: boolean } | { kind: "delete"; id: string; expected: FinanceIdentity } | { kind: "reload" | "leave" | "discard" };
-const titles = { save: "수입을 저장할까요?", delete: "수입을 삭제할까요?", reload: "최신 목록을 불러올까요?", leave: "보건 업무로 돌아갈까요?", discard: "입력을 취소할까요?" };
-const messages = { save: "입력한 내용을 이 PC의 암호화 저장소에 저장합니다.", delete: "선택한 수입을 삭제합니다. 이 작업은 되돌릴 수 없습니다.", reload: "작성 중인 내용을 버리고 최신 목록을 불러옵니다. 충돌한 편집은 자동으로 덮어쓰지 않습니다.", leave: "저장하지 않은 입력 내용은 사라집니다.", discard: "저장하지 않은 입력 내용을 버립니다." };
+type Workspace = "income" | "planning";
+type Confirmation = { kind: "save"; entry: IncomeRecord; expected: FinanceIdentity; editing: boolean } | { kind: "delete"; id: string; expected: FinanceIdentity } | { kind: "reload" | "leave" | "discard" } | { kind: "navigate"; apply: () => void };
+const titles = { navigate: "작성 중인 내용을 버리고 이동할까요?", save: "수입을 저장할까요?", delete: "수입을 삭제할까요?", reload: "최신 목록을 불러올까요?", leave: "보건 업무로 돌아갈까요?", discard: "입력을 취소할까요?" };
+const messages = { navigate: "저장하지 않은 입력 내용을 버립니다.", save: "입력한 내용을 이 PC의 암호화 저장소에 저장합니다.", delete: "선택한 수입을 삭제합니다. 이 작업은 되돌릴 수 없습니다.", reload: "작성 중인 내용을 버리고 최신 목록을 불러옵니다. 충돌한 편집은 자동으로 덮어쓰지 않습니다.", leave: "저장하지 않은 입력 내용은 사라집니다.", discard: "저장하지 않은 입력 내용을 버립니다." };
 
 export function FinanceScreen({ onClose, qa = false }: { onClose: () => void; qa?: boolean }) {
   const [transferOpen, setTransferOpen] = useState(false);
@@ -28,7 +29,9 @@ export function FinanceScreen({ onClose, qa = false }: { onClose: () => void; qa
   const [editor, setEditor] = useState<Editor | null>(null);
   const [dirty, setDirty] = useState(false);
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
-  const [workspace, setWorkspace] = useState<"income" | "planning">("income");
+  const [workspace, setWorkspace] = useState<Workspace>("income");
+  const [phase2Dirty, setPhase2Dirty] = useState(false);
+  const [phase2Session, setPhase2Session] = useState(0);
   const mounted = useRef(false);
   const sequence = useRef(0);
   const locked = useRef(false);
@@ -46,7 +49,7 @@ export function FinanceScreen({ onClose, qa = false }: { onClose: () => void; qa
     try {
       const next = await listFinanceIncome();
       if (!mounted.current || token !== sequence.current) return;
-      setSnapshot(next); setStale(false); setError(null); setEditor(null); setDirty(false); setPage(1);
+      setSnapshot(next); setStale(false); setError(null); setEditor(null); setDirty(false); setPhase2Dirty(false); setPhase2Session(value => value + 1); setPage(1);
     } catch {
       if (mounted.current && token === sequence.current) { setError("금융 저장소를 열지 못했습니다. Windows 앱의 로컬 저장소를 확인한 뒤 다시 시도해 주세요."); setStale(true); }
     } finally { if (mounted.current && token === sequence.current) setLoading(false); }
@@ -57,11 +60,23 @@ export function FinanceScreen({ onClose, qa = false }: { onClose: () => void; qa
   }, []);
 
   const writable = snapshot !== null && !loading && !busy && !stale;
-  function close() { if (locked.current) return; if (dirty) ask({ kind: "leave" }); else onClose(); }
-  function refresh() { if (locked.current || loading) return; if (dirty) ask({ kind: "reload" }); else void reload(); }
+  function close() { if (locked.current) return; if (dirty || phase2Dirty) ask({ kind: "leave" }); else onClose(); }
+  function refresh() { if (locked.current || loading) return; if (dirty || phase2Dirty) ask({ kind: "reload" }); else void reload(); }
+  function navigate(apply: () => void) {
+    if (locked.current) return;
+    if (dirty || phase2Dirty) ask({ kind: "navigate", apply });
+    else apply();
+  }
+  function switchWorkspace(next: Workspace) {
+    if (workspace === next) return;
+    navigate(() => {
+      setEditor(null); setDirty(false); setPhase2Dirty(false); setWorkspace(next);
+    });
+  }
   async function confirm() {
     const plan = confirmation;
     if (!plan || locked.current) return;
+    if (plan.kind === "navigate") { setConfirmation(null); plan.apply(); return; }
     if (plan.kind === "leave") { onClose(); return; }
     if (plan.kind === "discard") { setEditor(null); setDirty(false); setConfirmation(null); return; }
     if (plan.kind === "reload") { setConfirmation(null); void reload(); return; }
@@ -71,7 +86,7 @@ export function FinanceScreen({ onClose, qa = false }: { onClose: () => void; qa
       const next = plan.kind === "delete" ? await deleteFinanceIncome(plan.expected, plan.id)
         : plan.editing ? await updateFinanceIncome(plan.expected, plan.entry) : await createFinanceIncome(plan.expected, plan.entry);
       if (!mounted.current) return;
-      setSnapshot(next); setEditor(null); setDirty(false); setPage(1);
+      setSnapshot(next); setEditor(null); setDirty(false); setPhase2Dirty(false); setPhase2Session(value => value + 1); setPage(1);
       if (plan.kind === "save") { setYear(Number(plan.entry.earnedOn.slice(0, 4))); setKind("all"); }
       setNotice(plan.kind === "delete" ? "수입을 삭제했습니다." : plan.editing ? "수입을 수정했습니다." : "수입을 등록했습니다.");
     } catch (caught) {
@@ -95,8 +110,8 @@ export function FinanceScreen({ onClose, qa = false }: { onClose: () => void; qa
     setEditor({ value: entry ? editIncomeForm(entry) : emptyIncomeForm(), expected: snapshot.identity, editing: entry !== undefined });
   };
   const savePhase2 = async (phase2: Phase2Data) => {
-    if (!snapshot || !writable || locked.current) return;
-    locked.current = true; setBusy(true); setError(null);
+    if (!snapshot || !writable || locked.current) throw new Error("phase2-save-unavailable");
+    locked.current = true; setBusy(true); setError(null); setNotice(null);
     try { const next = await replaceFinancePhase2(snapshot.identity, phase2); if (mounted.current) { setSnapshot(next); setNotice("세금·투자·자산 정보를 암호화 저장소에 저장했습니다."); } }
     catch { if (mounted.current) { setStale(true); setError("저장 상태를 확인하지 못했습니다. 새로고침 후 다시 확인해 주세요."); } throw new Error("phase2-save-failed"); }
     finally { locked.current = false; if (mounted.current) setBusy(false); }
@@ -105,12 +120,12 @@ export function FinanceScreen({ onClose, qa = false }: { onClose: () => void; qa
     <div className="finance-container" inert={confirmation !== null || transferOpen}>
       <header className="finance-header"><button type="button" className="finance-back" onClick={close} disabled={busy}><ArrowLeft size={16} /> {qa ? "QA 앱 종료" : "보건 업무로"}</button><span className="finance-local"><LockKeyhole size={14} /> 이 PC에만 저장</span></header>
       <main>
-        <section className="finance-hero"><div><p className="finance-eyebrow">MY FINANCE</p><h1 ref={heading} tabIndex={-1}>내 수입, 한눈에</h1><p>발생부터 입금까지, 개인 수입을 차분하게 정리하세요.</p></div><div className="finance-hero-actions"><button type="button" disabled={!writable || editor !== null} onClick={() => setTransferOpen(true)}>백업·복원</button><button type="button" aria-label="최신 목록 새로고침" onClick={refresh} disabled={loading || busy}><RefreshCw size={16} /> 새로고침</button><button type="button" className="finance-primary" disabled={!writable || editor !== null} onClick={() => startEdit()}><Plus size={16} /> 수입 등록</button></div></section>
+        <section className="finance-hero"><div><p className="finance-eyebrow">MY FINANCE</p><h1 ref={heading} tabIndex={-1}>내 수입, 한눈에</h1><p>발생부터 입금까지, 개인 수입을 차분하게 정리하세요.</p></div><div className="finance-hero-actions"><button type="button" disabled={!writable || editor !== null || phase2Dirty} onClick={() => setTransferOpen(true)}>백업·복원</button><button type="button" aria-label="최신 목록 새로고침" onClick={refresh} disabled={loading || busy}><RefreshCw size={16} /> 새로고침</button><button type="button" className="finance-primary" disabled={!writable || editor !== null} onClick={() => navigate(() => { setPhase2Dirty(false); setWorkspace("income"); startEdit(); })}><Plus size={16} /> 수입 등록</button></div></section>
         <p className="finance-beta-note"><LockKeyhole size={15} /><span><strong>개발 검증 단계</strong> · 실제 두 PC 간 이동 및 장애 복구 수동 검증이 끝나기 전입니다. 아직 실제 금융정보를 입력하지 마세요. 클라우드 동기화는 지원하지 않습니다.</span></p>
         {error && <div role="alert" className="finance-error"><strong>{stale ? "최신 상태 확인이 필요합니다" : "저장소 연결 확인"}</strong><p>{error}</p>{snapshot && <p>아래 내역은 마지막 조회 결과입니다. 확인 전에는 변경할 수 없습니다.</p>}<button type="button" onClick={refresh} disabled={loading || busy}>최신 목록 새로고침</button></div>}
         {notice && <p role="status" className="finance-success">{notice}</p>}
-        <nav className="finance-area-tabs" aria-label="MY FINANCE 영역"><button type="button" className={workspace === "income" ? "is-active" : ""} onClick={() => setWorkspace("income")}>수입 관리</button><button type="button" className={workspace === "planning" ? "is-active" : ""} onClick={() => setWorkspace("planning")}>세금·투자·자산</button></nav>
-        {workspace === "planning" && snapshot && <Phase2Workspace income={snapshot.income} value={snapshot.phase2 ?? emptyPhase2Data()} disabled={!writable} onSave={savePhase2} />}
+        <nav className="finance-area-tabs" aria-label="MY FINANCE 영역"><button type="button" className={workspace === "income" ? "is-active" : ""} aria-pressed={workspace === "income"} disabled={busy} onClick={() => switchWorkspace("income")}>수입 관리</button><button type="button" className={workspace === "planning" ? "is-active" : ""} aria-pressed={workspace === "planning"} disabled={busy} onClick={() => switchWorkspace("planning")}>세금·투자·자산</button></nav>
+        {workspace === "planning" && snapshot && <div inert={busy || loading}><Phase2Workspace draftSession={phase2Session} income={snapshot.income} value={snapshot.phase2 ?? emptyPhase2Data()} disabled={!writable} onSave={savePhase2} onDirtyChange={setPhase2Dirty} onNavigate={navigate} /></div>}
         {workspace === "income" && <>
         <div className="finance-filters"><label>연도<select value={year} onChange={(e) => { setYear(Number(e.target.value)); setPage(1); }}>{years.map((y) => <option key={y} value={y}>{y}년</option>)}</select></label><label>수입 유형 필터<select value={kind} onChange={(e) => { setKind(e.target.value as IncomeFilter); setPage(1); }}><option value="all">전체 수입</option>{Object.entries(incomeLabels).map(([k, v]) => <option value={k} key={k}>{v}</option>)}</select></label><p>수입 발생일 기준 · {kind === "all" ? "전체 유형" : incomeLabels[kind]}</p></div>
         <section className="finance-summary" aria-label="연간 수입 집계" aria-busy={loading}>
@@ -141,7 +156,7 @@ export function FinanceScreen({ onClose, qa = false }: { onClose: () => void; qa
         </>}
       </main><footer className="finance-page-footer">개인 수입 전용 공간 · 학교 업무 및 계정 설정과 별도로 관리합니다.</footer>
     </div>
-    {transferOpen && snapshot && <FinanceTransfer snapshot={snapshot} onClose={() => setTransferOpen(false)} onRestored={(next) => { setSnapshot(next); setEditor(null); setDirty(false); setPage(1); setError(null); setStale(false); setNotice("암호화 백업을 복원했습니다."); }} onUncertain={() => { setStale(true); setError("복원 상태 확인을 위해 최신 목록을 새로고침해 주세요."); }} />}
+    {transferOpen && snapshot && <FinanceTransfer snapshot={snapshot} onClose={() => setTransferOpen(false)} onRestored={(next) => { setSnapshot(next); setEditor(null); setDirty(false); setPhase2Dirty(false); setPhase2Session(value => value + 1); setPage(1); setError(null); setStale(false); setNotice("암호화 백업을 복원했습니다."); }} onUncertain={() => { setStale(true); setError("복원 상태 확인을 위해 최신 목록을 새로고침해 주세요."); }} />}
     {confirmation && <FinanceConfirmation returnFocus={returnFocus.current} title={titles[confirmation.kind]} message={messages[confirmation.kind]} confirmLabel={confirmation.kind === "delete" ? "삭제" : confirmation.kind === "save" ? "로컬 저장" : "확인"} busy={busy} destructive={confirmation.kind === "delete"} onCancel={() => { if (!locked.current) setConfirmation(null); }} onConfirm={() => void confirm()} />}
   </div>;
 }
