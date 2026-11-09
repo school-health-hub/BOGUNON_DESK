@@ -31,7 +31,7 @@ export class WorkspaceCoordinator {
       if(e.code==='STALE_RESPONSE')return;
       phase=e.code==='UNAUTHENTICATED'?'expired_session':e.code==='ACCESS_DENIED'?'access_denied':'network_error';
     }
-    this.set({phase,schoolId});
+    this.set(schoolId===undefined?{phase}:{phase,schoolId});
   }
   async login():Promise<void>{
     const g=this.reset();this.#lastUser=null;this.set({phase:'signing_in'});
