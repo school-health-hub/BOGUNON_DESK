@@ -2,7 +2,7 @@ import type{SecretVault}from'../../auth/server/ports.js';
 import{createSchoolSession}from'../../school02/server/session.js';import{TaskDatabase,sql}from'./database.js';import type{SyntheticTokenRegistry}from'../../integration/server/local-db.js';import{TaskController}from'../core/controller.js';
 export const ORIGIN='https://127.0.0.1:5193';
 export function createTaskSession(kind:'electron'|'web',index=3,options:{execute?:typeof sql;databaseFactory?:(registry:SyntheticTokenRegistry)=>TaskDatabase;origin?:string;vault?:SecretVault}={}){let database!:TaskDatabase;
- const school=createSchoolSession(kind,index,{vault:options.vault,origin:options.origin??ORIGIN,execute:options.execute??sql,databaseFactory:registry=>(database=options.databaseFactory?.(registry)??new TaskDatabase(registry))});
+ const school=createSchoolSession(kind,index,{vault:options.vault,origin:options.origin??ORIGIN,databaseFactory:registry=>(database=options.databaseFactory?.(registry)??new TaskDatabase(registry,options.execute??sql))});
  const tasks=new TaskController({school:(a,i)=>school.controller.command(a,i),call:(name,args,signal)=>school.run(t=>database.task(t,name,args,signal))});
  return{school,tasks,database};
 }

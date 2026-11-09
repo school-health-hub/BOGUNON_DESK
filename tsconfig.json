@@ -20,6 +20,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"],
+  "include": ["src", "electron-p0/renderer/bridge.d.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

@@ -1,7 +1,7 @@
 /** Local-only synthetic integration harness. Never deploy or use with real identities. */
 import{createServer}from'node:https';import{readFile}from'node:fs/promises';import{resolve,extname}from'node:path';
 import{createActivitySession,ORIGIN}from'./session.js';import{TASK_ACTIONS,type TaskAction}from'../../school03/core/types.js';import{ACTIONS,type Action as ActivityAction}from'../core/types.js';import{WorkspaceAuthError}from'../../auth/common/types.js';import type{Action}from'../../school02/core/types.js';
-const actions=new Set<Action>(['state','login','logout','search','select','refresh','join','space','withdraw','decide','role','membership','expiry','leave','propose','accept','reauth']);
+const actions=new Set<Action>(['state','login','logout','search','select','refresh','join','space','withdraw','decide','role','membership','expiry','leave','propose','accept','mfaVerify','mfaCancel']);
 const sessions=new Map<string,ReturnType<typeof createActivitySession>>();
 const uiRoot=resolve('build/school04-ui');
 const server=createServer({key:await readFile(process.env.SCHOOL04_KEY!),cert:await readFile(process.env.SCHOOL04_CERT!)},async(req,res)=>{

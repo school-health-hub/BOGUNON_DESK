@@ -11,12 +11,15 @@ const emptyOutput = (): OfficialDocumentModeOutput => ({ prompt: "", aiResponse:
 export const createOfficialDocumentSession = (): OfficialDocumentSession => ({
   mode: "create",
   createInput: createEmptyOfficialDocumentInput(),
+  touchedCreateFields: [],
   revisionInput: { original: "", request: "" },
   revisionSourceName: null,
   summaryOriginal: "",
   summarySourceName: null,
   summaryLocalResult: null,
   draft: null,
+  selectedReference: null,
+  appliedReference: null,
   outputs: { create: emptyOutput(), revision: emptyOutput(), summary: emptyOutput() },
   aiStatus: "idle",
   aiError: null,
@@ -44,6 +47,13 @@ const clearOutput = (
   mode: OfficialDocumentMode,
 ): OfficialDocumentSession => updateOutput(state, mode, emptyOutput());
 
+const touchCreateField = (
+  state: OfficialDocumentSession,
+  field: OfficialDocumentSession["touchedCreateFields"][number],
+): OfficialDocumentSession["touchedCreateFields"] => state.touchedCreateFields.includes(field)
+  ? state.touchedCreateFields
+  : [...state.touchedCreateFields, field];
+
 const assertNever = (value: never): never => {
   throw new TypeError(`지원하지 않는 공문 작업실 action: ${String(value)}`);
 };
@@ -57,13 +67,13 @@ export const reduceOfficialDocumentSession = (
       return invalidateAiRequest({ ...state, mode: action.mode });
     case "updateCreate":
       if (state.createInput[action.field] === action.value) return state;
-      return invalidateAiRequest(clearOutput({ ...state, createInput: { ...state.createInput, [action.field]: action.value }, draft: null }, "create"));
+      return invalidateAiRequest(clearOutput({ ...state, createInput: { ...state.createInput, [action.field]: action.value }, touchedCreateFields: touchCreateField(state, action.field), draft: null }, "create"));
     case "updateCreatePurpose":
       if (state.createInput.purpose === action.purpose) return state;
-      return invalidateAiRequest(clearOutput({ ...state, createInput: { ...state.createInput, purpose: action.purpose }, draft: null }, "create"));
+      return invalidateAiRequest(clearOutput({ ...state, createInput: { ...state.createInput, purpose: action.purpose }, touchedCreateFields: touchCreateField(state, "purpose"), draft: null }, "create"));
     case "updateCreateWorkArea":
       if (state.createInput.workArea === action.workArea) return state;
-      return invalidateAiRequest(clearOutput({ ...state, createInput: { ...state.createInput, workArea: action.workArea }, draft: null }, "create"));
+      return invalidateAiRequest(clearOutput({ ...state, createInput: { ...state.createInput, workArea: action.workArea }, touchedCreateFields: touchCreateField(state, "workArea"), draft: null }, "create"));
     case "updateRevision":
       if (state.revisionInput.original === action.value.original && state.revisionInput.request === action.value.request) return state;
       return invalidateAiRequest(clearOutput({ ...state, revisionInput: action.value }, "revision"));
@@ -93,6 +103,16 @@ export const reduceOfficialDocumentSession = (
       return { ...state, summaryLocalResult: action.result };
     case "setDraft":
       return { ...state, draft: action.draft };
+    case "selectReference":
+      return { ...state, selectedReference: action.reference };
+    case "applyReference":
+      return invalidateAiRequest(clearOutput({
+        ...state,
+        createInput: action.input,
+        selectedReference: action.reference,
+        appliedReference: action.reference,
+        draft: null,
+      }, "create"));
     case "setPrompt":
       return updateOutput(state, action.mode, {
         ...state.outputs[action.mode],

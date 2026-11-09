@@ -5,7 +5,7 @@ import{CallbackFlows}from'../../auth/server/flow.js';import{MockCipherBlob,mockS
 import{SyntheticTokenRegistry,SyntheticIdentityProvider}from'../../integration/server/local-db.js';
 import{WorkspaceCoordinator,type IntegratedWorkspacePort}from'../../integration/core/workspace.js';import{WorkspaceRequestScope}from'../../auth/common/rpc.js';
 import{userScopedRpc}from'../../auth/server/rpc-adapter.js';
-import{LocalSchoolDatabase,sql}from'./database.js';import{SchoolController}from'../core/controller.js';
+import{LocalSchoolDatabase}from'./database.js';import{SchoolController}from'../core/controller.js';
 export const uid=(i:number)=>`00000000-0000-0000-0000-${String(i).padStart(12,'0')}`,sid=(i:number)=>`30000000-0000-0000-0000-${String(i).padStart(12,'0')}`;
 export const ORIGIN='https://127.0.0.1:5192';
 export function createSchoolSession(kind:'electron'|'web',index=11,options:{databaseFactory?:(registry:SyntheticTokenRegistry)=>LocalSchoolDatabase;origin?:string;vault?:SecretVault}={}){
