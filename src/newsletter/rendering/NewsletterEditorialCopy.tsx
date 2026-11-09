@@ -4,8 +4,8 @@ import type { NewsletterDesignStateV2 } from "./designSchema"
 import { structureCanonicalText } from "./contentStructure"
 import { editEditorialSection, selectedSection, updateEditorialTitle } from "./editorialCopyEditing"
 
-type Props = { readonly project: NewsletterProject; readonly design: NewsletterDesignStateV2; readonly topicIndex?: number; readonly onChange: (value: { readonly project: NewsletterProject; readonly design: NewsletterDesignStateV2 }) => void }
-export function NewsletterEditorialCopy({ project, design, topicIndex, onChange }: Props) {
+type Props = { readonly project: NewsletterProject; readonly design: NewsletterDesignStateV2; readonly topicIndex?: number; readonly onApplyBusy?: (busy: boolean) => void; readonly onChange: (value: { readonly project: NewsletterProject; readonly design: NewsletterDesignStateV2 }) => void }
+export function NewsletterEditorialCopy({ project, design, topicIndex, onChange, onApplyBusy }: Props) {
   const section = topicIndex === undefined ? undefined : selectedSection(project, design.canonicalProjectRevision, topicIndex)
   const original = section === undefined ? "" : section.userEdit?.text ?? section.aiGenerated.text
   const content = structureCanonicalText(original)
@@ -14,13 +14,13 @@ export function NewsletterEditorialCopy({ project, design, topicIndex, onChange 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string>()
   const save = async (): Promise<void> => {
-    setSaving(true); setError(undefined)
+    setSaving(true); onApplyBusy?.(true); setError(undefined)
     try {
       const titled = updateEditorialTitle(project, topicIndex, title)
       const next = topicIndex === undefined || text === original ? { project: titled, design } : await editEditorialSection(titled, design, topicIndex, text, new Date().toISOString())
       onChange(next)
     } catch (failure: unknown) { if (failure instanceof Error) setError(failure.message); else throw failure }
-    finally { setSaving(false) }
+    finally { onApplyBusy?.(false); setSaving(false) }
   }
   return <fieldset className="control-stack"><legend>원고 편집</legend>
     <label>{topicIndex === undefined ? "월별 제목" : "주제 제목"}<input aria-label="원고 제목" value={title} onChange={(event) => setTitle(event.target.value)} /></label>

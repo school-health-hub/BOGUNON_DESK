@@ -23,6 +23,17 @@ button:hover { border-color: var(--newsletter-mint); }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid rgba(79,145,120,.25); outline-offset: 2px; }
 button[aria-pressed="true"], .primary-action { color: #fff; border-color: #326a5a; background: #326a5a; }
 
+.newsletter-output-lock:modal {
+  max-inline-size: min(32rem, calc(100% - 2rem));
+  padding: 16px;
+  border: 1px solid var(--newsletter-line);
+  border-radius: 12px;
+  color: var(--newsletter-ink);
+  background: var(--newsletter-paper);
+  word-break: keep-all;
+}
+.newsletter-output-lock p { margin: 8px 0 0; }
+
 .newsletter-studio { min-height: 100dvh; }
 .studio-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 30px; padding: 27px 36px 23px; border-bottom: 1px solid rgba(119,146,132,.28); background: rgba(255,255,255,.76); backdrop-filter: blur(18px); }
 .studio-header h1 { margin: 7px 0 5px; font-size: clamp(24px, 3vw, 32px); line-height: 1.15; letter-spacing: -.045em; }

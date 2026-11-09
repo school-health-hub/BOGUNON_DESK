@@ -9,6 +9,7 @@ export function NewsletterProjectControls({document,head,onLoaded,onSaved,onPrev
  const api:NewsletterProjectsBridge=window.electronWork.newsletter.projects;
  const run=async(fn:()=>Promise<void>)=>{setBusy(true);onBusyChange?.(true);try{await fn();}catch(e){setMessage(e instanceof Error?e.message:'프로젝트 처리 실패');}finally{setBusy(false);onBusyChange?.(false);}};
  useEffect(()=>{setId(document?.project.projectId??'');setPreview(null);setHistory([]);onPreview(null);},[document?.project.projectId]);
+ useEffect(()=>{if(head===null)setMessage('');},[document?.project.projectId,head]);
  useEffect(()=>{void api.list().then(r=>{if(r.ok)setIds(r.data);});},[]);
  const clear=()=>{setPreview(null);onPreview(null);};
  return <details className="newsletter-native-project"><summary>Electron 프로젝트 저장·revision 이력</summary><p>JSON 파일과 별도인 Electron 전용 저장소입니다. 이미지 원본과 Tauri 원고는 가져오지 않습니다. 내부 저장·복구마다 저장 revision이 증가합니다.</p>

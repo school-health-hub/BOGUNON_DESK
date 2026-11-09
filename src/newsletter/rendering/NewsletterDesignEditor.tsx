@@ -42,6 +42,8 @@ export function NewsletterDesignEditor({ project: initialProject, initialDesign,
   const [selectedModule, setSelectedModule] = useState(0)
   const [mode, setMode] = useState<"a4" | "cards">("a4")
   const [compare, setCompare] = useState(false)
+  const [pendingCopy, setPendingCopy] = useState(0)
+  const onApplyBusy = (busy: boolean) => setPendingCopy(count => count + (busy ? 1 : -1))
   const [upgradeCandidate, setUpgradeCandidate] = useState<NewsletterDesignStateV2>()
   const measureText = useTextMeasurer()
   const currentAssets = useNewsletterAssets(design, assetResolver)
@@ -53,8 +55,8 @@ export function NewsletterDesignEditor({ project: initialProject, initialDesign,
   const upgradePreview = useMemo(() => upgradeCandidate === undefined ? undefined : compileRenderDocument({ project, projectRevision: upgradeCandidate.canonicalProjectRevision, design: upgradeCandidate, designRevision: upgradeCandidate.designRevision, measureText }), [measureText, project, upgradeCandidate])
   const warnings = mascotQualityWarnings(current)
   const exportPending = referencedDesignAssets(design, design.designRevision).some(assetExportPending)
-  const outputReady = currentAssets.status === "ready" && current.issues.length === 0 && !exportPending
-  const outputStatus = currentAssets.status === "error" ? "이미지 검증 실패 · 출력 차단" : currentAssets.status === "loading" ? "이미지 검증 중 · 출력 대기" : current.issues.length > 0 ? `${current.issues.length}개 수정 필요` : exportPending ? "렌더 승인 · 출력 승인 대기" : "출력 가능"
+  const outputReady = pendingCopy === 0 && currentAssets.status === "ready" && current.issues.length === 0 && !exportPending
+  const outputStatus = pendingCopy > 0 ? "원고 반영 중 · 출력 대기" : currentAssets.status === "error" ? "이미지 검증 실패 · 출력 차단" : currentAssets.status === "loading" ? "이미지 검증 중 · 출력 대기" : current.issues.length > 0 ? `${current.issues.length}개 수정 필요` : exportPending ? "렌더 승인 · 출력 승인 대기" : "출력 가능"
   const mascotAttached = design.designSchemaVersion === 2 && design.a4Layout.brand?.mascot.assetId === OTTER_ASSET_ID && design.cardLayouts.every((layout) => layout.brand?.mascot.assetId === OTTER_ASSET_ID)
   const card = current.cards[selectedCard] ?? current.cards[0]
   if (card === undefined) return <main role="alert">카드 레이아웃을 불러올 수 없습니다.</main>
@@ -80,8 +82,8 @@ export function NewsletterDesignEditor({ project: initialProject, initialDesign,
         <div className="panel-heading"><span>DESIGN SIDECAR</span><h2>디자인 설정</h2></div>
         {design.designSchemaVersion === 1 ? <section className="upgrade-card"><span className="upgrade-kicker">V2 LAYOUT AVAILABLE</span><h3>겹침 없는 구조형 레이아웃</h3><p>6개 A4 모듈과 7개 카드에 lead·목록·삽화·마무리 프레임을 분리합니다. 원고와 기존 revision은 그대로 보존됩니다.</p><ul><li>Canonical revision {design.canonicalProjectRevision} 변경 없음</li><li>기존 revision {design.revisionHistory.length}개 보존</li><li>확인 후에만 새 revision 생성</li></ul><button type="button" className="primary-action" onClick={requestUpgrade}>V2 디자인 검토</button></section> : <>
           <section className="selection-block"><span className="control-label">{mode === "a4" ? "편집할 A4 주제" : "편집할 카드"}</span><div className={mode === "a4" ? "module-picker" : "card-picker"} aria-label={mode === "a4" ? "A4 주제 선택" : "카드 선택"}>{(mode === "a4" ? current.a4.modules : current.cards).map((item, index) => <button type="button" key={"moduleId" in item ? item.moduleId : item.pageId} aria-pressed={(mode === "a4" ? selectedModule : selectedCard) === index} onClick={() => mode === "a4" ? setSelectedModule(index) : setSelectedCard(index)}>{mode === "a4" ? `${index + 1}` : index === 0 ? "표지" : `${index}`}</button>)}</div></section>
-          <NewsletterEditorialCopy key={`${mode}-${selectedModule}-${selectedCard}-${design.canonicalProjectRevision}`} project={project} design={design} {...(mode === "cards" && selectedCard === 0 ? {} : { topicIndex: mode === "a4" ? selectedModule : selectedCard - 1 })} onChange={(value) => { setProject(value.project); setDesign(value.design) }} />
-          {mode === "cards" && <NewsletterEditorialControls design={design} cardIndex={selectedCard} actionCount={editorialActionCount(project, design.canonicalProjectRevision, selectedCard - 1)} onChange={setDesign} renderTextEditor={binding=><OfficialElementCopy key={`${selectedCard}-${binding}-${project.projectRevision}-${design.designRevision}`} project={project} design={design} cardIndex={selectedCard} binding={binding} onChange={value=>{setProject(value.project);setDesign(value.design)}}/>} />}
+          <NewsletterEditorialCopy onApplyBusy={onApplyBusy} key={`${mode}-${selectedModule}-${selectedCard}-${design.canonicalProjectRevision}`} project={project} design={design} {...(mode === "cards" && selectedCard === 0 ? {} : { topicIndex: mode === "a4" ? selectedModule : selectedCard - 1 })} onChange={(value) => { setProject(value.project); setDesign(value.design) }} />
+          {mode === "cards" && <NewsletterEditorialControls design={design} cardIndex={selectedCard} actionCount={editorialActionCount(project, design.canonicalProjectRevision, selectedCard - 1)} onChange={setDesign} renderTextEditor={binding=><OfficialElementCopy onApplyBusy={onApplyBusy} key={`${selectedCard}-${binding}-${project.projectRevision}-${design.designRevision}`} project={project} design={design} cardIndex={selectedCard} binding={binding} onChange={value=>{setProject(value.project);setDesign(value.design)}}/>} />}
           {mode === "cards" && design.cardLayouts[selectedCard]?.officialTemplate !== undefined ? <p>위 공식 요소 편집에서 글자·삽화의 위치, 크기와 맞춤을 조정할 수 있습니다.</p> : <NewsletterDesignControls design={design} mode={mode} selectedIndex={mode === "a4" ? selectedModule : selectedCard} onChange={setDesign} />}
           <div className="asset-status"><strong>수달쌤 기본형 v1</strong><span>{mascotAttached ? exportPending ? "디자인·렌더 승인 · 실제 출력 승인 대기" : "디자인·렌더 승인 · 출력 승인됨" : "승인된 기본형을 A4·표지·본문에 함께 적용합니다."}</span><button type="button" onClick={attachMascot} disabled={mascotAttached}>승인 수달쌤 적용</button>{assetError !== undefined && <span role="alert">{assetError}</span>}</div>
         </>}
