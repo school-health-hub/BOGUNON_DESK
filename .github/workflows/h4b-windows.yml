@@ -13,7 +13,7 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 35
     env:
-      SOURCE_SHA: 8cafffe5c2367ae05fa10d2675026fa12015a511
+      SOURCE_SHA: e2eed5047c31a6aaa985cec0964b179004881d67
     steps:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
@@ -150,7 +150,7 @@ jobs:
           Set-Content "$env:QA_LOG_DIR/git-status.txt" -Value ($status -join [Environment]::NewLine)
           if ((git rev-parse HEAD) -cne $env:SOURCE_SHA) { throw 'Source changed' }
           if ($status.Count) { throw 'Product checkout is dirty' }
-          git diff --check HEAD^ HEAD
+          git diff --check ef0c3f4e7b87035f732b0ee238b41e74fe591c99 HEAD
           exit $LASTEXITCODE
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

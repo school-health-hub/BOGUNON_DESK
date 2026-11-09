@@ -84,7 +84,7 @@
 
 .purchase-output-preview-summary dt { color: var(--text-secondary); font-size: 11px; }
 
-.purchase-output-preview-summary dd { margin: 0; color: var(--text-primary); font-size: 12px; }
+.purchase-output-preview-summary dd { margin: 0; color: var(--text-primary); font-size: 12px; word-break: keep-all; text-wrap: pretty; }
 
 .purchase-output-preview-table-scroll { min-height: 80px; max-height: 32vh; overflow: auto; flex: 1 1 180px; border: 1px solid var(--border); }
 
