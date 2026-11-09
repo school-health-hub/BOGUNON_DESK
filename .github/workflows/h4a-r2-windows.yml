@@ -26,6 +26,13 @@ jobs:
           $env:QA_LOG_DIR = Join-Path $env:RUNNER_TEMP 'h4a-r2-evidence'
           "QA_LOG_DIR=$env:QA_LOG_DIR" >> $env:GITHUB_ENV
           New-Item -ItemType Directory -Path $env:QA_LOG_DIR | Out-Null
+          $originalTemp = $env:TEMP
+          $dir = New-Item -ItemType Directory -Path (Join-Path $env:RUNNER_TEMP 'h4a-r2-temp')
+          $canonicalTemp = node -p "require('node:fs').realpathSync(process.argv[1])" $dir.FullName
+          if ($LASTEXITCODE -ne 0 -or !$canonicalTemp) { throw 'Canonical temp path unavailable' }
+          $env:TEMP = $env:TMP = $canonicalTemp
+          "TEMP=$canonicalTemp" >> $env:GITHUB_ENV
+          "TMP=$canonicalTemp" >> $env:GITHUB_ENV
           $os = Get-CimInstance Win32_OperatingSystem
           $principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
           $privileges = @(whoami /priv | Select-String -Pattern 'SeCreateSymbolicLinkPrivilege' | ForEach-Object {$_.Line.Trim()})
@@ -33,6 +40,7 @@ jobs:
             sourceSha=$env:SOURCE_SHA; workflowSha=$env:GITHUB_SHA; runId=$env:GITHUB_RUN_ID
             runner='windows-2025'; imageOS=$env:ImageOS; imageVersion=$env:ImageVersion
             windows=$os.Caption; windowsVersion=$os.Version; build=$os.BuildNumber
+            originalTemp=$originalTemp; effectiveTemp=$canonicalTemp
             elevatedAdmin=$principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
             symlinkPrivilege=$privileges; node=(node --version); npm=(npm --version)
           } | ConvertTo-Json | Set-Content "$env:QA_LOG_DIR/runner.json"
@@ -83,6 +91,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 2
           persist-credentials: false
       - name: Verify checkout and install locked dependencies
         id: install
@@ -98,6 +107,13 @@ jobs:
           }
           $versions | ConvertTo-Json | Set-Content "$env:QA_LOG_DIR/toolchain.json"
           if ($versions.electron -ne '45.2.1') { throw 'Unexpected Electron version' }
+
+      - name: Electron product build and regression prerequisites
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        shell: pwsh
+        run: |
+          npm run electron:p0:build 2>&1 | Tee-Object "$env:QA_LOG_DIR/electron-build.log"
+          exit $LASTEXITCODE
 
       - name: Original Rust fixture preparation and complete Electron regression
         shell: pwsh
@@ -125,21 +141,15 @@ jobs:
           npm run build 2>&1 | Tee-Object "$env:QA_LOG_DIR/root-build.log"
           exit $LASTEXITCODE
 
-      - name: Electron product build
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
-        shell: pwsh
-        run: |
-          npm run electron:p0:build 2>&1 | Tee-Object "$env:QA_LOG_DIR/electron-build.log"
-          exit $LASTEXITCODE
-
       - name: Verify pinned clean product checkout
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         shell: pwsh
         run: |
           git rev-parse HEAD | Set-Content "$env:QA_LOG_DIR/source-sha.txt"
-          git status --porcelain=v1 --untracked-files=all | Set-Content "$env:QA_LOG_DIR/git-status.txt"
+          $status = @(git status --porcelain=v1 --untracked-files=all)
+          Set-Content "$env:QA_LOG_DIR/git-status.txt" -Value ($status -join [Environment]::NewLine)
           if ((git rev-parse HEAD) -cne $env:SOURCE_SHA) { throw 'Source changed' }
-          if (@(git status --porcelain).Count) { throw 'Product checkout is dirty' }
+          if ($status.Count) { throw 'Product checkout is dirty' }
           git diff --check HEAD^ HEAD
           exit $LASTEXITCODE
 
