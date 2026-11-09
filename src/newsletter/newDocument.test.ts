@@ -18,6 +18,11 @@ for(const schoolType of ['girls-high','boys-high','coed-high'] as const)it(`crea
  expect(reopened).toEqual(document)
  const compiled=compileRenderDocument({project:reopened.project,projectRevision:1,design:reopened.design,designRevision:reopened.design.designRevision})
  expect(compiled.cards).toHaveLength(7);expect(compiled.a4.modules).toHaveLength(6)
+ const {title,publicationMeta,modules}=compiled.a4
+ const titleHeight=title.lines.length*title.style.fontSize*title.style.lineHeight
+ expect(title.frame.y+titleHeight).toBeLessThanOrEqual(publicationMeta.frame.y)
+ expect(publicationMeta.frame.y+publicationMeta.frame.height).toBeLessThanOrEqual(Math.min(...modules.map(module=>module.moduleFrame.y)))
+ expect(compiled.issues.some(issue=>issue.blockId===title.id&&issue.kind==='overflow')).toBe(false)
 })
 it('rejects invalid month or school choices instead of creating a partially normalized project',async()=>{
  for(const month of ['','2026-00','2026-13','0000-01','2026-1'])await expect(createBlankNewsletter({projectId:'invalid',month,schoolType:'coed-high',now})).rejects.toThrow()
