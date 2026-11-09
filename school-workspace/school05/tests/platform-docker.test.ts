@@ -1,2 +1,4 @@
 import{it,expect}from'vitest';import{readFileSync}from'node:fs';import{localDockerArgs}from'../server/local-db.js';
+import{localDockerArgs as sharedLocalDockerArgs}from'../../integration/server/local-db.js';
 it('MOCK/static Windows uses only local pipe; Linux uses only local Unix socket',()=>{expect(localDockerArgs('win32')).toEqual(['--host=npipe:////./pipe/docker_engine']);expect(localDockerArgs('linux')).toEqual(['--host=unix:///var/run/docker.sock']);const ps=readFileSync('school-workspace/school05/tools/start-windows-qa.ps1','utf8');expect(ps).toContain("$engine -ne 'linux'");for(const line of ps.split('\n'))if(line.includes('& docker '))expect(line).toContain('& docker --host=$dockerHost ');});
+it('uses the same local-only platform endpoint for shared SCHOOL database tests',()=>{expect(sharedLocalDockerArgs('win32')).toEqual(['--host=npipe:////./pipe/docker_engine']);expect(sharedLocalDockerArgs('linux')).toEqual(['--host=unix:///var/run/docker.sock']);});

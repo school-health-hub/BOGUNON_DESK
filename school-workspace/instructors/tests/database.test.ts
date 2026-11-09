@@ -1,11 +1,11 @@
 import {it,expect,beforeEach} from 'vitest';
 import {execFile} from 'node:child_process';import {promisify} from 'node:util';import {readFile} from 'node:fs/promises';
 import {createInstructorSession} from '../server/session.js';
-import {literal} from '../../integration/server/local-db.js';
+import {literal,localDockerArgs} from '../../integration/server/local-db.js';
 import type {HealthSupportInstructorInput} from '../core/validation.js';
 const container=process.env.INSTRUCTOR_TEST_CONTAINER??'bogunon-school05-pg';if(!['bogunon-school05-pg','bogunon-instructor02-local'].includes(container))throw Error('local_test_container_required');
 const exec=promisify(execFile),env=Object.fromEntries(Object.entries(process.env).filter(([k])=>!['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH'].includes(k)));
-export async function sql(q:string,user='postgres',signal?:AbortSignal){const {stdout}=await exec('docker',['--host=unix:///var/run/docker.sock','exec',container,'psql','-X','-qAt','-v','ON_ERROR_STOP=1','-U',user,'-d','school01a','-c',q],{env,signal,timeout:15000,maxBuffer:4*1024*1024});return stdout.trim();}
+export async function sql(q:string,user='postgres',signal?:AbortSignal){const {stdout}=await exec('docker',[...localDockerArgs(),'exec',container,'psql','-X','-qAt','-v','ON_ERROR_STOP=1','-U',user,'-d','school01a','-c',q],{env,signal,timeout:15000,maxBuffer:4*1024*1024});return stdout.trim();}
 const A='10000000-0000-0000-0000-000000000001',B='10000000-0000-0000-0000-000000000002';
 const settings:HealthSupportInstructorInput={name:'합성 강사',subject:'학교보건지원',weeklyHours:14,hourlyRate:30000,monthlyInsurance:45000,weeklyHourLimit:15,monthlyHourLimit:60,totalBudget:500000,operationStartDate:'2026-08-01',operationEndDate:'2026-12-31'};
 beforeEach(async()=>{await sql('TRUNCATE workspace.instructor_schedules;');for(const f of ['school-workspace/local/tests/fixtures.sql','school-workspace/integration/sql/multi-school-fixture.sql','school-workspace/school02/sql/fixtures.sql','school-workspace/school03/sql/fixtures.sql'])await sql(await readFile(f,'utf8'));});

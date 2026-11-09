@@ -1,13 +1,13 @@
 /** Local synthetic gateway only. No database URL, SDK networking or hosted fallback. */
 import {execFile} from 'node:child_process';import{promisify}from'node:util';
-import{literal,SyntheticTokenRegistry}from'../../integration/server/local-db.js';
+import{literal,SyntheticTokenRegistry,localDockerArgs}from'../../integration/server/local-db.js';
 import{WorkspaceAuthError}from'../../auth/common/types.js';
 import type{UserScopedRpcTransport}from'../../auth/server/rpc-adapter.js';
 import{userScopedRpc}from'../../auth/server/rpc-adapter.js';
 import type{WorkspaceRpcName,WorkspaceRpcContracts}from'../../auth/common/rpc.js';
 import type{MembershipSnapshot}from'../../integration/core/workspace.js';
 const exec=promisify(execFile),env=Object.fromEntries(Object.entries(process.env).filter(([k])=>!['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH'].includes(k)));
-export async function sql(q:string,user='postgres',signal?:AbortSignal){const{stdout}=await exec('docker',['--host=unix:///var/run/docker.sock','exec','bogunon-school02-pg','psql','-X','-qAt','-v','ON_ERROR_STOP=1','-U',user,'-d','school01a','-c',q],{env,signal,timeout:15000,maxBuffer:1024*1024});return stdout.trim();}
+export async function sql(q:string,user='postgres',signal?:AbortSignal){const{stdout}=await exec('docker',[...localDockerArgs(),'exec','bogunon-school02-pg','psql','-X','-qAt','-v','ON_ERROR_STOP=1','-U',user,'-d','school01a','-c',q],{env,signal,timeout:15000,maxBuffer:1024*1024});return stdout.trim();}
 const orders:Record<string,readonly string[]>={ws_v1_bootstrap:[],ws_v1_get_context:['p_school_id'],ws_v1_request_join:['p_school_id','p_requested_role','p_request_id'],ws_v1_decide_join:['p_school_id','p_join_request_id','p_decision','p_approved_role','p_valid_until','p_expected_version','p_request_id'],ws_v1_set_member_role:['p_school_id','p_membership_id','p_new_role','p_expected_version','p_request_id'],ws_v1_set_membership_state:['p_school_id','p_membership_id','p_state','p_expected_version','p_request_id'],ws_v1_leave_school:['p_school_id','p_expected_version','p_request_id'],ws_v1_propose_admin_change:['p_school_id','p_target_membership_id','p_mode','p_request_id'],ws_v1_accept_admin_change:['p_school_id','p_transfer_id','p_expected_version','p_request_id'],ws_c_membership_status:['p_school_id'],ws_s02_directory:['q','o'],ws_s02_self:[],ws_s02_admin:['s'],ws_s02_space:['s','r'],ws_s02_withdraw:['s','j','ev','r'],ws_s02_expiry:['s','mid','until_at','ev','r'],ws_s02_transfers:['s']};
 export class LocalSchoolDatabase implements UserScopedRpcTransport{
  readonly evidence='SERVER' as const;readonly classification='LOCAL DB + MOCK AUTH';offline=false;calls=0;

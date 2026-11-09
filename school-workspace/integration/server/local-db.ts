@@ -9,13 +9,14 @@ import { WorkspaceAuthError } from '../../auth/common/types.js';
 import { WorkspaceFault,type MembershipSnapshot } from '../core/workspace.js';
 const exec=promisify(execFile);
 export const LOCAL_CONTAINER='bogunon-school01c-pg';
+export const localDockerArgs=(platform:NodeJS.Platform=process.platform)=>platform==='win32'?['--host=npipe:////./pipe/docker_engine']:['--host=unix:///var/run/docker.sock'];
 const env=Object.fromEntries(Object.entries(process.env).filter(([k])=>!['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH'].includes(k)));
 export function literal(v:unknown):string {
  if(v===null)return 'NULL';if(typeof v==='number'&&Number.isSafeInteger(v))return String(v);
  if(typeof v!=='string'||v.length>4096)throw new WorkspaceAuthError('CONFIGURATION_ERROR');return "'"+v.replaceAll("'","''")+"'";
 }
 export async function localSql(sql:string,user='postgres',signal?:AbortSignal):Promise<string>{
- const args=['--host=unix:///var/run/docker.sock','exec',LOCAL_CONTAINER,'psql','-X','-qAt','-v','ON_ERROR_STOP=1','-U',user,'-d','school01a','-c',sql];
+ const args=[...localDockerArgs(),'exec',LOCAL_CONTAINER,'psql','-X','-qAt','-v','ON_ERROR_STOP=1','-U',user,'-d','school01a','-c',sql];
  const {stdout}=await exec('docker',args,{env,signal,timeout:15000,maxBuffer:1024*1024});return stdout.trim();
 }
 export class SyntheticTokenRegistry {

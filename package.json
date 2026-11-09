@@ -22,7 +22,7 @@
     "electron:p0:start": "electron build/electron-p0-app",
     "electron:p0:package:win": "node scripts/electron-p0/build-record.mjs --release && node scripts/electron-p0/build-chatgpt.mjs --release && node scripts/electron-p0/build-excel.mjs --release && node scripts/electron-p0/build-official-document.mjs --release && node scripts/electron-p0/build-finance.mjs --release && npm run electron:p0:build && electron-builder --config electron-p0/builder.json --win portable --x64 --publish never",
     "electron:p0:package:linux": "node scripts/electron-p0/build-record.mjs --release && node scripts/electron-p0/build-chatgpt.mjs --release && node scripts/electron-p0/build-excel.mjs --release && node scripts/electron-p0/build-official-document.mjs --release && npm run electron:p0:build && electron-builder --config electron-p0/builder.json --linux dir --publish never",
-    "electron:p0:test": "node scripts/electron-p0/prepare-tests.mjs && vitest run electron-p0/tests src/dashboard src/dock",
+    "electron:p0:test": "node scripts/electron-p0/prepare-tests.mjs && vitest run electron-p0/tests src/dashboard src/dock --no-file-parallelism --maxWorkers=1",
     "electron:p0:test:e2e": "playwright test --config electron-p0/playwright.config.ts",
     "electron:p0:ci:windows": "node scripts/electron-p0/windows-check.mjs"
   },

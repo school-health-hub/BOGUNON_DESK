@@ -10,7 +10,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createConnection} from 'node:net';
 const wire=(value:unknown)=>JSON.stringify(value);
-async function fixture(source:string,work:(p:ChatGptProcess)=>Promise<void>,open=async(_url:string)=>{},timeout=1000){const root=await mkdtemp(join(tmpdir(),'chatgpt-wire-'));const file=join(root,'synthetic-helper');await writeFile(file,'#!/usr/bin/env node\n'+source,{mode:0o700});const p=new ChatGptProcess(file,root,open,'win32',timeout);try{await work(p);}finally{p.dispose();await p.flush();await rm(root,{recursive:true,force:true});}}
+async function fixture(source:string,work:(p:ChatGptProcess)=>Promise<void>,open=async(_url:string)=>{},timeout=1000){const root=await mkdtemp(join(tmpdir(),'chatgpt-wire-')),script=join(root,'synthetic-helper.js');await writeFile(script,source);const p=new ChatGptProcess(process.execPath,root,open,'win32',timeout,[script]);try{await work(p);}finally{p.dispose();await p.flush();await rm(root,{recursive:true,force:true});}}
 it('returns validated one-shot protocol replies and rejects missing/duplicate/malformed replies',async()=>{
  await fixture(`process.stdin.resume();process.stdin.on('data',()=>{process.stdout.write(${wire(JSON.stringify({ok:true,data:{text:'합성'}})+'\n')});process.exit(0);});`,async p=>expect(await p.run({action:'state'},new AbortController().signal)).toEqual({text:'합성'}));
  for(const output of ['invalid\n','',JSON.stringify({ok:true,data:{}})+'\n'+JSON.stringify({ok:true,data:{}})+'\n'])await fixture(`process.stdin.resume();process.stdin.on('data',()=>{process.stdout.write(${wire(output)});process.exit(0);});`,async p=>{await expect(p.run({action:'state'},new AbortController().signal)).rejects.toThrow();});

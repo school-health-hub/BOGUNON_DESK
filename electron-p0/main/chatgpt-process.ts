@@ -15,7 +15,7 @@ export class ChatGptProcess implements ChatGptRunner{
  readonly available:boolean;
  private child:ChildProcessWithoutNullStreams|null=null;
  private pending:Promise<unknown>|null=null;
- constructor(private readonly executable:string,private readonly root:string,private readonly openBrowser:(url:string)=>Promise<void>,platform=process.platform,private readonly timeoutMs?:number){this.available=platform==='win32';}
+ constructor(private readonly executable:string,private readonly root:string,private readonly openBrowser:(url:string)=>Promise<void>,platform=process.platform,private readonly timeoutMs?:number,private readonly executableArgs:readonly string[]=[]){this.available=platform==='win32';}
  async run(request:Record<string,unknown>,signal:AbortSignal):Promise<unknown>{
   if(!this.available)throw new ChatGptError('unsupportedPlatform');
   if(this.pending)throw new ChatGptError('busy');
@@ -27,7 +27,7 @@ export class ChatGptProcess implements ChatGptRunner{
  }
  private start(bytes:Buffer,signIn:boolean,signal:AbortSignal):Promise<unknown>{return new Promise((resolve,reject)=>{
   const env:NodeJS.ProcessEnv={};for(const key of ['SystemRoot','WINDIR','TEMP','TMP','PATH','USERPROFILE','APPDATA','LOCALAPPDATA'])if(process.env[key])env[key]=process.env[key];
-  const child=spawn(this.executable,['--data-dir',this.root],{env,windowsHide:true,stdio:['pipe','pipe','pipe']});this.child=child;
+  const child=spawn(this.executable,[...this.executableArgs,'--data-dir',this.root],{env,windowsHide:true,stdio:['pipe','pipe','pipe']});this.child=child;
   const decoder=new StringDecoder('utf8');
   let output='',size=0,reply:unknown,hasReply=false,failed:string|null=null,browserSeen=false,browserOpened=false;
   const stop=(code:string)=>{failed??=code;child.kill();};
