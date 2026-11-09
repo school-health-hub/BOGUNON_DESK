@@ -45,6 +45,7 @@
     font-size: 16px;
   }
   body.electron-soft-rose .workspace-shell.h6-shell:is(.is-view-mode, .is-edit-mode) .dock {
+    --desktop-dock-hit-size: clamp(66px, 7vw, 76px);
     gap: var(--h6-step);
     border-color: var(--h6-navy);
     border-radius: 16px;
@@ -52,7 +53,6 @@
     background: var(--h6-navy);
   }
   body.electron-soft-rose .workspace-shell.h6-shell .dock button {
-    width: clamp(56px, 7vw, 76px);
     min-height: 50px;
     height: auto;
     gap: 2px;
