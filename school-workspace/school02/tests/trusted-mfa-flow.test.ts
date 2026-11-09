@@ -41,7 +41,7 @@ function fixture(adminMfa?: SchoolAdminMfaPort) {
     }),
     rpc: async () => { throw new Error("unexpected coordinator RPC"); },
   });
-  const legacy = vi.fn(async () => ({}));
+  const legacy = vi.fn(async (_name: string, _args: object) => ({}));
   const controller = new SchoolController({
     workspace,
     adminMfa,

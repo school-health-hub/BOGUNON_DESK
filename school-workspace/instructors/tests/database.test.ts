@@ -1,14 +1,34 @@
-import {it,expect,beforeEach} from 'vitest';
-import {execFile} from 'node:child_process';import {promisify} from 'node:util';import {readFile} from 'node:fs/promises';
+import {it,expect,beforeEach,afterAll} from 'vitest';
+import {spawn,type ChildProcessWithoutNullStreams} from 'node:child_process';import {readFile} from 'node:fs/promises';
 import {createInstructorSession} from '../server/session.js';
 import {literal,localDockerArgs} from '../../integration/server/local-db.js';
 import type {HealthSupportInstructorInput} from '../core/validation.js';
 const container=process.env.INSTRUCTOR_TEST_CONTAINER??'bogunon-school05-pg';if(!['bogunon-school05-pg','bogunon-instructor02-local'].includes(container))throw Error('local_test_container_required');
-const exec=promisify(execFile),env=Object.fromEntries(Object.entries(process.env).filter(([k])=>!['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH'].includes(k)));
-export async function sql(q:string,user='postgres',signal?:AbortSignal){const {stdout}=await exec('docker',[...localDockerArgs(),'exec',container,'psql','-X','-qAt','-v','ON_ERROR_STOP=1','-U',user,'-d','school01a','-c',q],{env,signal,timeout:15000,maxBuffer:4*1024*1024});return stdout.trim();}
+const env=Object.fromEntries(Object.entries(process.env).filter(([k])=>!['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH'].includes(k)));
+class LocalPsql{
+ #child:ChildProcessWithoutNullStreams|undefined;#tail=Promise.resolve();#sequence=0;
+ constructor(readonly user:string){}
+ query(q:string,signal?:AbortSignal):Promise<string>{const run=this.#tail.then(()=>this.#run(q,signal));this.#tail=run.then(()=>undefined,()=>undefined);return run;}
+ #run(q:string,signal?:AbortSignal):Promise<string>{return new Promise((resolve,reject)=>{
+  const child=this.#child??this.#start(),marker=`__BOGUNON_QUERY_${++this.#sequence}__`;let output='',errors='';
+  const abort=()=>child.kill();const stderr=(bytes:Buffer)=>{errors+=bytes.toString();};
+  const cleanup=()=>{signal?.removeEventListener('abort',abort);child.stdout.off('data',stdout);child.stderr.off('data',stderr);child.off('close',closed);};
+  const stdout=(bytes:Buffer)=>{output+=bytes.toString();const end=output.indexOf(`${marker} `);if(end<0)return;const lineEnd=output.indexOf('\n',end);if(lineEnd<0)return;cleanup();const status=output.slice(end+marker.length+1,lineEnd).trim(),result=output.slice(0,end).trim();if(status!=='00000'){if(this.#child===child)this.#child=undefined;child.kill();reject(new Error(errors.trim()||`local_psql_${status}`));}else resolve(result);};
+  const closed=()=>{cleanup();reject(new Error(errors.trim()||'local_psql_closed'));};
+  signal?.addEventListener('abort',abort,{once:true});child.stdout.on('data',stdout);child.stderr.on('data',stderr);child.once('close',closed);
+  child.stdin.write(`${q};\n\\echo ${marker} :LAST_ERROR_SQLSTATE\n`,error=>{if(error)closed();});
+ });}
+ #start(){const child=spawn('docker',[...localDockerArgs(),'exec','-i',container,'psql','-X','-qAt','-U',this.user,'-d','school01a'],{env,windowsHide:true,stdio:['pipe','pipe','pipe']});this.#child=child;child.stdin.on('error',()=>child.kill());child.once('close',()=>{if(this.#child===child)this.#child=undefined;});return child;}
+ close(){this.#child?.kill();}
+}
+const sessions=new Map<string,LocalPsql>();
+export async function sql(q:string,user='postgres',signal?:AbortSignal){let session=sessions.get(user);if(!session){session=new LocalPsql(user);sessions.set(user,session);}return session.query(q,signal);}
+afterAll(()=>{for(const session of sessions.values())session.close();sessions.clear();});
 const A='10000000-0000-0000-0000-000000000001',B='10000000-0000-0000-0000-000000000002';
 const settings:HealthSupportInstructorInput={name:'합성 강사',subject:'학교보건지원',weeklyHours:14,hourlyRate:30000,monthlyInsurance:45000,weeklyHourLimit:15,monthlyHourLimit:60,totalBudget:500000,operationStartDate:'2026-08-01',operationEndDate:'2026-12-31'};
-beforeEach(async()=>{await sql('TRUNCATE workspace.instructor_schedules;');for(const f of ['school-workspace/local/tests/fixtures.sql','school-workspace/integration/sql/multi-school-fixture.sql','school-workspace/school02/sql/fixtures.sql','school-workspace/school03/sql/fixtures.sql'])await sql(await readFile(f,'utf8'));});
+const fixtureFiles=['school-workspace/local/tests/fixtures.sql','school-workspace/integration/sql/multi-school-fixture.sql','school-workspace/school02/sql/fixtures.sql','school-workspace/school03/sql/fixtures.sql']as const;
+const resetSql=['BEGIN;','TRUNCATE workspace.instructor_schedules;',...await Promise.all(fixtureFiles.map(file=>readFile(file,'utf8'))),'COMMIT;'].join('\n');
+beforeEach(async()=>{await sql(resetSql);});
 async function client(index=3,kind:'electron'|'web'='electron'){const rig=createInstructorSession(kind,index,{execute:sql});await rig.school.controller.command('login');await rig.school.controller.command('select',{school:index===6?B:A});return rig;}
 const base={school:A,month:'2026-08'};
 async function setup(){const r=await client(),v=await r.instructor.command('settings',{...base,version:0,request_id:crypto.randomUUID(),payload:settings});expect(v.phase).toBe('ready');return {r,b:v.board!};}

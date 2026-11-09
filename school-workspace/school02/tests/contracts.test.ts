@@ -68,17 +68,14 @@ describe('LOCAL DB + actual B adapters/C coordinator, MOCK Auth/cipher only',()=
   const a=createSchoolSession('electron',6);await a.controller.command('login');await a.controller.command('select',{school:B});for(const[action,args]of [['leave',{version:1}],['role',{id:mid(6),role:'HEALTH_TEACHER',version:1}],['membership',{id:mid(6),state:'suspended',version:1}]]as const)expect((await a.controller.command(action,args)).notice).toContain('권한');
   expect(await sql(`SELECT role FROM workspace.school_memberships WHERE id='${mid(6)}'`)).toBe('SCHOOL_ADMIN');
  });
- for(const mode of ['add','transfer'])it(`administrator ${mode}: recent reauth -> propose -> target accept -> server roles`,async()=>{
+ for(const mode of ['add','transfer'])it(`administrator ${mode}: remains closed without a trusted MFA port`,async()=>{
   const a=createSchoolSession('electron',1),t=createSchoolSession('web',3);for(const x of[a,t]){await x.controller.command('login');await x.controller.command('select',{school:A});}
-  await sql("UPDATE auth.sessions SET created_at=statement_timestamp()-interval '20 minutes' WHERE user_id='00000000-0000-0000-0000-000000000001'");expect((await a.controller.command('propose',{id:mid(3),mode})).notice).toContain('다시 로그인');
-  await a.controller.command('reauth');await a.controller.command('propose',{id:mid(3),mode});expect(await sql(`SELECT role FROM workspace.school_memberships WHERE id='${mid(3)}'`)).toBe('HEALTH_TEACHER');
-  const inbox=await t.controller.command('refresh');expect(inbox.transfers[0].can_accept).toBe(true);
-  expect((await a.controller.command('accept',{id:inbox.transfers[0].id,version:1})).notice).toContain('권한');
-  await t.controller.command('reauth');expect((await t.controller.command('accept',{id:inbox.transfers[0].id,version:1})).workspace.context?.role).toBe('SCHOOL_ADMIN');
-  expect(await sql(`SELECT role FROM workspace.school_memberships WHERE id='${mid(1)}'`)).toBe(mode==='add'?'SCHOOL_ADMIN':'HEALTH_TEACHER');
+  const result=await a.controller.command('propose',{id:mid(3),mode});expect(result.adminMfa).toEqual({status:'unsupported'});expect(result.notice).toContain('MFA');
+  expect(await sql(`SELECT role FROM workspace.school_memberships WHERE id='${mid(3)}'`)).toBe('HEALTH_TEACHER');
+  expect((await t.controller.command('refresh')).transfers).toEqual([]);expect(await sql(`SELECT role FROM workspace.school_memberships WHERE id='${mid(1)}'`)).toBe('SCHOOL_ADMIN');
  });
- it('assistant cannot be proposed for admin and stale member versions do not partially update',async()=>{
-  const a=createSchoolSession('web',1);await a.controller.command('login');await a.controller.command('select',{school:A});expect((await a.controller.command('propose',{id:mid(4),mode:'add'})).notice).toContain('권한');expect((await a.controller.command('role',{id:mid(3),role:'HEALTH_TEACHER',version:999})).notice).toContain('이미 처리');
+ it('admin proposals remain closed before eligibility checks and stale member versions do not partially update',async()=>{
+  const a=createSchoolSession('web',1);await a.controller.command('login');await a.controller.command('select',{school:A});expect((await a.controller.command('propose',{id:mid(4),mode:'add'})).adminMfa).toEqual({status:'unsupported'});expect((await a.controller.command('role',{id:mid(3),role:'HEALTH_TEACHER',version:999})).notice).toContain('이미 처리');
  });
  it('late school A response cannot replace B; logout and expired session clear all school state',async()=>{
   const x=createSchoolSession('electron',3);await x.controller.command('login');const ready=deferred<void>(),done=deferred<void>(),call=x.controller.port.call;let once=true;

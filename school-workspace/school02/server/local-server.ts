@@ -1,7 +1,7 @@
 /** Local-only synthetic integration harness. Never deploy or use with real identities. */
 import{createServer}from'node:https';import{readFile}from'node:fs/promises';import{resolve,extname}from'node:path';
 import{createSchoolSession,ORIGIN}from'./session.js';import{WorkspaceAuthError}from'../../auth/common/types.js';import type{Action}from'../core/types.js';
-const actions=new Set<Action>(['state','login','logout','search','select','refresh','join','space','withdraw','decide','role','membership','expiry','leave','propose','accept','reauth']);
+const actions=new Set<Action>(['state','login','logout','search','select','refresh','join','space','withdraw','decide','role','membership','expiry','leave','propose','accept','mfaVerify','mfaCancel']);
 const sessions=new Map<string,ReturnType<typeof createSchoolSession>>();
 const uiRoot=resolve('build/school02-ui');
 const server=createServer({key:await readFile(process.env.SCHOOL02_KEY!),cert:await readFile(process.env.SCHOOL02_CERT!)},async(req,res)=>{
