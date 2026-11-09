@@ -5,6 +5,8 @@
 .finance-screen button:hover:not(:disabled) { background:#eef3f9; border-color:#9dacc1; }
 .finance-screen button:disabled { opacity:.48; cursor:default; }
 .finance-screen button.finance-primary { background:#263b5c; border-color:#263b5c; color:white; }
+.finance-screen :is(.finance-area-tabs,.finance-phase2-tabs) button:not(.is-active):hover:not(:disabled) { color:#34445d; }
+.finance-screen :is(.finance-area-tabs,.finance-phase2-tabs) button.is-active:hover:not(:disabled) { background:#29466f; border-color:#29466f; }
 .finance-screen button.finance-primary:hover:not(:disabled) { background:#344e73; }
 .finance-screen button.finance-danger { background:#a73543; color:white; border-color:#a73543; }
 .finance-screen :is(button,input,select,textarea,summary):focus-visible { outline:3px solid #6989b9; outline-offset:3px; }
