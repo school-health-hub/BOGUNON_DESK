@@ -59,6 +59,7 @@ export function PurchaseHelperPanel({ fileControls, importSettings, settingsStat
   }, [bulkOpen]);
   const [activeView, setActiveView] = useState<"items" | "draft" | "settlement">("items");
   const [busy,setBusy] = useState(false);
+  const [previewFormat,setPreviewFormat] = useState<"csv"|"xlsx">("csv");
   const [showTemplates,setShowTemplates]=useState(false);
   const [isColumnEditorOpen, setIsColumnEditorOpen] = useState(false);
   const [columnDraft, setColumnDraft] = useState<readonly PurchaseOutputColumnId[]>(columns);
@@ -106,7 +107,13 @@ export function PurchaseHelperPanel({ fileControls, importSettings, settingsStat
     if(busy||!readiness.ready||!selectedCount)return;setBusy(true);
     try{const r=await window.electronWork.purchase.exportEdufine({items:items.filter(i=>i.selected)});onNotice(!r.ok?r.error.message:r.data.status==='saved'?'에듀파인 XLSX를 저장했습니다.':'에듀파인 저장을 취소했습니다.');}catch{onNotice('에듀파인 출력을 완료하지 못했습니다.');}finally{setBusy(false);}
   };
-  const edufinePreview=usePurchaseOutputPreview({items,columns,revision:editing.revision,format:'edufine',onNotice,output:async()=>exportEdufine()});
+  const outputPreview=usePurchaseOutputPreview({
+    items,columns,revision:editing.revision,hiddenCount:hiddenSelectedCount,format:previewFormat,onNotice,
+    output:async(kind)=>{
+      if(kind==='edufine')await exportEdufine();
+      if(kind==='csv'||kind==='xlsx')await exportRows(kind);
+    },
+  });
   const startNew = async () => {
     if (items.length > 0 && !window.confirm("현재 품목내역과 품의문 초안을 비우고 새 작업을 시작할까요?")) return;
     onEdit({ type: "reset" }); onDraftChange(null); onSettlementChange(null); setActiveView("items"); setRowFilter("all");
@@ -157,10 +164,17 @@ export function PurchaseHelperPanel({ fileControls, importSettings, settingsStat
             </tr>)}</tbody></table>
         </div>
         <fieldset className="purchase-helper-columns" disabled={settingsBusy} style={{border:0,borderTop:'1px solid var(--divider)',margin:0,minWidth:0}}><button type="button" disabled={settingsBusy} onClick={() => { setColumnDraft(columns); setIsColumnEditorOpen((current) => !current); }}>출력 컬럼 설정</button>{isColumnEditorOpen && <div className="purchase-helper-column-editor"><strong>출력 열</strong>{purchaseOutputColumnIds.map((column) => { const shown = columnDraft.includes(column); return <div className="purchase-helper-column" key={column}><label><input type="checkbox" checked={shown} disabled={column === "name"} onChange={(event) => setColumnDraft(normalizePurchaseOutputColumns(event.target.checked ? [...columnDraft, column] : columnDraft.filter((value) => value !== column)))} />{purchaseOutputColumnLabels[column]}</label>{shown && <span><button type="button" aria-label={`${purchaseOutputColumnLabels[column]} 왼쪽 이동`} onClick={() => moveColumn(column, -1)}>←</button><button type="button" aria-label={`${purchaseOutputColumnLabels[column]} 오른쪽 이동`} onClick={() => moveColumn(column, 1)}>→</button></span>}</div>; })}<button type="button" onClick={async () => { if(await onColumnsChange(columnDraft)!==false)setIsColumnEditorOpen(false); }}>저장</button><button type="button" onClick={()=>setIsColumnEditorOpen(false)}>취소</button></div>}</fieldset>
-        <footer className="purchase-helper-panel__footer"><p>파일과 품목내역은 이 작업 중에만 메모리에 유지되며 클라우드에 저장되지 않습니다.</p><div><button type="button" disabled={selectedCount === 0 || busy || !readiness.ready} onClick={() => void copy()}><ClipboardCopy size={15}/> 표 복사</button><button type="button" disabled={selectedCount===0||busy||!readiness.ready} onClick={()=>void exportRows("csv")}>CSV 저장</button><button type="button" disabled={selectedCount===0||busy||!readiness.ready} onClick={()=>void exportRows("xlsx")}>XLSX 저장</button><button type="button" disabled={busy||!selectedCount||!readiness.ready||edufinePreview.preparing} onClick={()=>void edufinePreview.open("edufine")}>에듀파인용 Excel</button></div></footer>
+        <footer className="purchase-helper-panel__footer"><p>파일과 품목내역은 이 작업 중에만 메모리에 유지되며 클라우드에 저장되지 않습니다.</p><div><button type="button" disabled={selectedCount === 0 || busy || !readiness.ready} onClick={() => void copy()}><ClipboardCopy size={15}/> 표 복사</button><button type="button" disabled={selectedCount===0||busy||!readiness.ready} onClick={()=>void exportRows("csv")}>CSV 저장</button><button type="button" disabled={selectedCount===0||busy||!readiness.ready} onClick={()=>void exportRows("xlsx")}>XLSX 저장</button><button type="button" disabled={busy||!selectedCount||!readiness.ready||outputPreview.preparing} onClick={()=>void outputPreview.open("edufine")}>에듀파인용 Excel</button></div>
+          <div className="purchase-output-preview-launcher">
+            <label>미리보기 출력 형식 <select value={previewFormat} onChange={event=>setPreviewFormat(event.target.value==='xlsx'?'xlsx':'csv')}>
+              <option value="csv">CSV</option><option value="xlsx">XLSX</option>
+            </select></label>
+            <button type="button" disabled={busy||!selectedCount||!readiness.ready||outputPreview.preparing} onClick={()=>void outputPreview.open(previewFormat)}>출력 미리보기</button>
+          </div>
+        </footer>
         </> : activeView === "draft" ? draft === null ? <section className="purchase-draft-empty"><strong>선택한 품목으로 품의문을 작성합니다.</strong><p>품목을 선택하면 합계·구매처·예산항목을 바탕으로 초안을 만듭니다.</p><button type="button" disabled={selectedCount === 0 || !readiness.ready} onClick={() => onDraftChange(createPurchaseDraft(items))}>품의문 초안 만들기</button></section> : <PurchaseDraftEditor settingsBusy={settingsBusy} columns={columns} draft={draft} items={items} outputReady={readiness.ready} templates={draftTemplates} onChange={onDraftChange} onNotice={onNotice} onTemplatesChange={onDraftTemplatesChange} /> : settlement===null?null:<PurchaseSettlementEditor items={items} outputReady={readiness.ready} settlement={settlement} onChange={onSettlementChange} onNotice={onNotice}/>}
 
-        {edufinePreview.snapshot!==null&&<PurchaseOutputPreviewDialog snapshot={edufinePreview.snapshot} currentKey={edufinePreview.currentKey} busy={edufinePreview.outputting} onClose={edufinePreview.close} onOutput={()=>void edufinePreview.output()}/>}
+        {outputPreview.snapshot!==null&&<PurchaseOutputPreviewDialog snapshot={outputPreview.snapshot} currentKey={outputPreview.currentKey} busy={outputPreview.outputting} onClose={outputPreview.close} onOutput={()=>void outputPreview.output()}/>}
         {nameDialogItem !== undefined && <PurchaseItemNameDialog itemName={nameDialogItem.name} rowNumber={nameDialogRowNumber} onCancel={closeNameDialog} onSave={(name) => { update(nameDialogItem.id, { name }); closeNameDialog(); }} />}
         {bulkOpen && <PurchaseBulkEditDialog items={items} revision={editing.revision} hiddenSelectedCount={hiddenSelectedCount} busy={busy} onCancel={closeBulk} onApply={(request) => { onEdit({ type: "bulk", request }); closeBulk(); }} />}
       </section>
