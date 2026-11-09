@@ -1,17 +1,28 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Landmark, LineChart, Plus, ReceiptText, Trash2, WalletCards } from "lucide-react";
 import { calculateInvestmentPositions, FinanceValidationError, parseScaledDecimal, summarizeNetWorth, summarizeTax, type IncomeRecord, type InvestmentAccount, type Phase2Data } from "./domain";
 import { formatKrw, localToday } from "./presentation";
 
-type Props = { readonly income: readonly IncomeRecord[]; readonly value: Phase2Data; readonly disabled: boolean; readonly onSave: (next: Phase2Data) => Promise<void> };
+type Props = { readonly income: readonly IncomeRecord[]; readonly value: Phase2Data; readonly disabled: boolean; readonly onSave: (next: Phase2Data) => Promise<void>; readonly onDirtyChange?: (dirty: boolean) => void; readonly onNavigate?: (apply: () => void) => void };
 type Section = "tax" | "investments" | "assets";
 const field = (data: FormData, name: string): string => { const value = data.get(name); return typeof value === "string" ? value.trim() : ""; };
 const currency = (value: string): string => { const next = value.toUpperCase(); if (!/^[A-Z]{3}$/.test(next)) throw new FinanceValidationError("통화 코드는 KRW, USD처럼 3자리로 입력해 주세요."); return next; };
 const market = (value: string): InvestmentAccount["market"] => value === "kr" || value === "us" ? value : "other";
 const today = localToday();
 
-export function Phase2Workspace({ income, value, disabled, onSave }: Props) {
+export function Phase2Workspace({ income, value, disabled, onSave, onDirtyChange, onNavigate }: Props) {
   const [section, setSection] = useState<Section>("tax");
+  const dirtyForms = useRef(new Set<HTMLFormElement>());
+  function changeSection(next: Section) {
+    if (section === next) return;
+    const apply = () => {
+      dirtyForms.current.clear();
+      onDirtyChange?.(false);
+      setSection(next);
+    };
+    if (onNavigate) onNavigate(apply);
+    else apply();
+  }
   const [error, setError] = useState<string | null>(null);
   useEffect(() => { setError(null); }, [value]);
   const [year, setYear] = useState(new Date().getFullYear());
@@ -19,9 +30,14 @@ export function Phase2Workspace({ income, value, disabled, onSave }: Props) {
   const tax = summarizeTax(income, value.dividends, year);
   const worth = useMemo(() => { try { return summarizeNetWorth(value, today); } catch { return null; } }, [value]);
   const submit = async (event: FormEvent<HTMLFormElement>, build: (data: FormData) => Phase2Data) => {
-    event.preventDefault(); setError(null);
+    event.preventDefault();
     const form = event.currentTarget;
-    try { await onSave(build(new FormData(form))); form.reset(); }
+    try {
+      await onSave(build(new FormData(form)));
+      form.reset();
+      dirtyForms.current.delete(form);
+      onDirtyChange?.(dirtyForms.current.size > 0);
+    }
     catch (caught) { setError(caught instanceof FinanceValidationError ? caught.message : "저장하지 못했습니다. 최신 데이터를 다시 불러와 주세요."); }
   };
   const remove = (key: keyof Phase2Data, id: string) => {
@@ -29,8 +45,11 @@ export function Phase2Workspace({ income, value, disabled, onSave }: Props) {
     void onSave({ ...value, [key]: value[key].filter((item) => item.id !== id) })
       .catch(() => setError("삭제하지 못했습니다. 연결된 항목과 최신 데이터를 확인해 주세요."));
   };
-  return <section className="finance-phase2" aria-label="세금·투자·자산 관리">
-    <nav className="finance-phase2-tabs" aria-label="MY FINANCE Phase 2"><button className={section === "tax" ? "is-active" : ""} onClick={() => setSection("tax")}><ReceiptText size={16}/>세금</button><button className={section === "investments" ? "is-active" : ""} onClick={() => setSection("investments")}><LineChart size={16}/>투자</button><button className={section === "assets" ? "is-active" : ""} onClick={() => setSection("assets")}><Landmark size={16}/>자산</button></nav>
+  return <section className="finance-phase2" aria-label="세금·투자·자산 관리" onChange={event => {
+    const form = event.target instanceof HTMLElement ? event.target.closest("form") : null;
+    if (form) { dirtyForms.current.add(form); onDirtyChange?.(true); }
+  }}>
+    <nav className="finance-phase2-tabs" aria-label="MY FINANCE Phase 2"><button className={section === "tax" ? "is-active" : ""} aria-pressed={section === "tax"} onClick={() => changeSection("tax")}><ReceiptText size={16}/>세금</button><button className={section === "investments" ? "is-active" : ""} aria-pressed={section === "investments"} onClick={() => changeSection("investments")}><LineChart size={16}/>투자</button><button className={section === "assets" ? "is-active" : ""} aria-pressed={section === "assets"} onClick={() => changeSection("assets")}><Landmark size={16}/>자산</button></nav>
     {error && <p className="finance-error" role="alert">{error}</p>}
     {section === "tax" && <div className="finance-phase2-panel"><header><div><span className="finance-eyebrow">TAX REFERENCE</span><h2>신고 준비 참고자료</h2></div><label>연도<select value={year} onChange={(e) => setYear(Number(e.target.value))}>{[year, new Date().getFullYear(), new Date().getFullYear() - 1].filter((item, index, all) => all.indexOf(item) === index).map((item) => <option key={item}>{item}</option>)}</select></label></header><p className="finance-muted">Phase 1 수입과 배당 원천징수를 직접 집계합니다. 세액을 확정하거나 신고하지 않습니다.</p><div className="finance-phase2-metrics"><Metric label="소득" value={formatKrw(tax.grossKrw)}/><Metric label="원천징수" value={formatKrw(tax.withholdingKrw)}/><Metric label="실수령" value={formatKrw(tax.netKrw)}/><Metric label="분류 미확정" value={`${tax.unverifiedCount}건`}/></div></div>}
     {section === "investments" && <div className="finance-phase2-grid">
