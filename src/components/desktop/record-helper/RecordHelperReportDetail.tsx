@@ -127,14 +127,16 @@ export function RecordHelperReportDetail({onDraftChange,
           <input value={report.activityLabel} placeholder="예: 학급자치" onChange={(event) => updateMetadata("activityLabel", event.currentTarget.value)} />
         </label>
       </div>
-      <label className="record-helper-detail__text">
-        <span>추출된 원문</span>
-        <textarea readOnly value={report.extractedText} />
-      </label>
-      <label className="record-helper-detail__memo">
-        <span>교사 메모/관찰 내용</span>
-        <textarea value={report.teacherMemo} placeholder="학생부 문구 작성 전 확인할 관찰 포인트를 적어 둡니다." onChange={(event) => onMemoChange(report.id, event.currentTarget.value)} />
-      </label>
+      <div className="record-helper-detail__editor-grid">
+        <label className="record-helper-detail__text">
+          <span>추출된 원문</span>
+          <textarea readOnly value={report.extractedText} />
+        </label>
+        <label className="record-helper-detail__memo">
+          <span>교사 메모/관찰 내용</span>
+          <textarea value={report.teacherMemo} placeholder="학생부 문구 작성 전 확인할 관찰 포인트를 적어 둡니다." onChange={(event) => onMemoChange(report.id, event.currentTarget.value)} />
+        </label>
+      </div>
       <section className="record-helper-ai-result" aria-label="AI 초안">
         <header><strong>AI 초안</strong><span>{aiAvailability.message}</span></header>
         {report.aiStatus === "generating" ? (

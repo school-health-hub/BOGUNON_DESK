@@ -80,6 +80,17 @@
  body.electron-soft-rose .td2-workspace :is(.od-form,.od-paper,.ev-search,.ev-library,.ev-editor,.school-admin>section) {padding:20px}
  body.electron-soft-rose .td2-workspace .od-grid {grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:20px}
  body.electron-soft-rose .td2-workspace .od-grid>* {min-width:0}
+ body.electron-soft-rose .td2-workspace .od-header {align-items:center;padding:16px 20px}
+ body.electron-soft-rose .td2-workspace .od-header-main {display:flex;min-width:0;align-items:center;gap:16px}
+ body.electron-soft-rose .td2-workspace .od-header-copy {display:grid;min-width:0;gap:2px}
+ body.electron-soft-rose .td2-workspace .od-header .od-header-copy>span {margin:0;color:var(--td2-secondary);font-size:12px}
+ body.electron-soft-rose .td2-workspace .od-header h1 {margin:0;font-size:22px}
+ body.electron-soft-rose .td2-workspace .od-header p {margin:0;max-width:62ch}
+ body.electron-soft-rose .td2-workspace .od-local {flex:0 0 auto}
+ body.electron-soft-rose .td2-workspace .od-save-toolbar {display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px;padding:10px 12px;border-block:1px solid var(--divider);background:var(--td2-sheet)}
+ body.electron-soft-rose .td2-workspace .od-save-toolbar p {margin:0;color:var(--td2-secondary);font-size:13px;font-weight:600}
+ body.electron-soft-rose .td2-workspace .od-save-toolbar button {flex:0 0 auto}
+ body.electron-soft-rose .td2-workspace .od-save-issues {margin:0 0 12px;padding:10px 12px 10px 28px;border-inline-start:3px solid var(--td2-rose);border-radius:8px;background:var(--surface-muted);color:var(--td2-ink)}
  body.electron-soft-rose .td2-workspace .od-ai-workflow {margin-bottom:20px}
  body.electron-soft-rose .td2-workspace .od-empty {min-height:160px}
  body.electron-soft-rose .td2-workspace .ev-finder {--ev-accent:var(--td2-rose);--ev-accent-soft:#f7dce4;--ev-paper:#fffdfd}
@@ -146,9 +157,21 @@
 
  /* Session privacy flow and focus/teardown stay in RecordHelperHost. */
  body.electron-soft-rose .td2-record-workspace {padding:0;min-height:0;background:none}
+ body.electron-soft-rose .td2-record-workspace .record-helper-backdrop {padding-block:16px}
  body.electron-soft-rose .td2-record-workspace .record-helper-panel {border-radius:20px;border-color:var(--td2-rim);background:var(--td2-opaque);max-height:calc(100dvh - 32px)}
- body.electron-soft-rose .td2-record-workspace .record-helper-panel>header {background:var(--td2-sheet)}
+ body.electron-soft-rose .td2-record-workspace .record-helper-panel>header {background:var(--td2-sheet);padding:12px 16px}
+ body.electron-soft-rose .td2-record-workspace .record-helper-panel__body {grid-template-rows:auto auto minmax(0,1fr);gap:10px;padding:12px 16px 16px}
  body.electron-soft-rose .td2-record-workspace .record-helper-panel__toolbar {display:flex;flex-wrap:wrap;gap:8px}
+ body.electron-soft-rose .td2-record-workspace .record-helper-panel__toolbar small {color:var(--td2-secondary);font-weight:500}
+ body.electron-soft-rose .td2-record-workspace .record-helper-panel__formats {color:var(--td2-ink)}
+ body.electron-soft-rose .td2-record-workspace .record-helper-panel__privacy {padding:9px 12px;background:var(--td2-sheet)}
+ body.electron-soft-rose .td2-record-workspace .record-helper-panel__privacy details {margin-top:2px}
+ body.electron-soft-rose .td2-record-workspace .record-helper-panel__privacy summary {width:max-content;max-width:100%;cursor:pointer;color:var(--td2-secondary);font-size:12px;font-weight:600}
+ body.electron-soft-rose .td2-record-workspace .record-helper-panel__privacy details span {display:block;margin-top:4px}
+ body.electron-soft-rose .td2-record-workspace .record-helper-detail__editor-grid {display:grid;grid-template-columns:minmax(0,1.35fr) minmax(220px,.75fr);gap:12px;align-items:stretch}
+ body.electron-soft-rose .td2-record-workspace .record-helper-detail__editor-grid>label {min-height:0}
+ body.electron-soft-rose .td2-record-workspace .record-helper-detail__editor-grid textarea {height:220px;min-height:220px;resize:none}
+ body.electron-soft-rose .td2-record-workspace .record-helper-detail__text textarea {background:var(--td2-sheet)}
  body.electron-soft-rose .td2-record-workspace .record-helper-empty {min-height:160px}
 
  /* Newsletter: only app chrome. Do not select SVG/canvas/exported page contents. */
@@ -206,6 +229,13 @@
   body.electron-soft-rose .td2-workspace .purchase-helper-panel__footer {max-height:24dvh;overflow:auto}
   body.electron-soft-rose .td2-workspace .newsletter-studio .studio-body {grid-template-columns:minmax(0,1fr)}
   body.electron-soft-rose .td2-workspace .newsletter-studio .editor-panel {border-right:0;border-bottom:1px solid var(--divider)}
+  body.electron-soft-rose .td2-workspace .od-header-main {align-items:flex-start}
+  body.electron-soft-rose .td2-workspace .od-save-toolbar {align-items:stretch;flex-direction:column}
+  body.electron-soft-rose .td2-workspace .od-save-toolbar button {width:100%}
+ }
+ @media(max-width:760px) {
+  body.electron-soft-rose .td2-record-workspace .record-helper-detail__editor-grid {grid-template-columns:minmax(0,1fr)}
+  body.electron-soft-rose .td2-record-workspace .record-helper-detail__editor-grid textarea {height:160px;min-height:160px}
  }
  @media(max-height:740px) {
   body.electron-soft-rose .td2-dialog>.rose-dialog-header {padding:12px 20px}

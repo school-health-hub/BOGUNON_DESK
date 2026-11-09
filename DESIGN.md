@@ -1,5 +1,15 @@
 ## Approved B implementation — desktop floating surface
 
+## H6-B1 professional document workspaces — Record Helper and Official Document (2026-11-10)
+
+- Scope is Electron Renderer presentation only. Record import, session lifetime, privacy review, AI confirmation, ODT generation, file protection, IPC and storage contracts remain unchanged.
+- Both workspaces use the H6-A navy/ink/blue-gray canvas and restrained teal action hierarchy. Existing `--td2-*`, text, border, spacing and control tokens remain authoritative; H6-B1 adds no product-level color tokens.
+- A compact workspace header pairs one task title with one short purpose statement. Primary actions remain visible at 900×680; secondary format, privacy and connection detail use quiet supporting rows rather than competing cards.
+- Record Helper keeps the report list as navigation and uses one editor surface. Extracted text and teacher notes have separate, stable text areas so editing notes does not move the source text. Destructive clear, remove and close confirmations retain focus trapping and focus return.
+- Official Document keeps input → preview → ODT save order. The preview exposes the real three-state save model (`미저장`, `저장됨`, `저장 후 수정됨`) beside the save action before the long document body. It never invents persistence or weakens validation.
+- At 1440×835 and 1200×800 the official input and preview remain side by side. At 900×680 they form one document flow without page-level horizontal overflow. Record list, source text and memo remain reachable without competing page and card scrollbars.
+- Korean copy uses `word-break: keep-all` with ordinary overflow wrapping for long identifiers. Controls retain 3px `focus-visible`, semantic labels, keyboard order, reduced-motion behavior and existing confirmation dialogs.
+
 ## SCHOOL WORKSPACE operational UI — Pass 1 (2026-11-09)
 
 - Scope is presentation only: shared-school React structure and scoped CSS. RPC, SQL, authentication, roles, MFA readiness, calculations, exports, and operational gates remain authoritative and unchanged.

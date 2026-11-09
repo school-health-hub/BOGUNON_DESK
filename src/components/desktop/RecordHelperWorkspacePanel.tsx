@@ -261,7 +261,7 @@ export function RecordHelperWorkspacePanel({
             {workspace.importStatus==='importing'&&onCancelImport&&<button type="button" onClick={()=>{const requestId=requestIdRef.current++;onCancelImport();dispatch({type:'resolveImport',requestId,reports:[],failures:[]});}}>가져오기 취소</button>}
             {onCancelDropped&&<button type="button" disabled={workspace.importStatus==='importing'} onClick={onCancelDropped}>드롭 파일 취소</button>}
             {onRefreshConnection&&<button type="button" onClick={onRefreshConnection}>ChatGPT 연결 상태 새로고침</button>}
-            <span>PDF · HWP/HWPX · DOCX</span>
+            <span className="record-helper-panel__formats">PDF · HWP/HWPX · DOCX</span>
             <small>HWP 5.x 일반/압축 문서</small>
           </div>
 
@@ -269,9 +269,12 @@ export function RecordHelperWorkspacePanel({
             <ShieldCheck size={18} aria-hidden="true" />
             <div>
               <strong>가져온 원본과 현재 작업은 앱 메모리에서만 처리합니다.</strong>
-              <span>원문, 학생정보, 교사 메모, 검토한 전송본과 AI 초안은 장기 저장하지 않습니다.</span>
               <span>생기부 도우미를 닫거나 앱을 완전히 종료하면 현재 작업이 모두 사라집니다.</span>
-              <span>AI 전송 전 개인정보를 비식별 처리하고, 실제 전송 내용을 직접 확인합니다.</span>
+              <details>
+                <summary>개인정보 처리 원칙</summary>
+                <span>원문, 학생정보, 교사 메모, 검토한 전송본과 AI 초안은 장기 저장하지 않습니다.</span>
+                <span>AI 전송 전 개인정보를 비식별 처리하고, 실제 전송 내용을 직접 확인합니다.</span>
+              </details>
             </div>
           </div>
 
