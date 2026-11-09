@@ -22,7 +22,10 @@ export async function checkInstructor({page,workspace,tab,mainCall,screenshots,e
   await section.getByRole('button',{name:'출근관리부 미리보기',exact:true}).click();const dialog=page.getByRole('dialog',{name:'출력 미리보기',exact:true});await dialog.waitFor();
   check(!await dialog.getByLabel('이번 출력에 강사 도장 포함').isChecked()&&!await dialog.getByLabel('이번 출력에 보건교사 도장 포함').isChecked(),'Stamp default changed');
   check(await dialog.locator('.attendance-register-preview tbody tr').count()===count,'Attendance rows missing');
-  await page.screenshot({path:join(screenshots,`instructor-preview-${count}.png`)});
+  const previewPng=await mainCall(async function(){const q=globalThis.__school05qa,w=q.w;w.webContents.invalidate();await new Promise(resolve=>setTimeout(resolve,100));return (await w.webContents.capturePage()).toPNG().toString('base64');});
+  const previewBytes=Buffer.from(previewPng,'base64');
+  await writeFile(join(screenshots,`instructor-preview-${count}.png`),previewBytes);
+  result.captures.push({name:`instructor-preview-${count}`,method:'BrowserWindow.webContents.capturePage()',bytes:previewBytes.length});
   await page.evaluate(()=>document.body.classList.add('instructor-print'));
   let pdf;
   try{pdf=await mainCall(async function(){const q=globalThis.__school05qa;const bytes=await q.w.webContents.printToPDF({printBackground:true,preferCSSPageSize:true});return bytes.toString('base64');});}finally{await page.evaluate(()=>document.body.classList.remove('instructor-print'));}
