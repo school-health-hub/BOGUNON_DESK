@@ -1,0 +1,181 @@
+// @vitest-environment jsdom
+import type { ReactNode } from 'react';
+import type { GridLayoutProps, Layout } from 'react-grid-layout';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { P0App } from '../renderer/P0App';
+import { parseDashboardLayoutValue } from '../../src/dashboard/storage';
+import type { P0Settings } from '../protocol';
+
+let grid: GridLayoutProps;
+vi.mock('../../src/workspace-data/WorkspaceDataContext', () => ({ useWorkspaceData: () => ({ state: { status: 'signedOut' } }) }));
+vi.mock('react-grid-layout', () => ({
+  GridLayout: (props: GridLayoutProps) => {
+    grid = props;
+    return <div>{props.children}<span className="react-resizable-handle" data-testid="resize-grip" /></div>;
+  },
+}));
+vi.mock('../renderer/purchase/PurchaseSession', () => ({ PurchaseSession: () => null }));
+vi.mock('../../src/components/dashboard/WidgetFrame', () => ({ WidgetFrame: () => null }));
+vi.mock('../renderer/school-profile/SchoolProfile', () => ({
+  SchoolProfileProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
+  SchoolInitialSetup: () => null,
+  SchoolProfileSettings: () => null,
+}));
+
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
+
+async function setup() {
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 1400, 900));
+  vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} });
+  const save = vi.fn(async (_document: P0Settings) => {});
+  vi.stubGlobal('electronP0', {
+    info: async () => ({ appId: 'kr.sungandi.schoolhealthdesk.electronp0' }),
+    readSettings: async () => null,
+    writeSettings: save,
+  });
+  vi.stubGlobal('electronWork', {
+    memo: { read: async () => ({ ok: true, data: { version: 1, text: '' } }) },
+    tasks: { load: async () => ({ ok: true, data: { document: { version: 1, revision: 0, tasks: [] }, recovered: false } }) },
+  });
+  const app = render(<P0App />);
+  await screen.findByText('PoC 설정 저장됨');
+  save.mockClear();
+  fireEvent.click(screen.getByRole('button', { name: '화면 꾸미기' }));
+  return { app, save };
+}
+
+function gesture(kind: 'drag' | 'resize') {
+  const callbacks = grid;
+  const baseline = callbacks.layout ?? [];
+  const oldItem = baseline.find(item => item.i === 'widget-clock');
+  if (!oldItem) throw Error('Clock fixture missing');
+  const item = kind === 'drag' ? { ...oldItem, y: oldItem.y + 3 } : { ...oldItem, h: oldItem.h + 1 };
+  const next: Layout = baseline.map(widget => widget === oldItem ? item : widget);
+  const target = document.createElement('div');
+  const start = kind === 'drag' ? callbacks.onDragStart : callbacks.onResizeStart;
+  const move = kind === 'drag' ? callbacks.onDrag : callbacks.onResize;
+  const stop = kind === 'drag' ? callbacks.onDragStop : callbacks.onResizeStop;
+  act(() => start?.(baseline, oldItem, oldItem, null, new MouseEvent('mousedown'), target));
+  return {
+    baseline, next,
+    move: () => act(() => {
+      move?.(next, oldItem, item, item, new MouseEvent('mousemove'), target);
+      callbacks.onLayoutChange?.(next);
+    }),
+    stop: (button = 0) => act(() => {
+      stop?.(next, oldItem, item, null, new MouseEvent('mouseup', { button }), target);
+      callbacks.onLayoutChange?.(next);
+    }),
+  };
+}
+
+describe('Electron dashboard gesture persistence', () => {
+  it.each(['drag', 'resize'] as const)('restores the entire layout and ignores late %s input after Esc', async kind => {
+    const { save } = await setup();
+    const pending = gesture(kind);
+    pending.move();
+    expect(save).not.toHaveBeenCalled();
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    pending.move();
+    pending.stop();
+    expect(grid.layout).toEqual(pending.baseline);
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it.each(['drag', 'resize'] as const)('saves a completed %s exactly once', async kind => {
+    const { save } = await setup();
+    const pending = gesture(kind);
+    pending.move();
+    expect(save).not.toHaveBeenCalled();
+    pending.stop();
+    pending.stop();
+    await waitFor(() => expect(save).toHaveBeenCalledOnce());
+    const clock = pending.next.find(widget => widget.i === 'widget-clock');
+    expect(parseDashboardLayoutValue(save.mock.calls[0]?.[0].dashboard)?.widgets.find(widget => widget.id === 'widget-clock'))
+      .toMatchObject({ y: clock?.y, h: clock?.h });
+  });
+
+  it('blocks Chromium native drag on a grid grip without blocking other content', async () => {
+    await setup();
+    expect(fireEvent.dragStart(screen.getByTestId('resize-grip'))).toBe(false);
+    expect(fireEvent.dragStart(document.body)).toBe(true);
+  });
+  it('does not commit on a secondary mouse button release', async () => {
+    const { save } = await setup();
+    const pending = gesture('drag');
+    pending.stop(2);
+    pending.stop();
+    expect(grid.layout).toEqual(pending.baseline);
+    expect(save).not.toHaveBeenCalled();
+  });
+  it('ignores the retired grid callbacks during a fresh edit', async () => {
+    const { save } = await setup();
+    const old = gesture('drag');
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    const current = gesture('resize');
+    old.move();
+    old.stop();
+    expect(save).not.toHaveBeenCalled();
+    current.stop();
+    await waitFor(() => expect(save).toHaveBeenCalledOnce());
+    expect(parseDashboardLayoutValue(save.mock.calls[0]?.[0].dashboard)?.widgets.find(widget => widget.id === 'widget-clock'))
+      .toMatchObject({ y: current.next.find(widget => widget.i === 'widget-clock')?.y, h: current.next.find(widget => widget.i === 'widget-clock')?.h });
+  });
+
+  it('accepts a new drag after cancellation', async () => {
+    const { save } = await setup();
+    gesture('resize');
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    gesture('drag').stop();
+    await waitFor(() => expect(save).toHaveBeenCalledOnce());
+  });
+
+  it.each(['pointercancel', 'navigation', 'unmount'] as const)('discards the active edit on %s', async reason => {
+    const { app, save } = await setup();
+    const pending = gesture('resize');
+    pending.move();
+    if (reason === 'pointercancel') fireEvent.pointerCancel(document.body);
+    if (reason === 'navigation') fireEvent.click(screen.getByRole('button', { name: '업무 도구' }));
+    if (reason === 'unmount') app.unmount();
+    pending.stop();
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('leaves text input and dialog Escape to their existing handlers', async () => {
+    const { save } = await setup();
+    const pending = gesture('drag');
+    const dialog = document.createElement('div');
+    const input = document.createElement('input');
+    dialog.setAttribute('role', 'dialog');
+    dialog.append(input);
+    document.body.append(dialog);
+    const escape = vi.fn();
+    dialog.addEventListener('keydown', escape);
+    try {
+      expect(fireEvent.keyDown(input, { key: 'Escape' })).toBe(true);
+      expect(escape).toHaveBeenCalledOnce();
+    } finally {
+      dialog.remove();
+    }
+    pending.stop();
+    await waitFor(() => expect(save).toHaveBeenCalledOnce());
+    expect(fireEvent.keyDown(document.body, { key: 'Escape' })).toBe(true);
+  });
+
+  it('leaves a completed write in flight and reports its failure honestly', async () => {
+    const { save } = await setup();
+    let rejectWrite: (reason: Error) => void = () => { throw Error('Write not started'); };
+    save.mockImplementationOnce(() => new Promise<void>((_, reject) => { rejectWrite = reject; }));
+    gesture('drag').stop();
+    expect(save).toHaveBeenCalledOnce();
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    await act(async () => rejectWrite(Error('Synthetic disk failure')));
+    expect(screen.getByText(/저장 실패/)).toBeTruthy();
+    expect(save).toHaveBeenCalledOnce();
+  });
+});
