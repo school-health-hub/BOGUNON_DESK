@@ -28,6 +28,15 @@
   }
 
   /* Keep the dashboard grid and the saved appearance options independent of the navigation chrome. */
+  body.electron-soft-rose .workspace-shell.h6-shell.bg-blue-gray {
+    --td2-canvas: linear-gradient(140deg, #f4f7fa, #dce5ed);
+    --td2-sheet: var(--h6-paper);
+    --td2-glass: #f8fafc;
+    --td2-highlight: inset 0 1px 0 #fff;
+  }
+  body.electron-soft-rose .workspace-shell.h6-shell.bg-blue-gray .react-grid-item[data-widget-type] .widget-frame:is(.is-viewing, .is-editing) {
+    --td2-object-shadow: 0 2px 8px rgb(23 43 70 / 10%);
+  }
   body.electron-soft-rose .workspace-shell.h6-shell .rose-surface-header {
     color: var(--h6-navy);
   }
@@ -43,7 +52,7 @@
     background: var(--h6-navy);
   }
   body.electron-soft-rose .workspace-shell.h6-shell .dock button {
-    width: clamp(48px, 6.3vw, 72px);
+    width: clamp(56px, 7vw, 76px);
     min-height: 50px;
     height: auto;
     gap: 2px;
@@ -84,9 +93,12 @@
     transform: none;
     white-space: normal;
     word-break: keep-all;
-    overflow-wrap: anywhere;
+    overflow-wrap: normal;
     font-size: 11px;
     line-height: 1.2;
+  }
+  .h6-shell .dock button[data-dock-item="bogunon"] .dock__tooltip {
+    white-space: nowrap;
   }
   .h6-shell .dock .dock__active-indicator {
     visibility: hidden;
@@ -95,7 +107,7 @@
     word-break: keep-all;
     overflow-wrap: normal;
   }
-  .h6-shell [data-widget-type="weekly-schedule"] .week-grid article p {
+  .h6-shell [data-widget-type="weekly-schedule"] .week-grid article :is(p, .empty) {
     word-break: keep-all;
   }
 
@@ -140,6 +152,16 @@
   body.electron-soft-rose .td2-workspace[data-workspace="purchase"] .purchase-helper-panel__toolbar {
     padding: var(--h6-gap) var(--h6-inset);
   }
+  body.electron-soft-rose .td2-workspace[data-workspace="purchase"] .purchase-import-templates:has(> p[role="status"]) {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--h6-gap);
+  }
+  .td2-workspace[data-workspace="purchase"] .purchase-import-templates > p[role="status"] {
+    margin: 0;
+  }
   body.electron-soft-rose .td2-workspace[data-workspace="purchase"] .purchase-helper-tabs {
     background: var(--h6-canvas);
   }
@@ -164,8 +186,8 @@
     gap: var(--h6-gap);
     margin: var(--h6-gap) var(--h6-inset);
     padding: 6px 10px;
-    border-inline-start: 3px solid var(--h6-accent);
-    background: var(--h6-active);
+    border-inline-start: 3px solid var(--h6-control);
+    background: var(--h6-canvas);
     color: var(--h6-ink);
     word-break: keep-all;
     overflow-wrap: anywhere;
