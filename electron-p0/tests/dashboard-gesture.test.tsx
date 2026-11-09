@@ -100,6 +100,29 @@ describe('Electron dashboard gesture persistence', () => {
       .toMatchObject({ y: clock?.y, h: clock?.h });
   });
 
+
+  it('blocks native text selection only while an edit grip pointer is held through Esc', async () => {
+    const { save } = await setup();
+    const pointerEvent = (type: string, pointerId: number) => Object.assign(
+      new MouseEvent(type, { bubbles: true, button: 0 }),
+      { pointerId, isPrimary: true },
+    );
+    const selectText = () => fireEvent(document.body, new Event('selectstart', { bubbles: true, cancelable: true }));
+    expect(selectText()).toBe(true);
+    fireEvent(screen.getByTestId('resize-grip'), pointerEvent('pointerdown', 1));
+    const pending = gesture('resize');
+    expect(selectText()).toBe(false);
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    pending.move();
+    expect(selectText()).toBe(false);
+    fireEvent(document.body, pointerEvent('pointerup', 2));
+    expect(selectText()).toBe(false);
+    fireEvent(document.body, pointerEvent('pointerup', 1));
+    pending.stop();
+    expect(selectText()).toBe(true);
+    expect(save).not.toHaveBeenCalled();
+  });
+
   it('blocks Chromium native drag on a grid grip without blocking other content', async () => {
     await setup();
     expect(fireEvent.dragStart(screen.getByTestId('resize-grip'))).toBe(false);

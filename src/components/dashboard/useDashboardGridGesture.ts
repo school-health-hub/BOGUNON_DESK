@@ -19,6 +19,7 @@ export function useDashboardGridGesture(enabled: boolean, commit: (layout: Layou
   const listening = useRef(false);
   const gesture = useRef<Gesture | null>(null);
   const pointer = useRef<number | null>(null);
+  const selectionPointer = useRef<number | null>(null);
   const completedEvents = useRef(new WeakSet<Event>());
 
   const cancel = useCallback(() => {
@@ -44,24 +45,36 @@ export function useDashboardGridGesture(enabled: boolean, commit: (layout: Layou
       cancel();
     };
     const pointerCancel = (event: PointerEvent) => {
+      if (selectionPointer.current === event.pointerId) selectionPointer.current = null;
       if (pointer.current === null || pointer.current === event.pointerId) cancel();
     };
     const pointerUp = (event: PointerEvent) => {
+      if (selectionPointer.current === event.pointerId) selectionPointer.current = null;
       if (!gesture.current && pointer.current === event.pointerId) pointer.current = null;
     };
     const touchCancel = () => { if (pointer.current === null) cancel(); };
+    const selectStart = (event: Event) => {
+      if (selectionPointer.current !== null) event.preventDefault();
+    };
+    const blur = () => {
+      selectionPointer.current = null;
+      cancel();
+    };
+    window.addEventListener("selectstart", selectStart, true);
     window.addEventListener("keydown", escape);
     window.addEventListener("pointercancel", pointerCancel, true);
     window.addEventListener("pointerup", pointerUp, true);
     window.addEventListener("touchcancel", touchCancel, true);
-    window.addEventListener("blur", cancel);
+    window.addEventListener("blur", blur);
     return () => {
       listening.current = false;
+      selectionPointer.current = null;
+      window.removeEventListener("selectstart", selectStart, true);
       window.removeEventListener("keydown", escape);
       window.removeEventListener("pointercancel", pointerCancel, true);
       window.removeEventListener("pointerup", pointerUp, true);
       window.removeEventListener("touchcancel", touchCancel, true);
-      window.removeEventListener("blur", cancel);
+      window.removeEventListener("blur", blur);
     };
   }, [enabled, cancel]);
 
@@ -70,6 +83,8 @@ export function useDashboardGridGesture(enabled: boolean, commit: (layout: Layou
     if (isCurrent() && event.isPrimary && event.button === 0 && !gesture.current &&
         event.target instanceof Element && event.target.closest(editControl)) {
       pointer.current = event.pointerId;
+      // Escape retires the grid, but Chromium still has a held grip pointer.
+      selectionPointer.current = event.pointerId;
     }
   };
   const onDragStartCapture = (event: ReactDragEvent) => {
