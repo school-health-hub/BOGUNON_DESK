@@ -20,6 +20,7 @@ type Props = {
  readonly fileControls?:ReactNode;
  readonly importSettings?:ReactNode;
  readonly settingsStatus?:ReactNode;
+ readonly notice?:ReactNode;
  readonly settingsBusy?:boolean;
  readonly settlement:PurchaseSettlement|null;
  readonly onSettlementChange:(value:PurchaseSettlement|null)=>void;
@@ -43,7 +44,7 @@ const formatNumber = (value: number | null): string => value === null ? "" : Str
 const signedMoney = (value: number): string => `${value > 0 ? "+" : ""}${value.toLocaleString("ko-KR")}원`;
 const issueLabels: Readonly<Record<string, string>> = { missingName: "품명 필요", invalidQuantity: "수량 확인", invalidUnitPrice: "단가 확인", amountMismatch: "금액 불일치" };
 const reviewFilterLabels: Readonly<Record<PurchaseReviewFilter, string>> = { all: "전체", error: "오류", mismatch: "불일치", needsReview: "확인 필요" };
-export function PurchaseHelperPanel({ fileControls, importSettings, settingsStatus, settingsBusy=false, settlement,onSettlementChange, editing, columns, draft, draftTemplates, onAddItem, onEdit, onColumnsChange, onDraftChange, onDraftTemplatesChange, onClose, onNotice }: Props) {
+export function PurchaseHelperPanel({ fileControls, importSettings, settingsStatus, notice, settingsBusy=false, settlement,onSettlementChange, editing, columns, draft, draftTemplates, onAddItem, onEdit, onColumnsChange, onDraftChange, onDraftTemplatesChange, onClose, onNotice }: Props) {
   const { items } = editing;
   const [bulkOpen, setBulkOpen] = useState(false);
   const bulkTriggerRef = useRef<HTMLButtonElement>(null);
@@ -137,6 +138,7 @@ export function PurchaseHelperPanel({ fileControls, importSettings, settingsStat
           <button type="button" disabled={!importSettings||settingsBusy} onClick={()=>setShowTemplates(v=>!v)}><Settings2 size={16} /> 가져오기 설정</button>
           <span>{selectedCount}개 선택 · {total.toLocaleString("ko-KR")}원</span>
         </div>
+        {notice}
         {settingsStatus}
         {showTemplates&&importSettings}
         <div className="purchase-helper-tabs" role="tablist" aria-label="품의 도우미 단계"><button type="button" role="tab" aria-selected={activeView === "items"} onClick={() => setActiveView("items")}>품목내역</button><button type="button" role="tab" aria-selected={activeView === "draft"} onClick={() => setActiveView("draft")}>품의문 작성</button><button type="button" role="tab" aria-selected={activeView==="settlement"} onClick={()=>{if(!readiness.ready){onNotice("입력 오류와 금액 불일치를 먼저 확인해 주세요.");return;}if(settlement===null)onSettlementChange(createPurchaseSettlement(items));setActiveView("settlement");}}>구매결과</button></div>

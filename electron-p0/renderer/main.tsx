@@ -13,6 +13,7 @@ import './td2-desktop.css';
 import './td2-desktop-v2.css';
 import './td2-desktop-b.css';
 import './td2-workspace.css';
+import './h6-pilot.css';
 document.body.classList.add('electron-soft-rose');
 import { P0App } from './P0App';
 createRoot(document.getElementById('root')!).render(<React.StrictMode><P0App /></React.StrictMode>);

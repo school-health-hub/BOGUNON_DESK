@@ -642,3 +642,9 @@ remains. Dock active marker, accessible name, hover and keyboard tooltip stay in
 - 입고·사용·폐기는 합성 데이터에만 적용하며 사유와 양수를 요구한다. 모든 변경은 Electron 격리 프로필의 inventory 전용 JSON에 원자적으로 저장하고 최근 정상본을 backup으로 보존한다.
 - Purchase Helper 연결은 권위 ID와 기본단위 수량을 전달할 수 있는 읽기 전용 후보 interface만 확인한다. 자동 구매·입고 반영이나 Purchase session 변경은 하지 않는다.
 - 기존 Pretendard, muted navy/mint, shared surface/border/text 토큰과 40px control target을 유지한다. 원격 이미지, 신규 animation, 새로운 전역 navigation은 추가하지 않는다.
+
+## H6-A desktop pilot
+
+The Electron Home shell, Purchase Helper and Finance use a neutral work surface, navy navigation and teal selection. This pilot uses shared values for navy `#172b46`, ink `#23354a`, secondary text `#4b6075`, canvas `#f0f3f6`, paper `#fff`, border `#cad5e0`, control edge `#778da3`, and action `#176461`. Status colors continue to convey the existing warning, error and success meanings. Spacing uses 4, 8, 12 and 16 pixels, with an 8-pixel control radius and 12-pixel work surface radius.
+
+The Home dock keeps its order and visibility settings and shows action labels at rest. The dashboard’s saved layouts and appearance choices own widget geometry. Purchase feedback lives in the work panel’s reading order, and the item table retains horizontal scrolling. Finance keeps storage messaging and selected state visible in both income and planning views. Keyboard focus remains visible on light and navy surfaces. The pilots are checked in the Windows BrowserWindow at 1440×835, 1200×800 and 900×680.

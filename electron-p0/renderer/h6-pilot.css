@@ -1,0 +1,243 @@
+@media screen {
+  body.electron-soft-rose :is(.workspace-shell.h6-shell, .h6-tools .td2-dialog, .td2-workspace[data-workspace="purchase"], .td2-workspace[data-workspace="finance"]) {
+    --h6-navy: #172b46;
+    --h6-ink: #23354a;
+    --h6-muted: #4b6075;
+    --h6-canvas: #f0f3f6;
+    --h6-paper: #fff;
+    --h6-line: #cad5e0;
+    --h6-control: #778da3;
+    --h6-accent: #176461;
+    --h6-accent-strong: #104b49;
+    --h6-active: #e2f2ef;
+    --h6-step: 4px;
+    --h6-gap: 8px;
+    --h6-inset: 16px;
+    --h6-radius: 8px;
+    --td2-ink: var(--h6-ink);
+    --td2-secondary: var(--h6-muted);
+    --td2-rose: var(--h6-accent);
+    --td2-rose-hover: var(--h6-accent-strong);
+    --td2-opaque: var(--h6-paper);
+    --td2-rim: var(--h6-line);
+    --border: var(--h6-line);
+    --divider: var(--h6-line);
+    --control-border: var(--h6-control);
+    --surface-muted: var(--h6-canvas);
+    --accent-soft: var(--h6-active);
+  }
+
+  /* Keep the dashboard grid and the saved appearance options independent of the navigation chrome. */
+  body.electron-soft-rose .workspace-shell.h6-shell .rose-surface-header {
+    color: var(--h6-navy);
+  }
+  body.electron-soft-rose .workspace-shell.h6-shell .rose-surface-header strong {
+    letter-spacing: .05em;
+    font-size: 16px;
+  }
+  body.electron-soft-rose .workspace-shell.h6-shell:is(.is-view-mode, .is-edit-mode) .dock {
+    gap: var(--h6-step);
+    border-color: var(--h6-navy);
+    border-radius: 16px;
+    padding: 6px 8px;
+    background: var(--h6-navy);
+  }
+  body.electron-soft-rose .workspace-shell.h6-shell .dock button {
+    width: clamp(48px, 6.3vw, 72px);
+    min-height: 50px;
+    height: auto;
+    gap: 2px;
+    color: #eff5fc;
+    border-radius: var(--h6-radius);
+    transform: none;
+  }
+  body.electron-soft-rose .workspace-shell.h6-shell .dock button:is(.is-active, :hover) {
+    background: #2c496a;
+    color: white;
+  }
+  body.electron-soft-rose .workspace-shell.h6-shell .dock button:focus-visible {
+    outline: 3px solid #9de4da;
+    outline-offset: 1px;
+  }
+  body.electron-soft-rose .workspace-shell.h6-shell .dock button .dock__icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 0;
+    box-shadow: none;
+    background: none;
+    filter: none;
+  }
+  .h6-shell .dock .dock__icon svg {
+    width: 20px;
+    height: 20px;
+  }
+  body.electron-soft-rose .workspace-shell.h6-shell .dock button .dock__tooltip {
+    position: static;
+    padding: 0 2px;
+    max-width: 100%;
+    border: 0;
+    box-shadow: none;
+    color: inherit;
+    background: none;
+    opacity: 1;
+    transform: none;
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+    font-size: 11px;
+    line-height: 1.2;
+  }
+  .h6-shell .dock .dock__active-indicator {
+    visibility: hidden;
+  }
+  body.electron-soft-rose .workspace-shell.h6-shell .quick-launcher__actions > button > span:nth-child(2) {
+    word-break: keep-all;
+    overflow-wrap: normal;
+  }
+  .h6-shell [data-widget-type="weekly-schedule"] .week-grid article p {
+    word-break: keep-all;
+  }
+
+  body.electron-soft-rose .h6-tools .td2-dialog {
+    background: var(--h6-paper);
+    border-color: var(--h6-line);
+    border-radius: 12px;
+  }
+  body.electron-soft-rose .h6-tools .rose-dialog-header {
+    background: var(--h6-canvas);
+    border-block-end: 1px solid var(--h6-line);
+  }
+  body.electron-soft-rose .h6-tools .p0-tool-card {
+    min-height: 58px;
+    padding: 8px 12px;
+    border-radius: var(--h6-radius);
+    background: var(--h6-paper);
+    border-color: var(--h6-line);
+    color: var(--h6-ink);
+  }
+  body.electron-soft-rose .h6-tools .p0-tool-card:hover {
+    background: var(--h6-active);
+    border-color: var(--h6-accent);
+  }
+  .h6-tools .p0-tool-card small {
+    color: var(--h6-muted);
+    word-break: keep-all;
+  }
+
+  body.electron-soft-rose .td2-workspace[data-workspace="purchase"] .purchase-helper-panel {
+    border-color: var(--h6-line);
+    border-radius: 12px;
+    background: var(--h6-paper);
+    box-shadow: 0 12px 40px rgb(23 43 70 / 20%);
+    scroll-padding-block: 72px var(--h6-inset);
+  }
+  body.electron-soft-rose .td2-workspace[data-workspace="purchase"] .purchase-helper-panel__header {
+    padding: 10px var(--h6-inset);
+    border-top: 4px solid var(--h6-navy);
+    background: var(--h6-paper);
+  }
+  body.electron-soft-rose .td2-workspace[data-workspace="purchase"] .purchase-helper-panel__toolbar {
+    padding: var(--h6-gap) var(--h6-inset);
+  }
+  body.electron-soft-rose .td2-workspace[data-workspace="purchase"] .purchase-helper-tabs {
+    background: var(--h6-canvas);
+  }
+  body.electron-soft-rose .td2-workspace[data-workspace="purchase"] .purchase-helper-panel__body {
+    overflow: visible;
+  }
+  body.electron-soft-rose .td2-workspace[data-workspace="purchase"] .purchase-helper-table-wrap {
+    max-height: none;
+    overflow: auto;
+  }
+  body.electron-soft-rose .td2-workspace[data-workspace="purchase"] .purchase-helper-panel__footer {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    box-shadow: none;
+    background: var(--h6-canvas);
+  }
+  body.electron-soft-rose .td2-workspace[data-workspace="purchase"] .purchase-session-notice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--h6-gap);
+    margin: var(--h6-gap) var(--h6-inset);
+    padding: 6px 10px;
+    border-inline-start: 3px solid var(--h6-accent);
+    background: var(--h6-active);
+    color: var(--h6-ink);
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  .purchase-session-notice > button {
+    flex-shrink: 0;
+  }
+
+  body.electron-soft-rose .td2-workspace[data-workspace="finance"] {
+    background: var(--h6-canvas);
+    padding: clamp(12px, 2vw, 24px);
+  }
+  body.electron-soft-rose .td2-workspace[data-workspace="finance"] .finance-header {
+    padding-bottom: var(--h6-gap);
+  }
+  body.electron-soft-rose .td2-workspace[data-workspace="finance"] .finance-hero {
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: var(--h6-gap);
+    padding: var(--h6-inset);
+    border: 0;
+    border-radius: 12px;
+    background: var(--h6-navy);
+    box-shadow: none;
+  }
+  body.electron-soft-rose .td2-workspace[data-workspace="finance"] .finance-hero h1 {
+    margin: 2px 0;
+    color: white;
+    font-size: 24px;
+  }
+  body.electron-soft-rose .td2-workspace[data-workspace="finance"] .finance-hero p {
+    color: #e0eaf6;
+  }
+  .td2-workspace[data-workspace="finance"] .finance-hero-actions {
+    flex-wrap: wrap;
+  }
+  body.electron-soft-rose .td2-workspace[data-workspace="finance"] .finance-hero button:focus-visible {
+    outline-color: #9de4da;
+  }
+  .td2-workspace[data-workspace="finance"] :is(.finance-area-tabs, .finance-filters) {
+    margin-block: 12px;
+  }
+  .td2-workspace[data-workspace="finance"] .finance-summary {
+    margin-bottom: var(--h6-inset);
+  }
+  body.electron-soft-rose .td2-workspace[data-workspace="finance"] :is(.finance-summary-card, .finance-income, .finance-form-card, .finance-phase2-panel, .finance-list) {
+    border-color: var(--h6-line);
+    border-radius: var(--h6-radius);
+    background: var(--h6-paper);
+    box-shadow: none;
+  }
+  body.electron-soft-rose .td2-workspace[data-workspace="finance"] .finance-summary-card {
+    padding: 12px;
+  }
+  .td2-workspace[data-workspace="finance"] .finance-summary-card strong {
+    margin: 5px 0;
+  }
+
+  body.electron-soft-rose :is(.td2-workspace[data-workspace="purchase"], .td2-workspace[data-workspace="finance"]) :is(button[aria-pressed="true"], button[aria-selected="true"], button.is-active) {
+    color: var(--h6-accent-strong);
+    background: var(--h6-active);
+    border-color: var(--h6-accent);
+  }
+  body.electron-soft-rose :is(.td2-workspace[data-workspace="purchase"], .td2-workspace[data-workspace="finance"]) :is(button, select, input, textarea, summary):focus-visible {
+    outline: 3px solid var(--h6-accent);
+    outline-offset: 2px;
+  }
+
+  @media (forced-colors: active) {
+    body.electron-soft-rose .workspace-shell.h6-shell .dock button:focus-visible,
+    body.electron-soft-rose :is(.td2-workspace[data-workspace="purchase"], .td2-workspace[data-workspace="finance"]) :is(button, select, input, textarea, summary):focus-visible {
+      outline-color: Highlight;
+    }
+  }
+}
