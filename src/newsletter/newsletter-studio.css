@@ -144,3 +144,5 @@ button[aria-pressed="true"], .primary-action { color: #fff; border-color: #326a5
 .newsletter-product-host .newsletter-file-toolbar label {display:grid;gap:7px;font-size:13px;}
 .newsletter-product-host .newsletter-native-project, .newsletter-product-host .newsletter-file-note, .newsletter-product-host .newsletter-empty, .newsletter-product-host > [role=status] {margin:20px;line-height:1.65;}
 .newsletter-product-host .newsletter-native-project input { margin:8px; }
+
+.newsletter-product-host > p, .newsletter-product-host .editor-panel small { word-break: keep-all; overflow-wrap: anywhere; }

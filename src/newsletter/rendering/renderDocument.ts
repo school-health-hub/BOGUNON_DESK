@@ -118,6 +118,18 @@ function reflowA4ModuleFrames(input: {
     image,
   }
 }
+function fitA4Header(text: string, title: Frame, meta: Frame, style: TextStyle, contentTop: number, measureText?: TextMeasurer) {
+  const gap = meta.y - (title.y + title.height)
+  for (const fontSize of [style.fontSize, 64, 56, 48, 40, 32]) {
+    const candidate = { ...style, fontSize }
+    const height = Math.max(title.height, Math.ceil(layoutText(text, candidate, title, measureText).requiredHeight))
+    const metaY = Math.max(meta.y, title.y + height + Math.max(0, gap))
+    if (metaY + meta.height <= contentTop) {
+      return { title: { ...title, height }, meta: { ...meta, y: metaY }, style: candidate }
+    }
+  }
+  return { title, meta, style }
+}
 function verifyAssets(snapshot: DesignSnapshot): void {
   const assets = new Map(snapshot.assetManifest.map((asset) => [asset.id, asset]))
   const brandImages = isV2(snapshot) ? [
@@ -225,11 +237,15 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
   const footerStyle = { fontFamily: "Pretendard", fontSize: editorialA4 ? 17 : 18, fontWeight: 500, lineHeight: editorialA4 ? 1.35 : 1.4, color: "#50656f", align: editorialA4 ? "left" : "center" } as const
   const a4TitleFrame = isV2(snapshot) ? snapshot.a4Layout.titleFrame : snapshot.a4Layout.headerFrame
   const metaFrame = isV2(snapshot) ? snapshot.a4Layout.publicationMetaFrame : { ...snapshot.a4Layout.headerFrame, y: snapshot.a4Layout.headerFrame.y + 125, height: 50 }
+  const standardV2 = isV2(snapshot) && !editorialA4 && snapshot.a4Layout.brand?.compositionPreset === undefined
+  const header = standardV2
+    ? fitA4Header(project.title, a4TitleFrame, metaFrame, titleStyle, Math.min(...a4Modules.map(module => module.moduleFrame.y)), input.measureText)
+    : { title: a4TitleFrame, meta: metaFrame, style: titleStyle }
   const base: RenderDocument = {
     projectId: project.projectId, projectRevision: input.projectRevision, designRevision: input.designRevision, templateVersion: snapshot.templateVersion,
     a4: { pageId: "a4-page", width: 1240, height: 1754, exportWidth: 2480, exportHeight: 3508, safeMargin: snapshot.a4Layout.safeMargin, background: snapshot.a4Layout.background, templateVersion: snapshot.templateVersion,
-      title: block("a4-main-title", "a4-page", project.title, a4TitleFrame, titleStyle, { kind: "project-title" }, issues, input.measureText),
-      publicationMeta: block("a4-publication-meta", "a4-page", `${snapshot.publicationMeta.issueLabel} · ${snapshot.publicationMeta.schoolName}`, metaFrame, metaStyle, { kind: "publication-meta" }, issues, input.measureText),
+      title: block("a4-main-title", "a4-page", project.title, header.title, header.style, { kind: "project-title" }, issues, input.measureText),
+      publicationMeta: block("a4-publication-meta", "a4-page", `${snapshot.publicationMeta.issueLabel} · ${snapshot.publicationMeta.schoolName}`, header.meta, metaStyle, { kind: "publication-meta" }, issues, input.measureText),
       modules: a4Modules,
       ...(editorialA4 ? { editorialLayout: true as const } : {}),
       ...(isV2(snapshot) && snapshot.a4Layout.brand?.compositionPreset !== undefined ? { compositionPreset: snapshot.a4Layout.brand.compositionPreset } : {}),
