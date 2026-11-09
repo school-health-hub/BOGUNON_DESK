@@ -14,7 +14,6 @@ jobs:
     timeout-minutes: 35
     env:
       SOURCE_SHA: ef0c3f4e7b87035f732b0ee238b41e74fe591c99
-      QA_LOG_DIR: ${{ runner.temp }}/h4a-r2-evidence
     steps:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
@@ -24,6 +23,8 @@ jobs:
         id: capability
         shell: pwsh
         run: |
+          $env:QA_LOG_DIR = Join-Path $env:RUNNER_TEMP 'h4a-r2-evidence'
+          "QA_LOG_DIR=$env:QA_LOG_DIR" >> $env:GITHUB_ENV
           New-Item -ItemType Directory -Path $env:QA_LOG_DIR | Out-Null
           $os = Get-CimInstance Win32_OperatingSystem
           $principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
@@ -146,6 +147,6 @@ jobs:
         if: ${{ always() }}
         with:
           name: h4a-r2-windows-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ env.QA_LOG_DIR }}/
+          path: ${{ runner.temp }}/h4a-r2-evidence/
           if-no-files-found: warn
           retention-days: 7
