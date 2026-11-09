@@ -1,5 +1,15 @@
 ## Approved B implementation — desktop floating surface
 
+## SCHOOL WORKSPACE operational UI — Pass 1 (2026-11-09)
+
+- Scope is presentation only: shared-school React structure and scoped CSS. RPC, SQL, authentication, roles, MFA readiness, calculations, exports, and operational gates remain authoritative and unchanged.
+- The SCHOOL shell uses a compact title/status/action header. Synthetic QA identity is a small rose status marker and remains absent outside the existing QA provider boundary.
+- Navigation stays a semantic `nav` of pressed buttons. At narrow desktop widths it is a single-line horizontal scroller with a visible trailing affordance; click and keyboard focus bring the active control fully into view. At 1200px and above it distributes without unnecessary scrolling.
+- Administrator membership management uses summary → pending approvals → search/role/status filters → compact member rows → one selected detail. Selection is keyed by membership id, never list index. Desktop rows expose member/role/status/expiry/action columns; narrow rows use label-value pairs.
+- Administrator add/transfer is a separate high-priority section before the member list. `CLOSED`, target eligibility, confirmation, Trusted MFA readiness, and disabled controls use the existing security predicates without presentation shortcuts.
+- Loading, ready-empty, ready-data and error are mutually distinguishable. Neutral progress/empty messages use status treatment; actionable connection/save failures use a rose leading rule. Failed loads never show zero-data summaries as successful state.
+- SCHOOL controls use 9–12px radii, 44px minimum compact height, navy ink, higher-contrast blue-gray input borders, muted rose selection, and existing visible focus outlines. Dense desktop tables may scroll internally; page-level horizontal overflow is prohibited at 900×680.
+
 User approved B direction and actual Electron1280×800 visual implementation on2026-11-06. Design is frozen; Windows usability, integration and deployment remain unapproved.
 Only the canonical default desk in View mode receives an independent presentation projection.
 The existing isCanonicalDeskLayout guard checks every saved widget identity, visibility, geometry

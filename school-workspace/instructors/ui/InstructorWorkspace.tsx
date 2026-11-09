@@ -54,9 +54,9 @@ export function InstructorWorkspace({bridge,school,client}:{bridge:Bridge;school
  const inst=board?.instructor,docs=inst?createHealthSupportSettlementDocuments({instructor:inst,month,workLogs:board.logs}):undefined;
  const calculation=inst?calculateHealthSupportInstructorManager({budget:inst.totalBudget,hourlyRate:inst.hourlyRate,monthlyInsuranceRate:inst.monthlyInsurance,monthlyLimitHours:inst.monthlyHourLimit,weeklyLimitHours:inst.weeklyHourLimit,weeklyWarningHours:Math.min(14,inst.weeklyHourLimit),workLogs:board.logs}):undefined;
  return <section className="instructor-workspace health-support-workspace" aria-label="보건지원강사 근무관리" aria-busy={busy}>
-  <h2>보건지원강사 근무관리</h2><p>격리된 학교 공유 검증 환경 · 운영 연결 없음 · 학교당 강사 1명</p>
-  <div className="instructor-actions"><label>조회 월<input type="month" value={month} disabled={busy} onChange={e=>setMonth(e.target.value)}/></label><button disabled={busy} onClick={()=>void act('read')}>최신 자료 조회</button></div>
-  {message&&<p role="status">{message}</p>}
+  <header className="instructor-header"><div><h2>보건지원강사 근무관리</h2><p>월별 근무표와 정산·출력 자료를 관리합니다.</p></div><span>격리된 합성 QA</span></header>
+  <div className="instructor-actions instructor-query"><label>조회 월<input type="month" value={month} disabled={busy} onChange={e=>setMonth(e.target.value)}/></label><button disabled={busy} onClick={()=>void act('read')}>최신 자료 조회</button></div>
+  {message&&<p className={`instructor-state ${message==='조회 중'?'is-loading':!board?'is-error':''}`} role={!board&&message!=='조회 중'?'alert':'status'}>{!board&&message!=='조회 중'?`격리된 합성 QA 자료를 불러오지 못했습니다. ${message}`:message}</p>}
   {board&&!canEdit&&<ReadOnlySchedule board={board}/>}
   {board&&canEdit&&<><nav aria-label="강사 관리 메뉴">{tabs.map(t=><button key={t} disabled={busy} aria-pressed={tab===t} className={tab===t?'':'secondary'} onClick={()=>{setTab(t);if(t==='설정')void loadStamps();}}>{t}</button>)}</nav>
    {!inst&&<p>운영 설정을 저장하면 근무표를 작성할 수 있습니다.</p>}
