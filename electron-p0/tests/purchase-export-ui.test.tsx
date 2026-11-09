@@ -13,6 +13,7 @@ it('previews CSV and XLSX separately and blocks output after an edit until revie
  expect(within(csv).getByText("'=합성 품목")).toBeTruthy();
  expect(within(csv).getByText('252')).toBeTruthy();
  expect(exportItems).not.toHaveBeenCalled();
+ expect(document.querySelector('.purchase-helper-panel')?.hasAttribute('inert')).toBe(true);
  edit('1행 수량','3');
  expect(within(csv).getByRole('alert').textContent).toContain('변경되었습니다');
  const confirm=within(csv).getByRole<HTMLButtonElement>('button',{name:'확인한 내용으로 출력'});
@@ -34,4 +35,16 @@ it('enables only CSV/XLSX for valid selected rows and distinguishes saved, cance
  expect((screen.getByRole('button',{name:'CSV 저장'}) as HTMLButtonElement).disabled).toBe(true);fireEvent.click(screen.getByRole('button',{name:'품목 추가'}));edit('1행 품명','합성 품목');edit('1행 수량','2.5');edit('1행 단가','100.6');fireEvent.click(screen.getByRole('button',{name:'CSV 저장'}));await screen.findByText('CSV 파일을 저장했습니다: synthetic.csv');expect(exportItems.mock.calls[0][0]).toMatchObject({format:'csv',items:[{name:'합성 품목',quantity:2.5,unitPrice:100.6}],columns:['number','name','specification','quantity','unitPrice','amount','note']});
  fireEvent.click(screen.getByRole('button',{name:'XLSX 저장'}));await screen.findByText('파일 저장을 취소했습니다.');expect((screen.getByLabelText('1행 품명') as HTMLInputElement).value).toBe('합성 품목');fireEvent.click(screen.getByRole('button',{name:'CSV 저장'}));await screen.findByText('외부에서 파일이 변경되었습니다.');expect((screen.getByLabelText('1행 품명') as HTMLInputElement).value).toBe('합성 품목');
  edit('1행 단가','-1');expect((screen.getByRole('button',{name:'XLSX 저장'}) as HTMLButtonElement).disabled).toBe(true);expect((screen.getByRole('button',{name:'에듀파인용 Excel'}) as HTMLButtonElement).disabled).toBe(true);fireEvent.click(screen.getByRole('tab',{name:'구매결과'}));expect(screen.getByText('입력 오류와 금액 불일치를 먼저 확인해 주세요.')).toBeTruthy();
+});
+
+it('blocks CSV preview for whitespace-prefixed formulas rejected by native validation',async()=>{
+ const exportItems=vi.fn();
+ vi.stubGlobal('electronWork',{purchase:{exportItems,cancelCsv:async()=>({ok:true,data:null})}});
+ render(<PurchaseSession open onClose={vi.fn()}/>);
+ fireEvent.click(screen.getByRole('button',{name:'품목 추가'}));
+ edit('1행 품명',' =1+1');edit('1행 수량','1');edit('1행 단가','100');
+ fireEvent.click(screen.getByRole('button',{name:'출력 미리보기'}));
+ await screen.findByText('선택 품목·수량·단가·금액·출력 열을 확인해 주세요.');
+ expect(screen.queryByRole('dialog',{name:'품의 CSV 미리보기'})).toBeNull();
+ expect(exportItems).not.toHaveBeenCalled();
 });

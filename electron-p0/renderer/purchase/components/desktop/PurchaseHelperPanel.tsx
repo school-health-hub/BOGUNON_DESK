@@ -124,7 +124,7 @@ export function PurchaseHelperPanel({ fileControls, importSettings, settingsStat
   };
   return (
     <div className="desktop-panel-backdrop purchase-helper-backdrop" onMouseDown={(event) => { if (event.currentTarget === event.target) void closePanel(); }}>
-      <section ref={panelRef} tabIndex={-1} className="purchase-helper-panel" role="dialog" aria-modal="true" aria-labelledby="purchase-helper-title">
+      <section ref={panelRef} tabIndex={-1} className="purchase-helper-panel" inert={outputPreview.snapshot!==null} role="dialog" aria-modal="true" aria-labelledby="purchase-helper-title">
         <header className="purchase-helper-panel__header"><span><FileSpreadsheet size={20} /></span><div><h2 id="purchase-helper-title">품의 도우미</h2><p>품목 입력·품의문·구매결과 · 세션 전용</p></div><button type="button" aria-label="품의 도우미 닫기" onClick={() => void closePanel()}><X size={18} /></button></header>
         <div className="purchase-helper-panel__toolbar">
           {fileControls ?? <button type="button" disabled>파일 가져오기</button>}
@@ -174,10 +174,10 @@ export function PurchaseHelperPanel({ fileControls, importSettings, settingsStat
         </footer>
         </> : activeView === "draft" ? draft === null ? <section className="purchase-draft-empty"><strong>선택한 품목으로 품의문을 작성합니다.</strong><p>품목을 선택하면 합계·구매처·예산항목을 바탕으로 초안을 만듭니다.</p><button type="button" disabled={selectedCount === 0 || !readiness.ready} onClick={() => onDraftChange(createPurchaseDraft(items))}>품의문 초안 만들기</button></section> : <PurchaseDraftEditor settingsBusy={settingsBusy} columns={columns} draft={draft} items={items} outputReady={readiness.ready} templates={draftTemplates} onChange={onDraftChange} onNotice={onNotice} onTemplatesChange={onDraftTemplatesChange} /> : settlement===null?null:<PurchaseSettlementEditor items={items} outputReady={readiness.ready} settlement={settlement} onChange={onSettlementChange} onNotice={onNotice}/>}
 
-        {outputPreview.snapshot!==null&&<PurchaseOutputPreviewDialog snapshot={outputPreview.snapshot} currentKey={outputPreview.currentKey} busy={outputPreview.outputting} onClose={outputPreview.close} onOutput={()=>void outputPreview.output()}/>}
         {nameDialogItem !== undefined && <PurchaseItemNameDialog itemName={nameDialogItem.name} rowNumber={nameDialogRowNumber} onCancel={closeNameDialog} onSave={(name) => { update(nameDialogItem.id, { name }); closeNameDialog(); }} />}
         {bulkOpen && <PurchaseBulkEditDialog items={items} revision={editing.revision} hiddenSelectedCount={hiddenSelectedCount} busy={busy} onCancel={closeBulk} onApply={(request) => { onEdit({ type: "bulk", request }); closeBulk(); }} />}
       </section>
+      {outputPreview.snapshot!==null&&<PurchaseOutputPreviewDialog snapshot={outputPreview.snapshot} currentKey={outputPreview.currentKey} busy={outputPreview.outputting} onClose={outputPreview.close} onOutput={()=>void outputPreview.output()}/>}
     </div>
   );
 }
