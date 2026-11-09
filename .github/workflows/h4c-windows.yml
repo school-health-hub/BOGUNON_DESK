@@ -13,7 +13,7 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 35
     env:
-      SOURCE_SHA: 4a7aafe280c4d7454d13023d36374da1b930984d
+      SOURCE_SHA: 2088758ec2f085f6ca6130837892342096ecd5b0
     steps:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:

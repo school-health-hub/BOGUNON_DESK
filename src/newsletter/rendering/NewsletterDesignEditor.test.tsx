@@ -15,9 +15,9 @@ describe("approved mascot editor action", () => {
     const now = "2026-10-29T00:00:00.000Z"
     const project = await createNewsletterProject({ projectId: "project-1", title: "보건소식", now })
     const design = attachApprovedMascot(upgradeNewsletterDesignStateV2(createNewsletterDesignState({ projectId: project.projectId, canonicalProjectRevision: 1, now }), now), now)
-    vi.stubGlobal("fetch", async () => { throw new TypeError("image unavailable") })
+    const assetResolver = { resolve: async () => { throw new TypeError("image unavailable") } }
     // When
-    const view = render(<NewsletterDesignEditor project={project} initialDesign={design} />)
+    const view = render(<NewsletterDesignEditor project={project} initialDesign={design} assetResolver={assetResolver} />)
     await screen.findByRole("alert")
     // Then
     expect(view.container.querySelector(".status-pill")?.textContent).toBe("이미지 검증 실패 · 출력 차단")
