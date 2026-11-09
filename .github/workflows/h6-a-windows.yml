@@ -1,0 +1,177 @@
+name: H6-A Windows regression
+
+on:
+  push:
+    branches: [codex/qa-h6-a-clean-3aa8e661]
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    if: github.repository == 'school-health-hub/BOGUNON_DESK'
+    runs-on: windows-2025
+    timeout-minutes: 35
+    env:
+      SOURCE_SHA: ac28c328bacb3fa2c27955fc288136265b7ccd29
+    steps:
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.23.3'
+
+      - name: Verify real file symlink capability
+        id: capability
+        shell: pwsh
+        run: |
+          $env:QA_LOG_DIR = Join-Path $env:RUNNER_TEMP 'h5-evidence'
+          "QA_LOG_DIR=$env:QA_LOG_DIR" >> $env:GITHUB_ENV
+          New-Item -ItemType Directory -Path $env:QA_LOG_DIR | Out-Null
+          $originalTemp = $env:TEMP
+          $dir = New-Item -ItemType Directory -Path (Join-Path $env:RUNNER_TEMP 'h5-temp')
+          $canonicalTemp = node -p "require('node:fs').realpathSync(process.argv[1])" $dir.FullName
+          if ($LASTEXITCODE -ne 0 -or !$canonicalTemp) { throw 'Canonical temp path unavailable' }
+          $env:TEMP = $env:TMP = $canonicalTemp
+          "TEMP=$canonicalTemp" >> $env:GITHUB_ENV
+          "TMP=$canonicalTemp" >> $env:GITHUB_ENV
+          $os = Get-CimInstance Win32_OperatingSystem
+          $principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
+          $privileges = @(whoami /priv | Select-String -Pattern 'SeCreateSymbolicLinkPrivilege' | ForEach-Object {$_.Line.Trim()})
+          [ordered]@{
+            sourceSha=$env:SOURCE_SHA; workflowSha=$env:GITHUB_SHA; runId=$env:GITHUB_RUN_ID
+            runner='windows-2025'; imageOS=$env:ImageOS; imageVersion=$env:ImageVersion
+            windows=$os.Caption; windowsVersion=$os.Version; build=$os.BuildNumber
+            originalTemp=$originalTemp; effectiveTemp=$canonicalTemp
+            elevatedAdmin=$principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+            symlinkPrivilege=$privileges; node=(node --version); npm=(npm --version)
+          } | ConvertTo-Json | Set-Content "$env:QA_LOG_DIR/runner.json"
+          @'
+          const fs = require('node:fs');
+          const os = require('node:os');
+          const path = require('node:path');
+          const assert = require('node:assert/strict');
+          const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'h4a-symlink-'));
+          const target = path.join(dir, 'target.txt');
+          const link = path.join(dir, 'link.txt');
+          const result = { status: 'ERROR', scratchCleanup: false };
+          try {
+            fs.writeFileSync(target, 'synthetic link fixture');
+            try {
+              fs.symlinkSync(target, link, 'file');
+            } catch (error) {
+              result.status = 'UNSUPPORTED';
+              throw error;
+            }
+            assert.ok(fs.lstatSync(link).isSymbolicLink());
+            assert.ok(fs.statSync(link).isFile());
+            assert.equal(path.resolve(dir, fs.readlinkSync(link)), target);
+            assert.equal(fs.realpathSync(link), fs.realpathSync(target));
+            assert.equal(fs.readFileSync(link, 'utf8'), 'synthetic link fixture');
+            fs.unlinkSync(link);
+            assert.equal(fs.existsSync(link), false);
+            assert.equal(fs.readFileSync(target, 'utf8'), 'synthetic link fixture');
+            result.status = 'PASS';
+          } catch (error) {
+            result.error = { code: error.code ?? null, message: error.message };
+          } finally {
+            fs.rmSync(dir, {recursive:true});
+            result.scratchCleanup = !fs.existsSync(dir);
+          }
+          fs.writeFileSync(path.join(process.env.QA_LOG_DIR, 'symlink.json'), JSON.stringify(result, null, 2));
+          console.log(JSON.stringify(result));
+          if (result.status !== 'PASS' || !result.scratchCleanup) process.exitCode = 1;
+          '@ | node
+          $code = $LASTEXITCODE
+          if (Test-Path "$env:QA_LOG_DIR/symlink.json") {
+            $probe = Get-Content "$env:QA_LOG_DIR/symlink.json" -Raw | ConvertFrom-Json
+            "File symlink capability: $($probe.status)" >> $env:GITHUB_STEP_SUMMARY
+          }
+          exit $code
+
+      - name: Check out pinned product source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify checkout and install locked dependencies
+        id: install
+        shell: pwsh
+        run: |
+          if ((git rev-parse HEAD) -cne $env:SOURCE_SHA) { throw 'Pinned source mismatch' }
+          if (@(git status --porcelain).Count) { throw 'Initial checkout is dirty' }
+          npm ci 2>&1 | Tee-Object "$env:QA_LOG_DIR/npm-ci.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $versions = [ordered]@{
+            node=(node --version); npm=(npm --version); electron=(node -p "require('electron/package.json').version")
+            rust=(rustc --version); cargo=(cargo --version)
+          }
+          $versions | ConvertTo-Json | Set-Content "$env:QA_LOG_DIR/toolchain.json"
+          if ($versions.electron -ne '45.2.1') { throw 'Unexpected Electron version' }
+
+      - name: Electron product build and regression prerequisites
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        shell: pwsh
+        run: |
+          npm run electron:p0:build 2>&1 | Tee-Object "$env:QA_LOG_DIR/electron-build.log"
+          exit $LASTEXITCODE
+
+      - name: Original Rust fixture preparation and complete Electron regression
+        shell: pwsh
+        run: |
+          npm run electron:p0:test -- --reporter=default --reporter=json "--outputFile.json=$env:QA_LOG_DIR/full-electron.json" 2>&1 | Tee-Object "$env:QA_LOG_DIR/full-electron.log"
+          exit $LASTEXITCODE
+
+      - name: Finder, Inventory, Desktop Surface and SCHOOL focused suites
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        shell: pwsh
+        run: |
+          $inventory = @(Get-ChildItem electron-p0/tests/inventory*.test.* -File | ForEach-Object {$_.FullName})
+          $files = @('electron-p0/tests/education-video-library.test.ts','electron-p0/tests/education-video-EducationVideoFinder.test.tsx','electron-p0/tests/dashboard-gesture.test.tsx','electron-p0/tests/soft-rose-surface.test.tsx','electron-p0/tests/quick-memo-surface.test.tsx','src/dashboard','src/dock') + $inventory
+          node node_modules/vitest/vitest.mjs run @files --no-file-parallelism --maxWorkers=1 2>&1 | Tee-Object "$env:QA_LOG_DIR/focused.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node node_modules/vitest/vitest.mjs run --config school-workspace/school07/vitest.config.ts school-workspace/school07/tests/client.test.ts 2>&1 | Tee-Object "$env:QA_LOG_DIR/school07.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node node_modules/vitest/vitest.mjs run --config school-workspace/integration/vitest.config.ts school-workspace/integration/tests/ui.test.tsx 2>&1 | Tee-Object "$env:QA_LOG_DIR/school-ui.log"
+          exit $LASTEXITCODE
+
+      - name: Newsletter asset, JSON and integration focused suites
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        shell: pwsh
+        run: |
+          node node_modules/vitest/vitest.mjs run src/newsletter electron-p0/tests/newsletter --no-file-parallelism --maxWorkers=1 2>&1 | Tee-Object "$env:QA_LOG_DIR/newsletter-focused.log"
+          exit $LASTEXITCODE
+
+      - name: Finance renderer, native boundary and IPC focused suites
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        shell: pwsh
+        run: |
+          $files = @(Get-ChildItem electron-p0/tests/finance*.test.* -File | ForEach-Object {$_.FullName})
+          node node_modules/vitest/vitest.mjs run src/my-finance @files --no-file-parallelism --maxWorkers=1 2>&1 | Tee-Object "$env:QA_LOG_DIR/finance-focused.log"
+          exit $LASTEXITCODE
+
+      - name: Root TypeScript and Vite build
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        shell: pwsh
+        run: |
+          npm run build 2>&1 | Tee-Object "$env:QA_LOG_DIR/root-build.log"
+          exit $LASTEXITCODE
+
+      - name: Verify pinned clean product checkout
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        shell: pwsh
+        run: |
+          git rev-parse HEAD | Set-Content "$env:QA_LOG_DIR/source-sha.txt"
+          $status = @(git status --porcelain=v1 --untracked-files=all)
+          Set-Content "$env:QA_LOG_DIR/git-status.txt" -Value ($status -join [Environment]::NewLine)
+          if ((git rev-parse HEAD) -cne $env:SOURCE_SHA) { throw 'Source changed' }
+          if ($status.Count) { throw 'Product checkout is dirty' }
+          git diff --check 57d1bef7bb4703c35aaa0e151a9bf59377ae02f5 HEAD
+          exit $LASTEXITCODE
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ always() }}
+        with:
+          name: h6-a-windows-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/h5-evidence/
+          if-no-files-found: warn
+          retention-days: 7
