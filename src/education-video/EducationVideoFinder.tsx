@@ -10,6 +10,7 @@ import { VideoResults } from './VideoResults';
 import { MessageEditor } from './MessageEditor';
 import './finder.css';
 const emptyEducation: Education = { educationTitle: '', target: '', schedule: '', instructions: '' };
+const recoveryMessage = '저장된 교육영상 목록에 문제가 발견되어 백업에서 복구했습니다. 현재 목록을 확인해 주세요.';
 export function EducationVideoFinder({ onClose,renderAiTools,searchBridge,compatBridge }: {
     readonly onClose: () => void;
     readonly compatBridge?:FinderCompatBridge;
@@ -31,10 +32,20 @@ export function EducationVideoFinder({ onClose,renderAiTools,searchBridge,compat
     const [confirmed, setConfirmed] = useState(false);
     const [library, setLibrary] = useState<Library>({ version: 1, items: [] });
     const [notice, setNotice] = useState('');
+    const [showRecovery, setShowRecovery] = useState(false);
+    const initialLoad = useRef<ReturnType<typeof libraryRepository.load> | null>(null);
     const [busy, setBusy] = useState(false);
     const reportError = (error: unknown): void => { setNotice(error instanceof FinderInputError ? error.message : '로컬 라이브러리 작업을 완료하지 못했습니다. 기존 데이터를 유지하고 백업 복구를 시도해 주세요.'); };
-    useEffect(() => { void libraryRepository.load().then(result => { setLibrary(result.library); if (result.recovered)
-        setNotice('손상된 저장소 대신 백업을 불러왔습니다.'); }).catch(reportError); }, []);
+    useEffect(() => {
+        let active = true;
+        initialLoad.current ??= libraryRepository.load();
+        void initialLoad.current.then(result => {
+            if (!active) return;
+            setLibrary(result.library);
+            if (result.recovered) setShowRecovery(true);
+        }).catch(error => { if (active) reportError(error); });
+        return () => { active = false; };
+    }, []);
     const run = async (action: () => Promise<void>): Promise<void> => { if (busy)
         return; setBusy(true); try {
         await action();
@@ -105,6 +116,7 @@ export function EducationVideoFinder({ onClose,renderAiTools,searchBridge,compat
  <button className="ev-primary" type="submit" disabled={searchBusy||connectionBusy}><Search size={17}/>{searchBusy?'YouTube 검색 중…':mode==='youtube'?'YouTube 영상 검색':'Mock 영상 검색'}</button>{searchBusy&&<button type="button" onClick={cancelSearch}>영상 검색 취소</button>}
  </form></section>
  <p role="status" className="ev-notice">{notice || (mode==='youtube'?'YouTube 전용 Key를 등록하고 검색어 전송에 동의해 검색하세요. 실제 API 권한은 요청 시 확인합니다.':'Mock 검색과 기본 안내문은 로컬에서 동작합니다. AI 보조는 전송 전 별도 확인합니다.')}</p>
+ {showRecovery&&<p role="status" className="ev-notice">{recoveryMessage}</p>}
  <div className="ev-layout"><div>
  <div className="ev-filters" aria-label="영상 길이 범위">
  {[{ value: 3, label: '희망 길이 ±3분' }, { value: 5, label: '±5분' }, { value: null, label: `전체 보기 (${videos.length}개)` }].map(option => <button type="button" key={option.label} aria-pressed={windowMinutes === option.value} onClick={() => setWindow(option.value)}>{option.label}</button>)}<span>가까운 길이순</span>
@@ -117,7 +129,13 @@ export function EducationVideoFinder({ onClose,renderAiTools,searchBridge,compat
  <div className="ev-actions">
  <button type="button" disabled={busy} onClick={exportLibrary}><Download size={16}/>내보내기</button>
  {!compatBridge&&<label className="ev-import"><Upload size={16}/>가져오기<input type="file" accept=".json,application/json" disabled={busy} onChange={e => { importLibrary(e.target.files?.[0]); e.target.value = ''; }}/></label>}
- <button type="button" disabled={busy} onClick={() => void run(async () => { const result = await libraryRepository.recover(); setLibrary(result.library); setNotice('백업에서 복구했습니다.'); })}>백업 복구</button>
+ <button type="button" disabled={busy} onClick={() => void run(async () => {
+     setShowRecovery(false);
+     const result = await libraryRepository.recover();
+     setLibrary(result.library);
+     setShowRecovery(result.recovered);
+     setNotice(result.recovered ? '' : '복구가 필요한 라이브러리가 없습니다.');
+ })}>백업 복구</button>
  </div>
  {compatBridge&&<FinderCompatibility bridge={compatBridge} onV1Changed={setLibrary}/>}
  {library.items.length === 0 ? <p className="ev-empty-inline">저장한 영상이 없습니다. 안내문을 작성한 뒤 저장해 주세요.</p> : <ul>{library.items.map(item => <li key={item.videoId}><div><strong>{item.educationTitle || item.title}</strong><p>{item.schedule} · {item.target}</p></div><button type="button" onClick={() => loadItem(item)}>불러오기</button></li>)}</ul>}

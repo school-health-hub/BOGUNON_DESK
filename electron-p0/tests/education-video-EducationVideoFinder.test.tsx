@@ -1,16 +1,46 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { StrictMode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { EducationVideoFinder } from '../../src/education-video/EducationVideoFinder';
 import { searchMockVideos, type LibraryItem } from '../../src/education-video/model';
 const savedVideo=searchMockVideos({topic:'손씻기',target:'학생',minutes:10})[0];
 const saved:LibraryItem={...savedVideo,educationTitle:'교육A',target:'학생',schedule:'이번주',instructions:'확인',message:'교사 수정문',notes:'보호할 메모'};
 const exportFile=vi.fn<()=>Promise<{status:'saved';fileName:string}|{status:'canceled'}>>();
+const normalLoad=async()=>({library:{version:1 as const,items:[] as LibraryItem[]},recovered:false});
+const load=vi.fn(normalLoad);
+const recover=vi.fn(normalLoad);
 const save=vi.fn(async(item:LibraryItem)=>({library:{version:1,items:[...([saved].filter(existing=>existing.videoId!==item.videoId)),item]},recovered:false}));
-vi.mock('../../src/education-video/library',()=>({nativeLibrary:false,libraryRepository:{load:async()=>({library:{version:1,items:[]},recovered:false}),save:(item:LibraryItem)=>save(item),export:async()=>'',exportFile:()=>exportFile(),import:async()=>({library:{version:1,items:[]},recovered:false}),recover:async()=>({library:{version:1,items:[]},recovered:true})}}));
-afterEach(()=>{cleanup();save.mockClear();exportFile.mockReset();});
+vi.mock('../../src/education-video/library',()=>({nativeLibrary:false,libraryRepository:{load:()=>load(),save:(item:LibraryItem)=>save(item),export:async()=>'',exportFile:()=>exportFile(),import:()=>normalLoad(),recover:()=>recover()}}));
+afterEach(()=>{cleanup();save.mockClear();exportFile.mockReset();load.mockReset();recover.mockReset();});
 const search=(topic:string)=>{fireEvent.change(screen.getByLabelText('교육 주제'),{target:{value:topic}});fireEvent.change(screen.getByLabelText('검색 대상'),{target:{value:'학생'}});fireEvent.click(screen.getByRole('button',{name:'Mock 영상 검색'}));};
 describe('Finder workflow',()=>{
+ it('reports a single successful restore through StrictMode and subsequent searches',async()=>{
+  load.mockResolvedValueOnce({library:{version:1,items:[saved]},recovered:true});
+  render(<StrictMode><EducationVideoFinder onClose={()=>{}}/></StrictMode>);
+  const notice='저장된 교육영상 목록에 문제가 발견되어 백업에서 복구했습니다. 현재 목록을 확인해 주세요.';
+  await screen.findByText(notice);
+  search('손씻기');
+  expect(screen.getAllByText(notice)).toHaveLength(1);
+  expect(load).toHaveBeenCalledTimes(1);
+ });
+ it('does not claim recovery after failure or a healthy manual check',async()=>{
+  load.mockRejectedValueOnce(new Error('broken backup'));
+  render(<EducationVideoFinder onClose={()=>{}}/>);
+  await screen.findByText(/로컬 라이브러리 작업을 완료하지 못했습니다/);
+  fireEvent.click(screen.getByRole('button',{name:'백업 복구'}));
+  await screen.findByText('복구가 필요한 라이브러리가 없습니다.');
+  expect(screen.queryByText(/백업에서 복구했습니다/)).toBeNull();
+ });
+ it('clears a previous success when a later manual recovery fails',async()=>{
+  load.mockResolvedValueOnce({library:{version:1,items:[saved]},recovered:true});
+  recover.mockRejectedValueOnce(new Error('broken backup'));
+  render(<EducationVideoFinder onClose={()=>{}}/>);
+  await screen.findByText(/백업에서 복구했습니다/);
+  fireEvent.click(screen.getByRole('button',{name:'백업 복구'}));
+  await screen.findByText(/로컬 라이브러리 작업을 완료하지 못했습니다/);
+  expect(screen.queryByText(/백업에서 복구했습니다/)).toBeNull();
+ });
  it('preserves notes and teacher message when selecting saved video again',async()=>{
   render(<EducationVideoFinder onClose={()=>{}}/>);search('손씻기');
   fireEvent.click(screen.getAllByRole('button',{name:/선택$/})[0]);

@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {mkdtemp,readFile,writeFile} from 'node:fs/promises';
+import {mkdtemp,readFile,readdir,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {EducationVideoLibraryStore,validateEducationVideoLibrary} from '../main/education-video-library';
@@ -16,13 +16,64 @@ describe('Electron education video library',()=>{
   const valid={version:1,items:[item()]};
   for(const invalid of [{...valid,path:'C:/private'}, {version:1,items:[{...item(),token:'secret'}]}, {version:1,items:[item(),item()]}, {version:1,items:[{...item(),notes:'x'.repeat(20001)}]}])expect(()=>validateEducationVideoLibrary(invalid)).toThrow();
  });
- it('keeps corrupt primary bytes and loads the last good backup',async()=>{
+ it('quarantines corrupt bytes and restores the validated backup once',async()=>{
   const root=await mkdtemp(join(tmpdir(),'education-video-recover-'));const store=new EducationVideoLibraryStore(root);
   await store.save(item('EVmock00001'));await store.save(item('EVmock00002'));
   await writeFile(join(root,'library.json'),'SYNTHETIC CORRUPT');
-  const loaded=await new EducationVideoLibraryStore(root).load();
-  expect(loaded.recovered).toBe(true);expect(loaded.library.items.map(row=>row.videoId)).toEqual(['EVmock00001']);
-  expect(await readFile(join(root,'library.json'),'utf8')).toBe('SYNTHETIC CORRUPT');
+  const backup=await readFile(join(root,'library.backup.json'));
+  const restarted=new EducationVideoLibraryStore(root);
+  const [loaded,repeat]=await Promise.all([restarted.load(),restarted.load()]);
+  expect(loaded.recovered).toBe(true);
+  expect(loaded.library.items).toEqual([item()]);
+  expect(repeat).toEqual({library:loaded.library,recovered:false});
+  expect(await readFile(join(root,'library.json'))).toEqual(backup);
+  expect(await readFile(join(root,'library.backup.json'))).toEqual(backup);
+  const quarantine=(await readdir(root)).filter(name=>name.startsWith('library.corrupt-'));
+  expect(quarantine).toHaveLength(1);
+  expect(await readFile(join(root,quarantine[0]),'utf8')).toBe('SYNTHETIC CORRUPT');
+ });
+ it('does not overwrite a healthy primary on manual recovery',async()=>{
+  const root=await mkdtemp(join(tmpdir(),'education-video-healthy-'));
+  const store=new EducationVideoLibraryStore(root);
+  await store.save(item());
+  const latest=await store.save(item('EVmock00002'));
+  expect(await store.recover()).toEqual(latest);
+  expect(await store.load()).toEqual(latest);
+ });
+ it('leaves both unreadable versions untouched and preserves unsupported primary versions',async()=>{
+  const root=await mkdtemp(join(tmpdir(),'education-video-bad-'));
+  const store=new EducationVideoLibraryStore(root);
+  const primary=join(root,'library.json'),backup=join(root,'library.backup.json');
+  await writeFile(primary,'bad primary');
+  await writeFile(backup,'bad backup');
+  await expect(store.load()).rejects.toThrow();
+  expect(await readFile(primary,'utf8')).toBe('bad primary');
+  expect(await readFile(backup,'utf8')).toBe('bad backup');
+  await writeFile(primary,'{"version":99,"items":[]}');
+  await writeFile(backup,JSON.stringify({version:1,items:[item()]}));
+  await expect(store.load()).rejects.toThrow();
+  expect(await readFile(primary,'utf8')).toBe('{"version":99,"items":[]}');
+  expect((await readdir(root)).sort()).toEqual(['library.backup.json','library.json']);
+ });
+ it('reports replacement failure without destroying the corrupt primary or the backup',async()=>{
+  const root=await mkdtemp(join(tmpdir(),'education-video-denied-'));
+  const primary=join(root,'library.json'),backup=join(root,'library.backup.json');
+  const valid=JSON.stringify({version:1,items:[item()]});
+  await writeFile(primary,'bad primary');
+  await writeFile(backup,valid);
+  const store=new EducationVideoLibraryStore(root,async()=>{throw new Error('synthetic replacement denied');});
+  await expect(store.load()).rejects.toThrow('synthetic replacement denied');
+  expect(await readFile(primary,'utf8')).toBe('bad primary');
+  expect(await readFile(backup,'utf8')).toBe(valid);
+ });
+ it('does not accept BOM-prefixed bytes as a healthy primary when saving would reject them',async()=>{
+  const root=await mkdtemp(join(tmpdir(),'education-video-bom-'));
+  const store=new EducationVideoLibraryStore(root);
+  const valid=JSON.stringify({version:1,items:[item()]});
+  await writeFile(join(root,'library.json'),'\uFEFF'+valid);
+  await writeFile(join(root,'library.backup.json'),valid);
+  expect((await store.load()).recovered).toBe(true);
+  await expect(store.save(item('EVmock00002'))).resolves.toMatchObject({recovered:false});
  });
 });
 

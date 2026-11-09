@@ -1,13 +1,13 @@
-import {lstat} from 'node:fs/promises';
-import {dirname,parse} from 'node:path';
-import {createHash} from 'node:crypto';
+import {constants} from 'node:fs';
+import {lstat,open,unlink} from 'node:fs/promises';
+import {dirname,join,parse} from 'node:path';
+import {createHash,randomUUID} from 'node:crypto';
 import {SettingsStore} from './settings.js';
 import type {LibraryV2,V2Load,FinderV2Edit} from '../finder-v2-protocol.js';
 import {validateLibraryV2,validateTeacher,fields as assertFields} from './finder-v2/validate.js';
 import {parseAiMetadata} from './finder-v2/aiLibraryMetadata.js';
 import {applyCandidateRecord,parseCandidateRecord} from './finder-v2/candidateRecord.js';
 import {parseRecommendationReason} from './finder-v2/recommendationReason.js';
-import {join} from 'node:path';
 import type {EducationVideoLibrary,EducationVideoLibraryItem,IpcResult} from '../protocol.js';
 import {assertSender} from './policy.js';
 
@@ -34,6 +34,61 @@ export function validateEducationVideoLibrary(value:unknown):EducationVideoLibra
 }
 
 export class FinderLibraryConflict extends Error{}
+class FinderRecoveryError extends Error{}
+const emptyV1:EducationVideoLibrary={version:1,items:[]};
+
+async function readRecoveryCandidate(path:string) {
+ let bytes:Buffer;
+ try {
+  const stat=await lstat(path);
+  if(!stat.isFile()||stat.isSymbolicLink()||stat.nlink!==1||stat.size>MAX_BYTES)throw new FinderRecoveryError('Unsafe Finder recovery file');
+  const file=await open(path,constants.O_RDONLY|(constants.O_NOFOLLOW??0));
+  try {
+   const start=await file.stat();
+   if(!start.isFile()||start.nlink!==1||start.dev!==stat.dev||start.ino!==stat.ino||start.size!==stat.size||start.mtimeMs!==stat.mtimeMs||start.ctimeMs!==stat.ctimeMs) {
+    throw new FinderRecoveryError('Finder recovery file changed before read');
+   }
+   const buffer=Buffer.alloc(start.size+1);
+   let offset=0;
+   while(offset<buffer.length) {
+    const {bytesRead}=await file.read(buffer,offset,buffer.length-offset,offset);
+    if(!bytesRead)break;
+    offset+=bytesRead;
+   }
+   const end=await file.stat();
+   if(offset!==start.size||end.size!==start.size||end.mtimeMs!==start.mtimeMs||end.ctimeMs!==start.ctimeMs)throw new FinderRecoveryError('Finder recovery file changed during read');
+   bytes=buffer.subarray(0,offset);
+  } finally {await file.close();}
+ } catch(error) {
+  if(error instanceof Error&&'code' in error&&error.code==='ENOENT')return {kind:'missing'} as const;
+  throw error;
+ }
+ let value:unknown;
+ try {value=JSON.parse(new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(bytes));}
+ catch(error) {
+  if(error instanceof SyntaxError||error instanceof TypeError)return {kind:'corrupt',bytes} as const;
+  throw error;
+ }
+ if(record(value)&&'version' in value&&value.version!==1)throw new FinderRecoveryError('Unsupported Finder recovery version');
+ try {return {kind:'valid',library:validateEducationVideoLibrary(value)} as const;}
+ catch(error) {
+  if(error instanceof Error)return {kind:'corrupt',bytes} as const;
+  throw error;
+ }
+}
+
+async function quarantine(root:string,bytes:Buffer) {
+ const path=join(root,`library.corrupt-${randomUUID()}.json`);
+ const file=await open(path,'wx',0o600);
+ try {
+  try {await file.writeFile(bytes);await file.sync();}
+  finally {await file.close();}
+ } catch(error) {
+  await unlink(path);
+  throw error;
+ }
+}
+
 export class EducationVideoLibraryStore{
  private queue:Promise<void>=Promise.resolve();
  private v1:SettingsStore<EducationVideoLibrary>;
@@ -55,10 +110,29 @@ export class EducationVideoLibraryStore{
   try{const library=await primary.read();if(library)return {library,recovered:false};const fallback=await backup.read();return fallback?{library:fallback,recovered:true}:{library:empty,recovered:false};}
   catch{const library=await backup.read();if(library)return {library,recovered:true};throw Error('Finder original files unreadable; preserved');}
  }
- load(){return this.read(this.v1,this.v1Backup,{version:1,items:[]});}
+ private readV1(){return this.read(this.v1,this.v1Backup,emptyV1);}
+ load(){return this.mutate(async()=>{
+  await this.safe();
+  const primaryPath=join(this.root,'library.json');
+  const primary=await readRecoveryCandidate(primaryPath);
+  if(primary.kind==='valid')return {library:primary.library,recovered:false};
+  const backup=await readRecoveryCandidate(join(this.root,'library.backup.json'));
+  if(primary.kind==='missing'&&backup.kind==='missing')return {library:emptyV1,recovered:false};
+  if(backup.kind!=='valid')throw new FinderRecoveryError('No valid Finder backup; originals preserved');
+  // Keep the original at its path until the quarantine is durable and replacement succeeds.
+  if(primary.kind==='corrupt')await quarantine(this.root,primary.bytes);
+  const current=await readRecoveryCandidate(primaryPath);
+  const unchanged=primary.kind==='corrupt'
+   ?current.kind==='corrupt'&&primary.bytes.equals(current.bytes)
+   :current.kind==='missing';
+  if(!unchanged)throw new FinderRecoveryError('Finder primary changed during recovery');
+  await (this.writePrimary?this.writePrimary('library.json',backup.library):this.v1.write(backup.library));
+  return {library:backup.library,recovered:true};
+ });}
+ async readLibrary(){return (await this.readV1()).library;}
  private readV2(){return this.read(this.v2,this.v2Backup,{version:2,entries:[]});}
  async snapshot(){
-  const [v1,v2]=await Promise.all([this.load(),this.readV2()]);
+  const [v1,v2]=await Promise.all([this.readV1(),this.readV2()]);
   const fingerprint=createHash('sha256').update(JSON.stringify([v1.library,v2.library])).digest('hex');
   return {v1,v2,fingerprint};
  }
@@ -86,7 +160,7 @@ export class EducationVideoLibraryStore{
    if(!chosen.size||chosen.size!==selectedIds.length||selectedIds.some(id=>existing.has(id)||!rows.some(e=>e.videoId===id)))throw new FinderLibraryConflict();
    if(safe.version===1)await this.commitV1({version:1,items:[...s.v1.library.items,...safe.items.filter(e=>chosen.has(e.videoId))]},s.v1.library,fresh);
    else await this.commitV2({version:2,entries:[...s.v2.library.entries,...safe.entries.filter(e=>chosen.has(e.videoId))]},s.v2.library,fresh);
-   return {added:chosen.size,skipped:rows.length-chosen.size,v1:(await this.load()).library,v2:await this.loadV2()};
+   return {added:chosen.size,skipped:rows.length-chosen.size,v1:await this.readLibrary(),v2:await this.loadV2()};
   });
  }
  async editV2(value:unknown):Promise<V2Load>{
@@ -98,9 +172,9 @@ export class EducationVideoLibraryStore{
    return this.commitV2({version:2,entries:s.v2.library.entries.map(e=>e.videoId===next.videoId?next:e)},s.v2.library);
   });
  }
- async export(){return JSON.stringify((await this.load()).library,null,2);}
+ async export(){return JSON.stringify(await this.readLibrary(),null,2);}
  async exportV2(){return JSON.stringify((await this.loadV2()).library);}
- recover(){return this.mutate(async()=>{await this.safe();const library=await this.v1Backup.read();if(!library)throw Error('No backup');await this.v1.write(library);return {library,recovered:true};});}
+ recover(){return this.load();}
  flush(){return this.queue;}
 }
 
