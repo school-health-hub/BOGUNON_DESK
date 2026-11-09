@@ -10,6 +10,15 @@
 - Loading, ready-empty, ready-data and error are mutually distinguishable. Neutral progress/empty messages use status treatment; actionable connection/save failures use a rose leading rule. Failed loads never show zero-data summaries as successful state.
 - SCHOOL controls use 9–12px radii, 44px minimum compact height, navy ink, higher-contrast blue-gray input borders, muted rose selection, and existing visible focus outlines. Dense desktop tables may scroll internally; page-level horizontal overflow is prohibited at 900×680.
 
+## SCHOOL WORKSPACE operational UI — Pass 2 (2026-11-09)
+
+- The product header owns location and the return-to-personal-work action. Setup views use `학교 연결`; the approved shared shell uses `우리 보건실`; feature views use their task title. Do not repeat `우리 보건실 · 학교 공유` across nested headers.
+- Synthetic QA identity and account switching belong to the product-level QA strip. Nested work views must not repeat the same QA badge. Standard presentation must not expose fixture labels, member codes as personal identity, or Trusted MFA implementation detail beyond the action-specific CLOSED explanation.
+- School onboarding is a five-step progress path: search → select → request → approval → shared work. Search results are candidates, not membership evidence. Pending membership always states that shared data remains unavailable and names the next action.
+- Operational state messages use one semantic hierarchy: neutral status for loading, signed-out, unselected, pending, permission/availability guidance, and empty data; green only for confirmed success; rose alert only for connection or save failure. Never render a zero-data summary while loading or failed.
+- Administrator membership keeps pending approvals and the member list as the primary surface. Selected rows use both visible selection and `aria-pressed`; detail facts are scan-friendly. Administrator add/transfer is a native disclosure labelled advanced management; collapsing it never replaces server authorization, MFA readiness, confirmation, or disabled predicates.
+- At 900×680 the shell, horizontal task navigation, member list/detail, disclosures, inputs, buttons, and messages remain reachable without page-level horizontal overflow. Focus remains visible and active navigation stays within its own scroller.
+
 User approved B direction and actual Electron1280×800 visual implementation on2026-11-06. Design is frozen; Windows usability, integration and deployment remain unapproved.
 Only the canonical default desk in View mode receives an independent presentation projection.
 The existing isCanonicalDeskLayout guard checks every saved widget identity, visibility, geometry

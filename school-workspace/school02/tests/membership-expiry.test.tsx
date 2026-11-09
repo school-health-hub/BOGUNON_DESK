@@ -48,7 +48,7 @@ it('opens an existing assistant term on its last valid date and renews through t
  const member = within(screen.getByRole('article', { name: '구성원 active' }));
  const end = member.getByLabelText<HTMLInputElement>('새 유효기간');
  expect(end.value).toBe('2026-11-08');
- expect(member.getByText(/유효기간 2026\. 11\. 8\./)).toBeTruthy();
+ expect(member.getByText('2026. 11. 8.')).toBeTruthy();
 
  fireEvent.change(end, { target: { value: '2027-01-01' } });
  fireEvent.click(member.getByRole('button', { name: '유효기간 변경' }));
