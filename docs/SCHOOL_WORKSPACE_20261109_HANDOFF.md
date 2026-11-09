@@ -135,6 +135,8 @@ Tree SHA는 경로별 `SHA256-MANIFEST.tsv` 항목을 정렬해 다시 SHA-256�
 - 복사 대상: SCHOOL 증거 455개 + 관련 `.omo/plans`/`.omo/drafts` 4개 = 459개, 55,254,432 bytes
 - 원본/복사본 파일 SHA 불일치: 0
 
+일회용 `%TEMP%` 경로에서 원격 브랜치를 새로 clone해 이 문서와 검증 Source commit이 존재함을 확인했다. 같은 임시 감사에서 ZIP을 새 폴더에 풀어 manifest의 459개 파일을 다시 해시했으며 불일치 0건이었다. 감사용 임시 clone과 복원 폴더는 확인 후 제거했다. 이는 이 학교 PC에서 수행한 복원 시험이며 집 PC가 검증됐다는 뜻은 아니다.
+
 이 복사본도 현재 학교 PC 로컬에만 있다. GitHub 저장소는 PUBLIC이며 이 증거는 업로드하지 않았다. 저장소 Actions artifact 기본 보존은 현재 90일이지만 기존 workflow는 더 짧은 보존기간을 사용할 수 있고, `0a972cd`에 결합된 이번 로컬 증거 artifact는 없다. Actions artifact를 영구 백업으로 간주하지 않는다.
 
 전용 secret scanner는 설치되어 있지 않았다. 전체 의도 패키지의 텍스트에 대해 개인키, JWT, GitHub/AWS/Google 키, Bearer, 비밀번호 할당, Supabase service-role, 이메일 및 access/refresh token 패턴을 최선형 검사했으며 발견 0건이었다. “실명” 2건은 모두 “실명과 연락처는 입력하지 않습니다”라는 UI 문구였다. PNG/PDF/XLSX 같은 바이너리는 패턴 검사 한계가 있으나 합성 fixture로 생성됐고 실제 계정·운영 DB는 사용하지 않았다. 잔여 위험 때문에 공개 저장소에는 올리지 않는다.
