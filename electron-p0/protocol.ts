@@ -7,7 +7,7 @@ export const NEWSLETTER_COMPATIBILITY_MESSAGE='이 프로젝트는 현재 버전
 import type { PurchaseItem,PurchaseOutputColumnId,PurchaseSettlement } from './renderer/purchase/purchase/types.js';
 import type { PurchaseAnalysisResult, PurchaseColumnMapping } from './renderer/purchase/purchase/types.js';
 export const APP_ID = 'kr.sungandi.schoolhealthdesk.electronp0';
-export const PRODUCT_NAME = 'BOGUNON DESK ELECTRON P0';
+export const PRODUCT_NAME = 'BOGUNON DESK';
 export const PROFILE_NAME = 'BOGUNON-DESK-ELECTRON-P0';
 export type P0Settings = Readonly<{ version: 1; dashboard: unknown; dock: unknown }>;
 export type P0Info = Readonly<{ appId: string; productName: string; userData: string; sourceSha: string; electron: string }>;

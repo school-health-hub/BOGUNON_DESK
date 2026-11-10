@@ -184,3 +184,8 @@
 
 /* Optional school workspace overlay; existing dashboard remains mounted. */
 .s05-overlay{position:fixed;inset:0;z-index:1100;overflow-y:auto;background:#f5f3f7;padding:8px;overscroll-behavior:contain}
+.p0-product-about__brand{display:flex;align-items:center;gap:12px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--rose-border)}
+.p0-product-about__brand img{width:44px;height:44px;flex:0 0 auto;border-radius:11px;object-fit:contain}
+.p0-product-about__brand div{display:grid;gap:2px}
+.p0-product-about__brand strong{color:var(--rose-ink);font-size:16px;font-weight:700}
+.p0-product-about__brand span{color:var(--rose-muted);font-size:12px}

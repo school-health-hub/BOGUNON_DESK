@@ -687,6 +687,7 @@
 .top-grid > section { min-height: 116px; border-radius: var(--workspace-corner); border: 1px solid var(--border); background: var(--widget-bg); box-shadow: var(--shadow); }
 .date-card { display: flex; min-height: 0; flex-direction: column; padding: 18px 20px; }
 .date-card__eyebrow { display: flex; flex: 0 0 auto; align-items: center; gap: 7px; color: var(--mint-700); font-size: var(--text-sm); font-weight: var(--weight-semibold); letter-spacing: 0.02em; }
+.product-brand-mark { width: 18px; height: 18px; flex: 0 0 auto; border-radius: 5px; object-fit: contain; }
 .date-card__body { display: flex; min-height: 0; flex: 1; flex-direction: column; justify-content: center; text-align: left; }
 .date-card__date { color: var(--navy-700); font-size: var(--text-base); font-weight: var(--weight-medium); }
 .date-card__time { display: flex; align-items: center; gap: 8px; margin-top: 3px; color: var(--navy-950); font-size: var(--text-page); font-weight: var(--weight-bold); font-variant-numeric: tabular-nums; }

@@ -1,5 +1,5 @@
-import { CalendarDays, Clock3, Sparkles } from "lucide-react";
-import { PRODUCT_NAME } from "../branding";
+import { Clock3, Sparkles } from "lucide-react";
+import { PRODUCT_LOGO_URL, PRODUCT_NAME } from "../branding";
 import { formatRemainingUntil } from "../dashboard/dateSource";
 import { useWidgetSession } from "../dashboard/WidgetSessionContext";
 
@@ -23,7 +23,7 @@ export function TopBar() {
   return (
     <header className="top-grid">
       <section className="date-card" aria-label="현재 날짜와 시간">
-        <div className="date-card__eyebrow"><CalendarDays size={15} /> {PRODUCT_NAME}</div>
+        <div className="date-card__eyebrow"><img className="product-brand-mark" src={PRODUCT_LOGO_URL} alt="" aria-hidden="true" /> {PRODUCT_NAME}</div>
         <div className="date-card__body">
           <p className="date-card__date">{dateFormatter.format(now)}</p>
           <p className="date-card__time"><Clock3 size={19} /> {timeFormatter.format(now)}</p>
