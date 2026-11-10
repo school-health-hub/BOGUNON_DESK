@@ -19,6 +19,15 @@
 - At 900×680, controls may wrap or the editor/preview may stack, but the primary action, current state, and active content remain reachable without horizontal document overflow.
 - Existing Finder local recovery, Inventory JSON isolation, Newsletter scene/output validation, approved asset hashes, and all Main/Preload/IPC contracts remain authoritative and unchanged.
 
+## H6-B3 SCHOOL WORKSPACE and shared desktop surfaces (2026-11-10)
+
+- SCHOOL WORKSPACE keeps its own school, role and approval context while adopting the H6 navy navigation, neutral canvas, white work surfaces and restrained teal action hierarchy. Personal Inventory and shared-school inventory remain visually related but explicitly separate data domains.
+- The product header identifies the school shared space and keeps the return-to-personal-work action; the selected school's `우리 보건실` title appears once in the inner work header. Synthetic QA identity stays in its existing isolated account strip and is never presented as an operating-school identity.
+- Shared task, event, handover, inventory and instructor screens use one compact work header, one control row and dense list/table surfaces. Neutral empty/loading states, permission blocks and real connection/save failures remain visually distinct and never imply a successful save.
+- School navigation is a single-line horizontal scroller below 1200px. Active state uses text plus navy/teal contrast, focus remains visible, and focused tabs scroll into view. At 900×680 the page owns vertical scrolling while tables may use an explicit local horizontal scroller.
+- Membership administration retains summary → pending approvals → filters → member list → selected detail. Trusted MFA remains `CLOSED` unless its existing server readiness predicate is true; presentation does not change authorization or reveal administrator actions to other roles.
+- Existing PostgreSQL schema, RPC, authentication, role policy, school isolation, IPC, cancellation/history, export and persistence contracts remain authoritative and unchanged.
+
 ## SCHOOL WORKSPACE operational UI — Pass 1 (2026-11-09)
 
 - Scope is presentation only: shared-school React structure and scoped CSS. RPC, SQL, authentication, roles, MFA readiness, calculations, exports, and operational gates remain authoritative and unchanged.
