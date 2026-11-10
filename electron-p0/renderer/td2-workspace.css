@@ -93,7 +93,7 @@
  body.electron-soft-rose .td2-workspace .od-save-issues {margin:0 0 12px;padding:10px 12px 10px 28px;border-inline-start:3px solid var(--td2-rose);border-radius:8px;background:var(--surface-muted);color:var(--td2-ink)}
  body.electron-soft-rose .td2-workspace .od-ai-workflow {margin-bottom:20px}
  body.electron-soft-rose .td2-workspace .od-empty {min-height:160px}
- body.electron-soft-rose .td2-workspace .ev-finder {--ev-accent:var(--td2-rose);--ev-accent-soft:#f7dce4;--ev-paper:#fffdfd}
+ body.electron-soft-rose .td2-workspace .ev-finder {--ev-accent:#176461;--ev-accent-soft:#e2f1ef;--ev-paper:#fff;background:#f0f3f6}
  body.electron-soft-rose .td2-workspace .ev-mock-badge {white-space:normal}
  body.electron-soft-rose .td2-workspace .ev-search form {gap:12px}
  body.electron-soft-rose .td2-workspace .electron-finance-isolation {padding:0 4px 12px;background:transparent;border:0}
@@ -102,6 +102,8 @@
  body.electron-soft-rose .td2-workspace :is(.finance-summary,.inventory-summary) {gap:12px}
  body.electron-soft-rose .td2-workspace :is(.finance-summary-card,.inventory-stat-card) {padding:16px;border-radius:16px}
  body.electron-soft-rose .td2-workspace .inventory-local-mode {display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:var(--td2-sheet);border:1px solid var(--td2-rim);border-radius:16px;padding:12px 16px;margin-bottom:16px}
+ body.electron-soft-rose .td2-workspace .inventory-workspace {background:#f0f3f6}
+ body.electron-soft-rose .td2-workspace .inventory-workspace :is(button[type=submit],.inventory-controls>button:first-of-type) {color:#fff;background:#176461;border-color:#176461}
 
  body.electron-soft-rose .td2-workspace-disclosure {margin:0 0 20px;border:1px solid var(--divider);border-radius:16px;background:#fffdfd}
  body.electron-soft-rose .td2-workspace-disclosure>summary {padding:16px 20px;cursor:pointer;font-weight:700;color:var(--td2-ink)}
@@ -176,18 +178,18 @@
 
  /* Newsletter: only app chrome. Do not select SVG/canvas/exported page contents. */
  body.electron-soft-rose .td2-workspace[data-workspace=newsletter] {padding:0}
- body.electron-soft-rose .td2-workspace .newsletter-product-host {background:transparent}
- body.electron-soft-rose .td2-workspace .newsletter-file-toolbar {padding:16px 24px;background:var(--td2-sheet);border-bottom:1px solid var(--divider);gap:12px}
+ body.electron-soft-rose .td2-workspace .newsletter-product-host {background:#f0f3f6}
+ body.electron-soft-rose .td2-workspace .newsletter-file-toolbar {padding:14px 20px;background:#fff;border-bottom:1px solid #cad5e0;gap:12px}
  body.electron-soft-rose .td2-workspace .newsletter-file-toolbar h1 {font-size:22px;color:var(--td2-ink)}
  body.electron-soft-rose .td2-workspace .newsletter-file-toolbar>label {min-width:0}
  body.electron-soft-rose .td2-workspace .newsletter-file-toolbar input[type=file] {max-width:100%}
- body.electron-soft-rose .td2-workspace .newsletter-product-host>.electron-ai {margin:16px 24px}
- body.electron-soft-rose .td2-workspace .newsletter-product-host>:is(p,details) {margin:16px 24px;line-height:1.6}
- body.electron-soft-rose .td2-workspace .newsletter-studio :is(.studio-header,.mode-tabs,.editor-panel) {background:#fff9fb;border-color:var(--divider);color:var(--td2-ink)}
- body.electron-soft-rose .td2-workspace .newsletter-studio .studio-header {padding:20px 24px;gap:16px;flex-wrap:wrap;align-items:center}
+ body.electron-soft-rose .td2-workspace .newsletter-product-host>.electron-ai {margin:12px 20px}
+ body.electron-soft-rose .td2-workspace .newsletter-product-host>:is(p,details) {margin:10px 20px;line-height:1.5}
+ body.electron-soft-rose .td2-workspace .newsletter-studio :is(.studio-header,.mode-tabs,.editor-panel) {background:#fff;border-color:#cad5e0;color:var(--td2-ink)}
+ body.electron-soft-rose .td2-workspace .newsletter-studio .studio-header {padding:14px 20px;gap:12px;flex-wrap:wrap;align-items:center}
  body.electron-soft-rose .td2-workspace .newsletter-studio .studio-header h1 {font-size:22px}
  body.electron-soft-rose .td2-workspace .newsletter-studio .editor-panel :is(label,.control-label,small,.panel-heading) {color:var(--td2-secondary);font-size:12px}
- body.electron-soft-rose .td2-workspace .newsletter-studio .mode-tabs {padding:12px 24px;flex-wrap:wrap}
+ body.electron-soft-rose .td2-workspace .newsletter-studio .mode-tabs {padding:10px 20px;flex-wrap:wrap}
 
  /* Existing SCHOOL-05 connection/role gates are untouched. No Hosted activation. */
  body.electron-soft-rose .td2-workspace[data-workspace=school] {padding:12px;min-height:0;background:transparent}
@@ -227,12 +229,14 @@
   body.electron-soft-rose .td2-workspace .purchase-helper-backdrop {padding:16px}
   body.electron-soft-rose .td2-workspace .purchase-helper-panel__toolbar {max-height:none;overflow:visible;padding:12px 16px}
   body.electron-soft-rose .td2-workspace .purchase-helper-panel__footer {max-height:24dvh;overflow:auto}
-  body.electron-soft-rose .td2-workspace .newsletter-studio .studio-body {grid-template-columns:minmax(0,1fr)}
-  body.electron-soft-rose .td2-workspace .newsletter-studio .editor-panel {border-right:0;border-bottom:1px solid var(--divider)}
   body.electron-soft-rose .td2-workspace .od-header-main {align-items:flex-start}
   body.electron-soft-rose .td2-workspace .od-save-toolbar {align-items:stretch;flex-direction:column}
   body.electron-soft-rose .td2-workspace .od-save-toolbar button {width:100%}
  }
+@media(max-width:820px) {
+ body.electron-soft-rose .td2-workspace .newsletter-studio .studio-body {grid-template-columns:minmax(0,1fr)}
+ body.electron-soft-rose .td2-workspace .newsletter-studio .editor-panel {border-right:0;border-bottom:1px solid var(--divider)}
+}
  @media(max-width:760px) {
   body.electron-soft-rose .td2-record-workspace .record-helper-detail__editor-grid {grid-template-columns:minmax(0,1fr)}
   body.electron-soft-rose .td2-record-workspace .record-helper-detail__editor-grid textarea {height:160px;min-height:160px}

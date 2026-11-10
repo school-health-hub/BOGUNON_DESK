@@ -10,6 +10,15 @@
 - At 1440×835 and 1200×800 the official input and preview remain side by side. At 900×680 they form one document flow without page-level horizontal overflow. Record list, source text and memo remain reachable without competing page and card scrollbars.
 - Korean copy uses `word-break: keep-all` with ordinary overflow wrapping for long identifiers. Controls retain 3px `focus-visible`, semantic labels, keyboard order, reduced-motion behavior and existing confirmation dialogs.
 
+## H6-B2 search, inventory, and publishing workspaces — Finder, Inventory, Newsletter (2026-11-10)
+
+- Finder uses a compact task header followed by one search surface. Search results and the local library remain visibly separate, while the selected-video editor stays adjacent on wide windows and follows the results on narrow windows.
+- Inventory treats summary counts as a compact status strip, keeps search and filters in one control row, and presents the item list as the primary surface with the selected item and stock actions in a clearly labelled detail surface.
+- Newsletter Studio separates document-file actions from editing and output. The editor and live preview remain the primary two-column workspace; project history and explanatory safeguards stay available without competing with the current task.
+- All three workspaces reuse the H6 navy, neutral canvas, white paper, border, and restrained teal action tokens. Product-specific status colors are reserved for actual warning, error, or validation states.
+- At 900×680, controls may wrap or the editor/preview may stack, but the primary action, current state, and active content remain reachable without horizontal document overflow.
+- Existing Finder local recovery, Inventory JSON isolation, Newsletter scene/output validation, approved asset hashes, and all Main/Preload/IPC contracts remain authoritative and unchanged.
+
 ## SCHOOL WORKSPACE operational UI — Pass 1 (2026-11-09)
 
 - Scope is presentation only: shared-school React structure and scoped CSS. RPC, SQL, authentication, roles, MFA readiness, calculations, exports, and operational gates remain authoritative and unchanged.

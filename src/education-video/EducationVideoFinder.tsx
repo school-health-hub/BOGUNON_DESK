@@ -96,14 +96,13 @@ export function EducationVideoFinder({ onClose,renderAiTools,searchBridge,compat
     });
     const shown = filterVideos(videos, searched?.minutes ?? conditions.minutes, windowMinutes);
     return <main className="ev-finder">
- <header className="ev-header"><div>
+ <header className="ev-header"><div className="ev-header-main">
  <button type="button" onClick={onClose}><ArrowLeft size={16}/>보건 업무로</button>
- <span className="ev-eyebrow">BOGUNON DESK · PHASE 1</span>
- <h1>AI 교육영상 Finder <small>v1.1</small></h1>
- <p>교육에 맞는 영상을 비교하고, 선생님의 안내문으로 정리하세요.</p>
+ <div className="ev-header-copy"><span className="ev-eyebrow">교육영상 업무</span>
+ <h1>교육영상 Finder <small>v1.1</small></h1>
+ <p>검색하고 비교한 뒤 안내문과 로컬 보관함으로 정리합니다.</p></div>
  </div><span className="ev-mock-badge">{mode==='youtube'?'YouTube 공식 API 검색':'합성 Mock 전용'}</span></header>
- {mode==='mock'&&<div className="ev-mock-note"><strong>실제 YouTube 검색 결과가 아닙니다.</strong>
- 모든 제목·채널·영상 ID·공식 채널 예시는 합성 데이터입니다. 링크는 실제 영상으로 확인되지 않았으며, 안내문에도 Mock 표시가 포함됩니다.</div>}
+ {mode==='mock'&&<div className="ev-mock-note"><strong>합성 검색 결과</strong><span>실제 YouTube 영상이 아니며 안내문에도 Mock 표시가 유지됩니다.</span></div>}
  {renderAiTools?.([education.educationTitle,education.target,education.schedule,education.instructions,message].filter(Boolean).join('\n'))}
  <section className="ev-search" aria-labelledby="ev-search-heading">
  <div className="ev-section-heading"><div><span className="ev-step">01</span><h2 id="ev-search-heading">교육 조건</h2></div></div>
