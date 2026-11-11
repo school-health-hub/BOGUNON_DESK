@@ -47,3 +47,11 @@ it('does not report a cancelled import as a replacement, and keeps the draft edi
 it('records an already completed save even if a cancellation request crossed its reply',async()=>{
  let finish!:(r:unknown)=>void;const cancel=vi.fn(async()=>({ok:true,data:null}));vi.stubGlobal('electronWork',{officialDocument:{pick:vi.fn(),save:()=>new Promise(r=>{finish=r}),cancel}});render(<OfficialDocumentWorkspace onClose={()=>{}}/>);fireEvent.click(screen.getByRole('button',{name:'기본 초안 만들기'}));fireEvent.click(screen.getByRole('button',{name:'ODT 새 파일 저장'}));expect((screen.getByLabelText('본문') as HTMLTextAreaElement).disabled).toBe(true);fireEvent.click(screen.getByRole('button',{name:'파일 처리 취소'}));finish({ok:true,data:{fileName:'completed.odt'}});await screen.findByText('파일 저장 완료 · completed.odt');expect((screen.getByLabelText('본문') as HTMLTextAreaElement).disabled).toBe(false);expect(cancel).toHaveBeenCalled();
 });
+
+it('uses its existing discard confirmation for an App Shell navigation request',()=>{
+ const onClose=vi.fn(),confirm=vi.spyOn(window,'confirm').mockReturnValue(false);vi.stubGlobal('electronWork',{officialDocument:{pick:vi.fn(),save:vi.fn(),cancel:async()=>({ok:true,data:null})}});
+ const view=render(<OfficialDocumentWorkspace embedded closeRequest={0} onClose={onClose}/>);fireEvent.click(screen.getByRole('button',{name:'빈 문서 작성'}));fireEvent.change(screen.getByLabelText('제목',{exact:true}),{target:{value:'보호할 통합 원고'}});
+ view.rerender(<OfficialDocumentWorkspace embedded closeRequest={1} onClose={onClose}/>);
+ expect(confirm).toHaveBeenCalledOnce();expect(onClose).not.toHaveBeenCalled();expect((screen.getByLabelText('제목',{exact:true}) as HTMLInputElement).value).toBe('보호할 통합 원고');expect(screen.queryByRole('heading',{name:'공문작업실'})).toBeNull();
+ confirm.mockReturnValue(true);view.rerender(<OfficialDocumentWorkspace embedded closeRequest={2} onClose={onClose}/>);expect(onClose).toHaveBeenCalledOnce();
+});

@@ -29,6 +29,20 @@ vi.mock("../renderer/school-profile/SchoolProfile", () => ({
 vi.mock("../renderer/purchase/PurchaseSession", () => ({ PurchaseSession: () => null }));
 vi.mock("../../src/components/dashboard/DesktopWidgetLayout", () => ({ DesktopWidgetLayout: () => <div>합성 Home</div> }));
 vi.mock("../renderer/finance/FinanceHost", () => ({ FinanceHost: ({ onClose }: { readonly onClose: () => void }) => <main><h1>합성 MY FINANCE</h1><button type="button" onClick={onClose}>Finance 닫기</button></main> }));
+vi.mock("../../src/official-document/OfficialDocumentWorkspace", async () => {
+  const { useEffect, useRef, useState } = await import("react");
+  return { OfficialDocumentWorkspace: ({ closeRequest, onClose, onCloseRequestResolved }: { readonly closeRequest?: number; readonly onClose: () => void; readonly onCloseRequestResolved?: (closed: boolean) => void }) => {
+    const [draft, setDraft] = useState("");
+    const previous = useRef(closeRequest);
+    useEffect(() => {
+      if (closeRequest === undefined || previous.current === closeRequest) return;
+      previous.current = closeRequest;
+      if (draft && !window.confirm("합성 공문 초안을 폐기할까요?")) { onCloseRequestResolved?.(false); return; }
+      onClose(); onCloseRequestResolved?.(true);
+    }, [closeRequest, draft, onClose, onCloseRequestResolved]);
+    return <main><h1>합성 공문작업실</h1><label>합성 공문 원고<input value={draft} onChange={event => setDraft(event.target.value)} /></label></main>;
+  } };
+});
 
 afterEach(() => {
   cleanup();
@@ -162,4 +176,25 @@ it("routes the unconfigured startup guide into the School settings workspace wit
   expect(within(rail).getByRole("button", { name: "설정" }).getAttribute("aria-current")).toBe("page");
   expect(screen.getByRole("heading", { name: "학교·연결" })).toBeTruthy();
   expect(screen.getByRole("list", { name: "학교 연결 단계" })).toBeTruthy();
+});
+
+it("keeps the Official draft in the App Shell when Rail navigation discard is cancelled", async () => {
+  setupDashboard();
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+  render(<P0App />);
+
+  const rail = await screen.findByRole("navigation", { name: "주요 작업 공간" });
+  fireEvent.click(within(rail).getByRole("button", { name: "문서·교육자료" }));
+  fireEvent.click(screen.getByRole("button", { name: /공문작업실/ }));
+  fireEvent.change(await screen.findByLabelText("합성 공문 원고"), { target: { value: "보호할 합성 원고" } });
+  fireEvent.click(within(rail).getByRole("button", { name: "홈" }));
+
+  expect(confirm).toHaveBeenCalledOnce();
+  expect((screen.getByLabelText("합성 공문 원고") as HTMLInputElement).value).toBe("보호할 합성 원고");
+  expect(within(rail).getByRole("button", { name: "문서·교육자료" }).getAttribute("aria-current")).toBe("page");
+
+  confirm.mockReturnValue(true);
+  fireEvent.click(within(rail).getByRole("button", { name: "홈" }));
+  expect(await screen.findByText("합성 Home")).toBeTruthy();
+  expect(within(rail).getByRole("button", { name: "홈" }).getAttribute("aria-current")).toBe("page");
 });

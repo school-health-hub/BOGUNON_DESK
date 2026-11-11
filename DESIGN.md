@@ -693,3 +693,14 @@ remains. Dock active marker, accessible name, hover and keyboard tooltip stay in
 The Electron Home shell, Purchase Helper and Finance use a neutral work surface, navy navigation and teal selection. This pilot uses shared values for navy `#172b46`, ink `#23354a`, secondary text `#4b6075`, canvas `#f0f3f6`, paper `#fff`, border `#cad5e0`, control edge `#778da3`, and action `#176461`. Status colors continue to convey the existing warning, error and success meanings. Spacing uses 4, 8, 12 and 16 pixels, with an 8-pixel control radius and 12-pixel work surface radius.
 
 The Home dock keeps its order and visibility settings and shows action labels at rest. The dashboard’s saved layouts and appearance choices own widget geometry. Purchase feedback lives in the work panel’s reading order, and the item table retains horizontal scrolling. Finance keeps storage messaging and selected state visible in both income and planning views. Keyboard focus remains visible on light and navy surfaces. The pilots are checked in the Windows BrowserWindow at 1440×835, 1200×800 and 900×680.
+
+## App Shell module workspace pilot
+
+Major work modules may render inside the App Shell outlet while the product Rail and
+single current-location header remain visible. The outlet owns vertical scrolling;
+the module keeps only purposeful local preview or table scrolling. Embedded module
+headers retain their back action and safety status but omit a duplicated title and
+description. Navigation away must invoke the module's existing draft/discard owner;
+cancel preserves the mounted module and focusable draft, while confirmation returns
+to the requested category. This pilot applies only to Official Document Workspace and
+does not change other module lifecycles, persistence, IPC, or file contracts.

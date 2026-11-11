@@ -65,3 +65,12 @@ it("does not present unconnected external actions as executable School tools", (
   expect(screen.getByRole("button", { name: /온라인 보건실/ }).hasAttribute("disabled")).toBe(true);
   expect(screen.getByRole("button", { name: /AED 점검/ }).textContent).toContain("현재 Electron에서 미지원");
 });
+
+it("renders an active module inside the App Shell outlet without removing the Rail", () => {
+  render(<AppShell activeCategory="documents-education" workspaceTitle="공문작업실" workspace={<main aria-label="합성 공문 작업 공간">합성 공문 편집기</main>} onCategoryChange={() => undefined} onOpenModule={() => undefined}><p>합성 Home</p></AppShell>);
+
+  expect(screen.getByRole("navigation", { name: "주요 작업 공간" })).toBeTruthy();
+  expect(screen.getByText("문서·교육자료 / 공문작업실")).toBeTruthy();
+  expect(screen.getByRole("main", { name: "합성 공문 작업 공간" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "문서·교육자료" })).toBeNull();
+});

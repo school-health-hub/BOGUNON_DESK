@@ -12,8 +12,9 @@ import './official-document.css';
 import type {OfficialWorkflowContext} from './electronWorkflow';
 
 type Mode='create'|'summary';
-export function OfficialDocumentWorkspace({onClose,renderAiTools,renderAiWorkflow,dropped,onDropDone}:{readonly onClose:()=>void;readonly renderAiTools?:(text:string)=>ReactNode;readonly renderAiWorkflow?:(context:OfficialWorkflowContext)=>ReactNode;readonly dropped?:import('../../electron-p0/file-drop-protocol').DropDelivery;readonly onDropDone?:()=>void}){
+export function OfficialDocumentWorkspace({onClose,renderAiTools,renderAiWorkflow,dropped,onDropDone,embedded=false,closeRequest,onCloseRequestResolved}:{readonly onClose:()=>void;readonly renderAiTools?:(text:string)=>ReactNode;readonly renderAiWorkflow?:(context:OfficialWorkflowContext)=>ReactNode;readonly dropped?:import('../../electron-p0/file-drop-protocol').DropDelivery;readonly onDropDone?:()=>void;readonly embedded?:boolean;readonly closeRequest?:number;readonly onCloseRequestResolved?:(closed:boolean)=>void}){
  const generation=useRef(0);
+ const previousCloseRequest=useRef(closeRequest);
  const [session,setSession]=useState(0),[handoffBusy,setHandoffBusy]=useState(false),[aiDirty,setAiDirty]=useState(false);
  const [busy,setBusy]=useState(false);
  const work=window.electronWork,files=work?.officialDocument;
@@ -47,7 +48,8 @@ export function OfficialDocumentWorkspace({onClose,renderAiTools,renderAiWorkflo
   setDraft(value);setLastSaved(null);setMode('create');return true;
  };
  const hasInput=officialDocumentFieldDefinitions.some(field=>input[field.name].trim());
- const close=()=>{if(busy||handoffBusy)return;if((aiDirty||source.trim()||hasInput||(draft&&officialDraftSnapshot(draft)!==lastSaved?.snapshot))&&!window.confirm('저장하지 않은 입력이나 가져온 원문이 있습니다. 작업실을 닫으면 임시 입력은 사라집니다. 닫을까요?'))return;onClose();};
+ const close=(requested=false)=>{if(busy||handoffBusy){if(requested)onCloseRequestResolved?.(false);return;}if((aiDirty||source.trim()||hasInput||(draft&&officialDraftSnapshot(draft)!==lastSaved?.snapshot))&&!window.confirm('저장하지 않은 입력이나 가져온 원문이 있습니다. 작업실을 닫으면 임시 입력은 사라집니다. 닫을까요?')){if(requested)onCloseRequestResolved?.(false);return;}onClose();if(requested)onCloseRequestResolved?.(true);};
+ useEffect(()=>{if(closeRequest===undefined||previousCloseRequest.current===closeRequest)return;previousCloseRequest.current=closeRequest;close(true);},[closeRequest]);
  const version=JSON.stringify([session,mode,input,source,draft]);
  const current=useRef(version);current.current=version;
  const workflow:OfficialWorkflowContext={version,sessionId:session,source,draft,input,busy:busy||handoffBusy,onBusyChange:setHandoffBusy,onDirtyChange:setAiDirty,apply:(expected,title,body,append)=>{
@@ -60,8 +62,8 @@ export function OfficialDocumentWorkspace({onClose,renderAiTools,renderAiWorkflo
  const privacy=useMemo(()=>inspectOfficialDocumentPrivacy(mode==='create'?JSON.stringify({input,draft}):source),[input,draft,mode,source]);
  const update=(field:OfficialDocumentInputField,value:string)=>setInput(current=>({...current,[field]:value}));
  const copy=async(value:string)=>{try{await navigator.clipboard.writeText(value);setNotice('클립보드에 복사했습니다.');}catch{setNotice('복사하지 못했습니다. 내용을 직접 선택해 복사해 주세요.');}};
- return <main className="od-workspace">
-  <header className="od-header"><div className="od-header-main"><button type="button" disabled={busy||handoffBusy} onClick={close}><ArrowLeft size={16}/>보건 업무로</button><div className="od-header-copy"><span>로컬 문서 작업</span><h1>공문작업실</h1><p>정보 입력부터 ODT 저장까지 한 흐름에서 검토합니다.</p></div></div><span className="od-local">AI 전송 전 확인</span></header>
+ return <main className={`od-workspace${embedded?' is-embedded':''}`}>
+  <header className="od-header"><div className="od-header-main"><button type="button" disabled={busy||handoffBusy} onClick={()=>close()}><ArrowLeft size={16}/>{embedded?'문서·교육자료':'보건 업무로'}</button>{!embedded&&<div className="od-header-copy"><span>로컬 문서 작업</span><h1>공문작업실</h1><p>정보 입력부터 ODT 저장까지 한 흐름에서 검토합니다.</p></div>}</div><span className="od-local">AI 전송 전 확인</span></header>
   {renderAiWorkflow?.(workflow)}
   {!renderAiWorkflow&&renderAiTools?.(mode==='summary'?buildSummaryPrompt(source):draft?draft.title+'\n\n'+draft.body:buildCreatePrompt(input))}
   {files&&<div className="od-actions"><button type="button" disabled={busy||handoffBusy} onClick={()=>void importFile()}>{dropped?`드롭 파일 가져오기 · ${dropped.files[0]?.name}`:'PDF/HWPX/ODT 가져오기'}</button>{dropped&&<button type="button" disabled={busy||handoffBusy} onClick={()=>{void work?.fileDrop?.cancel({token:dropped.token});onDropDone?.();}}>드롭 파일 취소</button>}</div>}

@@ -14,6 +14,8 @@ type AppShellProps = Readonly<{
   children: ReactNode;
   settings?: ReactNode;
   headerStatus?: ReactNode;
+  workspace?: ReactNode;
+  workspaceTitle?: string;
   onCategoryChange: (categoryId: WorkspaceCategoryId) => void;
   onOpenModule: (moduleId: WorkspaceModuleId) => void;
   canOpenModule?: (moduleId: WorkspaceModuleId) => boolean;
@@ -59,7 +61,7 @@ function CategoryWorkspace({ categoryId, onOpenModule, canOpenModule }: Readonly
   </section>;
 }
 
-export function AppShell({ activeCategory, children, settings, headerStatus, onCategoryChange, onOpenModule, canOpenModule = () => true }: AppShellProps) {
+export function AppShell({ activeCategory, children, settings, headerStatus, workspace, workspaceTitle, onCategoryChange, onOpenModule, canOpenModule = () => true }: AppShellProps) {
   const railRef = useRef<HTMLElement>(null);
   const onRailKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number): void => {
     const lastIndex = workspaceCategoryIds.length - 1;
@@ -89,11 +91,13 @@ export function AppShell({ activeCategory, children, settings, headerStatus, onC
       </nav>
     </aside>
     <div className="ux03-main">
-      <header className="ux03-topbar"><span>현재 위치</span><strong>{activeLabel}</strong>{headerStatus&&<div className="ux03-topbar-status">{headerStatus}</div>}</header>
+      <header className="ux03-topbar"><span>현재 위치</span><strong>{workspaceTitle ? `${activeLabel} / ${workspaceTitle}` : activeLabel}</strong>{headerStatus&&<div className="ux03-topbar-status">{headerStatus}</div>}</header>
       <div className="ux03-outlet">
-        <div className="ux03-home-slot" hidden={activeCategory !== "home"} inert={activeCategory !== "home"}>{children}</div>
-        {activeCategory === "settings" && settings}
-        {activeCategory !== "home" && activeCategory !== "settings" && <CategoryWorkspace categoryId={activeCategory} onOpenModule={onOpenModule} canOpenModule={canOpenModule}/>}
+        <div className="ux03-home-slot" hidden={activeCategory !== "home" || Boolean(workspace)} inert={activeCategory !== "home" || Boolean(workspace)}>{children}</div>
+        {workspace ? <div className="ux03-module-workspace">{workspace}</div> : <>
+          {activeCategory === "settings" && settings}
+          {activeCategory !== "home" && activeCategory !== "settings" && <CategoryWorkspace categoryId={activeCategory} onOpenModule={onOpenModule} canOpenModule={canOpenModule}/>}
+        </>}
       </div>
     </div>
   </div>;
