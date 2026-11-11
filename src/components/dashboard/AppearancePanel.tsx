@@ -5,6 +5,7 @@ type AppearancePanelProps = {
   readonly appearance: DashboardAppearance;
   readonly onClose: () => void;
   readonly onUpdate: (appearance: DashboardAppearance) => void;
+  readonly embedded?: boolean;
 };
 
 const backgrounds: readonly { readonly id: AppearanceBackground; readonly label: string }[] = [
@@ -26,12 +27,12 @@ const corners: readonly { readonly id: CornerStyle; readonly label: string }[] =
   { id: "soft", label: "부드럽게" },
 ];
 
-export function AppearancePanel({ appearance, onClose, onUpdate }: AppearancePanelProps) {
+export function AppearancePanel({ appearance, onClose, onUpdate, embedded = false }: AppearancePanelProps) {
   return (
-    <aside className="workspace-editor-panel appearance-popover" id="workspace-style-panel" aria-label="스타일 편집">
+    <aside className={`workspace-editor-panel appearance-popover${embedded ? " is-settings-embedded" : ""}`} id="workspace-style-panel" aria-label="스타일 편집">
       <header>
         <div><strong>스타일</strong></div>
-        <button type="button" aria-label="스타일 편집 닫기" onClick={onClose}><X size={16} /></button>
+        {!embedded && <button type="button" aria-label="스타일 편집 닫기" onClick={onClose}><X size={16} /></button>}
       </header>
       <p className="workspace-editor-panel__intro">선택하면 현재 데스크에 바로 반영됩니다.</p>
       <div className="workspace-editor-panel__body appearance-popover__body">

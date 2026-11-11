@@ -9,6 +9,14 @@
 - Rail focus uses the existing teal 3px focus ring. Arrow Up/Down, Home and End move focus without activating a destination; Enter/Space retain native button activation. Existing modal Escape and focus-return owners remain authoritative.
 - Settings reuses the current `SurfaceSettings` content in the shell workspace. UX-03 does not add account, sync, display, or Desktop Mode settings.
 
+## UX-04 unified settings center (2026-11-11)
+
+- Settings is an ordinary App Shell workspace with one 232px inner navigation and one paper content surface. The seven destinations are Account, School & Connections, Appearance & Widgets, Dock, AI Connection, This PC, and About; 900px and below replaces the inner navigation with one labelled select.
+- The inner navigation reuses the H6 navy/neutral/mint tokens and compact list pattern. It never duplicates the product Rail, opens a modal shell, or creates an additional full-height scroll owner.
+- Account and School remain separate authorities: account-registered school is informative until the user explicitly applies it to this PC; changing the local school never silently replaces saved system addresses or local work.
+- The This PC storage matrix is derived from `workspaceRegistry.storageScope`. It is explanatory only—there is no global cloud toggle, migration, upload, path change, or deletion control.
+- Existing Appearance, Widget, Dock and AI owners are embedded without changing TD2 version 1, Dock version 2, credential handling, geometry, IDs, or persistence. Desktop Mode has a disabled future location only and creates no display/window state.
+
 ## H6-B1 professional document workspaces — Record Helper and Official Document (2026-11-10)
 
 - Scope is Electron Renderer presentation only. Record import, session lifetime, privacy review, AI confirmation, ODT generation, file protection, IPC and storage contracts remain unchanged.

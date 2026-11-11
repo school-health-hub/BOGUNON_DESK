@@ -8,7 +8,7 @@ import type {CommandId} from '../../src/commands/types';
 import {GlobalFileDrop} from './file-drop/GlobalFileDrop';
 import type {DropDelivery,DropTarget} from '../file-drop-protocol';
 import {useWorkFolders,WorkFoldersContent,openMemoUrl} from './work-folders/WorkFolders';
-import {SchoolProfileProvider,SchoolInitialSetup,SchoolProfileSettings} from './school-profile/SchoolProfile';
+import {AccountSettings,SchoolConnectionSettings,SchoolProfileProvider,SchoolInitialSetup} from './school-profile/SchoolProfile';
 import {AiSettings,AiAssistant} from './ai/AiTools';
 import type {InventoryPurchaseRequest} from './purchase/inventoryPurchase';
 import {LocalWorkspaceStatus} from './local-tasks/LocalNotices';
@@ -17,7 +17,9 @@ import {LocalTasksPanel,type LocalTaskRequest} from './local-tasks/LocalTasksPan
 import {ShoppingCart,FileText,Search,Database,Wallet,BriefcaseBusiness,FolderOpen,Calculator,Command,Plus,CalendarDays} from 'lucide-react';
 import {SurfaceDialog} from './SurfaceDialog';
 import {QuickMemoSurface} from './QuickMemoSurface';
-import {SurfaceSettings} from './SurfaceSettings';
+import {SurfaceSettings,type SurfaceSettingsCategory} from './SurfaceSettings';
+import electronPackage from '../package.json';
+import {PRODUCT_LOGO_URL,PRODUCT_NAME} from '../../src/branding';
 import {AppShell} from './AppShell';
 import {ToolCard} from './ToolCard';
 import {InventoryLocalQa} from './inventory-local-qa/InventoryLocalQa';
@@ -107,7 +109,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   const [editing,setEditing] = useState(false), [panel,setPanel] = useState<DashboardEditorPanel>(null);
   const [selected,setSelected] = useState<string | null>(null), [active,setActive] = useState<DesktopActionId>('home');
   const [shellCategory,setShellCategory]=useState<WorkspaceCategoryId>('home');
-  const [settingsSection,setSettingsSection]=useState<'appearance'|'school'>('appearance');
+  const [settingsSection,setSettingsSection]=useState<SurfaceSettingsCategory>('account');
   const [notice,setNotice] = useState<string | null>(null);
   const portalPending=useRef(false),dashboardLive=useRef(true);
   useEffect(()=>{dashboardLive.current=true;return()=>{dashboardLive.current=false;};},[]);
@@ -161,13 +163,13 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
     if(id==='official-document'){setOfficialDocumentOpen(true);setActive('home');setEditing(false);setPanel(null);setNotice(null);return;}
     if(id==='purchase-helper'){setPurchaseOpen(true);setActive('home');setPanel(null);setNotice(null);return;}
     if(id==='home'){returnHome();return;}
-    if(['settings','quick-memo','toolbox','work-folder'].includes(id)){if(id==='settings'){setSettingsSection('appearance');setShellCategory('settings');}setActive(id);setPanel(null);setEditing(false);setNotice(null)}else excluded();
+    if(['settings','quick-memo','toolbox','work-folder'].includes(id)){if(id==='settings'){setSettingsSection('account');setShellCategory('settings');}setActive(id);setPanel(null);setEditing(false);setNotice(null)}else excluded();
   };
   const selectShellCategory=(categoryId:WorkspaceCategoryId)=>{
     if(categoryId===shellCategory)return;
     if(editing){setNotice('화면 꾸미기를 먼저 완료해 주세요. 현재 위젯 배치는 그대로 유지됩니다.');return;}
     if(utilityRef.current||taskRequest||active==='quick-memo'||active==='toolbox'||active==='work-folder'||document.querySelector('[role="dialog"][aria-modal="true"]')){setNotice('현재 작업 화면을 먼저 닫아 주세요. 입력 내용은 유지됩니다.');return;}
-    if(categoryId==='settings')setSettingsSection('appearance');setShellCategory(categoryId);setActive(categoryId==='settings'?'settings':'home');setPanel(null);setEditing(false);setNotice(null);
+    if(categoryId==='settings')setSettingsSection('account');setShellCategory(categoryId);setActive(categoryId==='settings'?'settings':'home');setPanel(null);setEditing(false);setNotice(null);
   };
   const openWorkspaceModule=(moduleId:WorkspaceModuleId)=>{
     const definition=workspaceRegistry[moduleId];
@@ -187,7 +189,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
     const entry=workspaceRegistry[moduleId].entry;
     return entry.kind!=='desktop-action'||!(['online-health-room','bogunon','aed-check','checkup-tools'] as const).some(actionId=>actionId===entry.actionId);
   };
-  const settingsContent=<SurfaceSettings key={settingsSection} initialCategory={settingsSection} school={<SchoolProfileSettings/>} ai={<AiSettings/>} saveStatus={status} appearance={<AppearancePanel appearance={layout.appearance} onClose={returnHome} onUpdate={appearance=>setLayout({...layout,appearance})}/>} widgets={<WidgetLibraryDrawer widgets={layout.widgets} onClose={returnHome} onRestore={type=>setLayout(restoreWidget({...layout,widgets:geometry.widgets},type))}/>} dock={<DockEditor dockLayout={dock} onClose={returnHome} onUpdate={setDock}/>} about={<><button type="button" onClick={()=>{returnHome();setNewsletterLoaded(true);setNewsletterOpen(true);}}>보건소식지 제작소</button><SyntheticIpcSample/><p>앱 ID: {info?.appId}</p><p>PoC 저장 위치: {info?.userData}</p><p>소스: {info?.sourceSha}</p><p>Electron: {info?.electron}</p><p>자동 업데이트 없음 · BOGUNON 계정은 등록 학교 읽기 · AI 연결은 별도 설정</p></>}/>;
+  const settingsContent=<SurfaceSettings key={settingsSection} initialCategory={settingsSection} account={<AccountSettings/>} school={<SchoolConnectionSettings/>} ai={<AiSettings/>} saveStatus={status} appearance={<AppearancePanel embedded appearance={layout.appearance} onClose={returnHome} onUpdate={appearance=>setLayout({...layout,appearance})}/>} widgets={<WidgetLibraryDrawer embedded widgets={layout.widgets} onClose={returnHome} onRestore={type=>setLayout(restoreWidget({...layout,widgets:geometry.widgets},type))}/>} dock={<DockEditor embedded dockLayout={dock} onClose={returnHome} onUpdate={setDock}/>} about={<div className="ux04-about"><div className="ux04-about-brand"><img src={PRODUCT_LOGO_URL} alt={`${PRODUCT_NAME} 로고`}/><div><strong>{PRODUCT_NAME}</strong><span>버전 {electronPackage.version}</span></div></div><dl><div><dt>제품</dt><dd>{info.productName}</dd></div><div><dt>Electron</dt><dd>{info.electron}</dd></div><div><dt>앱 ID</dt><dd>{info.appId}</dd></div><div><dt>이 PC의 데이터 위치</dt><dd>{info.userData}</dd></div><div><dt>Source</dt><dd>{info.sourceSha}</dd></div></dl><p>자동 업데이트와 전역 클라우드 동기화는 제공하지 않습니다. 지원이 필요한 경우 위 제품 정보와 Source를 함께 확인해 주세요.</p><button type="button" onClick={()=>{returnHome();setNewsletterLoaded(true);setNewsletterOpen(true);}}>보건소식지 제작소 열기</button><SyntheticIpcSample/></div>}/>;
   return <WidgetSessionProvider><LocalCalendarProvider><LocalWorkspaceProvider><PersistentMemoProvider><DesktopPanelProvider notify={setNotice} openInbox={()=>openTasks()} openBogunonTask={async id=>openTasks({id})} openQuickAddEventForDate={date=>openUtility('calendar',{date})} openQuickAddFromMemo={title=>openUtility('quick-add',{title})} openQuickMemoUrl={async url=>{try{await openMemoUrl(url);}catch(e){setNotice(e instanceof Error?e.message:'링크를 열지 못했습니다.');}}} runDesktopAction={async id=>navigate(id)} workFolderFavorites={folders.snapshot?.favorites??[]} openWorkFolderFavorite={async folder=>{const message=await folders.open(folder.id);if(message)setNotice(message);}}>
     <div inert={workspaceOpen} hidden={recordOpen||newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen||financeOpen||adminOpen} style={{display:recordOpen||newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen||financeOpen||adminOpen?"none":undefined}} className={`app-shell workspace-shell ux03-root h6-shell ${isCanonicalDeskLayout(layout)?'is-floating-b':''} ${editing?'is-edit-mode':'is-view-mode'} bg-${layout.appearance.background} card-${layout.appearance.cardStyle} corner-${layout.appearance.cornerStyle}`}>
       <AppShell activeCategory={shellCategory} onCategoryChange={selectShellCategory} onOpenModule={openWorkspaceModule} canOpenModule={canOpenWorkspaceModule} settings={settingsContent} headerStatus={<SurfaceDate/>}>
@@ -215,7 +217,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
       {notice&&<div className="p0-notice" role="status">{notice}<button onClick={()=>setNotice(null)}>닫기</button></div>}
       <span className="p0-save" role="status" data-p0-save>{status}</span>
     </div>
-    <SchoolInitialSetup/>
+    <SchoolInitialSetup onOpenSchoolSettings={()=>{setSettingsSection('school');setShellCategory('settings');setActive('settings');setPanel(null);setEditing(false);setNotice(null);}}/>
     {aiSettingsOpen&&<SurfaceDialog title="AI 연결" onClose={()=>setAiSettingsOpen(false)}><AiSettings/></SurfaceDialog>}
     {adminOpen&&<Suspense fallback={<p role="status">학교 행정 업무를 불러오는 중…</p>}><WorkspaceShell name="school-admin"><SchoolAdmin onClose={()=>setAdminOpen(false)}/></WorkspaceShell></Suspense>}
     {financeOpen&&<Suspense fallback={<p role="status">MY FINANCE를 불러오는 중…</p>}><WorkspaceShell name="finance"><FinanceHost onClose={()=>setFinanceOpen(false)}/></WorkspaceShell></Suspense>}

@@ -6,18 +6,19 @@ type WidgetLibraryDrawerProps = {
   readonly widgets: readonly WidgetLayout[];
   readonly onClose: () => void;
   readonly onRestore: (type: WidgetType) => void;
+  readonly embedded?: boolean;
 };
 
-export function WidgetLibraryDrawer({ widgets, onClose, onRestore }: WidgetLibraryDrawerProps) {
+export function WidgetLibraryDrawer({ widgets, onClose, onRestore, embedded = false }: WidgetLibraryDrawerProps) {
   const visibleTypes = new Set(widgets.filter((widget) => widget.visible).map((widget) => widget.type));
 
   return (
-    <aside className="workspace-editor-panel widget-library" id="workspace-widget-panel" aria-label="위젯 편집">
+    <aside className={`workspace-editor-panel widget-library${embedded ? " is-settings-embedded" : ""}`} id="workspace-widget-panel" aria-label="위젯 편집">
       <header>
         <div>
           <strong>위젯</strong>
         </div>
-        <button type="button" aria-label="위젯 편집 닫기" onClick={onClose}><X size={16} /></button>
+        {!embedded && <button type="button" aria-label="위젯 편집 닫기" onClick={onClose}><X size={16} /></button>}
       </header>
       <p className="workspace-editor-panel__intro">필요한 도구만 현재 데스크에 놓으세요.</p>
       <div className="workspace-editor-panel__body">

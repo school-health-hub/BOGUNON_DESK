@@ -24,12 +24,12 @@ it('contains keyboard focus, closes on Escape and restores the invoker without l
  fireEvent.keyDown(last,{key:'Tab'});expect(document.activeElement).toBe(close);
  fireEvent.keyDown(close,{key:'Escape'});expect(screen.queryByRole('dialog')).toBeNull();expect(document.activeElement).toBe(trigger);expect(view.container.inert).toBe(false);
 });
-it('presents only existing settings groups and switches the visible editor',()=>{
- render(<SurfaceSettings saveStatus="설정 저장됨" appearance={<button>기존 배경 옵션</button>} widgets={<p>기존 위젯 목록</p>} dock={<p>기존 Dock 순서</p>} about={<p>소스 정보</p>}/>);
+it('presents the unified settings groups and switches the visible editor',()=>{
+ render(<SurfaceSettings initialCategory="appearance" saveStatus="설정 저장됨" account={<p>계정 상태</p>} school={<p>학교 연결</p>} ai={<p>AI 연결 상태</p>} appearance={<button>기존 배경 옵션</button>} widgets={<p>기존 위젯 목록</p>} dock={<p>기존 Dock 순서</p>} about={<p>소스 정보</p>}/>);
  expect(screen.getByText('기존 배경 옵션')).toBeTruthy();
  fireEvent.click(screen.getByRole('button',{name:'Dock'}));expect(screen.getByText('기존 Dock 순서')).toBeTruthy();expect(screen.queryByText('기존 배경 옵션')).toBeNull();
- expect(screen.getByRole('button',{name:'Dock'}).getAttribute('aria-pressed')).toBe('true');
- fireEvent.click(screen.getByRole('button',{name:'앱 정보'}));expect(screen.getByAltText('BOGUNON DESK 로고')).toBeTruthy();expect(screen.getByText('버전 0.2.1')).toBeTruthy();
+ expect(screen.getByRole('button',{name:'Dock'}).getAttribute('aria-current')).toBe('page');
+ fireEvent.click(screen.getByRole('button',{name:'앱 정보'}));expect(screen.getByText('소스 정보')).toBeTruthy();
  expect(screen.queryByRole('button',{name:'자동 로그인'})).toBeNull();
 });
 it('does not invoke a close callback on unrelated typing',()=>{const close=vi.fn();render(<SurfaceDialog title="메모" onClose={close}><textarea aria-label="메모 입력"/></SurfaceDialog>);fireEvent.keyDown(screen.getByLabelText('메모 입력'),{key:'a'});expect(close).not.toHaveBeenCalled()});

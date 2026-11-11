@@ -7,6 +7,7 @@ type DockEditorProps = {
   readonly dockLayout: DockLayout;
   readonly onClose: () => void;
   readonly onUpdate: (layout: DockLayout) => void;
+  readonly embedded?: boolean;
 };
 
 const moveItem = (layout: DockLayout, sourceId: DockItemId, targetId: DockItemId): DockLayout => {
@@ -20,16 +21,16 @@ const moveItem = (layout: DockLayout, sourceId: DockItemId, targetId: DockItemId
   return { version: DOCK_LAYOUT_VERSION, items };
 };
 
-export function DockEditor({ dockLayout, onClose, onUpdate }: DockEditorProps) {
+export function DockEditor({ dockLayout, onClose, onUpdate, embedded = false }: DockEditorProps) {
   const [draggingId, setDraggingId] = useState<DockItemId | null>(null);
 
   return (
-    <aside className="workspace-editor-panel dock-editor" id="workspace-dock-panel" aria-label="Dock 편집">
+    <aside className={`workspace-editor-panel dock-editor${embedded ? " is-settings-embedded" : ""}`} id="workspace-dock-panel" aria-label="Dock 편집">
       <header>
         <div>
           <strong>Dock</strong>
         </div>
-        <button type="button" aria-label="Dock 편집 닫기" onClick={onClose}><X size={16} /></button>
+        {!embedded && <button type="button" aria-label="Dock 편집 닫기" onClick={onClose}><X size={16} /></button>}
       </header>
       <p className="workspace-editor-panel__intro">아이콘의 순서와 표시 여부를 정하세요.</p>
       <div className="workspace-editor-panel__body dock-editor__list">

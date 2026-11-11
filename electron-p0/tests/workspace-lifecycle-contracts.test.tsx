@@ -21,7 +21,9 @@ vi.mock("../../src/newsletter/NewsletterStudio", async () => {
 });
 vi.mock("../renderer/school-profile/SchoolProfile", () => ({
   SchoolProfileProvider: ({ children }: { readonly children: ReactNode }) => <>{children}</>,
-  SchoolInitialSetup: () => null,
+  SchoolInitialSetup: ({ onOpenSchoolSettings }: { readonly onOpenSchoolSettings: () => void }) => <button type="button" onClick={onOpenSchoolSettings}>학교 설정 열기</button>,
+  AccountSettings: () => null,
+  SchoolConnectionSettings: () => <ol aria-label="학교 연결 단계" />,
   SchoolProfileSettings: () => null,
 }));
 vi.mock("../renderer/purchase/PurchaseSession", () => ({ PurchaseSession: () => null }));
@@ -62,12 +64,12 @@ it("keeps Newsletter mounted while its workspace is closed and reopened", async 
   fireEvent.click(screen.getByRole("button", { name: "앱 정보" }));
 
   // When: Newsletter is opened, closed, and opened again through the same current entry path.
-  fireEvent.click(screen.getByRole("button", { name: "보건소식지 제작소" }));
+  fireEvent.click(screen.getByRole("button", { name: /보건소식지 제작소/ }));
   expect(await screen.findByRole("heading", { name: "합성 소식지 1" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "소식지 닫기" }));
   fireEvent.click(within(await screen.findByRole("navigation", { name: "주요 작업 공간" })).getByRole("button", { name: "설정" }));
   fireEvent.click(screen.getByRole("button", { name: "앱 정보" }));
-  fireEvent.click(screen.getByRole("button", { name: "보건소식지 제작소" }));
+  fireEvent.click(screen.getByRole("button", { name: /보건소식지 제작소/ }));
 
   // Then: the original component instance is revealed rather than remounted.
   expect(await screen.findByRole("heading", { name: "합성 소식지 1" })).toBeTruthy();
@@ -121,7 +123,7 @@ it("guards Rail navigation while the Home layout editor owns an unfinished edit"
   expect(screen.getByText(/화면 꾸미기를 먼저 완료/)).toBeTruthy();
 });
 
-it("returns Rail, header, and Dock ownership to Home when a Settings subpanel closes", async () => {
+it("returns Rail, header, and Dock ownership to Home from the unified Settings workspace", async () => {
   setupDashboard();
   render(<P0App />);
 
@@ -129,9 +131,35 @@ it("returns Rail, header, and Dock ownership to Home when a Settings subpanel cl
   fireEvent.click(within(rail).getByRole("button", { name: "설정" }));
   expect(within(rail).getByRole("button", { name: "설정" }).getAttribute("aria-current")).toBe("page");
 
-  fireEvent.click(screen.getByRole("button", { name: "스타일 편집 닫기" }));
+  fireEvent.click(within(rail).getByRole("button", { name: "홈" }));
 
   expect(within(rail).getByRole("button", { name: "홈" }).getAttribute("aria-current")).toBe("page");
   expect(screen.getByText("현재 위치").nextElementSibling?.textContent).toBe("홈");
   expect(within(screen.getByRole("navigation", { name: "주요 기능" })).getByRole("button", { name: "홈" }).getAttribute("aria-current")).toBe("page");
+});
+
+it("routes Settings and School connection entries to their matching unified sections", async () => {
+  setupDashboard();
+  render(<P0App />);
+
+  const rail = await screen.findByRole("navigation", { name: "주요 작업 공간" });
+  fireEvent.click(within(rail).getByRole("button", { name: "설정" }));
+  expect(screen.getByRole("heading", { name: "계정" })).toBeTruthy();
+
+  fireEvent.click(within(rail).getByRole("button", { name: "학교" }));
+  fireEvent.click(screen.getByRole("button", { name: /학교 연결/ }));
+  expect(screen.getByRole("heading", { name: "학교·연결" })).toBeTruthy();
+  expect(screen.getByRole("list", { name: "학교 연결 단계" })).toBeTruthy();
+});
+
+it("routes the unconfigured startup guide into the School settings workspace without opening a second setup surface", async () => {
+  setupDashboard();
+  render(<P0App />);
+
+  fireEvent.click(await screen.findByRole("button", { name: "학교 설정 열기" }));
+
+  const rail = screen.getByRole("navigation", { name: "주요 작업 공간" });
+  expect(within(rail).getByRole("button", { name: "설정" }).getAttribute("aria-current")).toBe("page");
+  expect(screen.getByRole("heading", { name: "학교·연결" })).toBeTruthy();
+  expect(screen.getByRole("list", { name: "학교 연결 단계" })).toBeTruthy();
 });

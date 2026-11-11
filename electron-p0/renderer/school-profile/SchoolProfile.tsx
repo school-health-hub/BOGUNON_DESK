@@ -16,13 +16,21 @@ export function SchoolProfileProvider({children}:{children:ReactNode}){
  const selected=async(input:SchoolSelection)=>{if(!api)throw Error('학교 연결이 없습니다.');const result=read(await api.select(input));if(mounted.current){generation.current++;setLoading(false);setData(result);setError('');}};
  return <Context.Provider value={{data,loading,error,refresh,selected}}>{children}</Context.Provider>;
 }
-export function SchoolInitialSetup(){
+export function SchoolInitialSetup({onOpenSchoolSettings}:{onOpenSchoolSettings:()=>void}){
  const state=useContext(Context),[dismissed,setDismissed]=useState(false),[started,setStarted]=useState(false);
  useEffect(()=>{if(state?.data&&!state.loading&&!state.error&&!state.data.document.school)setStarted(true);},[state?.data,state?.loading,state?.error]);
  if(!state?.data||state.loading||state.error||state.data.document.school&&!started||dismissed)return null;
- return <SurfaceDialog title="학교 초기 설정" onClose={()=>setDismissed(true)}><SchoolProfileSettings/><button type="button" onClick={()=>setDismissed(true)}>{state.data.document.school?'학교 설정 마치기':'나중에 설정'}</button><p>학교를 선택하지 않아도 기존 로컬 작업을 계속할 수 있습니다.</p></SurfaceDialog>;
+ return <SurfaceDialog title="학교 설정 안내" onClose={()=>setDismissed(true)}><div className="school-setup-guide"><h2>학교 정보를 연결할까요?</h2><p>학교를 설정하면 학교 업무 주소와 공동 기능을 한곳에서 확인할 수 있습니다.</p><p>지금 설정하지 않아도 개인 일정·문서·물품 등 이 PC의 업무는 계속 사용할 수 있습니다.</p><div><button type="button" onClick={()=>{setDismissed(true);onOpenSchoolSettings();}}>학교 설정 열기</button><button type="button" onClick={()=>setDismissed(true)}>나중에 설정</button></div></div></SurfaceDialog>;
 }
-export function SchoolProfileSettings({showAddresses=true}:{showAddresses?:boolean}={}){
+export function AccountSettings(){
+ const state=useContext(Context);if(!state)return <p>학교 프로필 상태를 불러오지 못했습니다.</p>;
+ return <BogunonAccount local={state.data} onSchoolApplied={state.refresh}/>;
+}
+export function SchoolConnectionSettings(){
+ const state=useContext(Context),hasSchool=!!state?.data?.document.school;
+ return <div className="ux04-school-flow"><ol aria-label="학교 연결 단계"><li className={!hasSchool?'is-current':undefined}><span>1</span>학교 확인</li><li className={hasSchool?'is-current':undefined}><span>2</span>업무 시스템 주소 확인</li><li><span>3</span>설정 완료</li></ol><p>학교를 선택하지 않아도 개인 로컬 업무는 계속 사용할 수 있습니다. 학교 공동 기능은 기존 승인·권한 조건을 따릅니다.</p><SchoolProfileSettings showAccount={false}/></div>;
+}
+export function SchoolProfileSettings({showAddresses=true,showAccount=true}:{showAddresses?:boolean;showAccount?:boolean}={}){
  const state=useContext(Context),api=window.electronWork.school;
  const [name,setName]=useState(''),[office,setOffice]=useState<OfficeCode|''>(''),[search,setSearch]=useState<SchoolSearch|null>(null),[busy,setBusy]=useState(false),[searching,setSearching]=useState(false),[notice,setNotice]=useState('');const mounted=useRef(true),epoch=useRef(0),running=useRef(false);
  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;epoch.current++;void api?.cancel();};},[api]);
@@ -31,8 +39,8 @@ export function SchoolProfileSettings({showAddresses=true}:{showAddresses?:boole
  const run=async(operation:(token:number)=>Promise<void>)=>{if(running.current)return;running.current=true;setBusy(true);const token=++epoch.current;try{await operation(token);}catch(e){if(mounted.current&&token===epoch.current)setNotice(e instanceof Error?e.message:'학교 설정에 실패했습니다.');}finally{running.current=false;if(mounted.current){setBusy(false);setSearching(false);}}};
  const clearSearch=()=>{epoch.current++;setSearch(null);void api.cancel();};
  return <section className="school-profile" aria-label="공통 학교 프로필" aria-busy={busy||state.loading}>
-  <h2>학교 선택</h2><p>이 Electron 프로필에서 학교명·학교코드·시도교육청코드를 한 번 저장해 행정 런처에서 재사용합니다.</p>
-  <BogunonAccount local={state.data} onSchoolApplied={state.refresh}/>
+  <h2>학교 선택</h2><p>이 PC에서 사용할 학교를 저장하면 학교 업무 화면과 바로가기에서 함께 사용합니다.</p>
+  {showAccount&&<BogunonAccount local={state.data} onSchoolApplied={state.refresh}/>}
   {current?<p><strong>현재 학교: {current.schoolName}</strong><br/>{current.officeName} · 교육청 {current.officeCode} · 학교 {current.schoolCode}</p>:<p>아직 학교를 선택하지 않았습니다.</p>}
   {showAddresses&&<SchoolSystemAddresses school={current??null} blocked={!!state.data?.recovered||busy||state.loading}/>}
   {state.error&&<p role="alert">{state.error}</p>}{state.data?.recovered&&<p role="alert">학교 프로필 백업을 읽었습니다. 원본 보호를 위해 변경을 차단합니다.</p>}
@@ -49,7 +57,7 @@ export function SchoolProfileSettings({showAddresses=true}:{showAddresses?:boole
 }
 export function SchoolLauncherProfile({onConfigure,onApplied,onBusyChange,blocked=false,revision}:{onConfigure:()=>void;onApplied?:(load:AdminLoad)=>void;onBusyChange?:(busy:boolean)=>void;blocked?:boolean;revision?:number}){
  const state=useContext(Context);if(!state)return null;const school=state.data?.document.school;
- return <section className="school-profile school-launcher-profile" aria-label="행정 런처 학교 프로필"><h2>공통 학교</h2>{school?<><strong>{school.schoolName}</strong><p>{school.officeName} · {school.officeCode} / {school.schoolCode}</p><p>학교 변경만으로 기존 주소를 변경하지 않습니다. 아래 현재 주소와 초기값을 확인하고 적용할 항목을 직접 선택하세요.</p></>:<p>학교를 아직 선택하지 않았습니다. 기존 등록 주소는 계속 사용할 수 있습니다.</p>}{state.error&&<p role="alert">{state.error}</p>}
+ return <section className="school-profile school-launcher-profile" aria-label="학교 업무 바로가기 프로필"><h2>공통 학교</h2>{school?<><strong>{school.schoolName}</strong><p>{school.officeName} · {school.officeCode} / {school.schoolCode}</p><p>학교를 바꾸어도 저장된 업무 주소는 자동으로 바뀌지 않습니다. 아래 주소를 확인한 뒤 필요한 항목만 적용하세요.</p></>:<p>학교를 아직 선택하지 않았습니다. 기존에 저장한 업무 주소는 계속 사용할 수 있습니다.</p>}{state.error&&<p role="alert">{state.error}</p>}
  <SchoolSystemAddresses school={school??null} revision={revision} onApplied={onApplied} onBusyChange={onBusyChange} blocked={blocked||!!state.data?.recovered||state.loading} onConfigure={onConfigure}/>
  <button type="button" onClick={onConfigure}>현재 환경 주소 설정</button><details><summary>학교 선택·변경</summary><SchoolProfileSettings showAddresses={false}/></details></section>;
 }
