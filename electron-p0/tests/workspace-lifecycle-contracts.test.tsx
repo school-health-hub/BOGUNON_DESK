@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import type { ReactNode } from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { P0App } from "../renderer/P0App";
 import { WorkspaceBoundary } from "../renderer/WorkspaceBoundary";
@@ -26,6 +26,7 @@ vi.mock("../renderer/school-profile/SchoolProfile", () => ({
 }));
 vi.mock("../renderer/purchase/PurchaseSession", () => ({ PurchaseSession: () => null }));
 vi.mock("../../src/components/dashboard/DesktopWidgetLayout", () => ({ DesktopWidgetLayout: () => <div>합성 Home</div> }));
+vi.mock("../renderer/finance/FinanceHost", () => ({ FinanceHost: ({ onClose }: { readonly onClose: () => void }) => <main><h1>합성 MY FINANCE</h1><button type="button" onClick={onClose}>Finance 닫기</button></main> }));
 
 afterEach(() => {
   cleanup();
@@ -57,14 +58,14 @@ it("keeps Newsletter mounted while its workspace is closed and reopened", async 
   // Given: the current P0 dashboard and its existing Settings handoff into Newsletter.
   setupDashboard();
   render(<P0App />);
-  fireEvent.click(await screen.findByRole("button", { name: "설정" }));
+  fireEvent.click(within(await screen.findByRole("navigation", { name: "주요 작업 공간" })).getByRole("button", { name: "설정" }));
   fireEvent.click(screen.getByRole("button", { name: "앱 정보" }));
 
   // When: Newsletter is opened, closed, and opened again through the same current entry path.
   fireEvent.click(screen.getByRole("button", { name: "보건소식지 제작소" }));
   expect(await screen.findByRole("heading", { name: "합성 소식지 1" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "소식지 닫기" }));
-  fireEvent.click(await screen.findByRole("button", { name: "설정" }));
+  fireEvent.click(within(await screen.findByRole("navigation", { name: "주요 작업 공간" })).getByRole("button", { name: "설정" }));
   fireEvent.click(screen.getByRole("button", { name: "앱 정보" }));
   fireEvent.click(screen.getByRole("button", { name: "보건소식지 제작소" }));
 
@@ -90,4 +91,47 @@ it("keeps a failed SCHOOL workspace inside its independent error boundary", () =
   expect(close).toHaveBeenCalledOnce();
   expect(reactError).toHaveBeenCalled();
   reactError.mockRestore();
+});
+
+it("opens Finance from its approved schedule category through the existing owner", async () => {
+  // Given: the App Shell is mounted over the current P0 lifecycle owners.
+  setupDashboard();
+  render(<P0App />);
+
+  // When: Finance is launched from 일정·업무 instead of the legacy toolbox.
+  const rail = await screen.findByRole("navigation", { name: "주요 작업 공간" });
+  fireEvent.click(within(rail).getByRole("button", { name: "일정·업무" }));
+  fireEvent.click(screen.getByRole("button", { name: /MY FINANCE/ }));
+
+  // Then: P0App's existing Finance owner opens and closes the workspace.
+  expect(await screen.findByRole("heading", { name: "합성 MY FINANCE" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Finance 닫기" }));
+  expect(await screen.findByRole("button", { name: /MY FINANCE/ })).toBeTruthy();
+});
+
+it("guards Rail navigation while the Home layout editor owns an unfinished edit", async () => {
+  setupDashboard();
+  render(<P0App />);
+  fireEvent.click(await screen.findByRole("button", { name: "화면 꾸미기" }));
+
+  const rail = screen.getByRole("navigation", { name: "주요 작업 공간" });
+  fireEvent.click(within(rail).getByRole("button", { name: "일정·업무" }));
+
+  expect(within(rail).getByRole("button", { name: "홈" }).getAttribute("aria-current")).toBe("page");
+  expect(screen.getByText(/화면 꾸미기를 먼저 완료/)).toBeTruthy();
+});
+
+it("returns Rail, header, and Dock ownership to Home when a Settings subpanel closes", async () => {
+  setupDashboard();
+  render(<P0App />);
+
+  const rail = await screen.findByRole("navigation", { name: "주요 작업 공간" });
+  fireEvent.click(within(rail).getByRole("button", { name: "설정" }));
+  expect(within(rail).getByRole("button", { name: "설정" }).getAttribute("aria-current")).toBe("page");
+
+  fireEvent.click(screen.getByRole("button", { name: "스타일 편집 닫기" }));
+
+  expect(within(rail).getByRole("button", { name: "홈" }).getAttribute("aria-current")).toBe("page");
+  expect(screen.getByText("현재 위치").nextElementSibling?.textContent).toBe("홈");
+  expect(within(screen.getByRole("navigation", { name: "주요 기능" })).getByRole("button", { name: "홈" }).getAttribute("aria-current")).toBe("page");
 });

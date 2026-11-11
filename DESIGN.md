@@ -1,5 +1,14 @@
 ## Approved B implementation — desktop floating surface
 
+## UX-03 App Shell and category workspace (2026-11-11)
+
+- The persistent Electron shell uses a 208px navy navigation rail and one neutral workspace canvas. At 900px and below the rail becomes a 56px icon rail; accessible names and native tooltips keep every destination identifiable.
+- The approved top-level locations are Home, Schedule & Work, Documents & Learning Resources, Inventory & Purchase, School, and Settings. Their Korean labels and icons come from `workspaceRegistry`; module lifecycle owners remain in `P0App`.
+- Category workspaces use a compact page header and separated action rows rather than a card gallery. Each row shows the actual storage boundary and availability using text as well as color. Conditional and external destinations never imply an active server connection.
+- Home keeps TD2 version 1 geometry, the 12-column grid, the 1101px presentation threshold, and Dock version 2 IDs. The shell changes available canvas width only; it never rewrites stored widget coordinates.
+- Rail focus uses the existing teal 3px focus ring. Arrow Up/Down, Home and End move focus without activating a destination; Enter/Space retain native button activation. Existing modal Escape and focus-return owners remain authoritative.
+- Settings reuses the current `SurfaceSettings` content in the shell workspace. UX-03 does not add account, sync, display, or Desktop Mode settings.
+
 ## H6-B1 professional document workspaces — Record Helper and Official Document (2026-11-10)
 
 - Scope is Electron Renderer presentation only. Record import, session lifetime, privacy review, AI confirmation, ODT generation, file protection, IPC and storage contracts remain unchanged.
