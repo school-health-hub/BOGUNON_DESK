@@ -29,6 +29,12 @@
     color: var(--desk-ink);
   }
   .ux03-shell { background: var(--desk-canvas); color: var(--desk-ink); }
+  body.electron-soft-rose .workspace-shell.ux03-root .workspace-view-actions {
+    position:relative; inset:auto; width:fit-content; margin:var(--desk-space-3) var(--desk-space-4) var(--desk-space-2) auto;
+    background:var(--desk-paper); color:var(--desk-ink); box-shadow:none;
+  }
+  .ux03-home .workspace-data-notice { word-break:keep-all; overflow-wrap:normal; }
+  .ux03-home .ev-search select, .ux03-module-workspace .ev-search select { min-height:40px; border:1px solid var(--desk-control); border-radius:var(--desk-radius-control); padding:var(--desk-space-2); background:var(--desk-paper); color:var(--desk-ink); }
   .ux03-rail { background: var(--desk-navy); gap: var(--desk-space-5); }
   .ux03-rail nav button { border-radius: var(--desk-radius-control); font-size: var(--desk-type-md); }
   .ux03-rail nav button.is-active { background: var(--desk-active); color: var(--desk-accent-strong); border-color: var(--desk-accent); }
@@ -111,7 +117,7 @@
   body.electron-soft-rose :is(.td2-workspace, .ux03-module-workspace) :is(.od-header, .ev-header, .inventory-controls, .inventory-header, .td2-workspace-header) button:disabled { color: var(--desk-muted); background: var(--desk-canvas); opacity: 1; cursor: not-allowed; }
   body.electron-soft-rose :is(.td2-workspace, .ux03-module-workspace) :is(.od-header, .ev-header, .inventory-controls, .inventory-header, .td2-workspace-header) button:focus-visible { outline: var(--desk-focus); outline-offset: 2px; }
 
-  @container (max-width: 1000px) {
+  @container (max-width: 880px) {
     body.electron-soft-rose .ux03-module-workspace :is(.od-grid, .ev-layout),
     body.electron-soft-rose .td2-workspace :is(.inventory-grid, .finance-workspace.has-editor) { grid-template-columns: minmax(0, 1fr); }
     body.electron-soft-rose .td2-workspace .inventory-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
