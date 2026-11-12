@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { P0App } from '../renderer/P0App';
 import { parseDashboardLayoutValue } from '../../src/dashboard/storage';
 import type { P0Settings } from '../protocol';
+import type { SurfaceSettingsBridge, SurfaceSettingsSnapshot } from '../desktop-surface-protocol';
 
 let grid: GridLayoutProps;
 vi.mock('../../src/workspace-data/WorkspaceDataContext', () => ({ useWorkspaceData: () => ({ state: { status: 'signedOut' } }) }));
@@ -35,15 +36,28 @@ async function setup() {
   const save = vi.fn(async (_document: P0Settings) => {});
   vi.stubGlobal('electronP0', {
     info: async () => ({ appId: 'kr.sungandi.schoolhealthdesk.electronp0' }),
-    readSettings: async () => null,
-    writeSettings: save,
+  });
+  let snapshot: SurfaceSettingsSnapshot = { revision: 0, value: null };
+  vi.stubGlobal('electronSurfaceSettings', {
+    read: async () => snapshot,
+    write: async request => {
+      await save(request.value);
+      snapshot = { revision: request.revision + 1, value: request.value };
+      return snapshot;
+    },
+    subscribe: () => () => undefined,
+  } satisfies SurfaceSettingsBridge);
+  vi.stubGlobal('electronDesktopNavigation', {
+    ready: async () => undefined,
+    onEntry: () => () => undefined,
+    openSettings: async () => undefined,
   });
   vi.stubGlobal('electronWork', {
     memo: { read: async () => ({ ok: true, data: { version: 1, text: '' } }) },
     tasks: { load: async () => ({ ok: true, data: { document: { version: 1, revision: 0, tasks: [] }, recovered: false } }) },
   });
   const app = render(<P0App />);
-  await screen.findByText('PoC 설정 저장됨');
+  await screen.findByText('설정 저장됨');
   save.mockClear();
   fireEvent.click(screen.getByRole('button', { name: '화면 꾸미기' }));
   return { app, save };
@@ -158,14 +172,27 @@ describe('Electron dashboard gesture persistence', () => {
     await waitFor(() => expect(save).toHaveBeenCalledOnce());
   });
 
-  it.each(['pointercancel', 'navigation', 'unmount'] as const)('discards the active edit on %s', async reason => {
+  it.each(['pointercancel', 'unmount'] as const)('discards the active edit on %s', async reason => {
     const { app, save } = await setup();
     const pending = gesture('resize');
     pending.move();
     if (reason === 'pointercancel') fireEvent.pointerCancel(document.body);
-    if (reason === 'navigation') fireEvent.click(screen.getByRole('button', { name: '업무 도구' }));
     if (reason === 'unmount') app.unmount();
     pending.stop();
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('blocks navigation during an active edit and ignores late stop after Escape', async () => {
+    const { save } = await setup();
+    const pending = gesture('resize');
+    pending.move();
+    fireEvent.click(screen.getByRole('button', { name: '일정·업무' }));
+    expect(screen.getByText(/화면 꾸미기를 먼저 완료/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: '홈' }).getAttribute('aria-current')).toBe('page');
+    expect(save).not.toHaveBeenCalled();
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    pending.stop();
+    expect(grid.layout).toEqual(pending.baseline);
     expect(save).not.toHaveBeenCalled();
   });
 
@@ -198,7 +225,8 @@ describe('Electron dashboard gesture persistence', () => {
     expect(save).toHaveBeenCalledOnce();
     fireEvent.keyDown(document.body, { key: 'Escape' });
     await act(async () => rejectWrite(Error('Synthetic disk failure')));
-    expect(screen.getByText(/저장 실패/)).toBeTruthy();
+    expect(screen.getByText('저장하지 못한 변경을 지우고 최신 설정을 다시 불러왔습니다. 변경 내용을 확인한 뒤 다시 시도해 주세요.')).toBeTruthy();
+    expect(screen.queryByText('설정 저장됨')).toBeNull();
     expect(save).toHaveBeenCalledOnce();
   });
 });
