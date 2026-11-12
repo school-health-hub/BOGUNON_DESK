@@ -2,7 +2,7 @@
 
 ## Verdict and scope
 
-**CONDITIONAL. UX-07D NOT STARTED / blocked pending remaining native evidence.** No product defect was confirmed and no product code was changed. The prior calendar-click concern was a test-target error, now corrected by actual Windows input. Blank Shell entries remain unidentified; taskbar group contents remain NOT VERIFIED.
+**CONDITIONAL. UX-07D NOT STARTED / blocked pending remaining native evidence.** No product defect was confirmed and no product code was changed. The prior calendar-click concern was a test-target error, now corrected by actual Windows input. Blank Shell entries remain unidentified. Taskbar group contents were subsequently verified PASS in the addendum below.
 
 ## Git and executable provenance
 
@@ -67,7 +67,7 @@ Taskbar captures show the Palette-only state without an Electron taskbar icon, w
 | Requirement | Result |
 |---|---|
 | Correct actual widget button and Workspace response | PASS, native trusted input |
-| Palette separate taskbar icon absent | Observed; group contents NOT VERIFIED |
+| Palette separate taskbar icon absent | PASS, including user-opened group and hide/reshow addendum |
 | Palette Alt+Tab exclusion | No Palette/diagnostic title observed; overall CONDITIONAL due 3 unidentified items |
 | Workspace visible/focused after action | PASS |
 | Workspace/Palette independent hide/show | PASS, stable HWNDs |
@@ -90,3 +90,11 @@ Final report-only commit SHA is available through git log -1 -- docs/UX07C_R3_WI
 ## Closure result
 
 Normal complete-quit finished. Exact QA Electron executable process count was 0, including failed attempt13944 and successful main8364; their inspected listening ports were absent. Codex/Windows helper processes were retained. Temporary diagnostic journal was preserved in local evidence and removed from the worktree. No product source edits or runtime instrumentation remain. Taskbar group manual confirmation was not completed; do not infer PASS.
+
+## User-assisted taskbar group verification — 2026-11-12 addendum
+
+The user requested QA relaunch and manually opened the actual Electron taskbar preview. Reused the same isolated E: synthetic profile and identical a96e720 product build; no rebuild or product modification. Main PID58144; exactly Workspace ID1 and Palette ID2. Actual preview contained one BOGUNON DESK Workspace thumbnail only. With that popup open, Palette was hidden then reshown via the existing menu actions; one Workspace thumbnail remained in both states. Palette HWND stayed de05690400000000 and Workspace da0b8e0600000000. **Taskbar group exclusion PASS**. The earlier NOT VERIFIED / pending statements above are historical and superseded for this item only.
+
+Evidence: taskbar-group-user-opened-crop.png, taskbar-group-palette-hidden-crop.png, taskbar-group-palette-reshown-crop.png, group-relaunch.json, group-check.json in the existing R3 local evidence directory. Captures are explicitly cropped derivatives confined to the preview; unrelated screen material was not retained in these evidence files. No raw full-screen copy is claimed.
+
+The existing complete-quit action was invoked after verification. Final process check confirmed 0 remaining QA Electron processes. Overall UX-07C remains CONDITIONAL solely for the unidentified blank Alt+Tab entries; UX-07D remains NOT STARTED. No earlier tests were rerun.
