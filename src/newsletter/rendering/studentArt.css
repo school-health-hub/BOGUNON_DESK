@@ -2,3 +2,5 @@
 .student-art-compare .student-art-enlarged{grid-column:1/-1}.student-art-compare .student-art-enlarged img{height:auto;max-height:none}
 
 .student-art-dialog nav label,.student-art-dialog>label:has(input){display:flex;align-items:center;gap:var(--desk-space-2,8px)}.student-art-dialog input[type=checkbox]{width:auto;margin:0}.student-art-grid summary{cursor:pointer;font-size:var(--desk-type-xs,12px);padding:8px 0}
+
+.student-art-dialog nav label,.student-art-dialog>label:has(input){flex-direction:row;justify-content:flex-start;align-items:center;text-align:left}
