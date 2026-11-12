@@ -15,3 +15,8 @@
 @media(max-height:700px){.ux03-rail{gap:10px;padding-block:10px}.ux03-rail nav{gap:2px}.ux03-rail nav button{min-height:40px}.ux03-main{grid-template-rows:44px minmax(0,1fr)}.ux03-category{padding-block:14px}.ux03-module-workspace{padding-block:12px}}
 @media(prefers-reduced-motion:reduce){.ux03-rail nav button,.ux03-module-row{transition:none}}
 .ux03-persistent-workspace{min-width:0;min-height:0;height:100%}.ux03-persistent-workspace[hidden]{display:none}
+.ux05f-newsletter-workspace{min-width:0;min-height:0;height:100%;overflow:auto}
+.ux05f-newsletter-workspace[hidden]{display:none}
+.ux05f-newsletter-workspace .newsletter-product-host,.ux05f-newsletter-workspace .newsletter-studio{min-height:100%}
+.ux05f-newsletter-workspace .newsletter-studio .studio-body{min-height:calc(100dvh - 222px)}
+@media(max-height:700px){.ux05f-newsletter-workspace .newsletter-studio .studio-body{min-height:calc(100dvh - 206px)}}

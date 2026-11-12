@@ -8,7 +8,7 @@ import "./rendering/fonts/pretendard.css"
 import {createBlankNewsletter,newsletterSchoolTypes,type NewsletterSchoolType} from "./newDocument"
 import "./newsletter-studio.css"
 
-export function NewsletterStudio({ onClose,renderAiTools }: { readonly onClose: () => void;readonly renderAiTools?:(text:string)=>ReactNode }) {
+export function NewsletterStudio({ onClose,closeRequest,onCloseRequestResolved,renderAiTools }: { readonly onClose: () => void;readonly closeRequest?:number;readonly onCloseRequestResolved?:(closed:boolean)=>void;readonly renderAiTools?:(text:string)=>ReactNode }) {
   const [creating,setCreating]=useState(false)
   const [month,setMonth]=useState(()=>{const now=new Date();return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`})
   const [schoolType,setSchoolType]=useState<NewsletterSchoolType>('coed-high')
@@ -24,6 +24,7 @@ export function NewsletterStudio({ onClose,renderAiTools }: { readonly onClose: 
   const [message, setMessage] = useState("")
   const [busy, setBusy] = useState(false)
   const [projectBusy,setProjectBusy]=useState(false)
+  const handledCloseRequest=useRef(closeRequest)
   const [fontReady, setFontReady] = useState(typeof window.document.fonts === "undefined")
   useEffect(() => {
     if (window.document.fonts === undefined) return
@@ -35,6 +36,12 @@ export function NewsletterStudio({ onClose,renderAiTools }: { readonly onClose: 
     }, (error: unknown) => { if (active) setMessage(error instanceof Error ? error.message : "한글 글꼴을 불러오지 못했습니다.") })
     return () => { active = false }
   }, [])
+  useEffect(()=>{
+    if(closeRequest===undefined||handledCloseRequest.current===closeRequest)return
+    handledCloseRequest.current=closeRequest
+    if(busy||projectBusy){onCloseRequestResolved?.(false);return}
+    setCreating(false);onClose();onCloseRequestResolved?.(true)
+  },[busy,closeRequest,onClose,onCloseRequestResolved,projectBusy])
   const shown=preview===null?document:parseStudioDocument(JSON.parse(preview.document))
   const resolver = useMemo(() => shown === undefined ? undefined : createStudioAssetResolver(shown.design, images), [shown?.design, images])
   const archive=():Draft|undefined=>document===undefined?undefined:{key:++draftSequence.current,document,head,images}

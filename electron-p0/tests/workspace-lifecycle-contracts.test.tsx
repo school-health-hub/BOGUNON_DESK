@@ -10,14 +10,24 @@ const finderLifecycle = vi.hoisted(() => ({ mounts: 0, cancels: 0, savedMemo: ""
 const inventoryLifecycle = vi.hoisted(() => ({ mounts: 0, savedName: "합성 저장 물품" }));
 
 vi.mock("../../src/newsletter/NewsletterStudio", async () => {
-  const { useState } = await import("react");
+  const { useEffect, useRef, useState } = await import("react");
   return {
-    NewsletterStudio: ({ onClose }: { readonly onClose: () => void }) => {
+    NewsletterStudio: ({ onClose, closeRequest, onCloseRequestResolved }: { readonly onClose: () => void; readonly closeRequest?: number; readonly onCloseRequestResolved?: (closed: boolean) => void }) => {
       const [instance] = useState(() => {
         newsletterLifecycle.mounts += 1;
         return newsletterLifecycle.mounts;
       });
-      return <main><h1>{`합성 소식지 ${instance}`}</h1><button type="button" onClick={onClose}>소식지 닫기</button></main>;
+      const [draft, setDraft] = useState("");
+      const [busy, setBusy] = useState(false);
+      const [projectBusy, setProjectBusy] = useState(false);
+      const previous = useRef(closeRequest);
+      useEffect(() => {
+        if (closeRequest === undefined || previous.current === closeRequest) return;
+        previous.current = closeRequest;
+        if (busy || projectBusy) { onCloseRequestResolved?.(false); return; }
+        onClose(); onCloseRequestResolved?.(true);
+      }, [busy, closeRequest, onClose, onCloseRequestResolved, projectBusy]);
+      return <main aria-label="합성 보건소식지 제작소"><h1>{`합성 소식지 ${instance}`}</h1><label>합성 소식지 원고<input value={draft} onChange={event => setDraft(event.target.value)} /></label><button type="button" onClick={() => setBusy(value => !value)}>합성 생성 작업 전환</button><button type="button" onClick={() => setProjectBusy(value => !value)}>합성 프로젝트 작업 전환</button><button type="button" disabled={busy || projectBusy} onClick={onClose}>소식지 닫기</button></main>;
     },
   };
 });
@@ -159,6 +169,51 @@ it("keeps Newsletter mounted while its workspace is closed and reopened", async 
   // Then: the original component instance is revealed rather than remounted.
   expect(await screen.findByRole("heading", { name: "합성 소식지 1" })).toBeTruthy();
   expect(newsletterLifecycle.mounts).toBe(1);
+});
+
+it("hosts one Newsletter instance in the App Shell and preserves its edit across category navigation", async () => {
+  setupDashboard();
+  render(<P0App />);
+  const rail = await screen.findByRole("navigation", { name: "주요 작업 공간" });
+
+  fireEvent.click(within(rail).getByRole("button", { name: "문서·교육자료" }));
+  fireEvent.click(screen.getByRole("button", { name: /보건소식지 제작소/ }));
+  expect(await screen.findByText("문서·교육자료 / 보건소식지 제작소")).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("합성 소식지 원고"), { target: { value: "유지할 합성 소식지 원고" } });
+
+  fireEvent.click(within(rail).getByRole("button", { name: "홈" }));
+  expect(within(rail).getByRole("button", { name: "홈" }).getAttribute("aria-current")).toBe("page");
+  expect(screen.queryByRole("main", { name: "합성 보건소식지 제작소" })).toBeNull();
+
+  fireEvent.click(within(rail).getByRole("button", { name: "문서·교육자료" }));
+  fireEvent.click(screen.getByRole("button", { name: /보건소식지 제작소/ }));
+  expect((await screen.findByLabelText("합성 소식지 원고") as HTMLInputElement).value).toBe("유지할 합성 소식지 원고");
+  expect(newsletterLifecycle.mounts).toBe(1);
+
+  fireEvent.click(screen.getByRole("button", { name: "소식지 닫기" }));
+  expect(await screen.findByRole("heading", { name: "문서·교육자료" })).toBeTruthy();
+});
+
+it.each(["합성 생성 작업 전환", "합성 프로젝트 작업 전환"])("rejects Rail navigation while Newsletter is busy through %s", async (busyControl) => {
+  setupDashboard();
+  render(<P0App />);
+  const rail = await screen.findByRole("navigation", { name: "주요 작업 공간" });
+  fireEvent.click(within(rail).getByRole("button", { name: "문서·교육자료" }));
+  fireEvent.click(screen.getByRole("button", { name: /보건소식지 제작소/ }));
+  fireEvent.change(await screen.findByLabelText("합성 소식지 원고"), { target: { value: "작업 중 유지할 원고" } });
+  fireEvent.click(screen.getByRole("button", { name: busyControl }));
+
+  fireEvent.click(within(rail).getByRole("button", { name: "홈" }));
+
+  expect(within(rail).getByRole("button", { name: "문서·교육자료" }).getAttribute("aria-current")).toBe("page");
+  expect(screen.getByRole("main", { name: "합성 보건소식지 제작소" })).toBeTruthy();
+  expect((screen.getByLabelText("합성 소식지 원고") as HTMLInputElement).value).toBe("작업 중 유지할 원고");
+  expect(newsletterLifecycle.mounts).toBe(1);
+
+  fireEvent.click(screen.getByRole("button", { name: busyControl }));
+  fireEvent.click(within(rail).getByRole("button", { name: "홈" }));
+  expect(within(rail).getByRole("button", { name: "홈" }).getAttribute("aria-current")).toBe("page");
+  expect(screen.queryByRole("main", { name: "합성 보건소식지 제작소" })).toBeNull();
 });
 
 it("keeps a failed SCHOOL workspace inside its independent error boundary", () => {

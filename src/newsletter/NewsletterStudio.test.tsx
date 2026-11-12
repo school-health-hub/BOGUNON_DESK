@@ -65,3 +65,23 @@ it('prevents a new issue from racing an outstanding internal project load',async
  expect((screen.getByRole('button',{name:'새 소식지 작성'}) as HTMLButtonElement).disabled).toBe(true);
  finish({ok:true,data:{head:{projectId:project.projectId,revision:1,hash:'a'.repeat(64)},document:serializeStudioDocument(doc)}});await screen.findByRole('heading',{name:'지연 불러오기 원고'});await waitFor(()=>expect((screen.getByRole('button',{name:'새 소식지 작성'}) as HTMLButtonElement).disabled).toBe(false))
 })
+
+it('rejects a host close request while a file operation is busy and accepts the next request after completion',async()=>{
+ const now='2026-11-12T00:00:00.000Z',project=await createNewsletterProject({projectId:'busy-close',title:'작업 중 원고',now}),doc={project,design:createNewsletterDesignState({projectId:project.projectId,canonicalProjectRevision:1,now})};
+ let finish!:(value:{ok:true;data:{saved:boolean;fileName:string}})=>void;const saveJson=vi.fn(()=>new Promise<{ok:true;data:{saved:boolean;fileName:string}}>(resolve=>{finish=resolve}));const onClose=vi.fn(),resolved=vi.fn();
+ vi.stubGlobal('electronWork',{newsletter:{projects:{list:async()=>({ok:true,data:[]})},saveJson}});
+ const view=render(<NewsletterStudio closeRequest={0} onCloseRequestResolved={resolved} onClose={onClose}/>);
+ const file=new File([serializeStudioDocument(doc)],'busy.json');Object.defineProperty(file,'text',{value:async()=>serializeStudioDocument(doc)});fireEvent.change(screen.getByLabelText('원고·디자인 JSON 열기'),{target:{files:[file]}});await screen.findByRole('heading',{name:'작업 중 원고'});
+ fireEvent.click(screen.getByRole('button',{name:'원고·디자인 JSON 저장'}));view.rerender(<NewsletterStudio closeRequest={1} onCloseRequestResolved={resolved} onClose={onClose}/>);
+ await waitFor(()=>expect(resolved).toHaveBeenLastCalledWith(false));expect(onClose).not.toHaveBeenCalled();
+ finish({ok:true,data:{saved:true,fileName:'busy.json'}});await waitFor(()=>expect((screen.getByRole('button',{name:'원고·디자인 JSON 저장'}) as HTMLButtonElement).disabled).toBe(false));
+ view.rerender(<NewsletterStudio closeRequest={2} onCloseRequestResolved={resolved} onClose={onClose}/>);await waitFor(()=>expect(onClose).toHaveBeenCalledOnce());expect(resolved).toHaveBeenLastCalledWith(true);
+})
+
+it('rejects a host close request while a project operation is busy',async()=>{
+ let finish!:(value:{ok:false;error:{code:'IO_ERROR';message:string}})=>void;const load=vi.fn(()=>new Promise<{ok:false;error:{code:'IO_ERROR';message:string}}>(resolve=>{finish=resolve}));const onClose=vi.fn(),resolved=vi.fn();
+ vi.stubGlobal('electronWork',{newsletter:{projects:{list:async()=>({ok:true,data:['busy-project']}),load}}});
+ const view=render(<NewsletterStudio closeRequest={0} onCloseRequestResolved={resolved} onClose={onClose}/>);fireEvent.click(screen.getByText('Electron 프로젝트 저장·revision 이력'));fireEvent.change(screen.getByLabelText('불러올 프로젝트 ID'),{target:{value:'busy-project'}});fireEvent.click(screen.getByRole('button',{name:'프로젝트 불러오기'}));
+ view.rerender(<NewsletterStudio closeRequest={1} onCloseRequestResolved={resolved} onClose={onClose}/>);await waitFor(()=>expect(resolved).toHaveBeenLastCalledWith(false));expect(onClose).not.toHaveBeenCalled();
+ finish({ok:false,error:{code:'IO_ERROR',message:'합성 프로젝트 실패'}});await screen.findByText('합성 프로젝트 실패');
+})
