@@ -50,11 +50,11 @@ export function StudentArtLibrary({ design, mode, index, topic, assets, onChange
  <p role="note">기존 20개 그림은 검수용 후보입니다. 출판 승인이 없으므로 PNG·PDF 출판 출력은 차단됩니다. 필터를 바꿔도 현재 그림은 유지됩니다.</p>
  <label>적용 대상<select value={slot?.key ?? ""} onChange={e => setSlotKey(e.target.value)}>{slots.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}</select></label>
  <nav aria-label="학생 유형">{(["all", "female", "male", "mixed"] as const).map((v, i) => <button type="button" key={v} aria-pressed={type === v} onClick={() => setType(v)}>{["전체", "여학생", "남학생", "혼합"][i]}</button>)}
- <label><input type="checkbox" checked={recommended} onChange={e => setRecommended(e.target.checked)}/>현재 주제 추천 (장면 태그 기준)</label></nav>
+ <label className="student-art-check"><input type="checkbox" checked={recommended} onChange={e => setRecommended(e.target.checked)}/>현재 주제 추천 (장면 태그 기준)</label></nav>
  <button type="button" aria-pressed={choice === null} onClick={() => setChoice(null)}>학생 없음 · 해당 슬롯의 그림 미사용</button>
  <div className="student-art-grid">{[...groups].map(([family,list])=><article key={family}><h3>{family}</h3>{list[0]&&tile(list[0])}{list.length>1&&<details><summary>같은 장면의 파생·크롭 {list.length-1}개</summary>{list.slice(1).map(tile)}</details>}</article>)}</div>
  {candidates.length === 0 && <p role="status">해당 주제·유형의 추천 그림이 없습니다. 전체 라이브러리에서 선택해 주세요.</p>}
  {choice !== undefined && <section className="student-art-compare" aria-label="변경 전후 비교"><figure><figcaption>현재 · {slot?.label}</figcaption>{slot?.assetId && assets?.get(slot.assetId) ? <img src={assets.get(slot.assetId)} alt="현재 그림"/> : <p>미지정 그림 또는 기본 도형</p>}</figure><figure><figcaption>변경 후 · {selected?.family ?? "학생 없음"}</figcaption>{selected ? <button type="button" className={enlarged ? "student-art-enlarged" : ""} onClick={() => setEnlarged(v => !v)} aria-label={enlarged ? "그림 축소" : "그림 확대"}><img src={studentArtSource(selected.sha256)} alt="선택한 그림 확대"/></button> : <p>그림 미사용</p>}</figure></section>}
- {selected && <label><input type="checkbox" checked={review} onChange={e => setReview(e.target.checked)}/>승인 대기 그림을 검수용 편집본에서만 확인합니다.</label>}
+ {selected && <label className="student-art-check"><input type="checkbox" checked={review} onChange={e => setReview(e.target.checked)}/>승인 대기 그림을 검수용 편집본에서만 확인합니다.</label>}
  {error && <p role="alert">{error}</p>}<footer><button type="button" onClick={() => dialog.current?.close()}>취소 · 현재 문서 유지</button><button type="button" disabled={choice === undefined || choice !== null && !review || !slot} onClick={confirm}>비교한 슬롯에 적용 · 새 revision</button></footer></dialog></section>;
 }

@@ -4,3 +4,5 @@
 .student-art-dialog nav label,.student-art-dialog>label:has(input){display:flex;align-items:center;gap:var(--desk-space-2,8px)}.student-art-dialog input[type=checkbox]{width:auto;margin:0}.student-art-grid summary{cursor:pointer;font-size:var(--desk-type-xs,12px);padding:8px 0}
 
 .student-art-dialog nav label,.student-art-dialog>label:has(input){flex-direction:row;justify-content:flex-start;align-items:center;text-align:left}
+
+.newsletter-studio dialog.student-art-dialog label.student-art-check,.electron-soft-rose .td2-workspace .newsletter-studio dialog.student-art-dialog label.student-art-check{display:flex;flex-direction:row;align-items:center;gap:8px;justify-content:flex-start}.newsletter-studio dialog.student-art-dialog label.student-art-check input[type=checkbox],.electron-soft-rose .td2-workspace .newsletter-studio dialog.student-art-dialog label.student-art-check input[type=checkbox]{width:16px;min-width:16px;max-width:16px;flex:0 0 16px;margin:0}
