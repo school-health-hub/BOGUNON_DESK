@@ -11,11 +11,12 @@ import { MessageEditor } from './MessageEditor';
 import './finder.css';
 const emptyEducation: Education = { educationTitle: '', target: '', schedule: '', instructions: '' };
 const recoveryMessage = '저장된 교육영상 목록에 문제가 발견되어 백업에서 복구했습니다. 현재 목록을 확인해 주세요.';
-export function EducationVideoFinder({ onClose,renderAiTools,searchBridge,compatBridge }: {
+export function EducationVideoFinder({ onClose,renderAiTools,searchBridge,compatBridge,embedded=false }: {
     readonly onClose: () => void;
     readonly compatBridge?:FinderCompatBridge;
     readonly searchBridge?:FinderSearchBridge;
     readonly renderAiTools?:(text:string)=>ReactNode;
+    readonly embedded?:boolean;
 }) {
     const [mode,setMode]=useState<'youtube'|'mock'>(searchBridge?'youtube':'mock');
     const [provider,setProvider]=useState<FinderSearchStatus|null>(null),[connectionBusy,setConnectionBusy]=useState(false),[searchBusy,setSearchBusy]=useState(false),[consent,setConsent]=useState(false),[nextCursor,setNextCursor]=useState<string|null>(null);
@@ -95,12 +96,12 @@ export function EducationVideoFinder({ onClose,renderAiTools,searchBridge,compat
         setNotice('가져왔습니다. 중복 영상의 기존 메모와 안내문을 유지했습니다.');
     });
     const shown = filterVideos(videos, searched?.minutes ?? conditions.minutes, windowMinutes);
-    return <main className="ev-finder">
+    return <main className={`ev-finder${embedded?' is-embedded':''}`}>
  <header className="ev-header"><div className="ev-header-main">
- <button type="button" onClick={onClose}><ArrowLeft size={16}/>보건 업무로</button>
- <div className="ev-header-copy"><span className="ev-eyebrow">교육영상 업무</span>
+ <button type="button" onClick={onClose}><ArrowLeft size={16}/>{embedded?'문서·교육자료':'보건 업무로'}</button>
+ {!embedded&&<div className="ev-header-copy"><span className="ev-eyebrow">교육영상 업무</span>
  <h1>교육영상 Finder <small>v1.1</small></h1>
- <p>검색하고 비교한 뒤 안내문과 로컬 보관함으로 정리합니다.</p></div>
+ <p>검색하고 비교한 뒤 안내문과 로컬 보관함으로 정리합니다.</p></div>}
  </div><span className="ev-mock-badge">{mode==='youtube'?'YouTube 공식 API 검색':'합성 Mock 전용'}</span></header>
  {mode==='mock'&&<div className="ev-mock-note"><strong>합성 검색 결과</strong><span>실제 YouTube 영상이 아니며 안내문에도 Mock 표시가 유지됩니다.</span></div>}
  {renderAiTools?.([education.educationTitle,education.target,education.schedule,education.instructions,message].filter(Boolean).join('\n'))}

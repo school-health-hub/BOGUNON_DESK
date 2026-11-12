@@ -702,5 +702,8 @@ the module keeps only purposeful local preview or table scrolling. Embedded modu
 headers retain their back action and safety status but omit a duplicated title and
 description. Navigation away must invoke the module's existing draft/discard owner;
 cancel preserves the mounted module and focusable draft, while confirmation returns
-to the requested category. This pilot applies only to Official Document Workspace and
-does not change other module lifecycles, persistence, IPC, or file contracts.
+to the requested category. Official Document Workspace keeps its discard owner and
+Purchase Helper keeps its controlled-open session owner. Education Video Finder uses
+the same outlet without becoming keep-alive: leaving unmounts the renderer, cancels
+in-flight search, and re-entry reloads the persisted native library and memo state.
+The pilots do not change module persistence, IPC, recovery, or file contracts.

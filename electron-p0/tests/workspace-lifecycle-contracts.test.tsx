@@ -6,6 +6,7 @@ import { P0App } from "../renderer/P0App";
 import { WorkspaceBoundary } from "../renderer/WorkspaceBoundary";
 
 const newsletterLifecycle = vi.hoisted(() => ({ mounts: 0 }));
+const finderLifecycle = vi.hoisted(() => ({ mounts: 0, cancels: 0, savedMemo: "" }));
 
 vi.mock("../../src/newsletter/NewsletterStudio", async () => {
   const { useState } = await import("react");
@@ -39,6 +40,22 @@ vi.mock("../renderer/purchase/PurchaseSession", async () => {
     </main>;
   } };
 });
+vi.mock("../../src/education-video/EducationVideoFinder", async () => {
+  const { useEffect, useState } = await import("react");
+  return { EducationVideoFinder: ({ onClose, embedded }: { readonly onClose: () => void; readonly embedded?: boolean }) => {
+    const [instance] = useState(() => { finderLifecycle.mounts += 1; return finderLifecycle.mounts; });
+    const [search, setSearch] = useState("");
+    const [memo, setMemo] = useState(() => finderLifecycle.savedMemo);
+    useEffect(() => () => { finderLifecycle.cancels += 1; }, []);
+    return <section aria-label="합성 교육영상 Finder" data-embedded={String(embedded)}>
+      <span>{`합성 Finder 인스턴스 ${instance}`}</span>
+      <label>합성 검색어<input value={search} onChange={(event) => setSearch(event.target.value)} /></label>
+      <label>합성 저장 메모<input value={memo} onChange={(event) => setMemo(event.target.value)} /></label>
+      <button type="button" onClick={() => { finderLifecycle.savedMemo = memo; }}>합성 메모 저장</button>
+      <button type="button" onClick={onClose}>문서·교육자료로</button>
+    </section>;
+  } };
+});
 vi.mock("../../src/components/dashboard/DesktopWidgetLayout", () => ({ DesktopWidgetLayout: () => <div>합성 Home</div> }));
 vi.mock("../renderer/finance/FinanceHost", () => ({ FinanceHost: ({ onClose }: { readonly onClose: () => void }) => <main><h1>합성 MY FINANCE</h1><button type="button" onClick={onClose}>Finance 닫기</button></main> }));
 vi.mock("../../src/official-document/OfficialDocumentWorkspace", async () => {
@@ -60,6 +77,9 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
   newsletterLifecycle.mounts = 0;
+  finderLifecycle.mounts = 0;
+  finderLifecycle.cancels = 0;
+  finderLifecycle.savedMemo = "";
 });
 
 function setupDashboard(): void {
@@ -79,6 +99,7 @@ function setupDashboard(): void {
       load: async () => ({ ok: true, data: { document: { version: 1, revision: 0, tasks: [] }, recovered: false } }),
       save: vi.fn(),
     },
+    educationVideo: { compat: undefined, searchProvider: undefined },
   });
 }
 
@@ -249,4 +270,36 @@ it("keeps Purchase and its modal open when a Rail transition is guarded", async 
   expect((screen.getByLabelText("합성 품의 원고") as HTMLInputElement).value).toBe("보호할 합성 원고");
   expect(within(rail).getByRole("button", { name: "물품·품의" }).getAttribute("aria-current")).toBe("page");
   expect(screen.getByText(/현재 작업 화면을 먼저 닫아 주세요/)).toBeTruthy();
+});
+
+it("unmounts Finder on navigation and reloads only its persisted library state on re-entry", async () => {
+  setupDashboard();
+  const confirm = vi.spyOn(window, "confirm");
+  render(<P0App />);
+
+  const rail = await screen.findByRole("navigation", { name: "주요 작업 공간" });
+  fireEvent.click(within(rail).getByRole("button", { name: "문서·교육자료" }));
+  fireEvent.click(screen.getByRole("button", { name: /교육영상 Finder/ }));
+
+  expect(screen.getByText("문서·교육자료 / 교육영상 Finder")).toBeTruthy();
+  expect((await screen.findByRole("region", { name: "합성 교육영상 Finder" })).getAttribute("data-embedded")).toBe("true");
+  fireEvent.change(screen.getByLabelText("합성 검색어"), { target: { value: "재진입하면 지울 검색" } });
+  fireEvent.change(screen.getByLabelText("합성 저장 메모"), { target: { value: "저장된 합성 메모" } });
+  fireEvent.click(screen.getByRole("button", { name: "합성 메모 저장" }));
+
+  fireEvent.click(within(rail).getByRole("button", { name: "홈" }));
+  expect(confirm).not.toHaveBeenCalled();
+  expect(finderLifecycle.cancels).toBe(1);
+  expect(screen.queryByRole("region", { name: "합성 교육영상 Finder" })).toBeNull();
+
+  fireEvent.click(within(rail).getByRole("button", { name: "문서·교육자료" }));
+  fireEvent.click(screen.getByRole("button", { name: /교육영상 Finder/ }));
+  await screen.findByRole("region", { name: "합성 교육영상 Finder" });
+  expect(finderLifecycle.mounts).toBe(2);
+  expect((screen.getByLabelText("합성 검색어") as HTMLInputElement).value).toBe("");
+  expect((screen.getByLabelText("합성 저장 메모") as HTMLInputElement).value).toBe("저장된 합성 메모");
+
+  fireEvent.click(screen.getByRole("button", { name: "문서·교육자료로" }));
+  expect(screen.getByRole("button", { name: /교육영상 Finder/ })).toBeTruthy();
+  expect(finderLifecycle.cancels).toBe(2);
 });
