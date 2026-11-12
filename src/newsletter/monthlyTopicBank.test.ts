@@ -98,3 +98,10 @@ it('keeps supplied archive provenance and never promotes a pending bank review',
     throw Error('fixture'); const source = { kind: 'local-archive', label: '합성 과거자료 출처 테스트', reference: 'fixture:archive', sha256: 'a'.repeat(64) }; const imported = parseMonthlyBank(JSON.stringify({ version: 1, topics: [{ ...first, source }] })); expect(imported[0]?.source).toEqual(source); const pending = recommendMonthlyTopics([{ ...first, source: { kind: 'approved-bank', label: 'imported claim', reference: 'fixture:pending' } }], '2026-11', 'coed-high'); expect(pending[0]?.reason).toContain('검토 필요'); });
 
 it('the earliest accepted month does not throw in explicit synthetic example generation',()=>{expect(()=>syntheticMonthlyBank('2000-01')).not.toThrow();expect(recommendMonthlyTopics(syntheticMonthlyBank('2000-01'),'2000-01','coed-high')).toEqual([])})
+it('NS01 closing copy fits its existing A4 frame without colliding with the action list',async()=>{
+ const original=await createBlankNewsletter({month:'2026-11',schoolType:'coed-high',projectId:'ns01-closing',now})
+ const next=applyTopicPlan(original,syntheticMonthlyBank('2026-11').slice(0,6),'2026-11',now)
+ const render=compileRenderDocument({project:next.project,projectRevision:next.project.projectRevision,design:next.design,designRevision:next.design.designRevision})
+ expect(render.issues.filter(issue=>issue.pageId==='a4-page'&&(issue.kind==='overlap'||issue.kind==='overflow'))).toEqual([])
+ expect(next.design.a4Layout).toEqual(original.design.a4Layout)
+})

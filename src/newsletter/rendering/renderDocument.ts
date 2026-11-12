@@ -174,7 +174,10 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
     const topicTitle = titles.get(section.topicId) ?? ""
     const frames = structured ? reflowA4ModuleFrames({ titleText: topicTitle, leadText, titleFrame: module.titleFrame, leadFrame: module.leadFrame, actionFrame: module.actionListFrame, imageFrame: module.image.frame, titleStyle: moduleTitleStyle, bodyStyle, measureText: input.measureText }) : undefined
     const titleFrame = frames?.title ?? { ...module.frame, height: 60 }
-    const bodyFrame = structured ? expandedBodyFrame(frames?.lead ?? module.leadFrame, frames?.action ?? module.actionListFrame, leadText.length > 0) : { x: module.frame.x, y: module.frame.y + 72, width: module.frame.width, height: module.frame.height - 72 }
+    const sourceBodyFrame = structured ? expandedBodyFrame(frames?.lead ?? module.leadFrame, frames?.action ?? module.actionListFrame, leadText.length > 0) : { x: module.frame.x, y: module.frame.y + 72, width: module.frame.width, height: module.frame.height - 72 }
+    const closingText=structured?(editorialA4&&isV2(snapshot)?snapshot.cardLayouts[index+1]?.editorial?.closing??section.topicSelection?.closing??"":section.topicSelection?.closing??""):""
+    const bodyFrame=structured&&section.topicSelection&&closingText?{...sourceBodyFrame,height:Math.max(1,Math.min(sourceBodyFrame.height,module.closingFrame.y-sourceBodyFrame.y-8))}:sourceBodyFrame
+    const closingStyle=editorialA4?{...bodyStyle,fontSize:18,fontWeight:650,color:module.accent,align:"center" as const}:section.topicSelection?{...bodyStyle,fontSize:18,lineHeight:1.2}:bodyStyle
     const bodyText = content.kind === "list" ? actionText(content.actions, structured ? module.listMarkerStyle : "source") : content.body
     const provenance = { kind: "canonical-section", sectionId: section.id, sourceText: section.text } as const
     return {
@@ -183,7 +186,7 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
       title: block(`a4-title-${section.id}`, "a4-page", topicTitle, titleFrame, moduleTitleStyle, { kind: "topic-title", topicId: section.topicId }, issues, input.measureText),
       ...(structured && leadText.length > 0 ? { lead: block(`a4-lead-${section.id}`, "a4-page", leadText, frames?.lead ?? module.leadFrame, bodyStyle, provenance, issues, input.measureText, false, editorialA4) } : {}),
       body: block(`a4-body-${section.id}`, "a4-page", bodyText, bodyFrame, bodyStyle, provenance, issues, input.measureText, true, editorialA4),
-      ...(structured ? { closing: block(`a4-closing-${section.id}`, "a4-page", editorialA4 && isV2(snapshot) ? snapshot.cardLayouts[index + 1]?.editorial?.closing ?? section.topicSelection?.closing ?? "" : section.topicSelection?.closing ?? "", module.closingFrame, editorialA4 ? { ...bodyStyle, fontSize: 18, fontWeight: 650, color: module.accent, align: "center" } : bodyStyle, editorialA4 ? { kind: "design-text", pageId: snapshot.cardLayouts[index + 1]?.pageId ?? "a4-page", field: "closing" } : provenance, issues, input.measureText, false, editorialA4), accent: module.accent, listMarkerStyle: module.listMarkerStyle } : {}),
+      ...(structured ? { closing: block(`a4-closing-${section.id}`, "a4-page", closingText, module.closingFrame, closingStyle, editorialA4 ? { kind: "design-text", pageId: snapshot.cardLayouts[index + 1]?.pageId ?? "a4-page", field: "closing" } : provenance, issues, input.measureText, false, editorialA4), accent: module.accent, listMarkerStyle: module.listMarkerStyle } : {}),
       image: structured && frames !== undefined ? { ...module.image, frame: frames.image } : module.image,
     }
   })
