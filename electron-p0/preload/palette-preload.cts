@@ -6,6 +6,7 @@ function call<T>(channel: string, ...args: readonly unknown[]): Promise<T> {
 }
 const palette: PaletteBridge = {
   readSettings: () => call('p0:palette:read-settings'),
+  readProjection:()=>call('p0:palette:read-projection'),
   setInteractive: (interactive) => call('p0:palette:set-interactive', interactive),
   setHitRegions: (regions) => call('p0:palette:set-hit-regions', regions),
   openWorkspace: (entry) => entry === undefined ? call('p0:palette:open-workspace') : call('p0:palette:open-workspace', entry),

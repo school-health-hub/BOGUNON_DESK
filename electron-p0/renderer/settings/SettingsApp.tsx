@@ -11,6 +11,7 @@ import { restoreWidget } from '../../../src/dashboard/layoutTransforms';
 import { PRODUCT_LOGO_URL, PRODUCT_NAME } from '../../../src/branding';
 import electronPackage from '../../package.json';
 import { useSurfaceSettings } from '../useSurfaceSettings';
+import { MonitorProfilesPanel } from './MonitorProfilesPanel';
 
 type InitialSettings = Readonly<{snapshot:SurfaceSettingsSnapshot;info:P0Info}>;
 type SettingsContentProps = Readonly<{initial:SurfaceSettingsSnapshot;info:P0Info;section:SettingsSectionId;sectionRequest?:number}>;
@@ -26,6 +27,7 @@ export function SettingsContent({initial,info,section,sectionRequest=0}:Settings
     account={<AccountSettings/>} school={<SchoolConnectionSettings/>} ai={<AiSettings configurationOnly/>}
     appearance={<AppearancePanel embedded appearance={layout.appearance} onClose={close} onUpdate={appearance=>setLayout(current=>({...current,appearance}))}/>}
     widgets={<WidgetLibraryDrawer embedded widgets={layout.widgets} onClose={close} onRestore={type=>setLayout(current=>restoreWidget(current,type))}/>}
+    desktopProfiles={<MonitorProfilesPanel fallbackLayout={layout}/>}
     dock={<DockEditor embedded dockLayout={dock} onClose={close} onUpdate={setDock}/>}
     about={about} saveStatus={status}/></SchoolProfileProvider>;
 }

@@ -3,7 +3,7 @@ import { SurfaceSettingsFlush } from './surface-settings-flush.js';
 import { notifySchoolChange } from './school-settings-notification.js';
 import { createSurfaceSettingsHandlers } from './surface-settings-ipc.js';
 import { createSettingsWindow, registerSettingsCapabilities } from './settings-surface.js';
-import { DesktopNavigationQueue, parseDesktopEntry, parseSettingsSection } from './desktop-navigation.js';
+import { DesktopNavigationQueue, parseSettingsSection } from './desktop-navigation.js';
 import { validateSettings } from './settings.js';
 import type { SettingsSectionId } from '../desktop-surface-protocol.js';
 import {createInstructorFiles} from './instructor-files.js';
@@ -75,7 +75,12 @@ import {InventoryStore,InventoryConflict} from './inventory-store.js';
 import { createSampleHandler, SAMPLE_SUMMARY_CHANNEL } from './sample-ipc.js';
 import { assertSender, resourceAllowed } from './policy.js';
 import {WorkspaceWindowLifecycle} from './workspace-window-lifecycle.js';
-import {DesktopPaletteLifecycle,desktopPaletteOptions} from './desktop-palette.js';
+import {DesktopPaletteHost} from './palette-host.js';
+import {MonitorProfiles} from './monitor-profiles.js';
+import {MonitorProfileStore} from './monitor-profile-store.js';
+import {createMonitorHandlers} from './monitor-ipc.js';
+import {recoverSurface} from './recover-surface.js';
+import {ensureDesktopAccess} from './desktop-palette.js';
 if (app.commandLine.hasSwitch('no-sandbox') || app.commandLine.hasSwitch('disable-web-security')) throw new Error('Unsafe Electron launch flags denied');
 app.setName(PRODUCT_NAME);
 const testRun = process.env.ELECTRON_P0_TEST_RUN;
@@ -108,7 +113,6 @@ else {
   const dev = process.env.ELECTRON_P0_DEV_URL || undefined;
   if (dev && (app.isPackaged || dev !== 'http://127.0.0.1:5174/')) throw new Error('Invalid PoC dev URL');
   const url = dev ?? pathToFileURL(join(renderer,'index.html')).href;
-  const paletteUrl = dev ? new URL('palette/index.html',dev).href : pathToFileURL(join(renderer,'palette','index.html')).href;
   const isolated = session.fromPartition('persist:electron-p0');
   isolated.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));
   isolated.setPermissionCheckHandler(()=>false);
@@ -116,35 +120,23 @@ else {
   isolated.webRequest.onBeforeRequest((details,callback)=>callback({cancel:!resourceAllowed(details.url,renderer,dev ? new URL(dev).origin : undefined)}));
   const window = new BrowserWindow({ title:PRODUCT_NAME,...fitBounds(desktop.bounds,screen.getAllDisplays().map(d=>d.workArea)),show:false,
     webPreferences:{ preload:join(app.getAppPath(),'preload','preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webviewTag:false,session:isolated,webSecurity:true } });
-  const paletteSession=session.fromPartition('persist:electron-p0-palette');
-  paletteSession.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));
-  paletteSession.setPermissionCheckHandler(()=>false);
-  paletteSession.on('will-download',event=>event.preventDefault());
-  paletteSession.webRequest.onBeforeRequest((details,callback)=>callback({cancel:!resourceAllowed(details.url,renderer,dev ? new URL(dev).origin : undefined)}));
-  const palette=new BrowserWindow({title:`${PRODUCT_NAME} Desktop Palette`,...desktopPaletteOptions(screen.getPrimaryDisplay().workArea),webPreferences:{preload:join(app.getAppPath(),'preload','palette-preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webviewTag:false,session:paletteSession,webSecurity:true}});
-  const paletteLifecycle=new DesktopPaletteLifecycle(palette);
   const settingsUrl=dev?new URL('settings/index.html',dev).href:pathToFileURL(join(renderer,'settings','index.html')).href;
   const settingsWindow=createSettingsWindow({preload:join(app.getAppPath(),'preload','settings-preload.cjs'),renderer,...(dev?{dev}:{}),quitting:()=>quitting});
-  const settingsAuthority=new SurfaceSettingsAuthority(store,snapshot=>{
-    for(const target of [window,palette,settingsWindow])if(!target.isDestroyed()&&!target.webContents.isDestroyed())target.webContents.send('p0:surface-settings:changed',snapshot);
-  });
-  let workspaceSettingsReady=false,quitPending=false;
+  let workspaceSettingsReady=false,quitPending=false,menuReady=false;
   const settingsFlush=new SurfaceSettingsFlush();
-  const schoolChanged=()=>{for(const target of [window,settingsWindow])if(!target.isDestroyed())target.webContents.send("p0:school-settings:changed");};
-  let workspaceReady=false,paletteReady=false,fallbackRequested=false,settingsReady=false,settingsFailed=false;
+  let workspaceReady=false,fallbackRequested=false,settingsReady=false,settingsFailed=false;
   let requestedSettingsSection:SettingsSectionId='account';
-  const exposeFallback=()=>{paletteReady=false;fallbackRequested=true;if(workspaceReady)show();};
-  const paletteStartupTimer=setTimeout(()=>{if(!paletteReady)exposeFallback();},10000);
-  let paletteHitRegions:readonly {x:number;y:number;width:number;height:number}[]=[];
-  const paletteInputTimer=setInterval(()=>{
-    if(palette.isDestroyed()||!palette.isVisible())return;
-    const cursor=screen.getCursorScreenPoint(),bounds=palette.getBounds(),x=cursor.x-bounds.x,y=cursor.y-bounds.y;
-    paletteLifecycle.setInteractive(paletteHitRegions.some(region=>x>=region.x&&x<region.x+region.width&&y>=region.y&&y<region.y+region.height));
-  },50);
-  palette.webContents.setWindowOpenHandler(()=>({action:'deny'}));
-  palette.webContents.on('will-navigate',event=>event.preventDefault());
-  palette.webContents.on('will-redirect',event=>event.preventDefault());
-  palette.webContents.on('will-attach-webview',event=>event.preventDefault());
+  const exposeFallback=()=>{fallbackRequested=true;if(workspaceReady)show();};
+  const settingsAuthority=new SurfaceSettingsAuthority(store,snapshot=>{
+    for(const target of [window,settingsWindow])if(!target.isDestroyed()&&!target.webContents.isDestroyed())target.webContents.send('p0:surface-settings:changed',snapshot);
+    paletteHost.publishSettings(snapshot);
+  });
+  const monitorProfiles=new MonitorProfiles(new MonitorProfileStore(join(userData,'poc-settings')),snapshot=>{
+    if(!settingsWindow.isDestroyed()&&!settingsWindow.webContents.isDestroyed())settingsWindow.webContents.send('p0:monitor-profiles:changed',snapshot);
+    paletteHost.publishProfiles(snapshot);
+  });
+  const paletteHost=new DesktopPaletteHost({renderer,...(dev?{dev}:{}),settings:settingsAuthority,profiles:monitorProfiles,events:eventStore,tasks:taskStore,memo:memoStore,openWorkspace:entry=>desktopNavigation.request(entry),openSettings:section=>openSettings(section),onFailure:exposeFallback,onChanged:()=>{if(menuReady){refreshMenu();ensureDesktopAccess({ready:workspaceReady,quitting,trayAvailable:tray!==null,paletteAvailable:paletteHost.registry.hasRecovery()},show);}},quitting:()=>quitting});
+  const schoolChanged=()=>{for(const target of [window,settingsWindow])if(!target.isDestroyed())target.webContents.send('p0:school-settings:changed');};
   // Closed renderer remains offline. Optional QA provider lives OUTSIDE product app.
   const workspaceProduct=await registerWorkspaceProduct(ipcMain,window.webContents,url,{packaged:app.isPackaged,isolated:qaPaths.qa,mode:process.env.SCHOOL_WORKSPACE_MODE,nodeEnv:process.env.NODE_ENV,runId:testRun,h1OptIn:process.env.SCHOOL_H1_OPT_IN==='isolated-h1'},async()=>{
     const moduleUrl=pathToFileURL(join(app.getAppPath(),'..',process.env.SCHOOL_WORKSPACE_MODE==='hosted-test'?'school-h1-qa':'school05-qa','provider.mjs')).href;
@@ -328,46 +320,6 @@ else {
   window.on('closed',()=>workFolderHandlers.dispose());window.webContents.on('will-navigate',()=>workFolderHandlers.dispose());window.webContents.on('render-process-gone',()=>workFolderHandlers.dispose());
   ipcMain.handle('p2:memo:read',memoHandlers.read);
   ipcMain.handle('p2:memo:write',memoHandlers.write);
-  ipcMain.handle('p0:palette:open-settings',(event,...args:unknown[])=>{assertSender(event,palette.webContents,paletteUrl);if(args.length!==1)throw Error('Invalid Settings request');openSettings(parseSettingsSection(args[0]));});
-  ipcMain.handle('p0:palette:ready',(event,...args:unknown[])=>{assertSender(event,palette.webContents,paletteUrl);if(args.length)throw Error('Invalid Palette readiness');paletteReady=true;clearTimeout(paletteStartupTimer);refreshMenu();});
-  const paletteEventHandlers=createLocalEventHandlers(palette.webContents,paletteUrl,eventStore);
-  const paletteTaskHandlers=createLocalTaskHandlers(palette.webContents,paletteUrl,taskStore);
-  const paletteMemoHandlers=createMemoHandlers(palette.webContents,paletteUrl,memoStore);
-  ipcMain.handle('p0:palette:read-settings',async(event,...args:unknown[])=>{
-    assertSender(event,palette.webContents,paletteUrl);
-    if(args.length)throw Error('Invalid Desktop palette settings request');
-    return (await settingsAuthority.read()).value;
-  });
-  ipcMain.handle('p0:palette:set-interactive',(event,interactive:unknown,...args:unknown[])=>{
-    assertSender(event,palette.webContents,paletteUrl);
-    if(args.length||typeof interactive!=='boolean')throw Error('Invalid Desktop palette input mode');
-    paletteLifecycle.setInteractive(interactive);
-  });
-  ipcMain.handle('p0:palette:set-hit-regions',(event,regions:unknown,...args:unknown[])=>{
-    assertSender(event,palette.webContents,paletteUrl);
-    if(args.length||!Array.isArray(regions)||regions.length>16)throw Error('Invalid Desktop palette hit regions');
-    const bounds=palette.getContentBounds();
-    paletteHitRegions=regions.map(region=>{
-      if(!region||typeof region!=='object')throw Error('Invalid Desktop palette hit region');
-      const {x,y,width,height}=region as Record<string,unknown>;
-      if(![x,y,width,height].every(Number.isFinite)||Number(x)<0||Number(y)<0||Number(width)<=0||Number(height)<=0||Number(x)+Number(width)>bounds.width+1||Number(y)+Number(height)>bounds.height+1)throw Error('Invalid Desktop palette hit region');
-      return {x:Number(x),y:Number(y),width:Number(width),height:Number(height)};
-    });
-  });
-  ipcMain.handle('p0:palette:open-workspace',(event,...args:unknown[])=>{
-    assertSender(event,palette.webContents,paletteUrl);
-    if(args.length>1)throw Error('Invalid Workspace request');
-    desktopNavigation.request(args.length?parseDesktopEntry(args[0]):undefined);
-  });
-  ipcMain.handle('p0:palette:events:load',paletteEventHandlers.load);
-  ipcMain.handle('p0:palette:events:save',(event,eventDraft:unknown,expectedRevision:unknown,expectedUpdatedAt:unknown,...args:unknown[])=>
-    paletteEventHandlers.save(event,{event:eventDraft,expectedRevision,expectedUpdatedAt},...args));
-  ipcMain.handle('p0:palette:events:remove',(event,id:unknown,expectedRevision:unknown,expectedUpdatedAt:unknown,confirmed:unknown,...args:unknown[])=>
-    paletteEventHandlers.remove(event,{id,expectedRevision,expectedUpdatedAt,confirmed},...args));
-  ipcMain.handle('p0:palette:tasks:load',paletteTaskHandlers.load);
-  ipcMain.handle('p0:palette:tasks:save',paletteTaskHandlers.save);
-  ipcMain.handle('p0:palette:memo:read',paletteMemoHandlers.read);
-  ipcMain.handle('p0:palette:memo:write',paletteMemoHandlers.write);
   const finderSession=session.fromPartition('youtube-search-egress');
   finderSession.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));finderSession.setPermissionCheckHandler(()=>false);finderSession.on('will-download',event=>event.preventDefault());
   finderSession.webRequest.onBeforeRequest((details,callback)=>callback({cancel:details.method!=='GET'||!allowedYoutubeUrl(details.url)}));
@@ -423,17 +375,19 @@ else {
   let workspaceCloseSequence=0;
   const show=()=>{pendingWorkspaceClose=undefined;if(desktop.maximized&&!window.isMaximized())window.maximize();windowLifecycle.open();};
   const desktopNavigation=new DesktopNavigationQueue(show,entry=>window.webContents.send('p0:desktop-navigation:entry',entry));
-  const openSettings=(section:SettingsSectionId='account')=>{requestedSettingsSection=section;if(settingsFailed){show();dialog.showErrorBox('설정을 열지 못했습니다','설정 화면을 다시 실행해 주세요. 기존 설정은 보존됩니다.');return;}settingsWindow.show();settingsWindow.focus();if(settingsReady)settingsWindow.webContents.send('p0:settings-window:section',section);};
+  const openSettings=(section:SettingsSectionId='account')=>{requestedSettingsSection=section;if(settingsFailed){show();dialog.showErrorBox('설정을 열지 못했습니다','설정 화면을 다시 실행해 주세요. 기존 설정은 보존됩니다.');return;}recoverSurface(settingsWindow,screen.getAllDisplays().map(d=>d.workArea),[720,560]);settingsWindow.show();settingsWindow.focus();if(settingsReady)settingsWindow.webContents.send('p0:settings-window:section',section);};
   ipcMain.handle('p0:desktop-navigation:ready',(event,...args:unknown[])=>{assertSender(event,window.webContents,url);if(args.length)throw Error('Invalid Workspace readiness');workspaceSettingsReady=true;desktopNavigation.ready();});
   ipcMain.handle('p0:desktop-navigation:open-settings',(event,...args:unknown[])=>{assertSender(event,window.webContents,url);if(args.length!==1)throw Error('Invalid Settings request');openSettings(parseSettingsSection(args[0]));});
   for(const action of ['info','ready','close','open-workspace'] as const)ipcMain.handle('p0:settings-window:'+action,(event,...args:unknown[])=>{assertSender(event,settingsWindow.webContents,settingsUrl);if(args.length)throw Error('Invalid Settings window request');switch(action){case 'info':return{appId:APP_ID,productName:PRODUCT_NAME,userData,sourceSha:meta.sourceSha,electron:process.versions.electron};case 'ready':settingsReady=true;settingsWindow.webContents.send('p0:settings-window:section',requestedSettingsSection);return;case 'close':settingsWindow.hide();return;case 'open-workspace':show();return;}});
-  const hasRecovery=()=>tray!==null||(paletteReady&&!palette.isDestroyed()&&palette.isVisible());
+  const hasRecovery=()=>tray!==null||paletteHost.registry.hasRecovery();
+  const monitorHandlers=createMonitorHandlers(settingsWindow.webContents,settingsUrl,monitorProfiles,()=>quitting||quitPending||paletteHost.isSettling());
+  ipcMain.handle('p0:monitor-profiles:read',monitorHandlers.read);ipcMain.handle('p0:monitor-profiles:write',monitorHandlers.write);
   const persist=async()=>{
     try{await desktopStore.write(desktop);return true;}
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
-  const finishQuit=()=>{if(!windowLifecycle.beginQuit())return;quitting=true;clearTimeout(paletteStartupTimer);disposeSettingsCapabilities();clearInterval(paletteInputTimer);paletteLifecycle.beginQuit();instructorFiles.dispose();accountHandlers.dispose();fileDrop.dispose();workFolderHandlers.dispose();recordHandlers.dispose();finderCompat.dispose();finderV2Export.dispose();finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();aiService.dispose();inventoryQa.close();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([instructorFiles.flush(),accountHandlers.flush(),fileDrop.flush(),workFoldersStore.flush(),recordHandlers.flush(),finderSearch.flush(),finderV2Export.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),eventStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>workspaceProduct.dispose()).finally(()=>{tray?.destroy();app.quit();});};
+  const finishQuit=()=>{if(!windowLifecycle.beginQuit())return;quitting=true;paletteHost.beginQuit();disposeSettingsCapabilities();instructorFiles.dispose();accountHandlers.dispose();fileDrop.dispose();workFolderHandlers.dispose();recordHandlers.dispose();finderCompat.dispose();finderV2Export.dispose();finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();aiService.dispose();inventoryQa.close();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([instructorFiles.flush(),accountHandlers.flush(),fileDrop.flush(),workFoldersStore.flush(),recordHandlers.flush(),finderSearch.flush(),finderV2Export.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),monitorProfiles.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),eventStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>workspaceProduct.dispose()).finally(()=>{tray?.destroy();app.quit();});};
   ipcMain.handle('p0:surface-settings:flush-result',(event,...args:unknown[])=>{const actor=[{contents:window.webContents,url},{contents:settingsWindow.webContents,url:settingsUrl}].find(candidate=>candidate.contents===event.sender);if(!actor)throw Error('Unknown settings actor');assertSender(event,actor.contents,actor.url);if(args.length!==2)throw Error('Invalid flush result');settingsFlush.resolve(actor.contents.id,args[0],args[1]);});
   const quit=()=>{if(quitPending||quitting)return;quitPending=true;const actors=[...(workspaceSettingsReady?[window]:[]),...(settingsReady?[settingsWindow]:[])];void Promise.allSettled(actors.map(actor=>settingsFlush.request(actor.webContents.id,id=>actor.webContents.send('p0:surface-settings:flush-request',id)))).then(results=>{if(results.some(result=>result.status==='rejected'))throw Error('Settings flush failed');finishQuit();}).catch(()=>{for(const actor of actors)if(!actor.isDestroyed())actor.webContents.send('p0:surface-settings:resume');quitPending=false;show();dialog.showErrorBox('설정 저장 확인 필요','설정 저장을 확인하지 못해 종료하지 않았습니다. 설정을 확인한 뒤 다시 종료해 주세요.');});};
   const hideAfterRendererApproval=()=>{
@@ -456,8 +410,8 @@ else {
   });
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
-      {label:'Desktop 위젯 표시',click:()=>paletteLifecycle.show()},
-      {label:'Desktop 위젯 숨기기',click:()=>{paletteLifecycle.hide();if(tray===null)show();}},
+      {label:'Desktop 위젯 표시',click:()=>paletteHost.registry.showAll()},
+      {label:'Desktop 위젯 숨기기',click:()=>{paletteHost.registry.hideAll();if(tray===null)show();}},
       {type:'separator'},
       {label:'Workspace 열기',click:show},
       {label:'설정 열기',click:()=>openSettings()},
@@ -468,24 +422,19 @@ else {
     Menu.setApplicationMenu(Menu.buildFromTemplate([{label:'창',submenu:items}]));
   };
   try{const icon=nativeImage.createFromPath(join(app.getAppPath(),'tray.png'));if(icon.isEmpty())throw Error('No tray icon');tray=new Tray(icon);tray.setToolTip(PRODUCT_NAME);tray.on('double-click',show);}catch{desktop.closeBehavior='quit';}
-  refreshMenu();
+  menuReady=true;refreshMenu();
   const changed=()=>{clearTimeout(timer);timer=setTimeout(()=>{capture();void persist();},250);};
   window.on('move',changed);window.on('resize',changed);window.on('maximize',changed);window.on('unmaximize',changed);
-  const adjust=()=>{const bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));window.setBounds(bounds);changed();};
-  const adjustPalette=()=>{if(!palette.isDestroyed())palette.setBounds(screen.getPrimaryDisplay().workArea);};
+  const adjust=()=>{const areas=screen.getAllDisplays().map(d=>d.workArea);recoverSurface(window,areas,[320,240]);recoverSurface(settingsWindow,areas,[720,560]);changed();};
   screen.on('display-added',adjust);screen.on('display-removed',adjust);screen.on('display-metrics-changed',adjust);
-  screen.on('display-added',adjustPalette);screen.on('display-removed',adjustPalette);screen.on('display-metrics-changed',adjustPalette);
   app.on('second-instance',()=>{if(workspaceReady)show();else fallbackRequested=true;});
   window.once('ready-to-show',()=>{workspaceReady=true;if(fallbackRequested||tray===null)show();});
-  palette.webContents.on('did-fail-load',exposeFallback);palette.webContents.on('render-process-gone',exposeFallback);palette.on('closed',()=>{if(!quitting)exposeFallback();});
   settingsWindow.webContents.on('render-process-gone',()=>{settingsFailed=true;show();});
   window.webContents.on('render-process-gone',()=>desktopNavigation.reset());
-  palette.once('ready-to-show',()=>paletteLifecycle.show());
-  palette.on('close',event=>{if(quitting)return;event.preventDefault();paletteLifecycle.hide();if(tray===null)show();});
   window.on('close',event=>{if(quitting)return;event.preventDefault();requestWorkspaceHide();});
   app.on('before-quit',event=>{if(!quitting){event.preventDefault();quit();}});
   app.on('window-all-closed',quit);
   await window.loadURL(url);
-  await Promise.all([palette.loadURL(paletteUrl).catch(()=>exposeFallback()),settingsWindow.loadURL(settingsUrl).catch(()=>{settingsFailed=true;})]);
+  await Promise.all([paletteHost.start().catch(()=>exposeFallback()),settingsWindow.loadURL(settingsUrl).catch(()=>{settingsFailed=true;})]);
   }).catch((error: unknown)=>{ console.error('Electron P0 startup failed:', error instanceof Error ? error.message : 'unknown'); dialog.showErrorBox('BOGUNON 실행 오류','Desktop 화면을 시작하지 못했습니다. 기존 자료는 보존됩니다. 앱을 다시 실행해 주세요.'); app.exit(1); });
 }

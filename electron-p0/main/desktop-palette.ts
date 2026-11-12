@@ -1,4 +1,7 @@
 import type { Rectangle } from 'electron';
+export function ensureDesktopAccess(state:Readonly<{ready:boolean;quitting:boolean;trayAvailable:boolean;paletteAvailable:boolean}>,showWorkspace:()=>void):void {
+  if(state.ready&&!state.quitting&&!state.trayAvailable&&!state.paletteAvailable)showWorkspace();
+}
 
 type PaletteWindow = {
   readonly isDestroyed: () => boolean;

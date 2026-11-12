@@ -42,17 +42,17 @@ export function PaletteApp() {
   useEffect(() => {
     let active = true;
     let revision=-1;
-    const apply=(settings:P0Settings|null)=>{
-      const parsed = settings ? parseDashboardLayoutValue(settings.dashboard) : createDefaultDashboardLayout();
+    const apply=(settings:P0Settings|null,monitorLayout:unknown|null=null)=>{
+      const parsed = monitorLayout?parseDashboardLayoutValue(monitorLayout):settings ? parseDashboardLayoutValue(settings.dashboard) : createDefaultDashboardLayout();
       const parsedDock=settings?parseDockLayoutValue(settings.dock):createDefaultDockLayout();
       if(!parsed||!parsedDock){if(active)setError(true);return;}
       if(active){setLayout(parsed);setDock(parsedDock);setError(false);}
     };
     const unsubscribe=window.electronPalette.onSettingsChanged(snapshot=>{
       if(snapshot.revision<=revision)return;
-      revision=snapshot.revision;apply(snapshot.value);
+      revision=snapshot.revision;apply(snapshot.value,snapshot.monitorLayout);
     });
-    void window.electronPalette.readSettings().then(settings=>{if(revision<0)apply(settings);}).catch(()=>{if(active)setError(true);});
+    void window.electronPalette.readProjection().then(snapshot=>{if(revision<0){revision=snapshot.revision;apply(snapshot.value,snapshot.monitorLayout);}}).catch(()=>{if(active)setError(true);});
     return () => { active = false;unsubscribe(); };
   }, []);
   useEffect(() => {

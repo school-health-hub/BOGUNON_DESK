@@ -16,6 +16,12 @@ const windowBridge:SettingsWindowBridge=Object.freeze({
 contextBridge.exposeInMainWorld('electronSurfaceSettings',settings);
 contextBridge.exposeInMainWorld('electronSchoolSettings',Object.freeze({subscribe:(listener:()=>void)=>{const callback=()=>listener();ipcRenderer.on('p0:school-settings:changed',callback);return()=>{ipcRenderer.removeListener('p0:school-settings:changed',callback);};}}));
 contextBridge.exposeInMainWorld('electronSettingsWindow',windowBridge);
+const monitorProfiles:import('../monitor-protocol.js').MonitorProfilesBridge=Object.freeze({
+ read:()=>call<import('../monitor-protocol.js').MonitorSnapshot>('p0:monitor-profiles:read'),
+ write:(request:import('../monitor-protocol.js').MonitorWrite)=>call<import('../monitor-protocol.js').MonitorSnapshot>('p0:monitor-profiles:write',request),
+ subscribe:(listener:Parameters<import('../monitor-protocol.js').MonitorProfilesBridge['subscribe']>[0])=>{const callback=(_event:unknown,snapshot:import('../monitor-protocol.js').MonitorSnapshot)=>listener(snapshot);ipcRenderer.on('p0:monitor-profiles:changed',callback);return()=>{ipcRenderer.removeListener('p0:monitor-profiles:changed',callback);};},
+});
+contextBridge.exposeInMainWorld('electronMonitorProfiles',monitorProfiles);
 const methods=(group:string,names:readonly string[])=>Object.freeze(Object.fromEntries(names.map(name=>[name,(...args:readonly unknown[])=>call('p0:settings:'+group+':'+name,...args)])));
 contextBridge.exposeInMainWorld('electronWork',Object.freeze({
  school:methods('school',['load','search','select','cancel']),

@@ -3,6 +3,7 @@ import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
 import {expect,it,vi} from 'vitest';
 import type {SurfaceSettingsBridge,SettingsWindowBridge,WorkspaceNavigationBridge} from '../desktop-surface-protocol';
+import type {MonitorProfilesBridge,MonitorSnapshot} from '../monitor-protocol';
 
 type IpcListener=(_event:unknown,payload:unknown)=>void;
 function loadPreload(path:string){
@@ -21,7 +22,7 @@ function loadPreload(path:string){
 
 it('restricts Settings to configuration owners without exposing product execution or raw IPC',()=>{
   const {exposed}=loadPreload('electron-p0/preload/settings-preload.cts');
-  expect(Object.keys(exposed).sort()).toEqual(['electronSchoolSettings','electronSettingsWindow','electronSurfaceSettings','electronWork']);
+  expect(Object.keys(exposed).sort()).toEqual(['electronMonitorProfiles','electronSchoolSettings','electronSettingsWindow','electronSurfaceSettings','electronWork']);
   expect(exposed.electronSurfaceSettings).toMatchObject({read:expect.any(Function),write:expect.any(Function),subscribe:expect.any(Function)});
   const work=exposed.electronWork;
   expect(work).toBeTypeOf('object');
@@ -42,6 +43,27 @@ it('restricts Settings to configuration owners without exposing product executio
   expect(work).not.toHaveProperty('ai.generate');
   expect(work).not.toHaveProperty('chatgpt.generate');
   for(const forbidden of ['invoke','send','on','finance','inventoryLocalQa','fileDrop','purchase','newsletter','recordHelper','workFolders'])expect(work).not.toHaveProperty(forbidden);
+});
+
+it('exposes only fixed monitor profile operations and strips native events from profile snapshots',async()=>{
+  const {exposed,listeners,invoke,removeListener}=loadPreload('electron-p0/preload/settings-preload.cts');
+  const bridge=exposed.electronMonitorProfiles as MonitorProfilesBridge;
+  expect(Object.keys(bridge).sort()).toEqual(['read','subscribe','write']);
+  expect(Object.isFrozen(bridge)).toBe(true);
+  await bridge.read();
+  expect(invoke).toHaveBeenLastCalledWith('p0:monitor-profiles:read');
+  const request={revision:4,profileId:'synthetic-monitor',layout:{version:1},visible:true};
+  await bridge.write(request);
+  expect(invoke).toHaveBeenLastCalledWith('p0:monitor-profiles:write',request);
+  const snapshot:MonitorSnapshot={revision:5,profiles:[],writable:true,error:null};
+  const listener=vi.fn(),dispose=bridge.subscribe(listener);
+  const callback=listeners.get('p0:monitor-profiles:changed');
+  expect(callback).toBeTypeOf('function');
+  callback?.({secret:'native event'},snapshot);
+  expect(listener).toHaveBeenCalledExactlyOnceWith(snapshot);
+  dispose();
+  expect(removeListener).toHaveBeenCalledWith('p0:monitor-profiles:changed',callback);
+  expect(listeners.has('p0:monitor-profiles:changed')).toBe(false);
 });
 
 it('uses fixed Settings read/write and event channels and removes the exact settings listener',async()=>{
@@ -67,6 +89,7 @@ it('keeps new Workspace navigation separate from the existing SCHOOL product glo
   expect(Object.keys(Object(exposed.electronDesktopNavigation)).sort()).toEqual(['onEntry','openSettings','ready']);
   expect(Object.keys(Object(exposed.electronSurfaceSettings)).sort()).toEqual(['onFlush','onResume','read','subscribe','write']);
   expect(exposed.electronDesktopNavigation).not.toBe(exposed.electronWorkspace);
+  expect(exposed).not.toHaveProperty('electronMonitorProfiles');
 });
 
 it('sends Settings window actions on fixed channels and forwards only section payloads',async()=>{
