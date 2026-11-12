@@ -6,7 +6,8 @@
 - 브랜치: `codex/electron-h6-design-renewal`
 - UX-07C 시작 HEAD: `53e49212e4bef7bab3e2e8ff967da598b173d770`
 - WIP 제품 Source SHA: `944e34d3f09b79f9ce6d9563b984a0f21faf648c`
-- 최종 인계 HEAD: `<HANDOFF_HEAD_PENDING>`
+- 인계 문서 기준 HEAD: `f88eb9d5ca99a1ecd588d66e88e8053bf60c2c0b`
+- 최종 원격 HEAD는 이 상태 기록 커밋을 포함한 브랜치 tip이며, `git rev-parse origin/codex/electron-h6-design-renewal`로 확인한다.
 - UX-07D: 시작 금지. UX-07C 실물 검증 3건과 독립 검토가 먼저다.
 
 ## 구현된 범위
@@ -66,7 +67,7 @@ git -C <NEW_WORKTREE_PATH> status --short --branch
 
 - `codex/ux07c-home-resume`가 이미 존재하면 새로운 로컬 브랜치 이름을 사용한다.
 - 기존 dirty checkout에서 `reset`, `clean`, 강제 checkout, rebase를 실행하지 않는다.
-- 복원 후 HEAD가 `<HANDOFF_HEAD_PENDING>`인지 확인한다.
+- 복원 후 HEAD가 `origin/codex/electron-h6-design-renewal`의 최신 tip과 일치하는지 확인한다.
 
 ## 검증 증거와 Git 외 자료
 
@@ -99,7 +100,7 @@ Git에 포함되지 않는 로컬 증거:
 
 ## 원격 상태
 
-- push 결과: `<PUSH_RESULT_PENDING>`
-- 원격 divergence: `<DIVERGENCE_PENDING>`
-- working tree: `<WORKTREE_STATE_PENDING>`
-- 원격에서 복원 가능한지: `<REMOTE_RESTORE_PENDING>`
+- push 결과: 일반 push 성공
+- 원격 divergence: `0/0` (상태 기록 커밋 push 직전 재확인)
+- working tree: 상태 기록 커밋 후 clean 확인 대상
+- 원격에서 복원 가능한지: 가능. WIP 제품 커밋과 인계 문서가 원격 브랜치에 보존됨
