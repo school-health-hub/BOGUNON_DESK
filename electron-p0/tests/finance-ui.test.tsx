@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-import {afterEach,it,expect,vi} from 'vitest';import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
+import {afterEach,it,expect,vi} from 'vitest';import {act,cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
 import {FinanceHost} from '../renderer/finance/FinanceHost';
-import type {FinanceSnapshot,IncomeRecord} from '../finance-protocol';
+import type {FinanceAvailability,FinanceSnapshot,IncomeRecord} from '../finance-protocol';
 import * as repository from '../renderer/finance/repository';
 vi.mock('../../src/my-finance/repository',async()=>import('../renderer/finance/repository'));
 const id='00000000-0000-4000-8000-000000000001';
@@ -14,6 +14,25 @@ function setup(available=true){
 afterEach(()=>{cleanup();vi.restoreAllMocks();vi.unstubAllGlobals();});
 it('shows an explicit unavailable boundary and never opens a fake/plaintext store',async()=>{
  const {finance}=setup(false);render(<FinanceHost onClose={()=>{}}/>);await screen.findByRole('alert');expect(finance.load).not.toHaveBeenCalled();expect(screen.queryByRole('button',{name:'수입 등록'})).toBeNull();
+});
+it('resolves one App Shell close request while Finance availability is still loading',async()=>{
+ let finish!:(value:{ok:true;data:FinanceAvailability})=>void;
+ const {finance}=setup();finance.status.mockReturnValue(new Promise(resolve=>{finish=resolve;}));
+ const close=vi.fn(),resolved=vi.fn(),view=render(<FinanceHost closeRequest={0} onClose={close} onCloseRequestResolved={resolved}/>);
+ expect(screen.getByRole('status').textContent).toContain('확인하는 중');
+ view.rerender(<FinanceHost closeRequest={1} onClose={close} onCloseRequestResolved={resolved}/>);
+ expect(close).toHaveBeenCalledTimes(1);expect(resolved).toHaveBeenCalledExactlyOnceWith(true);
+ view.rerender(<FinanceHost closeRequest={1} onClose={close} onCloseRequestResolved={resolved}/>);
+ expect(close).toHaveBeenCalledTimes(1);expect(resolved).toHaveBeenCalledTimes(1);
+ await act(async()=>finish(ok({available:true,reason:''})));
+});
+it('resolves one App Shell close request from the unavailable fail-closed boundary',async()=>{
+ setup(false);const close=vi.fn(),resolved=vi.fn(),view=render(<FinanceHost closeRequest={0} onClose={close} onCloseRequestResolved={resolved}/>);
+ await screen.findByRole('alert');
+ view.rerender(<FinanceHost closeRequest={1} onClose={close} onCloseRequestResolved={resolved}/>);
+ expect(close).toHaveBeenCalledTimes(1);expect(resolved).toHaveBeenCalledExactlyOnceWith(true);
+ view.rerender(<FinanceHost closeRequest={1} onClose={close} onCloseRequestResolved={resolved}/>);
+ expect(close).toHaveBeenCalledTimes(1);expect(resolved).toHaveBeenCalledTimes(1);
 });
 it('reuses income form/confirmation with the Electron adapter, preserving state across view reopen',async()=>{
  const {finance,forbidden}=setup(),storage=vi.spyOn(Storage.prototype,'setItem');const view=render(<FinanceHost onClose={()=>{}}/>);await screen.findByText('아직 등록된 수입이 없습니다');fireEvent.click(screen.getByRole('button',{name:'수입 등록'}));fireEvent.change(screen.getByLabelText('지급처'),{target:{value:'합성 Electron 지급처'}});fireEvent.change(screen.getByLabelText(/^총수입 \(원\)/),{target:{value:'200000'}});fireEvent.click(screen.getByRole('button',{name:'등록 내용 확인'}));expect(finance.createIncome).not.toHaveBeenCalled();fireEvent.click(screen.getByRole('button',{name:'로컬 저장'}));await screen.findByText('수입을 등록했습니다.');expect(finance.createIncome.mock.calls[0][0]).toMatchObject({expected:snapshot.identity,entry:{sourceName:'합성 Electron 지급처',grossKrw:200000,netKrw:200000}});

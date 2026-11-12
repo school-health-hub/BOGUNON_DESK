@@ -177,6 +177,24 @@ describe("local finance management", () => {
     fireEvent.click(screen.getByRole("button", { name: "보건 업무로" })); fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "확인" }));
     expect(close).toHaveBeenCalledTimes(1);
   });
+  it("resolves an external App Shell close exactly once and preserves a cancelled draft", async () => {
+    api.listFinanceIncome.mockResolvedValue(snapshot());
+    const close = vi.fn(), resolved = vi.fn();
+    const view = render(<FinanceScreen embedded closeRequest={0} onClose={close} onCloseRequestResolved={resolved} />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "수입 등록" }).hasAttribute("disabled")).toBe(false));
+    expect(screen.getByRole("button", { name: "일정·업무로" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "수입 등록" })); change("지급처", "합성 App Shell 초안");
+
+    view.rerender(<FinanceScreen embedded closeRequest={1} onClose={close} onCloseRequestResolved={resolved} />);
+    fireEvent.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "취소" }));
+    expect(close).not.toHaveBeenCalled(); expect(resolved).toHaveBeenLastCalledWith(false);
+    expect(screen.getByLabelText("지급처")).toHaveProperty("value", "합성 App Shell 초안");
+
+    view.rerender(<FinanceScreen embedded closeRequest={2} onClose={close} onCloseRequestResolved={resolved} />);
+    fireEvent.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "확인" }));
+    expect(close).toHaveBeenCalledTimes(1); expect(resolved).toHaveBeenLastCalledWith(true);
+    expect(resolved).toHaveBeenCalledTimes(2);
+  });
   it("keeps keyboard focus and draft when a save confirmation is cancelled", async () => {
     await newForm();
     const field = screen.getByLabelText("지급처"); field.focus();

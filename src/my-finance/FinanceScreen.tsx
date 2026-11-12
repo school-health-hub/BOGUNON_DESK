@@ -15,7 +15,7 @@ type Confirmation = { kind: "save"; entry: IncomeRecord; expected: FinanceIdenti
 const titles = { navigate: "작성 중인 내용을 버리고 이동할까요?", save: "수입을 저장할까요?", delete: "수입을 삭제할까요?", reload: "최신 목록을 불러올까요?", leave: "보건 업무로 돌아갈까요?", discard: "입력을 취소할까요?" };
 const messages = { navigate: "저장하지 않은 입력 내용을 버립니다.", save: "입력한 내용을 이 PC의 암호화 저장소에 저장합니다.", delete: "선택한 수입을 삭제합니다. 이 작업은 되돌릴 수 없습니다.", reload: "작성 중인 내용을 버리고 최신 목록을 불러옵니다. 충돌한 편집은 자동으로 덮어쓰지 않습니다.", leave: "저장하지 않은 입력 내용은 사라집니다.", discard: "저장하지 않은 입력 내용을 버립니다." };
 
-export function FinanceScreen({ onClose, qa = false }: { onClose: () => void; qa?: boolean }) {
+export function FinanceScreen({ onClose, qa = false, embedded = false, closeRequest, onCloseRequestResolved }: { onClose: () => void; qa?: boolean; embedded?: boolean; closeRequest?: number; onCloseRequestResolved?: (closed: boolean) => void }) {
   const [transferOpen, setTransferOpen] = useState(false);
   const [snapshot, setSnapshot] = useState<FinanceSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,6 +37,8 @@ export function FinanceScreen({ onClose, qa = false }: { onClose: () => void; qa
   const locked = useRef(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
+  const previousCloseRequest = useRef(closeRequest);
+  const pendingExternalClose = useRef<number | null>(null);
   function ask(plan: Confirmation) {
     returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setConfirmation(plan);
@@ -61,6 +63,13 @@ export function FinanceScreen({ onClose, qa = false }: { onClose: () => void; qa
 
   const writable = snapshot !== null && !loading && !busy && !stale;
   function close() { if (locked.current) return; if (dirty || phase2Dirty) ask({ kind: "leave" }); else onClose(); }
+  useEffect(() => {
+    if (closeRequest === undefined || previousCloseRequest.current === closeRequest) return;
+    previousCloseRequest.current = closeRequest;
+    if (locked.current || busy || confirmation !== null || transferOpen) { onCloseRequestResolved?.(false); return; }
+    if (dirty || phase2Dirty) { pendingExternalClose.current = closeRequest; ask({ kind: "leave" }); return; }
+    onClose(); onCloseRequestResolved?.(true);
+  }, [busy, closeRequest, confirmation, dirty, onClose, onCloseRequestResolved, phase2Dirty, transferOpen]);
   function refresh() { if (locked.current || loading) return; if (dirty || phase2Dirty) ask({ kind: "reload" }); else void reload(); }
   function navigate(apply: () => void) {
     if (locked.current) return;
@@ -77,7 +86,7 @@ export function FinanceScreen({ onClose, qa = false }: { onClose: () => void; qa
     const plan = confirmation;
     if (!plan || locked.current) return;
     if (plan.kind === "navigate") { setConfirmation(null); plan.apply(); return; }
-    if (plan.kind === "leave") { onClose(); return; }
+    if (plan.kind === "leave") { const external = pendingExternalClose.current !== null; pendingExternalClose.current = null; onClose(); if (external) onCloseRequestResolved?.(true); return; }
     if (plan.kind === "discard") { setEditor(null); setDirty(false); setConfirmation(null); return; }
     if (plan.kind === "reload") { setConfirmation(null); void reload(); return; }
     if (!writable || (plan.kind !== "save" && plan.kind !== "delete")) return;
@@ -116,9 +125,9 @@ export function FinanceScreen({ onClose, qa = false }: { onClose: () => void; qa
     catch { if (mounted.current) { setStale(true); setError("저장 상태를 확인하지 못했습니다. 새로고침 후 다시 확인해 주세요."); } throw new Error("phase2-save-failed"); }
     finally { locked.current = false; if (mounted.current) setBusy(false); }
   };
-  return <div className="finance-screen" onKeyDown={(e) => e.stopPropagation()}>
+  return <div className={`finance-screen${embedded ? " is-embedded" : ""}`} onKeyDown={(e) => e.stopPropagation()}>
     <div className="finance-container" inert={confirmation !== null || transferOpen}>
-      <header className="finance-header"><button type="button" className="finance-back" onClick={close} disabled={busy}><ArrowLeft size={16} /> {qa ? "QA 앱 종료" : "보건 업무로"}</button><span className="finance-local"><LockKeyhole size={14} /> 이 PC에만 저장</span></header>
+      <header className="finance-header"><button type="button" className="finance-back" onClick={close} disabled={busy}><ArrowLeft size={16} /> {qa ? "QA 앱 종료" : embedded ? "일정·업무로" : "보건 업무로"}</button><span className="finance-local"><LockKeyhole size={14} /> 이 PC에만 저장</span></header>
       <main>
         <section className="finance-hero"><div><p className="finance-eyebrow">MY FINANCE</p><h1 ref={heading} tabIndex={-1}>내 수입, 한눈에</h1><p>발생부터 입금까지, 개인 수입을 차분하게 정리하세요.</p></div><div className="finance-hero-actions"><button type="button" disabled={!writable || editor !== null || phase2Dirty} onClick={() => setTransferOpen(true)}>백업·복원</button><button type="button" aria-label="최신 목록 새로고침" onClick={refresh} disabled={loading || busy}><RefreshCw size={16} /> 새로고침</button><button type="button" className="finance-primary" disabled={!writable || editor !== null} onClick={() => navigate(() => { setPhase2Dirty(false); setWorkspace("income"); startEdit(); })}><Plus size={16} /> 수입 등록</button></div></section>
         <p className="finance-beta-note"><LockKeyhole size={15} /><span><strong>개발 검증 단계</strong> · 실제 두 PC 간 이동 및 장애 복구 수동 검증이 끝나기 전입니다. 아직 실제 금융정보를 입력하지 마세요. 클라우드 동기화는 지원하지 않습니다.</span></p>
@@ -157,6 +166,6 @@ export function FinanceScreen({ onClose, qa = false }: { onClose: () => void; qa
       </main><footer className="finance-page-footer">개인 수입 전용 공간 · 학교 업무 및 계정 설정과 별도로 관리합니다.</footer>
     </div>
     {transferOpen && snapshot && <FinanceTransfer snapshot={snapshot} onClose={() => setTransferOpen(false)} onRestored={(next) => { setSnapshot(next); setEditor(null); setDirty(false); setPhase2Dirty(false); setPhase2Session(value => value + 1); setPage(1); setError(null); setStale(false); setNotice("암호화 백업을 복원했습니다."); }} onUncertain={() => { setStale(true); setError("복원 상태 확인을 위해 최신 목록을 새로고침해 주세요."); }} />}
-    {confirmation && <FinanceConfirmation returnFocus={returnFocus.current} title={titles[confirmation.kind]} message={messages[confirmation.kind]} confirmLabel={confirmation.kind === "delete" ? "삭제" : confirmation.kind === "save" ? "로컬 저장" : "확인"} busy={busy} destructive={confirmation.kind === "delete"} onCancel={() => { if (!locked.current) setConfirmation(null); }} onConfirm={() => void confirm()} />}
+    {confirmation && <FinanceConfirmation returnFocus={returnFocus.current} title={titles[confirmation.kind]} message={messages[confirmation.kind]} confirmLabel={confirmation.kind === "delete" ? "삭제" : confirmation.kind === "save" ? "로컬 저장" : "확인"} busy={busy} destructive={confirmation.kind === "delete"} onCancel={() => { if (!locked.current) { const external = confirmation.kind === "leave" && pendingExternalClose.current !== null; pendingExternalClose.current = null; setConfirmation(null); if (external) onCloseRequestResolved?.(false); } }} onConfirm={() => void confirm()} />}
   </div>;
 }

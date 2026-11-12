@@ -80,7 +80,20 @@ vi.mock("../renderer/inventory-preview/InventoryHost", async () => {
   } };
 });
 vi.mock("../../src/components/dashboard/DesktopWidgetLayout", () => ({ DesktopWidgetLayout: () => <div>합성 Home</div> }));
-vi.mock("../renderer/finance/FinanceHost", () => ({ FinanceHost: ({ onClose }: { readonly onClose: () => void }) => <main><h1>합성 MY FINANCE</h1><button type="button" onClick={onClose}>Finance 닫기</button></main> }));
+vi.mock("../renderer/finance/FinanceHost", async () => {
+  const { useEffect, useRef, useState } = await import("react");
+  return { FinanceHost: ({ embedded, closeRequest, onClose, onCloseRequestResolved }: { readonly embedded?: boolean; readonly closeRequest?: number; readonly onClose: () => void; readonly onCloseRequestResolved?: (closed: boolean) => void }) => {
+    const [draft, setDraft] = useState("");
+    const previous = useRef(closeRequest);
+    useEffect(() => {
+      if (closeRequest === undefined || previous.current === closeRequest) return;
+      previous.current = closeRequest;
+      if (draft && !window.confirm("합성 Finance 초안을 폐기할까요?")) { onCloseRequestResolved?.(false); return; }
+      onClose(); onCloseRequestResolved?.(true);
+    }, [closeRequest, draft, onClose, onCloseRequestResolved]);
+    return <main data-embedded={String(embedded)}><h1>합성 MY FINANCE</h1><label>합성 Finance 초안<input value={draft} onChange={event => setDraft(event.target.value)} /></label><button type="button" onClick={onClose}>Finance 닫기</button></main>;
+  } };
+});
 vi.mock("../../src/official-document/OfficialDocumentWorkspace", async () => {
   const { useEffect, useRef, useState } = await import("react");
   return { OfficialDocumentWorkspace: ({ closeRequest, onClose, onCloseRequestResolved }: { readonly closeRequest?: number; readonly onClose: () => void; readonly onCloseRequestResolved?: (closed: boolean) => void }) => {
@@ -179,8 +192,28 @@ it("opens Finance from its approved schedule category through the existing owner
 
   // Then: P0App's existing Finance owner opens and closes the workspace.
   expect(await screen.findByRole("heading", { name: "합성 MY FINANCE" })).toBeTruthy();
+  expect(screen.getByRole("main").getAttribute("data-embedded")).toBe("true");
+  expect(screen.getByText("일정·업무 / MY FINANCE")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Finance 닫기" }));
   expect(await screen.findByRole("button", { name: /MY FINANCE/ })).toBeTruthy();
+});
+
+it("keeps Finance and its draft active when Rail navigation is cancelled", async () => {
+  setupDashboard();
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+  render(<P0App />);
+  const rail = await screen.findByRole("navigation", { name: "주요 작업 공간" });
+  fireEvent.click(within(rail).getByRole("button", { name: "일정·업무" }));
+  fireEvent.click(screen.getByRole("button", { name: /MY FINANCE/ }));
+  fireEvent.change(await screen.findByLabelText("합성 Finance 초안"), { target: { value: "합성 미저장 초안" } });
+
+  fireEvent.click(within(rail).getByRole("button", { name: "문서·교육자료" }));
+
+  expect(confirm).toHaveBeenCalledOnce();
+  expect(screen.getByRole("heading", { name: "합성 MY FINANCE" })).toBeTruthy();
+  expect(screen.getByLabelText("합성 Finance 초안")).toHaveProperty("value", "합성 미저장 초안");
+  expect(within(rail).getByRole("button", { name: "일정·업무" }).getAttribute("aria-current")).toBe("page");
+  confirm.mockRestore();
 });
 
 it("guards Rail navigation while the Home layout editor owns an unfinished edit", async () => {
