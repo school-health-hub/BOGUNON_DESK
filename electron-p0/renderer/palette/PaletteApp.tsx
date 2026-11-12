@@ -5,7 +5,7 @@ import { WidgetSessionProvider } from '../../../src/dashboard/WidgetSessionConte
 import { createDefaultDashboardLayout } from '../../../src/dashboard/layouts';
 import { parseDashboardLayoutValue } from '../../../src/dashboard/storage';
 import { resolveDeskGeometry } from '../../../src/dashboard/deskGeometry';
-import { calculateDashboardGridMetrics } from '../../../src/components/dashboard/dashboardCanvasSupport';
+import { calculateDashboardGridMetrics, useViewportHeight, useViewportWidth } from '../../../src/components/dashboard/dashboardCanvasSupport';
 import { LocalCalendarProvider } from '../local-calendar/LocalCalendarProvider';
 import { LocalWorkspaceProvider } from '../adapters/workspace';
 import { PersistentMemoProvider } from '../adapters/PersistentMemo';
@@ -14,6 +14,7 @@ import {createDefaultDockLayout,parseDockLayoutValue} from '../../../src/dock/st
 import type {DockLayout} from '../../../src/dock/types';
 import type {P0Settings} from '../../protocol';
 import {PaletteDock} from './PaletteDock';
+import {clipPaletteHitRegions} from './hitRegions';
 
 const usePaletteInputRouting = (): void => {
   const interactive = useRef(false);
@@ -35,6 +36,7 @@ const usePaletteInputRouting = (): void => {
 };
 
 export function PaletteApp() {
+  const viewportWidth=useViewportWidth(),viewportHeight=useViewportHeight();
   const [layout, setLayout] = useState<DashboardLayout | null>(null);
   const [dock,setDock]=useState<DockLayout|null>(null);
   const [error, setError] = useState(false);
@@ -59,10 +61,11 @@ export function PaletteApp() {
     if (!error&&(!layout||!dock)) return;
     let active=true;
     const publish = async () => {
-      const regions = [...document.querySelectorAll<HTMLElement>('[data-widget-type],[data-palette-interactive]')].map((element) => {
+      const measured = [...document.querySelectorAll<HTMLElement>('[data-widget-type],[data-palette-interactive]')].map((element) => {
         const { x, y, width, height } = element.getBoundingClientRect();
         return { x, y, width, height };
-      }).filter(region=>region.width>0&&region.height>0);
+      });
+      const regions=clipPaletteHitRegions(measured,{width:window.innerWidth,height:window.innerHeight});
       try{await window.electronPalette.setHitRegions(regions);if(active&&!error)await window.electronPalette.ready();}
       catch{if(active)setError(true);}
     };
@@ -72,18 +75,18 @@ export function PaletteApp() {
     observer.observe(document.documentElement);
     void publish();
     return () => {active=false;observer.disconnect();mutation.disconnect();};
-  }, [layout,dock,error]);
+  }, [layout,dock,error,viewportWidth,viewportHeight]);
   if (error) return <main className="palette-status" role="alert" data-palette-interactive>위젯 배치를 읽지 못했습니다. 기존 배치는 변경하지 않았습니다.<button type="button" onClick={()=>void window.electronPalette.openWorkspace()}>업무 화면 열기</button></main>;
   if (!layout||!dock) return <main className="palette-status" role="status">위젯을 불러오는 중…</main>;
-  const geometry = resolveDeskGeometry(layout, window.innerWidth);
+  const geometry = resolveDeskGeometry(layout, viewportWidth);
   const visible = geometry.widgets.filter((widget) => widget.visible);
   const rows = visible.reduce((max, widget) => Math.max(max, widget.y + widget.h), 1);
-  const metrics = calculateDashboardGridMetrics(window.innerHeight, rows, geometry.dense ? geometry : undefined);
+  const metrics = calculateDashboardGridMetrics(viewportHeight, rows, geometry.dense ? geometry : undefined);
   const openWorkspace = async () => { await window.electronPalette.openWorkspace(); };
   return <WidgetSessionProvider><LocalCalendarProvider><LocalWorkspaceProvider><PersistentMemoProvider>
     <DesktopPanelProvider notify={() => undefined} openInbox={openWorkspace} openBogunonTask={async () => openWorkspace()} openQuickAddEventForDate={() => void openWorkspace()} openQuickAddFromMemo={() => void openWorkspace()} openQuickMemoUrl={async () => openWorkspace()} runDesktopAction={async () => openWorkspace()} workFolderFavorites={[]} openWorkFolderFavorite={async () => openWorkspace()}>
       <main className="desktop-palette" data-card-style={layout.appearance.cardStyle} data-corner-style={layout.appearance.cornerStyle} aria-label="BOGUNON 데스크톱 위젯">
-        <DesktopWidgetLayout widgets={geometry.widgets} width={Math.max(320, window.innerWidth)} compact={false} editing={false} selectedId={null} metrics={metrics} onLayoutChange={() => undefined} onHide={() => undefined} onSelect={() => undefined}/>
+        <DesktopWidgetLayout widgets={geometry.widgets} width={Math.max(320, viewportWidth)} compact={false} editing={false} selectedId={null} metrics={metrics} onLayoutChange={() => undefined} onHide={() => undefined} onSelect={() => undefined}/>
         <PaletteDock layout={dock} openWorkspace={entry=>void window.electronPalette.openWorkspace(entry)} openSettings={()=>void window.electronPalette.openSettings()}/>
       </main>
     </DesktopPanelProvider>
