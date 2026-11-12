@@ -74,6 +74,8 @@
   }
   body.electron-soft-rose :is(.td2-workspace, .ux03-module-workspace) :is(.od-form, .ev-search, .ev-library, .ev-editor) { padding: var(--desk-space-4); }
   body.electron-soft-rose :is(.td2-workspace, .ux03-module-workspace) :is(.od-grid, .ev-layout, .inventory-grid) { gap: var(--desk-space-3); }
+  body.electron-soft-rose .ux03-module-workspace .od-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  body.electron-soft-rose .ux03-module-workspace .od-grid > * { min-width:0; }
   body.electron-soft-rose :is(.td2-workspace, .ux03-module-workspace) .ev-finder {
     --ev-accent: var(--desk-accent);
     --ev-accent-soft: var(--desk-active);
