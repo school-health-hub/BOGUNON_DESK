@@ -22,6 +22,8 @@
 .desktop-palette .workspace-data-notice.is-error{border-inline-start:3px solid var(--desk-error);background:var(--desk-error-bg);color:var(--desk-error)}
 .desktop-palette .quick-launcher__actions button{border-radius:var(--desk-radius-control)}
 .desktop-palette .quick-launcher__actions button:hover{background:var(--desk-active)}
+.desktop-palette[data-card-style=flat] .widget-frame{background:var(--desk-paper);backdrop-filter:none;box-shadow:none}
+.desktop-palette[data-corner-style=compact] .widget-frame{border-radius:var(--desk-radius-control)}
 .palette-launcher .dock button{transition:background-color 120ms ease,color 120ms ease}
 .palette-launcher .dock button:active{background:var(--desk-accent-strong)}
 .palette-module-menu{padding:var(--desk-space-3);border-radius:var(--desk-radius-surface);box-shadow:var(--desk-glass-shadow)}

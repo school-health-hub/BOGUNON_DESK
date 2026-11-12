@@ -46,12 +46,15 @@ function setup(initial: PaletteProjection) {
 }
 
 it('uses the monitor layout with default Dock when global settings are absent', async () => {
-  const layout = monitorLayout(20);
+  const base = monitorLayout(20);
+  const layout = { ...base, appearance: { ...base.appearance, cardStyle: 'flat' as const, cornerStyle: 'compact' as const } };
   const api = setup({ revision: 1, value: null, monitorLayout: layout });
   await waitFor(() => expect(screen.getByTestId('projected-widgets').textContent).toBe(JSON.stringify(layout.widgets)));
   expect(screen.getByTestId('projected-dock').textContent).toBe(JSON.stringify(createDefaultDockLayout()));
   expect(api.readProjection).toHaveBeenCalledOnce();
   expect(api.readSettings).not.toHaveBeenCalled();
+  expect(screen.getByRole('main').getAttribute('data-card-style')).toBe('flat');
+  expect(screen.getByRole('main').getAttribute('data-corner-style')).toBe('compact');
   expect(api.writeGlobal).not.toHaveBeenCalled();
   expect(api.writeProfiles).not.toHaveBeenCalled();
 });

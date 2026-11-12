@@ -82,7 +82,7 @@ export function PaletteApp() {
   const openWorkspace = async () => { await window.electronPalette.openWorkspace(); };
   return <WidgetSessionProvider><LocalCalendarProvider><LocalWorkspaceProvider><PersistentMemoProvider>
     <DesktopPanelProvider notify={() => undefined} openInbox={openWorkspace} openBogunonTask={async () => openWorkspace()} openQuickAddEventForDate={() => void openWorkspace()} openQuickAddFromMemo={() => void openWorkspace()} openQuickMemoUrl={async () => openWorkspace()} runDesktopAction={async () => openWorkspace()} workFolderFavorites={[]} openWorkFolderFavorite={async () => openWorkspace()}>
-      <main className="desktop-palette" aria-label="BOGUNON 데스크톱 위젯">
+      <main className="desktop-palette" data-card-style={layout.appearance.cardStyle} data-corner-style={layout.appearance.cornerStyle} aria-label="BOGUNON 데스크톱 위젯">
         <DesktopWidgetLayout widgets={geometry.widgets} width={Math.max(320, window.innerWidth)} compact={false} editing={false} selectedId={null} metrics={metrics} onLayoutChange={() => undefined} onHide={() => undefined} onSelect={() => undefined}/>
         <PaletteDock layout={dock} openWorkspace={entry=>void window.electronPalette.openWorkspace(entry)} openSettings={()=>void window.electronPalette.openSettings()}/>
       </main>
