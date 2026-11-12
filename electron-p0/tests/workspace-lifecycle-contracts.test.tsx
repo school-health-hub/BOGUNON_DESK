@@ -7,6 +7,7 @@ import { WorkspaceBoundary } from "../renderer/WorkspaceBoundary";
 
 const newsletterLifecycle = vi.hoisted(() => ({ mounts: 0 }));
 const finderLifecycle = vi.hoisted(() => ({ mounts: 0, cancels: 0, savedMemo: "" }));
+const inventoryLifecycle = vi.hoisted(() => ({ mounts: 0, savedName: "합성 저장 물품" }));
 
 vi.mock("../../src/newsletter/NewsletterStudio", async () => {
   const { useState } = await import("react");
@@ -56,6 +57,28 @@ vi.mock("../../src/education-video/EducationVideoFinder", async () => {
     </section>;
   } };
 });
+vi.mock("../renderer/inventory-preview/InventoryHost", async () => {
+  const { useEffect, useRef, useState } = await import("react");
+  return { InventoryHost: ({ onClose, closeRequest, onCloseRequestResolved, embedded }: { readonly onClose: () => void; readonly closeRequest?: number; readonly onCloseRequestResolved?: (closed: boolean) => void; readonly embedded?: boolean }) => {
+    const [instance] = useState(() => { inventoryLifecycle.mounts += 1; return inventoryLifecycle.mounts; });
+    const [draft, setDraft] = useState("");
+    const [query, setQuery] = useState("");
+    const previous = useRef(closeRequest);
+    useEffect(() => {
+      if (closeRequest === undefined || previous.current === closeRequest) return;
+      previous.current = closeRequest;
+      if (draft && !window.confirm("저장하지 않은 입력을 버리시겠습니까?")) { onCloseRequestResolved?.(false); return; }
+      onClose(); onCloseRequestResolved?.(true);
+    }, [closeRequest, draft, onClose, onCloseRequestResolved]);
+    return <section aria-label="합성 개인 Inventory" data-embedded={String(embedded)}>
+      <span>{`합성 Inventory 인스턴스 ${instance}`}</span><span>{inventoryLifecycle.savedName}</span>
+      <label>합성 물품 검색<input value={query} onChange={event => setQuery(event.target.value)} /></label>
+      <label>합성 물품 편집<input value={draft} onChange={event => setDraft(event.target.value)} /></label>
+      <button type="button" onClick={() => { inventoryLifecycle.savedName = draft || inventoryLifecycle.savedName; setDraft(""); }}>합성 물품 저장</button>
+      <button type="button" onClick={() => { if (!draft || window.confirm("저장하지 않은 입력을 버리시겠습니까?")) onClose(); }}>물품·품의로</button>
+    </section>;
+  } };
+});
 vi.mock("../../src/components/dashboard/DesktopWidgetLayout", () => ({ DesktopWidgetLayout: () => <div>합성 Home</div> }));
 vi.mock("../renderer/finance/FinanceHost", () => ({ FinanceHost: ({ onClose }: { readonly onClose: () => void }) => <main><h1>합성 MY FINANCE</h1><button type="button" onClick={onClose}>Finance 닫기</button></main> }));
 vi.mock("../../src/official-document/OfficialDocumentWorkspace", async () => {
@@ -80,6 +103,8 @@ afterEach(() => {
   finderLifecycle.mounts = 0;
   finderLifecycle.cancels = 0;
   finderLifecycle.savedMemo = "";
+  inventoryLifecycle.mounts = 0;
+  inventoryLifecycle.savedName = "합성 저장 물품";
 });
 
 function setupDashboard(): void {
@@ -302,4 +327,36 @@ it("unmounts Finder on navigation and reloads only its persisted library state o
   fireEvent.click(screen.getByRole("button", { name: "문서·교육자료로" }));
   expect(screen.getByRole("button", { name: /교육영상 Finder/ })).toBeTruthy();
   expect(finderLifecycle.cancels).toBe(2);
+});
+
+it("hosts Inventory in the App Shell and preserves its existing leave and persisted re-entry contract", async () => {
+  setupDashboard();
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+  render(<P0App />);
+
+  const rail = await screen.findByRole("navigation", { name: "주요 작업 공간" });
+  fireEvent.click(within(rail).getByRole("button", { name: "물품·품의" }));
+  fireEvent.click(screen.getByRole("button", { name: /개인 Inventory/ }));
+  expect(screen.getByText("물품·품의 / 물품관리")).toBeTruthy();
+  expect((await screen.findByRole("region", { name: "합성 개인 Inventory" })).getAttribute("data-embedded")).toBe("true");
+  fireEvent.change(screen.getByLabelText("합성 물품 검색"), { target: { value: "재진입하면 지울 검색" } });
+  fireEvent.change(screen.getByLabelText("합성 물품 편집"), { target: { value: "저장 전 합성 물품" } });
+
+  fireEvent.click(within(rail).getByRole("button", { name: "홈" }));
+  expect(confirm).toHaveBeenCalledOnce();
+  expect((screen.getByLabelText("합성 물품 편집") as HTMLInputElement).value).toBe("저장 전 합성 물품");
+  expect(within(rail).getByRole("button", { name: "물품·품의" }).getAttribute("aria-current")).toBe("page");
+
+  fireEvent.click(screen.getByRole("button", { name: "합성 물품 저장" }));
+  confirm.mockReturnValue(true);
+  fireEvent.click(within(rail).getByRole("button", { name: "홈" }));
+  expect(screen.queryByRole("region", { name: "합성 개인 Inventory" })).toBeNull();
+
+  fireEvent.click(within(rail).getByRole("button", { name: "물품·품의" }));
+  fireEvent.click(screen.getByRole("button", { name: /개인 Inventory/ }));
+  expect(inventoryLifecycle.mounts).toBe(2);
+  expect((screen.getByLabelText("합성 물품 검색") as HTMLInputElement).value).toBe("");
+  expect(screen.getByText("저장 전 합성 물품")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "물품·품의로" }));
+  expect(screen.getByRole("button", { name: /개인 Inventory/ })).toBeTruthy();
 });
