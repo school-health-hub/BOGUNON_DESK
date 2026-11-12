@@ -177,7 +177,7 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
     const sourceBodyFrame = structured ? expandedBodyFrame(frames?.lead ?? module.leadFrame, frames?.action ?? module.actionListFrame, leadText.length > 0) : { x: module.frame.x, y: module.frame.y + 72, width: module.frame.width, height: module.frame.height - 72 }
     const closingText=structured?(editorialA4&&isV2(snapshot)?snapshot.cardLayouts[index+1]?.editorial?.closing??section.topicSelection?.closing??"":section.topicSelection?.closing??""):""
     const bodyFrame=structured&&section.topicSelection&&closingText?{...sourceBodyFrame,height:Math.max(1,Math.min(sourceBodyFrame.height,module.closingFrame.y-sourceBodyFrame.y-8))}:sourceBodyFrame
-    const closingStyle=editorialA4?{...bodyStyle,fontSize:18,fontWeight:650,color:module.accent,align:"center" as const}:section.topicSelection?{...bodyStyle,fontSize:18,lineHeight:1.2}:bodyStyle
+    const closingStyle=structured&&editorialA4?{...bodyStyle,fontSize:18,fontWeight:650,color:module.accent,align:"center" as const}:section.topicSelection?{...bodyStyle,fontSize:18,lineHeight:1.2}:bodyStyle
     const bodyText = content.kind === "list" ? actionText(content.actions, structured ? module.listMarkerStyle : "source") : content.body
     const provenance = { kind: "canonical-section", sectionId: section.id, sourceText: section.text } as const
     return {
