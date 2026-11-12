@@ -1,3 +1,4 @@
+import {fitCoverTitle} from "./coverTitleFit"
 import { compileOfficialTemplate } from "./officialTemplateCompiler"
 import type { SceneLayer } from "./renderScene"
 import type { ImagePolygon } from "./imagePolygon"
@@ -53,12 +54,13 @@ export type RenderDocument = {
 }
 type CompileInput = { readonly project: NewsletterProject; readonly projectRevision: number; readonly design: NewsletterDesignState; readonly designRevision: number; readonly measureText?: TextMeasurer }
 
-function block(id: string, pageId: string, text: string, frame: Frame, style: TextStyle, provenance: TextProvenance, issues: RenderIssue[], measureText?: TextMeasurer, required = true, semanticActions = false): RenderTextBlock {
-  const layout = layoutText(text, style, frame, measureText, semanticActions ? "newsletter-actions" : undefined)
+function block(id: string, pageId: string, text: string, frame: Frame, style: TextStyle, provenance: TextProvenance, issues: RenderIssue[], measureText?: TextMeasurer, required = true, semanticActions = false, fitTitle = false): RenderTextBlock {
+  const fittedStyle=fitTitle?fitCoverTitle(text,style,frame,measureText):style
+  const layout = layoutText(text, fittedStyle, frame, measureText, semanticActions ? "newsletter-actions" : undefined)
   if (required && text.trim().length === 0) issues.push({ kind: "missing-text", pageId, blockId: id, message: "필수 텍스트가 비어 있습니다." })
   if (text.length > 0 && layout.overflow) issues.push({ kind: "overflow", pageId, blockId: id, message: `텍스트 높이 ${Math.ceil(layout.requiredHeight)}px가 영역 ${frame.height}px를 초과합니다.` })
   for (const kind of layout.issues) issues.push({ kind, pageId, blockId: id, message: kind === "orphan-character" ? "한 글자 고아 줄이 발생했습니다." : "짧은 조사가 단독 줄에 배치되었습니다." })
-  return { id, text, lines: layout.lines, frame, style, provenance }
+  return { id, text, lines: layout.lines, frame, style:fittedStyle, provenance }
 }
 function projectRevision(project: NewsletterProject, revision: number): NewsletterProject["revisionHistory"][number] {
   const source = project.revisionHistory.find((entry) => entry.revision === revision)
@@ -210,7 +212,7 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
         image: layout.image,
         ...(layout.brand === undefined ? {} : { mascot: layout.brand.mascot }),
       }
-      return compileOfficialTemplate(page, layout, content, (id, text, frame, style, source, required = true) => block(id, page.pageId, text, frame, style, source, issues, input.measureText, required, true), message => issues.push({ kind: "missing-text", pageId: page.pageId, blockId: `${page.pageId}-official`, message }))
+      return compileOfficialTemplate(page, layout, content, (id, text, frame, style, source, required = true) => block(id, page.pageId, text, frame, style, source, issues, input.measureText, required, true, index===0&&source.kind==="project-title"), message => issues.push({ kind: "missing-text", pageId: page.pageId, blockId: `${page.pageId}-official`, message }))
     }
     const bodyFrame = structured ? expandedBodyFrame(layout.leadFrame, layout.actionListFrame, leadText.length > 0) : layout.bodyFrame
     const badgeStyle = { ...layout.bodyStyle, fontSize: Math.min(20, layout.bodyStyle.fontSize), fontWeight: 700, lineHeight: 1.2, color: structured ? layout.accent : layout.titleStyle.color, align: "left" as const }
@@ -229,7 +231,7 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
     }) : undefined
     const page: RenderPage = {
       pageId: layout.pageId, width: 1200, height: 1200, background: layout.background, templateVersion: snapshot.templateVersion, structured,
-      title: block(`${layout.pageId}-title`, layout.pageId, title, layout.titleFrame, layout.titleStyle, index === 0 ? { kind: "project-title" } : { kind: "topic-title", topicId: section?.topicId ?? "missing" }, issues, input.measureText),
+      title: block(`${layout.pageId}-title`, layout.pageId, title, layout.titleFrame, layout.titleStyle, index === 0 ? { kind: "project-title" } : { kind: "topic-title", topicId: section?.topicId ?? "missing" }, issues, input.measureText,true,false,index===0),
       ...(structured ? { badge: block(`${layout.pageId}-badge`, layout.pageId, snapshot.publicationMeta.issueLabel, badgeFrame, badgeStyle, { kind: "publication-meta" }, issues, input.measureText, false) } : {}),
       ...(structured && leadText.length > 0 ? { lead: block(`${layout.pageId}-lead`, layout.pageId, leadText, layout.leadFrame, layout.bodyStyle, provenance, issues, input.measureText, false) } : {}),
       body: structured && layout.editorial !== undefined ? { id: `${layout.pageId}-body`, text: bodyText, lines: [], frame: bodyFrame, style: layout.bodyStyle, provenance } : block(`${layout.pageId}-body`, layout.pageId, bodyText, bodyFrame, layout.bodyStyle, provenance, issues, input.measureText),
@@ -238,7 +240,7 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
       image: layout.image,
       ...(structured && layout.brand !== undefined ? { mascot: layout.brand.mascot, ...(layout.brand.seasonalDecoration === undefined ? {} : { seasonalDecoration: layout.brand.seasonalDecoration }) } : {}),
     }
-    return structured ? compileEditorialCard({ page, layout, content, make: (id, text, frame, style, source, required = true) => block(id, page.pageId, text, frame, style, source, issues, input.measureText, required, layout.editorial !== undefined), unavailable: message => issues.push({ kind: "missing-text", pageId: page.pageId, blockId: `${page.pageId}-editorial`, message }) }) : page
+    return structured ? compileEditorialCard({ page, layout, content, make: (id, text, frame, style, source, required = true) => block(id, page.pageId, text, frame, style, source, issues, input.measureText, required, layout.editorial !== undefined,index===0&&source.kind==="project-title"), unavailable: message => issues.push({ kind: "missing-text", pageId: page.pageId, blockId: `${page.pageId}-editorial`, message }) }) : page
   })
   const footerStyle = { fontFamily: "Pretendard", fontSize: editorialA4 ? 17 : 18, fontWeight: 500, lineHeight: editorialA4 ? 1.35 : 1.4, color: "#50656f", align: editorialA4 ? "left" : "center" } as const
   const a4TitleFrame = isV2(snapshot) ? snapshot.a4Layout.titleFrame : snapshot.a4Layout.headerFrame
