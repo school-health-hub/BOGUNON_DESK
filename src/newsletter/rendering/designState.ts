@@ -15,6 +15,7 @@ import { a4ModuleRatio, a4ModuleVariant, cardRatio, cardVariant, coverLayoutFram
 import { legacyEditorialCard } from "./editorialHistory"
 export { applyEditorialLayout, applyEditorialA4Layout, updateA4MascotFrame, updateA4EditorialCopy } from "./editorialState"
 import type { Frame } from "./renderDocument"
+import {legacyTopicDecorationRepair,topicDecorationFrame} from './cardHeaderLayout'
 
 export class DesignCardNotFoundError extends Error {
   readonly name = "DesignCardNotFoundError"
@@ -125,7 +126,8 @@ export function applyCardLayoutVariant(design: NewsletterDesignStateV2, input: {
   const card = design.cardLayouts[input.cardIndex]
   if (card === undefined) throw new DesignCardNotFoundError(input.cardIndex)
   const preset = cardVariant(input.cardIndex, input.variant)
-  return updateCardLayout(design, { cardIndex: input.cardIndex, now: input.now, patch: { leadFrame: preset.leadFrame, actionListFrame: preset.actionListFrame, closingFrame: preset.closingFrame, imageTextColumnRatio: preset.imageTextColumnRatio, image: { frame: preset.imageFrame } } }) as NewsletterDesignStateV2
+  const decorationFrame=legacyTopicDecorationRepair(card,input.cardIndex)
+  return updateCardLayout(design, { cardIndex: input.cardIndex, now: input.now, patch: { ...(decorationFrame===undefined?{}:{brand:{seasonalDecoration:{frame:decorationFrame}}}), leadFrame: preset.leadFrame, actionListFrame: preset.actionListFrame, closingFrame: preset.closingFrame, imageTextColumnRatio: preset.imageTextColumnRatio, image: { frame: preset.imageFrame } } }) as NewsletterDesignStateV2
 }
 
 export function applyCoverLayout(design: NewsletterDesignStateV2, input: { readonly layout: CardDesignLayoutV2["coverLayout"]; readonly now: string }): NewsletterDesignStateV2 {
@@ -174,7 +176,7 @@ function topicCard(card: CardDesignLayoutV1, index: number): CardDesignLayoutV2 
       previewTopicCount: 4,
     } : {
       mascot: { slotId: `topic-mascot-${index}`, frame: { x: 920, y: 820, width: 208, height: 270 }, fit: "contain" },
-      seasonalDecoration: { slotId: `topic-seasonal-decoration-${index}`, frame: { x: 72, y: 64, width: 220, height: 120 }, fit: "contain" },
+      seasonalDecoration: { slotId: `topic-seasonal-decoration-${index}`, frame: topicDecorationFrame, fit: "contain" },
     },
   }
   const preset = cardVariant(index, "balanced")
