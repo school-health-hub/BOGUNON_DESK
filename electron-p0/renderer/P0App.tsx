@@ -123,6 +123,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   useEffect(()=>{if(inventoryOpen)setShellCategory('inventory-purchase');},[inventoryOpen]);
   useEffect(()=>{if(financeOpen)setShellCategory('schedule-work');},[financeOpen]);
   useEffect(()=>{if(newsletterOpen)setShellCategory('documents-education');},[newsletterOpen]);
+  useEffect(()=>{if(workspaceOpen)setShellCategory('school');},[workspaceOpen]);
   const [settingsSection,setSettingsSection]=useState<SurfaceSettingsCategory>('account');
   const [notice,setNotice] = useState<string | null>(null);
   const portalPending=useRef(false),dashboardLive=useRef(true);
@@ -184,6 +185,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
     if(inventoryOpen){if(categoryId===shellCategory)return;if(document.querySelector('[role="dialog"][aria-modal="true"]')){setNotice('현재 대화상자를 먼저 닫아 주세요. 입력 내용은 유지됩니다.');return;}inventoryDestination.current=categoryId;setInventoryCloseRequest(value=>value+1);return;}
     if(financeOpen){if(categoryId===shellCategory)return;financeDestination.current=categoryId;setFinanceCloseRequest(value=>value+1);return;}
     if(newsletterOpen){if(categoryId===shellCategory)return;newsletterDestination.current=categoryId;setNewsletterCloseRequest(value=>value+1);return;}
+    if(workspaceOpen){if(categoryId===shellCategory)return;setWorkspaceOpen(false);}
     if(categoryId===shellCategory)return;
     if(editing){setNotice('화면 꾸미기를 먼저 완료해 주세요. 현재 위젯 배치는 그대로 유지됩니다.');return;}
     if(utilityRef.current||taskRequest||active==='quick-memo'||active==='toolbox'||active==='work-folder'||document.querySelector('[role="dialog"][aria-modal="true"]')){setNotice('현재 작업 화면을 먼저 닫아 주세요. 입력 내용은 유지됩니다.');return;}
@@ -202,7 +204,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
       case 'finance':setFinanceOpen(true);return;
       case 'school-profile':setSettingsSection('school');setShellCategory('settings');setActive('settings');setNotice('이 PC의 학교 연결 설정을 열었습니다.');return;
       case 'school-admin':setAdminOpen(true);return;
-      case 'school-workspace':setWorkspaceOpen(true);return;
+      case 'school-workspace':setShellCategory('school');setWorkspaceOpen(true);setActive('home');setPanel(null);setEditing(false);setNotice(null);return;
     }
   };
   const canOpenWorkspaceModule=(moduleId:WorkspaceModuleId)=>{
@@ -219,6 +221,8 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   const inventoryWorkspace=inventoryOpen?<Suspense fallback={<main role="status">재고 관리를 불러오는 중…</main>}><InventoryHost embedded closeRequest={inventoryCloseRequest} onCloseRequestResolved={closed=>{if(!closed)inventoryDestination.current=null;}} onPurchase={lines=>{setPurchaseIncoming({id:crypto.randomUUID(),lines});inventoryDestination.current=null;setInventoryOpen(false);setPurchaseOpen(true);}} mode={inventoryMode} onModeChange={setInventoryMode} onClose={closeInventory}/></Suspense>:undefined;
   const closeFinance=()=>{setFinanceOpen(false);const destination=financeDestination.current??'schedule-work';financeDestination.current=null;if(destination==='settings')setSettingsSection('account');setShellCategory(destination);setActive(destination==='settings'?'settings':'home');setNotice(null);};
   const financeWorkspace=financeOpen?<Suspense fallback={<main role="status">MY FINANCE를 불러오는 중…</main>}><FinanceHost embedded closeRequest={financeCloseRequest} onCloseRequestResolved={closed=>{if(!closed)financeDestination.current=null;}} onClose={closeFinance}/></Suspense>:undefined;
+  const closeSchoolWorkspace=()=>{setWorkspaceOpen(false);setShellCategory('school');setActive('home');setPanel(null);setEditing(false);setNotice(null);};
+  const schoolWorkspace=workspaceOpen?<div className="ux05g-school-workspace"><WorkspaceBoundary onClose={closeSchoolWorkspace}><Suspense fallback={<main role="status">학교 공동 공간을 불러오는 중…</main>}><WorkspaceShell name="school"><WorkspaceProductHost onClose={closeSchoolWorkspace}/></WorkspaceShell></Suspense></WorkspaceBoundary></div>:undefined;
   const closeNewsletter=()=>{setNewsletterOpen(false);const destination=newsletterDestination.current??'documents-education';newsletterDestination.current=null;if(destination==='settings')setSettingsSection('account');setShellCategory(destination);setActive(destination==='settings'?'settings':'home');setNotice(null);};
   const newsletterWorkspace=<>
     {purchaseWorkspace}
@@ -226,8 +230,8 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   </>;
   const settingsContent=<SurfaceSettings key={settingsSection} initialCategory={settingsSection} account={<AccountSettings/>} school={<SchoolConnectionSettings/>} ai={<AiSettings/>} saveStatus={status} appearance={<AppearancePanel embedded appearance={layout.appearance} onClose={returnHome} onUpdate={appearance=>setLayout({...layout,appearance})}/>} widgets={<WidgetLibraryDrawer embedded widgets={layout.widgets} onClose={returnHome} onRestore={type=>setLayout(restoreWidget({...layout,widgets:geometry.widgets},type))}/>} dock={<DockEditor embedded dockLayout={dock} onClose={returnHome} onUpdate={setDock}/>} about={<div className="ux04-about"><div className="ux04-about-brand"><img src={PRODUCT_LOGO_URL} alt={`${PRODUCT_NAME} 로고`}/><div><strong>{PRODUCT_NAME}</strong><span>버전 {electronPackage.version}</span></div></div><dl><div><dt>제품</dt><dd>{info.productName}</dd></div><div><dt>Electron</dt><dd>{info.electron}</dd></div><div><dt>앱 ID</dt><dd>{info.appId}</dd></div><div><dt>이 PC의 데이터 위치</dt><dd>{info.userData}</dd></div><div><dt>Source</dt><dd>{info.sourceSha}</dd></div></dl><p>자동 업데이트와 전역 클라우드 동기화는 제공하지 않습니다. 지원이 필요한 경우 위 제품 정보와 Source를 함께 확인해 주세요.</p><button type="button" onClick={()=>{returnHome();setNewsletterLoaded(true);setNewsletterOpen(true);}}>보건소식지 제작소 열기</button><SyntheticIpcSample/></div>}/>;
   return <WidgetSessionProvider><LocalCalendarProvider><LocalWorkspaceProvider><PersistentMemoProvider><DesktopPanelProvider notify={setNotice} openInbox={()=>openTasks()} openBogunonTask={async id=>openTasks({id})} openQuickAddEventForDate={date=>openUtility('calendar',{date})} openQuickAddFromMemo={title=>openUtility('quick-add',{title})} openQuickMemoUrl={async url=>{try{await openMemoUrl(url);}catch(e){setNotice(e instanceof Error?e.message:'링크를 열지 못했습니다.');}}} runDesktopAction={async id=>navigate(id)} workFolderFavorites={folders.snapshot?.favorites??[]} openWorkFolderFavorite={async folder=>{const message=await folders.open(folder.id);if(message)setNotice(message);}}>
-    <div inert={workspaceOpen} hidden={recordOpen||adminOpen} style={{display:recordOpen||adminOpen?"none":undefined}} className={`app-shell workspace-shell ux03-root h6-shell ${isCanonicalDeskLayout(layout)?'is-floating-b':''} ${editing?'is-edit-mode':'is-view-mode'} bg-${layout.appearance.background} card-${layout.appearance.cardStyle} corner-${layout.appearance.cornerStyle}`}>
-      <AppShell activeCategory={shellCategory} onCategoryChange={selectShellCategory} onOpenModule={openWorkspaceModule} canOpenModule={canOpenWorkspaceModule} settings={settingsContent} headerStatus={<SurfaceDate/>} workspace={officialWorkspace??educationVideoWorkspace??inventoryWorkspace??financeWorkspace} workspaceTitle={officialDocumentOpen?'공문작업실':educationVideoOpen?'교육영상 Finder':inventoryOpen?'물품관리':financeOpen?'MY FINANCE':undefined} persistentWorkspace={newsletterWorkspace} persistentWorkspaceActive={purchaseOpen||newsletterOpen} persistentWorkspaceTitle={newsletterOpen?'보건소식지 제작소':'품의 도우미'}>
+    <div hidden={recordOpen||adminOpen} style={{display:recordOpen||adminOpen?"none":undefined}} className={`app-shell workspace-shell ux03-root h6-shell ${isCanonicalDeskLayout(layout)?'is-floating-b':''} ${editing?'is-edit-mode':'is-view-mode'} bg-${layout.appearance.background} card-${layout.appearance.cardStyle} corner-${layout.appearance.cornerStyle}`}>
+      <AppShell activeCategory={shellCategory} onCategoryChange={selectShellCategory} onOpenModule={openWorkspaceModule} canOpenModule={canOpenWorkspaceModule} settings={settingsContent} headerStatus={<SurfaceDate/>} workspace={officialWorkspace??educationVideoWorkspace??inventoryWorkspace??financeWorkspace??schoolWorkspace} workspaceTitle={officialDocumentOpen?'공문작업실':educationVideoOpen?'교육영상 Finder':inventoryOpen?'물품관리':financeOpen?'MY FINANCE':workspaceOpen?'학교 공동 공간':undefined} persistentWorkspace={newsletterWorkspace} persistentWorkspaceActive={purchaseOpen||newsletterOpen} persistentWorkspaceTitle={newsletterOpen?'보건소식지 제작소':'품의 도우미'}>
       <div className="ux03-home">
       {School04Entry&&<Suspense fallback={null}><School04Entry/></Suspense>}
       {!School04Entry&&School03Entry&&<Suspense fallback={null}><School03Entry/></Suspense>}
@@ -258,7 +262,6 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
     {taskRequest&&<LocalTasksPanel request={taskRequest} onClose={()=>setTaskRequest(null)}/>}
     {recordOpen&&<Suspense fallback={<main role="status">생기부 도우미를 불러오는 중…</main>}><RecordHelperHost dropped={dropped?.target==='record-helper'?dropped:undefined} onDropDone={()=>setDropped(current=>current?.token===dropped?.token?undefined:current)} settingsOpen={aiSettingsOpen} onOpenAiSettings={()=>setAiSettingsOpen(true)} onClose={()=>{if(dropped?.target==='record-helper')clearDropped();setRecordOpen(false);}}/></Suspense>}
     {import.meta.env.DEV&&inventoryQaOpen&&<InventoryLocalQa onClose={()=>setInventoryQaOpen(false)}/>}
-    {workspaceOpen&&<div className="s05-overlay" role="dialog" aria-modal="true" aria-label="우리 보건실"><WorkspaceBoundary onClose={()=>setWorkspaceOpen(false)}><Suspense fallback={<p role="status">공동 공간을 불러오는 중…</p>}><WorkspaceShell name="school"><WorkspaceProductHost onClose={()=>setWorkspaceOpen(false)}/></WorkspaceShell></Suspense></WorkspaceBoundary></div>}
     <DesktopUtilities request={utility} onOpen={(kind,initial)=>openUtility(kind,initial)} onClose={()=>closeUtility()} onNotice={setNotice} onCommand={command} favorites={folders.snapshot?.favorites??[]} onFolder={async folder=>{const message=await folders.open(folder.id);if(message){setNotice(message);throw Error(message);}closeUtility();}} blocked={utilityBlocked}/>
     <GlobalFileDrop blocked={dropBlocked} onDeliver={receiveDrop}/>
   </DesktopPanelProvider></PersistentMemoProvider></LocalWorkspaceProvider></LocalCalendarProvider></WidgetSessionProvider>;

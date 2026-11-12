@@ -19,4 +19,6 @@
 .ux05f-newsletter-workspace[hidden]{display:none}
 .ux05f-newsletter-workspace .newsletter-product-host,.ux05f-newsletter-workspace .newsletter-studio{min-height:100%}
 .ux05f-newsletter-workspace .newsletter-studio .studio-body{min-height:calc(100dvh - 222px)}
+.ux05g-school-workspace{min-width:0;min-height:100%}
+.ux05g-school-workspace .s05-product{max-width:none;min-height:100%;margin:0}
 @media(max-height:700px){.ux05f-newsletter-workspace .newsletter-studio .studio-body{min-height:calc(100dvh - 206px)}}

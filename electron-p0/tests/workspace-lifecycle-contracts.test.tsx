@@ -8,6 +8,15 @@ import { WorkspaceBoundary } from "../renderer/WorkspaceBoundary";
 const newsletterLifecycle = vi.hoisted(() => ({ mounts: 0 }));
 const finderLifecycle = vi.hoisted(() => ({ mounts: 0, cancels: 0, savedMemo: "" }));
 const inventoryLifecycle = vi.hoisted(() => ({ mounts: 0, savedName: "합성 저장 물품" }));
+const schoolLifecycle = vi.hoisted(() => ({ mounts: 0, closes: 0 }));
+
+vi.mock("../renderer/WorkspaceProductHost", async () => {
+  const { useState } = await import("react");
+  return { default: ({ onClose }: { readonly onClose: () => void }) => {
+    const [instance] = useState(() => { schoolLifecycle.mounts += 1; return schoolLifecycle.mounts; });
+    return <main aria-label="합성 SCHOOL WORKSPACE"><h1>{`합성 학교 공동 공간 ${instance}`}</h1><p>승인된 학교 역할을 확인합니다.</p><button type="button" onClick={() => { schoolLifecycle.closes += 1; onClose(); }}>학교 목록으로</button></main>;
+  } };
+});
 
 vi.mock("../../src/newsletter/NewsletterStudio", async () => {
   const { useEffect, useRef, useState } = await import("react");
@@ -128,6 +137,8 @@ afterEach(() => {
   finderLifecycle.savedMemo = "";
   inventoryLifecycle.mounts = 0;
   inventoryLifecycle.savedName = "합성 저장 물품";
+  schoolLifecycle.mounts = 0;
+  schoolLifecycle.closes = 0;
 });
 
 function setupDashboard(): void {
@@ -233,6 +244,58 @@ it("keeps a failed SCHOOL workspace inside its independent error boundary", () =
   expect(close).toHaveBeenCalledOnce();
   expect(reactError).toHaveBeenCalled();
   reactError.mockRestore();
+});
+
+it("hosts SCHOOL WORKSPACE in the school App Shell outlet through its existing owner", async () => {
+  setupDashboard();
+  render(<P0App />);
+  const rail = await screen.findByRole("navigation", { name: "주요 작업 공간" });
+
+  fireEvent.click(within(rail).getByRole("button", { name: "학교" }));
+  fireEvent.click(screen.getByRole("button", { name: /학교 공동 공간/ }));
+
+  expect(await screen.findByRole("main", { name: "합성 SCHOOL WORKSPACE" })).toBeTruthy();
+  expect(screen.getByText("학교 / 학교 공동 공간")).toBeTruthy();
+  expect(within(rail).getByRole("button", { name: "학교" }).getAttribute("aria-current")).toBe("page");
+  expect(screen.queryByRole("dialog", { name: "우리 보건실" })).toBeNull();
+  expect(schoolLifecycle.mounts).toBe(1);
+
+  fireEvent.click(screen.getByRole("button", { name: "학교 목록으로" }));
+  expect(await screen.findByRole("heading", { name: "학교" })).toBeTruthy();
+  expect(schoolLifecycle.closes).toBe(1);
+});
+
+it("leaves and re-enters SCHOOL without inventing a persistent renderer session", async () => {
+  setupDashboard();
+  render(<P0App />);
+  const rail = await screen.findByRole("navigation", { name: "주요 작업 공간" });
+
+  fireEvent.click(within(rail).getByRole("button", { name: "학교" }));
+  fireEvent.click(screen.getByRole("button", { name: /학교 공동 공간/ }));
+  expect(await screen.findByRole("main", { name: "합성 SCHOOL WORKSPACE" })).toBeTruthy();
+
+  fireEvent.click(within(rail).getByRole("button", { name: "홈" }));
+  expect(await screen.findByText("합성 Home")).toBeTruthy();
+  expect(within(rail).getByRole("button", { name: "홈" }).getAttribute("aria-current")).toBe("page");
+
+  fireEvent.click(within(rail).getByRole("button", { name: "학교" }));
+  fireEvent.click(screen.getByRole("button", { name: /학교 공동 공간/ }));
+  expect(await screen.findByRole("heading", { name: "합성 학교 공동 공간 2" })).toBeTruthy();
+  expect(schoolLifecycle.mounts).toBe(2);
+});
+
+it("keeps local School settings separate from the shared SCHOOL owner", async () => {
+  setupDashboard();
+  render(<P0App />);
+  const rail = await screen.findByRole("navigation", { name: "주요 작업 공간" });
+
+  fireEvent.click(within(rail).getByRole("button", { name: "학교" }));
+  fireEvent.click(screen.getByRole("button", { name: /학교 연결/ }));
+
+  expect(screen.getByRole("heading", { name: "학교·연결" })).toBeTruthy();
+  expect(screen.getByRole("list", { name: "학교 연결 단계" })).toBeTruthy();
+  expect(screen.queryByRole("main", { name: "합성 SCHOOL WORKSPACE" })).toBeNull();
+  expect(schoolLifecycle.mounts).toBe(0);
 });
 
 it("opens Finance from its approved schedule category through the existing owner", async () => {
