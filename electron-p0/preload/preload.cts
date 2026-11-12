@@ -84,3 +84,19 @@ activity:Object.freeze({selectSchool:(i:Record<string,unknown>={})=>ipcRenderer.
 }));
 
 contextBridge.exposeInMainWorld('electronInstructorFiles',Object.freeze(Object.fromEntries(['stampRead','stampPick','stampRemove','workbookPick','workbookSave','print'].map(a=>[a,(i:Record<string,unknown>)=>ipcRenderer.invoke('p2:instructor-files:'+a,i)]))));
+
+const surfaceSettings: import('../desktop-surface-protocol.js').SurfaceSettingsBridge = Object.freeze({
+ onResume:(listener:()=>void)=>{const callback=()=>listener();ipcRenderer.on('p0:surface-settings:resume',callback);return()=>{ipcRenderer.removeListener('p0:surface-settings:resume',callback);};},
+ onFlush:(listener:()=>Promise<void>)=>{const callback=(_event:unknown,id:number)=>{void listener().then(()=>ipcRenderer.invoke('p0:surface-settings:flush-result',id,true),()=>ipcRenderer.invoke('p0:surface-settings:flush-result',id,false)).catch(()=>{});};ipcRenderer.on('p0:surface-settings:flush-request',callback);return()=>{ipcRenderer.removeListener('p0:surface-settings:flush-request',callback);};},
+ read:()=>ipcRenderer.invoke('p0:surface-settings:read'),
+ write:(request: import('../desktop-surface-protocol.js').SurfaceSettingsWrite)=>ipcRenderer.invoke('p0:surface-settings:write',request),
+ subscribe:(listener:Parameters<import('../desktop-surface-protocol.js').SurfaceSettingsBridge['subscribe']>[0])=>{const callback=(_event:unknown,snapshot:Parameters<typeof listener>[0])=>listener(snapshot);ipcRenderer.on('p0:surface-settings:changed',callback);return()=>{ipcRenderer.removeListener('p0:surface-settings:changed',callback);};},
+});
+contextBridge.exposeInMainWorld('electronSurfaceSettings',surfaceSettings);
+contextBridge.exposeInMainWorld('electronSchoolSettings',Object.freeze({subscribe:(listener:()=>void)=>{const callback=()=>listener();ipcRenderer.on('p0:school-settings:changed',callback);return()=>{ipcRenderer.removeListener('p0:school-settings:changed',callback);};}}));
+const desktopNavigation: import('../desktop-surface-protocol.js').WorkspaceNavigationBridge=Object.freeze({
+ ready:()=>ipcRenderer.invoke('p0:desktop-navigation:ready'),
+ openSettings:(section?:import('../desktop-surface-protocol.js').SettingsSectionId)=>ipcRenderer.invoke('p0:desktop-navigation:open-settings',section??'account'),
+ onEntry:(listener:Parameters<import('../desktop-surface-protocol.js').WorkspaceNavigationBridge['onEntry']>[0])=>{const callback=(_event:unknown,entry:Parameters<typeof listener>[0])=>listener(entry);ipcRenderer.on('p0:desktop-navigation:entry',callback);return()=>{ipcRenderer.removeListener('p0:desktop-navigation:entry',callback);};},
+});
+contextBridge.exposeInMainWorld('electronDesktopNavigation',desktopNavigation);

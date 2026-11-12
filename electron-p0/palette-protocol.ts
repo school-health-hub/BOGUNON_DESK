@@ -1,12 +1,16 @@
 import type { P0Settings, IpcResult, MemoDocument } from './protocol.js';
 import type { EventLoad, LocalEventDraft } from './local-events.js';
 import type { LocalTaskDocument, LocalTaskLoad } from './local-tasks.js';
+import type { DesktopEntry, SettingsSectionId, SurfaceSettingsSnapshot } from './desktop-surface-protocol.js';
 
 export interface PaletteBridge {
   readonly readSettings: () => Promise<P0Settings | null>;
   readonly setInteractive: (interactive: boolean) => Promise<void>;
   readonly setHitRegions: (regions: readonly PaletteHitRegion[]) => Promise<void>;
-  readonly openWorkspace: () => Promise<void>;
+  readonly openWorkspace: (entry?: DesktopEntry) => Promise<void>;
+  readonly openSettings: (section?: SettingsSectionId) => Promise<void>;
+  readonly ready: () => Promise<void>;
+  readonly onSettingsChanged: (listener: (snapshot: SurfaceSettingsSnapshot) => void) => () => void;
 }
 
 export interface PaletteHitRegion {

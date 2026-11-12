@@ -5,7 +5,7 @@ import {evaluateOfficialDocumentOutbound} from '../../../src/official-document/o
 import {officialDocumentPrivacyNotice} from '../../../src/official-document/privacyGuard';
 import './ai.css';
 const read=<T,>(result:IpcResult<T>):T=>{if(!result.ok)throw Error(result.error.message);return result.data;};
-export function AiSettings(){
+export function AiSettings({configurationOnly=false}:{readonly configurationOnly?:boolean}={}){
  const api=window.electronWork?.ai;
  const [state,setState]=useState<AiStatus|null>(null),[provider,setProvider]=useState<AiProvider>('openai'),[remember,setRemember]=useState(false),[busy,setBusy]=useState(false),[notice,setNotice]=useState('');
  const active=useRef(true);
@@ -24,7 +24,7 @@ export function AiSettings(){
   <p>조회된 모델이라도 텍스트 호출 권한·지원 여부는 실제 요청에서 확인합니다. 연결 확인은 유료 생성 성공을 의미하지 않습니다.</p>
   <button type="button" disabled={busy} onClick={()=>void run(async()=>read(await api.disconnect()))}>로그아웃·저장 연결 삭제</button>{busy&&<button type="button" onClick={()=>void api.cancel()}>AI 연결 요청 취소</button>}
   <p role="status">{notice}</p>
-  <ChatGptSettings/>
+  <ChatGptSettings configurationOnly={configurationOnly}/>
  </section>;
 }
 export function AiAssistant({tool,source,onSettings,active=true}:{tool:AiTool;source:string;onSettings:()=>void;active?:boolean}){

@@ -1,0 +1,7 @@
+.settings-window{min-height:100vh;background:var(--workspace-bg);color:var(--text-primary)}
+.settings-window__actions{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border)}
+.settings-window__actions>div{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.settings-window__actions button{font:inherit;cursor:pointer}
+.settings-window__actions button:focus-visible{outline:3px solid var(--accent-hover);outline-offset:2px}
+.settings-window>main{padding:var(--space-4)}
+@media(max-width:600px){.settings-window__actions{align-items:flex-start;flex-direction:column}}

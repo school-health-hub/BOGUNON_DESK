@@ -707,3 +707,11 @@ Purchase Helper keeps its controlled-open session owner. Education Video Finder 
 the same outlet without becoming keep-alive: leaving unmounts the renderer, cancels
 in-flight search, and re-entry reloads the persisted native library and memo state.
 The pilots do not change module persistence, IPC, recovery, or file contracts.
+
+## UX-07D Desktop-first surfaces (2026-11-12)
+
+- Preserve the approved H6 navy/neutral/mint tokens and existing AppDock and SurfaceSettings primitives. No new visual theme or external design/tooling dependencies.
+- The existing Dock v2 shelf is projected on the primary Palette as its desktop entry; stored IDs/order/visibility are unchanged. Its toolbox entry reveals the seven existing module destinations without adding persisted Dock IDs. Widget/Dock regions accept input; all other Palette space remains click-through.
+- Settings is an ordinary independent opaque window with one existing SurfaceSettings inner navigation and paper content; never nest AppShell or its rail. Existing account/local school, appearance/widget, Dock, AI configuration, device and About content keep their authorities.
+- Settings updates use the single Main settings owner, revision-checked writes and successful-change notifications; renderer projections do not save a received snapshot back. Conflicts preserve the authoritative settings and show a clear retry notice.
+- Desktop-first starts Palette/Dock, not Workspace. Explicit entry requests reuse Workspace through existing owner guards; Settings has its own reusable window. Accessible fallback exposes Workspace if Palette/tray recovery fails.

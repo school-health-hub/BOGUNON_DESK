@@ -6,15 +6,16 @@ import {EDUCATION_OFFICES,type SchoolLoad,type SchoolSearch,type SchoolSelection
 import type {IpcResult} from '../../protocol';
 import {SurfaceDialog} from '../SurfaceDialog';
 import './school-profile.css';
+import {subscribeSchoolSettingsInvalidation} from './settingsInvalidation';
 function read<T>(result:IpcResult<T>):T{if(!result.ok)throw Error(result.error.message);return result.data;}
-type ProfileContext={data:SchoolLoad|null;loading:boolean;error:string;refresh:()=>Promise<void>;selected:(selection:SchoolSelection)=>Promise<void>};
+type ProfileContext={data:SchoolLoad|null;loading:boolean;error:string;settingsRevision:number;refresh:()=>Promise<void>;selected:(selection:SchoolSelection)=>Promise<void>};
 const Context=createContext<ProfileContext|null>(null);
 export function SchoolProfileProvider({children}:{children:ReactNode}){
- const api=window.electronWork.school,[data,setData]=useState<SchoolLoad|null>(null),[loading,setLoading]=useState(!!api),[error,setError]=useState('');const mounted=useRef(true),generation=useRef(0);
+ const api=window.electronWork.school,[data,setData]=useState<SchoolLoad|null>(null),[loading,setLoading]=useState(!!api),[error,setError]=useState(''),[settingsRevision,setSettingsRevision]=useState(0);const mounted=useRef(true),generation=useRef(0);
  const refresh=async()=>{if(!api)return;const token=++generation.current;setLoading(true);try{const result=read(await api.load());if(mounted.current&&token===generation.current){setData(result);setError('');}}catch(e){if(mounted.current&&token===generation.current)setError(e instanceof Error?e.message:'학교 설정을 불러오지 못했습니다.');}finally{if(mounted.current&&token===generation.current)setLoading(false);}};
- useEffect(()=>{mounted.current=true;void refresh();return()=>{mounted.current=false;generation.current++;void api?.cancel();};},[api]);
+ useEffect(()=>{mounted.current=true;const unsubscribe=subscribeSchoolSettingsInvalidation(()=>{setSettingsRevision(current=>current+1);void refresh();});void refresh();return()=>{mounted.current=false;unsubscribe();generation.current++;void api?.cancel();};},[api]);
  const selected=async(input:SchoolSelection)=>{if(!api)throw Error('학교 연결이 없습니다.');const result=read(await api.select(input));if(mounted.current){generation.current++;setLoading(false);setData(result);setError('');}};
- return <Context.Provider value={{data,loading,error,refresh,selected}}>{children}</Context.Provider>;
+ return <Context.Provider value={{data,loading,error,settingsRevision,refresh,selected}}>{children}</Context.Provider>;
 }
 export function SchoolInitialSetup({onOpenSchoolSettings}:{onOpenSchoolSettings:()=>void}){
  const state=useContext(Context),[dismissed,setDismissed]=useState(false),[started,setStarted]=useState(false);
@@ -42,7 +43,7 @@ export function SchoolProfileSettings({showAddresses=true,showAccount=true}:{sho
   <h2>학교 선택</h2><p>이 PC에서 사용할 학교를 저장하면 학교 업무 화면과 바로가기에서 함께 사용합니다.</p>
   {showAccount&&<BogunonAccount local={state.data} onSchoolApplied={state.refresh}/>}
   {current?<p><strong>현재 학교: {current.schoolName}</strong><br/>{current.officeName} · 교육청 {current.officeCode} · 학교 {current.schoolCode}</p>:<p>아직 학교를 선택하지 않았습니다.</p>}
-  {showAddresses&&<SchoolSystemAddresses school={current??null} blocked={!!state.data?.recovered||busy||state.loading}/>}
+  {showAddresses&&<SchoolSystemAddresses school={current??null} revision={state.settingsRevision} blocked={!!state.data?.recovered||busy||state.loading}/>}
   {state.error&&<p role="alert">{state.error}</p>}{state.data?.recovered&&<p role="alert">학교 프로필 백업을 읽었습니다. 원본 보호를 위해 변경을 차단합니다.</p>}
   <button type="button" disabled={busy||state.loading} onClick={()=>void state.refresh()}>학교 정보 다시 불러오기</button>
   <form onSubmit={event=>{event.preventDefault();void run(async token=>{setSearching(true);setSearch(null);setNotice('NEIS에 학교 이름만 전송해 조회하는 중…');const result=read(await api.search({name:name.trim(),officeCode:office}));if(!mounted.current||token!==epoch.current)return;setSearch(result);setNotice(result.results.length?'결과를 확인하고 학교 선택 버튼을 눌러 주세요. 검색만으로 학교를 변경하지 않습니다.':'조회 결과가 없습니다. 교육청과 학교 이름을 확인해 주세요.');});}}>
@@ -58,6 +59,6 @@ export function SchoolProfileSettings({showAddresses=true,showAccount=true}:{sho
 export function SchoolLauncherProfile({onConfigure,onApplied,onBusyChange,blocked=false,revision}:{onConfigure:()=>void;onApplied?:(load:AdminLoad)=>void;onBusyChange?:(busy:boolean)=>void;blocked?:boolean;revision?:number}){
  const state=useContext(Context);if(!state)return null;const school=state.data?.document.school;
  return <section className="school-profile school-launcher-profile" aria-label="학교 업무 바로가기 프로필"><h2>공통 학교</h2>{school?<><strong>{school.schoolName}</strong><p>{school.officeName} · {school.officeCode} / {school.schoolCode}</p><p>학교를 바꾸어도 저장된 업무 주소는 자동으로 바뀌지 않습니다. 아래 주소를 확인한 뒤 필요한 항목만 적용하세요.</p></>:<p>학교를 아직 선택하지 않았습니다. 기존에 저장한 업무 주소는 계속 사용할 수 있습니다.</p>}{state.error&&<p role="alert">{state.error}</p>}
- <SchoolSystemAddresses school={school??null} revision={revision} onApplied={onApplied} onBusyChange={onBusyChange} blocked={blocked||!!state.data?.recovered||state.loading} onConfigure={onConfigure}/>
+ <SchoolSystemAddresses school={school??null} revision={(revision??0)+state.settingsRevision} onApplied={onApplied} onBusyChange={onBusyChange} blocked={blocked||!!state.data?.recovered||state.loading} onConfigure={onConfigure}/>
  <button type="button" onClick={onConfigure}>현재 환경 주소 설정</button><details><summary>학교 선택·변경</summary><SchoolProfileSettings showAddresses={false}/></details></section>;
 }

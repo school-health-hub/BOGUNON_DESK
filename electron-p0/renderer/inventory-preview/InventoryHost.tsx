@@ -1,3 +1,4 @@
+import {WorkspaceLoadingReporter} from '../ui/WorkspaceLoadingReporter';
 import type {InventoryPurchaseLine} from '../../../src/inventory-management/model';
 import {lazy,Suspense,useEffect,useMemo,useRef} from 'react';
 const InventoryWorkspace=lazy(()=>import('../../../src/inventory-management/InventoryWorkspace').then(m=>({default:m.InventoryWorkspace})));
@@ -10,6 +11,6 @@ export function InventoryHost({mode,onModeChange,onClose,onPurchase,closeRequest
  const adapter=useMemo(()=>createSyntheticInventoryAdapter(),[]);
  const previousCloseRequest=useRef(closeRequest);
  useEffect(()=>{if(closeRequest===undefined||previousCloseRequest.current===closeRequest)return;previousCloseRequest.current=closeRequest;if(mode==='preview'){onClose();onCloseRequestResolved?.(true);}},[closeRequest,mode,onClose,onCloseRequestResolved]);
- return <Suspense fallback={<p role="status">물품관리 화면을 불러오는 중…</p>}>{mode==='local'?<section aria-label="물품관리 — 로컬 저장" data-embedded={String(embedded)}><header className="inventory-local-mode"><strong>물품관리 — 로컬 저장</strong><span>Electron 전용 JSON 저장 · 서버 동기화 없음</span><button type="button" onClick={()=>{if(window.confirm('미리보기로 전환하면 저장하지 않은 입력을 닫습니다. 전환하시겠습니까?'))onModeChange('preview');}}>미리보기로</button></header><InventoryWorkspace onClose={onClose} onPurchase={onPurchase} closeRequest={closeRequest} onCloseRequestResolved={onCloseRequestResolved}/></section>
+ return <Suspense fallback={<WorkspaceLoadingReporter><p role="status">물품관리 화면을 불러오는 중…</p></WorkspaceLoadingReporter>}>{mode==='local'?<section aria-label="물품관리 — 로컬 저장" data-embedded={String(embedded)}><header className="inventory-local-mode"><strong>물품관리 — 로컬 저장</strong><span>Electron 전용 JSON 저장 · 서버 동기화 없음</span><button type="button" onClick={()=>{if(window.confirm('미리보기로 전환하면 저장하지 않은 입력을 닫습니다. 전환하시겠습니까?'))onModeChange('preview');}}>미리보기로</button></header><InventoryWorkspace onClose={onClose} onPurchase={onPurchase} closeRequest={closeRequest} onCloseRequestResolved={onCloseRequestResolved}/></section>
  :<section className="inventory-preview" aria-label="물품관리 — 미리보기" data-mode="preview_only" data-persisted="false"><InventoryManagementPanel adapter={adapter} onOpenLocal={()=>onModeChange('local')} onClose={onClose}/></section>}</Suspense>;
 }

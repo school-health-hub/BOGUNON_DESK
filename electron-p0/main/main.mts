@@ -1,3 +1,11 @@
+import { SurfaceSettingsAuthority } from './surface-settings-authority.js';
+import { SurfaceSettingsFlush } from './surface-settings-flush.js';
+import { notifySchoolChange } from './school-settings-notification.js';
+import { createSurfaceSettingsHandlers } from './surface-settings-ipc.js';
+import { createSettingsWindow, registerSettingsCapabilities } from './settings-surface.js';
+import { DesktopNavigationQueue, parseDesktopEntry, parseSettingsSection } from './desktop-navigation.js';
+import { validateSettings } from './settings.js';
+import type { SettingsSectionId } from '../desktop-surface-protocol.js';
 import {createInstructorFiles} from './instructor-files.js';
 import {InstructorStampStore} from './instructor-stamp.js';
 import {AccountService} from './account-service.js';
@@ -115,6 +123,18 @@ else {
   paletteSession.webRequest.onBeforeRequest((details,callback)=>callback({cancel:!resourceAllowed(details.url,renderer,dev ? new URL(dev).origin : undefined)}));
   const palette=new BrowserWindow({title:`${PRODUCT_NAME} Desktop Palette`,...desktopPaletteOptions(screen.getPrimaryDisplay().workArea),webPreferences:{preload:join(app.getAppPath(),'preload','palette-preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webviewTag:false,session:paletteSession,webSecurity:true}});
   const paletteLifecycle=new DesktopPaletteLifecycle(palette);
+  const settingsUrl=dev?new URL('settings/index.html',dev).href:pathToFileURL(join(renderer,'settings','index.html')).href;
+  const settingsWindow=createSettingsWindow({preload:join(app.getAppPath(),'preload','settings-preload.cjs'),renderer,...(dev?{dev}:{}),quitting:()=>quitting});
+  const settingsAuthority=new SurfaceSettingsAuthority(store,snapshot=>{
+    for(const target of [window,palette,settingsWindow])if(!target.isDestroyed()&&!target.webContents.isDestroyed())target.webContents.send('p0:surface-settings:changed',snapshot);
+  });
+  let workspaceSettingsReady=false,quitPending=false;
+  const settingsFlush=new SurfaceSettingsFlush();
+  const schoolChanged=()=>{for(const target of [window,settingsWindow])if(!target.isDestroyed())target.webContents.send("p0:school-settings:changed");};
+  let workspaceReady=false,paletteReady=false,fallbackRequested=false,settingsReady=false,settingsFailed=false;
+  let requestedSettingsSection:SettingsSectionId='account';
+  const exposeFallback=()=>{paletteReady=false;fallbackRequested=true;if(workspaceReady)show();};
+  const paletteStartupTimer=setTimeout(()=>{if(!paletteReady)exposeFallback();},10000);
   let paletteHitRegions:readonly {x:number;y:number;width:number;height:number}[]=[];
   const paletteInputTimer=setInterval(()=>{
     if(palette.isDestroyed()||!palette.isVisible())return;
@@ -156,7 +176,7 @@ else {
   schoolSession.setPermissionCheckHandler(()=>false);
   schoolSession.webRequest.onBeforeRequest((details,callback)=>callback({cancel:!allowedSchoolUrl(details.url)}));
   const schoolHandlers=createSchoolHandlers(window.webContents,url,{store:schoolStore,fetch:(target,init)=>schoolSession.fetch(target,init)});
-  for(const [action,handler] of Object.entries(schoolHandlers))if(action!=='dispose'&&action!=='flush')ipcMain.handle(`p2:school:${action}`,handler);
+  for(const [action,handler] of Object.entries(schoolHandlers))if(action!=='dispose'&&action!=='flush')ipcMain.handle(`p2:school:${action}`,action==='select'?notifySchoolChange(handler as typeof schoolHandlers.select,schoolChanged):handler);
   window.on('closed',schoolHandlers.dispose);window.webContents.on('will-navigate',schoolHandlers.dispose);window.webContents.on('render-process-gone',schoolHandlers.dispose);app.on('before-quit',schoolHandlers.dispose);
   const accountConfig=parseAccountConfig(await readFile(join(app.getAppPath(),'account-config.json'),'utf8').then(JSON.parse).catch(()=>null));
   const accountSession=session.fromPartition('bogunon-account-egress');
@@ -164,7 +184,7 @@ else {
   accountSession.webRequest.onBeforeRequest((details,callback)=>callback({cancel:!accountConfig||!allowedAccountRequest(details.url,details.method,accountConfig.origin)}));
   const accountService=new AccountService({config:accountConfig,vault:new AccountVault(join(userData,'work-data','bogunon-account'),{available:process.platform==='win32'&&safeStorage.isEncryptionAvailable(),encrypt:text=>safeStorage.encryptString(text),decrypt:bytes=>safeStorage.decryptString(bytes)}),fetch:(input,init)=>accountSession.fetch(input instanceof URL?input.href:input,init),open:target=>shell.openExternal(target,{activate:true})});
   const accountHandlers=createAccountHandlers(window.webContents,url,accountService,schoolStore,async(message,detail)=>(await dialog.showMessageBox(window,{type:'question',message,detail,buttons:['취소','확인 후 진행'],defaultId:0,cancelId:0})).response===1);
-  for(const [action,handler] of Object.entries(accountHandlers))if(action!=='dispose'&&action!=='flush'&&action!=='invalidate')ipcMain.handle(`p2:account:${action}`,handler);
+  for(const [action,handler] of Object.entries(accountHandlers))if(action!=='dispose'&&action!=='flush'&&action!=='invalidate')ipcMain.handle(`p2:account:${action}`,action==='applySchool'?notifySchoolChange(handler as typeof accountHandlers.applySchool,schoolChanged):handler);
   window.on('closed',accountHandlers.dispose);window.webContents.on('will-navigate',accountHandlers.invalidate);window.webContents.on('render-process-gone',accountHandlers.invalidate);
   const aiSession=session.fromPartition('ai-api-egress');
   aiSession.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));
@@ -173,7 +193,7 @@ else {
   const aiService=new AiService({chatGptSupported:process.platform==='win32',vault:new EncryptedAiVault(join(userData,'work-data','ai'),{
    available:process.platform==='win32'&&safeStorage.isEncryptionAvailable(),encrypt:text=>safeStorage.encryptString(text),decrypt:bytes=>safeStorage.decryptString(bytes)}),
    fetch:(target,init)=>aiSession.fetch(target,init),readClipboard:()=>clipboard.readText(),clearClipboard:async expected=>{if(await clipboard.readText()===expected)await clipboard.clear();},
-   reviewKey:async input=>(await dialog.showMessageBox(window,{type:'question',message:`클립보드의 ${input.provider==='openai'?'OpenAI':'Gemini'} API Key로 연결할까요?`,detail:`명시적으로 복사한 API Key만 사용해 주세요. 모델 목록 조회를 위해 해당 제공자에게 Key를 전송합니다. 연결 성공 후 클립보드에서 이 값을 지웁니다. ${input.remember?'Windows 암호화로 이 Electron 프로필에 저장하며 이전 저장 연결을 대체합니다.':'앱 메모리에서만 사용하며 이전 Electron 저장 연결은 제거합니다.'} Tauri 인증정보는 읽거나 변경하지 않습니다.`,buttons:['취소','API 연결'],defaultId:0,cancelId:0})).response===1,
+   reviewKey:async input=>(await dialog.showMessageBox(settingsWindow.isFocused()?settingsWindow:window,{type:'question',message:`클립보드의 ${input.provider==='openai'?'OpenAI':'Gemini'} API Key로 연결할까요?`,detail:`명시적으로 복사한 API Key만 사용해 주세요. 모델 목록 조회를 위해 해당 제공자에게 Key를 전송합니다. 연결 성공 후 클립보드에서 이 값을 지웁니다. ${input.remember?'Windows 암호화로 이 Electron 프로필에 저장하며 이전 저장 연결을 대체합니다.':'앱 메모리에서만 사용하며 이전 Electron 저장 연결은 제거합니다.'} Tauri 인증정보는 읽거나 변경하지 않습니다.`,buttons:['취소','API 연결'],defaultId:0,cancelId:0})).response===1,
    reviewSend:async(request,connection)=>(await dialog.showMessageBox(window,{type:'warning',message:`${connection.provider} · ${connection.model}에 이 내용을 전송할까요?`,detail:`${request.tool} · API 사용 요금이 발생할 수 있습니다. 개인정보가 없는지 확인하세요.\n\n${request.prompt}`,buttons:['취소','확인 후 외부 전송'],defaultId:0,cancelId:0})).response===1});
   const chatgptProcess=new ChatGptProcess(app.isPackaged?join(process.resourcesPath,'chatgpt-auth-cli','chatgpt-auth-cli.exe'):join(app.getAppPath(),'../../tools/chatgpt-auth-cli/target/debug/chatgpt-auth-cli.exe'),join(userData,'work-data','chatgpt'),target=>shell.openExternal(target));
   const chatgptService=new ChatGptService(chatgptProcess,async(request,model)=>(await dialog.showMessageBox(window,{type:'warning',message:`ChatGPT 요금제 · ${model}에 이 내용을 전송할까요?`,detail:`${request.tool} · ChatGPT plan/credits 한도가 적용됩니다. API Key로 자동 전환하지 않습니다. 개인정보를 넣지 마세요.\n\n${request.prompt}`,buttons:['취소','확인 후 외부 전송'],defaultId:0,cancelId:0})).response===1);
@@ -201,8 +221,8 @@ else {
     assertSender(event,window.webContents,url);
     if (args.length !== (channel === 'p0:write-settings' ? 1 : 0)) throw new Error('Invalid PoC IPC arguments');
     if (channel === 'p0:info') return {appId:APP_ID,productName:PRODUCT_NAME,userData,sourceSha:meta.sourceSha,electron:process.versions.electron,...(qaPaths.qa?{qaProfile:{root:qaPaths.root,appData:app.getPath('appData'),sessionData:app.getPath('sessionData'),stores:['poc-settings','work-data/local-tasks','work-data/local-events','work-data/purchase-settings','work-data/quick-memo','work-data/work-folders','work-data/drop-import-tmp','work-data/education-video','work-data/school-profile','work-data/bogunon-account','work-data/school-admin','work-data/inventory','work-data/ai','work-data/chatgpt','work-data/my-finance','work-data/youtube-search','work-data/newsletter-projects','work-data/official-import-tmp','work-data/purchase-import-tmp'].map(p=>join(userData,p))}}:{})};
-    if (channel === 'p0:read-settings') return store.read();
-    return store.write(args[0]);
+    if (channel === 'p0:read-settings') return (await settingsAuthority.read()).value;
+    return settingsAuthority.write({revision:(await settingsAuthority.read()).revision,value:validateSettings(args[0])}).then(()=>undefined);
   });
   for(const [action,handler] of Object.entries(createPurchaseSettingsHandlers(window.webContents,url,purchaseSettingsStore)))ipcMain.handle(`p2:purchase:settings:${action}`,handler);
   const officialService=new OfficialDocumentService(app.isPackaged?join(process.resourcesPath,'official-document-cli',process.platform==='win32'?'official-document-cli.exe':'official-document-cli'):join(app.getAppPath(),'../../tools/official-document-cli/target/debug',process.platform==='win32'?'official-document-cli.exe':'official-document-cli'),join(userData,'work-data','official-import-tmp'));
@@ -222,14 +242,15 @@ else {
   app.on('select-client-certificate',adminProbe.denyCertificate);
   const releaseAdminProbe=()=>app.removeListener('select-client-certificate',adminProbe.denyCertificate);
   window.on('closed',releaseAdminProbe);app.on('will-quit',releaseAdminProbe);
-  const adminHandlers=createAdminHandlers(window.webContents,url,{store:adminStore,excel:excelService,protectedRoot:userData,
+  const adminPorts:Parameters<typeof createAdminHandlers>[2]={store:adminStore,excel:excelService,protectedRoot:userData,
    school:async()=>(await schoolStore.load()).document.school,schoolProfile:()=>schoolStore.load(),
    inspect:(target,signal)=>inspectAdminConnection(adminProbe.fetch,target,signal),
    pick:async()=>{const r=await dialog.showOpenDialog(window,{title:'학교 행정 검토용 CSV/XLSX 선택',properties:['openFile','dontAddToRecent'],filters:[{name:'검토용 표',extensions:['csv','xlsx']}]});return r.canceled?undefined:r.filePaths[0];},
    save:async()=>{const r=await dialog.showSaveDialog(window,{title:'학교 행정 검토용 CSV 저장',defaultPath:'학교행정_검토용.csv',properties:['dontAddToRecent'],filters:[{name:'검토용 CSV',extensions:['csv']}]});return r.canceled?undefined:r.filePath;},
    openExternal:target=>shell.openExternal(target,{activate:true}),copy:text=>clipboard.writeText(text),
-   review:async(message,text)=>(await dialog.showMessageBox(window,{type:'question',message,detail:'인증정보와 개인정보가 없는지 검토하세요. 로그인 자동화·실제 신청·상신은 하지 않습니다.\n\n'+text,buttons:['취소','확인 후 진행'],defaultId:0,cancelId:0})).response===1});
-  for(const [action,handler] of Object.entries(adminHandlers))if(action!=='dispose'&&action!=='flush')ipcMain.handle(`p2:admin:${action}`,handler);
+   review:async(message,text)=>(await dialog.showMessageBox(settingsWindow.isFocused()?settingsWindow:window,{type:'question',message,detail:'인증정보와 개인정보가 없는지 검토하세요. 로그인 자동화·실제 신청·상신은 하지 않습니다.\n\n'+text,buttons:['취소','확인 후 진행'],defaultId:0,cancelId:0})).response===1};
+  const adminHandlers=createAdminHandlers(window.webContents,url,adminPorts);
+  for(const [action,handler] of Object.entries(adminHandlers))if(action!=='dispose'&&action!=='flush')ipcMain.handle(`p2:admin:${action}`,action==='applySchoolAddresses'?notifySchoolChange(handler as typeof adminHandlers.applySchoolAddresses,schoolChanged):handler);
   window.on('closed',adminHandlers.dispose);window.webContents.on('will-navigate',adminHandlers.dispose);window.webContents.on('render-process-gone',adminHandlers.dispose);
   const ocrRuntime=app.isPackaged?join(process.resourcesPath,'purchase-ocr'):join(app.getAppPath(),'../purchase-ocr');
   let purchaseAi:PurchaseAiService|undefined;
@@ -307,13 +328,15 @@ else {
   window.on('closed',()=>workFolderHandlers.dispose());window.webContents.on('will-navigate',()=>workFolderHandlers.dispose());window.webContents.on('render-process-gone',()=>workFolderHandlers.dispose());
   ipcMain.handle('p2:memo:read',memoHandlers.read);
   ipcMain.handle('p2:memo:write',memoHandlers.write);
+  ipcMain.handle('p0:palette:open-settings',(event,...args:unknown[])=>{assertSender(event,palette.webContents,paletteUrl);if(args.length!==1)throw Error('Invalid Settings request');openSettings(parseSettingsSection(args[0]));});
+  ipcMain.handle('p0:palette:ready',(event,...args:unknown[])=>{assertSender(event,palette.webContents,paletteUrl);if(args.length)throw Error('Invalid Palette readiness');paletteReady=true;clearTimeout(paletteStartupTimer);refreshMenu();});
   const paletteEventHandlers=createLocalEventHandlers(palette.webContents,paletteUrl,eventStore);
   const paletteTaskHandlers=createLocalTaskHandlers(palette.webContents,paletteUrl,taskStore);
   const paletteMemoHandlers=createMemoHandlers(palette.webContents,paletteUrl,memoStore);
   ipcMain.handle('p0:palette:read-settings',async(event,...args:unknown[])=>{
     assertSender(event,palette.webContents,paletteUrl);
     if(args.length)throw Error('Invalid Desktop palette settings request');
-    return await store.read();
+    return (await settingsAuthority.read()).value;
   });
   ipcMain.handle('p0:palette:set-interactive',(event,interactive:unknown,...args:unknown[])=>{
     assertSender(event,palette.webContents,paletteUrl);
@@ -322,7 +345,7 @@ else {
   });
   ipcMain.handle('p0:palette:set-hit-regions',(event,regions:unknown,...args:unknown[])=>{
     assertSender(event,palette.webContents,paletteUrl);
-    if(args.length||!Array.isArray(regions)||regions.length>13)throw Error('Invalid Desktop palette hit regions');
+    if(args.length||!Array.isArray(regions)||regions.length>16)throw Error('Invalid Desktop palette hit regions');
     const bounds=palette.getContentBounds();
     paletteHitRegions=regions.map(region=>{
       if(!region||typeof region!=='object')throw Error('Invalid Desktop palette hit region');
@@ -333,8 +356,8 @@ else {
   });
   ipcMain.handle('p0:palette:open-workspace',(event,...args:unknown[])=>{
     assertSender(event,palette.webContents,paletteUrl);
-    if(args.length)throw Error('Invalid Workspace request');
-    show();
+    if(args.length>1)throw Error('Invalid Workspace request');
+    desktopNavigation.request(args.length?parseDesktopEntry(args[0]):undefined);
   });
   ipcMain.handle('p0:palette:events:load',paletteEventHandlers.load);
   ipcMain.handle('p0:palette:events:save',(event,eventDraft:unknown,expectedRevision:unknown,expectedUpdatedAt:unknown,...args:unknown[])=>
@@ -392,23 +415,34 @@ else {
   for(const action of PROJECT_ACTIONS)ipcMain.handle(`p2:newsletter:projects:${action}`,createProjectHandler(action,window.webContents,url,projects,async info=>(await dialog.showMessageBox(window,{type:'warning',message:'미리 본 revision으로 원고를 복구할까요?',detail:`프로젝트 ${info.projectId} · 현재 revision ${info.currentRevision}\nrevision ${info.sourceRevision} 내용을 새 revision ${info.currentRevision+1}로 복구합니다.\n현재 편집 내용은 선택한 revision으로 대체됩니다. 기존 저장 이력은 보존하며 출력 승인 권한은 부여하지 않습니다.`,buttons:['취소','확인 후 복구'],defaultId:0,cancelId:0})).response===1));
   // A prevented close only hides this live window. Terminal service cleanup
   // observes 'closed' (or quit/security disposal), never a tray-hide request.
+  const disposeSettingsCapabilities=registerSettingsCapabilities(ipcMain,settingsWindow,settingsUrl,{schoolChanged,account:accountService,school:schoolStore,schoolFetch:(target,init)=>schoolSession.fetch(target,init),ai:aiService,chatgpt:chatgptService,admin:adminPorts,reviewAccount:async(message,detail)=>(await dialog.showMessageBox(settingsWindow,{type:'question',message,detail,buttons:['취소','확인 후 진행'],defaultId:0,cancelId:0})).response===1});
+  const surfaceSettingsHandlers=createSurfaceSettingsHandlers([{contents:window.webContents,url},{contents:settingsWindow.webContents,url:settingsUrl}],settingsAuthority);
+  ipcMain.handle('p0:surface-settings:read',surfaceSettingsHandlers.read);ipcMain.handle('p0:surface-settings:write',surfaceSettingsHandlers.write);
   const windowLifecycle=new WorkspaceWindowLifecycle(window);
   let pendingWorkspaceClose:number|undefined;
   let workspaceCloseSequence=0;
-  const show=()=>{pendingWorkspaceClose=undefined;windowLifecycle.open();};
+  const show=()=>{pendingWorkspaceClose=undefined;if(desktop.maximized&&!window.isMaximized())window.maximize();windowLifecycle.open();};
+  const desktopNavigation=new DesktopNavigationQueue(show,entry=>window.webContents.send('p0:desktop-navigation:entry',entry));
+  const openSettings=(section:SettingsSectionId='account')=>{requestedSettingsSection=section;if(settingsFailed){show();dialog.showErrorBox('설정을 열지 못했습니다','설정 화면을 다시 실행해 주세요. 기존 설정은 보존됩니다.');return;}settingsWindow.show();settingsWindow.focus();if(settingsReady)settingsWindow.webContents.send('p0:settings-window:section',section);};
+  ipcMain.handle('p0:desktop-navigation:ready',(event,...args:unknown[])=>{assertSender(event,window.webContents,url);if(args.length)throw Error('Invalid Workspace readiness');workspaceSettingsReady=true;desktopNavigation.ready();});
+  ipcMain.handle('p0:desktop-navigation:open-settings',(event,...args:unknown[])=>{assertSender(event,window.webContents,url);if(args.length!==1)throw Error('Invalid Settings request');openSettings(parseSettingsSection(args[0]));});
+  for(const action of ['info','ready','close','open-workspace'] as const)ipcMain.handle('p0:settings-window:'+action,(event,...args:unknown[])=>{assertSender(event,settingsWindow.webContents,settingsUrl);if(args.length)throw Error('Invalid Settings window request');switch(action){case 'info':return{appId:APP_ID,productName:PRODUCT_NAME,userData,sourceSha:meta.sourceSha,electron:process.versions.electron};case 'ready':settingsReady=true;settingsWindow.webContents.send('p0:settings-window:section',requestedSettingsSection);return;case 'close':settingsWindow.hide();return;case 'open-workspace':show();return;}});
+  const hasRecovery=()=>tray!==null||(paletteReady&&!palette.isDestroyed()&&palette.isVisible());
   const persist=async()=>{
     try{await desktopStore.write(desktop);return true;}
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
-  const quit=()=>{if(!windowLifecycle.beginQuit())return;quitting=true;clearInterval(paletteInputTimer);paletteLifecycle.beginQuit();instructorFiles.dispose();accountHandlers.dispose();fileDrop.dispose();workFolderHandlers.dispose();recordHandlers.dispose();finderCompat.dispose();finderV2Export.dispose();finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();aiService.dispose();inventoryQa.close();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([instructorFiles.flush(),accountHandlers.flush(),fileDrop.flush(),workFoldersStore.flush(),recordHandlers.flush(),finderSearch.flush(),finderV2Export.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),eventStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>workspaceProduct.dispose()).finally(()=>{tray?.destroy();app.quit();});};
+  const finishQuit=()=>{if(!windowLifecycle.beginQuit())return;quitting=true;clearTimeout(paletteStartupTimer);disposeSettingsCapabilities();clearInterval(paletteInputTimer);paletteLifecycle.beginQuit();instructorFiles.dispose();accountHandlers.dispose();fileDrop.dispose();workFolderHandlers.dispose();recordHandlers.dispose();finderCompat.dispose();finderV2Export.dispose();finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();aiService.dispose();inventoryQa.close();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([instructorFiles.flush(),accountHandlers.flush(),fileDrop.flush(),workFoldersStore.flush(),recordHandlers.flush(),finderSearch.flush(),finderV2Export.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),eventStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>workspaceProduct.dispose()).finally(()=>{tray?.destroy();app.quit();});};
+  ipcMain.handle('p0:surface-settings:flush-result',(event,...args:unknown[])=>{const actor=[{contents:window.webContents,url},{contents:settingsWindow.webContents,url:settingsUrl}].find(candidate=>candidate.contents===event.sender);if(!actor)throw Error('Unknown settings actor');assertSender(event,actor.contents,actor.url);if(args.length!==2)throw Error('Invalid flush result');settingsFlush.resolve(actor.contents.id,args[0],args[1]);});
+  const quit=()=>{if(quitPending||quitting)return;quitPending=true;const actors=[...(workspaceSettingsReady?[window]:[]),...(settingsReady?[settingsWindow]:[])];void Promise.allSettled(actors.map(actor=>settingsFlush.request(actor.webContents.id,id=>actor.webContents.send('p0:surface-settings:flush-request',id)))).then(results=>{if(results.some(result=>result.status==='rejected'))throw Error('Settings flush failed');finishQuit();}).catch(()=>{for(const actor of actors)if(!actor.isDestroyed())actor.webContents.send('p0:surface-settings:resume');quitPending=false;show();dialog.showErrorBox('설정 저장 확인 필요','설정 저장을 확인하지 못해 종료하지 않았습니다. 설정을 확인한 뒤 다시 종료해 주세요.');});};
   const hideAfterRendererApproval=()=>{
-    if(windowLifecycle.requestClose(tray!==null)!=='hidden')return;
+    if(windowLifecycle.requestClose(hasRecovery())!=='hidden')return;
     capture();void persist().then(ok=>{if(!ok)show();});
   };
   const requestWorkspaceHide=()=>{
     if(windowLifecycle.isQuitInProgress())return;
-    if(tray===null){quit();return;}
+    if(!hasRecovery()){show();return;}
     if(pendingWorkspaceClose!==undefined)return;
     pendingWorkspaceClose=++workspaceCloseSequence;
     window.webContents.send('p0:workspace-window:close-request',{id:pendingWorkspaceClose});
@@ -423,10 +457,11 @@ else {
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
       {label:'Desktop 위젯 표시',click:()=>paletteLifecycle.show()},
-      {label:'Desktop 위젯 숨기기',click:()=>paletteLifecycle.hide()},
+      {label:'Desktop 위젯 숨기기',click:()=>{paletteLifecycle.hide();if(tray===null)show();}},
       {type:'separator'},
       {label:'Workspace 열기',click:show},
-      {label:'Workspace 숨기기',enabled:tray!==null&&!windowLifecycle.isQuitInProgress(),click:requestWorkspaceHide},
+      {label:'설정 열기',click:()=>openSettings()},
+      {label:'Workspace 숨기기',enabled:hasRecovery()&&!windowLifecycle.isQuitInProgress(),click:requestWorkspaceHide},
       {type:'separator'},{label:'BOGUNON 완전 종료',click:quit}
     ];
     tray?.setContextMenu(Menu.buildFromTemplate(items));
@@ -440,14 +475,17 @@ else {
   const adjustPalette=()=>{if(!palette.isDestroyed())palette.setBounds(screen.getPrimaryDisplay().workArea);};
   screen.on('display-added',adjust);screen.on('display-removed',adjust);screen.on('display-metrics-changed',adjust);
   screen.on('display-added',adjustPalette);screen.on('display-removed',adjustPalette);screen.on('display-metrics-changed',adjustPalette);
-  app.on('second-instance',show);
-  // UX-07B keeps startup auto-show until UX-07C provides an always-reachable Desktop surface.
-  window.once('ready-to-show',()=>{if(desktop.maximized)window.maximize();window.show();});
+  app.on('second-instance',()=>{if(workspaceReady)show();else fallbackRequested=true;});
+  window.once('ready-to-show',()=>{workspaceReady=true;if(fallbackRequested||tray===null)show();});
+  palette.webContents.on('did-fail-load',exposeFallback);palette.webContents.on('render-process-gone',exposeFallback);palette.on('closed',()=>{if(!quitting)exposeFallback();});
+  settingsWindow.webContents.on('render-process-gone',()=>{settingsFailed=true;show();});
+  window.webContents.on('render-process-gone',()=>desktopNavigation.reset());
   palette.once('ready-to-show',()=>paletteLifecycle.show());
-  palette.on('close',event=>{if(quitting)return;event.preventDefault();paletteLifecycle.hide();});
+  palette.on('close',event=>{if(quitting)return;event.preventDefault();paletteLifecycle.hide();if(tray===null)show();});
   window.on('close',event=>{if(quitting)return;event.preventDefault();requestWorkspaceHide();});
   app.on('before-quit',event=>{if(!quitting){event.preventDefault();quit();}});
   app.on('window-all-closed',quit);
-  await Promise.all([window.loadURL(url),palette.loadURL(paletteUrl)]);
-  }).catch((error: unknown)=>{ console.error('Electron P0 startup failed:', error instanceof Error ? error.message : 'unknown'); app.exit(1); });
+  await window.loadURL(url);
+  await Promise.all([palette.loadURL(paletteUrl).catch(()=>exposeFallback()),settingsWindow.loadURL(settingsUrl).catch(()=>{settingsFailed=true;})]);
+  }).catch((error: unknown)=>{ console.error('Electron P0 startup failed:', error instanceof Error ? error.message : 'unknown'); dialog.showErrorBox('BOGUNON 실행 오류','Desktop 화면을 시작하지 못했습니다. 기존 자료는 보존됩니다. 앱을 다시 실행해 주세요.'); app.exit(1); });
 }

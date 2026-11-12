@@ -1,6 +1,7 @@
+import type {DesktopEntry} from '../desktop-surface-protocol';
 // @vitest-environment jsdom
 import type { ReactNode } from "react";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { P0App } from "../renderer/P0App";
 import { WorkspaceBoundary } from "../renderer/WorkspaceBoundary";
@@ -9,8 +10,11 @@ const newsletterLifecycle = vi.hoisted(() => ({ mounts: 0 }));
 const finderLifecycle = vi.hoisted(() => ({ mounts: 0, cancels: 0, savedMemo: "" }));
 const inventoryLifecycle = vi.hoisted(() => ({ mounts: 0, savedName: "합성 저장 물품" }));
 const schoolLifecycle = vi.hoisted(() => ({ mounts: 0, closes: 0 }));
+const inventorySuspension=vi.hoisted(()=>({pending:false,wait:Promise.resolve(),release:():void=>undefined}));
+let desktopEntryListener:((entry:DesktopEntry)=>void)|undefined;
 let workspaceCloseListener: ((request: { readonly id: number }) => void) | undefined;
 const resolveWorkspaceClose = vi.fn();
+const openIndependentSettings=vi.fn(async()=>undefined);
 
 vi.mock("../renderer/WorkspaceProductHost", async () => {
   const { useState } = await import("react");
@@ -79,8 +83,10 @@ vi.mock("../../src/education-video/EducationVideoFinder", async () => {
   } };
 });
 vi.mock("../renderer/inventory-preview/InventoryHost", async () => {
-  const { useEffect, useRef, useState } = await import("react");
-  return { InventoryHost: ({ onClose, closeRequest, onCloseRequestResolved, embedded }: { readonly onClose: () => void; readonly closeRequest?: number; readonly onCloseRequestResolved?: (closed: boolean) => void; readonly embedded?: boolean }) => {
+  const { Suspense,useEffect, useRef, useState } = await import("react");
+  const {WorkspaceLoadingReporter}=await import("../renderer/ui/WorkspaceLoadingReporter");
+  function InventoryOwner({ onClose, closeRequest, onCloseRequestResolved, embedded }: { readonly onClose: () => void; readonly closeRequest?: number; readonly onCloseRequestResolved?: (closed: boolean) => void; readonly embedded?: boolean }) {
+    if(inventorySuspension.pending)throw inventorySuspension.wait;
     const [instance] = useState(() => { inventoryLifecycle.mounts += 1; return inventoryLifecycle.mounts; });
     const [draft, setDraft] = useState("");
     const [query, setQuery] = useState("");
@@ -98,7 +104,8 @@ vi.mock("../renderer/inventory-preview/InventoryHost", async () => {
       <button type="button" onClick={() => { inventoryLifecycle.savedName = draft || inventoryLifecycle.savedName; setDraft(""); }}>합성 물품 저장</button>
       <button type="button" onClick={() => { if (!draft || window.confirm("저장하지 않은 입력을 버리시겠습니까?")) onClose(); }}>물품·품의로</button>
     </section>;
-  } };
+  }
+  return {InventoryHost:(props:Parameters<typeof InventoryOwner>[0])=><Suspense fallback={<WorkspaceLoadingReporter><p role="status">합성 Inventory 로딩</p></WorkspaceLoadingReporter>}><InventoryOwner {...props}/></Suspense>};
 });
 vi.mock("../../src/components/dashboard/DesktopWidgetLayout", () => ({ DesktopWidgetLayout: () => <div>합성 Home</div> }));
 vi.mock("../renderer/finance/FinanceHost", async () => {
@@ -132,6 +139,7 @@ vi.mock("../../src/official-document/OfficialDocumentWorkspace", async () => {
 
 afterEach(() => {
   cleanup();
+  inventorySuspension.pending=false;desktopEntryListener=undefined;
   vi.unstubAllGlobals();
   newsletterLifecycle.mounts = 0;
   finderLifecycle.mounts = 0;
@@ -143,9 +151,12 @@ afterEach(() => {
   schoolLifecycle.closes = 0;
   workspaceCloseListener = undefined;
   resolveWorkspaceClose.mockReset();
+  openIndependentSettings.mockClear();
 });
 
 function setupDashboard(): void {
+  vi.stubGlobal('electronSurfaceSettings',{read:async()=>({revision:0,value:null}),write:vi.fn(),subscribe:()=>()=>undefined});
+  vi.stubGlobal('electronDesktopNavigation',{ready:async()=>undefined,onEntry:(listener:(entry:DesktopEntry)=>void)=>{desktopEntryListener=listener;return()=>{desktopEntryListener=undefined;};},openSettings:openIndependentSettings});
   vi.stubGlobal("ResizeObserver", class {
     observe(): void {}
     unobserve(): void {}
@@ -172,18 +183,16 @@ function setupDashboard(): void {
 }
 
 it("keeps Newsletter mounted while its workspace is closed and reopened", async () => {
-  // Given: the current P0 dashboard and its existing Settings handoff into Newsletter.
+  // Given: the current P0 dashboard and its existing category handoff into Newsletter.
   setupDashboard();
   render(<P0App />);
-  fireEvent.click(within(await screen.findByRole("navigation", { name: "주요 작업 공간" })).getByRole("button", { name: "설정" }));
-  fireEvent.click(screen.getByRole("button", { name: "앱 정보" }));
+  fireEvent.click(within(await screen.findByRole("navigation", { name: "주요 작업 공간" })).getByRole("button", { name: "문서·교육자료" }));
 
   // When: Newsletter is opened, closed, and opened again through the same current entry path.
   fireEvent.click(screen.getByRole("button", { name: /보건소식지 제작소/ }));
   expect(await screen.findByRole("heading", { name: "합성 소식지 1" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "소식지 닫기" }));
-  fireEvent.click(within(await screen.findByRole("navigation", { name: "주요 작업 공간" })).getByRole("button", { name: "설정" }));
-  fireEvent.click(screen.getByRole("button", { name: "앱 정보" }));
+  fireEvent.click(within(await screen.findByRole("navigation", { name: "주요 작업 공간" })).getByRole("button", { name: "문서·교육자료" }));
   fireEvent.click(screen.getByRole("button", { name: /보건소식지 제작소/ }));
 
   // Then: the original component instance is revealed rather than remounted.
@@ -301,8 +310,8 @@ it("keeps local School settings separate from the shared SCHOOL owner", async ()
   fireEvent.click(within(rail).getByRole("button", { name: "학교" }));
   fireEvent.click(screen.getByRole("button", { name: /학교 연결/ }));
 
-  expect(screen.getByRole("heading", { name: "학교·연결" })).toBeTruthy();
-  expect(screen.getByRole("list", { name: "학교 연결 단계" })).toBeTruthy();
+  expect(openIndependentSettings).toHaveBeenCalledWith("school");
+  expect(screen.queryByRole("list", { name: "학교 연결 단계" })).toBeNull();
   expect(screen.queryByRole("main", { name: "합성 SCHOOL WORKSPACE" })).toBeNull();
   expect(schoolLifecycle.mounts).toBe(0);
 });
@@ -414,45 +423,33 @@ it("guards Rail navigation while the Home layout editor owns an unfinished edit"
   expect(screen.getByText(/화면 꾸미기를 먼저 완료/)).toBeTruthy();
 });
 
-it("returns Rail, header, and Dock ownership to Home from the unified Settings workspace", async () => {
-  setupDashboard();
-  render(<P0App />);
-
-  const rail = await screen.findByRole("navigation", { name: "주요 작업 공간" });
-  fireEvent.click(within(rail).getByRole("button", { name: "설정" }));
-  expect(within(rail).getByRole("button", { name: "설정" }).getAttribute("aria-current")).toBe("page");
-
-  fireEvent.click(within(rail).getByRole("button", { name: "홈" }));
-
-  expect(within(rail).getByRole("button", { name: "홈" }).getAttribute("aria-current")).toBe("page");
+it("preserves Home ownership when opening independent Settings without a duplicate Dock", async () => {
+  setupDashboard();render(<P0App />);
+  const rail=await screen.findByRole("navigation",{name:"주요 작업 공간"});
+  fireEvent.click(within(rail).getByRole("button",{name:"설정"}));
+  expect(openIndependentSettings).toHaveBeenCalledWith("account");
+  expect(within(rail).getByRole("button",{name:"홈"}).getAttribute("aria-current")).toBe("page");
   expect(screen.getByText("현재 위치").nextElementSibling?.textContent).toBe("홈");
-  expect(within(screen.getByRole("navigation", { name: "주요 기능" })).getByRole("button", { name: "홈" }).getAttribute("aria-current")).toBe("page");
+  expect(screen.queryByRole("navigation",{name:"주요 기능"})).toBeNull();
 });
-
-it("routes Settings and School connection entries to their matching unified sections", async () => {
-  setupDashboard();
-  render(<P0App />);
-
-  const rail = await screen.findByRole("navigation", { name: "주요 작업 공간" });
-  fireEvent.click(within(rail).getByRole("button", { name: "설정" }));
-  expect(screen.getByRole("heading", { name: "계정" })).toBeTruthy();
-
-  fireEvent.click(within(rail).getByRole("button", { name: "학교" }));
-  fireEvent.click(screen.getByRole("button", { name: /학교 연결/ }));
-  expect(screen.getByRole("heading", { name: "학교·연결" })).toBeTruthy();
-  expect(screen.getByRole("list", { name: "학교 연결 단계" })).toBeTruthy();
+it("routes Settings and School connection entries to independent matching sections", async () => {
+  setupDashboard();render(<P0App />);
+  const rail=await screen.findByRole("navigation",{name:"주요 작업 공간"});
+  fireEvent.click(within(rail).getByRole("button",{name:"설정"}));
+  expect(openIndependentSettings).toHaveBeenLastCalledWith("account");
+  fireEvent.click(within(rail).getByRole("button",{name:"학교"}));
+  fireEvent.click(screen.getByRole("button",{name:/학교 연결/}));
+  expect(openIndependentSettings).toHaveBeenLastCalledWith("school");
+  expect(screen.queryByRole("list",{name:"학교 연결 단계"})).toBeNull();
 });
-
-it("routes the unconfigured startup guide into the School settings workspace without opening a second setup surface", async () => {
-  setupDashboard();
-  render(<P0App />);
-
-  fireEvent.click(await screen.findByRole("button", { name: "학교 설정 열기" }));
-
-  const rail = screen.getByRole("navigation", { name: "주요 작업 공간" });
-  expect(within(rail).getByRole("button", { name: "설정" }).getAttribute("aria-current")).toBe("page");
-  expect(screen.getByRole("heading", { name: "학교·연결" })).toBeTruthy();
-  expect(screen.getByRole("list", { name: "학교 연결 단계" })).toBeTruthy();
+it("routes startup school setup to independent Settings while preserving the Workspace", async () => {
+  setupDashboard();render(<P0App />);
+  fireEvent.click(within(await screen.findByRole("navigation",{name:"주요 작업 공간"})).getByRole("button",{name:"홈"}));
+  fireEvent.click(await screen.findByRole("button",{name:"학교 설정 열기"}));
+  expect(openIndependentSettings).toHaveBeenCalledWith("school");
+  const rail=screen.getByRole("navigation",{name:"주요 작업 공간"});
+  expect(within(rail).getByRole("button",{name:"홈"}).getAttribute("aria-current")).toBe("page");
+  expect(screen.queryByRole("list",{name:"학교 연결 단계"})).toBeNull();
 });
 
 it("keeps the Official draft in the App Shell when Rail navigation discard is cancelled", async () => {
@@ -578,4 +575,32 @@ it("hosts Inventory in the App Shell and preserves its existing leave and persis
   expect(screen.getByText("저장 전 합성 물품")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "물품·품의로" }));
   expect(screen.getByRole("button", { name: /개인 Inventory/ })).toBeTruthy();
+});
+it("routes Home appearance and Dock editing to independent Settings",async()=>{
+  setupDashboard();render(<P0App/>);
+  fireEvent.click(await screen.findByRole("button",{name:"화면 꾸미기"}));
+  fireEvent.click(screen.getByRole("button",{name:"스타일"}));
+  expect(openIndependentSettings).toHaveBeenLastCalledWith("appearance");
+  fireEvent.click(screen.getByRole("button",{name:"Dock"}));
+  expect(openIndependentSettings).toHaveBeenLastCalledWith("dock");
+  expect(document.getElementById("workspace-style-panel")).toBeNull();
+  expect(document.getElementById("workspace-dock-panel")).toBeNull();
+  expect(screen.getByRole("toolbar",{name:"데스크 편집 도구"})).toBeTruthy();
+});
+
+it('rejects navigation and OS close while a nested Inventory leaf loads, then accepts a retry',async()=>{
+  setupDashboard();inventorySuspension.pending=true;
+  inventorySuspension.wait=new Promise<void>(resolve=>{inventorySuspension.release=resolve;});
+  render(<P0App/>);
+  const rail=await screen.findByRole('navigation',{name:'주요 작업 공간'});
+  fireEvent.click(within(rail).getByRole('button',{name:'물품·품의'}));
+  fireEvent.click(screen.getByRole('button',{name:/개인 Inventory/}));
+  await screen.findByText('합성 Inventory 로딩');
+  act(()=>{desktopEntryListener?.({kind:'module',moduleId:'school-workspace'});workspaceCloseListener?.({id:91});});
+  expect(screen.getByText(/작업실을 불러오는 중/)).toBeTruthy();
+  expect(resolveWorkspaceClose).toHaveBeenCalledWith({id:91,allow:false});
+  await act(async()=>{inventorySuspension.pending=false;inventorySuspension.release();await inventorySuspension.wait;});
+  await screen.findByLabelText('합성 물품 검색');
+  act(()=>desktopEntryListener?.({kind:'module',moduleId:'school-workspace'}));
+  expect(await screen.findByRole('heading',{name:'합성 학교 공동 공간 1'})).toBeTruthy();
 });
