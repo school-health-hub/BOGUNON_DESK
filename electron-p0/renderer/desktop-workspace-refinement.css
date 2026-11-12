@@ -34,6 +34,7 @@
     background:var(--desk-paper); color:var(--desk-ink); box-shadow:none;
   }
   .ux03-home .workspace-data-notice { word-break:keep-all; overflow-wrap:normal; }
+  .electron-finance-host .finance-form-card small { word-break:keep-all; overflow-wrap:normal; }
   .ux03-home .ev-search select, .ux03-module-workspace .ev-search select { min-height:40px; border:1px solid var(--desk-control); border-radius:var(--desk-radius-control); padding:var(--desk-space-2); background:var(--desk-paper); color:var(--desk-ink); }
   .ux03-rail { background: var(--desk-navy); gap: var(--desk-space-5); }
   .ux03-rail nav button { border-radius: var(--desk-radius-control); font-size: var(--desk-type-md); }
