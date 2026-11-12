@@ -73,7 +73,7 @@ export function PaletteApp() {
     void publish();
     return () => {active=false;observer.disconnect();mutation.disconnect();};
   }, [layout,dock,error]);
-  if (error) return <main className="palette-status" role="alert" data-palette-interactive>위젯 배치를 읽지 못했습니다. 기존 배치는 변경하지 않았습니다.<button type="button" onClick={()=>void window.electronPalette.openWorkspace()}>Workspace 열기</button></main>;
+  if (error) return <main className="palette-status" role="alert" data-palette-interactive>위젯 배치를 읽지 못했습니다. 기존 배치는 변경하지 않았습니다.<button type="button" onClick={()=>void window.electronPalette.openWorkspace()}>업무 화면 열기</button></main>;
   if (!layout||!dock) return <main className="palette-status" role="status">위젯을 불러오는 중…</main>;
   const geometry = resolveDeskGeometry(layout, window.innerWidth);
   const visible = geometry.widgets.filter((widget) => widget.visible);

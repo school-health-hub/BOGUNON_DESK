@@ -1,0 +1,129 @@
+/* UX-07F work surfaces. Saved widget geometry and document/export canvases are excluded. */
+@media screen {
+  body.electron-soft-rose .workspace-shell.ux03-root:is(.is-view-mode, .is-edit-mode) {
+    display: block;
+    padding: 0;
+    background: var(--desk-canvas);
+    height: 100dvh;
+  }
+  body.electron-soft-rose :is(.td2-workspace, .ux03-module-workspace, .ux03-persistent-workspace) {
+    --td2-ink: var(--desk-ink);
+    --td2-secondary: var(--desk-muted);
+    --td2-rose: var(--desk-accent);
+    --td2-rose-hover: var(--desk-accent-strong);
+    --td2-opaque: var(--desk-paper);
+    --td2-sheet: var(--desk-paper);
+    --td2-rim: var(--desk-line);
+    --td2-chrome-shadow: var(--desk-shadow);
+    --text-primary: var(--desk-ink);
+    --text-secondary: var(--desk-muted);
+    --text-muted: var(--desk-muted);
+    --accent: var(--desk-accent);
+    --accent-hover: var(--desk-accent-strong);
+    --accent-soft: var(--desk-active);
+    --border: var(--desk-line);
+    --divider: var(--desk-line);
+    --control-border: var(--desk-control);
+    --surface-muted: var(--desk-canvas);
+    --widget-bg: var(--desk-paper);
+    color: var(--desk-ink);
+  }
+  .ux03-shell { background: var(--desk-canvas); color: var(--desk-ink); }
+  .ux03-rail { background: var(--desk-navy); gap: var(--desk-space-5); }
+  .ux03-rail nav button { border-radius: var(--desk-radius-control); font-size: var(--desk-type-md); }
+  .ux03-rail nav button.is-active { background: var(--desk-active); color: var(--desk-accent-strong); border-color: var(--desk-accent); }
+  .ux03-rail nav button:focus-visible { outline-color: var(--desk-dock-focus); }
+  .ux03-topbar { background: var(--desk-paper); border-color: var(--desk-line); gap: var(--desk-space-2); }
+  .ux03-topbar strong { min-width: 0; overflow-wrap: anywhere; color: var(--desk-ink); }
+  .ux03-topbar-status { flex: 0 1 auto; font-size: var(--desk-type-xs); }
+  .ux03-outlet { container-type: inline-size; scrollbar-gutter: stable; background: var(--desk-canvas); }
+  .ux03-module-workspace { padding: var(--desk-space-4); }
+  .ux03-category { padding: var(--desk-space-6); }
+  .ux03-workspace-header { border-color: var(--desk-line); }
+  .ux03-workspace-header h1 { font-size: var(--desk-type-title); color: var(--desk-navy); }
+  .ux03-module-list { border: 1px solid var(--desk-line); border-radius: var(--desk-radius-surface); overflow: hidden; }
+  .ux03-module-row { background: var(--desk-paper); color: var(--desk-ink); padding: var(--desk-space-3) var(--desk-space-4); }
+  .ux03-module-row:hover:not(:disabled) { background: var(--desk-active); }
+  .ux03-module-row:focus-visible { outline: var(--desk-focus); outline-offset: -3px; }
+  .ux03-module-row:disabled { opacity: 1; color: var(--desk-muted); background: var(--desk-canvas); }
+  .ux03-module-copy small, .ux03-availability { color: var(--desk-muted); font-size: var(--desk-type-xs); }
+  .ux03-availability.is-conditional { color: var(--desk-warning); }
+
+  body.electron-soft-rose .td2-workspace:not(.td2-record-workspace) { background: var(--desk-canvas); }
+  body.electron-soft-rose .ux03-module-workspace :is(.od-header, .ev-header),
+  body.electron-soft-rose .td2-workspace :is(.td2-workspace-header, .inventory-header, .od-header, .ev-header) {
+    padding: var(--desk-space-3) var(--desk-space-4);
+    margin-bottom: var(--desk-space-3);
+    border: 1px solid var(--desk-line);
+    border-radius: var(--desk-radius-surface);
+    background: var(--desk-paper);
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+  body.electron-soft-rose :is(.td2-workspace, .ux03-module-workspace) :is(.od-form, .od-paper, .ev-search, .ev-results, .ev-library, .ev-editor, .inventory-card, .s05-product) {
+    border-color: var(--desk-line);
+    border-radius: var(--desk-radius-surface);
+    background: var(--desk-paper);
+    box-shadow: none;
+  }
+  body.electron-soft-rose :is(.td2-workspace, .ux03-module-workspace) :is(.od-form, .ev-search, .ev-library, .ev-editor) { padding: var(--desk-space-4); }
+  body.electron-soft-rose :is(.td2-workspace, .ux03-module-workspace) :is(.od-grid, .ev-layout, .inventory-grid) { gap: var(--desk-space-3); }
+  body.electron-soft-rose :is(.td2-workspace, .ux03-module-workspace) .ev-finder {
+    --ev-accent: var(--desk-accent);
+    --ev-accent-soft: var(--desk-active);
+    --ev-paper: var(--desk-paper);
+  }
+  body.electron-soft-rose .td2-workspace :is(.s05-account, .s05-ready, .record-helper-panel__privacy) { background: var(--desk-canvas); border-color: var(--desk-line); }
+  body.electron-soft-rose .td2-workspace :is(.s02, .s03, .s04, .s07) { background: var(--desk-paper); border-color: var(--desk-line); border-radius: var(--desk-radius-surface); }
+  body.electron-soft-rose .td2-workspace :is(.s03-tag, .s04-tag, .s07-summary > span) { background: var(--desk-active); color: var(--desk-accent-strong); }
+  body.electron-soft-rose .td2-workspace :is(.s04-nav, .finance-area-tabs, .finance-phase2-tabs, .purchase-helper-tabs) button:is([aria-pressed="true"], [aria-selected="true"], .is-active) { background: var(--desk-active); color: var(--desk-accent-strong); border-color: var(--desk-accent); }
+  body.electron-soft-rose .td2-record-workspace .record-helper-panel { border-radius: var(--desk-radius-surface); border-color: var(--desk-line); }
+  body.electron-soft-rose .td2-workspace[data-workspace="purchase"] .purchase-helper-panel { box-shadow: none; }
+  body.electron-soft-rose .td2-workspace .purchase-helper-table-wrap { max-width: 100%; overflow: auto; }
+  body.electron-soft-rose .ux03-persistent-workspace .purchase-helper-panel { width:100%; min-width:0; box-sizing:border-box; max-height:none; overflow:visible; }
+  body.electron-soft-rose .ux03-persistent-workspace :is(.purchase-helper-panel__toolbar,.purchase-helper-panel__footer) { flex-wrap:wrap; gap:var(--desk-space-2); }
+  body.electron-soft-rose .ux03-persistent-workspace :is(.purchase-helper-dropzone,.purchase-helper-table thead) { background:var(--desk-canvas); color:var(--desk-ink); }
+  body.electron-soft-rose .ux03-persistent-workspace :is(.purchase-helper-tabs,.purchase-helper-empty) { background:var(--desk-canvas); color:var(--desk-muted); }
+  body.electron-soft-rose .ux03-persistent-workspace :is(.purchase-helper-panel__header,.purchase-helper-panel__footer) { background:var(--desk-paper); }
+  body.electron-soft-rose .td2-workspace :is(.purchase-helper-tabs, .purchase-helper-panel__footer) { background: var(--desk-canvas); }
+  body.electron-soft-rose .td2-workspace :is(.purchase-helper-panel__header, .purchase-helper-panel__toolbar) { background: var(--desk-paper); }
+  body.electron-soft-rose .td2-workspace :is(.inventory-controls, .inventory-header-main, .inventory-local-mode, .newsletter-title-group) { flex-wrap: wrap; min-width: 0; }
+  body.electron-soft-rose .td2-workspace .inventory-controls label:first-child { min-width: 0; flex: 1 1 240px; }
+  body.electron-soft-rose .td2-workspace .inventory-controls > * { max-width: 100%; }
+  body.electron-soft-rose .td2-workspace .inventory-list > button { grid-template-columns: minmax(0, 1fr) auto auto; }
+  body.electron-soft-rose .td2-workspace .inventory-list > button > span { min-width: 0; overflow-wrap: anywhere; }
+  body.electron-soft-rose .td2-workspace .newsletter-file-toolbar { gap: var(--desk-space-3); padding: var(--desk-space-3) var(--desk-space-4); }
+  body.electron-soft-rose .td2-workspace .newsletter-studio .studio-header { padding: var(--desk-space-3) var(--desk-space-4); }
+  body.electron-soft-rose .td2-workspace .newsletter-studio .studio-body > * { min-width: 0; }
+
+  /* Named task controls only: leave preview/editor toolbars and output artwork alone. */
+  body.electron-soft-rose :is(.td2-workspace, .ux03-module-workspace) :is(.od-header, .ev-header, .inventory-controls, .inventory-header, .td2-workspace-header) button {
+    min-height: 40px;
+    border-radius: var(--desk-radius-control);
+    border-color: var(--desk-control);
+    background: var(--desk-paper);
+    color: var(--desk-ink);
+    transition: background-color 120ms, border-color 120ms;
+  }
+  body.electron-soft-rose :is(.td2-workspace, .ux03-module-workspace) :is(.od-header, .ev-header, .inventory-controls, .inventory-header, .td2-workspace-header) button:hover:not(:disabled) { background: var(--desk-active); border-color: var(--desk-accent); }
+  body.electron-soft-rose .td2-workspace .inventory-controls > button:first-of-type:not(:disabled) { background: var(--desk-accent); border-color: var(--desk-accent); color: var(--desk-paper); }
+  body.electron-soft-rose .td2-workspace .inventory-controls > button:first-of-type:hover:not(:disabled) { background: var(--desk-accent-strong); }
+  body.electron-soft-rose :is(.td2-workspace, .ux03-module-workspace) :is(.od-header, .ev-header, .inventory-controls, .inventory-header, .td2-workspace-header) button:disabled { color: var(--desk-muted); background: var(--desk-canvas); opacity: 1; cursor: not-allowed; }
+  body.electron-soft-rose :is(.td2-workspace, .ux03-module-workspace) :is(.od-header, .ev-header, .inventory-controls, .inventory-header, .td2-workspace-header) button:focus-visible { outline: var(--desk-focus); outline-offset: 2px; }
+
+  @container (max-width: 1000px) {
+    body.electron-soft-rose .ux03-module-workspace :is(.od-grid, .ev-layout),
+    body.electron-soft-rose .td2-workspace :is(.inventory-grid, .finance-workspace.has-editor) { grid-template-columns: minmax(0, 1fr); }
+    body.electron-soft-rose .td2-workspace .inventory-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    body.electron-soft-rose .td2-workspace .inventory-item-editor fieldset { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    body.electron-soft-rose .td2-workspace .newsletter-studio .studio-body { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 1000px) {
+    body.electron-soft-rose .td2-record-workspace .record-helper-detail__editor-grid { grid-template-columns: minmax(0, 1fr); }
+    .ux03-module-workspace, .ux03-category { padding: var(--desk-space-3); }
+    .ux03-workspace-header { align-items: flex-start; flex-wrap: wrap; gap: var(--desk-space-2); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    body.electron-soft-rose :is(.od-header, .ev-header, .inventory-controls, .inventory-header, .td2-workspace-header) button { transition: none; }
+  }
+}

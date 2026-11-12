@@ -7,7 +7,7 @@ type NoticeState=Exclude<WorkspaceDataState,{status:'ready'}>
 // disconnected state is not a local task storage failure; ready renders data.
 const noticeText:Readonly<Record<NoticeState['status'],string>>={
  loading:'로컬 업무를 불러오는 중입니다.',
- signedOut:'날씨·급식은 이 Electron 실행본에 연결되어 있지 않습니다.',
+ signedOut:'날씨·급식이 연결되어 있지 않습니다.',
  error:'로컬 업무를 불러오지 못했습니다. 업무 도구에서 다시 불러와 주세요. 기존 파일은 유지됩니다.',
 }
 export function WorkspaceDataNotice({state}:{state:NoticeState}){return <div className={`workspace-data-notice is-${state.status}`} role="status">{noticeText[state.status]}</div>}

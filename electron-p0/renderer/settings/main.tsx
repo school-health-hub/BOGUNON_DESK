@@ -7,6 +7,7 @@ import '../../../src/styles/release-ui.css';
 import '../../../src/styles/desktop-workspace.css';
 import '../p0.css';
 import '../soft-rose.css';
+import '../desktop-design-tokens.css';
 import '../unified-settings.css';
 import './settings.css';
 import { SettingsApp } from './SettingsApp';

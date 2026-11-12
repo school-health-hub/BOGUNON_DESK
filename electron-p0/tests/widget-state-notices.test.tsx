@@ -34,7 +34,7 @@ it('shows a disconnected notice in both real widgets when the unchanged adapters
  // When: both widgets use the Electron replacement notice.
  render(<><WeatherWidget/><MealWidget/></>)
  // Then: connection state is visible, without a local-storage error.
- expect(screen.getAllByText('날씨·급식은 이 Electron 실행본에 연결되어 있지 않습니다.')).toHaveLength(2)
+ expect(screen.getAllByText('날씨·급식이 연결되어 있지 않습니다.')).toHaveLength(2)
  expect(screen.queryByText(/로컬 업무를 불러오지 못했습니다/)).toBeNull()
  expect(document.querySelectorAll('.is-signedOut')).toHaveLength(2)
 })

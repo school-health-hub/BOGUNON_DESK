@@ -53,7 +53,7 @@ function CategoryWorkspace({ categoryId, onOpenModule, canOpenModule }: Readonly
       {modules.map((definition) => {
         const Icon = definition.icon;
         const isAvailable = canOpenModule(definition.id);
-        const availability = isAvailable ? availabilityLabel(definition) : "현재 Electron에서 미지원";
+        const availability = isAvailable ? availabilityLabel(definition) : "현재 실행본에서 미지원";
         return <button className="ux03-module-row" key={definition.id} type="button" disabled={!isAvailable} onClick={() => onOpenModule(definition.id)} aria-label={`${definition.label} · ${availability}`}>
           <span className="ux03-module-icon" aria-hidden="true"><Icon size={21} strokeWidth={1.8}/></span>
           <span className="ux03-module-copy"><strong>{definition.label}</strong><small>{storageLabels[definition.storageScope]}</small></span>

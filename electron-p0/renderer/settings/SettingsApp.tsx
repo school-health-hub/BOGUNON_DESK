@@ -20,8 +20,8 @@ export function SettingsContent({initial,info,section,sectionRequest=0}:Settings
   const close=()=>{void window.electronSettingsWindow.close();};
   const about=<div className="ux04-about">
     <div className="ux04-about-brand"><img src={PRODUCT_LOGO_URL} alt={`${PRODUCT_NAME} 로고`}/><div><strong>{PRODUCT_NAME}</strong><span>버전 {electronPackage.version}</span></div></div>
-    <dl><div><dt>제품</dt><dd>{info.productName}</dd></div><div><dt>Electron</dt><dd>{info.electron}</dd></div><div><dt>앱 ID</dt><dd>{info.appId}</dd></div><div><dt>이 PC의 데이터 위치</dt><dd>{info.userData}</dd></div><div><dt>Source</dt><dd>{info.sourceSha}</dd></div></dl>
-    <p>자동 업데이트와 전역 클라우드 동기화는 제공하지 않습니다. 지원이 필요한 경우 위 제품 정보와 Source를 함께 확인해 주세요.</p>
+    <details><summary>실행 환경과 지원 정보</summary><dl><div><dt>제품</dt><dd>{info.productName}</dd></div><div><dt>Electron</dt><dd>{info.electron}</dd></div><div><dt>앱 ID</dt><dd>{info.appId}</dd></div><div><dt>이 PC의 데이터 위치</dt><dd>{info.userData}</dd></div><div><dt>소스 버전</dt><dd>{info.sourceSha}</dd></div></dl></details>
+    <p>자동 업데이트와 전역 클라우드 동기화는 제공하지 않습니다. 지원이 필요한 경우 실행 환경과 지원 정보의 제품·소스 버전을 함께 확인해 주세요.</p>
   </div>;
   return <SchoolProfileProvider><SurfaceSettings key={`${section}-${sectionRequest}`} initialCategory={section}
     account={<AccountSettings/>} school={<SchoolConnectionSettings/>} ai={<AiSettings configurationOnly/>}
@@ -48,7 +48,7 @@ export function SettingsApp() {
     if(initial)void window.electronSettingsWindow.ready().catch(reason=>setError(reason instanceof Error?reason.message:'설정 창 준비를 완료하지 못했습니다.'));
   },[initial]);
   return <div className="settings-window">
-    <header className="settings-window__actions"><strong>{PRODUCT_NAME} 설정</strong><div><button type="button" onClick={()=>void window.electronSettingsWindow.openWorkspace()}>Workspace 열기</button><button type="button" onClick={()=>void window.electronSettingsWindow.close()}>설정 닫기</button></div></header>
+    <header className="settings-window__actions"><strong>{PRODUCT_NAME} 설정</strong><div><button type="button" onClick={()=>void window.electronSettingsWindow.openWorkspace()}>업무 화면 열기</button><button type="button" onClick={()=>void window.electronSettingsWindow.close()}>설정 닫기</button></div></header>
     {error?<main role="alert">설정을 불러오지 못했습니다. 기존 파일은 유지됩니다. {error}</main>:initial?<SettingsContent initial={initial.snapshot} info={initial.info} section={destination.section} sectionRequest={destination.request}/>:<main role="status">설정을 불러오는 중입니다…</main>}
   </div>;
 }

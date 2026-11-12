@@ -85,6 +85,6 @@ export function NewsletterStudio({ onClose,closeRequest,onCloseRequestResolved,r
     {preview!==null&&<p role="status">이전 revision 미리보기입니다. 복구를 확인하기 전에는 현재 원고가 변경되지 않습니다. 이미지는 복구 후 다시 연결해 주세요.</p>}
     <details className="newsletter-safeguards"><summary>저장·출력 안전 안내</summary><p>Electron 편집·미리보기 전용 · WIP 디자인은 승인된 최종 디자인이 아닙니다. PNG/PDF는 독립 검증 후 저장하며 기존 Tauri 원고 저장소는 연결하지 않습니다.</p><p>JSON에는 원고·디자인·승인 상태를 보존하며 이미지 원본은 포함하지 않습니다. 다시 열 때 같은 이미지 파일을 선택하면 SHA-256으로 연결합니다.</p></details>
     {message.length > 0 && <p role="status">{message}</p>}
-    {shown === undefined ? <p className="newsletter-empty">원고·디자인 JSON을 열거나 새 소식지를 작성하거나 Electron 저장 프로젝트를 선택해 불러오세요. 원고 없이 건강정보를 자동 생성하지 않습니다.</p> : fontReady ? <div inert={preview!==null||creating||busy||projectBusy}><NewsletterDesignEditor key={preview?.token??session} project={shown.project} initialDesign={shown.design} assetResolver={resolver} onChange={value=>{if(preview===null)setDocument(value)}} /></div> : <p role="status">한글 글꼴을 준비하는 중입니다…</p>}
+    {shown === undefined ? <p className="newsletter-empty">원고·디자인 JSON을 열거나 새 소식지를 작성하거나 이 PC에 저장한 프로젝트를 선택해 불러오세요. 원고 없이 건강정보를 자동 생성하지 않습니다.</p> : fontReady ? <div inert={preview!==null||creating||busy||projectBusy}><NewsletterDesignEditor key={preview?.token??session} project={shown.project} initialDesign={shown.design} assetResolver={resolver} onChange={value=>{if(preview===null)setDocument(value)}} /></div> : <p role="status">한글 글꼴을 준비하는 중입니다…</p>}
   </section>
 }

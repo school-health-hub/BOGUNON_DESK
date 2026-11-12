@@ -41,7 +41,7 @@ it('saves explicit edits with the current revision and keeps queued dock changes
     result.current.setLayout(layout=>({...layout,appearance:{...layout.appearance,background:'lavender'}}));
     result.current.setDock(dock=>({...dock,items:dock.items.map(item=>({...item,visible:false}))}));
   });
-  await waitFor(()=>expect(result.current.status).toBe('PoC 설정 저장됨'));
+  await waitFor(()=>expect(result.current.status).toBe('설정 저장됨'));
   expect(api.write).toHaveBeenCalledTimes(2);
   expect(api.write.mock.calls[1]?.[0].revision).toBe(1);
   expect(result.current.layout.appearance.background).toBe('lavender');

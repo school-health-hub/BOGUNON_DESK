@@ -63,7 +63,7 @@ it("does not present unconnected external actions as executable School tools", (
   render(<AppShell activeCategory="school" onCategoryChange={() => undefined} onOpenModule={() => undefined} canOpenModule={(id) => id === "work-portal"}><p>합성 Home</p></AppShell>);
   expect(screen.getByRole("button", { name: /업무포털/ }).hasAttribute("disabled")).toBe(false);
   expect(screen.getByRole("button", { name: /온라인 보건실/ }).hasAttribute("disabled")).toBe(true);
-  expect(screen.getByRole("button", { name: /AED 점검/ }).textContent).toContain("현재 Electron에서 미지원");
+  expect(screen.getByRole("button", { name: /AED 점검/ }).textContent).toContain("현재 실행본에서 미지원");
 });
 
 it("renders an active module inside the App Shell outlet without removing the Rail", () => {

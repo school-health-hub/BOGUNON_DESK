@@ -76,7 +76,7 @@ export function SurfaceSettings({ account, school, appearance, widgets, desktopP
 
   const content = category === "account" ? account
     : category === "school" ? school
-    : category === "appearance" ? <div className="ux04-appearance-stack"><section aria-label="Workspace 기본 배치"><h3>Workspace 기본 배치</h3><section aria-label="화면 스타일">{appearance}</section><section aria-label="위젯 표시">{widgets}</section></section>{desktopProfiles ?? <section className="ux04-future" aria-label="Desktop Mode 준비"><strong>Desktop Mode</strong><p>향후 모니터별 위젯 화면을 이 위치에서 설정합니다. 현재 버전에서는 사용할 수 없습니다.</p><button type="button" disabled>준비 중</button></section>}</div>
+    : category === "appearance" ? <div className="ux04-appearance-stack"><section aria-label="업무 화면 기본 배치"><h3>업무 화면 기본 배치</h3><section aria-label="화면 스타일">{appearance}</section><section aria-label="위젯 표시">{widgets}</section></section>{desktopProfiles ?? <section className="ux04-future" aria-label="Desktop Mode 준비"><strong>Desktop Mode</strong><p>향후 모니터별 위젯 화면을 이 위치에서 설정합니다. 현재 버전에서는 사용할 수 없습니다.</p><button type="button" disabled>준비 중</button></section>}</div>
     : category === "dock" ? dock
     : category === "ai" ? ai
     : category === "device" ? <DeviceStorageMatrix />

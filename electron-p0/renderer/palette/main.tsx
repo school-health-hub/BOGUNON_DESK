@@ -13,6 +13,7 @@ import '../td2-desktop.css';
 import '../td2-desktop-v2.css';
 import '../td2-desktop-b.css';
 import '../td2-workspace.css';
+import '../desktop-design-tokens.css';
 import './palette.css';
 const root = document.getElementById('root');
 if (root === null) throw new Error('Desktop palette root is unavailable');

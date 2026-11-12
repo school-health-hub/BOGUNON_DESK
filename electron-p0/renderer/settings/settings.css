@@ -1,7 +1,11 @@
-.settings-window{min-height:100vh;background:var(--workspace-bg);color:var(--text-primary)}
-.settings-window__actions{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border)}
-.settings-window__actions>div{display:flex;flex-wrap:wrap;gap:var(--space-2)}
-.settings-window__actions button{font:inherit;cursor:pointer}
-.settings-window__actions button:focus-visible{outline:3px solid var(--accent-hover);outline-offset:2px}
-.settings-window>main{padding:var(--space-4)}
-@media(max-width:600px){.settings-window__actions{align-items:flex-start;flex-direction:column}}
+.settings-window{min-height:100vh;background:var(--desk-canvas);color:var(--desk-ink);font-size:var(--desk-type-md)}
+.settings-window__actions{display:flex;align-items:center;justify-content:space-between;gap:var(--desk-space-3);padding:var(--desk-space-3) var(--desk-space-6);border-bottom:1px solid var(--desk-line);background:var(--desk-paper)}
+.settings-window__actions>strong{font-size:var(--desk-type-md);color:var(--desk-navy)}
+.settings-window__actions>div{display:flex;flex-wrap:wrap;gap:var(--desk-space-2)}
+.settings-window__actions button{min-height:40px;padding:var(--desk-space-2) var(--desk-space-3);border:1px solid var(--desk-control);border-radius:var(--desk-radius-control);background:var(--desk-paper);color:var(--desk-ink);font:inherit;cursor:pointer;transition:background-color 120ms,color 120ms}
+.settings-window__actions button:hover{background:var(--desk-active);color:var(--desk-accent-strong);border-color:var(--desk-accent)}
+.settings-window__actions button:focus-visible{outline:var(--desk-focus);outline-offset:2px}
+.settings-window>main{padding:var(--desk-space-6)}
+.settings-window>main[role=alert]{color:var(--desk-error);background:var(--desk-error-bg)}
+@media(max-width:600px){.settings-window__actions{align-items:flex-start;flex-direction:column;padding-inline:var(--desk-space-3)}}
+@media(prefers-reduced-motion:reduce){.settings-window__actions button{transition:none}}

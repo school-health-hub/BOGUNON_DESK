@@ -23,7 +23,7 @@ function nextValue<T>(update:SetStateAction<T>,current:T):T {
 export function useSurfaceSettings(initial:SurfaceSettingsSnapshot) {
   const api=window.electronSurfaceSettings;
   const [view,setView]=useState(()=>model(initial));
-  const [status,setStatus]=useState('PoC 설정 저장됨');
+  const [status,setStatus]=useState('설정 저장됨');
   const current=useRef(initial),optimistic=useRef(view),queued=useRef<Model|null>(null);
   const running=useRef(false),recovering=useRef(false),inflight=useRef<SurfaceSettingsWrite|null>(null),live=useRef(true);
   const flushing=useRef(false),failure=useRef<Error|null>(null),idleWaiters=useRef(new Set<()=>void>());
@@ -34,7 +34,7 @@ export function useSurfaceSettings(initial:SurfaceSettingsSnapshot) {
     current.current=snapshot;
     if(!own)queued.current=null;
     if(!queued.current)show(model(snapshot));
-    if(live.current)setStatus(own?'PoC 설정 저장됨':'다른 창의 최신 설정을 적용했습니다.');
+    if(live.current)setStatus(own?'설정 저장됨':'다른 창의 최신 설정을 적용했습니다.');
   };
   useEffect(()=>{
     live.current=true;
@@ -60,7 +60,7 @@ export function useSurfaceSettings(initial:SurfaceSettingsSnapshot) {
         try {
           const saved=await api.write(request);
           receive(saved);
-          if(live.current&&!queued.current)setStatus('PoC 설정 저장됨');
+          if(live.current&&!queued.current)setStatus('설정 저장됨');
         } catch(error) {
           failure.current=error instanceof Error?error:new Error('설정 저장 실패');
           recovering.current=true;

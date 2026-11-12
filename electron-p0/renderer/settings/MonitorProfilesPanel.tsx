@@ -115,14 +115,14 @@ export function MonitorProfilesPanel({ fallbackLayout }: Readonly<{ fallbackLayo
       }
     } finally { writing.current = false; if (live.current) setBusy(false); }
   };
-  return <section className="monitor-profiles" aria-label="모니터별 Desktop 배치">
-    <h3>모니터별 Desktop 배치</h3><p>모니터마다 위젯 표시와 배치를 저장합니다. Workspace 기본 배치와 Dock 설정은 별도로 유지됩니다.</p>
+  return <section className="monitor-profiles" aria-label="모니터별 위젯 배치">
+    <h3>모니터별 위젯 배치</h3><p>모니터마다 위젯 표시와 배치를 저장합니다. 업무 화면 기본 배치와 Dock 설정은 별도로 유지됩니다.</p>
     {snapshot?.error && <p role="alert">{snapshot.error}</p>}
     {snapshot && !snapshot.writable && <p role="alert">모니터 설정을 저장할 수 없어 읽기 전용으로 표시합니다.</p>}
     {selected && snapshot && <>
-      <label>대상 모니터<select value={selected.id} disabled={busy} onChange={event => setSelectedId(event.target.value)}>{snapshot.profiles.map(profile => <option key={profile.id} value={profile.id}>{profile.label}{profile.display?.primary ? ' · 기본' : ''}{profile.connected ? '' : ' · 연결 안 됨'} · {profile.display?.workArea.width ?? profile.lastBounds.width}×{profile.display?.workArea.height ?? profile.lastBounds.height} DIP · {Math.round((profile.display?.scaleFactor ?? profile.scaleFactor) * 100)}%</option>)}</select></label>
+      <label>대상 모니터<select value={selected.id} disabled={busy} onChange={event => setSelectedId(event.target.value)}>{snapshot.profiles.map(profile => <option key={profile.id} value={profile.id}>{profile.label}{profile.display?.primary ? ' · 기본' : ''}{profile.connected ? '' : ' · 연결 안 됨'} · {profile.display?.workArea.width ?? profile.lastBounds.width}×{profile.display?.workArea.height ?? profile.lastBounds.height} 화면 기준 크기 · {Math.round((profile.display?.scaleFactor ?? profile.scaleFactor) * 100)}%</option>)}</select></label>
       {!selected.connected || selected.dormant ? <p>연결되지 않은 모니터의 저장된 배치입니다. 다시 연결할 때까지 읽기 전용으로 보존합니다.</p> : selected.identityKind === 'uncertain' ? <p role="alert">이 모니터의 고유 식별을 확인하지 못해 저장을 중단했습니다. 기존 배치는 보존됩니다.</p> : null}
-      {selected.layout == null && <p>Workspace 기본 배치를 사용 중입니다. 적용하면 이 모니터의 배치로 저장합니다.</p>}
+      {selected.layout == null && <p>업무 화면 기본 배치를 사용 중입니다. 적용하면 이 모니터의 배치로 저장합니다.</p>}
       {parsed ? <ProfileEditor key={`${selected.id}-${snapshot.revision}-${reloadGeneration}`} profile={selected} layout={parsed} disabled={Boolean(disabled)} save={save}/> : <p role="alert">저장된 배치를 읽을 수 없습니다. 원본을 유지하고 편집을 중단했습니다.</p>}
     </>}
     {snapshot?.profiles.length === 0 && <p>연결된 모니터가 없습니다. 다시 연결하면 이 화면에 표시됩니다.</p>}

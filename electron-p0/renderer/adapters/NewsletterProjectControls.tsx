@@ -12,7 +12,7 @@ export function NewsletterProjectControls({document,head,onLoaded,onSaved,onPrev
  useEffect(()=>{if(head===null)setMessage('');},[document?.project.projectId,head]);
  useEffect(()=>{void api.list().then(r=>{if(r.ok)setIds(r.data);});},[]);
  const clear=()=>{setPreview(null);onPreview(null);};
- return <details className="newsletter-native-project"><summary>Electron 프로젝트 저장·revision 이력</summary><p>JSON 파일과 별도인 Electron 전용 저장소입니다. 이미지 원본과 Tauri 원고는 가져오지 않습니다. 내부 저장·복구마다 저장 revision이 증가합니다.</p>
+ return <details className="newsletter-native-project"><summary>이 PC 프로젝트·저장 이력</summary><p>JSON 파일과 별도인 Electron 전용 저장소입니다. 이미지 원본과 Tauri 원고는 가져오지 않습니다. 내부 저장·복구마다 저장 revision이 증가합니다.</p>
   <label>불러올 프로젝트 ID<input aria-label="불러올 프로젝트 ID" value={id} disabled={busy} onChange={e=>{setId(e.target.value);setHistory([]);clear();}}/></label>
   <label>저장된 프로젝트<select aria-label="저장된 프로젝트" value={ids.includes(id)?id:''} disabled={busy} onChange={e=>{setId(e.target.value);setHistory([]);clear();}}><option value="">프로젝트 선택</option>{ids.map(i=><option key={i} value={i}>{i}</option>)}</select></label>
   <button type="button" disabled={busy||!id} onClick={()=>void run(async()=>{const r=data(await api.load({projectId:id}));parseStudioDocument(JSON.parse(r.document));clear();onLoaded(r);setMessage(`프로젝트 불러옴 · revision ${r.head.revision} · 이미지 원본을 다시 연결해 주세요.`);})}>프로젝트 불러오기</button>

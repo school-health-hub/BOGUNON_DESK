@@ -52,7 +52,7 @@ it('restores the original internal project head when returning from a new issue'
  const now='2026-11-03T00:00:00.000Z',project=await createNewsletterProject({projectId:'stored-existing',title:'저장된 원고',now}),doc={project,design:createNewsletterDesignState({projectId:project.projectId,canonicalProjectRevision:1,now})};
  const head={projectId:project.projectId,revision:3,hash:'a'.repeat(64)},record={head,document:serializeStudioDocument(doc)};
  const save=vi.fn(async(_r:unknown)=>({ok:true,data:record}));vi.stubGlobal('electronWork',{newsletter:{projects:{list:async()=>({ok:true,data:[project.projectId]}),load:async()=>({ok:true,data:record}),save}}});
- render(<NewsletterStudio onClose={()=>{}}/>);fireEvent.click(screen.getByText('Electron 프로젝트 저장·revision 이력'));fireEvent.change(screen.getByLabelText('불러올 프로젝트 ID'),{target:{value:project.projectId}});fireEvent.click(screen.getByRole('button',{name:'프로젝트 불러오기'}));await screen.findByRole('heading',{name:'저장된 원고'});await screen.findByText('프로젝트 불러옴 · revision 3 · 이미지 원본을 다시 연결해 주세요.');
+ render(<NewsletterStudio onClose={()=>{}}/>);fireEvent.click(screen.getByText('이 PC 프로젝트·저장 이력'));fireEvent.change(screen.getByLabelText('불러올 프로젝트 ID'),{target:{value:project.projectId}});fireEvent.click(screen.getByRole('button',{name:'프로젝트 불러오기'}));await screen.findByRole('heading',{name:'저장된 원고'});await screen.findByText('프로젝트 불러옴 · revision 3 · 이미지 원본을 다시 연결해 주세요.');
  fireEvent.click(screen.getByRole('button',{name:'새 소식지 작성'}));fireEvent.click(screen.getByRole('button',{name:'새 소식지 만들기'}));await screen.findByText(/새 소식지를 만들었습니다/);
  fireEvent.change(screen.getByLabelText('임시 보관 작업'),{target:{value:'1'}});fireEvent.click(screen.getByRole('button',{name:'임시 작업 다시 열기'}));await screen.findByRole('heading',{name:'저장된 원고'});
  fireEvent.click(screen.getByRole('button',{name:'프로젝트 내부 저장'}));await waitFor(()=>expect(save).toHaveBeenCalledTimes(1));expect(save.mock.calls[0]![0]).toMatchObject({expected:head});expect(JSON.parse((save.mock.calls[0]![0] as {document:string}).document)).toEqual(doc)
@@ -61,7 +61,7 @@ it('restores the original internal project head when returning from a new issue'
 it('prevents a new issue from racing an outstanding internal project load',async()=>{
  const now='2026-11-03T00:00:00.000Z',project=await createNewsletterProject({projectId:'pending-existing',title:'지연 불러오기 원고',now}),doc={project,design:createNewsletterDesignState({projectId:project.projectId,canonicalProjectRevision:1,now})};
  let finish!:(value:unknown)=>void;const load=vi.fn(()=>new Promise(resolve=>{finish=resolve}));vi.stubGlobal('electronWork',{newsletter:{projects:{list:async()=>({ok:true,data:[]}),load}}});
- render(<NewsletterStudio onClose={()=>{}}/>);fireEvent.click(screen.getByText('Electron 프로젝트 저장·revision 이력'));fireEvent.change(screen.getByLabelText('불러올 프로젝트 ID'),{target:{value:project.projectId}});fireEvent.click(screen.getByRole('button',{name:'프로젝트 불러오기'}));
+ render(<NewsletterStudio onClose={()=>{}}/>);fireEvent.click(screen.getByText('이 PC 프로젝트·저장 이력'));fireEvent.change(screen.getByLabelText('불러올 프로젝트 ID'),{target:{value:project.projectId}});fireEvent.click(screen.getByRole('button',{name:'프로젝트 불러오기'}));
  expect((screen.getByRole('button',{name:'새 소식지 작성'}) as HTMLButtonElement).disabled).toBe(true);
  finish({ok:true,data:{head:{projectId:project.projectId,revision:1,hash:'a'.repeat(64)},document:serializeStudioDocument(doc)}});await screen.findByRole('heading',{name:'지연 불러오기 원고'});await waitFor(()=>expect((screen.getByRole('button',{name:'새 소식지 작성'}) as HTMLButtonElement).disabled).toBe(false))
 })
@@ -81,7 +81,7 @@ it('rejects a host close request while a file operation is busy and accepts the 
 it('rejects a host close request while a project operation is busy',async()=>{
  let finish!:(value:{ok:false;error:{code:'IO_ERROR';message:string}})=>void;const load=vi.fn(()=>new Promise<{ok:false;error:{code:'IO_ERROR';message:string}}>(resolve=>{finish=resolve}));const onClose=vi.fn(),resolved=vi.fn();
  vi.stubGlobal('electronWork',{newsletter:{projects:{list:async()=>({ok:true,data:['busy-project']}),load}}});
- const view=render(<NewsletterStudio closeRequest={0} onCloseRequestResolved={resolved} onClose={onClose}/>);fireEvent.click(screen.getByText('Electron 프로젝트 저장·revision 이력'));fireEvent.change(screen.getByLabelText('불러올 프로젝트 ID'),{target:{value:'busy-project'}});fireEvent.click(screen.getByRole('button',{name:'프로젝트 불러오기'}));
+ const view=render(<NewsletterStudio closeRequest={0} onCloseRequestResolved={resolved} onClose={onClose}/>);fireEvent.click(screen.getByText('이 PC 프로젝트·저장 이력'));fireEvent.change(screen.getByLabelText('불러올 프로젝트 ID'),{target:{value:'busy-project'}});fireEvent.click(screen.getByRole('button',{name:'프로젝트 불러오기'}));
  view.rerender(<NewsletterStudio closeRequest={1} onCloseRequestResolved={resolved} onClose={onClose}/>);await waitFor(()=>expect(resolved).toHaveBeenLastCalledWith(false));expect(onClose).not.toHaveBeenCalled();
  finish({ok:false,error:{code:'IO_ERROR',message:'합성 프로젝트 실패'}});await screen.findByText('합성 프로젝트 실패');
 })
