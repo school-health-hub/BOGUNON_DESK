@@ -1,6 +1,8 @@
 # UX-07C-R4 Alt+Tab Final — 2026-11-12
 
-## Verdict
+> 후속 마감: [UX-07C 최종 계약 확인 및 마감](UX07C_FINAL_CLOSURE_20261112.md)에서 **UX-07C PASS**로 확정했다. 아래는 R4 당시의 조사·판정 기록이며 빈 Shell 카드 원본 미확인은 비차단 추적으로 분리됐다.
+
+## R4 당시 Verdict (historical)
 
 **UX-07C CONDITIONAL; UX-07D NOT STARTED / remains blocked.**
 

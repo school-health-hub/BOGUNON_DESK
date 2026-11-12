@@ -1,6 +1,12 @@
 # UX-07C 집 PC 인계
 
-## 최종 상태
+## 현재 최종 상태 — 2026-11-12 마감
+
+**UX-07C PASS. UX-07D 착수 선행조건 충족 / 별도 지시 전 미착수.** 위젯 native 입력, taskbar 그룹 제외, Alt+Tab 제외, TD2·보안·독립 수명 계약과 독립 검토가 완료됐다. 기존 빈 Alt+Tab 카드3개의 원본 미확인은 비차단 추적 EXISTING-SHELL-ALTTAB-01로 분리했다.
+
+최신 기준과 증거: [UX-07C 최종 계약 확인 및 마감](UX07C_FINAL_CLOSURE_20261112.md). 아래 학교 PC 당시의 CONDITIONAL/NOT RUN 기록은 역사적 기록이며 현재 판정을 대체하지 않는다.
+
+## 학교 PC 당시 상태 (기록 보존)
 
 - 판정: **CONDITIONAL**
 - 브랜치: `codex/electron-h6-design-renewal`
@@ -27,7 +33,7 @@
 - 독립 Settings 창
 - widget drag/resize 편집
 
-## 남은 필수 검증
+## 학교 PC 당시 남은 필수 검증 (후속 검증 완료)
 
 완전 격리 Windows 세션에서 다음 세 항목을 실제 입력과 화면 증거로 확인해야 한다.
 
