@@ -4,10 +4,10 @@ import {parseNewsletterDesignStateV2,type NewsletterDesignStateV2} from './desig
 import {selectedSection,editEditorialSection,updateEditorialTitle} from './editorialCopyEditing'
 import {updateCardLayout} from './designState'
 type Document={project:NewsletterProject;design:NewsletterDesignStateV2}
-type Props=Document&{cardIndex:number;binding:string;onApplyBusy?:(busy:boolean)=>void;onChange:(document:Document)=>void}
+type Props=Document&{disabled?:boolean;cardIndex:number;binding:string;onApplyBusy?:(busy:boolean)=>void;onDraftChange?:(key:string,dirty:boolean)=>void;onChange:(document:Document)=>void}
 // Official text is bound to existing source copy, never a raster layer or a new
 // literal field. Only an explicit user action changes the selected source.
-export function OfficialElementCopy({project,design,cardIndex,binding,onChange,onApplyBusy}:Props){
+export function OfficialElementCopy({project,design,cardIndex,binding,onChange,onApplyBusy,onDraftChange,disabled}:Props){
  const live=useRef(true),latest=useRef({project,design});latest.current={project,design}
  useEffect(()=>{live.current=true;return()=>{live.current=false}},[])
  const card=design.cardLayouts[cardIndex]
@@ -23,6 +23,7 @@ export function OfficialElementCopy({project,design,cardIndex,binding,onChange,o
  const title=/^(\d{1,2}월)\s*(.*)$/u.exec(project.title)
  const value=binding==='title'?cardIndex===0?project.title:project.topics[topic]?.title??'':binding==='month'?title?.[1]??'':binding==='title-rest'?title?.[2]??project.title:previewTopic!==undefined?project.topics[previewTopic]?.title??'':binding==='lead'?card?.editorial?.slogan??(lines[0]&&!/^\s*(?:[-*•‣▪◦]|\d+[.)])\s+/u.test(lines[0])?lines[0]:''):line!==undefined?lines[line].replace(/^\s*(?:[-*•‣▪◦]|\d+[.)])\s+/u,''):undefined
  const [draft,setDraft]=useState(value??''),[busy,setBusy]=useState(false),[error,setError]=useState('')
+ useEffect(()=>{onDraftChange?.("official",value!==undefined&&draft!==value);return()=>onDraftChange?.("official",false)},[draft,onDraftChange,value])
  if(value===undefined)return <small>문구는 기존 원고 또는 아래 마무리 문구에 연결됩니다. 번호·강조 표시는 원고에서 계산됩니다.</small>
  const save=async()=>{setBusy(true);onApplyBusy?.(true);setError('');try{
   if(!draft.trim()||/[\r\n]/u.test(draft))throw Error('한 줄 문구를 입력해 주세요. 여러 줄 원고는 기존 원고 편집에서 수정해 주세요.')
@@ -36,5 +37,5 @@ export function OfficialElementCopy({project,design,cardIndex,binding,onChange,o
   if(latest.current.project!==project||latest.current.design!==design)throw Error('편집 내용이 변경되었습니다. 현재 문구를 확인한 후 다시 반영해 주세요.')
   onChange(next)
  }catch(e){if(live.current)setError(e instanceof Error?e.message:'문구를 반영하지 못했습니다.')}finally{onApplyBusy?.(false);if(live.current)setBusy(false)}}
- return <fieldset><legend>선택 요소 문구</legend><label>원고 연결 문구<input aria-label="공식 요소 문구" value={draft} maxLength={1000} disabled={busy} onChange={e=>setDraft(e.target.value)}/></label><button type="button" disabled={busy||draft===value} onClick={()=>void save()}>선택 문구 반영</button>{error&&<p role="alert">{error}</p>}</fieldset>
+ return <fieldset disabled={disabled}><legend>선택 요소 문구</legend><label>원고 연결 문구<input aria-label="공식 요소 문구" value={draft} maxLength={1000} disabled={busy} onChange={e=>setDraft(e.target.value)}/></label><button type="button" disabled={busy||draft===value} onClick={()=>void save()}>선택 문구 반영</button>{error&&<p role="alert">{error}</p>}</fieldset>
 }

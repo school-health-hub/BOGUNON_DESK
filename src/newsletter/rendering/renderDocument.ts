@@ -155,8 +155,11 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
   verifyAssets(snapshot)
   const issues: RenderIssue[] = []
   const editorialA4 = isV2(snapshot) && snapshot.a4Layout.brand?.editorialLayout === true
-  const titles = new Map(project.topics.map((topic) => [topic.id, topic.title]))
+  const historicalTitles=project.topicTitleHistory?.find(value=>value.throughRevision>=input.projectRevision)?.titles
+  const renderTopics=project.topics.map((topic,index)=>({...topic,title:historicalTitles?.[index]??topic.title}))
+  const titles = new Map(renderTopics.map((topic) => [topic.id, topic.title]))
   const sections = selectedProject.snapshot.sections.map((section) => ({ ...section, text: section.userEdit?.text ?? section.aiGenerated.text }))
+  for(const section of sections){if(section.topicSelection){const copy=structureCanonicalText(section.text);if(copy.kind!=="list"||copy.actions.length!==4||!copy.lead?.trim())issues.push({kind:"missing-text",pageId:"a4-page",blockId:section.id,message:"선택한 주제의 한 줄 소개와 실천 수칙 4개를 검토·작성해 주세요."})}}
   const titleStyle = { fontFamily: "Pretendard", fontSize: 72, fontWeight: 800, lineHeight: 1.2, color: "#183b4e", align: "center" } as const
   const moduleTitleStyle = { fontFamily: "Pretendard", fontSize: 30, fontWeight: 800, lineHeight: 1.25, color: "#183b4e", align: "left" } as const
   const bodyStyle = { fontFamily: "Pretendard", fontSize: 21, fontWeight: editorialA4 ? 600 : 500, lineHeight: editorialA4 ? 1.25 : 1.45, color: "#29434e", align: "left" } as const
@@ -180,13 +183,13 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
       title: block(`a4-title-${section.id}`, "a4-page", topicTitle, titleFrame, moduleTitleStyle, { kind: "topic-title", topicId: section.topicId }, issues, input.measureText),
       ...(structured && leadText.length > 0 ? { lead: block(`a4-lead-${section.id}`, "a4-page", leadText, frames?.lead ?? module.leadFrame, bodyStyle, provenance, issues, input.measureText, false, editorialA4) } : {}),
       body: block(`a4-body-${section.id}`, "a4-page", bodyText, bodyFrame, bodyStyle, provenance, issues, input.measureText, true, editorialA4),
-      ...(structured ? { closing: block(`a4-closing-${section.id}`, "a4-page", editorialA4 && isV2(snapshot) ? snapshot.cardLayouts[index + 1]?.editorial?.closing ?? "" : "", module.closingFrame, editorialA4 ? { ...bodyStyle, fontSize: 18, fontWeight: 650, color: module.accent, align: "center" } : bodyStyle, editorialA4 ? { kind: "design-text", pageId: snapshot.cardLayouts[index + 1]?.pageId ?? "a4-page", field: "closing" } : provenance, issues, input.measureText, false, editorialA4), accent: module.accent, listMarkerStyle: module.listMarkerStyle } : {}),
+      ...(structured ? { closing: block(`a4-closing-${section.id}`, "a4-page", editorialA4 && isV2(snapshot) ? snapshot.cardLayouts[index + 1]?.editorial?.closing ?? section.topicSelection?.closing ?? "" : section.topicSelection?.closing ?? "", module.closingFrame, editorialA4 ? { ...bodyStyle, fontSize: 18, fontWeight: 650, color: module.accent, align: "center" } : bodyStyle, editorialA4 ? { kind: "design-text", pageId: snapshot.cardLayouts[index + 1]?.pageId ?? "a4-page", field: "closing" } : provenance, issues, input.measureText, false, editorialA4), accent: module.accent, listMarkerStyle: module.listMarkerStyle } : {}),
       image: structured && frames !== undefined ? { ...module.image, frame: frames.image } : module.image,
     }
   })
   const cards = snapshot.cardLayouts.map((layout, index): RenderPage => {
     const section = index === 0 ? undefined : sections[index - 1]
-    const source = section === undefined ? project.topics.map((topic) => topic.title).join("\n") : section.text
+    const source = section === undefined ? renderTopics.map((topic) => topic.title).join("\n") : section.text
     const content = structureCanonicalText(source)
     const structured = isV2Card(layout)
     const leadText = content.kind === "list" ? content.lead ?? "" : ""
@@ -200,7 +203,7 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
         title: raw(`${layout.pageId}-title`, title, layout.titleFrame, layout.titleStyle, index === 0 ? { kind: "project-title" } : { kind: "topic-title", topicId: section?.topicId ?? "missing" }),
         body: raw(`${layout.pageId}-body`, bodyText, layout.bodyFrame, layout.bodyStyle, provenance),
         badge: raw(`${layout.pageId}-badge`, snapshot.publicationMeta.issueLabel, layout.titleFrame, layout.bodyStyle, { kind: "publication-meta" }),
-        topicOverview: index === 0 ? (layout.officialTemplate.previewTopicIndices ?? [0, 1, 2, 3]).flatMap(topicIndex => { const topic = project.topics[topicIndex]; return topic === undefined ? [] : [raw(`${layout.pageId}-topic-${topic.id}`, topic.title, layout.titleFrame, layout.bodyStyle, { kind: "topic-title", topicId: topic.id })] }) : undefined,
+        topicOverview: index === 0 ? (layout.officialTemplate.previewTopicIndices ?? [0, 1, 2, 3]).flatMap(topicIndex => { const topic = renderTopics[topicIndex]; return topic === undefined ? [] : [raw(`${layout.pageId}-topic-${topic.id}`, topic.title, layout.titleFrame, layout.bodyStyle, { kind: "topic-title", topicId: topic.id })] }) : undefined,
         image: layout.image,
         ...(layout.brand === undefined ? {} : { mascot: layout.brand.mascot }),
       }
@@ -209,8 +212,8 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
     const bodyFrame = structured ? expandedBodyFrame(layout.leadFrame, layout.actionListFrame, leadText.length > 0) : layout.bodyFrame
     const badgeStyle = { ...layout.bodyStyle, fontSize: Math.min(20, layout.bodyStyle.fontSize), fontWeight: 700, lineHeight: 1.2, color: structured ? layout.accent : layout.titleStyle.color, align: "left" as const }
     const badgeFrame = { x: 88, y: 72, width: 420, height: 36 }
-    const previewCount = structured ? layout.brand?.previewTopicCount ?? 6 : 6
-    const topicOverview = index === 0 && structured ? project.topics.slice(0, previewCount).map((topic, topicIndex) => {
+    const previewCount = sections.some(section=>section.topicSelection!==undefined)?4:structured ? layout.brand?.previewTopicCount ?? 6 : 6
+    const topicOverview = index === 0 && structured ? renderTopics.slice(0, previewCount).map((topic, topicIndex) => {
       const columns = previewCount === 4 ? 4 : 2
       const column = topicIndex % columns
       const row = Math.floor(topicIndex / columns)
@@ -228,7 +231,7 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
       ...(structured && leadText.length > 0 ? { lead: block(`${layout.pageId}-lead`, layout.pageId, leadText, layout.leadFrame, layout.bodyStyle, provenance, issues, input.measureText, false) } : {}),
       body: structured && layout.editorial !== undefined ? { id: `${layout.pageId}-body`, text: bodyText, lines: [], frame: bodyFrame, style: layout.bodyStyle, provenance } : block(`${layout.pageId}-body`, layout.pageId, bodyText, bodyFrame, layout.bodyStyle, provenance, issues, input.measureText),
       ...(topicOverview === undefined ? {} : { topicOverview }),
-      ...(structured ? { closing: block(`${layout.pageId}-closing`, layout.pageId, "", layout.closingFrame, layout.bodyStyle, provenance, issues, input.measureText, false), accent: layout.accent, listMarkerStyle: layout.listMarkerStyle } : {}),
+      ...(structured ? { closing: block(`${layout.pageId}-closing`, layout.pageId, section?.topicSelection?.closing ?? "", layout.closingFrame, layout.bodyStyle, provenance, issues, input.measureText, false), accent: layout.accent, listMarkerStyle: layout.listMarkerStyle } : {}),
       image: layout.image,
       ...(structured && layout.brand !== undefined ? { mascot: layout.brand.mascot, ...(layout.brand.seasonalDecoration === undefined ? {} : { seasonalDecoration: layout.brand.seasonalDecoration }) } : {}),
     }

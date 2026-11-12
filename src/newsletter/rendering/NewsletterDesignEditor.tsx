@@ -1,10 +1,12 @@
+import {NewsletterTopicPlanner} from "../NewsletterTopicPlanner"
+import {applyTopicPlan} from "../applyTopicPlan"
 import { StudentArtLibrary } from "./StudentArtLibrary"
 import { OfficialElementCopy } from "./OfficialElementCopy"
 import { NewsletterOutputControls } from "./NewsletterOutputControls"
 import { NewsletterEditorialControls } from "./NewsletterEditorialControls"
 import { NewsletterEditorialCopy } from "./NewsletterEditorialCopy"
 import { editorialActionCount } from "./editorialCopyEditing"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { NewsletterProject } from "../schema"
 import { NewsletterDesignControls } from "./NewsletterDesignControls"
 import { restoreDesignRevision, upgradeNewsletterDesignStateV2 } from "./designState"
@@ -39,12 +41,17 @@ export function NewsletterDesignEditor({ project: initialProject, initialDesign,
   const [design, setDesign] = useState(initialDesign)
   const published = useRef({ project, design })
   useEffect(() => { if (published.current.project === project && published.current.design === design) return; published.current = { project, design }; changeListener.current?.({ project, design }) }, [project, design])
+  const [planning,setPlanning]=useState(false)
+  const [topicError,setTopicError]=useState("")
+  const [drafts,setDrafts]=useState<Readonly<Record<string,boolean>>>({})
+  const reportDraft=useCallback((key:string,dirty:boolean)=>setDrafts(current=>current[key]===dirty?current:{...current,[key]:dirty}),[])
   const [selectedCard, setSelectedCard] = useState(0)
   const [selectedModule, setSelectedModule] = useState(0)
   const [mode, setMode] = useState<"a4" | "cards">("a4")
   const [compare, setCompare] = useState(false)
   const [pendingCopy, setPendingCopy] = useState(0)
   const onApplyBusy = (busy: boolean) => setPendingCopy(count => count + (busy ? 1 : -1))
+  const hasUnapplied=Object.values(drafts).some(Boolean)
   const [upgradeCandidate, setUpgradeCandidate] = useState<NewsletterDesignStateV2>()
   const measureText = useTextMeasurer()
   const currentAssets = useNewsletterAssets(design, assetResolver)
@@ -75,22 +82,26 @@ export function NewsletterDesignEditor({ project: initialProject, initialDesign,
     try { setDesign(attachApprovedMascot(design, new Date().toISOString())); setAssetError(undefined) }
     catch (error: unknown) { if (error instanceof Error) setAssetError(error.message); else throw error }
   }
+  const issueMonth=/^(20\d{2})년 (\d{1,2})월/u.exec(project.title)
+  const recommendationMonth=project.canonicalCopy.sections[0]?.topicSelection?.selectedMonth??(issueMonth?`${issueMonth[1]}-${String(issueMonth[2]).padStart(2,"0")}`:`${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,"0")}`)
   return <main className="newsletter-studio">
     <header className="studio-header"><div><span className="eyebrow">NEWSLETTER STUDIO · NS-3E</span><h1>보건소식지 디자인 편집기</h1><p>동일한 Scene으로 A4와 카드뉴스를 미리보고 출력합니다.</p></div><div className="revision-summary"><span className="schema-chip">Design V{design.designSchemaVersion}</span><span className="revision-chip">Revision <strong>{design.designRevision}</strong></span></div></header>
-    <nav className="mode-tabs" aria-label="미리보기 종류"><button type="button" aria-pressed={mode === "a4"} onClick={() => setMode("a4")}>A4 1장</button><button type="button" aria-pressed={mode === "cards"} onClick={() => setMode("cards")}>카드뉴스 7장</button><button type="button" aria-pressed={compare} onClick={() => setCompare((value) => !value)}>변경 전후 비교</button></nav>
+    <nav className="mode-tabs" aria-label="미리보기 종류"><button type="button" aria-pressed={mode === "a4"} disabled={hasUnapplied||pendingCopy>0} onClick={() => setMode("a4")}>A4 1장</button><button type="button" aria-pressed={mode === "cards"} disabled={hasUnapplied||pendingCopy>0} onClick={() => setMode("cards")}>카드뉴스 7장</button><button type="button" aria-pressed={compare} onClick={() => setCompare((value) => !value)}>변경 전후 비교</button></nav>
+    <div className="newsletter-file-toolbar"><button type="button" disabled={design.designSchemaVersion!==2||pendingCopy>0||Object.values(drafts).some(Boolean)} onClick={()=>setPlanning(true)}>월별 주제 추천·공통 원고</button><small>반영하지 않은 원고 입력이 있으면 먼저 원고 반영을 눌러 주세요. 추천은 명시적 확인 후 새 revision으로 적용합니다.</small>{topicError&&<p role="alert">{topicError}</p>}</div>
+    {planning&&<NewsletterTopicPlanner closings={design.cardLayouts.slice(1).map((card,index)=>card.officialTemplate?.closingText??card.editorial?.closing??project.canonicalCopy.sections[index]?.topicSelection?.closing??"")} project={project} month={recommendationMonth} onCancel={()=>setPlanning(false)} onApply={(topics,month)=>{try{const next=applyTopicPlan({project,design},topics,month,new Date().toISOString());setProject(next.project);setDesign(next.design);setPlanning(false);setTopicError("")}catch(error:unknown){setPlanning(false);setTopicError(error instanceof Error?error.message:"주제를 반영하지 못했습니다.")}}}/>}
     <section className="studio-body">
       <aside className="editor-panel" aria-label="디자인 편집기">
         <div className="panel-heading"><span>DESIGN SIDECAR</span><h2>디자인 설정</h2></div>
         {design.designSchemaVersion === 1 ? <section className="upgrade-card"><span className="upgrade-kicker">V2 LAYOUT AVAILABLE</span><h3>겹침 없는 구조형 레이아웃</h3><p>6개 A4 모듈과 7개 카드에 lead·목록·삽화·마무리 프레임을 분리합니다. 원고와 기존 revision은 그대로 보존됩니다.</p><ul><li>Canonical revision {design.canonicalProjectRevision} 변경 없음</li><li>기존 revision {design.revisionHistory.length}개 보존</li><li>확인 후에만 새 revision 생성</li></ul><button type="button" className="primary-action" onClick={requestUpgrade}>V2 디자인 검토</button></section> : <>
-          <section className="selection-block"><span className="control-label">{mode === "a4" ? "편집할 A4 주제" : "편집할 카드"}</span><div className={mode === "a4" ? "module-picker" : "card-picker"} aria-label={mode === "a4" ? "A4 주제 선택" : "카드 선택"}>{(mode === "a4" ? current.a4.modules : current.cards).map((item, index) => <button type="button" key={"moduleId" in item ? item.moduleId : item.pageId} aria-pressed={(mode === "a4" ? selectedModule : selectedCard) === index} onClick={() => mode === "a4" ? setSelectedModule(index) : setSelectedCard(index)}>{mode === "a4" ? `${index + 1}` : index === 0 ? "표지" : `${index}`}</button>)}</div></section>
-          <NewsletterEditorialCopy onApplyBusy={onApplyBusy} key={`${mode}-${selectedModule}-${selectedCard}-${design.canonicalProjectRevision}`} project={project} design={design} {...(mode === "cards" && selectedCard === 0 ? {} : { topicIndex: mode === "a4" ? selectedModule : selectedCard - 1 })} onChange={(value) => { setProject(value.project); setDesign(value.design) }} />
+          <section className="selection-block"><span className="control-label">{mode === "a4" ? "편집할 A4 주제" : "편집할 카드"}</span><div className={mode === "a4" ? "module-picker" : "card-picker"} aria-label={mode === "a4" ? "A4 주제 선택" : "카드 선택"}>{(mode === "a4" ? current.a4.modules : current.cards).map((item, index) => <button type="button" key={"moduleId" in item ? item.moduleId : item.pageId} aria-pressed={(mode === "a4" ? selectedModule : selectedCard) === index} disabled={hasUnapplied||pendingCopy>0} onClick={() => mode === "a4" ? setSelectedModule(index) : setSelectedCard(index)}>{mode === "a4" ? `${index + 1}` : index === 0 ? "표지" : `${index}`}</button>)}</div></section>
+          <NewsletterEditorialCopy disabled={drafts.official===true} onDraftChange={reportDraft} onApplyBusy={onApplyBusy} key={`${mode}-${selectedModule}-${selectedCard}-${design.canonicalProjectRevision}`} project={project} design={design} {...(mode === "cards" && selectedCard === 0 ? {} : { topicIndex: mode === "a4" ? selectedModule : selectedCard - 1 })} onChange={(value) => { setProject(value.project); setDesign(value.design) }} />
           {design.designSchemaVersion === 2 && <StudentArtLibrary design={design} mode={mode} index={mode === "a4" ? selectedModule : selectedCard} topic={JSON.stringify(mode === "cards" && selectedCard === 0 ? project.topics : project.topics[mode === "a4" ? selectedModule : selectedCard - 1]) ?? ""} assets={currentAssets.status === "ready" ? currentAssets.assets : undefined} onChange={setDesign} />}
-          {mode === "cards" && <NewsletterEditorialControls design={design} cardIndex={selectedCard} actionCount={editorialActionCount(project, design.canonicalProjectRevision, selectedCard - 1)} onChange={setDesign} renderTextEditor={binding=><OfficialElementCopy onApplyBusy={onApplyBusy} key={`${selectedCard}-${binding}-${project.projectRevision}-${design.designRevision}`} project={project} design={design} cardIndex={selectedCard} binding={binding} onChange={value=>{setProject(value.project);setDesign(value.design)}}/>} />}
+          {mode === "cards" && <NewsletterEditorialControls textDraftPending={drafts.official===true} design={design} cardIndex={selectedCard} actionCount={editorialActionCount(project, design.canonicalProjectRevision, selectedCard - 1)} onChange={setDesign} renderTextEditor={binding=><OfficialElementCopy disabled={drafts.copy===true} onDraftChange={reportDraft} onApplyBusy={onApplyBusy} key={`${selectedCard}-${binding}-${project.projectRevision}`} project={project} design={design} cardIndex={selectedCard} binding={binding} onChange={value=>{setProject(value.project);setDesign(value.design)}}/>} />}
           {mode === "cards" && design.cardLayouts[selectedCard]?.officialTemplate !== undefined ? <p>위 공식 요소 편집에서 글자·삽화의 위치, 크기와 맞춤을 조정할 수 있습니다.</p> : <NewsletterDesignControls design={design} mode={mode} selectedIndex={mode === "a4" ? selectedModule : selectedCard} onChange={setDesign} />}
-          <div className="asset-status"><strong>수달쌤 기본형 v1</strong><span>{mascotAttached ? exportPending ? "디자인·렌더 승인 · 실제 출력 승인 대기" : "디자인·렌더 승인 · 출력 승인됨" : "승인된 기본형을 A4·표지·본문에 함께 적용합니다."}</span><button type="button" onClick={attachMascot} disabled={mascotAttached}>승인 수달쌤 적용</button>{assetError !== undefined && <span role="alert">{assetError}</span>}</div>
+          <div className="asset-status"><strong>수달쌤 기본형 v1</strong><span>{mascotAttached ? exportPending ? "디자인·렌더 승인 · 실제 출력 승인 대기" : "디자인·렌더 승인 · 출력 승인됨" : "승인된 기본형을 A4·표지·본문에 함께 적용합니다."}</span><button type="button" onClick={attachMascot} disabled={mascotAttached||hasUnapplied||pendingCopy>0}>승인 수달쌤 적용</button>{assetError !== undefined && <span role="alert">{assetError}</span>}</div>
         </>}
         <NewsletterOutputControls project={project} design={design} measureText={measureText} ready={outputReady} blockedReason={outputStatus} {...(assetResolver === undefined ? {} : { assetResolver })} />
-        <label>Revision 복원<select aria-label="Revision 복원" value="" onChange={(event) => { if (event.target.value !== "") setDesign((previous) => restoreDesignRevision(previous, { revision: Number(event.target.value), now: new Date().toISOString() })) }}><option value="">복원할 revision 선택</option>{design.revisionHistory.slice(0, -1).map((entry) => <option key={entry.revision} value={entry.revision}>Revision {entry.revision}</option>)}</select></label>
+        <label>Revision 복원<select aria-label="Revision 복원" disabled={hasUnapplied||pendingCopy>0} value="" onChange={(event) => { if (event.target.value !== "") setDesign((previous) => restoreDesignRevision(previous, { revision: Number(event.target.value), now: new Date().toISOString() })) }}><option value="">복원할 revision 선택</option>{design.revisionHistory.slice(0, -1).map((entry) => <option key={entry.revision} value={entry.revision}>Revision {entry.revision}</option>)}</select></label>
       </aside>
       <section className="preview-panel">
         <div className="preview-toolbar"><div><span className="preview-kicker">LIVE SCENE</span><h2>{mode === "a4" ? "A4 보건소식지" : selectedCard === 0 ? "카드뉴스 표지" : `주제 카드 ${selectedCard}`}</h2></div><span className={outputReady ? "status-pill valid" : "status-pill invalid"}>{outputStatus}</span></div>

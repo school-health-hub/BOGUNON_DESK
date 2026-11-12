@@ -39,3 +39,7 @@ describe("approved mascot editor action", () => {
     expect(design.assetManifest).toHaveLength(0)
   })
 })
+
+it("keeps uncommitted copy reachable and blocks navigation or topic planning until applied", async()=>{
+ const now="2026-11-13T00:00:00.000Z",project=await createNewsletterProject({projectId:"ns01-dirty",title:"2026년 11월 보건소식지",now});const design=upgradeNewsletterDesignStateV2(createNewsletterDesignState({projectId:project.projectId,canonicalProjectRevision:1,now}),now);render(<NewsletterDesignEditor project={project} initialDesign={design}/>);fireEvent.change(screen.getByLabelText("원고 제목"),{target:{value:"작성 중인 제목"}});expect(screen.getByText("월별 주제 추천·공통 원고")).toHaveProperty("disabled",true);expect(screen.getByRole("button",{name:"카드뉴스 7장"})).toHaveProperty("disabled",true);expect(screen.getByRole("button",{name:"2",exact:true})).toHaveProperty("disabled",true);fireEvent.click(screen.getByText("원고 반영"));await waitFor(()=>expect(screen.getByText("월별 주제 추천·공통 원고")).toHaveProperty("disabled",false));expect(screen.getByLabelText("원고 제목")).toHaveProperty("value","작성 중인 제목");
+})
