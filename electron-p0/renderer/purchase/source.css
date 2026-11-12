@@ -82,6 +82,8 @@
 
 .purchase-helper-backdrop > .purchase-output-preview-backdrop { z-index: 10; }
 
+.ux03-persistent-workspace .purchase-helper-backdrop > .purchase-output-preview-backdrop { z-index: 73; }
+
 .purchase-output-preview-dialog { display: flex; flex-direction: column; width: min(1040px, 100%); max-height: 100%; min-height: 0; overflow-y: auto; overflow-wrap: anywhere; }
 
 .purchase-output-preview-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); margin: 0; flex: 0 0 auto; }
