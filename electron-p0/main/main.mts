@@ -54,7 +54,7 @@ import { app, BrowserWindow, ipcMain, session, Menu, Tray, nativeImage, screen, 
 import { join } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
-import { APP_ID, PRODUCT_NAME, PROFILE_NAME } from '../protocol.js';
+import { APP_ID, PRODUCT_NAME, PROFILE_NAME, type WorkspaceCloseResolution } from '../protocol.js';
 import { desktopDefaults, validateDesktop, fitBounds, type DesktopState } from './desktop.js';
 import { SettingsStore } from './settings.js';
 import { createNewsletterExportHandler, generateInOwnedWindow, callOwnedNewsletter } from './newsletter-export.js';
@@ -66,6 +66,7 @@ import {EducationVideoLibraryStore,createEducationVideoHandlers} from './educati
 import {InventoryStore,InventoryConflict} from './inventory-store.js';
 import { createSampleHandler, SAMPLE_SUMMARY_CHANNEL } from './sample-ipc.js';
 import { assertSender, resourceAllowed } from './policy.js';
+import {WorkspaceWindowLifecycle} from './workspace-window-lifecycle.js';
 if (app.commandLine.hasSwitch('no-sandbox') || app.commandLine.hasSwitch('disable-web-security')) throw new Error('Unsafe Electron launch flags denied');
 app.setName(PRODUCT_NAME);
 const testRun = process.env.ELECTRON_P0_TEST_RUN;
@@ -334,18 +335,39 @@ else {
   for(const action of PROJECT_ACTIONS)ipcMain.handle(`p2:newsletter:projects:${action}`,createProjectHandler(action,window.webContents,url,projects,async info=>(await dialog.showMessageBox(window,{type:'warning',message:'미리 본 revision으로 원고를 복구할까요?',detail:`프로젝트 ${info.projectId} · 현재 revision ${info.currentRevision}\nrevision ${info.sourceRevision} 내용을 새 revision ${info.currentRevision+1}로 복구합니다.\n현재 편집 내용은 선택한 revision으로 대체됩니다. 기존 저장 이력은 보존하며 출력 승인 권한은 부여하지 않습니다.`,buttons:['취소','확인 후 복구'],defaultId:0,cancelId:0})).response===1));
   // A prevented close only hides this live window. Terminal service cleanup
   // observes 'closed' (or quit/security disposal), never a tray-hide request.
-  const show=()=>{if(window.isMinimized())window.restore();window.show();window.focus();};
+  const windowLifecycle=new WorkspaceWindowLifecycle(window);
+  let pendingWorkspaceClose:number|undefined;
+  let workspaceCloseSequence=0;
+  const show=()=>{pendingWorkspaceClose=undefined;windowLifecycle.open();};
   const persist=async()=>{
     try{await desktopStore.write(desktop);return true;}
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
-  const quit=()=>{if(quitting)return;quitting=true;instructorFiles.dispose();accountHandlers.dispose();fileDrop.dispose();workFolderHandlers.dispose();recordHandlers.dispose();finderCompat.dispose();finderV2Export.dispose();finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();aiService.dispose();inventoryQa.close();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([instructorFiles.flush(),accountHandlers.flush(),fileDrop.flush(),workFoldersStore.flush(),recordHandlers.flush(),finderSearch.flush(),finderV2Export.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),eventStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>workspaceProduct.dispose()).finally(()=>{tray?.destroy();app.quit();});};
+  const quit=()=>{if(!windowLifecycle.beginQuit())return;quitting=true;instructorFiles.dispose();accountHandlers.dispose();fileDrop.dispose();workFolderHandlers.dispose();recordHandlers.dispose();finderCompat.dispose();finderV2Export.dispose();finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();aiService.dispose();inventoryQa.close();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([instructorFiles.flush(),accountHandlers.flush(),fileDrop.flush(),workFoldersStore.flush(),recordHandlers.flush(),finderSearch.flush(),finderV2Export.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),eventStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>workspaceProduct.dispose()).finally(()=>{tray?.destroy();app.quit();});};
+  const hideAfterRendererApproval=()=>{
+    if(windowLifecycle.requestClose(tray!==null)!=='hidden')return;
+    capture();void persist().then(ok=>{if(!ok)show();});
+  };
+  const requestWorkspaceHide=()=>{
+    if(windowLifecycle.isQuitInProgress())return;
+    if(tray===null){quit();return;}
+    if(pendingWorkspaceClose!==undefined)return;
+    pendingWorkspaceClose=++workspaceCloseSequence;
+    window.webContents.send('p0:workspace-window:close-request',{id:pendingWorkspaceClose});
+  };
+  ipcMain.handle('p0:workspace-window:resolve-close',(event,resolution:WorkspaceCloseResolution)=>{
+    assertSender(event,window.webContents,url);
+    if(typeof resolution!=='object'||resolution===null||!Number.isSafeInteger(resolution.id)||typeof resolution.allow!=='boolean')throw Error('Invalid Workspace close resolution');
+    if(resolution.id!==pendingWorkspaceClose)return;
+    pendingWorkspaceClose=undefined;
+    if(resolution.allow)hideAfterRendererApproval();else show();
+  });
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
-      {label:'창 열기',click:show},{label:'최소화',click:()=>window.minimize()},
-      {label:'닫을 때 트레이로 숨기기',type:'checkbox',checked:desktop.closeBehavior==='tray',enabled:tray!==null,click:async item=>{desktop.closeBehavior=item.checked?'tray':'quit';await persist();refreshMenu();}},
-      {type:'separator'},{label:'완전 종료',click:quit}
+      {label:'Workspace 열기',click:show},
+      {label:'Workspace 숨기기',enabled:tray!==null&&!windowLifecycle.isQuitInProgress(),click:requestWorkspaceHide},
+      {type:'separator'},{label:'BOGUNON 완전 종료',click:quit}
     ];
     tray?.setContextMenu(Menu.buildFromTemplate(items));
     Menu.setApplicationMenu(Menu.buildFromTemplate([{label:'창',submenu:items}]));
@@ -357,8 +379,9 @@ else {
   const adjust=()=>{const bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));window.setBounds(bounds);changed();};
   screen.on('display-added',adjust);screen.on('display-removed',adjust);screen.on('display-metrics-changed',adjust);
   app.on('second-instance',show);
+  // UX-07B keeps startup auto-show until UX-07C provides an always-reachable Desktop surface.
   window.once('ready-to-show',()=>{if(desktop.maximized)window.maximize();window.show();});
-  window.on('close',event=>{if(quitting)return;event.preventDefault();if(desktop.closeBehavior==='tray'&&tray){capture();window.hide();void persist().then(ok=>{if(!ok)show();});}else quit();});
+  window.on('close',event=>{if(quitting)return;event.preventDefault();requestWorkspaceHide();});
   app.on('before-quit',event=>{if(!quitting){event.preventDefault();quit();}});
   app.on('window-all-closed',quit);
   await window.loadURL(url);

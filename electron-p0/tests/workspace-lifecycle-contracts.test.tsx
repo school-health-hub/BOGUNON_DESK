@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import type { ReactNode } from "react";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { P0App } from "../renderer/P0App";
 import { WorkspaceBoundary } from "../renderer/WorkspaceBoundary";
@@ -9,6 +9,8 @@ const newsletterLifecycle = vi.hoisted(() => ({ mounts: 0 }));
 const finderLifecycle = vi.hoisted(() => ({ mounts: 0, cancels: 0, savedMemo: "" }));
 const inventoryLifecycle = vi.hoisted(() => ({ mounts: 0, savedName: "합성 저장 물품" }));
 const schoolLifecycle = vi.hoisted(() => ({ mounts: 0, closes: 0 }));
+let workspaceCloseListener: ((request: { readonly id: number }) => void) | undefined;
+const resolveWorkspaceClose = vi.fn();
 
 vi.mock("../renderer/WorkspaceProductHost", async () => {
   const { useState } = await import("react");
@@ -139,6 +141,8 @@ afterEach(() => {
   inventoryLifecycle.savedName = "합성 저장 물품";
   schoolLifecycle.mounts = 0;
   schoolLifecycle.closes = 0;
+  workspaceCloseListener = undefined;
+  resolveWorkspaceClose.mockReset();
 });
 
 function setupDashboard(): void {
@@ -151,6 +155,11 @@ function setupDashboard(): void {
     info: async () => ({ appId: "kr.sungandi.schoolhealthdesk.electronp0", userData: "/synthetic-profile" }),
     readSettings: async () => null,
     writeSettings: vi.fn(async () => undefined),
+    onWorkspaceCloseRequest: (listener: (request: { readonly id: number }) => void) => {
+      workspaceCloseListener = listener;
+      return () => { workspaceCloseListener = undefined; };
+    },
+    resolveWorkspaceClose: resolveWorkspaceClose,
   });
   vi.stubGlobal("electronWork", {
     memo: { read: async () => ({ ok: true, data: { version: 1, text: "" } }), write: vi.fn() },
@@ -332,6 +341,65 @@ it("keeps Finance and its draft active when Rail navigation is cancelled", async
   expect(screen.getByLabelText("합성 Finance 초안")).toHaveProperty("value", "합성 미저장 초안");
   expect(within(rail).getByRole("button", { name: "일정·업무" }).getAttribute("aria-current")).toBe("page");
   confirm.mockRestore();
+});
+
+it("allows an OS Workspace close after clean Finance completes its existing leave path", async () => {
+  setupDashboard();
+  render(<P0App />);
+  const rail = await screen.findByRole("navigation", { name: "주요 작업 공간" });
+  fireEvent.click(within(rail).getByRole("button", { name: "일정·업무" }));
+  fireEvent.click(screen.getByRole("button", { name: /MY FINANCE/ }));
+
+  workspaceCloseListener?.({ id: 41 });
+
+  await waitFor(() => expect(resolveWorkspaceClose).toHaveBeenCalledWith({ id: 41, allow: true }));
+  expect(screen.queryByRole("heading", { name: "합성 MY FINANCE" })).toBeNull();
+});
+
+it("rejects an OS Workspace close when Finance draft discard is cancelled", async () => {
+  setupDashboard();
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+  render(<P0App />);
+  const rail = await screen.findByRole("navigation", { name: "주요 작업 공간" });
+  fireEvent.click(within(rail).getByRole("button", { name: "일정·업무" }));
+  fireEvent.click(screen.getByRole("button", { name: /MY FINANCE/ }));
+  fireEvent.change(await screen.findByLabelText("합성 Finance 초안"), { target: { value: "닫아도 보존할 합성 초안" } });
+
+  workspaceCloseListener?.({ id: 42 });
+
+  await waitFor(() => expect(resolveWorkspaceClose).toHaveBeenCalledWith({ id: 42, allow: false }));
+  expect(screen.getByLabelText("합성 Finance 초안")).toHaveProperty("value", "닫아도 보존할 합성 초안");
+  confirm.mockRestore();
+});
+
+it("allows an OS Workspace close only after Finance approves discard and unmounts", async () => {
+  setupDashboard();
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+  render(<P0App />);
+  const rail = await screen.findByRole("navigation", { name: "주요 작업 공간" });
+  fireEvent.click(within(rail).getByRole("button", { name: "일정·업무" }));
+  fireEvent.click(screen.getByRole("button", { name: /MY FINANCE/ }));
+  fireEvent.change(await screen.findByLabelText("합성 Finance 초안"), { target: { value: "폐기 승인할 합성 초안" } });
+
+  workspaceCloseListener?.({ id: 43 });
+
+  await waitFor(() => expect(resolveWorkspaceClose).toHaveBeenCalledWith({ id: 43, allow: true }));
+  expect(screen.queryByRole("heading", { name: "합성 MY FINANCE" })).toBeNull();
+  confirm.mockRestore();
+});
+
+it("rejects an OS Workspace close while Newsletter owns a busy operation", async () => {
+  setupDashboard();
+  render(<P0App />);
+  const rail = await screen.findByRole("navigation", { name: "주요 작업 공간" });
+  fireEvent.click(within(rail).getByRole("button", { name: "문서·교육자료" }));
+  fireEvent.click(screen.getByRole("button", { name: /보건소식지 제작소/ }));
+  fireEvent.click(screen.getByRole("button", { name: "합성 생성 작업 전환" }));
+
+  workspaceCloseListener?.({ id: 44 });
+
+  await waitFor(() => expect(resolveWorkspaceClose).toHaveBeenCalledWith({ id: 44, allow: false }));
+  expect(screen.getByRole("main", { name: "합성 보건소식지 제작소" })).toBeTruthy();
 });
 
 it("guards Rail navigation while the Home layout editor owns an unfinished edit", async () => {

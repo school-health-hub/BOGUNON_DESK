@@ -87,11 +87,12 @@ it('ignores an old cancelled approval while a fresh search session is active',as
   expect(h.fetch).toHaveBeenCalledOnce();expect(h.fetch.mock.calls[0]![1].signal?.aborted).toBe(false);release(new Response('{"items":[]}',{headers:{'content-type':'application/json'}}));await expect(current).resolves.toMatchObject({videos:[]});expect(h.vault.write).toHaveBeenCalledOnce();expect(await h.finder.status()).toMatchObject({configured:true,saved:true});
  }finally{approve?.(false);release?.(new Response('{"items":[]}',{headers:{'content-type':'application/json'}}));h.finder.dispose();await h.finder.flush();}
 });
-it('keeps security-navigation/quit disposal and flush while close handles only the desktop close policy',()=>{
- const closeBindings=main.split('\n').filter(line=>line.includes("window.on('close',"));expect(closeBindings).toHaveLength(1);expect(closeBindings[0]).toContain('event.preventDefault()');expect(closeBindings[0]).toContain("desktop.closeBehavior==='tray'");expect(closeBindings[0]).toContain('window.hide()');
+it('keeps security-navigation/quit disposal and flush while close waits for the renderer lifecycle owner',()=>{
+ const closeBindings=main.split('\n').filter(line=>line.includes("window.on('close',"));expect(closeBindings).toHaveLength(1);expect(closeBindings[0]).toContain('event.preventDefault()');expect(closeBindings[0]).toContain('requestWorkspaceHide()');expect(closeBindings[0]).not.toContain('windowLifecycle.requestClose');expect(closeBindings[0]).not.toContain('desktop.closeBehavior');
+ expect(main).toContain("window.webContents.send('p0:workspace-window:close-request'");expect(main).toContain("ipcMain.handle('p0:workspace-window:resolve-close'");expect(main).toContain('if(resolution.allow)hideAfterRendererApproval();else show();');
  for(const source of ["window.webContents.on('will-navigate',()=>finderSearch.dispose())","window.webContents.on('render-process-gone',()=>finderSearch.dispose())","app.on('before-quit',()=>finderSearch.dispose())",'finderSearch.flush()'])expect(main).toContain(source);
  const quit=main.split('\n').find(line=>line.includes('const quit=()=>'));expect(quit).toContain('finderSearch.dispose()');expect(quit).toContain('finderSearch.flush()');expect(quit).toContain('aiService.dispose()');expect(quit).toContain('inventoryQa.close()');
- const show=main.split('\n').find(line=>line.includes('const show=()=>'));expect(show).toContain('window.show()');expect(show).not.toMatch(/reload|loadURL|new BrowserWindow/);
+ const show=main.split('\n').find(line=>line.includes('const show=()=>'));expect(show).toContain('windowLifecycle.open()');expect(show).not.toMatch(/reload|loadURL|new BrowserWindow/);
  // Shared-window clients retain their credentials/worker lifetime too; no auth or engine rewrite.
  for(const name of ['aiService','chatgptService','imageImport','purchaseAi','officialFiles','financeService'])expect(main.split('\n').filter(line=>line.includes("window.on('close',")).join('')).not.toContain(name);
 });

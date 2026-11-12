@@ -3,12 +3,18 @@ import type {AdminDocument,AdminEnvironment,AdminSystem,LeaveDraft,AdminMapping,
 import type {FinanceIdentity,IncomeRecord,Phase2Data} from '../finance-protocol.js';
 import type {InventoryQaApi} from '../inventory-qa-protocol.js';
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
-import type { P0Bridge, P0Settings, WorkBridge, SyntheticSummaryRequest, MemoDocument, NewsletterExportRequest, NewsletterProjectsBridge, PurchaseClipboardRequest, PurchaseCsvMappingRequest, PurchaseExportRequest, SettlementRequest, EdufineRequest, EducationVideoLibraryItem,InventoryDocument,OfficialDocumentSave,AiConnect,AiRequest } from '../protocol.js';
+import type { P0Bridge, P0Settings, WorkBridge, SyntheticSummaryRequest, MemoDocument, NewsletterExportRequest, NewsletterProjectsBridge, PurchaseClipboardRequest, PurchaseCsvMappingRequest, PurchaseExportRequest, SettlementRequest, EdufineRequest, EducationVideoLibraryItem,InventoryDocument,OfficialDocumentSave,AiConnect,AiRequest,WorkspaceCloseRequest,WorkspaceCloseResolution } from '../protocol.js';
 if (!process.sandboxed || !process.contextIsolated) throw new Error('PoC requires a sandboxed isolated preload');
 const bridge: P0Bridge = Object.freeze({
   info: () => ipcRenderer.invoke('p0:info'),
   readSettings: () => ipcRenderer.invoke('p0:read-settings'),
   writeSettings: (settings: P0Settings) => ipcRenderer.invoke('p0:write-settings',settings),
+  onWorkspaceCloseRequest: (listener:Parameters<P0Bridge['onWorkspaceCloseRequest']>[0]) => {
+    const callback=(_event:unknown,request:WorkspaceCloseRequest)=>listener(request);
+    ipcRenderer.on('p0:workspace-window:close-request',callback);
+    return()=>{ipcRenderer.removeListener('p0:workspace-window:close-request',callback);};
+  },
+  resolveWorkspaceClose: (resolution:WorkspaceCloseResolution) => ipcRenderer.invoke('p0:workspace-window:resolve-close',resolution),
 });
 contextBridge.exposeInMainWorld('electronP0',bridge);
 
