@@ -32,7 +32,7 @@ export type TextProvenance =
 export type Frame = { readonly x: number; readonly y: number; readonly width: number; readonly height: number }
 export type RenderTextBlock = { readonly id: string; readonly text: string; readonly lines: readonly string[]; readonly frame: Frame; readonly style: TextStyle; readonly provenance: TextProvenance }
 export type RenderIssue = { readonly kind: "overflow" | "missing-text" | "orphan-character" | "orphan-particle" | "layout-collision" | "clip-bounds"; readonly pageId: string; readonly blockId: string; readonly message: string }
-export type RenderImage = { readonly clipPolygon?: ImagePolygon; readonly edgePolicy?: "rounded" | "none" | "soft" | "feather"; readonly slotId: string; readonly assetId?: string; readonly frame: Frame; readonly fit: "contain" | "cover" }
+export type RenderImage = { readonly visible?: boolean; readonly clipPolygon?: ImagePolygon; readonly edgePolicy?: "rounded" | "none" | "soft" | "feather"; readonly slotId: string; readonly assetId?: string; readonly frame: Frame; readonly fit: "contain" | "cover" }
 export type RenderPage = {
   readonly officialLayers?: readonly SceneLayer[];
   readonly editorial?: RenderEditorial;

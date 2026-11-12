@@ -2,6 +2,7 @@ import {assertNewsletterCompatibility} from "./compatibility"
 import { z } from "zod"
 import { parseNewsletterProject, type NewsletterProject } from "./schema"
 import { parseNewsletterDesignState, type NewsletterDesignState } from "./rendering/designSchema"
+import {studentArtBytes} from "./rendering/studentArtSources"
 import { bundledMascotBytes } from "./rendering/bundledMascot"
 import type { NewsletterAssetResolver } from "./rendering/assetResolution"
 import { compileRenderDocument } from "./rendering/renderDocument"
@@ -48,7 +49,7 @@ export function createStudioAssetResolver(design: NewsletterDesignState, bytes: 
     const selected = bytes.get(reference)
     if (selected !== undefined) return selected
     const asset = design.assetManifest.find(candidate => candidate.localReference === reference)
-    const bundled = asset === undefined ? undefined : bundledMascotBytes(asset.id)
+    const bundled = asset === undefined ? undefined : bundledMascotBytes(asset.id) ?? studentArtBytes(asset.sha256)
     if (bundled !== undefined) return bundled
     throw new StudioDocumentError("이 문서의 이미지 원본을 다시 선택해 주세요. SHA-256을 확인한 뒤 연결합니다.")
   } }
