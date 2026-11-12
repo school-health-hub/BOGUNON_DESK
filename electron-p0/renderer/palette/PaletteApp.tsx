@@ -60,21 +60,31 @@ export function PaletteApp() {
   useEffect(() => {
     if (!error&&(!layout||!dock)) return;
     let active=true;
-    const publish = async () => {
+    let generation=0;
+    let retryTimer:ReturnType<typeof setTimeout>|undefined;
+    const publish = async (request:number,attempt=0) => {
+      if(!active||request!==generation)return;
       const measured = [...document.querySelectorAll<HTMLElement>('[data-widget-type],[data-palette-interactive]')].map((element) => {
         const { x, y, width, height } = element.getBoundingClientRect();
         return { x, y, width, height };
       });
       const regions=clipPaletteHitRegions(measured,{width:window.innerWidth,height:window.innerHeight});
-      try{await window.electronPalette.setHitRegions(regions);if(active&&!error)await window.electronPalette.ready();}
-      catch{if(active)setError(true);}
+      try{
+        await window.electronPalette.setHitRegions(regions);
+        if(active&&request===generation&&!error)await window.electronPalette.ready();
+      }catch{
+        if(!active||request!==generation)return;
+        if(attempt<2)retryTimer=setTimeout(()=>void publish(request,attempt+1),100);
+        else setError(true);
+      }
     };
-    const observer = new ResizeObserver(()=>void publish());
-    const mutation=new MutationObserver(()=>void publish());
+    const refresh=()=>{clearTimeout(retryTimer);void publish(++generation);};
+    const observer = new ResizeObserver(refresh);
+    const mutation=new MutationObserver(refresh);
     mutation.observe(document.querySelector('.desktop-palette')??document.documentElement,{childList:true,subtree:true});
     observer.observe(document.documentElement);
-    void publish();
-    return () => {active=false;observer.disconnect();mutation.disconnect();};
+    refresh();
+    return () => {active=false;clearTimeout(retryTimer);observer.disconnect();mutation.disconnect();};
   }, [layout,dock,error,viewportWidth,viewportHeight]);
   if (error) return <main className="palette-status" role="alert" data-palette-interactive>위젯 배치를 읽지 못했습니다. 기존 배치는 변경하지 않았습니다.<button type="button" onClick={()=>void window.electronPalette.openWorkspace()}>업무 화면 열기</button></main>;
   if (!layout||!dock) return <main className="palette-status" role="status">위젯을 불러오는 중…</main>;

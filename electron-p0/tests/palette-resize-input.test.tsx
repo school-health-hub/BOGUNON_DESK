@@ -15,6 +15,54 @@ vi.mock('../renderer/adapters/workspace',()=>({LocalWorkspaceProvider:({children
 vi.mock('../renderer/adapters/PersistentMemo',()=>({PersistentMemoProvider:({children}:{children:ReactNode})=>children}));
 
 afterEach(()=>{cleanup();vi.restoreAllMocks();vi.unstubAllGlobals();});
+it('remeasures after a transient asynchronous hit-region rejection without replacing valid widgets',async()=>{
+  vi.stubGlobal('innerWidth',1200);vi.stubGlobal('innerHeight',800);
+  vi.stubGlobal('ResizeObserver',class{observe(){}disconnect(){}});
+  vi.spyOn(HTMLElement.prototype,'getBoundingClientRect').mockReturnValue(new DOMRect(10,10,100,100));
+  const ready=vi.fn(async()=>undefined);
+  const setHitRegions=vi.fn<PaletteBridge['setHitRegions']>().mockRejectedValueOnce(Error('Invalid Desktop palette hit regions')).mockResolvedValue(undefined);
+  const api:PaletteBridge={readSettings:async()=>null,readProjection:async()=>({revision:1,value:null,monitorLayout:createDefaultDashboardLayout()}),setInteractive:async()=>undefined,setHitRegions,ready,openWorkspace:async()=>undefined,openSettings:async()=>undefined,onSettingsChanged:()=>()=>undefined};
+  vi.stubGlobal('electronPalette',api);
+  render(<PaletteApp/>);
+  await waitFor(()=>expect(ready).toHaveBeenCalled());
+  expect(screen.queryByRole('alert')).toBeNull();
+  expect(screen.getByTestId('grid')).toBeTruthy();
+});
+
+it('keeps repeated hit-region failure closed instead of announcing readiness',async()=>{
+  vi.stubGlobal('innerWidth',1200);vi.stubGlobal('innerHeight',800);
+  vi.stubGlobal('ResizeObserver',class{observe(){}disconnect(){}});
+  vi.spyOn(HTMLElement.prototype,'getBoundingClientRect').mockReturnValue(new DOMRect(10,10,100,100));
+  const ready=vi.fn(async()=>undefined);
+  const setHitRegions=vi.fn<PaletteBridge['setHitRegions']>().mockRejectedValue(Error('synthetic persistent IPC failure'));
+  const api:PaletteBridge={readSettings:async()=>null,readProjection:async()=>({revision:1,value:null,monitorLayout:createDefaultDashboardLayout()}),setInteractive:async()=>undefined,setHitRegions,ready,openWorkspace:async()=>undefined,openSettings:async()=>undefined,onSettingsChanged:()=>()=>undefined};
+  vi.stubGlobal('electronPalette',api);
+  const view=render(<PaletteApp/>);
+  await screen.findByRole('alert');
+  expect(ready).not.toHaveBeenCalled();
+  view.unmount();
+});
+
+it('ignores a rejected older publication after a newer one has become ready',async()=>{
+  vi.stubGlobal('innerWidth',1200);vi.stubGlobal('innerHeight',800);
+  const observers:Array<()=>void>=[];
+  vi.stubGlobal('ResizeObserver',class{constructor(callback:()=>void){observers.push(callback);}observe(){}disconnect(){}});
+  vi.spyOn(HTMLElement.prototype,'getBoundingClientRect').mockReturnValue(new DOMRect(10,10,100,100));
+  let rejectOld:(reason:Error)=>void=()=>{throw Error('publication not started');};
+  const old=new Promise<void>((_resolve,reject)=>{rejectOld=reject;});
+  const ready=vi.fn(async()=>undefined);
+  const setHitRegions=vi.fn<PaletteBridge['setHitRegions']>().mockReturnValueOnce(old).mockResolvedValue(undefined);
+  const api:PaletteBridge={readSettings:async()=>null,readProjection:async()=>({revision:1,value:null,monitorLayout:createDefaultDashboardLayout()}),setInteractive:async()=>undefined,setHitRegions,ready,openWorkspace:async()=>undefined,openSettings:async()=>undefined,onSettingsChanged:()=>()=>undefined};
+  vi.stubGlobal('electronPalette',api);
+  render(<PaletteApp/>);
+  await waitFor(()=>expect(setHitRegions).toHaveBeenCalled());
+  await act(async()=>{observers.forEach(callback=>callback());});
+  await waitFor(()=>expect(ready).toHaveBeenCalled());
+  await act(async()=>{rejectOld(Error('stale bounds'));});
+  expect(screen.queryByRole('alert')).toBeNull();
+  expect(screen.getByTestId('grid')).toBeTruthy();
+});
+
 it('updates viewport geometry and publishes only visible input after a shrink, then restores without storage writes',async()=>{
   vi.stubGlobal('innerWidth',1920);vi.stubGlobal('innerHeight',1032);
   const observers:Array<()=>void>=[];
