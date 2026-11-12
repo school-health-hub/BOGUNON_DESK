@@ -16,6 +16,9 @@ type AppShellProps = Readonly<{
   headerStatus?: ReactNode;
   workspace?: ReactNode;
   workspaceTitle?: string;
+  persistentWorkspace?: ReactNode;
+  persistentWorkspaceActive?: boolean;
+  persistentWorkspaceTitle?: string;
   onCategoryChange: (categoryId: WorkspaceCategoryId) => void;
   onOpenModule: (moduleId: WorkspaceModuleId) => void;
   canOpenModule?: (moduleId: WorkspaceModuleId) => boolean;
@@ -61,7 +64,7 @@ function CategoryWorkspace({ categoryId, onOpenModule, canOpenModule }: Readonly
   </section>;
 }
 
-export function AppShell({ activeCategory, children, settings, headerStatus, workspace, workspaceTitle, onCategoryChange, onOpenModule, canOpenModule = () => true }: AppShellProps) {
+export function AppShell({ activeCategory, children, settings, headerStatus, workspace, workspaceTitle, persistentWorkspace, persistentWorkspaceActive = false, persistentWorkspaceTitle, onCategoryChange, onOpenModule, canOpenModule = () => true }: AppShellProps) {
   const railRef = useRef<HTMLElement>(null);
   const onRailKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number): void => {
     const lastIndex = workspaceCategoryIds.length - 1;
@@ -76,6 +79,7 @@ export function AppShell({ activeCategory, children, settings, headerStatus, wor
   };
 
   const activeLabel = workspaceCategoryRegistry[activeCategory].label;
+  const currentWorkspaceTitle = workspaceTitle ?? (persistentWorkspaceActive ? persistentWorkspaceTitle : undefined);
   return <div className="ux03-shell">
     <aside className="ux03-rail">
       <div className="ux03-brand" aria-label="BOGUNON DESK"><img src={PRODUCT_LOGO_URL} alt=""/><strong>BOGUNON</strong></div>
@@ -91,10 +95,11 @@ export function AppShell({ activeCategory, children, settings, headerStatus, wor
       </nav>
     </aside>
     <div className="ux03-main">
-      <header className="ux03-topbar"><span>현재 위치</span><strong>{workspaceTitle ? `${activeLabel} / ${workspaceTitle}` : activeLabel}</strong>{headerStatus&&<div className="ux03-topbar-status">{headerStatus}</div>}</header>
+      <header className="ux03-topbar"><span>현재 위치</span><strong>{currentWorkspaceTitle ? `${activeLabel} / ${currentWorkspaceTitle}` : activeLabel}</strong>{headerStatus&&<div className="ux03-topbar-status">{headerStatus}</div>}</header>
       <div className="ux03-outlet">
-        <div className="ux03-home-slot" hidden={activeCategory !== "home" || Boolean(workspace)} inert={activeCategory !== "home" || Boolean(workspace)}>{children}</div>
-        {workspace ? <div className="ux03-module-workspace">{workspace}</div> : <>
+        <div className="ux03-home-slot" hidden={activeCategory !== "home" || Boolean(workspace) || persistentWorkspaceActive} inert={activeCategory !== "home" || Boolean(workspace) || persistentWorkspaceActive}>{children}</div>
+        {persistentWorkspace && <div className="ux03-persistent-workspace" hidden={!persistentWorkspaceActive} inert={!persistentWorkspaceActive}>{persistentWorkspace}</div>}
+        {workspace ? <div className="ux03-module-workspace">{workspace}</div> : !persistentWorkspaceActive && <>
           {activeCategory === "settings" && settings}
           {activeCategory !== "home" && activeCategory !== "settings" && <CategoryWorkspace categoryId={activeCategory} onOpenModule={onOpenModule} canOpenModule={canOpenModule}/>}
         </>}

@@ -1,4 +1,8 @@
 /* Selected unchanged Purchase selectors, source fec6deb. */
+.ux03-persistent-workspace .purchase-session-workspace,
+.ux03-persistent-workspace .purchase-session-workspace > .desktop-panel-backdrop { width: 100%; height: 100%; min-height: 0; }
+.ux03-persistent-workspace .purchase-session-workspace > .desktop-panel-backdrop { position: static; padding: 0; background: transparent; }
+.ux03-persistent-workspace .purchase-helper-panel { box-sizing: border-box; width: 100%; height: 100%; max-height: none; min-height: 0; border: 0; border-radius: 0; box-shadow: none; }
 
 
 .purchase-helper-backdrop { padding-top: 28px; }
@@ -371,4 +375,36 @@
 .purchase-settlement-adjustments label:last-child { grid-column: auto; }
 .purchase-settlement-actions { align-items: stretch; flex-direction: column; }
 .purchase-settlement-actions > div { justify-content: flex-start; }
+}
+
+@media (max-height: 820px) {
+ .ux03-persistent-workspace .purchase-helper-panel__header { padding: 8px 12px; }
+ .ux03-persistent-workspace .purchase-helper-panel__header p { margin-top: 0; }
+ .ux03-persistent-workspace .purchase-helper-panel__toolbar { gap: 4px; padding: 6px 10px; }
+ .ux03-persistent-workspace .purchase-image-import { padding: 6px 8px; border-radius: 10px; }
+ .ux03-persistent-workspace .purchase-image-import p { margin: 2px 0; font-size: 11px; }
+ .ux03-persistent-workspace .purchase-import-templates { padding: 4px 10px; }
+ .ux03-persistent-workspace .purchase-import-templates p { margin: 0; }
+ .ux03-persistent-workspace .purchase-helper-tabs { padding: 3px 10px 0; }
+ .ux03-persistent-workspace .purchase-helper-tabs button { min-height: 30px; }
+ .ux03-persistent-workspace .purchase-helper-dropzone.is-compact { min-height: 32px; margin-block: 4px; }
+ .ux03-persistent-workspace .purchase-helper-review { padding: 4px 10px; }
+ .ux03-persistent-workspace .purchase-helper-review__selection small { display: none; }
+ .ux03-persistent-workspace .purchase-helper-table-wrap { min-height: 96px; flex-basis: 112px; }
+ .ux03-persistent-workspace .purchase-helper-columns { min-height: 34px; padding: 3px 10px; }
+ .ux03-persistent-workspace .purchase-helper-panel__footer { padding: 6px 10px; }
+}
+
+@media (max-height: 900px) {
+ .ux03-persistent-workspace .purchase-helper-panel { padding-bottom: 48px; }
+ .ux03-persistent-workspace .purchase-helper-panel__footer { position: fixed; right: 0; bottom: 64px; left: var(--ux03-rail); z-index: 72; min-height: 48px; padding: 6px 10px; background: var(--widget-bg); }
+ .ux03-persistent-workspace .purchase-helper-panel__footer > p { display: none; }
+ .ux03-persistent-workspace .purchase-output-preview-launcher { padding: 0; border-top: 0; }
+ .ux03-persistent-workspace .purchase-helper-columns { bottom: 64px; z-index: 1; background: var(--widget-bg); }
+}
+
+@media (max-height: 700px) {
+ .ux03-persistent-workspace .purchase-helper-dropzone.is-compact { display: none; }
+ .ux03-persistent-workspace .purchase-helper-panel__footer > p { display: none; }
+ .ux03-persistent-workspace .purchase-helper-panel__footer { justify-content: flex-end; }
 }

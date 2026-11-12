@@ -74,3 +74,34 @@ it("renders an active module inside the App Shell outlet without removing the Ra
   expect(screen.getByRole("main", { name: "합성 공문 작업 공간" })).toBeTruthy();
   expect(screen.queryByRole("heading", { name: "문서·교육자료" })).toBeNull();
 });
+
+it("keeps a controlled workspace mounted while its App Shell outlet is inactive", () => {
+  const mounted = vi.fn();
+  function PersistentPurchase() {
+    useState(() => { mounted(); return true; });
+    return <main aria-label="합성 품의 작업 공간">합성 품의 편집기</main>;
+  }
+  function ControlledHarness() {
+    const [active, setActive] = useState(false);
+    return <>
+      <button type="button" onClick={() => setActive((value) => !value)}>품의 전환</button>
+      <AppShell
+        activeCategory="inventory-purchase"
+        persistentWorkspace={<PersistentPurchase />}
+        persistentWorkspaceActive={active}
+        persistentWorkspaceTitle="품의 도우미"
+        onCategoryChange={() => undefined}
+        onOpenModule={() => undefined}
+      ><p>합성 Home</p></AppShell>
+    </>;
+  }
+
+  render(<ControlledHarness />);
+  expect(screen.queryByRole("main", { name: "합성 품의 작업 공간" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "품의 전환" }));
+  expect(screen.getByRole("main", { name: "합성 품의 작업 공간" })).toBeTruthy();
+  expect(screen.getByText("물품·품의 / 품의 도우미")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "품의 전환" }));
+  fireEvent.click(screen.getByRole("button", { name: "품의 전환" }));
+  expect(mounted).toHaveBeenCalledOnce();
+});

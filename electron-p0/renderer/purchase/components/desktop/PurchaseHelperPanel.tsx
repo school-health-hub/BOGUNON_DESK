@@ -128,9 +128,9 @@ export function PurchaseHelperPanel({ fileControls, importSettings, settingsStat
     if (index < 0 || target < 0 || target >= next.length) return; [next[index], next[target]] = [next[target], next[index]]; setColumnDraft(next);
   };
   return (
-    <div className="desktop-panel-backdrop purchase-helper-backdrop" onMouseDown={(event) => { if (event.currentTarget === event.target) void closePanel(); }}>
-      <section ref={panelRef} tabIndex={-1} className="purchase-helper-panel" inert={outputPreview.snapshot!==null} role="dialog" aria-modal="true" aria-labelledby="purchase-helper-title">
-        <header className="purchase-helper-panel__header"><span><FileSpreadsheet size={20} /></span><div><h2 id="purchase-helper-title">품의 도우미</h2><p>품목 입력·품의문·구매결과 · 세션 전용</p></div><button type="button" aria-label="품의 도우미 닫기" onClick={() => void closePanel()}><X size={18} /></button></header>
+    <div className="desktop-panel-backdrop purchase-helper-backdrop">
+      <section ref={panelRef} tabIndex={-1} className="purchase-helper-panel" inert={outputPreview.snapshot!==null} role="dialog" aria-labelledby="purchase-helper-title">
+        <header className="purchase-helper-panel__header"><span><FileSpreadsheet size={20} /></span><div><h2 id="purchase-helper-title">품의 도우미</h2><p>품목 입력·품의문·구매결과 · 세션 전용</p></div><button type="button" aria-label="물품·품의 목록으로 돌아가기" onClick={() => void closePanel()}><X size={18} /></button></header>
         <div className="purchase-helper-panel__toolbar">
           {fileControls ?? <button type="button" disabled>파일 가져오기</button>}
           <button type="button" onClick={onAddItem}><Plus size={16} /> 품목 추가</button>

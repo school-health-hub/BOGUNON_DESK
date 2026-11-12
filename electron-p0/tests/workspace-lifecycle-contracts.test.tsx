@@ -26,7 +26,19 @@ vi.mock("../renderer/school-profile/SchoolProfile", () => ({
   SchoolConnectionSettings: () => <ol aria-label="학교 연결 단계" />,
   SchoolProfileSettings: () => null,
 }));
-vi.mock("../renderer/purchase/PurchaseSession", () => ({ PurchaseSession: () => null }));
+vi.mock("../renderer/purchase/PurchaseSession", async () => {
+  const { useState } = await import("react");
+  return { PurchaseSession: ({ open, onClose, embedded }: { readonly open: boolean; readonly onClose: () => void; readonly embedded?: boolean }) => {
+    const [draft, setDraft] = useState("");
+    const [modalOpen, setModalOpen] = useState(false);
+    return <main hidden={!open} aria-label="합성 품의 도우미" data-embedded={String(embedded)}>
+      <label>합성 품의 원고<input value={draft} onChange={(event) => setDraft(event.target.value)} /></label>
+      <button type="button" onClick={() => setModalOpen(true)}>합성 출력 모달 열기</button>
+      {modalOpen && <section role="dialog" aria-modal="true" aria-label="합성 품의 출력 모달"><button type="button" onClick={() => setModalOpen(false)}>합성 출력 모달 닫기</button></section>}
+      <button type="button" onClick={onClose}>품의 목록으로 돌아가기</button>
+    </main>;
+  } };
+});
 vi.mock("../../src/components/dashboard/DesktopWidgetLayout", () => ({ DesktopWidgetLayout: () => <div>합성 Home</div> }));
 vi.mock("../renderer/finance/FinanceHost", () => ({ FinanceHost: ({ onClose }: { readonly onClose: () => void }) => <main><h1>합성 MY FINANCE</h1><button type="button" onClick={onClose}>Finance 닫기</button></main> }));
 vi.mock("../../src/official-document/OfficialDocumentWorkspace", async () => {
@@ -197,4 +209,44 @@ it("keeps the Official draft in the App Shell when Rail navigation discard is ca
   fireEvent.click(within(rail).getByRole("button", { name: "홈" }));
   expect(await screen.findByText("합성 Home")).toBeTruthy();
   expect(within(rail).getByRole("button", { name: "홈" }).getAttribute("aria-current")).toBe("page");
+});
+
+it("keeps the Purchase session mounted when Rail navigation closes its App Shell presentation", async () => {
+  setupDashboard();
+  const confirm = vi.spyOn(window, "confirm");
+  render(<P0App />);
+
+  const rail = await screen.findByRole("navigation", { name: "주요 작업 공간" });
+  fireEvent.click(within(rail).getByRole("button", { name: "물품·품의" }));
+  fireEvent.click(screen.getByRole("button", { name: /품의 도우미/ }));
+  expect(screen.getByRole("main", { name: "합성 품의 도우미" })).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("합성 품의 원고"), { target: { value: "유지할 합성 품의 원고" } });
+
+  fireEvent.click(within(rail).getByRole("button", { name: "홈" }));
+  expect(confirm).not.toHaveBeenCalled();
+  expect(within(rail).getByRole("button", { name: "홈" }).getAttribute("aria-current")).toBe("page");
+
+  fireEvent.click(within(rail).getByRole("button", { name: "물품·품의" }));
+  fireEvent.click(screen.getByRole("button", { name: /품의 도우미/ }));
+  expect((screen.getByLabelText("합성 품의 원고") as HTMLInputElement).value).toBe("유지할 합성 품의 원고");
+  fireEvent.click(screen.getByRole("button", { name: "품의 목록으로 돌아가기" }));
+  expect(screen.getByRole("button", { name: /품의 도우미/ })).toBeTruthy();
+});
+
+it("keeps Purchase and its modal open when a Rail transition is guarded", async () => {
+  setupDashboard();
+  render(<P0App />);
+
+  const rail = await screen.findByRole("navigation", { name: "주요 작업 공간" });
+  fireEvent.click(within(rail).getByRole("button", { name: "물품·품의" }));
+  fireEvent.click(screen.getByRole("button", { name: /품의 도우미/ }));
+  fireEvent.change(screen.getByLabelText("합성 품의 원고"), { target: { value: "보호할 합성 원고" } });
+  fireEvent.click(screen.getByRole("button", { name: "합성 출력 모달 열기" }));
+
+  fireEvent.click(within(rail).getByRole("button", { name: "홈" }));
+
+  expect(screen.getByRole("dialog", { name: "합성 품의 출력 모달" })).toBeTruthy();
+  expect((screen.getByLabelText("합성 품의 원고") as HTMLInputElement).value).toBe("보호할 합성 원고");
+  expect(within(rail).getByRole("button", { name: "물품·품의" }).getAttribute("aria-current")).toBe("page");
+  expect(screen.getByText(/현재 작업 화면을 먼저 닫아 주세요/)).toBeTruthy();
 });
