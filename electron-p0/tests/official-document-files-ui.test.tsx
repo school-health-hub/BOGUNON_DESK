@@ -33,6 +33,42 @@ it('requires confirmation before destructive new/replace/close actions and prese
  confirm.mockReturnValue(true);fireEvent.click(screen.getByRole('button',{name:'새 작업'}));expect(screen.queryByLabelText('본문')).toBeNull();
 });
 
+it('uses the common branded workspace header while preserving clean, confirmed-dirty and busy close ownership',async()=>{
+ const cleanClose=vi.fn();
+ vi.stubGlobal('electronWork',{officialDocument:{pick:vi.fn(),save:vi.fn(),cancel:async()=>({ok:true,data:null})}});
+ const clean=render(<OfficialDocumentWorkspace onClose={cleanClose}/>);
+ const header=screen.getByRole('banner');
+ expect(header.classList.contains('td2-workspace-header')).toBe(true);
+ expect(header.classList.contains('od-header')).toBe(true);
+ expect(screen.getByRole('heading',{name:'공문작업실'})).toBeTruthy();
+ expect(screen.getByText('ELECTRON LOCAL')).toBeTruthy();
+ expect(header.querySelector('.brand-logo')).toBeTruthy();
+ fireEvent.click(screen.getByRole('button',{name:'보건 업무로'}));
+ expect(cleanClose).toHaveBeenCalledOnce();
+ clean.unmount();
+
+ const dirtyClose=vi.fn(),confirm=vi.spyOn(window,'confirm').mockReturnValueOnce(true);
+ render(<OfficialDocumentWorkspace onClose={dirtyClose}/>);
+ fireEvent.click(screen.getByRole('button',{name:'빈 문서 작성'}));
+ fireEvent.change(screen.getByLabelText('제목',{exact:true}),{target:{value:'확인 후 닫을 합성 원고'}});
+ fireEvent.click(screen.getByRole('button',{name:'보건 업무로'}));
+ expect(confirm).toHaveBeenCalledOnce();
+ expect(dirtyClose).toHaveBeenCalledOnce();
+ cleanup();
+
+ let finish!:(result:unknown)=>void;
+ vi.stubGlobal('electronWork',{officialDocument:{pick:()=>new Promise(resolve=>{finish=resolve;}),save:vi.fn(),cancel:async()=>({ok:true,data:null})}});
+ const busyClose=vi.fn();
+ render(<OfficialDocumentWorkspace onClose={busyClose}/>);
+ fireEvent.click(screen.getByRole('button',{name:'PDF/HWPX/ODT 가져오기'}));
+ const back=screen.getByRole('button',{name:'보건 업무로'}) as HTMLButtonElement;
+ expect(back.disabled).toBe(true);
+ fireEvent.click(back);
+ expect(busyClose).not.toHaveBeenCalled();
+ finish({ok:true,data:null});
+ await vi.waitFor(()=>expect(back.disabled).toBe(false));
+});
+
 it('keeps invalid import text editable and shows the existing privacy warning without attempting unsupported ODT output',async()=>{
  const text='학생명: 홍길동\n탭\t포함 원문';const save=vi.fn();vi.stubGlobal('electronWork',{officialDocument:{pick:async()=>({ok:true,data:{text,sourceName:'합성.pdf',format:'pdf'}}),save,cancel:async()=>({ok:true,data:null})}});
  render(<OfficialDocumentWorkspace onClose={()=>{}}/>);fireEvent.click(screen.getByRole('button',{name:'PDF/HWPX/ODT 가져오기'}));await vi.waitFor(()=>expect((screen.getByLabelText('받은 공문 원문') as HTMLTextAreaElement).value).toBe(text));expect(screen.getByRole('alert').textContent).toContain('학생 이름');fireEvent.click(screen.getByRole('button',{name:'가져온 원문으로 편집'}));expect((screen.getByLabelText('본문') as HTMLTextAreaElement).value).toBe(text);expect((screen.getByRole('button',{name:'ODT 새 파일 저장'}) as HTMLButtonElement).disabled).toBe(true);expect(save).not.toHaveBeenCalled();

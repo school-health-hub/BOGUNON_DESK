@@ -1,0 +1,114 @@
+.workspace-step-bar {
+  box-sizing: border-box;
+  container: workspace-steps / inline-size;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+}
+
+.workspace-step-bar__compact {
+  display: none;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.workspace-step-bar__list {
+  display: flex;
+  width: max-content;
+  min-width: 100%;
+  margin: 0;
+  padding: 4px;
+  gap: 8px;
+  overflow-x: auto;
+  list-style: none;
+  scrollbar-gutter: stable;
+}
+
+.workspace-step-bar__item {
+  display: flex;
+  flex: 1 0 auto;
+  min-width: 0;
+}
+
+.workspace-step-bar__item button {
+  display: grid;
+  grid-template-columns: 28px minmax(max-content, 1fr);
+  grid-template-areas:
+    "number label"
+    "number state";
+  min-width: 148px;
+  min-height: 44px;
+  padding: 8px 12px;
+  gap: 0 8px;
+  align-items: center;
+  text-align: left;
+}
+
+.workspace-step-bar__number {
+  grid-area: number;
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid var(--divider);
+  border-radius: 50%;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.workspace-step-bar__label {
+  grid-area: label;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  word-break: keep-all;
+}
+
+.workspace-step-bar__state {
+  grid-area: state;
+  color: var(--text-secondary);
+  font-size: 12px;
+  word-break: keep-all;
+}
+
+.workspace-step-bar__item[data-state="completed"] .workspace-step-bar__number {
+  border-color: var(--accent);
+  color: var(--accent-hover);
+  background: var(--accent-soft);
+}
+
+.workspace-step-bar__item[data-state="current"] button {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.workspace-step-bar__item[data-state="current"] .workspace-step-bar__number {
+  border-color: var(--accent);
+  color: white;
+  background: var(--accent);
+}
+
+@container workspace-steps (max-width: 700px) {
+  .workspace-step-bar {
+    overflow: visible;
+  }
+
+  .workspace-step-bar__compact {
+    display: block;
+    padding: 8px 4px;
+  }
+
+  .workspace-step-bar__list {
+    min-width: 0;
+    padding-block: 4px 8px;
+  }
+
+  .workspace-step-bar__item button {
+    min-width: 132px;
+  }
+}
