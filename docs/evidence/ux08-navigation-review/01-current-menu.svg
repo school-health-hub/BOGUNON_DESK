@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900">
+  <style>text{font-family:Pretendard,"Segoe UI",sans-serif;fill:#243246}.t{font-weight:700}.s{font-size:14px;fill:#626874}.k{font-size:12px;fill:#87465f}.white{fill:#fff}.box{fill:#fff9fb;stroke:#d7c6cf}.nav{fill:#f5edf1}.accent{fill:#f7dce4;stroke:#87465f}.line{stroke:#d7c6cf}</style>
+  <rect width="1440" height="900" fill="#efdde5"/>
+  <text x="40" y="52" font-size="24" class="t">UX-08 · 현행 구조 재현(익명화)</text>
+  <text x="40" y="80" class="s">구조 wireframe(material fidelity 아님) · 실제 Windows 관찰 + 현재 소스 · 운영 데이터 제외</text>
+  <rect x="40" y="110" width="1360" height="720" rx="22" class="box"/>
+  <rect x="40" y="110" width="1360" height="64" rx="22" fill="#fff"/><text x="70" y="151" font-size="20" class="t">설정 센터 — 좌측 내비게이션이 실제로 상시인 대표 화면</text>
+  <rect x="40" y="174" width="148" height="656" class="nav"/>
+  <rect x="52" y="198" width="124" height="48" rx="10" class="accent"/><text x="72" y="228" font-size="15" class="t">계정</text>
+  <text x="72" y="282" font-size="15">화면</text><text x="72" y="338" font-size="15">연결</text><text x="72" y="394" font-size="15">AI</text><text x="72" y="450" font-size="15">이 PC</text>
+  <text x="212" y="214" class="k">148px 고정 열</text><text x="212" y="238" class="s">일반 창에서만 유지. 820px 이하에서는 실제 구현이 상단 가로 nav로 전환함.</text>
+  <rect x="212" y="270" width="1128" height="110" rx="16" class="box"/><text x="240" y="308" font-size="17" class="t">계정 및 동기화</text><text x="240" y="340" class="s">설정은 업무 작업창과 분리되어 있으므로 이 내비게이션 자체는 유지 가능</text>
+  <rect x="212" y="402" width="1128" height="110" rx="16" class="box"/><text x="240" y="440" font-size="17" class="t">화면 구성</text><text x="240" y="472" class="s">Dock·Widget 편집으로 이동하는 명시적 설정</text>
+  <rect x="212" y="534" width="1128" height="210" rx="16" class="box"/><text x="240" y="574" font-size="17" class="t">업무 모듈의 실제 현행</text>
+  <text x="240" y="608" class="s">Dashboard: 상시 좌측 메뉴 없음 · 하단 Dock + 위젯</text>
+  <text x="240" y="638" class="s">업무 도구함: 우측/중앙 overlay 목록 · Dock과 기능명이 일부 중복</text>
+  <text x="240" y="668" class="s">공문작업실: 상단 3개 탭 + 편집/미리보기 2열 · 상시 좌측 메뉴 없음</text>
+  <text x="240" y="698" class="s">Newsletter: 파일 도구막대 + mode tabs + 330px 편집 도구 열(1040px 이하 280px, 760px 이하 1열)</text>
+  <rect x="1080" y="780" width="260" height="30" rx="15" fill="#243246"/><text x="1105" y="801" font-size="13" class="white">판정: 전역 좌측 메뉴 문제는 재현 안 됨</text>
+</svg>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900">
+  <style>text{font-family:Pretendard,"Segoe UI",sans-serif;fill:#343044}.t{font-weight:700}.s{font-size:14px;fill:#62576a}.light{fill:#fff9fb}.card{fill:#fff9fb;fill-opacity:.86;stroke:#fff}.warn{fill:#fff5f3;stroke:#b65d74}</style>
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d9afbf"/><stop offset=".55" stop-color="#bf91aa"/><stop offset="1" stop-color="#9b7c9f"/></linearGradient></defs>
+  <rect width="1440" height="900" fill="url(#bg)"/><text x="40" y="52" font-size="24" class="t">TD2·TeacherDesk 검증 패턴 / 쌤보드 근거 경계</text>
+  <text x="40" y="82" class="light">구조 도식(material fidelity 아님) · 저장소 승인 캡처와 DESIGN.md 근거</text>
+  <rect x="40" y="120" width="880" height="610" rx="26" class="card"/><text x="70" y="162" font-size="19" class="t">검증됨: independent widget desktop</text><text x="500" y="162" class="s">바깥 박스는 설명 그룹이며 실제 UI panel이 아님</text>
+  <rect x="70" y="195" width="370" height="250" rx="18" class="card"/><text x="94" y="230" class="t">월간 캘린더</text><path d="M94 255h320M94 300h320M94 345h320M174 255v165M254 255v165M334 255v165" stroke="#d7c6cf"/>
+  <rect x="462" y="195" width="190" height="118" rx="20" class="card"/><text x="484" y="230" class="t">오늘</text><text x="484" y="270" font-size="28" class="t">09:30</text>
+  <rect x="674" y="195" width="216" height="118" rx="20" class="card"/><text x="696" y="230" class="t">날씨</text><text x="696" y="270" font-size="28" class="t">18°</text>
+  <rect x="462" y="335" width="428" height="160" rx="18" class="card"/><text x="484" y="372" class="t">지금 해야 할 일</text><text x="484" y="406" class="s">정보는 위젯 객체로 분리</text><text x="484" y="438" class="s">의도적인 여백과 서로 다른 비율</text>
+  <rect x="70" y="470" width="370" height="180" rx="18" class="card"/><text x="94" y="507" class="t">이번 주 일정</text>
+  <rect x="462" y="520" width="428" height="130" rx="18" class="card"/><text x="484" y="557" class="t">메모 / 빠른 실행</text><text x="484" y="591" class="s">작은 정보 확인은 Workspace 밖에서도 가능</text>
+  <rect x="280" y="672" width="400" height="78" rx="28" class="card"/><circle cx="330" cy="711" r="20" fill="#f7dce4"/><circle cx="390" cy="711" r="20" fill="#dcebed"/><circle cx="450" cy="711" r="20" fill="#e7def0"/><circle cx="510" cy="711" r="20" fill="#dce9e5"/><circle cx="570" cy="711" r="20" fill="#f4e4e8"/><circle cx="630" cy="711" r="20" fill="#dde7ed"/>
+  <rect x="280" y="760" width="450" height="40" rx="18" fill="#fff9fb" fill-opacity=".72"/><text x="300" y="786" class="s">Dock: 아이콘 중심 빠른 실행 · 상시 좌측 메뉴 아님</text>
+  <rect x="950" y="120" width="450" height="260" rx="22" class="card"/><text x="980" y="162" font-size="18" class="t">TeacherDesk 공식 공개 자료에서 확인</text>
+  <text x="980" y="202" class="s">• 일정·할 일·업무 기록을 한곳에 통합</text><text x="980" y="235" class="s">• 가볍고 빠른 사용성</text><text x="980" y="268" class="s">• 데스크톱 자동 실행</text><text x="980" y="301" class="s">• 단순하고 직관적인 인터페이스</text><text x="980" y="345" class="s">시각 자산은 복제하지 않음</text>
+  <rect x="950" y="410" width="450" height="250" rx="22" class="warn"/><text x="980" y="452" font-size="18" class="t">쌤보드: 증거 미확보</text>
+  <text x="980" y="492" class="s">현재 저장소·전 브랜치·공개 검색에서</text><text x="980" y="522" class="s">제품을 특정할 캡처/설계/공식 페이지를 찾지 못함.</text><text x="980" y="566" class="s">따라서 이 시안은 쌤보드 구조를 추정하지 않으며,</text><text x="980" y="596" class="s">TD2/TeacherDesk와 BOGUNON 자체 계약만 사용.</text>
+  <rect x="950" y="690" width="450" height="110" rx="22" class="card"/><text x="980" y="730" class="t">적용 원칙</text><text x="980" y="764" class="s">공간 문법만 참고 · 브랜드/아이콘/기능 복제 금지</text>
+</svg>
