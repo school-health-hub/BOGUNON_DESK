@@ -39,6 +39,7 @@ export type RenderPage = {
   readonly editorial?: RenderEditorial;
   readonly pageId: string; readonly width: number; readonly height: number; readonly background: string; readonly templateVersion: number;
   readonly title: RenderTextBlock; readonly body: RenderTextBlock; readonly badge?: RenderTextBlock; readonly lead?: RenderTextBlock; readonly closing?: RenderTextBlock;
+  readonly actions?: readonly RenderTextBlock[];
   readonly topicOverview?: readonly RenderTextBlock[];
   readonly image: RenderImage; readonly mascot?: RenderImage; readonly seasonalDecoration?: RenderImage; readonly accent?: string; readonly listMarkerStyle?: "source" | "number" | "dot" | "check"; readonly structured: boolean
 }
@@ -227,7 +228,16 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
       const tileHeight = previewCount === 4 ? layout.actionListFrame.height : 94
       const tile = { x: layout.actionListFrame.x + column * (tileWidth + gap), y: layout.actionListFrame.y + row * 122, width: tileWidth, height: tileHeight }
       const frame = { x: tile.x + 16, y: tile.y + 14, width: tile.width - 32, height: tile.height - 28 }
-      return block(`${layout.pageId}-topic-${topic.id}`, layout.pageId, topic.title, frame, { ...layout.bodyStyle, fontSize: 25, fontWeight: 700, lineHeight: 1.3, color: layout.titleStyle.color, align: "left" }, { kind: "topic-title", topicId: topic.id }, issues, input.measureText)
+      const previewCopy = sections[topicIndex] === undefined ? undefined : structureCanonicalText(sections[topicIndex].text)
+      const previewLead = previewCopy?.kind === "list" ? previewCopy.lead?.trim() ?? "" : ""
+      const previewText = previewLead.length === 0 ? topic.title : `${topic.title}\n${previewLead}`
+      return block(`${layout.pageId}-topic-${topic.id}`, layout.pageId, previewText, frame, { ...layout.bodyStyle, fontSize: 22, fontWeight: 700, lineHeight: 1.35, color: layout.titleStyle.color, align: "left" }, { kind: "topic-title", topicId: topic.id }, issues, input.measureText)
+    }) : undefined
+    const actions = index > 0 && structured && content.kind === "list" && content.actions.length === 4 ? content.actions.map((action, actionIndex) => {
+      const gap = 14
+      const rowHeight = (layout.actionListFrame.height - gap * 3) / 4
+      const frame = { x: layout.actionListFrame.x + 18, y: layout.actionListFrame.y + actionIndex * (rowHeight + gap), width: layout.actionListFrame.width - 36, height: rowHeight }
+      return block(`${layout.pageId}-action-row-${actionIndex + 1}`, layout.pageId, actionText([action], layout.listMarkerStyle), frame, { ...layout.bodyStyle, fontSize: Math.max(26, layout.bodyStyle.fontSize), fontWeight: 650, lineHeight: 1.3 }, provenance, issues, input.measureText)
     }) : undefined
     const page: RenderPage = {
       pageId: layout.pageId, width: 1200, height: 1200, background: layout.background, templateVersion: snapshot.templateVersion, structured,
@@ -235,6 +245,7 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
       ...(structured ? { badge: block(`${layout.pageId}-badge`, layout.pageId, snapshot.publicationMeta.issueLabel, badgeFrame, badgeStyle, { kind: "publication-meta" }, issues, input.measureText, false) } : {}),
       ...(structured && leadText.length > 0 ? { lead: block(`${layout.pageId}-lead`, layout.pageId, leadText, layout.leadFrame, layout.bodyStyle, provenance, issues, input.measureText, false) } : {}),
       body: structured && layout.editorial !== undefined ? { id: `${layout.pageId}-body`, text: bodyText, lines: [], frame: bodyFrame, style: layout.bodyStyle, provenance } : block(`${layout.pageId}-body`, layout.pageId, bodyText, bodyFrame, layout.bodyStyle, provenance, issues, input.measureText),
+      ...(actions === undefined ? {} : { actions }),
       ...(topicOverview === undefined ? {} : { topicOverview }),
       ...(structured ? { closing: block(`${layout.pageId}-closing`, layout.pageId, section?.topicSelection?.closing ?? "", layout.closingFrame, layout.bodyStyle, provenance, issues, input.measureText, false), accent: layout.accent, listMarkerStyle: layout.listMarkerStyle } : {}),
       image: layout.image,

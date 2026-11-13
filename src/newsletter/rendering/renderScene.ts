@@ -44,13 +44,18 @@ function unfilteredCardScene(page: RenderPage): NewsletterPageScene {
     textLayer(page.title, 20, safe, content),
     ...(nonEmpty(page.badge) ? [textLayer(page.badge, 20, safe, content)] : []),
     ...(nonEmpty(page.lead) ? [textLayer(page.lead, 21, safe, content)] : []),
-    ...(page.topicOverview === undefined ? [textLayer(page.body, 22, safe, content)] : page.topicOverview.flatMap((topic, index): readonly SceneLayer[] => [
+    ...(page.topicOverview === undefined && page.actions === undefined ? [textLayer(page.body, 22, safe, content)] : []),
+    ...(page.actions === undefined ? [] : page.actions.flatMap((action, index): readonly SceneLayer[] => [
+      { kind: "shape", layerId: `${action.id}-surface`, frame: { x: action.frame.x - 12, y: action.frame.y - 8, width: action.frame.width + 24, height: action.frame.height + 16 }, zOrder: 18, clipBounds: safe, fill: index % 2 === 0 ? "#f4f8f6" : "#fff8ef", stroke: page.accent ?? "#d8e2dc", radius: 18 },
+      textLayer(action, 22, safe, `${content}-action-${index + 1}`),
+    ])),
+    ...(page.topicOverview === undefined ? [] : page.topicOverview.flatMap((topic, index): readonly SceneLayer[] => [
       { kind: "shape", layerId: `${topic.id}-surface`, frame: { x: topic.frame.x - 16, y: topic.frame.y - 14, width: topic.frame.width + 32, height: topic.frame.height + 28 }, zOrder: 18, clipBounds: safe, fill: index % 2 === 0 ? "#fffdf8" : "#f7f2e8", stroke: page.accent ?? "#d8e2dc", radius: 18 },
       textLayer(topic, 22, safe, content),
     ])),
     ...(nonEmpty(page.closing) ? [textLayer(page.closing, 23, safe, content)] : []),
-    ...(page.seasonalDecoration === undefined ? [] : [imageLayer(page.pageId, page.seasonalDecoration, 6, safe)]),
-    ...(page.mascot === undefined ? [] : [imageLayer(page.pageId, page.mascot, 26, safe)]),
+    ...(page.seasonalDecoration?.assetId === undefined ? [] : [imageLayer(page.pageId, page.seasonalDecoration, 6, safe)]),
+    ...(page.mascot?.assetId === undefined ? [] : [imageLayer(page.pageId, page.mascot, 26, safe)]),
   ]
   return { pageId: page.pageId, width: page.width, height: page.height, templateVersion: page.templateVersion, layers }
 }
