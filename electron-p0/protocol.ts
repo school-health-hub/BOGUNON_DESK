@@ -57,7 +57,7 @@ export interface WorkBridge {
  readonly educationVideo:EducationVideoBridge;
  readonly inventory:Readonly<{load():Promise<IpcResult<Readonly<{document:InventoryDocument|null;recovered:boolean}>>>;save(document:InventoryDocument,expectedUpdatedAt?:string|null):Promise<IpcResult<Readonly<{document:InventoryDocument;recovered:boolean}>>>}>;
  readonly purchase:Readonly<{readonly settings?:import('./purchase-settings-protocol.js').PurchaseSettingsBridge;readonly images:import("./purchase-image-protocol.js").ImageImportApi;previewSettlement(request:SettlementRequest):Promise<IpcResult<PurchaseTable>>;exportSettlement(request:SettlementRequest):Promise<IpcResult<PurchaseExportResult>>;previewEdufine(request:EdufineRequest):Promise<IpcResult<PurchaseTable>>;exportEdufine(request:EdufineRequest):Promise<IpcResult<PurchaseExportResult>>;exportItems(request:PurchaseExportRequest):Promise<IpcResult<PurchaseExportResult>>;pickPdf():Promise<IpcResult<PurchaseCsvSelection|null>>;cancelPdf():Promise<IpcResult<null>>;mapPdf(request:PurchaseCsvMappingRequest):Promise<IpcResult<PurchaseCsvSelection>>;pickExcel():Promise<IpcResult<PurchaseCsvSelection|null>>;cancelExcel():Promise<IpcResult<null>>;mapExcel(request:PurchaseCsvMappingRequest):Promise<IpcResult<PurchaseCsvSelection>>;pickCsv():Promise<IpcResult<PurchaseCsvSelection|null>>;cancelCsv():Promise<IpcResult<null>>;mapCsv(request:PurchaseCsvMappingRequest):Promise<IpcResult<PurchaseCsvSelection>>;copy(request:PurchaseClipboardRequest):Promise<IpcResult<null>>}>;
- readonly newsletter:Readonly<{projects:NewsletterProjectsBridge;exportOutput(request:NewsletterExportRequest):Promise<IpcResult<NewsletterExportResult>>;saveJson(request:Readonly<{json:string}>):Promise<IpcResult<NewsletterSaveResult>>}>;
+ readonly newsletter:Readonly<{projects:NewsletterProjectsBridge;ai:import('./newsletter-ai-bridge.js').NewsletterAiBridge;exportOutput(request:NewsletterExportRequest):Promise<IpcResult<NewsletterExportResult>>;saveJson(request:Readonly<{json:string}>):Promise<IpcResult<NewsletterSaveResult>>}>;
  readonly memo: Readonly<MemoBridge>;
  readonly sample: Readonly<{summarize(request:SyntheticSummaryRequest):Promise<IpcResult<SyntheticSummary>>}>;
 }
@@ -109,7 +109,7 @@ export type NewsletterApprovalBarrier=Readonly<{ids:readonly string[];hashes:rea
 export type AiProvider='openai'|'gemini';
 export type AiTool='official-document'|'newsletter'|'finder';
 export type AiModel=Readonly<{id:string;label:string}>;
-export type AiStatus=Readonly<{connected:boolean;provider:AiProvider|null;model:string|null;models:readonly AiModel[];stored:boolean;secureStorage:boolean;busy:boolean;chatGptSupported:boolean}>;
+export type AiStatus=Readonly<{connected:boolean;provider:AiProvider|null;model:string|null;models:readonly AiModel[];textModel:string|null;imageModel:string|null;textModels:readonly AiModel[];imageModels:readonly AiModel[];stored:boolean;secureStorage:boolean;busy:boolean;chatGptSupported:boolean}>;
 export type AiConnect=Readonly<{provider:AiProvider;remember:boolean}>;
 export type AiRequest=Readonly<{tool:AiTool;prompt:string}>;
 export type AiBridge=Readonly<{

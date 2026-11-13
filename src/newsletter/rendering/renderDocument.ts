@@ -144,7 +144,8 @@ function verifyAssets(snapshot: DesignSnapshot): void {
     const asset = assets.get(image.assetId)
     const registry = asset?.registry
     const registryApproved = !isV2(snapshot) || (registry?.classification !== "OFFICIAL_REFERENCE" && registry?.purpose !== "reference" && registry?.usageScope === "newsletter-output")
-    if (asset?.approvalStatus !== "approved" || asset.localReference !== `asset:${asset.sha256}` || !registryApproved) throw new RenderAssetNotApprovedError(image.assetId)
+    const pendingAiReview = isV2(snapshot) && asset?.approvalStatus === "reference-only" && asset.exportApproval === "pending" && registry?.classification === "AI_GENERATED" && registryApproved
+    if ((!pendingAiReview && asset?.approvalStatus !== "approved") || asset?.localReference !== `asset:${asset.sha256}` || !registryApproved) throw new RenderAssetNotApprovedError(image.assetId)
   }
 }
 

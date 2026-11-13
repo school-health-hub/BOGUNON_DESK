@@ -39,6 +39,7 @@ const assetSchema = z.object({
     classification: z.enum(["USER_CREATED", "AI_GENERATED", "OFFICIAL_REFERENCE", "LICENSED_EXTERNAL"]),
     purpose: z.enum(["mascot", "illustration", "decoration", "reference"]),
     usageScope: z.enum(["layout-comparison-only", "qa-only", "newsletter-output"]),
+    generation: z.object({ provider: z.enum(["openai", "gemini", "mock"]), model: z.string().trim().min(1).max(200), requestId: idSchema, promptHash: sha256Schema, outputHash: sha256Schema, createdAt: isoDateSchema, mock: z.boolean() }).strict().readonly().optional(),
   }).readonly().optional(),
 }).readonly().superRefine((asset, context) => {
   if (asset.localReference !== undefined && asset.localReference !== `asset:${asset.sha256}`) context.addIssue({ code: "custom", message: "asset reference must match its sha256" })

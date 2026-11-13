@@ -68,6 +68,11 @@ import { SettingsStore } from './settings.js';
 import { createNewsletterExportHandler, generateInOwnedWindow, callOwnedNewsletter } from './newsletter-export.js';
 import {NewsletterProjects} from './newsletter-projects.js';
 import {createProjectHandler,PROJECT_ACTIONS} from './newsletter-project-ipc.js';
+import {createNewsletterAiHandler,NEWSLETTER_AI_ACTIONS,NewsletterAiProjectAuthority} from './newsletter-ai-ipc.js';
+import {NewsletterAiCandidateStore} from './newsletter-ai-candidate-store.js';
+import {NewsletterAiAssetStorage} from './newsletter-ai-asset-storage.js';
+import {createNewsletterAiComposition} from './newsletter-ai-composition.js';
+import {formatNewsletterAiConsentDetail} from './newsletter-ai-consent.js';
 import { createNewsletterSaveHandler } from './newsletter-json.js';
 import { MemoStore, createMemoHandlers } from './memo-ipc.js';
 import {EducationVideoLibraryStore,createEducationVideoHandlers} from './education-video-library.js';
@@ -186,7 +191,8 @@ else {
    available:process.platform==='win32'&&safeStorage.isEncryptionAvailable(),encrypt:text=>safeStorage.encryptString(text),decrypt:bytes=>safeStorage.decryptString(bytes)}),
    fetch:(target,init)=>aiSession.fetch(target,init),readClipboard:()=>clipboard.readText(),clearClipboard:async expected=>{if(await clipboard.readText()===expected)await clipboard.clear();},
    reviewKey:async input=>(await dialog.showMessageBox(settingsWindow.isFocused()?settingsWindow:window,{type:'question',message:`클립보드의 ${input.provider==='openai'?'OpenAI':'Gemini'} API Key로 연결할까요?`,detail:`명시적으로 복사한 API Key만 사용해 주세요. 모델 목록 조회를 위해 해당 제공자에게 Key를 전송합니다. 연결 성공 후 클립보드에서 이 값을 지웁니다. ${input.remember?'Windows 암호화로 이 Electron 프로필에 저장하며 이전 저장 연결을 대체합니다.':'앱 메모리에서만 사용하며 이전 Electron 저장 연결은 제거합니다.'} Tauri 인증정보는 읽거나 변경하지 않습니다.`,buttons:['취소','API 연결'],defaultId:0,cancelId:0})).response===1,
-   reviewSend:async(request,connection)=>(await dialog.showMessageBox(window,{type:'warning',message:`${connection.provider} · ${connection.model}에 이 내용을 전송할까요?`,detail:`${request.tool} · API 사용 요금이 발생할 수 있습니다. 개인정보가 없는지 확인하세요.\n\n${request.prompt}`,buttons:['취소','확인 후 외부 전송'],defaultId:0,cancelId:0})).response===1});
+   reviewSend:async(request,connection)=>(await dialog.showMessageBox(window,{type:'warning',message:`${connection.provider} · ${connection.model}에 이 내용을 전송할까요?`,detail:`${request.tool} · API 사용 요금이 발생할 수 있습니다. 개인정보가 없는지 확인하세요.\n\n${request.prompt}`,buttons:['취소','확인 후 외부 전송'],defaultId:0,cancelId:0})).response===1,
+   reviewNewsletter:async manifest=>(await dialog.showMessageBox(window,{type:'warning',message:`${manifest.provider} · ${manifest.model}에 보건소식지 자료를 전송할까요?`,detail:formatNewsletterAiConsentDetail(manifest),buttons:['취소','확인 후 외부 전송'],defaultId:0,cancelId:0})).response===1?'approved':'declined'});
   const chatgptProcess=new ChatGptProcess(app.isPackaged?join(process.resourcesPath,'chatgpt-auth-cli','chatgpt-auth-cli.exe'):join(app.getAppPath(),'../../tools/chatgpt-auth-cli/target/debug/chatgpt-auth-cli.exe'),join(userData,'work-data','chatgpt'),target=>shell.openExternal(target));
   const chatgptService=new ChatGptService(chatgptProcess,async(request,model)=>(await dialog.showMessageBox(window,{type:'warning',message:`ChatGPT 요금제 · ${model}에 이 내용을 전송할까요?`,detail:`${request.tool} · ChatGPT plan/credits 한도가 적용됩니다. API Key로 자동 전환하지 않습니다. 개인정보를 넣지 마세요.\n\n${request.prompt}`,buttons:['취소','확인 후 외부 전송'],defaultId:0,cancelId:0})).response===1);
   for(const [action,handler] of Object.entries(createChatGptHandlers(window.webContents,url,chatgptService)))ipcMain.handle(`p2:chatgpt:${action}`,handler);
@@ -197,8 +203,24 @@ else {
   window.on('closed',()=>recordHandlers.dispose());window.webContents.on('will-navigate',()=>recordHandlers.dispose());window.webContents.on('render-process-gone',()=>recordHandlers.dispose());
 
   window.on('closed',()=>chatgptService.dispose());window.webContents.on('will-navigate',()=>chatgptService.dispose());window.webContents.on('render-process-gone',()=>chatgptService.dispose());app.on('before-quit',()=>chatgptService.dispose());
+  const newsletterAiCandidates=new NewsletterAiCandidateStore();
+  const newsletterAiAssets=new NewsletterAiAssetStorage(join(userData,'work-data','newsletter-ai-assets'));
+  const newsletterAiAuthority=new NewsletterAiProjectAuthority();
   const aiHandlers=createAiHandlers(window.webContents,url,aiService);
-  for(const [action,handler] of Object.entries(aiHandlers))ipcMain.handle(`p2:ai:${action}`,handler);
+  for(const [action,handler] of Object.entries(aiHandlers))ipcMain.handle(`p2:ai:${action}`,async(event,...args:unknown[])=>{
+   const result=await handler(event,...args);
+   if(action==='connectFromClipboard'||action==='restore'||action==='selectModel'||action==='disconnect')newsletterAiCandidates.invalidateOwner(window.webContents.id);
+   return result;
+  });
+  const newsletterAiLivePort={
+   status:async()=>{const status=await aiService.status();return {connected:status.connected,provider:status.provider,textModel:status.textModel,imageModel:status.imageModel,textAvailable:status.connected&&status.textModel!==null,imageAvailable:status.connected&&status.imageModel!==null,textUnavailableReason:status.connected&&status.textModel!==null?null:'구조화 텍스트 모델을 선택해 주세요.',imageUnavailableReason:status.connected&&status.imageModel!==null?null:'이미지 생성 모델을 선택해 주세요.'};},
+   proposeText:async(request:Parameters<typeof aiService.proposeNewsletterText>[0])=>{const proposal=await aiService.proposeNewsletterText(request);if(proposal===null)throw new TypeError('Newsletter AI transmission declined');return proposal;},
+   generateImageCandidate:(request:Parameters<typeof aiService.generateNewsletterImageCandidate>[0],references:Parameters<typeof aiService.generateNewsletterImageCandidate>[1])=>aiService.generateNewsletterImageCandidate(request,references),
+   cancel:async()=>{aiService.cancel();},
+  };
+  const newsletterAiPort=createNewsletterAiComposition({qaProfile:qaPaths.qa,packaged:app.isPackaged,nodeEnv:process.env.NODE_ENV,mockOptIn:process.env.NEWSLETTER_AI_MOCK,seed:process.env.NEWSLETTER_AI_MOCK_SEED??testRun??'newsletter-windows-qa',live:newsletterAiLivePort});
+  for(const action of NEWSLETTER_AI_ACTIONS)ipcMain.handle(`p2:newsletter:ai:${action}`,createNewsletterAiHandler({action,contents:window.webContents,url,service:newsletterAiPort,store:newsletterAiCandidates,assets:newsletterAiAssets,authority:newsletterAiAuthority,sessionId:`newsletter-${window.webContents.id}`}));
+  window.on('closed',()=>{newsletterAiCandidates.dispose();newsletterAiAuthority.disposeOwner(window.webContents.id);});window.webContents.on('will-navigate',()=>{newsletterAiCandidates.dispose();newsletterAiAuthority.disposeOwner(window.webContents.id);});window.webContents.on('render-process-gone',()=>{newsletterAiCandidates.dispose();newsletterAiAuthority.disposeOwner(window.webContents.id);});app.on('before-quit',()=>newsletterAiCandidates.dispose());
   window.on('closed',()=>aiService.dispose());window.webContents.on('will-navigate',()=>aiService.dispose());window.webContents.on('render-process-gone',()=>aiService.dispose());app.on('before-quit',()=>aiService.dispose());
   const financeWorker=new FinanceProcess(app.isPackaged?join(process.resourcesPath,'my-finance-cli','my-finance-cli.exe'):join(app.getAppPath(),'../../tools/my-finance-cli/target/debug/my-finance-cli.exe'),join(userData,'work-data','my-finance'));
   const financeService=new FinanceService({worker:financeWorker,protectedRoot:userData,
@@ -212,7 +234,7 @@ else {
   for (const channel of ['p0:info','p0:read-settings','p0:write-settings']) ipcMain.handle(channel,async(event,...args: unknown[])=>{
     assertSender(event,window.webContents,url);
     if (args.length !== (channel === 'p0:write-settings' ? 1 : 0)) throw new Error('Invalid PoC IPC arguments');
-    if (channel === 'p0:info') return {appId:APP_ID,productName:PRODUCT_NAME,userData,sourceSha:meta.sourceSha,electron:process.versions.electron,...(qaPaths.qa?{qaProfile:{root:qaPaths.root,appData:app.getPath('appData'),sessionData:app.getPath('sessionData'),stores:['poc-settings','work-data/local-tasks','work-data/local-events','work-data/purchase-settings','work-data/quick-memo','work-data/work-folders','work-data/drop-import-tmp','work-data/education-video','work-data/school-profile','work-data/bogunon-account','work-data/school-admin','work-data/inventory','work-data/ai','work-data/chatgpt','work-data/my-finance','work-data/youtube-search','work-data/newsletter-projects','work-data/official-import-tmp','work-data/purchase-import-tmp'].map(p=>join(userData,p))}}:{})};
+   if (channel === 'p0:info') return {appId:APP_ID,productName:PRODUCT_NAME,userData,sourceSha:meta.sourceSha,electron:process.versions.electron,...(qaPaths.qa?{qaProfile:{root:qaPaths.root,appData:app.getPath('appData'),sessionData:app.getPath('sessionData'),stores:['poc-settings','work-data/local-tasks','work-data/local-events','work-data/purchase-settings','work-data/quick-memo','work-data/work-folders','work-data/drop-import-tmp','work-data/education-video','work-data/school-profile','work-data/bogunon-account','work-data/school-admin','work-data/inventory','work-data/ai','work-data/chatgpt','work-data/my-finance','work-data/youtube-search','work-data/newsletter-projects','work-data/newsletter-ai-assets','work-data/official-import-tmp','work-data/purchase-import-tmp'].map(p=>join(userData,p))}}:{})};
     if (channel === 'p0:read-settings') return (await settingsAuthority.read()).value;
     return settingsAuthority.write({revision:(await settingsAuthority.read()).revision,value:validateSettings(args[0])}).then(()=>undefined);
   });
@@ -364,7 +386,7 @@ else {
    confirm:async()=>(await dialog.showMessageBox(window,{type:'warning',message:'선택한 출력 파일을 덮어쓸까요?',buttons:['취소','덮어쓰기'],defaultId:0,cancelId:0})).response===1,
   }));
   const projects=new NewsletterProjects(join(userData,'work-data','newsletter-projects'),async(json,barrier)=>{const normalized=await callOwnedNewsletter('validateStoredNewsletter',{json,barrier},renderer,dev);if(typeof normalized!=='string')throw Error('Invalid validated document');return normalized;});
-  for(const action of PROJECT_ACTIONS)ipcMain.handle(`p2:newsletter:projects:${action}`,createProjectHandler(action,window.webContents,url,projects,async info=>(await dialog.showMessageBox(window,{type:'warning',message:'미리 본 revision으로 원고를 복구할까요?',detail:`프로젝트 ${info.projectId} · 현재 revision ${info.currentRevision}\nrevision ${info.sourceRevision} 내용을 새 revision ${info.currentRevision+1}로 복구합니다.\n현재 편집 내용은 선택한 revision으로 대체됩니다. 기존 저장 이력은 보존하며 출력 승인 권한은 부여하지 않습니다.`,buttons:['취소','확인 후 복구'],defaultId:0,cancelId:0})).response===1));
+  for(const action of PROJECT_ACTIONS)ipcMain.handle(`p2:newsletter:projects:${action}`,createProjectHandler(action,window.webContents,url,projects,async info=>(await dialog.showMessageBox(window,{type:'warning',message:'미리 본 revision으로 원고를 복구할까요?',detail:`프로젝트 ${info.projectId} · 현재 revision ${info.currentRevision}\nrevision ${info.sourceRevision} 내용을 새 revision ${info.currentRevision+1}로 복구합니다.\n현재 편집 내용은 선택한 revision으로 대체됩니다. 기존 저장 이력은 보존하며 출력 승인 권한은 부여하지 않습니다.`,buttons:['취소','확인 후 복구'],defaultId:0,cancelId:0})).response===1,projectId=>newsletterAiAuthority.grant(window.webContents.id,`newsletter-${window.webContents.id}`,projectId)));
   // A prevented close only hides this live window. Terminal service cleanup
   // observes 'closed' (or quit/security disposal), never a tray-hide request.
   const disposeSettingsCapabilities=registerSettingsCapabilities(ipcMain,settingsWindow,settingsUrl,{schoolChanged,account:accountService,school:schoolStore,schoolFetch:(target,init)=>schoolSession.fetch(target,init),ai:aiService,chatgpt:chatgptService,admin:adminPorts,reviewAccount:async(message,detail)=>(await dialog.showMessageBox(settingsWindow,{type:'question',message,detail,buttons:['취소','확인 후 진행'],defaultId:0,cancelId:0})).response===1});

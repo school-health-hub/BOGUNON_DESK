@@ -3,7 +3,7 @@ import {afterEach,it,expect,vi} from 'vitest';
 import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
 import {AiAssistant,AiSettings} from '../renderer/ai/AiTools';
 import type {AiStatus} from '../protocol';
-const status:AiStatus={connected:true,provider:'openai',model:'gpt-synthetic',models:[{id:'gpt-synthetic',label:'계정 합성 모델'}],stored:false,secureStorage:false,busy:false,chatGptSupported:false};
+const status:AiStatus={connected:true,provider:'openai',model:'gpt-synthetic',models:[{id:'gpt-synthetic',label:'계정 합성 모델'}],textModel:'gpt-synthetic',imageModel:null,textModels:[{id:'gpt-synthetic',label:'계정 합성 모델'}],imageModels:[],stored:false,secureStorage:false,busy:false,chatGptSupported:false};
 const ok=<T,>(data:T)=>({ok:true as const,data});
 afterEach(()=>{cleanup();vi.restoreAllMocks();vi.unstubAllGlobals();});
 function api(){const bridge={status:vi.fn(async()=>ok(status)),generate:vi.fn(async()=>ok({text:'합성 AI 응답'})),cancel:vi.fn(async()=>ok(null)),connectFromClipboard:vi.fn(async()=>ok(status)),restore:vi.fn(async()=>ok(status)),selectModel:vi.fn(async()=>ok(status)),disconnect:vi.fn(async()=>ok({...status,connected:false}))};vi.stubGlobal('electronWork',{ai:bridge});return bridge;}

@@ -6,7 +6,7 @@ import type {NewsletterHead,IpcResult} from '../protocol.js';
 export const PROJECT_ACTIONS=['list','load','save','history','preview','restore'] as const;
 function record(value:unknown,keys:string[]):Record<string,unknown>{if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).sort().join(',')!==keys.sort().join(','))throw Error('Invalid request');return value as Record<string,unknown>;}
 function expected(value:unknown):NewsletterHead{const v=record(value,['projectId','revision','hash']);projectId(v.projectId);if(!Number.isInteger(v.revision)||(v.revision as number)<0||(v.revision as number)>100||typeof v.hash!=='string'||((v.revision===0)?v.hash!=='':!/^[a-f0-9]{64}$/.test(v.hash)))throw Error('Invalid head');return v as NewsletterHead;}
-export function createProjectHandler(action:typeof PROJECT_ACTIONS[number],contents:Parameters<typeof assertSender>[1],url:string,store:NewsletterProjects,confirm:(info:RestorePrompt)=>Promise<boolean>){
+export function createProjectHandler(action:typeof PROJECT_ACTIONS[number],contents:Parameters<typeof assertSender>[1],url:string,store:NewsletterProjects,confirm:(info:RestorePrompt)=>Promise<boolean>,onProjectAccess?:(projectId:string)=>void){
  return async(event:Parameters<typeof assertSender>[0],...args:unknown[]):Promise<IpcResult<unknown>>=>{
   try{assertSender(event,contents,url);}catch{return {ok:false,error:{code:'FORBIDDEN',message:'허용되지 않은 호출입니다.',retryable:false}};}
   let v:Record<string,unknown>={};let head:NewsletterHead|undefined;
@@ -20,6 +20,8 @@ export function createProjectHandler(action:typeof PROJECT_ACTIONS[number],conte
   try{
    let data:unknown;
    switch(action){case 'list':data=await store.list();break;case 'load':data=await store.load(v.projectId as string);break;case 'save':data=await store.save(v.document as string,head!);break;case 'history':data=await store.history(v.projectId as string);break;case 'preview':data=await store.preview(v.projectId as string,v.revision as number);break;case 'restore':data=await store.restore(v.token as string,head!,confirm);break;}
+   const accessed=action==='load'?v.projectId:action==='save'||action==='restore'?head?.projectId:undefined
+   if(typeof accessed==='string')onProjectAccess?.(accessed)
    return {ok:true,data};
   }catch(e){if(e instanceof Error&&e.message.includes(NEWSLETTER_COMPATIBILITY_MESSAGE))return {ok:false,error:{code:'INVALID_INPUT',message:NEWSLETTER_COMPATIBILITY_MESSAGE,retryable:false}};return e instanceof ProjectConflict?{ok:false,error:{code:'CONFLICT',message:'저장된 원고가 변경되었습니다. 다시 불러온 뒤 비교해 주세요. 현재 편집 내용은 유지됩니다.',retryable:false}}:{ok:false,error:{code:'STORAGE_ERROR',message:'프로젝트 또는 revision을 처리하지 못했습니다. 원본 파일을 보존했습니다. 손상·이미지 참조·저장 공간을 확인해 주세요.',retryable:true}};}
  };

@@ -27,6 +27,17 @@ const projects:NewsletterProjectsBridge=Object.freeze({
  preview:r=>projectCall('p2:newsletter:projects:preview',r),
  restore:r=>projectCall('p2:newsletter:projects:restore',r),
 });
+const newsletterAi:import('../newsletter-ai-bridge.js').NewsletterAiBridge=Object.freeze({
+ status:()=>projectCall('p2:newsletter:ai:status'),
+ proposeText:request=>projectCall('p2:newsletter:ai:proposeText',request),
+ generateImageCandidate:request=>projectCall('p2:newsletter:ai:generateImageCandidate',request),
+ cancel:request=>projectCall('p2:newsletter:ai:cancel',request),
+ discardCandidate:request=>projectCall('p2:newsletter:ai:discardCandidate',request),
+ previewCandidate:request=>projectCall('p2:newsletter:ai:previewCandidate',request),
+ commitCandidateAsset:request=>projectCall('p2:newsletter:ai:commitCandidateAsset',request),
+ commitCandidateAssets:request=>projectCall('p2:newsletter:ai:commitCandidateAssets',request),
+ loadProjectAssets:request=>projectCall('p2:newsletter:ai:loadProjectAssets',request),
+});
 const inventoryBusiness:InventoryQaApi=Object.freeze<InventoryQaApi>({
  login:(input)=>ipcRenderer.invoke('p2:inventory-local-qa:login',input),
  logout:()=>ipcRenderer.invoke('p2:inventory-local-qa:logout'),
@@ -56,7 +67,7 @@ const work: WorkBridge = Object.freeze({account:Object.freeze({status:()=>projec
     try{return await ipcRenderer.invoke('p2:sample:summary',request);}
     catch{return {ok:false as const,error:{code:'INTERNAL_ERROR' as const,message:'샘플 연결을 완료하지 못했습니다.',retryable:true}};}
   },
-}),newsletter:Object.freeze({projects,exportOutput:async(request:NewsletterExportRequest)=>{try{return await ipcRenderer.invoke('p2:newsletter:export',request);}catch{return {ok:false as const,error:{code:'STORAGE_ERROR' as const,message:'출력 연결에 실패했습니다.',retryable:true}};}},saveJson:async(request:{readonly json:string})=>{try{return await ipcRenderer.invoke('p2:newsletter:save-json',request);}catch{return {ok:false as const,error:{code:'STORAGE_ERROR' as const,message:'JSON 저장 연결을 완료하지 못했습니다.',retryable:true}};}}}),memo:Object.freeze({
+}),newsletter:Object.freeze({projects,ai:newsletterAi,exportOutput:async(request:NewsletterExportRequest)=>{try{return await ipcRenderer.invoke('p2:newsletter:export',request);}catch{return {ok:false as const,error:{code:'STORAGE_ERROR' as const,message:'출력 연결에 실패했습니다.',retryable:true}};}},saveJson:async(request:{readonly json:string})=>{try{return await ipcRenderer.invoke('p2:newsletter:save-json',request);}catch{return {ok:false as const,error:{code:'STORAGE_ERROR' as const,message:'JSON 저장 연결을 완료하지 못했습니다.',retryable:true}};}}}),memo:Object.freeze({
   read:async()=>{try{return await ipcRenderer.invoke('p2:memo:read');}catch{return {ok:false as const,error:{code:'STORAGE_ERROR' as const,message:'메모 연결을 완료하지 못했습니다.',retryable:true}};}},
   write:async(document:MemoDocument)=>{try{return await ipcRenderer.invoke('p2:memo:write',document);}catch{return {ok:false as const,error:{code:'STORAGE_ERROR' as const,message:'메모 연결을 완료하지 못했습니다.',retryable:true}};}},
 })});

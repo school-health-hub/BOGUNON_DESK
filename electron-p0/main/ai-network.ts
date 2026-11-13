@@ -1,4 +1,5 @@
 import type {AiModel,AiProvider} from '../protocol.js';
+import {getNewsletterModelCapability} from './newsletter-ai-capabilities.js';
 // Source: src-tauri/src/{ai.rs,ai_generation.rs}@26fcb929efcdcc5176812372ecf179430a901b15.
 // Preserve provider endpoints, Responses/generateContent envelopes and normalized errors.
 // Models are discovered for the user's API account instead of trusting legacy static IDs.
@@ -35,25 +36,30 @@ export async function aiJson(fetcher:AiFetch,url:string,provider:AiProvider,key:
  }catch(error){if(error instanceof AiError)throw error;throw new AiError(signal.aborted?AI_ERROR.cancelled:AI_ERROR.connection);}
  finally{if(response?.body&&!response.body.locked)await response.body.cancel().catch(()=>{});}
 }
-export async function discoverAiModels(fetcher:AiFetch,provider:AiProvider,key:string,signal:AbortSignal):Promise<AiModel[]>{
- const models:AiModel[]=[];let token='';const seen=new Set<string>();
+export type AiCatalog=Readonly<{models:readonly AiModel[];capabilityModels:readonly AiModel[]}>;
+export async function discoverAiCatalog(fetcher:AiFetch,provider:AiProvider,key:string,signal:AbortSignal):Promise<AiCatalog>{
+ const models:AiModel[]=[];const capabilityModels:AiModel[]=[];let token='';const seen=new Set<string>();
  for(let page=0;page<3;page++){
   const url=provider==='openai'?'https://api.openai.com/v1/models':`https://generativelanguage.googleapis.com/v1beta/models?pageSize=100${token?`&pageToken=${encodeURIComponent(token)}`:''}`;
   const result=await aiJson(fetcher,url,provider,key,signal);if(!object(result))throw new AiError(AI_ERROR.invalid);
   const values=provider==='openai'?result.data:result.models;if(!Array.isArray(values)||values.length>1000)throw new AiError(AI_ERROR.invalid);
   for(const value of values){if(!object(value))throw new AiError(AI_ERROR.invalid);const id=provider==='openai'?value.id:typeof value.name==='string'?value.name.replace(/^models\//,''):null;
    if(!validModel(id))continue;
-   if(provider==='openai'&&(!/^(gpt-|o[1-9])/.test(id)||/audio|realtime|transcrib|tts|image|embedding|instruct/.test(id)))continue;
-   if(provider==='gemini'&&(!Array.isArray(value.supportedGenerationMethods)||!value.supportedGenerationMethods.includes('generateContent')))continue;
    const label=typeof value.displayName==='string'&&value.displayName.length<=200?value.displayName:id;
-   if(!models.some(m=>m.id===id))models.push({id,label});
+   const supportsGenerateContent=provider==='openai'||Array.isArray(value.supportedGenerationMethods)&&value.supportedGenerationMethods.includes('generateContent');
+   if(!supportsGenerateContent)continue;
+   const capability=getNewsletterModelCapability(provider,id);
+   if((capability.text.structuredOutput||capability.image.generate)&&!capabilityModels.some(model=>model.id===id))capabilityModels.push({id,label});
+   if(provider==='openai'&&(/^(gpt-|o[1-9])/.test(id)&&!/audio|realtime|transcrib|tts|image|embedding|instruct/.test(id))&&!models.some(model=>model.id===id))models.push({id,label});
+   if(provider==='gemini'&&!models.some(model=>model.id===id)&&!capability.image.generate)models.push({id,label});
   }
   if(provider==='openai'||!result.nextPageToken)break;
   if(typeof result.nextPageToken!=='string'||result.nextPageToken.length>2048||seen.has(result.nextPageToken)||page===2)throw new AiError(AI_ERROR.invalid);
   token=result.nextPageToken;seen.add(token);
  }
- if(!models.length||models.length>500)throw new AiError('이 계정에서 사용할 텍스트 모델을 찾지 못했습니다.');return models;
+ if(!models.length||models.length>500||capabilityModels.length>500)throw new AiError('이 계정에서 사용할 텍스트 모델을 찾지 못했습니다.');return {models,capabilityModels};
 }
+export async function discoverAiModels(fetcher:AiFetch,provider:AiProvider,key:string,signal:AbortSignal):Promise<AiModel[]>{return [...(await discoverAiCatalog(fetcher,provider,key,signal)).models];}
 export async function generateAiText(fetcher:AiFetch,provider:AiProvider,key:string,model:string,prompt:string,signal:AbortSignal):Promise<string>{
  const url=provider==='openai'?'https://api.openai.com/v1/responses':`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
  // Responses reasoning models can reject temperature. Leave provider default for OpenAI.
