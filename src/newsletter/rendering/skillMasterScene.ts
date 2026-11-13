@@ -9,7 +9,18 @@ const colors = ["#176B45", "#A77531", "#387C9D", "#77529A"] as const
 function shape(id: string, frame: Frame, fill: string, radius = 0, stroke?: string): SceneLayer {
   return { kind: "shape", layerId: id, frame, fill, radius, zOrder: id.endsWith("-background") ? 0 : 2, clipBounds: bounds, ...(stroke === undefined ? {} : { stroke }) }
 }
+function elevatedShape(id: string, frame: Frame, fill: string, radius = 0, stroke?: string): SceneLayer {
+  return { kind: "shape", layerId: id, frame, fill, radius, zOrder: 5, clipBounds: bounds, ...(stroke === undefined ? {} : { stroke }) }
+}
 function text(block: RenderTextBlock, group: string): SceneLayer { return { ...block, kind: "text", layerId: block.id, zOrder: 20, clipBounds: safe, collisionGroup: group } }
+function missingArt(page: RenderPage, group: string): readonly SceneLayer[] {
+  const frame = page.image.frame
+  const textFrame = { x: frame.x + 40, y: frame.y + frame.height / 2 - 48, width: frame.width - 80, height: 96 }
+  return [
+    shape(`${group}-art-unassigned`, frame, "#F8F3E7", 32, "#A9C9BA"),
+    { kind: "text", layerId: `${group}-art-unassigned-label`, frame: textFrame, zOrder: 20, clipBounds: safe, collisionGroup: `${group}-art-status`, text: "삽화 미지정\n검수용 미리보기", lines: ["삽화 미지정", "검수용 미리보기"], style: { ...page.body.style, fontSize: 26, fontWeight: 700, lineHeight: 1.45, color: "#45665A", align: "center" }, provenance: { kind: "template-static", templateVersion: page.templateVersion } },
+  ]
+}
 
 export function buildSkillMasterScene(page: RenderPage): NewsletterPageScene {
   const config = page.editorial
@@ -20,20 +31,24 @@ export function buildSkillMasterScene(page: RenderPage): NewsletterPageScene {
   layers.push(text(page.title, group))
   if (page.badge !== undefined) layers.push(text(page.badge, group))
   if (page.lead !== undefined && page.lead.text.length > 0) layers.push(text(page.lead, group))
-  layers.push({ kind: "image", ...page.image, layerId: `${group}-main-art`, zOrder: 10, clipBounds: safe, collisionGroup: `${group}-main-art`, placeholderKind: "generic" })
+  if (page.image.assetId === undefined) layers.push(...missingArt(page, group))
+  else layers.push({ kind: "image", ...page.image, layerId: `${group}-main-art`, zOrder: 10, clipBounds: safe, collisionGroup: `${group}-main-art`, placeholderKind: "generic" })
   if (config.layoutType === "A") {
     for (const [index, topic] of (page.topicOverview ?? []).entries()) {
-      layers.push(shape(`${group}-preview-${index}`, { x: 90 + index * 255, y: 885, width: 245, height: 165 }, "#FFFEF8", 24, "#D6DFC9"))
+      const color = colors[index] ?? colors[0]
+      layers.push(shape(`${group}-preview-${index}`, { x: 90 + index * 255, y: 875, width: 245, height: 190 }, "#FFFEF8", 24, "#D6DFC9"))
+      layers.push(elevatedShape(`${group}-preview-icon-surface-${index}`, { x: 105 + index * 255, y: 902, width: 32, height: 32 }, "#F0F7F1", 16, color))
       layers.push(text(topic, group))
-      layers.push(editorialActionIcon(`${group}-preview-icon-${index}`, topic.text, { x: 190 + index * 255, y: 1010, width: 40, height: 32 }, colors[index] ?? colors[0]))
+      layers.push(editorialActionIcon(`${group}-preview-icon-${index}`, topic.text, { x: 112 + index * 255, y: 909, width: 18, height: 18 }, color))
     }
   } else {
     for (const [index, module] of config.modules.entries()) {
       const color = colors[index] ?? colors[0]
-      layers.push(shape(`${group}-action-circle-${index}`, { x: 625, y: module.frame.y + 20, width: 70, height: 70 }, "#F1F7ED", 35, "#B8CFB1"))
+      layers.push(shape(`${group}-action-surface-${index}`, module.frame, index % 2 === 0 ? "#FFFDF8" : "#F5F9F2", 24, "#D4E3D7"))
+      layers.push(elevatedShape(`${group}-action-circle-${index}`, { x: 634, y: module.frame.y + 34, width: 72, height: 72 }, "#EDF6EF", 24, color))
+      layers.push({ kind: "shape", layerId: `${group}-action-number-${index}`, frame: { x: 630, y: module.frame.y + 8, width: 42, height: 34 }, fill: color, radius: 17, zOrder: 12, clipBounds: bounds })
       layers.push(text(module.number, group), text(module.action, group))
-      layers.push(shape(`${group}-action-rule-${index}`, { x: 715, y: module.frame.y + 129, width: 385, height: 1 }, "#D9E5D3"))
-      layers.push(editorialActionIcon(`${group}-action-icon-${index}`, module.action.text, { x: 594, y: module.frame.y + 90, width: 30, height: 30 }, color))
+      layers.push(editorialActionIcon(`${group}-action-icon-${index}`, module.action.text, { x: 652, y: module.frame.y + 52, width: 36, height: 36 }, color))
     }
   }
   if (page.closing !== undefined && page.closing.text.length > 0) {

@@ -16,7 +16,7 @@ const prefix = /^\s*(?:[-*•‣▪◦]|\d+[.)])\s+/u
 export function compileEditorialCard({ page, layout, content, make, unavailable }: Input): RenderPage {
   const config = layout.editorial
   if (config === undefined) return page
-  if (config.layoutType === "A" && page.image.assetId === undefined) unavailable("선택한 학생 구성에 맞는 표지 대표 장면을 선택해 주세요.")
+  if (config.layoutType === "A" && page.image.assetId === undefined && config.compositionPreset !== "september-master") unavailable("선택한 학생 구성에 맞는 표지 대표 장면을 선택해 주세요.")
   const frames = editorialFrames(config.layoutType)
   const provenance = page.body.provenance
   const actions = content.kind === "list" ? content.actions : []
@@ -42,7 +42,7 @@ export function compileEditorialCard({ page, layout, content, make, unavailable 
   const leadFrame = config.layoutType === "A" || layout.leadFrame.y !== frames.leadFrame.y ? layout.leadFrame : { ...layout.leadFrame, y: page.title.lines.length === 1 ? frames.leadFrame.y : 305 }
   const topicOverview = config.layoutType === "A" ? (page.topicOverview ?? []).flatMap((topic, i) => {
     const frame = frames.moduleFrames[i]
-    return frame === undefined ? [] : [make(topic.id, topic.text, { x: frame.x + 82, y: frame.y + 12, width: frame.width - 94, height: 82 }, { ...layout.bodyStyle, fontSize: 24, fontWeight: 750, lineHeight: 1.15, color: "#0D254D" }, topic.provenance)]
+    return frame === undefined ? [] : [make(topic.id, topic.text, { x: frame.x + 82, y: frame.y + 12, width: frame.width - 94, height: 84 }, { ...layout.bodyStyle, fontSize: 24, fontWeight: 750, lineHeight: 1.15, color: "#0D254D" }, topic.provenance)]
   }) : page.topicOverview
   return {
     ...page,

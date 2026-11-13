@@ -14,7 +14,7 @@ it("applies the master through the explicit editor action", () => {
   render(<NewsletterEditorialControls design={design} cardIndex={1} actionCount={4} onChange={onChange} />)
   expect(onChange).not.toHaveBeenCalled()
   // When
-  fireEvent.click(screen.getByRole("button", { name: "9월 스킬 기본형 · A4·표지·선택 카드 적용" }))
+  fireEvent.click(screen.getByRole("button", { name: "9월 스킬 기본형 · 표지·선택 카드 적용" }))
   // Then
   expect(onChange).toHaveBeenCalledOnce()
   expect(onChange.mock.calls[0]?.[0]?.cardLayouts[1]?.editorial?.compositionPreset).toBe("september-master")

@@ -7,7 +7,7 @@ import { compileRenderDocument } from "./renderDocument"
 import { buildNewsletterScene, validateNewsletterScene } from "./renderScene"
 import { renderNewsletterSceneSvg } from "../output/svgRenderer"
 
-it("changes only the A4, cover and selected topic when applying the master", () => {
+it("changes only the cover and selected topic when applying the master", () => {
   // Given
   const now = "2026-10-30T00:00:00.000Z"
   const design = upgradeNewsletterDesignStateV2(createNewsletterDesignState({ projectId: "master-test", canonicalProjectRevision: 1, now }), now)
@@ -17,7 +17,7 @@ it("changes only the A4, cover and selected topic when applying the master", () 
   expect(next.cardLayouts.slice(2)).toEqual(design.cardLayouts.slice(2))
   expect(next.cardLayouts[1]?.editorial?.compositionPreset).toBe("september-master")
   expect(next.cardLayouts[0]?.image.edgePolicy).toBe("none")
-  expect(next.a4Layout.modules.every(module => module.image.edgePolicy !== undefined)).toBe(true)
+  expect(next.a4Layout).toEqual(design.a4Layout)
 })
 
 it.each(["B", "C", "D"] as const)("leaves the master when choosing extension %s", (layoutType) => {
@@ -78,6 +78,6 @@ it("keeps five body Scenes identical and places master content within nonoverlap
   const season = body.layers.find(layer => layer.layerId.includes("-season-"))
   expect(background?.zOrder).toBeLessThan(season?.zOrder ?? 0)
   const svg = renderNewsletterSceneSvg(body, new Map())
-  expect(svg).toContain("master-main-art")
+  expect(svg).toContain("master-art-unassigned")
   expect(svg).not.toContain("clip-card-topic-1-topic-image-1")
 })

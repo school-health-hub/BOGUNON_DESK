@@ -38,7 +38,7 @@ export function NewsletterEditorialControls({ design, cardIndex, actionCount, on
   if (design.cardLayouts[cardIndex]?.officialTemplate !== undefined) return <OfficialTemplateControls textDraftPending={textDraftPending} design={design} cardIndex={cardIndex} actionCount={actionCount} onChange={onChange} renderTextEditor={renderTextEditor} />
   return <fieldset className="control-stack"><legend>편집형 카드 구성</legend>
     {cardIndex > 0 && <button type="button" disabled={actionCount !== 4} onClick={() => onChange(applyIllustratedCardPreset(design, { cardIndex, now: now() }))}>삽화형 A·B · 표지·선택 카드 적용</button>}
-    {cardIndex > 0 && <button type="button" disabled={actionCount !== 4} onClick={() => onChange(applySkillMasterPreset(design, { cardIndex, now: now() }))}>9월 스킬 기본형 · A4·표지·선택 카드 적용</button>}
+    {cardIndex > 0 && <button type="button" disabled={actionCount !== 4} onClick={() => onChange(applySkillMasterPreset(design, { cardIndex, now: now() }))}>9월 스킬 기본형 · 표지·선택 카드 적용</button>}
     {config?.compositionPreset === "september-master" && <p role="status">9월 스킬 기본형이 적용되었습니다. A/B/C/D를 선택하면 해당 확장 구성으로 전환합니다.</p>}
     <label>편집형 레이아웃<select aria-label="편집형 레이아웃" value={config?.compositionPreset !== undefined ? "master" : config?.layoutType ?? "legacy"} onChange={(event) => {
       const type = layoutType(event.target.value)
