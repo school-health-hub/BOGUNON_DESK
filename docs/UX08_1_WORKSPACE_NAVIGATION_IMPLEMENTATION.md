@@ -95,6 +95,8 @@ F:의 isolated Electron profile과 TEMP/TMP/cache만 사용했다. 실제 conten
 
 두 독립 visual review가 12/12 PASS를 반환했다. 캡처와 SHA-256, geometry는 `docs/evidence/ux08-1-workspace-navigation/manifest.json`에 있다.
 
+승인 범위·정확한 검증 명령·독립 검토 역할과 결과·정리 상태·보안 점검 한계·fresh-clone 재현 절차는 휴대 가능한 [`REVIEW_RECEIPT.md`](./evidence/ux08-1-workspace-navigation/REVIEW_RECEIPT.md)에 함께 보존했다. 로컬 `.omo` 기록 없이도 원격 branch에서 검토 맥락을 복원할 수 있다.
+
 ## 7. 테스트·TypeScript·빌드
 
 - 공통 헤더 집중 테스트: 7/7 PASS
@@ -128,6 +130,8 @@ F:의 isolated Electron profile과 TEMP/TMP/cache만 사용했다. 실제 conten
 - 원격 branch push 후 local/remote SHA와 divergence `0/0`을 별도 확인한다.
 
 원인 미확정 BRAND evidence PNG 4개와 F-local `.qa-temp` cache는 commit에서 제외하며, 이 때문에 local worktree는 remote checkpoint 이후에도 clean으로 보고하지 않는다.
+
+보안 점검에는 전용 secret scanner 및 EXIF/OCR 도구가 없었다. 따라서 text pattern scan, 파일 해시·PNG signature, synthetic profile provenance, 독립 시각 검토를 사용했으며, PNG의 OCR/EXIF 재검사는 미수행 한계로 남는다. 또한 다른 PC의 fresh-clone 실행 검증은 수행하지 않았으므로 원격 보존 완료와 수신 PC 환경 검증을 구분한다.
 
 ## 10. 남은 통합 항목
 
