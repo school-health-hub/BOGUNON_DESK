@@ -10,6 +10,7 @@ import type {OfficialDocumentDraft,OfficialDocumentInput,OfficialDocumentInputFi
 import {blankOfficialDraft,importedOfficialDraft,officialDraftSnapshot,officialDraftSaveIssues} from './localDocumentFlow';
 import './official-document.css';
 import type {OfficialWorkflowContext} from './electronWorkflow';
+import {BrandLogo} from '../branding/BrandLogo';
 
 type Mode='create'|'summary';
 export function OfficialDocumentWorkspace({onClose,renderAiTools,renderAiWorkflow,dropped,onDropDone}:{readonly onClose:()=>void;readonly renderAiTools?:(text:string)=>ReactNode;readonly renderAiWorkflow?:(context:OfficialWorkflowContext)=>ReactNode;readonly dropped?:import('../../electron-p0/file-drop-protocol').DropDelivery;readonly onDropDone?:()=>void}){
@@ -61,7 +62,7 @@ export function OfficialDocumentWorkspace({onClose,renderAiTools,renderAiWorkflo
  const update=(field:OfficialDocumentInputField,value:string)=>setInput(current=>({...current,[field]:value}));
  const copy=async(value:string)=>{try{await navigator.clipboard.writeText(value);setNotice('클립보드에 복사했습니다.');}catch{setNotice('복사하지 못했습니다. 내용을 직접 선택해 복사해 주세요.');}};
  return <main className="od-workspace">
-  <header className="od-header"><div><button type="button" disabled={busy||handoffBusy} onClick={close}><ArrowLeft size={16}/>보건 업무로</button><span>BOGUNON DESK · ELECTRON LOCAL</span><h1>공문작업실</h1><p>검증된 로컬 생성 규칙으로 초안을 만들고 직접 검토하세요.</p></div><span className="od-local">로컬 편집 · AI 전송은 별도 확인</span></header>
+  <header className="od-header"><div><button type="button" disabled={busy||handoffBusy} onClick={close}><ArrowLeft size={16}/>보건 업무로</button><BrandLogo className="od-brand"/><span>ELECTRON LOCAL</span><h1>공문작업실</h1><p>검증된 로컬 생성 규칙으로 초안을 만들고 직접 검토하세요.</p></div><span className="od-local">로컬 편집 · AI 전송은 별도 확인</span></header>
   {renderAiWorkflow?.(workflow)}
   {!renderAiWorkflow&&renderAiTools?.(mode==='summary'?buildSummaryPrompt(source):draft?draft.title+'\n\n'+draft.body:buildCreatePrompt(input))}
   {files&&<div className="od-actions"><button type="button" disabled={busy||handoffBusy} onClick={()=>void importFile()}>{dropped?`드롭 파일 가져오기 · ${dropped.files[0]?.name}`:'PDF/HWPX/ODT 가져오기'}</button>{dropped&&<button type="button" disabled={busy||handoffBusy} onClick={()=>{void work?.fileDrop?.cancel({token:dropped.token});onDropDone?.();}}>드롭 파일 취소</button>}</div>}

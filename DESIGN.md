@@ -183,6 +183,13 @@ The approved screenshots and their SHA-256 inventory are recorded in [`docs/evid
 
 ## 1. Product identity
 
+### BRAND-01 official product mark
+
+- The approved raster in `src/branding/assets/bogunon-desk-logo-original.png` is the sole product-logo source. Its SHA-256 is recorded in `brand01-manifest.json`; do not redraw, recolor, vectorize, or replace it with generated artwork.
+- Full-width product contexts use the preserved `BOGUNON DESK` wordmark. Compact launch surfaces, the Dock home action, Windows window/taskbar/tray resources, and narrow layouts use the cropped B symbol.
+- The approved raster has an opaque pale mint/white background. Product surfaces must not claim or simulate transparency by removing that background.
+- Module/action icons remain functional Lucide icons. Only the product home identity uses the official B symbol.
+
 - BOGUNON DESK는 보건교사가 출근 후 하루 종일 켜 두고 자신의 업무 방식에 맞게 구성하는 Windows 데스크톱 작업 공간이다.
 - 핵심은 고정된 정보를 보여주는 웹 대시보드가 아니라 필요한 업무 영역을 선택하고 이동·크기 조절하여 개인화하는 데스크 경험이다.
 - TeacherDesk에서는 화면 위에서 직접 꾸미는 customization UX와 Dock 개념을 참고하되, 시각 디자인이나 교과교사 기능을 복제하지 않는다.

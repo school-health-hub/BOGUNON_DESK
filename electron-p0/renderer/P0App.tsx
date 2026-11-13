@@ -46,6 +46,7 @@ import type { DashboardLayout } from '../../src/dashboard/types';
 import type { DockLayout } from '../../src/dock/types';
 import type { DesktopActionId } from '../../src/desktop/types';
 import type { DashboardEditorPanel } from '../../src/components/dashboard/useDesktopNavigation';
+import { BrandLogo } from '../../src/branding/BrandLogo';
 const WorkspaceProductHost=lazy(()=>import('./WorkspaceProductHost'));
 const School04Entry=import.meta.env.DEV&&import.meta.env.ELECTRON_P0_PUBLIC_SCHOOL04_LOCAL==='1'?lazy(()=>import('./school-workspace-dev/School04Entry')):null;
 const School03Entry=import.meta.env.DEV&&import.meta.env.ELECTRON_P0_PUBLIC_SCHOOL03_LOCAL==='1'?lazy(()=>import('./school-workspace-dev/School03Entry')):null;
@@ -158,7 +159,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   };
   return <WidgetSessionProvider><LocalCalendarProvider><LocalWorkspaceProvider><PersistentMemoProvider><DesktopPanelProvider notify={setNotice} openInbox={()=>openTasks()} openBogunonTask={async id=>openTasks({id})} openQuickAddEventForDate={date=>openUtility('calendar',{date})} openQuickAddFromMemo={title=>openUtility('quick-add',{title})} openQuickMemoUrl={async url=>{try{await openMemoUrl(url);}catch(e){setNotice(e instanceof Error?e.message:'링크를 열지 못했습니다.');}}} runDesktopAction={async id=>navigate(id)} workFolderFavorites={folders.snapshot?.favorites??[]} openWorkFolderFavorite={async folder=>{const message=await folders.open(folder.id);if(message)setNotice(message);}}>
     <div inert={workspaceOpen} hidden={recordOpen||newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen||financeOpen||adminOpen} style={{display:recordOpen||newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen||financeOpen||adminOpen?"none":undefined}} className={`app-shell workspace-shell ${isCanonicalDeskLayout(layout)?'is-floating-b':''} ${editing?'is-edit-mode':'is-view-mode'} bg-${layout.appearance.background} card-${layout.appearance.cardStyle} corner-${layout.appearance.cornerStyle}`}>
-      <header className="rose-surface-header"><strong>BOGUNON DESK</strong><SurfaceDate/><span>Electron 전용 로컬 업무 저장 · 계정·AI 연결은 별도 설정</span></header>
+      <header className="rose-surface-header"><BrandLogo/><SurfaceDate/><span>Electron 전용 로컬 업무 저장 · 계정·AI 연결은 별도 설정</span></header>
       {School04Entry&&<Suspense fallback={null}><School04Entry/></Suspense>}
       {!School04Entry&&School03Entry&&<Suspense fallback={null}><School03Entry/></Suspense>}
       {!School04Entry&&!School03Entry&&School02Entry&&<Suspense fallback={null}><School02Entry/></Suspense>}

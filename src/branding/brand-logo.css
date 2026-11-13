@@ -1,0 +1,11 @@
+.brand-logo { display: inline-flex; min-width: 0; align-items: center; flex: 0 1 auto; }
+.brand-logo img { display: block; object-fit: contain; }
+.brand-logo__wordmark { width: auto; height: 34px; max-width: min(250px, 36vw); }
+.brand-logo__symbol { display: none !important; width: 34px; height: 34px; border-radius: 9px; }
+.brand-logo--compact .brand-logo__wordmark { display: none; }
+.brand-logo--compact .brand-logo__symbol { display: block !important; }
+.brand-symbol-icon { display: block; width: var(--brand-symbol-size, 28px); height: var(--brand-symbol-size, 28px); border-radius: 24%; object-fit: contain; }
+@media (max-width: 1000px) {
+  .brand-logo:not(.brand-logo--force-wordmark) .brand-logo__wordmark { display: none; }
+  .brand-logo:not(.brand-logo--force-wordmark) .brand-logo__symbol { display: block !important; }
+}

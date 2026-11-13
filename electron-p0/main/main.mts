@@ -103,7 +103,7 @@ else {
   isolated.setPermissionCheckHandler(()=>false);
   isolated.on('will-download',event=>event.preventDefault());
   isolated.webRequest.onBeforeRequest((details,callback)=>callback({cancel:!resourceAllowed(details.url,renderer,dev ? new URL(dev).origin : undefined)}));
-  const window = new BrowserWindow({ title:PRODUCT_NAME,...fitBounds(desktop.bounds,screen.getAllDisplays().map(d=>d.workArea)),show:false,
+  const window = new BrowserWindow({ title:PRODUCT_NAME,icon:join(app.getAppPath(),'app-icon.png'),...fitBounds(desktop.bounds,screen.getAllDisplays().map(d=>d.workArea)),show:false,
     webPreferences:{ preload:join(app.getAppPath(),'preload','preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webviewTag:false,session:isolated,webSecurity:true } });
   // Closed renderer remains offline. Optional QA provider lives OUTSIDE product app.
   const workspaceProduct=await registerWorkspaceProduct(ipcMain,window.webContents,url,{packaged:app.isPackaged,isolated:qaPaths.qa,mode:process.env.SCHOOL_WORKSPACE_MODE,nodeEnv:process.env.NODE_ENV,runId:testRun,h1OptIn:process.env.SCHOOL_H1_OPT_IN==='isolated-h1'},async()=>{

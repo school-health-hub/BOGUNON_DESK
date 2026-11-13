@@ -1,0 +1,159 @@
+{
+  "source": {
+    "file": "src/branding/assets/bogunon-desk-logo-original.png",
+    "sha256": "73f26c85b6a5b463828a28afe668c7e5e4ecf493a2da8b6cd2912edc70720537",
+    "dimensions": [
+      2172,
+      724
+    ],
+    "mode": "RGB",
+    "transparent": false
+  },
+  "derivation": {
+    "symbolCrop": [
+      120,
+      190,
+      480,
+      550
+    ],
+    "wordmarkCrop": [
+      80,
+      150,
+      2110,
+      590
+    ],
+    "resampling": "Pillow LANCZOS"
+  },
+  "files": [
+    {
+      "file": "src/branding/assets/bogunon-desk-logo-original.png",
+      "sha256": "73f26c85b6a5b463828a28afe668c7e5e4ecf493a2da8b6cd2912edc70720537",
+      "bytes": 1639112
+    },
+    {
+      "file": "src/branding/assets/bogunon-desk-symbol.png",
+      "sha256": "e8ecb8e3b72da37fbf5de6fb35c76c7e17973624fe6ad9da87853deb0919f0c5",
+      "bytes": 77431
+    },
+    {
+      "file": "src/branding/assets/bogunon-desk-wordmark.png",
+      "sha256": "9737453d9246fb87bcb35d1ffcb5d59da6e6e591d48e3bd190dd342c51ea9865",
+      "bytes": 577302
+    },
+    {
+      "file": "src/branding/assets/icons/bogunon-desk-symbol-128.png",
+      "sha256": "5c0555cc9b056c2fd39b9986b9cf025ca9beb653904de137936abeb5a81aba30",
+      "bytes": 14503
+    },
+    {
+      "file": "src/branding/assets/icons/bogunon-desk-symbol-16.png",
+      "sha256": "83233bafdbc41bf8987a0a4ffe9af61c2f72df1aaacf27bc2b5f6c64b941b02e",
+      "bytes": 561
+    },
+    {
+      "file": "src/branding/assets/icons/bogunon-desk-symbol-24.png",
+      "sha256": "0c8341a6756aab3a0a2afda379931a9477aedccfad91d9958d9f991384753717",
+      "bytes": 968
+    },
+    {
+      "file": "src/branding/assets/icons/bogunon-desk-symbol-256.png",
+      "sha256": "fec9b153c8b3cae518a3ae217b46e4218cf042b53b7b02c59f174942dea0c98f",
+      "bytes": 47103
+    },
+    {
+      "file": "src/branding/assets/icons/bogunon-desk-symbol-32.png",
+      "sha256": "bca124c65d210648154964daabf6e1635ffeffeca525b171ff38a98de65947ab",
+      "bytes": 1439
+    },
+    {
+      "file": "src/branding/assets/icons/bogunon-desk-symbol-48.png",
+      "sha256": "57eb111e30c59d0c8a9cad218164a4caf0e9f6fdaebc78a1ca084c4d1295e263",
+      "bytes": 2660
+    },
+    {
+      "file": "src/branding/assets/icons/bogunon-desk-symbol-64.png",
+      "sha256": "5755b26e4326c647cad36b55b857c51cbe8be156b421dc938ff8e981058418ff",
+      "bytes": 4323
+    },
+    {
+      "file": "src-tauri/icons/128x128.png",
+      "sha256": "5c0555cc9b056c2fd39b9986b9cf025ca9beb653904de137936abeb5a81aba30",
+      "bytes": 14503
+    },
+    {
+      "file": "src-tauri/icons/128x128@2x.png",
+      "sha256": "fec9b153c8b3cae518a3ae217b46e4218cf042b53b7b02c59f174942dea0c98f",
+      "bytes": 47103
+    },
+    {
+      "file": "src-tauri/icons/32x32.png",
+      "sha256": "bca124c65d210648154964daabf6e1635ffeffeca525b171ff38a98de65947ab",
+      "bytes": 1439
+    },
+    {
+      "file": "src-tauri/icons/icon.icns",
+      "sha256": "0e64b4b0a26a08633a278b251bb6da1b239e8b4cd9f1223e81f866586f0a8056",
+      "bytes": 652059
+    },
+    {
+      "file": "src-tauri/icons/icon.ico",
+      "sha256": "e17ec7f8cce0a4e293c1d6b9e7e83c69f319dd000e3429aa62a28ac6df6d6526",
+      "bytes": 76766
+    },
+    {
+      "file": "src-tauri/icons/icon.png",
+      "sha256": "8076ae85d9c5a17971b101cc653ee05b3e6cf94f2b57efbf2d310fbb6200764b",
+      "bytes": 115145
+    },
+    {
+      "file": "src-tauri/icons/Square107x107Logo.png",
+      "sha256": "996e24827369c0f520229e8577baf38d0d5165572f00ccb00989026b207508a5",
+      "bytes": 10676
+    },
+    {
+      "file": "src-tauri/icons/Square142x142Logo.png",
+      "sha256": "e20a02eeb181f20e7a255b3495846e9abb94e5997758df54ecdeee0e71bd30f6",
+      "bytes": 17385
+    },
+    {
+      "file": "src-tauri/icons/Square150x150Logo.png",
+      "sha256": "c1237c9ae5c88c26e58336332c92f159cae4e421b1b25f30eebc40cc44878243",
+      "bytes": 18943
+    },
+    {
+      "file": "src-tauri/icons/Square284x284Logo.png",
+      "sha256": "a1fa6f29986b7226c38a76489fafc7992dabc2d7b23934ef676484a7a147d1f0",
+      "bytes": 56468
+    },
+    {
+      "file": "src-tauri/icons/Square30x30Logo.png",
+      "sha256": "931c638383fabcfd707212ecd8b7f5780e244c78521bd87add5bb3f01f47c789",
+      "bytes": 1309
+    },
+    {
+      "file": "src-tauri/icons/Square310x310Logo.png",
+      "sha256": "1bb712891a127066e91a66010ca3aff9303da4e56df2166f140f0f975af40a4a",
+      "bytes": 64958
+    },
+    {
+      "file": "src-tauri/icons/Square44x44Logo.png",
+      "sha256": "f6511860482e08b673b9d18843537218e204940d40fe57523b6ecf38405ab69d",
+      "bytes": 2308
+    },
+    {
+      "file": "src-tauri/icons/Square71x71Logo.png",
+      "sha256": "3659246609269b8c6be77ae7d4ba473c90dd39a30cfb3a60e3a8abc7c12ba4b3",
+      "bytes": 5193
+    },
+    {
+      "file": "src-tauri/icons/Square89x89Logo.png",
+      "sha256": "072617625565b894d9aba85b2992c8c496db05c8a4d9cdbe6c8b5f82d0819f49",
+      "bytes": 7662
+    },
+    {
+      "file": "src-tauri/icons/StoreLogo.png",
+      "sha256": "b920baa84934185df81f8f6443ae849b974e405b0a8e8f5799e0a399280a3886",
+      "bytes": 2898
+    }
+  ]
+}

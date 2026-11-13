@@ -23,6 +23,7 @@
     "build-meta.json",
     "package.json",
     "tray.png",
+    "app-icon.png",
     "purchase-ai-protocol.js",
     "ai-image-capabilities.json",
     "admin-connection.js",

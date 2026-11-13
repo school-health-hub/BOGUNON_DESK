@@ -1,7 +1,6 @@
 import {
   ArrowLeft,
   ArrowRight,
-  BriefcaseBusiness,
   CheckCircle2,
   Cloud,
   FileText,
@@ -14,6 +13,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import type { AuthStatus } from "../../auth/types";
+import { BrandLogo } from "../../branding/BrandLogo";
 
 type OnboardingDialogProps = {
   readonly authStatus: AuthStatus;
@@ -50,7 +50,7 @@ export function OnboardingDialog(props: OnboardingDialogProps) {
     <div className="onboarding-backdrop">
       <section className="onboarding-dialog" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
         <header>
-          <div className="onboarding-dialog__brand"><BriefcaseBusiness size={18} /><span>BOGUNON DESK</span></div>
+          <BrandLogo className="onboarding-dialog__brand" />
           <div className="onboarding-dialog__progress" aria-label={`처음 사용 안내 ${props.step}/3`}>
             {[1, 2, 3].map((step) => <span className={step <= props.step ? "is-active" : ""} key={step} />)}
           </div>

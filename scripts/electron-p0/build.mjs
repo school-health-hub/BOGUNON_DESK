@@ -24,6 +24,7 @@ const dirty=!!execFileSync('git',['status','--porcelain'],{encoding:'utf8'}).tri
 await writeFile('build/electron-p0-app/build-meta.json',JSON.stringify({sourceSha,dirty},null,2));
 
 await copyFile('src-tauri/icons/32x32.png','build/electron-p0-app/tray.png');
+await copyFile('src-tauri/icons/128x128@2x.png','build/electron-p0-app/app-icon.png');
 
 // Retain the license for the bundled instructor XLSX worker in the existing ASAR main glob.
 await copyFile('school-workspace/instructors/SHEETJS-LICENSE.txt','build/electron-p0-app/main/instructor-sheetjs-license.txt');
