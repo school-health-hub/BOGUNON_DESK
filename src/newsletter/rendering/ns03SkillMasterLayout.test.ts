@@ -53,11 +53,12 @@ describe("NS-03 September-master reconstruction", () => {
 
     // When
     const scene = buildNewsletterScene(document)
-    const cardIssues = document.issues.filter((issue) => issue.pageId.startsWith("card-"))
+    const cardIssues = document.issues.filter((issue) => issue.pageId.startsWith("card-") && !issue.message.includes("대표 장면"))
 
     // Then
     expect(cardIssues).toEqual([])
     expect(validateNewsletterScene(scene).filter((issue) => issue.pageId.startsWith("card-"))).toEqual([])
+    expect(document.issues.some((issue) => issue.pageId === "card-cover" && issue.message.includes("대표 장면"))).toBe(true)
   })
 
   it("uses an explicit unassigned-art state instead of an abstract image placeholder", async () => {
