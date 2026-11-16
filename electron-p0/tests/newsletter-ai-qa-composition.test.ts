@@ -27,7 +27,7 @@ describe('Newsletter AI Electron QA composition',()=>{
     const preview=await handler('previewCandidate')(sender.event,{candidateToken:token,baseline})
     const cancelled=await handler('cancel')(sender.event,{requestId:'qa-image-1'})
     // Then
-    expect(status).toEqual({ok:true,data:{connected:true,provider:'mock',textModel:'newsletter-offline-v1',imageModel:'newsletter-offline-v1',textAvailable:true,imageAvailable:true,textUnavailableReason:null,imageUnavailableReason:null}})
+    expect(status).toMatchObject({ok:true,data:{connected:true,provider:'mock',textModel:'newsletter-offline-v1',imageModel:'newsletter-offline-v1',textAvailable:true,imageAvailable:true,textUnavailableReason:null,imageUnavailableReason:null,selectedConnection:'mock'}})
     expect(text).toMatchObject({ok:true,data:{provider:'mock',mock:true,usage:{costStatus:'unknown'}}})
     if(text.ok&&typeof text.data==='object'&&text.data!==null&&'topics' in text.data&&Array.isArray(text.data.topics)){
       expect(text.data.topics).toHaveLength(6)

@@ -72,6 +72,8 @@ import {createNewsletterAiHandler,NEWSLETTER_AI_ACTIONS,NewsletterAiProjectAutho
 import {NewsletterAiCandidateStore} from './newsletter-ai-candidate-store.js';
 import {NewsletterAiAssetStorage} from './newsletter-ai-asset-storage.js';
 import {createNewsletterAiComposition} from './newsletter-ai-composition.js';
+import {NewsletterChatGptAdapter} from './newsletter-chatgpt-adapter.js';
+import {NewsletterAiConnectionRouter} from './newsletter-ai-connection-router.js';
 import {formatNewsletterAiConsentDetail} from './newsletter-ai-consent.js';
 import { createNewsletterSaveHandler } from './newsletter-json.js';
 import { MemoStore, createMemoHandlers } from './memo-ipc.js';
@@ -218,7 +220,9 @@ else {
    generateImageCandidate:(request:Parameters<typeof aiService.generateNewsletterImageCandidate>[0],references:Parameters<typeof aiService.generateNewsletterImageCandidate>[1])=>aiService.generateNewsletterImageCandidate(request,references),
    cancel:async()=>{aiService.cancel();},
   };
-  const newsletterAiPort=createNewsletterAiComposition({qaProfile:qaPaths.qa,packaged:app.isPackaged,nodeEnv:process.env.NODE_ENV,mockOptIn:process.env.NEWSLETTER_AI_MOCK,seed:process.env.NEWSLETTER_AI_MOCK_SEED??testRun??'newsletter-windows-qa',live:newsletterAiLivePort});
+  const newsletterChatGptPort=new NewsletterChatGptAdapter(chatgptService);
+  const newsletterAiConnections=new NewsletterAiConnectionRouter(newsletterAiLivePort,newsletterChatGptPort);
+  const newsletterAiPort=createNewsletterAiComposition({qaProfile:qaPaths.qa,packaged:app.isPackaged,nodeEnv:process.env.NODE_ENV,mockOptIn:process.env.NEWSLETTER_AI_MOCK,seed:process.env.NEWSLETTER_AI_MOCK_SEED??testRun??'newsletter-windows-qa',live:newsletterAiConnections});
   for(const action of NEWSLETTER_AI_ACTIONS)ipcMain.handle(`p2:newsletter:ai:${action}`,createNewsletterAiHandler({action,contents:window.webContents,url,service:newsletterAiPort,store:newsletterAiCandidates,assets:newsletterAiAssets,authority:newsletterAiAuthority,sessionId:`newsletter-${window.webContents.id}`}));
   window.on('closed',()=>{newsletterAiCandidates.dispose();newsletterAiAuthority.disposeOwner(window.webContents.id);});window.webContents.on('will-navigate',()=>{newsletterAiCandidates.dispose();newsletterAiAuthority.disposeOwner(window.webContents.id);});window.webContents.on('render-process-gone',()=>{newsletterAiCandidates.dispose();newsletterAiAuthority.disposeOwner(window.webContents.id);});app.on('before-quit',()=>newsletterAiCandidates.dispose());
   window.on('closed',()=>aiService.dispose());window.webContents.on('will-navigate',()=>aiService.dispose());window.webContents.on('render-process-gone',()=>aiService.dispose());app.on('before-quit',()=>aiService.dispose());

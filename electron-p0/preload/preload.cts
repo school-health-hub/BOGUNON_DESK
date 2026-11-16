@@ -29,6 +29,7 @@ const projects:NewsletterProjectsBridge=Object.freeze({
 });
 const newsletterAi:import('../newsletter-ai-bridge.js').NewsletterAiBridge=Object.freeze({
  status:()=>projectCall('p2:newsletter:ai:status'),
+ selectConnection:request=>projectCall('p2:newsletter:ai:selectConnection',request),
  proposeText:request=>projectCall('p2:newsletter:ai:proposeText',request),
  generateImageCandidate:request=>projectCall('p2:newsletter:ai:generateImageCandidate',request),
  cancel:request=>projectCall('p2:newsletter:ai:cancel',request),

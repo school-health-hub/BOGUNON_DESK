@@ -7,6 +7,7 @@ const identifier=z.string().regex(/^[a-z0-9][a-z0-9-]{0,127}$/)
 const sha256=z.string().regex(/^[a-f0-9]{64}$/)
 const nonEmpty=z.string().trim().min(1).max(4_000)
 const provider=z.enum(['openai','gemini','mock'])
+const textProvider=z.enum(['openai','gemini','chatgpt','mock'])
 const usageSchema=z.object({
   costStatus:z.enum(['estimated','reported','unknown']),
   currency:z.string().regex(/^[A-Z]{3}$/).optional(),
@@ -52,7 +53,7 @@ export const newsletterAiTopicProposalSchema=z.object({
 export const newsletterAiProposalSchema=z.object({
   schemaVersion:z.literal(1),
   proposalId:identifier,
-  provider,
+  provider:textProvider,
   model:z.string().trim().min(1).max(200),
   mock:z.boolean(),
   month:z.number().int().min(1).max(12),
@@ -69,7 +70,7 @@ export const newsletterAiProposalSchema=z.object({
 
 export const newsletterAiTopicRegenerationSchema=z.object({
   schemaVersion:z.literal(1),kind:z.literal('topic-regeneration'),proposalId:identifier,targetTopicId:identifier,
-  proposalHash:sha256,topicHash:sha256,provider,model:z.string().trim().min(1).max(200),mock:z.boolean(),
+  proposalHash:sha256,topicHash:sha256,provider:textProvider,model:z.string().trim().min(1).max(200),mock:z.boolean(),
   baseline:newsletterAiBaselineSchema,topic:newsletterAiTopicProposalSchema,requestId:identifier,promptHash:sha256,usage:usageSchema,
 }).strict().superRefine((result,context)=>{
   if(result.topic.id!==result.targetTopicId)context.addIssue({code:'custom',message:'regenerated topic ID must match the requested target'})

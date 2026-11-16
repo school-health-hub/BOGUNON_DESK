@@ -2,11 +2,11 @@ import {z} from 'zod'
 import {assertSender} from './policy.js'
 import {newsletterAiBaselineSchema} from '../newsletter-ai-protocol.js'
 import type {IpcResult} from '../protocol.js'
-import type {NewsletterAiCandidatePreview,NewsletterAiCandidateResult,NewsletterAiImageRequest,NewsletterAiStatus,NewsletterAiTextRequest} from '../newsletter-ai-bridge.js'
+import type {NewsletterAiCandidatePreview,NewsletterAiCandidateResult,NewsletterAiConnectionKind,NewsletterAiImageRequest,NewsletterAiStatus,NewsletterAiTextRequest} from '../newsletter-ai-bridge.js'
 import type {NewsletterAiCandidateStore,NewsletterAiStoredCandidate} from './newsletter-ai-candidate-store.js'
 import type {NewsletterAiAssetStorage} from './newsletter-ai-asset-storage.js'
 
-export const NEWSLETTER_AI_ACTIONS=['status','proposeText','generateImageCandidate','cancel','discardCandidate','previewCandidate','commitCandidateAsset','commitCandidateAssets','loadProjectAssets'] as const
+export const NEWSLETTER_AI_ACTIONS=['status','selectConnection','proposeText','generateImageCandidate','cancel','discardCandidate','previewCandidate','commitCandidateAsset','commitCandidateAssets','loadProjectAssets'] as const
 export type NewsletterAiAction=typeof NEWSLETTER_AI_ACTIONS[number]
 
 const identifier=z.string().regex(/^[a-z0-9][a-z0-9-]{0,127}$/)
@@ -36,9 +36,11 @@ const previewRequestSchema=z.object({candidateToken:z.string().min(16).max(200),
 const commitRequestSchema=z.object({candidateToken:z.string().min(16).max(200),baseline:newsletterAiBaselineSchema,documentBaseline:newsletterAiBaselineSchema.optional(),projectId:identifier}).strict().readonly()
 const commitBatchRequestSchema=z.object({candidateTokens:z.array(z.string().min(16).max(200)).min(1).max(16).refine(tokens=>new Set(tokens).size===tokens.length).readonly(),baseline:newsletterAiBaselineSchema,documentBaseline:newsletterAiBaselineSchema.optional(),projectId:identifier}).strict().readonly()
 const loadRequestSchema=z.object({projectId:identifier,baseline:newsletterAiBaselineSchema,sha256:z.array(z.string().regex(/^[a-f0-9]{64}$/)).max(16).readonly()}).strict().readonly()
+const selectConnectionSchema=z.object({connection:z.enum(['chatgpt','openai-api-key','gemini-api-key','mock'])}).strict().readonly()
 
 export interface NewsletterAiIpcService{
   status():Promise<NewsletterAiStatus>
+  selectConnection?(connection:NewsletterAiConnectionKind):Promise<NewsletterAiStatus>
   proposeText(request:NewsletterAiTextRequest):Promise<unknown>
   generateImageCandidate(request:NewsletterAiImageRequest,references:readonly NewsletterAiStoredCandidate[]):Promise<Omit<NewsletterAiStoredCandidate,'topicId'|'target'>>
   cancel(request:Readonly<{requestId:string}>):Promise<void>
@@ -77,6 +79,12 @@ export function createNewsletterAiHandler(options:NewsletterAiHandlerOptions){
         case 'status':{
           if(args.length!==0)return invalidInput()
           return {ok:true,data:await options.service.status()}
+        }
+        case 'selectConnection':{
+          const request=selectConnectionSchema.parse(singleArgument(args))
+          if(options.service.selectConnection===undefined)return forbidden()
+          options.store.invalidateOwner(options.contents.id)
+          return {ok:true,data:await options.service.selectConnection(request.connection)}
         }
         case 'proposeText':{
           const request=textRequestSchema.parse(singleArgument(args))

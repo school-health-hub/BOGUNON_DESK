@@ -23,7 +23,7 @@ export function createNewsletterAiComposition(options:CompositionOptions):Newsle
   const mock=createNewsletterAiMockProvider({environment:'qa',seed:options.seed})
   const requests=new Map<string,AbortController>()
   return {
-    async status(){return{connected:true,provider:'mock',textModel:NEWSLETTER_AI_MOCK_MODEL,imageModel:NEWSLETTER_AI_MOCK_MODEL,textAvailable:true,imageAvailable:true,textUnavailableReason:null,imageUnavailableReason:null}},
+    async status(){return{connected:true,provider:'mock',textModel:NEWSLETTER_AI_MOCK_MODEL,imageModel:NEWSLETTER_AI_MOCK_MODEL,textAvailable:true,imageAvailable:true,textUnavailableReason:null,imageUnavailableReason:null,selectedConnection:'mock',connections:[{kind:'mock',label:'오프라인 Mock',configured:true,textAvailable:true,imageAvailable:true,actualTextCallVerified:false,actualImageCallVerified:false,costStatus:'unknown',detail:'격리 QA 전용 결정적 Mock'}]}},
     async proposeText(request){
       const controller=new AbortController();requests.set(request.requestId,controller)
       try{

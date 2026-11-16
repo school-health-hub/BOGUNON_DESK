@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs'
 import {runInNewContext} from 'node:vm'
 import ts from 'typescript'
 
-type TestNewsletterAiBridge=Readonly<Record<'status'|'proposeText'|'generateImageCandidate'|'cancel'|'discardCandidate'|'previewCandidate'|'commitCandidateAsset'|'commitCandidateAssets'|'loadProjectAssets',(request?:unknown)=>Promise<unknown>>>
+type TestNewsletterAiBridge=Readonly<Record<'status'|'selectConnection'|'proposeText'|'generateImageCandidate'|'cancel'|'discardCandidate'|'previewCandidate'|'commitCandidateAsset'|'commitCandidateAssets'|'loadProjectAssets',(request?:unknown)=>Promise<unknown>>>
 function hasNewsletterAiBridge(value:unknown):value is Readonly<{newsletter:Readonly<{ai:TestNewsletterAiBridge}>}>{
   if(typeof value!=='object'||value===null||!('newsletter' in value))return false
   const newsletter=value.newsletter
@@ -27,10 +27,10 @@ it('exposes only named Newsletter AI methods without generic invoke, keys or pat
   const bridge=work.newsletter.ai
   // Then
   expect(Object.isFrozen(bridge)).toBe(true)
-  expect(Object.keys(bridge).sort()).toEqual(['cancel','commitCandidateAsset','commitCandidateAssets','discardCandidate','generateImageCandidate','loadProjectAssets','previewCandidate','proposeText','status'].sort())
+  expect(Object.keys(bridge).sort()).toEqual(['cancel','commitCandidateAsset','commitCandidateAssets','discardCandidate','generateImageCandidate','loadProjectAssets','previewCandidate','proposeText','selectConnection','status'].sort())
   await bridge.status()
   expect(invoke).toHaveBeenLastCalledWith('p2:newsletter:ai:status')
-  for(const method of ['proposeText','generateImageCandidate','cancel','discardCandidate','previewCandidate','commitCandidateAsset','commitCandidateAssets','loadProjectAssets'] as const){
+  for(const method of ['selectConnection','proposeText','generateImageCandidate','cancel','discardCandidate','previewCandidate','commitCandidateAsset','commitCandidateAssets','loadProjectAssets'] as const){
     const request={requestId:'request-1'}
     await bridge[method](request)
     expect(invoke).toHaveBeenLastCalledWith(`p2:newsletter:ai:${method}`,request)

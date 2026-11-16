@@ -3,13 +3,28 @@ import type {NewsletterAiBaseline,NewsletterAiImageCandidate,NewsletterAiTextRes
 
 export type NewsletterAiStatus=Readonly<{
   connected:boolean
-  provider:'openai'|'gemini'|'mock'|null
+  provider:'openai'|'gemini'|'chatgpt'|'mock'|null
   textModel:string|null
   imageModel:string|null
   textAvailable:boolean
   imageAvailable:boolean
   textUnavailableReason:string|null
   imageUnavailableReason:string|null
+  selectedConnection?:NewsletterAiConnectionKind
+  connections?:readonly NewsletterAiConnectionStatus[]
+}>
+
+export type NewsletterAiConnectionKind='chatgpt'|'openai-api-key'|'gemini-api-key'|'mock'
+export type NewsletterAiConnectionStatus=Readonly<{
+  kind:NewsletterAiConnectionKind
+  label:string
+  configured:boolean
+  textAvailable:boolean
+  imageAvailable:boolean
+  actualTextCallVerified:boolean
+  actualImageCallVerified:boolean
+  costStatus:'unknown'
+  detail:string
 }>
 
 export type NewsletterAiTextRequest=Readonly<{
@@ -27,7 +42,7 @@ export type NewsletterAiImageRequest=Readonly<{
   topicId:string
   target:NewsletterAiAssetTarget
   prompt:string
-  provider:'openai'|'gemini'|'mock'
+  provider:'openai'|'gemini'|'chatgpt'|'mock'
   model:string
   referenceTokens:readonly string[]
 }>
@@ -56,6 +71,7 @@ export type NewsletterAiCandidatePreview=NewsletterAiCandidateMetadata&Readonly<
 
 export type NewsletterAiBridge=Readonly<{
   status():Promise<IpcResult<NewsletterAiStatus>>
+  selectConnection?(request:Readonly<{connection:NewsletterAiConnectionKind}>):Promise<IpcResult<NewsletterAiStatus>>
   proposeText(request:NewsletterAiTextRequest):Promise<IpcResult<NewsletterAiTextResult>>
   generateImageCandidate(request:NewsletterAiImageRequest):Promise<IpcResult<NewsletterAiCandidateResult>>
   cancel(request:NewsletterAiCancelRequest):Promise<IpcResult<null>>
