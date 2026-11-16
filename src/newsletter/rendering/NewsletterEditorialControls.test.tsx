@@ -66,7 +66,7 @@ describe("editorial layout editing", () => {
     expect(screen.getByLabelText("편집형 레이아웃")).toHaveProperty("value", "B")
     expect(screen.getByLabelText("부제·실천 수칙 원고")).toHaveProperty("value", copy)
   })
-  it("resolves registered external images through the host resolver and clears them when cover composition changes", async () => {
+  it("preserves registered external images when cover composition metadata changes", async () => {
     // Given
     const { project, design } = await fixture()
     const bytes = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zl1sAAAAASUVORK5CYII="), (value) => value.charCodeAt(0))
@@ -83,9 +83,9 @@ describe("editorial layout editing", () => {
     // When
     fireEvent.change(screen.getByLabelText("표지 학생 구성"), { target: { value: "female" } })
     // Then
-    await waitFor(() => expect(saved?.cardLayouts[0]?.image.assetId).toBeUndefined())
+    await waitFor(() => expect(saved?.cardLayouts[0]?.image.assetId).toBe(asset.id))
     expect(saved?.designSchemaVersion === 2 ? saved.cardLayouts[0]?.editorial?.studentComposition : undefined).toBe("female")
-    expect(screen.getByText(/대표 장면 선택이 필요합니다/)).toBeTruthy()
+    expect(screen.getByText(/기존 그림은 유지합니다/)).toBeTruthy()
     fireEvent.change(screen.getByLabelText("표지 대표 장면"), { target: { value: asset.id } })
     await waitFor(() => expect(saved?.cardLayouts[0]?.image.assetId).toBe(asset.id))
   })

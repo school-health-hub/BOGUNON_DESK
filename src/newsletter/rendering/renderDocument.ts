@@ -1,3 +1,4 @@
+import {fitCoverTitle} from "./coverTitleFit"
 import { compileOfficialTemplate } from "./officialTemplateCompiler"
 import type { SceneLayer } from "./renderScene"
 import type { ImagePolygon } from "./imagePolygon"
@@ -32,12 +33,13 @@ export type TextProvenance =
 export type Frame = { readonly x: number; readonly y: number; readonly width: number; readonly height: number }
 export type RenderTextBlock = { readonly id: string; readonly text: string; readonly lines: readonly string[]; readonly frame: Frame; readonly style: TextStyle; readonly provenance: TextProvenance }
 export type RenderIssue = { readonly kind: "overflow" | "missing-text" | "orphan-character" | "orphan-particle" | "layout-collision" | "clip-bounds"; readonly pageId: string; readonly blockId: string; readonly message: string }
-export type RenderImage = { readonly clipPolygon?: ImagePolygon; readonly edgePolicy?: "rounded" | "none" | "soft" | "feather"; readonly slotId: string; readonly assetId?: string; readonly frame: Frame; readonly fit: "contain" | "cover" }
+export type RenderImage = { readonly visible?: boolean; readonly clipPolygon?: ImagePolygon; readonly edgePolicy?: "rounded" | "none" | "soft" | "feather"; readonly slotId: string; readonly assetId?: string; readonly frame: Frame; readonly fit: "contain" | "cover" }
 export type RenderPage = {
   readonly officialLayers?: readonly SceneLayer[];
   readonly editorial?: RenderEditorial;
   readonly pageId: string; readonly width: number; readonly height: number; readonly background: string; readonly templateVersion: number;
   readonly title: RenderTextBlock; readonly body: RenderTextBlock; readonly badge?: RenderTextBlock; readonly lead?: RenderTextBlock; readonly closing?: RenderTextBlock;
+  readonly actions?: readonly RenderTextBlock[];
   readonly topicOverview?: readonly RenderTextBlock[];
   readonly image: RenderImage; readonly mascot?: RenderImage; readonly seasonalDecoration?: RenderImage; readonly accent?: string; readonly listMarkerStyle?: "source" | "number" | "dot" | "check"; readonly structured: boolean
 }
@@ -53,12 +55,13 @@ export type RenderDocument = {
 }
 type CompileInput = { readonly project: NewsletterProject; readonly projectRevision: number; readonly design: NewsletterDesignState; readonly designRevision: number; readonly measureText?: TextMeasurer }
 
-function block(id: string, pageId: string, text: string, frame: Frame, style: TextStyle, provenance: TextProvenance, issues: RenderIssue[], measureText?: TextMeasurer, required = true, semanticActions = false): RenderTextBlock {
-  const layout = layoutText(text, style, frame, measureText, semanticActions ? "newsletter-actions" : undefined)
+function block(id: string, pageId: string, text: string, frame: Frame, style: TextStyle, provenance: TextProvenance, issues: RenderIssue[], measureText?: TextMeasurer, required = true, semanticActions = false, fitTitle = false): RenderTextBlock {
+  const fittedStyle=fitTitle?fitCoverTitle(text,style,frame,measureText):style
+  const layout = layoutText(text, fittedStyle, frame, measureText, semanticActions ? "newsletter-actions" : undefined)
   if (required && text.trim().length === 0) issues.push({ kind: "missing-text", pageId, blockId: id, message: "필수 텍스트가 비어 있습니다." })
   if (text.length > 0 && layout.overflow) issues.push({ kind: "overflow", pageId, blockId: id, message: `텍스트 높이 ${Math.ceil(layout.requiredHeight)}px가 영역 ${frame.height}px를 초과합니다.` })
   for (const kind of layout.issues) issues.push({ kind, pageId, blockId: id, message: kind === "orphan-character" ? "한 글자 고아 줄이 발생했습니다." : "짧은 조사가 단독 줄에 배치되었습니다." })
-  return { id, text, lines: layout.lines, frame, style, provenance }
+  return { id, text, lines: layout.lines, frame, style:fittedStyle, provenance }
 }
 function projectRevision(project: NewsletterProject, revision: number): NewsletterProject["revisionHistory"][number] {
   const source = project.revisionHistory.find((entry) => entry.revision === revision)
@@ -118,6 +121,18 @@ function reflowA4ModuleFrames(input: {
     image,
   }
 }
+function fitA4Header(text: string, title: Frame, meta: Frame, style: TextStyle, contentTop: number, measureText?: TextMeasurer) {
+  const gap = meta.y - (title.y + title.height)
+  for (const fontSize of [style.fontSize, 64, 56, 48, 40, 32]) {
+    const candidate = { ...style, fontSize }
+    const height = Math.max(title.height, Math.ceil(layoutText(text, candidate, title, measureText).requiredHeight))
+    const metaY = Math.max(meta.y, title.y + height + Math.max(0, gap))
+    if (metaY + meta.height <= contentTop) {
+      return { title: { ...title, height }, meta: { ...meta, y: metaY }, style: candidate }
+    }
+  }
+  return { title, meta, style }
+}
 function verifyAssets(snapshot: DesignSnapshot): void {
   const assets = new Map(snapshot.assetManifest.map((asset) => [asset.id, asset]))
   const brandImages = isV2(snapshot) ? [
@@ -129,7 +144,8 @@ function verifyAssets(snapshot: DesignSnapshot): void {
     const asset = assets.get(image.assetId)
     const registry = asset?.registry
     const registryApproved = !isV2(snapshot) || (registry?.classification !== "OFFICIAL_REFERENCE" && registry?.purpose !== "reference" && registry?.usageScope === "newsletter-output")
-    if (asset?.approvalStatus !== "approved" || asset.localReference !== `asset:${asset.sha256}` || !registryApproved) throw new RenderAssetNotApprovedError(image.assetId)
+    const pendingAiReview = isV2(snapshot) && asset?.approvalStatus === "reference-only" && asset.exportApproval === "pending" && registry?.classification === "AI_GENERATED" && registryApproved
+    if ((!pendingAiReview && asset?.approvalStatus !== "approved") || asset?.localReference !== `asset:${asset.sha256}` || !registryApproved) throw new RenderAssetNotApprovedError(image.assetId)
   }
 }
 
@@ -143,8 +159,12 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
   verifyAssets(snapshot)
   const issues: RenderIssue[] = []
   const editorialA4 = isV2(snapshot) && snapshot.a4Layout.brand?.editorialLayout === true
-  const titles = new Map(project.topics.map((topic) => [topic.id, topic.title]))
+  const skillA4 = isV2(snapshot) && snapshot.a4Layout.brand?.compositionPreset === "september-master"
+  const historicalTitles=project.topicTitleHistory?.find(value=>value.throughRevision>=input.projectRevision)?.titles
+  const renderTopics=project.topics.map((topic,index)=>({...topic,title:historicalTitles?.[index]??topic.title}))
+  const titles = new Map(renderTopics.map((topic) => [topic.id, topic.title]))
   const sections = selectedProject.snapshot.sections.map((section) => ({ ...section, text: section.userEdit?.text ?? section.aiGenerated.text }))
+  for(const section of sections){if(section.topicSelection){const copy=structureCanonicalText(section.text);if(copy.kind!=="list"||copy.actions.length!==4||!copy.lead?.trim())issues.push({kind:"missing-text",pageId:"a4-page",blockId:section.id,message:"선택한 주제의 한 줄 소개와 실천 수칙 4개를 검토·작성해 주세요."})}}
   const titleStyle = { fontFamily: "Pretendard", fontSize: 72, fontWeight: 800, lineHeight: 1.2, color: "#183b4e", align: "center" } as const
   const moduleTitleStyle = { fontFamily: "Pretendard", fontSize: 30, fontWeight: 800, lineHeight: 1.25, color: "#183b4e", align: "left" } as const
   const bodyStyle = { fontFamily: "Pretendard", fontSize: 21, fontWeight: editorialA4 ? 600 : 500, lineHeight: editorialA4 ? 1.25 : 1.45, color: "#29434e", align: "left" } as const
@@ -157,24 +177,27 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
     const content = structureCanonicalText(section.text)
     const leadText = content.kind === "list" ? content.lead ?? "" : ""
     const topicTitle = titles.get(section.topicId) ?? ""
-    const frames = structured ? reflowA4ModuleFrames({ titleText: topicTitle, leadText, titleFrame: module.titleFrame, leadFrame: module.leadFrame, actionFrame: module.actionListFrame, imageFrame: module.image.frame, titleStyle: moduleTitleStyle, bodyStyle, measureText: input.measureText }) : undefined
+    const frames = structured ? skillA4 ? { title: module.titleFrame, lead: module.leadFrame, action: module.actionListFrame, image: module.image.frame } : reflowA4ModuleFrames({ titleText: topicTitle, leadText, titleFrame: module.titleFrame, leadFrame: module.leadFrame, actionFrame: module.actionListFrame, imageFrame: module.image.frame, titleStyle: moduleTitleStyle, bodyStyle, measureText: input.measureText }) : undefined
     const titleFrame = frames?.title ?? { ...module.frame, height: 60 }
-    const bodyFrame = structured ? expandedBodyFrame(frames?.lead ?? module.leadFrame, frames?.action ?? module.actionListFrame, leadText.length > 0) : { x: module.frame.x, y: module.frame.y + 72, width: module.frame.width, height: module.frame.height - 72 }
-    const bodyText = content.kind === "list" ? actionText(content.actions, structured ? module.listMarkerStyle : "source") : content.body
+    const sourceBodyFrame = structured ? expandedBodyFrame(frames?.lead ?? module.leadFrame, frames?.action ?? module.actionListFrame, leadText.length > 0) : { x: module.frame.x, y: module.frame.y + 72, width: module.frame.width, height: module.frame.height - 72 }
+    const closingText=structured?(editorialA4&&isV2(snapshot)?snapshot.cardLayouts[index+1]?.editorial?.closing??section.topicSelection?.closing??"":section.topicSelection?.closing??""):""
+    const bodyFrame=skillA4 && structured ? module.actionListFrame : structured&&section.topicSelection&&closingText?{...sourceBodyFrame,height:Math.max(1,Math.min(sourceBodyFrame.height,module.closingFrame.y-sourceBodyFrame.y-8))}:sourceBodyFrame
+    const closingStyle=structured&&editorialA4?{...bodyStyle,fontSize:18,fontWeight:650,color:module.accent,align:"center" as const}:section.topicSelection?{...bodyStyle,fontSize:18,lineHeight:1.2}:bodyStyle
+    const bodyText = content.kind === "list" ? skillA4 ? content.actions.map(action => action.replace(LIST_PREFIX, "")).join("\n") : actionText(content.actions, structured ? module.listMarkerStyle : "source") : content.body
     const provenance = { kind: "canonical-section", sectionId: section.id, sourceText: section.text } as const
     return {
       moduleId: module.moduleId, moduleFrame: module.frame, topicId: section.topicId, sectionId: section.id, structured,
       ...(structured ? { number: block(`a4-number-${section.id}`, "a4-page", String(index + 1).padStart(2, "0"), { x: module.frame.x + 12, y: module.frame.y + 12, width: 40, height: 36 }, numberStyle, { kind: "template-static", templateVersion: snapshot.templateVersion }, issues, input.measureText) } : {}),
-      title: block(`a4-title-${section.id}`, "a4-page", topicTitle, titleFrame, moduleTitleStyle, { kind: "topic-title", topicId: section.topicId }, issues, input.measureText),
-      ...(structured && leadText.length > 0 ? { lead: block(`a4-lead-${section.id}`, "a4-page", leadText, frames?.lead ?? module.leadFrame, bodyStyle, provenance, issues, input.measureText, false, editorialA4) } : {}),
-      body: block(`a4-body-${section.id}`, "a4-page", bodyText, bodyFrame, bodyStyle, provenance, issues, input.measureText, true, editorialA4),
-      ...(structured ? { closing: block(`a4-closing-${section.id}`, "a4-page", editorialA4 && isV2(snapshot) ? snapshot.cardLayouts[index + 1]?.editorial?.closing ?? "" : "", module.closingFrame, editorialA4 ? { ...bodyStyle, fontSize: 18, fontWeight: 650, color: module.accent, align: "center" } : bodyStyle, editorialA4 ? { kind: "design-text", pageId: snapshot.cardLayouts[index + 1]?.pageId ?? "a4-page", field: "closing" } : provenance, issues, input.measureText, false, editorialA4), accent: module.accent, listMarkerStyle: module.listMarkerStyle } : {}),
+      title: block(`a4-title-${section.id}`, "a4-page", topicTitle, titleFrame, skillA4 ? { ...moduleTitleStyle, fontSize: 26 } : moduleTitleStyle, { kind: "topic-title", topicId: section.topicId }, issues, input.measureText),
+      ...(structured && !skillA4 && leadText.length > 0 ? { lead: block(`a4-lead-${section.id}`, "a4-page", leadText, frames?.lead ?? module.leadFrame, bodyStyle, provenance, issues, input.measureText, false, editorialA4) } : {}),
+      body: block(`a4-body-${section.id}`, "a4-page", bodyText, bodyFrame, skillA4 ? { ...bodyStyle, fontSize: 20, lineHeight: 1.23 } : bodyStyle, provenance, issues, input.measureText, true, editorialA4),
+      ...(structured ? { ...(!skillA4 ? { closing: block(`a4-closing-${section.id}`, "a4-page", closingText, module.closingFrame, closingStyle, editorialA4 ? { kind: "design-text", pageId: snapshot.cardLayouts[index + 1]?.pageId ?? "a4-page", field: "closing" } : provenance, issues, input.measureText, false, editorialA4) } : {}), accent: module.accent, listMarkerStyle: module.listMarkerStyle } : {}),
       image: structured && frames !== undefined ? { ...module.image, frame: frames.image } : module.image,
     }
   })
   const cards = snapshot.cardLayouts.map((layout, index): RenderPage => {
     const section = index === 0 ? undefined : sections[index - 1]
-    const source = section === undefined ? project.topics.map((topic) => topic.title).join("\n") : section.text
+    const source = section === undefined ? renderTopics.map((topic) => topic.title).join("\n") : section.text
     const content = structureCanonicalText(source)
     const structured = isV2Card(layout)
     const leadText = content.kind === "list" ? content.lead ?? "" : ""
@@ -188,17 +211,17 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
         title: raw(`${layout.pageId}-title`, title, layout.titleFrame, layout.titleStyle, index === 0 ? { kind: "project-title" } : { kind: "topic-title", topicId: section?.topicId ?? "missing" }),
         body: raw(`${layout.pageId}-body`, bodyText, layout.bodyFrame, layout.bodyStyle, provenance),
         badge: raw(`${layout.pageId}-badge`, snapshot.publicationMeta.issueLabel, layout.titleFrame, layout.bodyStyle, { kind: "publication-meta" }),
-        topicOverview: index === 0 ? (layout.officialTemplate.previewTopicIndices ?? [0, 1, 2, 3]).flatMap(topicIndex => { const topic = project.topics[topicIndex]; return topic === undefined ? [] : [raw(`${layout.pageId}-topic-${topic.id}`, topic.title, layout.titleFrame, layout.bodyStyle, { kind: "topic-title", topicId: topic.id })] }) : undefined,
+        topicOverview: index === 0 ? (layout.officialTemplate.previewTopicIndices ?? [0, 1, 2, 3]).flatMap(topicIndex => { const topic = renderTopics[topicIndex]; return topic === undefined ? [] : [raw(`${layout.pageId}-topic-${topic.id}`, topic.title, layout.titleFrame, layout.bodyStyle, { kind: "topic-title", topicId: topic.id })] }) : undefined,
         image: layout.image,
         ...(layout.brand === undefined ? {} : { mascot: layout.brand.mascot }),
       }
-      return compileOfficialTemplate(page, layout, content, (id, text, frame, style, source, required = true) => block(id, page.pageId, text, frame, style, source, issues, input.measureText, required, true), message => issues.push({ kind: "missing-text", pageId: page.pageId, blockId: `${page.pageId}-official`, message }))
+      return compileOfficialTemplate(page, layout, content, (id, text, frame, style, source, required = true) => block(id, page.pageId, text, frame, style, source, issues, input.measureText, required, true, index===0&&source.kind==="project-title"), message => issues.push({ kind: "missing-text", pageId: page.pageId, blockId: `${page.pageId}-official`, message }))
     }
     const bodyFrame = structured ? expandedBodyFrame(layout.leadFrame, layout.actionListFrame, leadText.length > 0) : layout.bodyFrame
     const badgeStyle = { ...layout.bodyStyle, fontSize: Math.min(20, layout.bodyStyle.fontSize), fontWeight: 700, lineHeight: 1.2, color: structured ? layout.accent : layout.titleStyle.color, align: "left" as const }
     const badgeFrame = { x: 88, y: 72, width: 420, height: 36 }
-    const previewCount = structured ? layout.brand?.previewTopicCount ?? 6 : 6
-    const topicOverview = index === 0 && structured ? project.topics.slice(0, previewCount).map((topic, topicIndex) => {
+    const previewCount = structured && layout.editorial?.compositionPreset === "september-master" && index === 0 ? 6 : sections.some(section=>section.topicSelection!==undefined)?4:structured ? layout.brand?.previewTopicCount ?? 6 : 6
+    const topicOverview = index === 0 && structured ? renderTopics.slice(0, previewCount).map((topic, topicIndex) => {
       const columns = previewCount === 4 ? 4 : 2
       const column = topicIndex % columns
       const row = Math.floor(topicIndex / columns)
@@ -207,29 +230,43 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
       const tileHeight = previewCount === 4 ? layout.actionListFrame.height : 94
       const tile = { x: layout.actionListFrame.x + column * (tileWidth + gap), y: layout.actionListFrame.y + row * 122, width: tileWidth, height: tileHeight }
       const frame = { x: tile.x + 16, y: tile.y + 14, width: tile.width - 32, height: tile.height - 28 }
-      return block(`${layout.pageId}-topic-${topic.id}`, layout.pageId, topic.title, frame, { ...layout.bodyStyle, fontSize: 25, fontWeight: 700, lineHeight: 1.3, color: layout.titleStyle.color, align: "left" }, { kind: "topic-title", topicId: topic.id }, issues, input.measureText)
+      const previewCopy = sections[topicIndex] === undefined ? undefined : structureCanonicalText(sections[topicIndex].text)
+      const previewLead = previewCopy?.kind === "list" ? previewCopy.lead?.trim() ?? "" : ""
+      const previewText = previewLead.length === 0 || layout.editorial?.compositionPreset === "september-master" ? topic.title : `${topic.title}\n${previewLead}`
+      return block(`${layout.pageId}-topic-${topic.id}`, layout.pageId, previewText, frame, { ...layout.bodyStyle, fontSize: 22, fontWeight: 700, lineHeight: 1.35, color: layout.titleStyle.color, align: "left" }, { kind: "topic-title", topicId: topic.id }, issues, input.measureText)
+    }) : undefined
+    const actions = index > 0 && structured && content.kind === "list" && content.actions.length === 4 ? content.actions.map((action, actionIndex) => {
+      const gap = 14
+      const rowHeight = (layout.actionListFrame.height - gap * 3) / 4
+      const frame = { x: layout.actionListFrame.x + 18, y: layout.actionListFrame.y + actionIndex * (rowHeight + gap), width: layout.actionListFrame.width - 36, height: rowHeight }
+      return block(`${layout.pageId}-action-row-${actionIndex + 1}`, layout.pageId, actionText([action], layout.listMarkerStyle), frame, { ...layout.bodyStyle, fontSize: Math.max(26, layout.bodyStyle.fontSize), fontWeight: 650, lineHeight: 1.3 }, provenance, issues, input.measureText)
     }) : undefined
     const page: RenderPage = {
       pageId: layout.pageId, width: 1200, height: 1200, background: layout.background, templateVersion: snapshot.templateVersion, structured,
-      title: block(`${layout.pageId}-title`, layout.pageId, title, layout.titleFrame, layout.titleStyle, index === 0 ? { kind: "project-title" } : { kind: "topic-title", topicId: section?.topicId ?? "missing" }, issues, input.measureText),
+      title: block(`${layout.pageId}-title`, layout.pageId, title, layout.titleFrame, layout.titleStyle, index === 0 ? { kind: "project-title" } : { kind: "topic-title", topicId: section?.topicId ?? "missing" }, issues, input.measureText,true,false,index===0),
       ...(structured ? { badge: block(`${layout.pageId}-badge`, layout.pageId, snapshot.publicationMeta.issueLabel, badgeFrame, badgeStyle, { kind: "publication-meta" }, issues, input.measureText, false) } : {}),
       ...(structured && leadText.length > 0 ? { lead: block(`${layout.pageId}-lead`, layout.pageId, leadText, layout.leadFrame, layout.bodyStyle, provenance, issues, input.measureText, false) } : {}),
       body: structured && layout.editorial !== undefined ? { id: `${layout.pageId}-body`, text: bodyText, lines: [], frame: bodyFrame, style: layout.bodyStyle, provenance } : block(`${layout.pageId}-body`, layout.pageId, bodyText, bodyFrame, layout.bodyStyle, provenance, issues, input.measureText),
+      ...(actions === undefined ? {} : { actions }),
       ...(topicOverview === undefined ? {} : { topicOverview }),
-      ...(structured ? { closing: block(`${layout.pageId}-closing`, layout.pageId, "", layout.closingFrame, layout.bodyStyle, provenance, issues, input.measureText, false), accent: layout.accent, listMarkerStyle: layout.listMarkerStyle } : {}),
+      ...(structured ? { closing: block(`${layout.pageId}-closing`, layout.pageId, section?.topicSelection?.closing ?? "", layout.closingFrame, layout.bodyStyle, provenance, issues, input.measureText, false), accent: layout.accent, listMarkerStyle: layout.listMarkerStyle } : {}),
       image: layout.image,
       ...(structured && layout.brand !== undefined ? { mascot: layout.brand.mascot, ...(layout.brand.seasonalDecoration === undefined ? {} : { seasonalDecoration: layout.brand.seasonalDecoration }) } : {}),
     }
-    return structured ? compileEditorialCard({ page, layout, content, make: (id, text, frame, style, source, required = true) => block(id, page.pageId, text, frame, style, source, issues, input.measureText, required, layout.editorial !== undefined), unavailable: message => issues.push({ kind: "missing-text", pageId: page.pageId, blockId: `${page.pageId}-editorial`, message }) }) : page
+    return structured ? compileEditorialCard({ page, layout, content, make: (id, text, frame, style, source, required = true) => block(id, page.pageId, text, frame, style, source, issues, input.measureText, required, layout.editorial !== undefined,index===0&&source.kind==="project-title"), unavailable: message => issues.push({ kind: "missing-text", pageId: page.pageId, blockId: `${page.pageId}-editorial`, message }) }) : page
   })
   const footerStyle = { fontFamily: "Pretendard", fontSize: editorialA4 ? 17 : 18, fontWeight: 500, lineHeight: editorialA4 ? 1.35 : 1.4, color: "#50656f", align: editorialA4 ? "left" : "center" } as const
   const a4TitleFrame = isV2(snapshot) ? snapshot.a4Layout.titleFrame : snapshot.a4Layout.headerFrame
   const metaFrame = isV2(snapshot) ? snapshot.a4Layout.publicationMetaFrame : { ...snapshot.a4Layout.headerFrame, y: snapshot.a4Layout.headerFrame.y + 125, height: 50 }
+  const standardV2 = isV2(snapshot) && !editorialA4 && snapshot.a4Layout.brand?.compositionPreset === undefined
+  const header = standardV2
+    ? fitA4Header(project.title, a4TitleFrame, metaFrame, titleStyle, Math.min(...a4Modules.map(module => module.moduleFrame.y)), input.measureText)
+    : { title: a4TitleFrame, meta: metaFrame, style: titleStyle }
   const base: RenderDocument = {
     projectId: project.projectId, projectRevision: input.projectRevision, designRevision: input.designRevision, templateVersion: snapshot.templateVersion,
     a4: { pageId: "a4-page", width: 1240, height: 1754, exportWidth: 2480, exportHeight: 3508, safeMargin: snapshot.a4Layout.safeMargin, background: snapshot.a4Layout.background, templateVersion: snapshot.templateVersion,
-      title: block("a4-main-title", "a4-page", project.title, a4TitleFrame, titleStyle, { kind: "project-title" }, issues, input.measureText),
-      publicationMeta: block("a4-publication-meta", "a4-page", `${snapshot.publicationMeta.issueLabel} · ${snapshot.publicationMeta.schoolName}`, metaFrame, metaStyle, { kind: "publication-meta" }, issues, input.measureText),
+      title: block("a4-main-title", "a4-page", project.title, header.title, header.style, { kind: "project-title" }, issues, input.measureText),
+      publicationMeta: block("a4-publication-meta", "a4-page", `${snapshot.publicationMeta.issueLabel} · ${snapshot.publicationMeta.schoolName}`, header.meta, metaStyle, { kind: "publication-meta" }, issues, input.measureText),
       modules: a4Modules,
       ...(editorialA4 ? { editorialLayout: true as const } : {}),
       ...(isV2(snapshot) && snapshot.a4Layout.brand?.compositionPreset !== undefined ? { compositionPreset: snapshot.a4Layout.brand.compositionPreset } : {}),

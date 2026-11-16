@@ -33,6 +33,13 @@ export function bundledMascotSource(assetId: string): string | undefined {
   return assetId === OTTER_ASSET_ID ? otterSource : undefined
 }
 
+export function bundledMascotBytes(assetId: string): Uint8Array | undefined {
+  const source = bundledMascotSource(assetId)
+  const prefix = "data:image/png;base64,"
+  if (source === undefined || !source.startsWith(prefix)) return undefined
+  return Uint8Array.from(atob(source.slice(prefix.length)), value => value.charCodeAt(0))
+}
+
 export function attachApprovedMascot(design: NewsletterDesignStateV2, now: string): NewsletterDesignStateV2 {
   for (const asset of design.assetManifest) {
     if (asset.sha256 === OTTER_SHA256 && asset.id !== OTTER_ASSET_ID) throw new BundledMascotConflictError(asset.id, "duplicate-sha")

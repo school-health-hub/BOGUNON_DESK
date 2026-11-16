@@ -7,7 +7,7 @@ import { compileRenderDocument } from "./renderDocument"
 import { buildNewsletterScene, validateNewsletterScene } from "./renderScene"
 import { renderNewsletterSceneSvg } from "../output/svgRenderer"
 
-it("changes only the A4, cover and selected topic when applying the master", () => {
+it("changes only the cover and selected topic when applying the master", () => {
   // Given
   const now = "2026-10-30T00:00:00.000Z"
   const design = upgradeNewsletterDesignStateV2(createNewsletterDesignState({ projectId: "master-test", canonicalProjectRevision: 1, now }), now)
@@ -17,7 +17,7 @@ it("changes only the A4, cover and selected topic when applying the master", () 
   expect(next.cardLayouts.slice(2)).toEqual(design.cardLayouts.slice(2))
   expect(next.cardLayouts[1]?.editorial?.compositionPreset).toBe("september-master")
   expect(next.cardLayouts[0]?.image.edgePolicy).toBe("none")
-  expect(next.a4Layout.modules.every(module => module.image.edgePolicy !== undefined)).toBe(true)
+  expect(next.a4Layout).toEqual(design.a4Layout)
 })
 
 it.each(["B", "C", "D"] as const)("leaves the master when choosing extension %s", (layoutType) => {
@@ -56,7 +56,8 @@ it("removes unused extension illustration references when selecting the master",
   // When
   const next = applySkillMasterPreset(withImages, { cardIndex: 1, now })
   // Then
-  expect(next.cardLayouts[1]?.editorial?.moduleImages).toBeUndefined()
+  expect(next.cardLayouts[1]?.editorial?.moduleImages).toHaveLength(4)
+  expect(next.cardLayouts[1]?.editorial?.moduleImages?.every(image => image.assetId === undefined && image.visible === false)).toBe(true)
   expect(withImages.cardLayouts[1]?.editorial?.moduleImages?.[0]?.assetId).toBe("unused-unapproved")
 })
 
@@ -75,9 +76,15 @@ it("keeps five body Scenes identical and places master content within nonoverlap
   const body = scene.pages[2]
   if (body === undefined) throw new Error("missing body scene")
   const background = body.layers.find(layer => layer.layerId.endsWith("-background"))
-  const season = body.layers.find(layer => layer.layerId.includes("-season-"))
+  const season = body.layers.find(layer => layer.layerId.includes("-autumn-leaf-"))
+  expect(season).toBeDefined()
   expect(background?.zOrder).toBeLessThan(season?.zOrder ?? 0)
   const svg = renderNewsletterSceneSvg(body, new Map())
-  expect(svg).toContain("master-main-art")
+  expect(svg).toContain("master-art-unassigned")
+  expect(svg).toContain("master-cough-sleeve")
+  expect(svg).not.toContain("master-tissue-wash-bin")
+  expect(svg).toContain("feDropShadow")
+  expect(svg).toContain("stroke-width=\"3\"")
+  expect(svg).toContain("fill=\"#0A713A\" font-weight=\"800\"")
   expect(svg).not.toContain("clip-card-topic-1-topic-image-1")
 })

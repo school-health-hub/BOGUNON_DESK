@@ -42,7 +42,7 @@ export function compileEditorialCard({ page, layout, content, make, unavailable 
   const leadFrame = config.layoutType === "A" || layout.leadFrame.y !== frames.leadFrame.y ? layout.leadFrame : { ...layout.leadFrame, y: page.title.lines.length === 1 ? frames.leadFrame.y : 305 }
   const topicOverview = config.layoutType === "A" ? (page.topicOverview ?? []).flatMap((topic, i) => {
     const frame = frames.moduleFrames[i]
-    return frame === undefined ? [] : [make(topic.id, topic.text, { x: frame.x + 82, y: frame.y + 12, width: frame.width - 94, height: 82 }, { ...layout.bodyStyle, fontSize: 24, fontWeight: 750, lineHeight: 1.15, color: "#0D254D" }, topic.provenance)]
+    return frame === undefined ? [] : [make(topic.id, topic.text, { x: frame.x + 82, y: frame.y + 12, width: frame.width - 94, height: 84 }, { ...layout.bodyStyle, fontSize: 24, fontWeight: 750, lineHeight: 1.15, color: "#0D254D" }, topic.provenance)]
   }) : page.topicOverview
   return {
     ...page,

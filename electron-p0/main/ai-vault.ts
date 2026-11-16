@@ -3,7 +3,7 @@ import {join} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {replaceSettingsFile} from './settings.js';
 import type {AiProvider} from '../protocol.js';
-export type AiCredential=Readonly<{provider:AiProvider;key:string;model:string}>;
+export type AiCredential=Readonly<{provider:AiProvider;key:string;model:string;textModel?:string;imageModel?:string|null}>;
 export interface AiVault {
  readonly available:boolean;
  exists():Promise<boolean>;
@@ -16,7 +16,8 @@ export const validAiKey=(key:unknown):key is string=>typeof key==='string'&&/^[\
 export function validateCredential(value:unknown):AiCredential{
  if(!value||typeof value!=='object'||Array.isArray(value))throw Error('Invalid credential');
  const v=value as Record<string,unknown>;
- if(Object.keys(v).sort().join(',')!=='key,model,provider'||!['openai','gemini'].includes(String(v.provider))||!validAiKey(v.key)||typeof v.model!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(v.model))throw Error('Invalid credential');
+ const fields=Object.keys(v).sort().join(',');
+ if(!['key,model,provider','imageModel,key,model,provider,textModel'].includes(fields)||!['openai','gemini'].includes(String(v.provider))||!validAiKey(v.key)||typeof v.model!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(v.model)||('textModel'in v&&(typeof v.textModel!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(v.textModel)))||('imageModel'in v&&!(v.imageModel===null||typeof v.imageModel==='string'&&/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(v.imageModel))))throw Error('Invalid credential');
  return v as AiCredential;
 }
 // Separate Electron vault; never reads Tauri credentials or writes plaintext fallback.

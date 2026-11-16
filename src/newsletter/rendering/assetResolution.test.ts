@@ -9,10 +9,13 @@ describe("scene asset resolution", () => {
     // Given
     const design = attachApprovedMascot(upgradeNewsletterDesignStateV2(createNewsletterDesignState({projectId:"asset-resolution",canonicalProjectRevision:1,now:NOW}),NOW),NOW)
     // When
-    const sources = await resolveDesignAssets(design,design.designRevision)
-    // Then
-    expect(sources.size).toBe(1)
-    expect(sources.get(OTTER_ASSET_ID)).toMatch(/^data:image\/png;base64,/)
+    const fetchBlocked = vi.spyOn(globalThis, "fetch").mockRejectedValue(new TypeError("CSP blocks data URL fetch"))
+    try {
+      const sources = await resolveDesignAssets(design,design.designRevision)
+      expect(sources.size).toBe(1)
+      expect(sources.get(OTTER_ASSET_ID)).toMatch(/^data:image\/png;base64,/)
+      expect(fetchBlocked).not.toHaveBeenCalled()
+    } finally { fetchBlocked.mockRestore() }
   })
   it("rejects different bytes returned for an approved bundled asset", async () => {
     // Given

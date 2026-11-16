@@ -1,8 +1,10 @@
+import {pendingStudentArt} from "./studentArtCatalog"
+import {studentArtBytes} from "./studentArtSources"
 import type { DesignSnapshotV2, NewsletterDesignState } from "./designSchema"
-import { bundledMascotRegistry, bundledMascotSource, OTTER_ASSET_ID, OTTER_SHA256 } from "./bundledMascot"
+import { bundledMascotRegistry, bundledMascotBytes, OTTER_ASSET_ID, OTTER_SHA256 } from "./bundledMascot"
 
 export function assetExportPending(asset: DesignSnapshotV2["assetManifest"][number]): boolean {
-  return asset.exportApproval === "pending" || bundledMascotRegistry.assets.some((trusted) =>
+  return pendingStudentArt(asset) || asset.exportApproval === "pending" || bundledMascotRegistry.assets.some((trusted) =>
     (trusted.assetId === asset.id || trusted.sha256 === asset.sha256) && trusted.exportApproval === "pending")
 }
 export interface NewsletterAssetResolver {
@@ -48,20 +50,18 @@ function dataUrl(bytes: Uint8Array, mediaType: string): string {
   for (const value of bytes) binary += String.fromCharCode(value)
   return `data:${mediaType};base64,${btoa(binary)}`
 }
-export async function resolveDesignAssets(design: NewsletterDesignState, revision: number, resolver?: NewsletterAssetResolver): Promise<ReadonlyMap<string,string>> {
+export async function resolveDesignAssets(design: NewsletterDesignState, revision: number, resolver?: NewsletterAssetResolver, options: { readonly allowPendingReview?: boolean } = {}): Promise<ReadonlyMap<string,string>> {
   const sources = new Map<string,string>()
   for (const asset of referencedDesignAssets(design,revision)) {
-    if (asset.approvalStatus !== "approved" || asset.localReference !== `asset:${asset.sha256}`) throw new NewsletterAssetResolutionError(asset.id,"asset approval or reference is invalid")
+    const pendingReview = options.allowPendingReview === true && asset.approvalStatus === "reference-only" && asset.exportApproval === "pending" && asset.registry?.classification === "AI_GENERATED"
+    if ((!pendingReview && asset.approvalStatus !== "approved") || asset.localReference !== `asset:${asset.sha256}`) throw new NewsletterAssetResolutionError(asset.id,"asset approval or reference is invalid")
     if (asset.registry !== undefined && (asset.registry.usageScope !== "newsletter-output" || asset.registry.classification === "OFFICIAL_REFERENCE" || asset.registry.purpose === "reference")) throw new NewsletterAssetResolutionError(asset.id,"asset is not approved for rendering")
-    const builtin = bundledMascotSource(asset.id)
+    const builtin = bundledMascotBytes(asset.id) ?? studentArtBytes(asset.sha256)
     if (asset.id === OTTER_ASSET_ID && asset.sha256 !== OTTER_SHA256) throw new NewsletterAssetResolutionError(asset.id,"SHA-256 differs from approved bundle")
     let bytes: Uint8Array
     if (resolver !== undefined) bytes = await resolver.resolve(asset.localReference)
-    else if (builtin !== undefined) {
-      const response = await fetch(builtin)
-      if (!response.ok) throw new NewsletterAssetResolutionError(asset.id,"bundled image could not be read")
-      bytes = new Uint8Array(await response.arrayBuffer())
-    } else throw new NewsletterAssetResolutionError(asset.id,"resolver is missing")
+    else if (builtin !== undefined) bytes = builtin
+    else throw new NewsletterAssetResolutionError(asset.id,"resolver is missing")
     if (await digest(bytes) !== asset.sha256) throw new NewsletterAssetResolutionError(asset.id,"SHA-256 differs from manifest")
     sources.set(asset.id,dataUrl(bytes,asset.mediaType))
   }

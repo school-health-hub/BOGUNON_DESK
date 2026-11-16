@@ -51,22 +51,19 @@ export class BrowserSvgRasterizer implements SvgRasterizer {
     abortIfNeeded(request.signal)
     const fontStyle = `<style>@font-face{font-family:Pretendard;src:url(${pretendardFontDataUrl}) format('woff2');font-weight:100 900;font-style:normal}</style>`
     const svg = request.svg.replace(">", `>${fontStyle}`)
-    const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }))
-    try {
-      const image = new Image()
-      image.decoding = "sync"
-      image.src = url
-      await image.decode()
-      abortIfNeeded(request.signal)
-      const canvas = document.createElement("canvas")
-      canvas.width = request.width
-      canvas.height = request.height
-      const context = canvas.getContext("2d")
-      if (context === null) throw new NewsletterRasterizationError("2D canvas context is unavailable")
-      context.drawImage(image, 0, 0, request.width, request.height)
-      return await canvasPng(canvas)
-    } finally {
-      URL.revokeObjectURL(url)
-    }
+    // data: images are allowed by both strict Workspace and export-worker CSPs.
+    const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+    const image = new Image()
+    image.decoding = "sync"
+    image.src = url
+    await image.decode()
+    abortIfNeeded(request.signal)
+    const canvas = document.createElement("canvas")
+    canvas.width = request.width
+    canvas.height = request.height
+    const context = canvas.getContext("2d")
+    if (context === null) throw new NewsletterRasterizationError("2D canvas context is unavailable")
+    context.drawImage(image, 0, 0, request.width, request.height)
+    return await canvasPng(canvas)
   }
 }

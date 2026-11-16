@@ -4,13 +4,14 @@ import type { Frame, RenderDocument, RenderImage, RenderPage, RenderTextBlock, T
 import type { TextStyle } from "./designSchema"
 import { newsletterPlaceholderDataUrl, placeholderKindForSlot, type NewsletterPlaceholderKind } from "./placeholders"
 import { buildEditorialCardScene, seasonalSceneLayers } from "./editorialScene"
+import { buildSkillMasterA4Scene, supportsSkillMasterA4 } from "./skillMasterA4"
 
 export const NEWSLETTER_PLACEHOLDER_DATA_URL = newsletterPlaceholderDataUrl("generic")
 
 type SceneBase = { readonly layerId: string; readonly frame: Frame; readonly zOrder: number; readonly clipBounds: Frame; readonly collisionGroup?: string }
-export type TextSceneLayer = SceneBase & { readonly kind: "text"; readonly text: string; readonly lines: readonly string[]; readonly style: TextStyle; readonly provenance: TextProvenance }
-export type ImageSceneLayer = SceneBase & { readonly clipPolygon?: ImagePolygon; readonly edgePolicy?: "rounded" | "none" | "soft" | "feather"; readonly kind: "image"; readonly slotId: string; readonly assetId?: string; readonly fit: "contain" | "cover"; readonly placeholderKind: NewsletterPlaceholderKind }
-export type ShapeSceneLayer = SceneBase & { readonly kind: "shape"; readonly fill: string; readonly stroke?: string; readonly radius?: number }
+export type TextSceneLayer = SceneBase & { readonly kind: "text"; readonly text: string; readonly lines: readonly string[]; readonly style: TextStyle; readonly provenance: TextProvenance; readonly highlights?: readonly string[]; readonly highlightColor?: string; readonly textEffect?: { readonly stroke?: string; readonly strokeWidth?: number; readonly shadow?: { readonly color: string; readonly dx: number; readonly dy: number; readonly blur: number } } }
+export type ImageSceneLayer = SceneBase & { readonly visible?: boolean; readonly clipPolygon?: ImagePolygon; readonly edgePolicy?: "rounded" | "none" | "soft" | "feather"; readonly kind: "image"; readonly slotId: string; readonly assetId?: string; readonly fit: "contain" | "cover"; readonly placeholderKind: NewsletterPlaceholderKind }
+export type ShapeSceneLayer = SceneBase & { readonly kind: "shape"; readonly fill: string; readonly stroke?: string; readonly strokeWidth?: number; readonly radius?: number }
 export type PathSceneLayer = SceneBase & { readonly kind: "path"; readonly path: string; readonly fill: string; readonly stroke: string; readonly strokeWidth: number }
 export type SceneLayer = TextSceneLayer | ImageSceneLayer | ShapeSceneLayer | PathSceneLayer
 export type NewsletterPageScene = { readonly pageId: string; readonly width: number; readonly height: number; readonly templateVersion: number; readonly layers: readonly SceneLayer[] }
@@ -22,11 +23,11 @@ function textLayer(block: RenderTextBlock, zOrder: number, clipBounds: Frame, co
   return { kind: "text", layerId: block.id, frame: block.frame, zOrder, clipBounds, collisionGroup, text: block.text, lines: block.lines, style: block.style, provenance: block.provenance }
 }
 function imageLayer(pageId: string, image: RenderImage, zOrder: number, clipBounds: Frame, collisionGroup?: string): ImageSceneLayer {
-  return { kind: "image", layerId: `${pageId}-${image.slotId}`, frame: image.frame, zOrder, clipBounds, ...(collisionGroup === undefined ? {} : { collisionGroup }), slotId: image.slotId, ...(image.assetId === undefined ? {} : { assetId: image.assetId }), ...(image.edgePolicy === undefined ? {} : { edgePolicy: image.edgePolicy }), fit: image.fit, placeholderKind: placeholderKindForSlot(image.slotId) }
+  return { visible: image.visible, kind: "image", layerId: `${pageId}-${image.slotId}`, frame: image.frame, zOrder, clipBounds, ...(collisionGroup === undefined ? {} : { collisionGroup }), slotId: image.slotId, ...(image.assetId === undefined ? {} : { assetId: image.assetId }), ...(image.edgePolicy === undefined ? {} : { edgePolicy: image.edgePolicy }), fit: image.fit, placeholderKind: placeholderKindForSlot(image.slotId) }
 }
 function nonEmpty(block: RenderTextBlock | undefined): block is RenderTextBlock { return block !== undefined && block.text.length > 0 }
 
-export function buildCardScene(page: RenderPage): NewsletterPageScene {
+function unfilteredCardScene(page: RenderPage): NewsletterPageScene {
   if (page.officialLayers !== undefined) return { pageId: page.pageId, width: page.width, height: page.height, templateVersion: page.templateVersion, layers: page.officialLayers }
   if (page.editorial !== undefined) return buildEditorialCardScene(page)
   const bounds = pageBounds(page.width, page.height)
@@ -44,13 +45,18 @@ export function buildCardScene(page: RenderPage): NewsletterPageScene {
     textLayer(page.title, 20, safe, content),
     ...(nonEmpty(page.badge) ? [textLayer(page.badge, 20, safe, content)] : []),
     ...(nonEmpty(page.lead) ? [textLayer(page.lead, 21, safe, content)] : []),
-    ...(page.topicOverview === undefined ? [textLayer(page.body, 22, safe, content)] : page.topicOverview.flatMap((topic, index): readonly SceneLayer[] => [
+    ...(page.topicOverview === undefined && page.actions === undefined ? [textLayer(page.body, 22, safe, content)] : []),
+    ...(page.actions === undefined ? [] : page.actions.flatMap((action, index): readonly SceneLayer[] => [
+      { kind: "shape", layerId: `${action.id}-surface`, frame: { x: action.frame.x - 12, y: action.frame.y - 8, width: action.frame.width + 24, height: action.frame.height + 16 }, zOrder: 18, clipBounds: safe, fill: index % 2 === 0 ? "#f4f8f6" : "#fff8ef", stroke: page.accent ?? "#d8e2dc", radius: 18 },
+      textLayer(action, 22, safe, `${content}-action-${index + 1}`),
+    ])),
+    ...(page.topicOverview === undefined ? [] : page.topicOverview.flatMap((topic, index): readonly SceneLayer[] => [
       { kind: "shape", layerId: `${topic.id}-surface`, frame: { x: topic.frame.x - 16, y: topic.frame.y - 14, width: topic.frame.width + 32, height: topic.frame.height + 28 }, zOrder: 18, clipBounds: safe, fill: index % 2 === 0 ? "#fffdf8" : "#f7f2e8", stroke: page.accent ?? "#d8e2dc", radius: 18 },
       textLayer(topic, 22, safe, content),
     ])),
     ...(nonEmpty(page.closing) ? [textLayer(page.closing, 23, safe, content)] : []),
-    ...(page.seasonalDecoration === undefined ? [] : [imageLayer(page.pageId, page.seasonalDecoration, 6, safe)]),
-    ...(page.mascot === undefined ? [] : [imageLayer(page.pageId, page.mascot, 26, safe)]),
+    ...(page.seasonalDecoration?.assetId === undefined ? [] : [imageLayer(page.pageId, page.seasonalDecoration, 6, safe)]),
+    ...(page.mascot?.assetId === undefined ? [] : [imageLayer(page.pageId, page.mascot, 26, safe)]),
   ]
   return { pageId: page.pageId, width: page.width, height: page.height, templateVersion: page.templateVersion, layers }
 }
@@ -61,7 +67,8 @@ export function buildNewsletterScene(document: RenderDocument): NewsletterScene 
   return { projectId: document.projectId, projectRevision: document.projectRevision, designRevision: document.designRevision, pages: [a4, ...document.cards.map(buildCardScene)] }
 }
 
-export function buildA4PageScene(page: RenderDocument["a4"]): NewsletterPageScene {
+function unfilteredA4Scene(page: RenderDocument["a4"]): NewsletterPageScene {
+  if (page.compositionPreset === "september-master" && supportsSkillMasterA4(page)) return buildSkillMasterA4Scene(page)
   const bounds = pageBounds(page.width, page.height)
   const safe = { x: page.safeMargin, y: page.safeMargin, width: page.width - page.safeMargin * 2, height: page.height - page.safeMargin * 2 }
   const layers: SceneLayer[] = [
@@ -135,3 +142,7 @@ export function validateNewsletterScene(scene: NewsletterScene): readonly SceneV
 export function validateNewsletterDocument(document: RenderDocument): readonly SceneValidationIssue[] { return validateNewsletterScene(buildNewsletterScene(document)) }
 export function newsletterSceneHash(scene: NewsletterScene): string { return semanticHashSync(scene) }
 export function newsletterPageSceneHash(scene: NewsletterPageScene): string { return semanticHashSync(scene) }
+
+function visibleImages(scene:NewsletterPageScene):NewsletterPageScene{return {...scene,layers:scene.layers.filter(l=>l.kind!=="image"||l.visible!==false)}}
+export function buildCardScene(page:RenderPage):NewsletterPageScene{return visibleImages(unfilteredCardScene(page))}
+export function buildA4PageScene(page:RenderDocument["a4"]):NewsletterPageScene{return visibleImages(unfilteredA4Scene(page))}

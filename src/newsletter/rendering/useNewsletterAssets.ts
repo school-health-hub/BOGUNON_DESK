@@ -11,7 +11,7 @@ export function useNewsletterAssets(design: NewsletterDesignState, resolver?: Ne
   const [state, setState] = useState<AssetState>({ design, status: "loading" })
   useEffect(() => {
     let active = true
-    resolveDesignAssets(design, design.designRevision, resolver).then((assets) => {
+    resolveDesignAssets(design, design.designRevision, resolver, { allowPendingReview: true }).then((assets) => {
       if (active) setState({ design, status: "ready", assets })
     }, (error: unknown) => {
       if (active) setState({ design, status: "error", message: error instanceof Error ? error.message : "이미지 검증에 실패했습니다." })

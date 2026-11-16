@@ -21,8 +21,18 @@ function textAnchor(layer: TextSceneLayer): { readonly anchor: "start" | "middle
 function renderText(layer: TextSceneLayer): string {
   const horizontal = textAnchor(layer)
   const lineHeight = layer.style.fontSize * layer.style.lineHeight
-  const spans = layer.lines.map((line, index) => `<tspan x="${horizontal.x}" y="${layer.frame.y + layer.style.fontSize + index * lineHeight}">${escapeXml(line)}</tspan>`).join("")
-  return `<text id="${escapeXml(layer.layerId)}" font-family="Pretendard" font-size="${layer.style.fontSize}" font-weight="${layer.style.fontWeight}" fill="${layer.style.color}" text-anchor="${horizontal.anchor}">${spans}</text>`
+  const highlights = layer.highlights ?? []
+  const spans = layer.lines.map((line, index) => {
+    const escaped = highlights.length === 0 ? escapeXml(line) : line.split(new RegExp(`(${highlights.map(value => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "gu")).filter(value => value.length > 0).map(value => highlights.includes(value) ? `<tspan fill="${escapeXml(layer.highlightColor ?? layer.style.color)}" font-weight="800">${escapeXml(value)}</tspan>` : escapeXml(value)).join("")
+    return `<tspan x="${horizontal.x}" y="${layer.frame.y + layer.style.fontSize + index * lineHeight}">${escaped}</tspan>`
+  }).join("")
+  const effect = layer.textEffect
+  const stroke = effect?.stroke === undefined ? "" : ` stroke="${escapeXml(effect.stroke)}" stroke-width="${effect.strokeWidth ?? 1}" paint-order="stroke fill"`
+  const filterId = `shadow-${layer.layerId}`.replace(/[^a-zA-Z0-9_-]/g, "-")
+  const shadow = effect?.shadow
+  const defs = shadow === undefined ? "" : `<defs><filter id="${filterId}" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="${shadow.dx}" dy="${shadow.dy}" stdDeviation="${shadow.blur}" flood-color="${escapeXml(shadow.color)}"/></filter></defs>`
+  const filter = shadow === undefined ? "" : ` filter="url(#${filterId})"`
+  return `${defs}<text id="${escapeXml(layer.layerId)}" font-family="Pretendard" font-size="${layer.style.fontSize}" font-weight="${layer.style.fontWeight}" fill="${layer.style.color}" text-anchor="${horizontal.anchor}"${stroke}${filter}>${spans}</text>`
 }
 function renderImage(pageId: string, layer: ImageSceneLayer, assets: ReadonlyMap<string, string>): string {
   const clipId = `clip-${pageId}-${layer.slotId}`
@@ -44,7 +54,8 @@ function renderImage(pageId: string, layer: ImageSceneLayer, assets: ReadonlyMap
 }
 function renderShape(layer: ShapeSceneLayer): string {
   const stroke = layer.stroke === undefined ? "" : ` stroke="${layer.stroke}"`
-  return `<rect id="${escapeXml(layer.layerId)}" x="${layer.frame.x}" y="${layer.frame.y}" width="${layer.frame.width}" height="${layer.frame.height}" rx="${layer.radius ?? 0}" fill="${layer.fill}"${stroke}/>`
+  const strokeWidth = layer.strokeWidth === undefined ? "" : ` stroke-width="${layer.strokeWidth}"`
+  return `<rect id="${escapeXml(layer.layerId)}" x="${layer.frame.x}" y="${layer.frame.y}" width="${layer.frame.width}" height="${layer.frame.height}" rx="${layer.radius ?? 0}" fill="${layer.fill}"${stroke}${strokeWidth}/>`
 }
 function renderLayer(pageId: string, layer: SceneLayer, assets: ReadonlyMap<string, string>): string {
   switch (layer.kind) {

@@ -1,4 +1,5 @@
 import { z } from "zod"
+import {topicSelectionSchema} from "./monthlyTopicBank"
 import { canonicalJson, semanticHashSync } from "./hash"
 
 const id = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/)
@@ -18,6 +19,7 @@ const sectionSchema = z.object({
   userEdit: userEditSchema.optional(),
   revision: z.number().int().positive(),
   semanticHash: hash,
+  topicSelection: topicSelectionSchema.optional(),
 }).readonly()
 const canonicalCopySchema = z.object({ sections: z.array(sectionSchema).length(6).readonly() }).readonly()
 const cardLayoutSchema = z.discriminatedUnion("kind", [
@@ -46,11 +48,13 @@ export const newsletterProjectSchema = z.object({
   cloneProvenance: z.object({ sourceProjectId: projectId, sourceRevision: z.number().int().positive() }).readonly().optional(),
   topics: z.array(topicSchema).length(6).readonly(),
   canonicalCopy: canonicalCopySchema,
+  topicTitleHistory: z.array(z.object({throughRevision:z.number().int().positive(),titles:z.array(z.string().trim().min(1)).length(6).readonly()}).readonly()).readonly().optional(),
   a4Layout: z.object({ sectionRefs: z.array(sectionId).length(6).readonly() }).readonly(),
   cardLayouts: z.array(cardLayoutSchema).length(7).readonly(),
   revisionHistory: z.array(revisionSchema).min(1).readonly(),
   outputHistory: z.array(outputSchema).readonly(),
 }).readonly().superRefine((project, context) => {
+  if(project.topicTitleHistory?.some((entry,index,all)=>entry.throughRevision>=project.projectRevision||(index>0&&entry.throughRevision<=(all[index-1]?.throughRevision??0))))context.addIssue({code:"custom",message:"topic title history must precede current revision in order"})
   const topicIds = project.topics.map((topic) => topic.id)
   const sectionTopicIds = project.canonicalCopy.sections.map((section) => section.topicId)
   const sectionIds = project.canonicalCopy.sections.map((section) => section.id)

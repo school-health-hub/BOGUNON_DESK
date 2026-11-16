@@ -27,3 +27,21 @@ it('opens read-only preview and only loads a restored record after confirmed bac
  fireEvent.click(screen.getByRole('button',{name:'미리 본 revision 복구'}));await screen.findByText('복구를 취소했습니다.');expect(onLoaded).not.toHaveBeenCalled();
  fireEvent.click(screen.getByRole('button',{name:'revision 1 미리보기'}));await screen.findByRole('button',{name:'미리 본 revision 복구'});fireEvent.click(screen.getByRole('button',{name:'미리 본 revision 복구'}));await waitFor(()=>expect(onLoaded).toHaveBeenCalledWith(record));expect(api.preview).toHaveBeenCalledTimes(2);
 });
+
+it('clears prior save success when an external document detaches the saved head',async()=>{
+ const doc=await fixture(),head={projectId:doc.project.projectId,revision:2,hash:'a'.repeat(64)};
+ const record={head,document:serializeStudioDocument(doc)};
+ const api={list:async()=>({ok:true,data:[head.projectId]}),save:async()=>({ok:true,data:record})};
+ vi.stubGlobal('electronWork',{newsletter:{projects:api}});
+ const callbacks={onLoaded:vi.fn(),onSaved:vi.fn(),onPreview:vi.fn()};
+ const view=render(<NewsletterProjectControls {...callbacks} document={doc} head={head}/>);
+ const details=view.container.querySelector('details');
+ if(details===null)throw new Error('Project controls missing');
+ details.open=true;
+ fireEvent.click(screen.getByRole('button',{name:'프로젝트 내부 저장'}));
+ await screen.findByText('프로젝트 저장됨 · revision 2');
+
+ view.rerender(<NewsletterProjectControls {...callbacks} document={doc} head={null}/>);
+
+ expect(screen.queryByText('프로젝트 저장됨 · revision 2')).toBeNull();
+});

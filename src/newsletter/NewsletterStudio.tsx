@@ -6,9 +6,12 @@ import { NewsletterDesignEditor } from "./rendering/NewsletterDesignEditor"
 import { addStudioAssetFiles, createStudioAssetResolver, parseStudioDocument, serializeStudioDocument, type StudioDocument } from "./studioDocument"
 import "./rendering/fonts/pretendard.css"
 import {createBlankNewsletter,newsletterSchoolTypes,type NewsletterSchoolType} from "./newDocument"
+import {NewsletterAiProductionPanel} from "./NewsletterAiProductionPanel"
+import {createNewsletterAiBaseline} from "./stagedAiProposal"
+import {UserImageImportPanel} from "./UserImageImportPanel"
 import "./newsletter-studio.css"
 
-export function NewsletterStudio({ onClose,renderAiTools }: { readonly onClose: () => void;readonly renderAiTools?:(text:string)=>ReactNode }) {
+export function NewsletterStudio({ onClose,closeRequest,onCloseRequestResolved,renderAiTools,onOpenAiSettings }: { readonly onClose: () => void;readonly closeRequest?:number;readonly onCloseRequestResolved?:(closed:boolean)=>void;readonly renderAiTools?:(text:string)=>ReactNode;readonly onOpenAiSettings?:()=>void }) {
   const [creating,setCreating]=useState(false)
   const [month,setMonth]=useState(()=>{const now=new Date();return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`})
   const [schoolType,setSchoolType]=useState<NewsletterSchoolType>('coed-high')
@@ -22,8 +25,23 @@ export function NewsletterStudio({ onClose,renderAiTools }: { readonly onClose: 
   const [session, setSession] = useState(0)
   const [images, setImages] = useState<ReadonlyMap<string, Uint8Array>>(new Map())
   const [message, setMessage] = useState("")
+  useEffect(()=>{
+    const bridge=window.electronWork?.newsletter?.ai
+    if(document===undefined||bridge===undefined)return
+    const sha256=document.design.assetManifest.filter(asset=>asset.registry?.classification==="AI_GENERATED"&&asset.localReference===`asset:${asset.sha256}`).map(asset=>asset.sha256)
+    if(sha256.length===0)return
+    let active=true
+    void bridge.loadProjectAssets({projectId:document.project.projectId,baseline:createNewsletterAiBaseline(document),sha256}).then(result=>{
+      if(!active||!result.ok)return
+      const restored=new Map(images)
+      for(const asset of result.data){const binary=atob(asset.bytesBase64);restored.set(`asset:${asset.sha256}`,Uint8Array.from(binary,value=>value.charCodeAt(0)))}
+      setImages(restored)
+    })
+    return()=>{active=false}
+  },[document?.project.projectId,document?.design.designRevision])
   const [busy, setBusy] = useState(false)
   const [projectBusy,setProjectBusy]=useState(false)
+  const handledCloseRequest=useRef(closeRequest)
   const [fontReady, setFontReady] = useState(typeof window.document.fonts === "undefined")
   useEffect(() => {
     if (window.document.fonts === undefined) return
@@ -35,6 +53,12 @@ export function NewsletterStudio({ onClose,renderAiTools }: { readonly onClose: 
     }, (error: unknown) => { if (active) setMessage(error instanceof Error ? error.message : "한글 글꼴을 불러오지 못했습니다.") })
     return () => { active = false }
   }, [])
+  useEffect(()=>{
+    if(closeRequest===undefined||handledCloseRequest.current===closeRequest)return
+    handledCloseRequest.current=closeRequest
+    if(busy||projectBusy){onCloseRequestResolved?.(false);return}
+    setCreating(false);onClose();onCloseRequestResolved?.(true)
+  },[busy,closeRequest,onClose,onCloseRequestResolved,projectBusy])
   const shown=preview===null?document:parseStudioDocument(JSON.parse(preview.document))
   const resolver = useMemo(() => shown === undefined ? undefined : createStudioAssetResolver(shown.design, images), [shown?.design, images])
   const archive=():Draft|undefined=>document===undefined?undefined:{key:++draftSequence.current,document,head,images}
@@ -58,10 +82,10 @@ export function NewsletterStudio({ onClose,renderAiTools }: { readonly onClose: 
     setDocument(parsed);setHead(selected.head);setImages(selected.images);setPreview(null);setSession(value=>value+1);setDraftKey('');setMessage('임시 보관한 원고와 이미지 연결을 다시 열었습니다.')
   })
   return <section className="newsletter-product-host" aria-label="보건소식지 제작소">
-    <header className="newsletter-file-toolbar"><button type="button" disabled={busy||projectBusy} onClick={()=>{setCreating(false);onClose()}}>보건 업무로</button><h1>보건소식지 제작소</h1><button type="button" disabled={busy||projectBusy||creating||preview!==null} onClick={()=>setCreating(true)}>새 소식지 작성</button>
-      <label>원고·디자인 JSON 열기<input aria-label="원고·디자인 JSON 열기" type="file" accept=".json,application/json" disabled={busy||projectBusy||creating||preview!==null} onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; if (file !== undefined) void perform(async () => open(parseStudioDocument(JSON.parse(await file.text())))) }} /></label>
+    <header className="newsletter-file-toolbar"><div className="newsletter-title-group"><button type="button" disabled={busy||projectBusy} onClick={()=>{setCreating(false);onClose()}}>보건 업무로</button><div><span>문서 편집·미리보기·출력</span><h1>보건소식지 제작소</h1></div></div><div className="newsletter-file-actions"><button type="button" className="newsletter-primary-action" disabled={busy||projectBusy||creating||preview!==null} onClick={()=>setCreating(true)}>새 소식지 작성</button>
+      <label>JSON 열기<input aria-label="원고·디자인 JSON 열기" type="file" accept=".json,application/json" disabled={busy||projectBusy||creating||preview!==null} onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; if (file !== undefined) void perform(async () => open(parseStudioDocument(JSON.parse(await file.text())))) }} /></label>
       <button type="button" disabled={document === undefined || busy || projectBusy || creating || preview!==null} onClick={() => { if (document !== undefined) void perform(async () => { const result = await window.electronWork.newsletter.saveJson({json:serializeStudioDocument(document)}); if(!result.ok)throw new Error(result.error.message);setMessage(result.data.saved?"원고·디자인 JSON을 저장했습니다.":"JSON 저장을 취소했습니다."); }) }}>원고·디자인 JSON 저장</button>
-      <label>이미지 원본 연결<input aria-label="이미지 원본 연결" type="file" multiple accept="image/png,image/jpeg,image/webp" disabled={document === undefined || busy || projectBusy || creating || preview!==null} onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ""; if (document !== undefined) void perform(async () => { setImages(await addStudioAssetFiles(document.design, images, files)); setMessage(`${files.length}개 이미지의 SHA-256을 확인했습니다. 승인 상태는 변경하지 않았습니다.`) }) }} /></label>
+      <label>이미지 연결<input aria-label="이미지 원본 연결" type="file" multiple accept="image/png,image/jpeg,image/webp" disabled={document === undefined || busy || projectBusy || creating || preview!==null} onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ""; if (document !== undefined) void perform(async () => { setImages(await addStudioAssetFiles(document.design, images, files)); setMessage(`${files.length}개 이미지의 SHA-256을 확인했습니다. 승인 상태는 변경하지 않았습니다.`) }) }} /></label></div>
     </header>
     {renderAiTools?.(shown===undefined?'':shown.project.title+'\n\n'+shown.project.canonicalCopy.sections.map(section=>section.userEdit?.text??section.aiGenerated.text).join('\n\n'))}
     {creating&&<form className="newsletter-file-toolbar" aria-label="새 소식지 작성" onSubmit={event=>{event.preventDefault();if(!busy&&!projectBusy)startNew()}}>
@@ -71,14 +95,15 @@ export function NewsletterStudio({ onClose,renderAiTools }: { readonly onClose: 
       <button type="submit" disabled={busy||projectBusy}>새 소식지 만들기</button><button type="button" disabled={busy||projectBusy} onClick={()=>setCreating(false)}>새 작성 취소</button>
     </form>}
     {drafts.length>0&&<div className="newsletter-file-toolbar"><label>임시 보관 작업<select aria-label="임시 보관 작업" value={draftKey} disabled={busy||projectBusy||creating||preview!==null} onChange={event=>setDraftKey(event.target.value)}><option value="">작업 선택</option>{drafts.map(value=><option key={value.key} value={value.key}>{value.document.project.title} · 임시 {value.key}</option>)}</select></label><button type="button" disabled={!draftKey||busy||projectBusy||creating||preview!==null} onClick={reopenDraft}>임시 작업 다시 열기</button></div>}
-    <p className="newsletter-file-note">임시 보관은 앱 실행 중에만 유지됩니다. 앱 종료 전 JSON 또는 프로젝트 내부 저장을 해 주세요.</p>
+    <p className="newsletter-file-note">임시 보관은 앱 실행 중에만 유지됩니다. 종료 전 JSON 또는 프로젝트에 저장해 주세요.</p>
     <div inert={busy||creating}>
     <NewsletterProjectControls onBusyChange={setProjectBusy} document={document} head={head} onLoaded={loaded} onSaved={stored} onPreview={setPreview}/>
     </div>
     {preview!==null&&<p role="status">이전 revision 미리보기입니다. 복구를 확인하기 전에는 현재 원고가 변경되지 않습니다. 이미지는 복구 후 다시 연결해 주세요.</p>}
-    <p>Electron 편집·미리보기 전용 · WIP 디자인은 승인된 최종 디자인이 아닙니다. PNG/PDF는 독립 검증 후 저장하며 기존 Tauri 원고 저장소는 연결하지 않습니다.</p>
-    <p className="newsletter-file-note">JSON에는 원고·디자인·승인 상태를 보존하며 이미지 원본은 포함하지 않습니다. 다시 열 때 같은 이미지 파일을 선택하면 SHA-256으로 연결합니다.</p>
+    <details className="newsletter-safeguards"><summary>저장·출력 안전 안내</summary><p>Electron 편집·미리보기 전용 · WIP 디자인은 승인된 최종 디자인이 아닙니다. PNG/PDF는 독립 검증 후 저장하며 기존 Tauri 원고 저장소는 연결하지 않습니다.</p><p>JSON에는 원고·디자인·승인 상태를 보존하며 이미지 원본은 포함하지 않습니다. 다시 열 때 같은 이미지 파일을 선택하면 SHA-256으로 연결합니다.</p></details>
     {message.length > 0 && <p role="status">{message}</p>}
-    {shown === undefined ? <p className="newsletter-empty">원고·디자인 JSON을 열거나 새 소식지를 작성하거나 Electron 저장 프로젝트를 선택해 불러오세요. 원고 없이 건강정보를 자동 생성하지 않습니다.</p> : fontReady ? <div inert={preview!==null||creating||busy||projectBusy}><NewsletterDesignEditor key={preview?.token??session} project={shown.project} initialDesign={shown.design} assetResolver={resolver} onChange={value=>{if(preview===null)setDocument(value)}} /></div> : <p role="status">한글 글꼴을 준비하는 중입니다…</p>}
+    {shown!==undefined&&preview===null&&!creating&&shown.design.designSchemaVersion===2&&<UserImageImportPanel design={shown.design} images={images} topicTitles={shown.project.topics.map(topic=>topic.title)} onApply={(design,nextImages)=>{setDocument({project:shown.project,design});setImages(nextImages);setSession(current=>current+1);setMessage("ChatGPT 사용자 가져오기 이미지를 A4와 주제 카드에 배치했습니다. 최종 출력 승인은 대기 상태입니다.")}}/>}
+    {shown!==undefined&&preview===null&&!creating&&<NewsletterAiProductionPanel document={shown} currentAssets={images} bridge={window.electronWork?.newsletter?.ai} onOpenSettings={onOpenAiSettings} onApply={(value,assets)=>{setDocument(value);if(assets!==undefined)setImages(assets);setSession(current=>current+1);setMessage('선택한 AI 후보를 새 revision으로 적용했습니다. 출처와 승인 대기 이미지를 계속 검토해 주세요.')}}/>}
+    {shown === undefined ? <p className="newsletter-empty">원고·디자인 JSON을 열거나 새 소식지를 작성하거나 이 PC에 저장한 프로젝트를 선택해 불러오세요. 원고 없이 건강정보를 자동 생성하지 않습니다.</p> : fontReady ? <div inert={preview!==null||creating||busy||projectBusy}><NewsletterDesignEditor key={preview?.token??session} project={shown.project} initialDesign={shown.design} assetResolver={resolver} onChange={value=>{if(preview===null)setDocument(value)}} /></div> : <p role="status">한글 글꼴을 준비하는 중입니다…</p>}
   </section>
 }

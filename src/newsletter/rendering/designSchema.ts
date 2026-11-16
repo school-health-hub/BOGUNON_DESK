@@ -8,7 +8,7 @@ const isoDateSchema = z.iso.datetime()
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/)
 const frameSchema = z.object({ x: z.number().nonnegative(), y: z.number().nonnegative(), width: z.number().positive(), height: z.number().positive() }).readonly()
 const textStyleSchema = z.object({ fontFamily: z.literal("Pretendard"), fontSize: z.number().positive(), fontWeight: z.number().int().min(100).max(900), lineHeight: z.number().min(1).max(2), color: colorSchema, align: z.enum(["left", "center", "right"]) }).readonly()
-const imageLayerSchema = z.object({ slotId: idSchema, assetId: idSchema.optional(), frame: frameSchema, edgePolicy: z.enum(["rounded", "none", "soft", "feather"]).optional(), fit: z.enum(["contain", "cover"]) }).readonly()
+const imageLayerSchema = z.object({ visible: z.boolean().optional(), slotId: idSchema, assetId: idSchema.optional(), frame: frameSchema, edgePolicy: z.enum(["rounded", "none", "soft", "feather"]).optional(), fit: z.enum(["contain", "cover"]) }).readonly()
 
 const cardLayoutV1Object = z.object({ pageId: idSchema, background: colorSchema, titleFrame: frameSchema, bodyFrame: frameSchema, titleStyle: textStyleSchema, bodyStyle: textStyleSchema, image: imageLayerSchema })
 const cardLayoutV1Schema = cardLayoutV1Object.readonly()
@@ -39,6 +39,8 @@ const assetSchema = z.object({
     classification: z.enum(["USER_CREATED", "AI_GENERATED", "OFFICIAL_REFERENCE", "LICENSED_EXTERNAL"]),
     purpose: z.enum(["mascot", "illustration", "decoration", "reference"]),
     usageScope: z.enum(["layout-comparison-only", "qa-only", "newsletter-output"]),
+    generation: z.object({ provider: z.enum(["openai", "gemini", "mock"]), model: z.string().trim().min(1).max(200), requestId: idSchema, promptHash: sha256Schema, outputHash: sha256Schema, createdAt: isoDateSchema, mock: z.boolean() }).strict().readonly().optional(),
+    imported: z.object({ source: z.literal("chatgpt-user-import"), importedAt: isoDateSchema, width: z.number().int().positive().max(8192), height: z.number().int().positive().max(8192) }).strict().readonly().optional(),
   }).readonly().optional(),
 }).readonly().superRefine((asset, context) => {
   if (asset.localReference !== undefined && asset.localReference !== `asset:${asset.sha256}`) context.addIssue({ code: "custom", message: "asset reference must match its sha256" })

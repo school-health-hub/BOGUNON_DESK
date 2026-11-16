@@ -3,8 +3,8 @@ import { useState } from "react"
 import type { NewsletterDesignStateV2 } from "./designSchema"
 import { updateOfficialElementFrame, updateOfficialTemplateClosing } from "./officialTemplate"
 
-type Props = { readonly renderTextEditor?: (binding: string) => ReactNode; readonly design: NewsletterDesignStateV2; readonly cardIndex: number; readonly actionCount: number; readonly onChange: (design: NewsletterDesignStateV2) => void }
-export function OfficialTemplateControls({ design, cardIndex, onChange, renderTextEditor }: Props) {
+type Props = { readonly textDraftPending?:boolean; readonly renderTextEditor?: (binding: string) => ReactNode; readonly design: NewsletterDesignStateV2; readonly cardIndex: number; readonly actionCount: number; readonly onChange: (design: NewsletterDesignStateV2) => void }
+export function OfficialTemplateControls({ design, cardIndex, onChange, renderTextEditor, textDraftPending }: Props) {
   const [selected, setSelected] = useState("")
   const [error, setError] = useState("")
   const template = design.cardLayouts[cardIndex]?.officialTemplate
@@ -17,7 +17,7 @@ export function OfficialTemplateControls({ design, cardIndex, onChange, renderTe
       <p role="status">{template.kind === "cover" ? "공식 표지" : "공식 교육형"} · 요소를 선택해 위치와 크기를 조정하세요.</p>
       <p>적용 전 문서 상태는 Revision 복원에서 다시 열 수 있습니다.</p>
       <label>공식 마무리 문구<textarea aria-label="공식 마무리 문구" maxLength={1000} value={template.closingText ?? design.cardLayouts[cardIndex]?.editorial?.closing ?? ""} onChange={event => onChange(updateOfficialTemplateClosing(design, { cardIndex, text: event.target.value, now: now() }))} /></label>
-      <label>공식 요소<select aria-label="공식 요소" value={element?.id ?? ""} onChange={event => setSelected(event.target.value)}>{template.elements.map(value => <option key={value.id} value={value.id}>{value.label}</option>)}</select></label>
+      <label>공식 요소<select aria-label="공식 요소" disabled={textDraftPending} value={element?.id ?? ""} onChange={event => setSelected(event.target.value)}>{template.elements.map(value => <option key={value.id} value={value.id}>{value.label}</option>)}</select></label>
       {element !== undefined && <fieldset className="frame-editor"><legend>{element.label} 위치·크기</legend>{([["x", "가로 위치"], ["y", "세로 위치"], ["width", "너비"], ["height", "높이"]] as const).map(([key, label]) => <label key={key}>{label}<input type="number" aria-label={`공식 요소 ${label}`} min={key === "width" || key === "height" ? 1 : 0} max="1200" value={element.frame[key]} onChange={event => {
         try {
           onChange(updateOfficialElementFrame(design, { cardIndex, elementId: element.id, patch: { [key]: Number(event.target.value) }, now: now() }))

@@ -8,7 +8,7 @@ import { editorialFrames } from "./editorialLayout"
 
 function updateCardLayout(design: NewsletterDesignStateV2, input: Parameters<typeof updateDesignCard>[1]): NewsletterDesignStateV2 { return parseNewsletterDesignStateV2(updateDesignCard(design, input)) }
 type Editorial = NonNullable<CardDesignLayoutV2["editorial"]>
-type Props = { readonly renderTextEditor?: (binding: string) => ReactNode; readonly design: NewsletterDesignStateV2; readonly cardIndex: number; readonly actionCount: number; readonly onChange: (design: NewsletterDesignStateV2) => void }
+type Props = { readonly textDraftPending?:boolean; readonly renderTextEditor?: (binding: string) => ReactNode; readonly design: NewsletterDesignStateV2; readonly cardIndex: number; readonly actionCount: number; readonly onChange: (design: NewsletterDesignStateV2) => void }
 const now = (): string => new Date().toISOString()
 function layoutType(value: string): Editorial["layoutType"] | undefined { switch (value) { case "A": case "B": case "C": case "D": return value; default: return undefined } }
 function composition(value: string): Editorial["studentComposition"] { switch (value) { case "female": case "male": case "objects": return value; default: return "mixed" } }
@@ -17,7 +17,7 @@ export function AssetChoice({ label, value, design, onChange }: { readonly label
   const assets = design.assetManifest.filter((asset) => asset.approvalStatus === "approved" && asset.registry?.usageScope === "newsletter-output" && asset.registry.purpose === "illustration" && asset.registry.classification !== "OFFICIAL_REFERENCE")
   return <label>{label}<select aria-label={label} value={value ?? ""} onChange={(event) => onChange(event.target.value)}><option value="" disabled>등록된 삽화 선택</option>{assets.map((asset) => <option key={asset.id} value={asset.id}>{asset.originalName}</option>)}</select>{assets.length === 0 && <small>사용 가능한 승인 삽화를 먼저 등록해 주세요.</small>}</label>
 }
-export function NewsletterEditorialControls({ design, cardIndex, actionCount, onChange, renderTextEditor }: Props) {
+export function NewsletterEditorialControls({ design, cardIndex, actionCount, onChange, renderTextEditor, textDraftPending }: Props) {
   const card = design.cardLayouts[cardIndex]
   if (card === undefined) return null
   const config = card.editorial
@@ -35,10 +35,10 @@ export function NewsletterEditorialControls({ design, cardIndex, actionCount, on
     const ratio = percent / 100
     update({ moduleImages: config.moduleImages.map((image, moduleIndex) => moduleIndex === index ? { ...image, frame: { x: frame.x + frame.width * (1 - ratio) / 2, y: frame.y + frame.height * (1 - ratio) / 2, width: frame.width * ratio, height: frame.height * ratio } } : image) })
   }
-  if (design.cardLayouts[cardIndex]?.officialTemplate !== undefined) return <OfficialTemplateControls design={design} cardIndex={cardIndex} actionCount={actionCount} onChange={onChange} renderTextEditor={renderTextEditor} />
+  if (design.cardLayouts[cardIndex]?.officialTemplate !== undefined) return <OfficialTemplateControls textDraftPending={textDraftPending} design={design} cardIndex={cardIndex} actionCount={actionCount} onChange={onChange} renderTextEditor={renderTextEditor} />
   return <fieldset className="control-stack"><legend>편집형 카드 구성</legend>
     {cardIndex > 0 && <button type="button" disabled={actionCount !== 4} onClick={() => onChange(applyIllustratedCardPreset(design, { cardIndex, now: now() }))}>삽화형 A·B · 표지·선택 카드 적용</button>}
-    {cardIndex > 0 && <button type="button" disabled={actionCount !== 4} onClick={() => onChange(applySkillMasterPreset(design, { cardIndex, now: now() }))}>9월 스킬 기본형 · A4·표지·선택 카드 적용</button>}
+    {cardIndex > 0 && <button type="button" disabled={actionCount !== 4} onClick={() => onChange(applySkillMasterPreset(design, { cardIndex, now: now() }))}>9월 스킬 기본형 · 표지·선택 카드 적용</button>}
     {config?.compositionPreset === "september-master" && <p role="status">9월 스킬 기본형이 적용되었습니다. A/B/C/D를 선택하면 해당 확장 구성으로 전환합니다.</p>}
     <label>편집형 레이아웃<select aria-label="편집형 레이아웃" value={config?.compositionPreset !== undefined ? "master" : config?.layoutType ?? "legacy"} onChange={(event) => {
       const type = layoutType(event.target.value)
@@ -46,8 +46,8 @@ export function NewsletterEditorialControls({ design, cardIndex, actionCount, on
     }}>{config?.compositionPreset !== undefined && <option value="master">{config.compositionPreset === "illustrated-ab" ? "삽화형 A·B" : "9월 스킬 기본형"}</option>}<option value="legacy">기존 V2 구조 유지</option>{cardIndex === 0 ? <option value="A">TYPE A · 표지형</option> : <><option value="B" disabled={actionCount !== 4}>TYPE B · 2×2 교육형</option><option value="C" disabled={actionCount !== 4}>TYPE C · 비대칭 스토리형</option><option value="D" disabled={actionCount !== 4}>TYPE D · 안내·서비스형</option></>}</select></label>
     {cardIndex > 0 && actionCount !== 4 && <p role="status">편집형 레이아웃에는 실천 항목 4개가 필요합니다. 현재 {actionCount}개입니다. 원고를 확인해 주세요.</p>}
     {config !== undefined && <>
-      {cardIndex === 0 && <label>표지 학생 구성<select aria-label="표지 학생 구성" value={config.studentComposition} onChange={(event) => onChange(updateCardLayout(design, { cardIndex, now: now(), patch: { editorial: { ...config, studentComposition: composition(event.target.value) }, image: { assetId: undefined } } }))}><option value="female">여학생</option><option value="male">남학생</option><option value="mixed">여학생·남학생 혼합</option><option value="objects">학생 없이 소품·행동 중심</option></select></label>}
-      {cardIndex === 0 && <p role="status">학생 구성을 바꾸면 기존 장면을 해제합니다. 선택한 구성에 맞는 승인 대표 장면을 직접 선택해 주세요.{card.image.assetId === undefined ? " 대표 장면 선택이 필요합니다." : " 선택한 장면을 미리보기에서 확인해 주세요."}</p>}
+      {cardIndex === 0 && <label>표지 학생 구성<select aria-label="표지 학생 구성" value={config.studentComposition} onChange={(event) => onChange(updateCardLayout(design, { cardIndex, now: now(), patch: { editorial: { ...config, studentComposition: composition(event.target.value) } } }))}><option value="female">여학생</option><option value="male">남학생</option><option value="mixed">여학생·남학생 혼합</option><option value="objects">학생 없이 소품·행동 중심</option></select></label>}
+      {cardIndex === 0 && <p role="status">학생 구성만 기록하며 기존 그림은 유지합니다. 학생 삽화 선택에서 비교한 뒤 적용해 주세요.{card.image.assetId === undefined ? " 대표 장면 선택이 필요합니다." : " 선택한 장면을 미리보기에서 확인해 주세요."}</p>}
       <label>월별 계절 장식<select aria-label="월별 계절 장식" value={config.season} onChange={(event) => update({ season: season(event.target.value) })}><option value="none">장식 없음</option><option value="spring">봄</option><option value="summer">여름</option><option value="autumn">가을</option><option value="winter">겨울</option></select></label>
       {cardIndex === 0 && <label>월별 슬로건<input aria-label="월별 슬로건" value={config.slogan ?? ""} onChange={(event) => update({ slogan: event.target.value })} /></label>}
       <label>마무리 문구<input aria-label="마무리 문구" value={config.closing ?? ""} onChange={(event) => update({ closing: event.target.value })} /></label>
