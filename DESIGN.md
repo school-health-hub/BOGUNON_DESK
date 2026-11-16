@@ -756,9 +756,41 @@ UX07F reference clarification: user explicitly confirmed existing DESIGN.md + Bâ
 ## Newsletter NS-14 reference-fidelity finish (2026-11-16)
 
 - The user-supplied 2026 September inner card is the primary visual contract. NS-14 preserves the editable Scene/SVG structure while restoring its dimensional title, heart-flanked issue badge, illustrated autumn branch, large overlapping mascot, action-keyword emphasis, illustrated action medallions, and decorated closing strip.
+
+### NS-15 single-card finish
+
+- Keep the September editorial anatomy, canonical action sentences and approved mascot bytes. Use a synthetic composition fixture, never imply recovery of the school Project/Revision.
+- Replace geometric fallback art with outlined, shaded educational drawings: a recognizable sleeve-covering student, and a hand placing tissue into a bin with soap as a secondary cue. Warm skin, brown linework and muted school-uniform teal connect the small drawings to the student illustration.
+- Autumn maple leaves use irregular pointed lobes, curved stems and fine veins; small lower-left greenery links the main image with the closing strip. No dashboard panels or new layout variants.
+- Body type remains Pretendard; headline uses a restrained pale rim and shallow shadow. Closing text gets its own inset frame, clear of both heart ornaments; long closing copy wraps rather than colliding with decoration.
+- Main student and mascot are reused without file modification. Their frame/fit adjustments are non-destructive. Publication remains pending; Electron QA output is a review artifact.
+
+### NS-16 seven-card review series
+
+- NS-16B correction: the user-supplied NS-09 revision proposal is the review-copy baseline, not final manuscript approval or recovered school history. Preserve every sentence; fit through typography only. Flat vector people are prohibited as main artwork. If no semantically appropriate raster source exists, expose an explicit missing-main status rather than substituting smoking/medication/cooking art. Miniatures may use action-specific local SVG objects; retain existing typography, frames and approved otter.
+
+- Design revision `ns16-november-review-1`; local artwork `school-education-vector-1`; separate cover anatomy `september-cover-editorial-2`. Schema and canonical Revision contracts remain unchanged.
+- The cover uses September's left stacked month/title, brand ribbon, large right mascot, seasonal corner, student scene and four bottom topic previews. Body cards retain NS-15's measured editorial column.
+- Title size is selected by measured wrapping within the existing frame. Action emphasis marks behavior verbs; protected Korean noun phrases move together across line breaks without rewriting source text. Closing copy remains centered vertically and horizontally.
+- A supplied semantic image binding takes priority. Missing artwork may use explicit topic/action-specific local paths; unknown topics remain visibly unassigned. Local illustrations are review assets and are not claimed to match the raster illustration style perfectly.
+- Exactly six requested topics and four actions each live in an external synthetic fixture, never in the recovered school project. All publication/export approvals remain pending. No paid image generation.
 - Display title treatment is a reusable layered primitive: deep navy face, pale outline, and a soft downward navy shadow. It must remain live Korean SVG text, never a rasterized heading.
 - The issue badge uses a dark-to-light visual stack built from independent rounded surfaces plus heart ornaments. The closing strip repeats the heart motif and remains an editable text layer.
 - The main illustration retains a warm background scene and occupies roughly 39% of the content width. Action content is one continuous editorial column, not four dashboard cards. Each row has a dedicated educational medallion and a green key phrase followed by the untouched canonical action copy.
 - The mascot overlaps the lower action column and closing region at the same visual scale as the reference. It is the approved source asset; no regenerated mascot is permitted.
 - Autumn decoration is a composed branch-and-leaf Scene primitive rather than repeated star glyphs. Decorative layers are excluded from content collision groups but remain inside the export bounds.
 - When no exact independent educational image exists, a topic-specific local SVG scene may fill a mini-art slot only when it depicts the named action unambiguously. Generic repeated icons remain prohibited.
+# NS-18 November A4 review
+
+Reuse the September Skill A4 hierarchy: large monthly heading, editable school field,
+approved mascot, six numbered modules in two columns and three rows, an educational
+image and the original four actions in every module, and a quiet lower guidance area.
+Cards share canonical copy and SHA-bound source images with A4. Only a wrapped card
+heading receives extra lead spacing; other card output must remain unchanged.
+This is a synthetic review document, not recovered school Revision history. Design,
+manuscript and publication approvals remain pending. Physical printer QA is separate.
+
+NS-20 cover: reference-led single navy heading, green brand badge, text-free three-student scene with separate original otter, closing strip, six live canonical topic titles in two columns/three rows. Full reference raster is never a page background; crop provenance and resolution remain explicit. Body cards and A4 are unchanged.
+
+NS-20F checkpoint: cover preview geometry is three columns/two rows, matching the corrected user direction. Student scene fits710x375 logical pixels without destructive cropping; the reference-derived741x391 scene remains a pending external review asset. Existing vector previews use consistent outlines/ground shading; the mind topic uses planning art. Body six-card and A4 output bytes remain NS-18 baseline. No design freeze, manuscript approval, publication approval or full DESK integration is implied by this checkpoint.
+External dependencies are not bundled: synthetic Studio document, SHA asset ledger, student scene crop (SHA256 7feeb1ef4e147d31296b710af02b012edd1c43803e7022bb104d943687957c18), original approved otter and source student art, Skill masters, reference PNG, and review outputs. A source-only clone cannot recreate the exact review fixture until these supplemental artifacts are restored and SHA-verified. Receiving-PC/online supplemental transfer is not verified by this Git checkpoint. Next step is user visual review of the final cover, then explicit design freeze/integration scope; school Project/Revision recovery and actual printer proof remain separate.

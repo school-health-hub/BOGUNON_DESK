@@ -4,7 +4,7 @@ import { DesignCardNotFoundError } from "./designState"
 import { SEPTEMBER_INNER_TEMPLATE } from "./skillMasterCardDesign"
 
 export const SKILL_MASTER = {
-  cover: { title: { x: 90, y: 130, width: 1020, height: 170 }, lead: { x: 100, y: 315, width: 1000, height: 60 }, image: { x: 80, y: 290, width: 760, height: 590 }, mascot: { x: 800, y: 430, width: 320, height: 450 }, closing: { x: 100, y: 1080, width: 1000, height: 55 } },
+  cover: { title: { x: 190, y: 142, width: 850, height: 108 }, lead: { x: 210, y: 274, width: 780, height: 44 }, image: { x: 60, y: 345, width: 710, height: 375 }, mascot: { x: 810, y: 325, width: 345, height: 405 }, closing: { x: 125, y: 767, width: 950, height: 42 } },
   body: { title: SEPTEMBER_INNER_TEMPLATE.title, lead: SEPTEMBER_INNER_TEMPLATE.lead, image: SEPTEMBER_INNER_TEMPLATE.image, mascot: SEPTEMBER_INNER_TEMPLATE.mascot, closing: SEPTEMBER_INNER_TEMPLATE.closing },
 } as const
 

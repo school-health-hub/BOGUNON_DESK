@@ -82,7 +82,7 @@ it("keeps five body Scenes identical and places master content within nonoverlap
   const svg = renderNewsletterSceneSvg(body, new Map())
   expect(svg).toContain("master-art-unassigned")
   expect(svg).toContain("master-cough-sleeve")
-  expect(svg).toContain("master-tissue-wash-bin")
+  expect(svg).not.toContain("master-tissue-wash-bin")
   expect(svg).toContain("feDropShadow")
   expect(svg).toContain("stroke-width=\"3\"")
   expect(svg).toContain("fill=\"#0A713A\" font-weight=\"800\"")

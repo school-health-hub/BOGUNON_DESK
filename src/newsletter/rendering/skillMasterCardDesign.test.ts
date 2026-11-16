@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { createNewsletterProject } from "../project"
 import { createNewsletterDesignState } from "./designSchema"
-import { upgradeNewsletterDesignStateV2 } from "./designState"
+import { updateCardLayout, upgradeNewsletterDesignStateV2 } from "./designState"
 import { compileRenderDocument } from "./renderDocument"
 import { buildNewsletterScene, validateNewsletterScene } from "./renderScene"
 import { SEPTEMBER_INNER_TEMPLATE, SEPTEMBER_INNER_TOKENS, septemberInnerActionStyle, septemberInnerTitleStyle } from "./skillMasterCardDesign"
@@ -22,6 +22,13 @@ async function fixture(title = "손 위생과 기침 예절") {
 }
 
 describe("measured September inner-card template", () => {
+  it.each(["contain", "cover"] as const)("respects the selected main image fit: %s", async fit => {
+    const { project, design } = await fixture()
+    const next = updateCardLayout(design, { cardIndex: 1, now: NOW, patch: { image: { fit } } })
+    const document = compileRenderDocument({ project, projectRevision: 1, design: next, designRevision: next.designRevision })
+    expect(document.cards[1]?.image.fit).toBe(fit)
+    expect(document.cards[1]?.editorial?.modules.map(module => module.action.text)).toEqual(actions)
+  })
   it("compiles the reference-derived hierarchy without card-grid variants", async () => {
     const { project, design } = await fixture()
     const document = compileRenderDocument({ project, projectRevision: 1, design, designRevision: design.designRevision })
@@ -38,8 +45,8 @@ describe("measured September inner-card template", () => {
     const { project, design } = await fixture(title)
     const document = compileRenderDocument({ project, projectRevision: 1, design, designRevision: design.designRevision })
     expect(document.cards[1]?.title.style).toMatchObject(septemberInnerTitleStyle(title))
-    expect(document.cards[1]?.editorial?.modules.map(module => module.action.style.fontSize)).toEqual(actions.map(action => septemberInnerActionStyle(action).fontSize))
-    expect(septemberInnerActionStyle(actions[1]).fontSize).toBe(23)
+    expect(document.cards[1]?.editorial?.modules.map(module => module.action.style.fontSize)).toEqual([31, 28, 31, 23])
+    expect(septemberInnerActionStyle(actions[1]).fontSize).toBe(28)
   })
 
   it("exposes four independent mini-illustration slots", async () => {
@@ -55,5 +62,21 @@ describe("measured September inner-card template", () => {
     const modules = document.cards[1]?.editorial?.modules
     expect(modules?.map(module => module.action.text)).toEqual(actions)
     expect(modules?.every(module => module.description === undefined)).toBe(true)
+  })
+
+  it("reserves a separate closing text frame clear of the heart ornaments", async () => {
+    const { project, design } = await fixture()
+    const document = compileRenderDocument({ project, projectRevision: 1, design, designRevision: design.designRevision })
+    const closing = document.cards[1]?.closing
+    expect(closing?.frame.x).toBeGreaterThanOrEqual(SEPTEMBER_INNER_TEMPLATE.closing.x + 60)
+    expect(closing?.frame.width).toBeLessThanOrEqual(SEPTEMBER_INNER_TEMPLATE.closing.width - 120)
+  })
+
+  it("uses educational fallback drawings only for the matching action semantics", async () => {
+    const { project, design } = await fixture()
+    const document = compileRenderDocument({ project, projectRevision: 1, design, designRevision: design.designRevision })
+    const scene = buildNewsletterScene(document).pages.find(page => page.pageId === "card-topic-1")
+    expect(scene?.layers.some(layer => layer.layerId.endsWith("-cough-eyes"))).toBe(true)
+    expect(scene?.layers.some(layer => layer.layerId.endsWith("-tissue-wash-hand"))).toBe(true)
   })
 })

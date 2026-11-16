@@ -4,6 +4,7 @@ import type { Frame, RenderDocument, RenderImage, RenderPage, RenderTextBlock, T
 import type { TextStyle } from "./designSchema"
 import { newsletterPlaceholderDataUrl, placeholderKindForSlot, type NewsletterPlaceholderKind } from "./placeholders"
 import { buildEditorialCardScene, seasonalSceneLayers } from "./editorialScene"
+import { buildSkillMasterA4Scene, supportsSkillMasterA4 } from "./skillMasterA4"
 
 export const NEWSLETTER_PLACEHOLDER_DATA_URL = newsletterPlaceholderDataUrl("generic")
 
@@ -67,6 +68,7 @@ export function buildNewsletterScene(document: RenderDocument): NewsletterScene 
 }
 
 function unfilteredA4Scene(page: RenderDocument["a4"]): NewsletterPageScene {
+  if (page.compositionPreset === "september-master" && supportsSkillMasterA4(page)) return buildSkillMasterA4Scene(page)
   const bounds = pageBounds(page.width, page.height)
   const safe = { x: page.safeMargin, y: page.safeMargin, width: page.width - page.safeMargin * 2, height: page.height - page.safeMargin * 2 }
   const layers: SceneLayer[] = [

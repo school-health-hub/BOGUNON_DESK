@@ -159,6 +159,7 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
   verifyAssets(snapshot)
   const issues: RenderIssue[] = []
   const editorialA4 = isV2(snapshot) && snapshot.a4Layout.brand?.editorialLayout === true
+  const skillA4 = isV2(snapshot) && snapshot.a4Layout.brand?.compositionPreset === "september-master"
   const historicalTitles=project.topicTitleHistory?.find(value=>value.throughRevision>=input.projectRevision)?.titles
   const renderTopics=project.topics.map((topic,index)=>({...topic,title:historicalTitles?.[index]??topic.title}))
   const titles = new Map(renderTopics.map((topic) => [topic.id, topic.title]))
@@ -176,21 +177,21 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
     const content = structureCanonicalText(section.text)
     const leadText = content.kind === "list" ? content.lead ?? "" : ""
     const topicTitle = titles.get(section.topicId) ?? ""
-    const frames = structured ? reflowA4ModuleFrames({ titleText: topicTitle, leadText, titleFrame: module.titleFrame, leadFrame: module.leadFrame, actionFrame: module.actionListFrame, imageFrame: module.image.frame, titleStyle: moduleTitleStyle, bodyStyle, measureText: input.measureText }) : undefined
+    const frames = structured ? skillA4 ? { title: module.titleFrame, lead: module.leadFrame, action: module.actionListFrame, image: module.image.frame } : reflowA4ModuleFrames({ titleText: topicTitle, leadText, titleFrame: module.titleFrame, leadFrame: module.leadFrame, actionFrame: module.actionListFrame, imageFrame: module.image.frame, titleStyle: moduleTitleStyle, bodyStyle, measureText: input.measureText }) : undefined
     const titleFrame = frames?.title ?? { ...module.frame, height: 60 }
     const sourceBodyFrame = structured ? expandedBodyFrame(frames?.lead ?? module.leadFrame, frames?.action ?? module.actionListFrame, leadText.length > 0) : { x: module.frame.x, y: module.frame.y + 72, width: module.frame.width, height: module.frame.height - 72 }
     const closingText=structured?(editorialA4&&isV2(snapshot)?snapshot.cardLayouts[index+1]?.editorial?.closing??section.topicSelection?.closing??"":section.topicSelection?.closing??""):""
-    const bodyFrame=structured&&section.topicSelection&&closingText?{...sourceBodyFrame,height:Math.max(1,Math.min(sourceBodyFrame.height,module.closingFrame.y-sourceBodyFrame.y-8))}:sourceBodyFrame
+    const bodyFrame=skillA4 && structured ? module.actionListFrame : structured&&section.topicSelection&&closingText?{...sourceBodyFrame,height:Math.max(1,Math.min(sourceBodyFrame.height,module.closingFrame.y-sourceBodyFrame.y-8))}:sourceBodyFrame
     const closingStyle=structured&&editorialA4?{...bodyStyle,fontSize:18,fontWeight:650,color:module.accent,align:"center" as const}:section.topicSelection?{...bodyStyle,fontSize:18,lineHeight:1.2}:bodyStyle
-    const bodyText = content.kind === "list" ? actionText(content.actions, structured ? module.listMarkerStyle : "source") : content.body
+    const bodyText = content.kind === "list" ? skillA4 ? content.actions.map(action => action.replace(LIST_PREFIX, "")).join("\n") : actionText(content.actions, structured ? module.listMarkerStyle : "source") : content.body
     const provenance = { kind: "canonical-section", sectionId: section.id, sourceText: section.text } as const
     return {
       moduleId: module.moduleId, moduleFrame: module.frame, topicId: section.topicId, sectionId: section.id, structured,
       ...(structured ? { number: block(`a4-number-${section.id}`, "a4-page", String(index + 1).padStart(2, "0"), { x: module.frame.x + 12, y: module.frame.y + 12, width: 40, height: 36 }, numberStyle, { kind: "template-static", templateVersion: snapshot.templateVersion }, issues, input.measureText) } : {}),
-      title: block(`a4-title-${section.id}`, "a4-page", topicTitle, titleFrame, moduleTitleStyle, { kind: "topic-title", topicId: section.topicId }, issues, input.measureText),
-      ...(structured && leadText.length > 0 ? { lead: block(`a4-lead-${section.id}`, "a4-page", leadText, frames?.lead ?? module.leadFrame, bodyStyle, provenance, issues, input.measureText, false, editorialA4) } : {}),
-      body: block(`a4-body-${section.id}`, "a4-page", bodyText, bodyFrame, bodyStyle, provenance, issues, input.measureText, true, editorialA4),
-      ...(structured ? { closing: block(`a4-closing-${section.id}`, "a4-page", closingText, module.closingFrame, closingStyle, editorialA4 ? { kind: "design-text", pageId: snapshot.cardLayouts[index + 1]?.pageId ?? "a4-page", field: "closing" } : provenance, issues, input.measureText, false, editorialA4), accent: module.accent, listMarkerStyle: module.listMarkerStyle } : {}),
+      title: block(`a4-title-${section.id}`, "a4-page", topicTitle, titleFrame, skillA4 ? { ...moduleTitleStyle, fontSize: 26 } : moduleTitleStyle, { kind: "topic-title", topicId: section.topicId }, issues, input.measureText),
+      ...(structured && !skillA4 && leadText.length > 0 ? { lead: block(`a4-lead-${section.id}`, "a4-page", leadText, frames?.lead ?? module.leadFrame, bodyStyle, provenance, issues, input.measureText, false, editorialA4) } : {}),
+      body: block(`a4-body-${section.id}`, "a4-page", bodyText, bodyFrame, skillA4 ? { ...bodyStyle, fontSize: 20, lineHeight: 1.23 } : bodyStyle, provenance, issues, input.measureText, true, editorialA4),
+      ...(structured ? { ...(!skillA4 ? { closing: block(`a4-closing-${section.id}`, "a4-page", closingText, module.closingFrame, closingStyle, editorialA4 ? { kind: "design-text", pageId: snapshot.cardLayouts[index + 1]?.pageId ?? "a4-page", field: "closing" } : provenance, issues, input.measureText, false, editorialA4) } : {}), accent: module.accent, listMarkerStyle: module.listMarkerStyle } : {}),
       image: structured && frames !== undefined ? { ...module.image, frame: frames.image } : module.image,
     }
   })
@@ -219,7 +220,7 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
     const bodyFrame = structured ? expandedBodyFrame(layout.leadFrame, layout.actionListFrame, leadText.length > 0) : layout.bodyFrame
     const badgeStyle = { ...layout.bodyStyle, fontSize: Math.min(20, layout.bodyStyle.fontSize), fontWeight: 700, lineHeight: 1.2, color: structured ? layout.accent : layout.titleStyle.color, align: "left" as const }
     const badgeFrame = { x: 88, y: 72, width: 420, height: 36 }
-    const previewCount = sections.some(section=>section.topicSelection!==undefined)?4:structured ? layout.brand?.previewTopicCount ?? 6 : 6
+    const previewCount = structured && layout.editorial?.compositionPreset === "september-master" && index === 0 ? 6 : sections.some(section=>section.topicSelection!==undefined)?4:structured ? layout.brand?.previewTopicCount ?? 6 : 6
     const topicOverview = index === 0 && structured ? renderTopics.slice(0, previewCount).map((topic, topicIndex) => {
       const columns = previewCount === 4 ? 4 : 2
       const column = topicIndex % columns
@@ -231,7 +232,7 @@ export function compileRenderDocument(input: CompileInput): RenderDocument {
       const frame = { x: tile.x + 16, y: tile.y + 14, width: tile.width - 32, height: tile.height - 28 }
       const previewCopy = sections[topicIndex] === undefined ? undefined : structureCanonicalText(sections[topicIndex].text)
       const previewLead = previewCopy?.kind === "list" ? previewCopy.lead?.trim() ?? "" : ""
-      const previewText = previewLead.length === 0 ? topic.title : `${topic.title}\n${previewLead}`
+      const previewText = previewLead.length === 0 || layout.editorial?.compositionPreset === "september-master" ? topic.title : `${topic.title}\n${previewLead}`
       return block(`${layout.pageId}-topic-${topic.id}`, layout.pageId, previewText, frame, { ...layout.bodyStyle, fontSize: 22, fontWeight: 700, lineHeight: 1.35, color: layout.titleStyle.color, align: "left" }, { kind: "topic-title", topicId: topic.id }, issues, input.measureText)
     }) : undefined
     const actions = index > 0 && structured && content.kind === "list" && content.actions.length === 4 ? content.actions.map((action, actionIndex) => {
