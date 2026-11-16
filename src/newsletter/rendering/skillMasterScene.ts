@@ -2,6 +2,7 @@ import type { Frame, RenderPage, RenderTextBlock } from "./renderDocument"
 import type { NewsletterPageScene, SceneLayer } from "./renderScene"
 import { editorialActionIcon } from "./editorialIcons"
 import { seasonalSceneLayers } from "./editorialScene"
+import { SEPTEMBER_INNER_TEMPLATE, SEPTEMBER_INNER_TOKENS } from "./skillMasterCardDesign"
 
 const bounds = { x: 0, y: 0, width: 1200, height: 1200 }
 const safe = { x: 60, y: 60, width: 1080, height: 1080 }
@@ -25,15 +26,26 @@ function missingArt(page: RenderPage, group: string): readonly SceneLayer[] {
 export function buildSkillMasterScene(page: RenderPage): NewsletterPageScene {
   const config = page.editorial
   const group = `${page.pageId}-master`
-  const layers: SceneLayer[] = [shape(`${group}-background`, bounds, page.background), shape(`${group}-border`, { x: 28, y: 28, width: 1144, height: 1144 }, "none", 34, "#85B299")]
+  const layers: SceneLayer[] = [shape(`${group}-background`, bounds, config === undefined ? page.background : SEPTEMBER_INNER_TOKENS.color.paper), shape(`${group}-border`, { x: 16, y: 16, width: 1168, height: 1168 }, "none", SEPTEMBER_INNER_TOKENS.radius.outer, SEPTEMBER_INNER_TOKENS.color.mintLine)]
   if (config === undefined) return { pageId: page.pageId, width: 1200, height: 1200, templateVersion: page.templateVersion, layers }
-  layers.push(...seasonalSceneLayers(group, config.season, 80, 100), shape(`${group}-issue-pill`, { x: 390, y: 68, width: 420, height: 70 }, "#176B45", 35))
+  const cover = config.layoutType === "A"
+  layers.push(...seasonalSceneLayers(group, config.season, cover ? 80 : 28, cover ? 100 : 48))
+  if (!cover) layers.push(...seasonalSceneLayers(`${group}-lower`, config.season, 30, 980))
+  layers.push(shape(`${group}-issue-pill`, cover ? { x: 390, y: 68, width: 420, height: 70 } : SEPTEMBER_INNER_TEMPLATE.badge, SEPTEMBER_INNER_TOKENS.color.green, cover ? 35 : SEPTEMBER_INNER_TOKENS.radius.pill))
   layers.push(text(page.title, group))
   if (page.badge !== undefined) layers.push(text(page.badge, group))
   if (page.lead !== undefined && page.lead.text.length > 0) layers.push(text(page.lead, group))
+  if (!cover) {
+    layers.push(
+      shape(`${group}-lead-rule-left`, SEPTEMBER_INNER_TEMPLATE.leadRuleLeft, SEPTEMBER_INNER_TOKENS.color.mintLine, 1),
+      shape(`${group}-lead-rule-right`, SEPTEMBER_INNER_TEMPLATE.leadRuleRight, SEPTEMBER_INNER_TOKENS.color.mintLine, 1),
+      editorialActionIcon(`${group}-health-shield`, "위험", { x: 1025, y: 165, width: 74, height: 74 }, SEPTEMBER_INNER_TOKENS.color.mintLine),
+      shape(`${group}-image-surface`, { x: page.image.frame.x - 5, y: page.image.frame.y - 5, width: page.image.frame.width + 10, height: page.image.frame.height + 10 }, SEPTEMBER_INNER_TOKENS.color.paper, SEPTEMBER_INNER_TOKENS.radius.image, SEPTEMBER_INNER_TOKENS.color.mintLine),
+    )
+  }
   if (page.image.assetId === undefined) layers.push(...missingArt(page, group))
-  else layers.push({ kind: "image", ...page.image, layerId: `${group}-main-art`, zOrder: 10, clipBounds: safe, collisionGroup: `${group}-main-art`, placeholderKind: "generic" })
-  if (config.layoutType === "A") {
+  else layers.push({ kind: "image", ...page.image, layerId: `${group}-main-art`, zOrder: 10, clipBounds: cover ? safe : bounds, collisionGroup: `${group}-main-art`, placeholderKind: "generic" })
+  if (cover) {
     for (const [index, topic] of (page.topicOverview ?? []).entries()) {
       const color = colors[index] ?? colors[0]
       layers.push(shape(`${group}-preview-${index}`, { x: 90 + index * 255, y: 875, width: 245, height: 190 }, "#FFFEF8", 24, "#D6DFC9"))
@@ -43,18 +55,22 @@ export function buildSkillMasterScene(page: RenderPage): NewsletterPageScene {
     }
   } else {
     for (const [index, module] of config.modules.entries()) {
-      const color = colors[index] ?? colors[0]
-      layers.push(shape(`${group}-action-surface-${index}`, module.frame, index % 2 === 0 ? "#FFFDF8" : "#F5F9F2", 24, "#D4E3D7"))
-      layers.push(elevatedShape(`${group}-action-circle-${index}`, { x: 634, y: module.frame.y + 34, width: 72, height: 72 }, "#EDF6EF", 24, color))
-      layers.push({ kind: "shape", layerId: `${group}-action-number-${index}`, frame: { x: 630, y: module.frame.y + 8, width: 42, height: 34 }, fill: color, radius: 17, zOrder: 12, clipBounds: bounds })
-      layers.push(text(module.number, group), text(module.action, group))
-      layers.push(editorialActionIcon(`${group}-action-icon-${index}`, module.action.text, { x: 652, y: module.frame.y + 52, width: 36, height: 36 }, color))
+      const miniArt = SEPTEMBER_INNER_TEMPLATE.miniArt[index]
+      if (miniArt === undefined) continue
+      layers.push(shape(`${group}-mini-art-surface-${index}`, miniArt, SEPTEMBER_INNER_TOKENS.color.mint, SEPTEMBER_INNER_TOKENS.radius.miniArt, SEPTEMBER_INNER_TOKENS.color.mintLine))
+      if (module.image?.assetId === undefined) {
+        layers.push({ kind: "text", layerId: `${group}-mini-art-missing-${index}`, frame: { x: miniArt.x + 10, y: miniArt.y + 36, width: miniArt.width - 20, height: 44 }, zOrder: 20, clipBounds: miniArt, collisionGroup: `${group}-mini-art-${index}`, text: "미니 삽화\n필요", lines: ["미니 삽화", "필요"], style: { ...page.body.style, ...SEPTEMBER_INNER_TOKENS.type.missingArt, color: SEPTEMBER_INNER_TOKENS.color.green, align: "center" }, provenance: { kind: "template-static", templateVersion: page.templateVersion } })
+      } else {
+        layers.push({ kind: "image", ...module.image, layerId: `${group}-mini-art-${index}`, zOrder: 14, clipBounds: miniArt, placeholderKind: "generic" })
+      }
+      layers.push(text(module.action, group))
+      if (index < config.modules.length - 1) layers.push(shape(`${group}-action-divider-${index}`, { x: 680, y: module.frame.y + module.frame.height - 1, width: 430, height: 1 }, SEPTEMBER_INNER_TOKENS.color.divider))
     }
   }
   if (page.closing !== undefined && page.closing.text.length > 0) {
-    layers.push(shape(`${group}-closing-surface`, page.closing.frame, "#F4F8EE", 32, "#B8CFB1"), text(page.closing, group))
+    layers.push(shape(`${group}-closing-surface`, page.closing.frame, SEPTEMBER_INNER_TOKENS.color.paper, cover ? 28 : SEPTEMBER_INNER_TOKENS.radius.closing, SEPTEMBER_INNER_TOKENS.color.mintLine), text(page.closing, group))
   }
-  if (page.mascot?.assetId !== undefined) layers.push({ kind: "image", ...page.mascot, layerId: `${group}-mascot`, edgePolicy: "none", zOrder: 26, clipBounds: safe, collisionGroup: group, placeholderKind: "generic" })
+  if (page.mascot?.assetId !== undefined) layers.push({ kind: "image", ...page.mascot, layerId: `${group}-mascot`, edgePolicy: "none", zOrder: 26, clipBounds: cover ? safe : bounds, ...(cover ? { collisionGroup: group } : {}), placeholderKind: "generic" })
   if (page.seasonalDecoration?.assetId !== undefined) layers.push({ kind: "image", ...page.seasonalDecoration, layerId: `${group}-decoration`, zOrder: 6, clipBounds: safe, placeholderKind: "generic" })
   return { pageId: page.pageId, width: page.width, height: page.height, templateVersion: page.templateVersion, layers }
 }

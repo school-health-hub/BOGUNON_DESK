@@ -56,7 +56,8 @@ it("removes unused extension illustration references when selecting the master",
   // When
   const next = applySkillMasterPreset(withImages, { cardIndex: 1, now })
   // Then
-  expect(next.cardLayouts[1]?.editorial?.moduleImages).toBeUndefined()
+  expect(next.cardLayouts[1]?.editorial?.moduleImages).toHaveLength(4)
+  expect(next.cardLayouts[1]?.editorial?.moduleImages?.every(image => image.assetId === undefined && image.visible === false)).toBe(true)
   expect(withImages.cardLayouts[1]?.editorial?.moduleImages?.[0]?.assetId).toBe("unused-unapproved")
 })
 
