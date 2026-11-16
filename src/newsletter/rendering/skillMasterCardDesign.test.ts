@@ -39,7 +39,7 @@ describe("measured September inner-card template", () => {
     const document = compileRenderDocument({ project, projectRevision: 1, design, designRevision: design.designRevision })
     expect(document.cards[1]?.title.style).toMatchObject(septemberInnerTitleStyle(title))
     expect(document.cards[1]?.editorial?.modules.map(module => module.action.style.fontSize)).toEqual(actions.map(action => septemberInnerActionStyle(action).fontSize))
-    expect(septemberInnerActionStyle(actions[1]).fontSize).toBe(25)
+    expect(septemberInnerActionStyle(actions[1]).fontSize).toBe(23)
   })
 
   it("exposes four independent mini-illustration slots", async () => {
@@ -47,5 +47,13 @@ describe("measured September inner-card template", () => {
     const document = compileRenderDocument({ project, projectRevision: 1, design, designRevision: design.designRevision })
     expect(document.cards[1]?.editorial?.modules).toHaveLength(4)
     expect(SEPTEMBER_INNER_TEMPLATE.miniArt).toHaveLength(4)
+  })
+
+  it("keeps canonical action copy without adding replacement text", async () => {
+    const { project, design } = await fixture()
+    const document = compileRenderDocument({ project, projectRevision: 1, design, designRevision: design.designRevision })
+    const modules = document.cards[1]?.editorial?.modules
+    expect(modules?.map(module => module.action.text)).toEqual(actions)
+    expect(modules?.every(module => module.description === undefined)).toBe(true)
   })
 })

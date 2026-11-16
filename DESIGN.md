@@ -752,3 +752,13 @@ UX07F reference clarification: user explicitly confirmed existing DESIGN.md + Bâ
 - The approved mascot, main illustration, mini illustrations, editable Korean text, decoration, rules, and surfaces remain independent Scene layers. Preview and SVG/PNG/PDF export consume the same Scene and z-order.
 - Korean word segmentation and overflow validation remain authoritative. The template blocks invalid output rather than shrinking below the documented fallback sizes, clipping copy, or altering canonical health content.
 - `skillMasterAssetReusePlan` is the six-topic preparation contract. It distinguishes product-ready bytes, review-only external originals, semantically partial candidates, and missing scenes. Gender variants remain asset metadata rather than layout variants, so female, male, mixed, and object-focused illustrations share the same measured frames without changing copy or geometry.
+
+## Newsletter NS-14 reference-fidelity finish (2026-11-16)
+
+- The user-supplied 2026 September inner card is the primary visual contract. NS-14 preserves the editable Scene/SVG structure while restoring its dimensional title, heart-flanked issue badge, illustrated autumn branch, large overlapping mascot, action-keyword emphasis, illustrated action medallions, and decorated closing strip.
+- Display title treatment is a reusable layered primitive: deep navy face, pale outline, and a soft downward navy shadow. It must remain live Korean SVG text, never a rasterized heading.
+- The issue badge uses a dark-to-light visual stack built from independent rounded surfaces plus heart ornaments. The closing strip repeats the heart motif and remains an editable text layer.
+- The main illustration retains a warm background scene and occupies roughly 39% of the content width. Action content is one continuous editorial column, not four dashboard cards. Each row has a dedicated educational medallion and a green key phrase followed by the untouched canonical action copy.
+- The mascot overlaps the lower action column and closing region at the same visual scale as the reference. It is the approved source asset; no regenerated mascot is permitted.
+- Autumn decoration is a composed branch-and-leaf Scene primitive rather than repeated star glyphs. Decorative layers are excluded from content collision groups but remain inside the export bounds.
+- When no exact independent educational image exists, a topic-specific local SVG scene may fill a mini-art slot only when it depicts the named action unambiguously. Generic repeated icons remain prohibited.

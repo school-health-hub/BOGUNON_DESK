@@ -8,9 +8,9 @@ import { buildEditorialCardScene, seasonalSceneLayers } from "./editorialScene"
 export const NEWSLETTER_PLACEHOLDER_DATA_URL = newsletterPlaceholderDataUrl("generic")
 
 type SceneBase = { readonly layerId: string; readonly frame: Frame; readonly zOrder: number; readonly clipBounds: Frame; readonly collisionGroup?: string }
-export type TextSceneLayer = SceneBase & { readonly kind: "text"; readonly text: string; readonly lines: readonly string[]; readonly style: TextStyle; readonly provenance: TextProvenance }
+export type TextSceneLayer = SceneBase & { readonly kind: "text"; readonly text: string; readonly lines: readonly string[]; readonly style: TextStyle; readonly provenance: TextProvenance; readonly highlights?: readonly string[]; readonly highlightColor?: string; readonly textEffect?: { readonly stroke?: string; readonly strokeWidth?: number; readonly shadow?: { readonly color: string; readonly dx: number; readonly dy: number; readonly blur: number } } }
 export type ImageSceneLayer = SceneBase & { readonly visible?: boolean; readonly clipPolygon?: ImagePolygon; readonly edgePolicy?: "rounded" | "none" | "soft" | "feather"; readonly kind: "image"; readonly slotId: string; readonly assetId?: string; readonly fit: "contain" | "cover"; readonly placeholderKind: NewsletterPlaceholderKind }
-export type ShapeSceneLayer = SceneBase & { readonly kind: "shape"; readonly fill: string; readonly stroke?: string; readonly radius?: number }
+export type ShapeSceneLayer = SceneBase & { readonly kind: "shape"; readonly fill: string; readonly stroke?: string; readonly strokeWidth?: number; readonly radius?: number }
 export type PathSceneLayer = SceneBase & { readonly kind: "path"; readonly path: string; readonly fill: string; readonly stroke: string; readonly strokeWidth: number }
 export type SceneLayer = TextSceneLayer | ImageSceneLayer | ShapeSceneLayer | PathSceneLayer
 export type NewsletterPageScene = { readonly pageId: string; readonly width: number; readonly height: number; readonly templateVersion: number; readonly layers: readonly SceneLayer[] }
