@@ -39,6 +39,23 @@ describe('Newsletter AI capability selection',()=>{
     expect(()=>selectNewsletterCapabilityModel(initial,'image','gemini-2.5-pro')).toThrow('지원')
   })
 
+  it('selects current stable Gemini image models discovered from the account',()=>{
+    // Given
+    const discovered=[
+      {id:'gemini-2.5-flash',label:'Gemini 2.5 Flash'},
+      {id:'gemini-3.1-flash-image',label:'Nano Banana 2'},
+      {id:'gemini-3.1-flash-lite-image',label:'Nano Banana 2 Lite'},
+    ]
+    // When
+    const selection=buildNewsletterCapabilitySelection('gemini',discovered,null)
+    // Then
+    expect(selection.imageModels.map(model=>model.id)).toEqual([
+      'gemini-3.1-flash-image',
+      'gemini-3.1-flash-lite-image',
+    ])
+    expect(selection.imageModel).toBe('gemini-3.1-flash-image')
+  })
+
   it('reads legacy credentials and the additive separate-model shape without losing the key',()=>{
     const legacy=validateCredential({provider:'openai',key:'synthetic-legacy-key',model:'gpt-5'})
     const current=validateCredential({provider:'openai',key:'synthetic-current-key',model:'gpt-5',textModel:'gpt-5',imageModel:'gpt-image-1'})

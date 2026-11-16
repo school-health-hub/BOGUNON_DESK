@@ -26,7 +26,9 @@ const CAPABILITIES:Readonly<Record<AiProvider,Readonly<Record<string,Readonly<{t
     'gemini-2.5-pro':Object.freeze({text:STRUCTURED_TEXT,image:DISABLED_IMAGE}),
     'gemini-2.5-flash':Object.freeze({text:STRUCTURED_TEXT,image:DISABLED_IMAGE}),
     'gemini-2.5-flash-image':Object.freeze({text:DISABLED_TEXT,image:GENERATED_IMAGE}),
-    'gemini-3-pro-image-preview':Object.freeze({text:DISABLED_TEXT,image:GENERATED_IMAGE}),
+    'gemini-3.1-flash-image':Object.freeze({text:DISABLED_TEXT,image:GENERATED_IMAGE}),
+    'gemini-3.1-flash-lite-image':Object.freeze({text:DISABLED_TEXT,image:GENERATED_IMAGE}),
+    'gemini-3-pro-image':Object.freeze({text:DISABLED_TEXT,image:GENERATED_IMAGE}),
   }),
 })
 

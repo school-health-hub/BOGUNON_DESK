@@ -102,7 +102,7 @@ function outbound(connection:NewsletterAiImageConnection,request:NewsletterAiIma
   const prompt=`학교 보건교육용 삽화만 생성하세요. 이미지 안에 제목·본문·한글 문장을 넣지 마세요. ${request.prompt}`
   if(connection.provider==='openai'&&referenceBytes.length===0)return {url:'https://api.openai.com/v1/images/generations',body:{model:connection.model,prompt,response_format:'b64_json'}}
   if(connection.provider==='openai')return {url:'https://api.openai.com/v1/responses',body:{model:connection.model,input:[{role:'user',content:[{type:'input_text',text:prompt},...referenceBytes.map((bytes,index)=>({type:'input_image',image_url:`data:${request.references[index]?.mediaType};base64,${Buffer.from(bytes).toString('base64')}`}))]}],tools:[{type:'image_generation'}]}}
-  return {url:`https://generativelanguage.googleapis.com/v1beta/models/${connection.model}:generateContent`,body:{contents:[{parts:[{text:prompt},...referenceBytes.map((bytes,index)=>({inlineData:{mimeType:request.references[index]?.mediaType,data:Buffer.from(bytes).toString('base64')}}))]}],generationConfig:{responseModalities:['IMAGE']}}}
+  return {url:`https://generativelanguage.googleapis.com/v1beta/models/${connection.model}:generateContent`,body:{contents:[{parts:[{text:prompt},...referenceBytes.map((bytes,index)=>({inlineData:{mimeType:request.references[index]?.mediaType,data:Buffer.from(bytes).toString('base64')}}))]}],generationConfig:{responseModalities:['IMAGE'],imageConfig:{aspectRatio:'1:1',imageSize:'1K'}}}}
 }
 
 function extract(provider:AiProvider,value:unknown):Readonly<{mediaType:string;base64:string}>{

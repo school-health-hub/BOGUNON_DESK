@@ -59,6 +59,23 @@ describe('Newsletter live image adapters',()=>{
     expect(result.candidate.inputHashes).toEqual([reference.sha256])
   })
 
+  it('requests a square 1K image from Gemini 3.1 Flash Image',async()=>{
+    // Given
+    const fetcher=vi.fn(async(_url:string,init:RequestInit)=>{
+      const body=JSON.parse(String(init.body)) as {generationConfig?:{responseModalities?:readonly string[];imageConfig?:{aspectRatio?:string;imageSize?:string}}}
+      expect(body.generationConfig).toEqual({
+        responseModalities:['IMAGE'],
+        imageConfig:{aspectRatio:'1:1',imageSize:'1K'},
+      })
+      return response({candidates:[{finishReason:'STOP',content:{parts:[{inlineData:{mimeType:'image/png',data:png.toString('base64')}}]}}]})
+    })
+    // When
+    const result=await generateNewsletterImageCandidate(fetcher,{provider:'gemini',key:'test-key-value',model:'gemini-3.1-flash-image'},request,new AbortController().signal,()=>new Date('2026-11-16T00:00:00.000Z'))
+    // Then
+    expect(result.candidate).toMatchObject({model:'gemini-3.1-flash-image',exportApproval:'pending'})
+    expect(fetcher).toHaveBeenCalledTimes(1)
+  })
+
   it.each([
     ['HTML masquerading as an image','image/png',Buffer.from('<html>bad</html>')],
     ['a MIME mismatch','image/jpeg',png],
