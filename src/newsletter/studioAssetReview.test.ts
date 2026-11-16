@@ -45,4 +45,3 @@ it("keeps approved reconnection working and rejects invalid references or non-re
  const official={...doc.design,assetManifest:doc.design.assetManifest.map(asset=>({...asset,registry:{classification:"OFFICIAL_REFERENCE" as const,purpose:"reference" as const,usageScope:"layout-comparison-only" as const}}))}
  await expect(addStudioAssetFiles(official,new Map(),[file],{purpose:"review"})).rejects.toThrow()
 })
-
