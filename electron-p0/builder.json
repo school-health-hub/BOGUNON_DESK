@@ -11,6 +11,7 @@
     "protocol.js",
     "purchase-image-protocol.js",
     "chatgpt-protocol.js",
+    "newsletter-ai-protocol.js",
     "inventory-qa-protocol.js",
     "local-tasks.js",
     "local-events.js",
