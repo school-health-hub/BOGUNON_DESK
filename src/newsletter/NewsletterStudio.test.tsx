@@ -1,3 +1,6 @@
+import {webcrypto} from "node:crypto";
+import {upgradeNewsletterDesignStateV2} from "./rendering/designState";
+import {inspectUserImage,registerImportedChatGptImage} from "./userImageImport";
 // @vitest-environment jsdom
 import {vi,it,expect,afterEach} from 'vitest';
 import {render,screen,fireEvent,cleanup,waitFor} from '@testing-library/react';
@@ -85,3 +88,20 @@ it('rejects a host close request while a project operation is busy',async()=>{
  view.rerender(<NewsletterStudio closeRequest={1} onCloseRequestResolved={resolved} onClose={onClose}/>);await waitFor(()=>expect(resolved).toHaveBeenLastCalledWith(false));expect(onClose).not.toHaveBeenCalled();
  finish({ok:false,error:{code:'IO_ERROR',message:'합성 프로젝트 실패'}});await screen.findByText('합성 프로젝트 실패');
 })
+
+it('labels a SHA-matched reference-only reconnection as unapproved and preserves status on save/reopen and missing file',async()=>{
+ vi.stubGlobal('crypto',webcrypto);
+ const now='2026-11-16T04:00:00.000Z',project=await createNewsletterProject({projectId:'review-gui',title:'검토용 문서',now});
+ const bytes=Uint8Array.from([137,80,78,71,13,10,26,10,0,0,0,13,73,72,68,82,0,0,4,0,0,0,4,0]);
+ const image=await inspectUserImage({name:'review.png',type:'image/png',size:bytes.length,arrayBuffer:async()=>bytes.buffer},async()=>({width:1024,height:1024}));
+ const design=registerImportedChatGptImage(upgradeNewsletterDesignStateV2(createNewsletterDesignState({projectId:project.projectId,canonicalProjectRevision:1,now}),now),image,now),doc={project,design};
+ let saved='';vi.stubGlobal('electronWork',{newsletter:{projects:{list:async()=>({ok:true,data:[]})},saveJson:async({json}:{json:string})=>{saved=json;return {ok:true,data:{saved:true,fileName:'review.json'}}}}});
+ const open=(json:string)=>{const file=new File([json],'review.json');Object.defineProperty(file,'text',{value:async()=>json});fireEvent.change(screen.getByLabelText('원고·디자인 JSON 열기'),{target:{files:[file]}})};
+ render(<NewsletterStudio onClose={()=>{}}/>);open(serializeStudioDocument(doc));await screen.findByRole('heading',{name:project.title});
+ const file=new File([bytes],'review.png');Object.defineProperty(file,'arrayBuffer',{value:async()=>bytes.buffer});fireEvent.change(screen.getByLabelText('이미지 원본 연결'),{target:{files:[file]}});
+ await screen.findByText(/검토용 미승인 이미지 1개 연결됨/);
+ fireEvent.click(screen.getByRole('button',{name:'원고·디자인 JSON 저장'}));await waitFor(()=>expect(saved).not.toBe(''));expect(JSON.parse(saved)).toEqual(doc);
+ open(saved);await waitFor(()=>expect(screen.queryByText(/검토용 미승인 이미지 1개 연결됨/)).toBeNull());
+ const missing=new File([],'missing.png');Object.defineProperty(missing,'arrayBuffer',{value:async()=>{throw Error('unavailable')}});fireEvent.change(screen.getByLabelText('이미지 원본 연결'),{target:{files:[missing]}});
+ await screen.findByText(/원본을 다시 선택해 주세요: missing.png/);fireEvent.click(screen.getByRole('button',{name:'원고·디자인 JSON 저장'}));await waitFor(()=>expect(JSON.parse(saved)).toEqual(doc));
+});

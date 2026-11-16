@@ -32,14 +32,17 @@ async function sha256(bytes: Uint8Array): Promise<string> {
   const hash = await crypto.subtle.digest("SHA-256", new Uint8Array(bytes).buffer)
   return [...new Uint8Array(hash)].map(byte => byte.toString(16).padStart(2, "0")).join("")
 }
-export async function addStudioAssetFiles(design: NewsletterDesignState, current: ReadonlyMap<string, Uint8Array>, files: readonly ImageFile[]): Promise<ReadonlyMap<string, Uint8Array>> {
+export async function addStudioAssetFiles(design: NewsletterDesignState, current: ReadonlyMap<string, Uint8Array>, files: readonly ImageFile[], options: { readonly purpose?: "review" } = {}): Promise<ReadonlyMap<string, Uint8Array>> {
   const next = new Map(current)
   for (const file of files) {
-    const bytes = new Uint8Array(await file.arrayBuffer())
+    let bytes: Uint8Array
+    try { bytes = new Uint8Array(await file.arrayBuffer()) }
+    catch { throw new StudioDocumentError(`이미지 파일을 읽을 수 없습니다. 원본을 다시 선택해 주세요: ${file.name}`) }
     const hash = await sha256(bytes)
     const asset = design.assetManifest.find(candidate => candidate.sha256 === hash)
     if (asset === undefined) throw new StudioDocumentError(`원장에 없는 이미지입니다: ${file.name}`)
-    if (asset.approvalStatus !== "approved" || asset.localReference !== `asset:${hash}`) throw new StudioDocumentError(`렌더 승인되지 않은 이미지입니다: ${file.name}`)
+    const reviewOnly = options.purpose === "review" && asset.approvalStatus === "reference-only" && asset.exportApproval === "pending" && asset.registry?.classification === "AI_GENERATED" && asset.registry.usageScope === "newsletter-output" && asset.registry.purpose !== "reference"
+    if ((!reviewOnly && asset.approvalStatus !== "approved") || asset.localReference !== `asset:${hash}`) throw new StudioDocumentError(`렌더 승인되지 않은 이미지입니다: ${file.name}`)
     next.set(`asset:${hash}`, bytes)
   }
   return next
