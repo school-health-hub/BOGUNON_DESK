@@ -650,6 +650,34 @@ remains. Dock active marker, accessible name, hover and keyboard tooltip stay in
 - Purchase Helper 연결은 권위 ID와 기본단위 수량을 전달할 수 있는 읽기 전용 후보 interface만 확인한다. 자동 구매·입고 반영이나 Purchase session 변경은 하지 않는다.
 - 기존 Pretendard, muted navy/mint, shared surface/border/text 토큰과 40px control target을 유지한다. 원격 이미지, 신규 animation, 새로운 전역 navigation은 추가하지 않는다.
 
+## UX-10 — grouped widget selection cards
+
+- Reuse the 13 registered widgets and their existing basic/schedule/work categories.
+  Cards stay horizontal: Lucide icon, Korean title and description, then one named
+  native button with switch semantics. The ON/OFF label, thumb position and checked
+  state supplement color; keyboard activation and visible focus remain available.
+- Use the existing DESIGN-07 cream/navy/rose tokens. ON uses rose-50 with a rose-200
+  border and rose-700 control; OFF uses a neutral near-opaque cream surface. No new
+  palette, dependency, animation or global CSS token is introduced.
+- Candidate-scoped `ux-10.css` is imported after UX-09. Three card columns need an
+  available library width of at least 960px; two columns need 560px; only narrower
+  libraries use one column. Use container width, including the Settings entry, rather
+  than imposing three columns inside a narrow inspector. Descriptions wrap with
+  Korean keep-all and emergency long-token wrapping, without ellipsis or clipping.
+- The floating library may widen to 1120px within viewport gutters; its header stays
+  outside the single scrolling content area. Settings retains its existing dialog
+  scroll ownership. Short windows keep all categories and switches reachable.
+- OFF/ON reuse `hideWidget` and `restoreWidget`; visibility changes never delete data.
+  Restoring an existing widget must retain its saved x/y/w/h/settings instead of
+  moving it to the visible bottom. Electron's existing Grid adapter persists final
+  drag/resize actions only, never automatic visibility/viewport compaction. Widget
+  IDs, schema, appearance, Dock, toolbox,
+  Newsletter routes, authentication, engines, Main/preload/IPC and OPTION C are
+  outside this change. Reset/preset behavior is not redesigned.
+- Verify both library entries, 13 switches, 3/2/1 columns, keyboard focus, four Windows
+  content viewports, real toggle/save/relaunch and synthetic memo preservation.
+  New captures must agree with DOM geometry; older UX-09 evidence is baseline only.
+
 ## DESIGN-07 Soft Rose Bento workspace contract — 2026-11-17
 
 This contract is the authority for the isolated DESIGN-07 Electron candidate before

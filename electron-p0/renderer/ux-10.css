@@ -1,0 +1,76 @@
+/* UX-10 is presentation-only outside the existing visibility transform. */
+body.electron-soft-rose.design-07-candidate .workspace-shell .widget-library--cards {
+  width: min(1120px, calc(100vw - 48px));
+  max-height: calc(100dvh - 176px);
+  border-radius: 20px;
+  background: var(--d07-dense-fill);
+  border-color: var(--d07-boundary);
+  box-shadow: var(--d07-contact-shadow), var(--d07-ambient-shadow);
+}
+body.electron-soft-rose.design-07-candidate .rose-dialog:has(.widget-library--cards) {
+  width: min(1240px, calc(100vw - 48px));
+}
+body.electron-soft-rose.design-07-candidate .widget-library--cards > header { padding: 20px 24px 8px; }
+body.electron-soft-rose.design-07-candidate .widget-library--cards > header strong { font-size: 20px; color: var(--d07-navy-900); }
+body.electron-soft-rose.design-07-candidate .widget-library--cards .workspace-editor-panel__intro {
+  margin: 0; padding: 0 24px 16px; font-size: 13px; line-height: 1.55;
+  color: var(--d07-navy-700); word-break: keep-all; overflow-wrap: anywhere;
+}
+body.electron-soft-rose.design-07-candidate .widget-library--cards .workspace-editor-panel__body {
+  container: widget-library / inline-size; min-height: 0; padding: 0 24px 24px; overflow: auto;
+  scrollbar-gutter: stable; overscroll-behavior: contain;
+}
+body.electron-soft-rose.design-07-candidate .rose-settings .widget-library--cards .workspace-editor-panel__body {
+  overflow: visible; max-height: none; padding: 0; scrollbar-gutter: auto;
+}
+body.electron-soft-rose.design-07-candidate .rose-settings .widget-library--cards .workspace-editor-panel__intro { padding: 0 0 20px; }
+body.electron-soft-rose.design-07-candidate .widget-library--cards section + section { margin-top: 24px; }
+body.electron-soft-rose.design-07-candidate .widget-library--cards h2 {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
+  gap: 8px; margin: 0 0 12px; padding: 0; font-size: 16px; color: var(--d07-navy-900);
+}
+body.electron-soft-rose.design-07-candidate .widget-library--cards h2 small { color: var(--d07-navy-700); font-size: 12px; font-weight: 400; }
+body.electron-soft-rose.design-07-candidate .widget-library--cards .widget-library__list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+body.electron-soft-rose.design-07-candidate .widget-library--cards article {
+  display: grid; grid-template-columns: 36px minmax(0, 1fr) 48px; align-items: center;
+  gap: 12px; min-height: 120px; padding: 16px; border: 1px solid var(--d07-boundary);
+  border-radius: 16px; background: var(--d07-cream-50); color: var(--d07-navy-900);
+}
+body.electron-soft-rose.design-07-candidate .widget-library--cards article.is-in-use { background: var(--d07-rose-50); border-color: var(--d07-rose-200); }
+body.electron-soft-rose.design-07-candidate .widget-library--cards .widget-library__icon {
+  display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px;
+  border: 0; color: var(--d07-navy-700); background: var(--d07-cream-100);
+}
+body.electron-soft-rose.design-07-candidate .widget-library--cards .is-in-use .widget-library__icon { color: var(--d07-rose-700); background: var(--d07-rose-100); }
+body.electron-soft-rose.design-07-candidate .widget-library--cards .widget-library__copy { min-width: 0; }
+body.electron-soft-rose.design-07-candidate .widget-library--cards article strong {
+  display: block; color: var(--d07-navy-900); font-size: 14px; line-height: 1.5;
+  word-break: keep-all; overflow-wrap: anywhere; white-space: normal;
+}
+body.electron-soft-rose.design-07-candidate .widget-library--cards article p {
+  display: block; overflow: visible; margin: 4px 0 0; color: var(--d07-navy-700);
+  font-size: 12px; line-height: 1.55; white-space: normal; text-overflow: clip;
+  word-break: keep-all; overflow-wrap: anywhere;
+}
+body.electron-soft-rose.design-07-candidate .widget-library--cards article > button[role="switch"] {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; min-width: 48px; min-height: 48px; padding: 4px 0; border: 0;
+  border-radius: 8px; color: var(--d07-navy-700); background: transparent; cursor: pointer;
+}
+body.electron-soft-rose.design-07-candidate .widget-library--cards article > button[role="switch"]:hover { background: var(--d07-cream-100); }
+body.electron-soft-rose.design-07-candidate .widget-library--cards article > button[role="switch"]:focus-visible { outline: 2px solid var(--d07-rose-700); outline-offset: 3px; }
+body.electron-soft-rose.design-07-candidate .widget-library--cards .widget-library__track { display: block; width: 38px; height: 22px; padding: 3px; border-radius: 12px; background: var(--d07-navy-500); }
+body.electron-soft-rose.design-07-candidate .widget-library--cards .widget-library__track > span { display: block; width: 16px; height: 16px; border-radius: 50%; background: var(--d07-cream-50); }
+body.electron-soft-rose.design-07-candidate .widget-library--cards [aria-checked="true"] .widget-library__track { background: var(--d07-rose-700); }
+body.electron-soft-rose.design-07-candidate .widget-library--cards [aria-checked="true"] .widget-library__track > span { transform: translateX(16px); }
+body.electron-soft-rose.design-07-candidate .widget-library--cards .widget-library__state { color: inherit; font-size: 12px; line-height: 1; font-weight: 600; }
+@container widget-library (min-width: 560px) {
+  body.electron-soft-rose.design-07-candidate .widget-library--cards .widget-library__list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container widget-library (min-width: 960px) {
+  body.electron-soft-rose.design-07-candidate .widget-library--cards .widget-library__list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  body.electron-soft-rose.design-07-candidate .workspace-shell .widget-library--cards { right: 12px; left: 12px; width: auto; }
+  body.electron-soft-rose.design-07-candidate .widget-library--cards .workspace-editor-panel__body { padding-inline: 16px; }
+}

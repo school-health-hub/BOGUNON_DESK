@@ -49,7 +49,7 @@ export const nextBottomY = (widgets: readonly WidgetLayout[]): number =>
 export const restoreWidget = (layout: DashboardLayout, type: WidgetType): DashboardLayout => markLayoutCustom(
   layout,
   layout.widgets.map((widget) =>
-    widget.type === type ? { ...widget, visible: true, y: widget.visible ? widget.y : nextBottomY(layout.widgets) } : widget,
+    widget.type === type ? { ...widget, visible: true } : widget,
   ),
 );
 
