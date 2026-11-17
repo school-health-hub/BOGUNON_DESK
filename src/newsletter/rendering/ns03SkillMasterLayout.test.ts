@@ -67,10 +67,17 @@ describe("NS-03 September-master reconstruction", () => {
 
     // When
     const scene = buildNewsletterScene(document)
-    const cards = scene.pages.slice(1)
+    const cards = scene.pages.filter((page) => page.pageId.startsWith("card-"))
+    const topics = cards.filter((page) => page.pageId.startsWith("card-topic-"))
 
-    // Then
-    expect(cards.every((page) => page.layers.some((layer) => layer.kind === "text" && layer.text.includes("삽화 미지정")))).toBe(true)
+    // Then: six topic cards expose the current warning; the cover uses its render issue.
+    expect(cards).toHaveLength(7)
+    expect(topics).toHaveLength(6)
+    for (const page of topics) expect(page.layers).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: "text", layerId: `${page.pageId}-master-art-unassigned-label`, text: "학생 삽화 필요\n최종 시안 아님" }),
+    ]))
+    expect(document.issues.some((issue) => issue.pageId === "card-cover" && issue.message.includes("대표 장면"))).toBe(true)
     expect(cards.every((page) => page.layers.every((layer) => layer.kind !== "image" || layer.assetId !== undefined))).toBe(true)
+    expect(cards.every((page) => page.layers.every((layer) => layer.kind !== "image"))).toBe(true)
   })
 })

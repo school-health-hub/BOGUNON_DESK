@@ -102,6 +102,6 @@ it('NS01 closing copy fits its existing A4 frame without colliding with the acti
  const original=await createBlankNewsletter({month:'2026-11',schoolType:'coed-high',projectId:'ns01-closing',now})
  const next=applyTopicPlan(original,syntheticMonthlyBank('2026-11').slice(0,6),'2026-11',now)
  const render=compileRenderDocument({project:next.project,projectRevision:next.project.projectRevision,design:next.design,designRevision:next.design.designRevision})
- expect(render.issues.filter(issue=>issue.pageId==='a4-page'&&(issue.kind==='overlap'||issue.kind==='overflow'))).toEqual([])
+ expect(render.issues.filter(issue=>issue.pageId==='a4-page'&&(issue.kind==='layout-collision'||issue.kind==='overflow'))).toEqual([])
  expect(next.design.a4Layout).toEqual(original.design.a4Layout)
 })

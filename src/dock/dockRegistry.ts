@@ -1,9 +1,10 @@
-import { Bot, FileText, FolderOpen, Home, NotebookPen, Settings, Stethoscope, Wrench } from "lucide-react";
+import { Bot, FileText, FolderOpen, NotebookPen, Settings, Stethoscope, Wrench } from "lucide-react";
+import { BrandSymbolIcon } from "../branding/BrandLogo";
 import { toolboxToolRegistry } from "../tools/toolRegistry";
 import { dockItemIds, type DockItemDefinition, type DockItemId } from "./types";
 
 export const dockRegistry = {
-  home: { id: "home", actionId: "home", label: "홈", icon: Home },
+  home: { id: "home", actionId: "home", label: "홈", icon: BrandSymbolIcon },
   "online-health-room": { id: "online-health-room", actionId: "online-health-room", label: "온라인 보건실", icon: Stethoscope },
   bogunon: { id: "bogunon", actionId: "bogunon", label: "BOGUNON", icon: Bot },
   toolbox: { id: "toolbox", actionId: "toolbox", label: "업무 도구", icon: Wrench },

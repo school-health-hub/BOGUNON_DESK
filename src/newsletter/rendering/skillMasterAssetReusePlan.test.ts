@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { studentArtCatalog } from "./studentArtCatalog"
-import { skillMasterAssetReusePlan } from "./skillMasterAssetReusePlan"
+import { skillMasterAssetReusePlan, type ReusableIllustration } from "./skillMasterAssetReusePlan"
 
 describe("skill master asset reuse plan", () => {
   it("covers six topics with one representative and four action slots", () => {
@@ -10,7 +10,7 @@ describe("skill master asset reuse plan", () => {
 
   it("binds product-library entries to immutable catalog hashes", () => {
     const productAssets = skillMasterAssetReusePlan.flatMap(plan => [plan.representative, ...plan.actions])
-      .filter(asset => asset.status !== "missing" && asset.source === "product-library")
+      .filter((asset): asset is ReusableIllustration => asset.status !== "missing" && asset.source === "product-library")
     expect(productAssets.length).toBeGreaterThan(0)
     for (const asset of productAssets) {
       expect(studentArtCatalog.some(entry => entry.id === asset.assetId && entry.sha256 === asset.sha256)).toBe(true)

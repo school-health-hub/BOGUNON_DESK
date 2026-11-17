@@ -3,7 +3,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useAiConnection } from "../../ai/AiConnectionContext";
 import { useAuth } from "../../auth/AuthContext";
-import { PRODUCT_NAME } from "../../branding";
+import { BrandLogo } from "../../branding/BrandLogo";
 import { useChatGptConnection } from "../../chatgpt/ChatGptConnectionContext";
 import { executeNativeDesktopAction, getDesktopErrorMessage } from "../../desktop/actions";
 import type { ConfigurableUrlActionId } from "../../desktop/types";
@@ -351,7 +351,7 @@ export function DesktopSettingsPanel({
     <aside className="desktop-settings" aria-label="설정 센터">
       <header>
         <div>
-          <span>{PRODUCT_NAME}</span>
+          <BrandLogo />
           <strong>설정 센터</strong>
         </div>
         <button type="button" aria-label="설정 닫기" onClick={onClose}><X size={16} /></button>

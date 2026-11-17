@@ -12,7 +12,7 @@ describe("review-only library confirmation", () => {
     it("filters and cancels without mutating a document or calling onChange", () => {
         const design = fixture(), before = JSON.stringify(design), onChange = vi.fn();
         render(<StudentArtLibrary design={design} mode="cards" index={1} topic="손 씻기" onChange={onChange}/>);
-        fireEvent.click(screen.getByRole("button", {name:"학생 삽화 선택",exact:true}));
+        fireEvent.click(screen.getByRole("button", {name:"학생 삽화 선택"}));
         fireEvent.click(screen.getByRole("button", { name: "남학생" }));
         fireEvent.click(screen.getByText("취소 · 현재 문서 유지"));
         expect(onChange).not.toHaveBeenCalled();
@@ -21,7 +21,7 @@ describe("review-only library confirmation", () => {
     it("requires explicit review acknowledgment and commits one revision only", () => {
         const design = fixture(), onChange = vi.fn();
         render(<StudentArtLibrary design={design} mode="cards" index={1} topic="손 씻기" onChange={onChange}/>);
-        fireEvent.click(screen.getByRole("button", {name:"학생 삽화 선택",exact:true}));
+        fireEvent.click(screen.getByRole("button", {name:"학생 삽화 선택"}));
         fireEvent.click(screen.getByAltText("손 씻기 A · 원본 장면"));
         const apply = screen.getByText("비교한 슬롯에 적용 · 새 revision");
         expect(apply).toHaveProperty("disabled", true);
@@ -34,7 +34,7 @@ describe("review-only library confirmation", () => {
     it("rejects a stale comparison rather than replacing newer edits", () => {
         const design = fixture(), onChange = vi.fn();
         const view = render(<StudentArtLibrary design={design} mode="cards" index={1} topic="" onChange={onChange}/>);
-        fireEvent.click(screen.getByRole("button", {name:"학생 삽화 선택",exact:true}));
+        fireEvent.click(screen.getByRole("button", {name:"학생 삽화 선택"}));
         fireEvent.click(screen.getByText("학생 없음 · 해당 슬롯의 그림 미사용"));
         view.rerender(<StudentArtLibrary design={{ ...design, designRevision: design.designRevision + 1 }} mode="cards" index={1} topic="" onChange={onChange}/>);
         fireEvent.click(screen.getByText("비교한 슬롯에 적용 · 새 revision"));

@@ -16,6 +16,11 @@ export function GridLayout(props: ComponentProps<typeof ExistingGridLayout>) {
     const observer=new ResizeObserver(([entry])=>{if(entry)update(entry.contentRect.width);});
     observer.observe(element);return()=>observer.disconnect();
   },[]);
-  const cancel=props.dragConfig?.cancel?.replace(/\bbutton\b/g,'button:not(.widget-frame__drag)');
-  return <ExistingGridLayout {...props} innerRef={attach} width={contentWidth??props.width} dragConfig={{...props.dragConfig,cancel}}/>;
+  const cancel=props.dragConfig?.cancel?.replace(/\bbutton\b(?!:not\(\.widget-frame__drag\))/g,'button:not(.widget-frame__drag)');
+  // Visibility/viewport changes may compact the rendered grid. Only an explicit
+  // drag/resize completion may replace the user's persisted coordinates.
+  return <ExistingGridLayout {...props} innerRef={attach} width={contentWidth??props.width} dragConfig={{...props.dragConfig,cancel}}
+    onLayoutChange={undefined}
+    onDragStop={(...args)=>{props.onDragStop?.(...args);props.onLayoutChange?.(args[0]);}}
+    onResizeStop={(...args)=>{props.onResizeStop?.(...args);props.onLayoutChange?.(args[0]);}}/>;
 }

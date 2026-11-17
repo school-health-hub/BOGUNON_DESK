@@ -1,0 +1,41 @@
+/* Shared switch essentials only; Electron's scoped theme takes precedence. */
+.widget-library--cards article > button[role="switch"] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 4px 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+.widget-library--cards article > button[role="switch"]:focus-visible {
+  outline: 2px solid #263b48;
+  outline-offset: 3px;
+}
+.widget-library--cards .widget-library__track {
+  display: block;
+  box-sizing: border-box;
+  width: 38px;
+  height: 22px;
+  padding: 3px;
+  border-radius: 12px;
+  background: #526579;
+}
+.widget-library--cards .widget-library__track > span {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+}
+.widget-library--cards [aria-checked="true"] .widget-library__track {
+  background: #263b48;
+}
+.widget-library--cards [aria-checked="true"] .widget-library__track > span {
+  transform: translateX(16px);
+}

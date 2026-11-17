@@ -15,6 +15,7 @@ import type { WorkspaceArea, WorkspaceFilters } from "../../settings/workspaceFi
 import type { SchoolInfoState } from "../../school-info/types";
 import type { WorkFolderFavorite } from "../../work-folders/types";
 import type { DesktopUpdaterState } from "../../updater/updaterTypes";
+import { BrandLogo } from "../../branding/BrandLogo";
 import { ChatGptAccountSettings } from "./ChatGptAccountSettings";
 
 type AccountSectionProps = {
@@ -503,7 +504,7 @@ export function DeviceSettingsSection(props: DeviceSectionProps) {
       <div className="desktop-tray-status"><Power size={14} /><span>System Tray 활성화됨</span></div>
       <div className="desktop-beta-info">
         <div>
-          <strong>BOGUNON DESK</strong>
+          <BrandLogo className="desktop-beta-info__brand" />
           <span>현재 버전 {props.appVersion ?? "확인 중"} · 공유 베타</span>
           <small>{updaterStatusLabel(props.updaterState)}</small>
         </div>

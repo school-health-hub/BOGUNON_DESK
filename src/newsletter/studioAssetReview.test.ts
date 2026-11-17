@@ -14,7 +14,7 @@ async function fixture(){
  const image=await inspectUserImage(file,async()=>({width:1024,height:1024}))
  const registered=registerImportedChatGptImage(base,image,now)
  const cards=registered.cardLayouts.map((card,index)=>index===1?{...card,image:{...card.image,assetId:image.assetId}}:card)
- const design={...registered,cardLayouts:cards,revisionHistory:registered.revisionHistory.map(entry=>entry.revision===registered.designRevision?{...entry,snapshot:{...entry.snapshot,cardLayouts:cards}}:entry)}
+ const design={...registered,cardLayouts:cards,revisionHistory:registered.revisionHistory.map(entry=>entry.revision===registered.designRevision&&entry.snapshotVersion===2?{...entry,snapshot:{...entry.snapshot,cardLayouts:cards}}:entry)}
  return {project,design}
 }
 it("reconnects matching reference-only bytes only for review without changing the document or publication barrier",async()=>{

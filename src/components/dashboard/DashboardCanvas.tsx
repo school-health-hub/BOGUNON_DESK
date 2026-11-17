@@ -460,6 +460,11 @@ export function DashboardCanvas({ onOpenFinance, suspended = false }: { readonly
         <WidgetLibraryDrawer
           widgets={dashboardLayout.widgets}
           onClose={() => setActivePanel(null)}
+          onHide={(type: WidgetType) => setDashboardLayout((current) => {
+            const rendered = resolveDeskGeometry(current, viewportWidth).widgets;
+            const target = rendered.find((widget) => widget.type === type);
+            return target === undefined ? current : hideWidget({ ...current, widgets: rendered }, target.id);
+          })}
           onRestore={(type: WidgetType) => setDashboardLayout((current) => restoreWidget({ ...current, widgets: resolveDeskGeometry(current, viewportWidth).widgets }, type))}
         />
       )}

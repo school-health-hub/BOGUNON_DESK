@@ -1,0 +1,289 @@
+{
+  "schemaVersion": 1,
+  "sourceHead": "e2f5df7b9a6b3f31a35d79c39f061228b0a0c92e",
+  "runId": "3b888419-0be0-44bc-a4bd-630906a8e7cf",
+  "surfaces": [
+    "dashboard-dock",
+    "toolbox",
+    "settings",
+    "official-document"
+  ],
+  "sizes": [
+    {
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "width": 980,
+      "height": 700
+    },
+    {
+      "width": 900,
+      "height": 680
+    }
+  ],
+  "captures": [
+    {
+      "name": "dashboard-dock",
+      "requestedContent": {
+        "width": 1440,
+        "height": 900
+      },
+      "geometry": {
+        "innerWidth": 1440,
+        "innerHeight": 900,
+        "scrollWidth": 1440,
+        "scrollHeight": 900
+      },
+      "windowBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1456,
+        "height": 965
+      },
+      "file": "screenshots/dashboard-dock-1440x900.png",
+      "sha256": "afb541ff948418ee778e4539f80f2158d199f51ef59982712ac0e09f7ce7f101"
+    },
+    {
+      "name": "toolbox",
+      "requestedContent": {
+        "width": 1440,
+        "height": 900
+      },
+      "geometry": {
+        "innerWidth": 1440,
+        "innerHeight": 900,
+        "scrollWidth": 1440,
+        "scrollHeight": 900
+      },
+      "windowBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1456,
+        "height": 965
+      },
+      "file": "screenshots/toolbox-1440x900.png",
+      "sha256": "08cae3aa6d3df62143de84902c0efc4bb32e08972bd91f59814175f9c79d6ce1"
+    },
+    {
+      "name": "settings",
+      "requestedContent": {
+        "width": 1440,
+        "height": 900
+      },
+      "geometry": {
+        "innerWidth": 1440,
+        "innerHeight": 900,
+        "scrollWidth": 1440,
+        "scrollHeight": 900
+      },
+      "windowBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1456,
+        "height": 965
+      },
+      "file": "screenshots/settings-1440x900.png",
+      "sha256": "3481526e13f0e6f10133bca0f5e89c4b396f1d4f029c3d83fb486bb747c11ded"
+    },
+    {
+      "name": "official-document",
+      "requestedContent": {
+        "width": 1440,
+        "height": 900
+      },
+      "geometry": {
+        "innerWidth": 1440,
+        "innerHeight": 900,
+        "scrollWidth": 1425,
+        "scrollHeight": 1463
+      },
+      "windowBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1456,
+        "height": 965
+      },
+      "file": "screenshots/official-document-1440x900.png",
+      "sha256": "2f34599a9a8fe56546a74e4d2cf26b70e2819e4b3a8c11957c9ec49e86a5d9ac"
+    },
+    {
+      "name": "dashboard-dock",
+      "requestedContent": {
+        "width": 980,
+        "height": 700
+      },
+      "geometry": {
+        "innerWidth": 980,
+        "innerHeight": 700,
+        "scrollWidth": 980,
+        "scrollHeight": 700
+      },
+      "windowBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 996,
+        "height": 765
+      },
+      "file": "screenshots/dashboard-dock-980x700.png",
+      "sha256": "9bf5b334cbc3242aba86f084b32b8e704709ecc51faeb88b2e59fe385c20f526"
+    },
+    {
+      "name": "toolbox",
+      "requestedContent": {
+        "width": 980,
+        "height": 700
+      },
+      "geometry": {
+        "innerWidth": 980,
+        "innerHeight": 700,
+        "scrollWidth": 980,
+        "scrollHeight": 700
+      },
+      "windowBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 996,
+        "height": 765
+      },
+      "file": "screenshots/toolbox-980x700.png",
+      "sha256": "f3bf2e5b472ef7c71ac58bcf24d9b5d49d2029e4be6f3886c9eab28519b26e88"
+    },
+    {
+      "name": "settings",
+      "requestedContent": {
+        "width": 980,
+        "height": 700
+      },
+      "geometry": {
+        "innerWidth": 980,
+        "innerHeight": 700,
+        "scrollWidth": 980,
+        "scrollHeight": 700
+      },
+      "windowBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 996,
+        "height": 765
+      },
+      "file": "screenshots/settings-980x700.png",
+      "sha256": "5d2c26dda9342b4e714bb888fe4add6f756515c202ec7b5789b15eeb7509dc5d"
+    },
+    {
+      "name": "official-document",
+      "requestedContent": {
+        "width": 980,
+        "height": 700
+      },
+      "geometry": {
+        "innerWidth": 980,
+        "innerHeight": 700,
+        "scrollWidth": 965,
+        "scrollHeight": 1753
+      },
+      "windowBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 996,
+        "height": 765
+      },
+      "file": "screenshots/official-document-980x700.png",
+      "sha256": "107424f3e0a259a0b96f14ac1ebcb25620b5ae1297e31c358271fb011a871ab4"
+    },
+    {
+      "name": "dashboard-dock",
+      "requestedContent": {
+        "width": 900,
+        "height": 680
+      },
+      "geometry": {
+        "innerWidth": 900,
+        "innerHeight": 680,
+        "scrollWidth": 900,
+        "scrollHeight": 680
+      },
+      "windowBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 916,
+        "height": 745
+      },
+      "file": "screenshots/dashboard-dock-900x680.png",
+      "sha256": "50ec014c109b1feb6a555055c98554176d96bb923ce6ef4816331e54f20b0af3"
+    },
+    {
+      "name": "toolbox",
+      "requestedContent": {
+        "width": 900,
+        "height": 680
+      },
+      "geometry": {
+        "innerWidth": 900,
+        "innerHeight": 680,
+        "scrollWidth": 900,
+        "scrollHeight": 680
+      },
+      "windowBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 916,
+        "height": 745
+      },
+      "file": "screenshots/toolbox-900x680.png",
+      "sha256": "ab2503837e69583e5f0dd6386c4748157df26b2b88c7fda3ed095815bc7615e4"
+    },
+    {
+      "name": "settings",
+      "requestedContent": {
+        "width": 900,
+        "height": 680
+      },
+      "geometry": {
+        "innerWidth": 900,
+        "innerHeight": 680,
+        "scrollWidth": 900,
+        "scrollHeight": 680
+      },
+      "windowBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 916,
+        "height": 745
+      },
+      "file": "screenshots/settings-900x680.png",
+      "sha256": "6857f0efbe16ac5a0efa464d8767dd0decaffb041f2606f84f95539e677d56a2"
+    },
+    {
+      "name": "official-document",
+      "requestedContent": {
+        "width": 900,
+        "height": 680
+      },
+      "geometry": {
+        "innerWidth": 900,
+        "innerHeight": 680,
+        "scrollWidth": 885,
+        "scrollHeight": 2214
+      },
+      "windowBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 916,
+        "height": 745
+      },
+      "file": "screenshots/official-document-900x680.png",
+      "sha256": "6a951a98623a467fd84e6f513211e76e3db57ee7d9aeaf5e32eddf5578986862"
+    }
+  ],
+  "rendererErrors": [],
+  "iconStatus": {
+    "empty": false,
+    "size": {
+      "width": 256,
+      "height": 256
+    },
+    "title": "BOGUNON DESK ELECTRON P0"
+  },
+  "privacy": "Synthetic isolated Electron profile; no school, user, or operating profile data."
+}

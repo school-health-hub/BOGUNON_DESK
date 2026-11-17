@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-17T05:49:16.9431373Z",
+  "branch": "design/soft-rose-bento-v1",
+  "head": "78bba7c8ad41c06799a679bc45291b82d9657151",
+  "candidateFiles": [
+    {
+      "path": "DESIGN.md",
+      "sha256": "676F37707F1D17A7576F7D5C73BB5960E8F1521D2B6D091D326E1E0814C059B5",
+      "bytes": 82942
+    },
+    {
+      "path": "electron-p0/renderer/P0App.tsx",
+      "sha256": "3D9702CBECE9A77E56C46C5AEAE90BADF0ACE8CDB4B609107179963DDA6AF1ED",
+      "bytes": 28206
+    },
+    {
+      "path": "electron-p0/renderer/main.tsx",
+      "sha256": "108C2650992B6B49A677AD5007BBF777FF5D30B498AA6D7A8917A8CA129E80CB",
+      "bytes": 815
+    },
+    {
+      "path": "src/components/dashboard/DesktopWidgetLayout.tsx",
+      "sha256": "77503DE230D5091374C6DB700EA66E05229ECC43E47D29DB9803282EC443E281",
+      "bytes": 2927
+    },
+    {
+      "path": "electron-p0/renderer/design-07.css",
+      "sha256": "99FCD78848E6429C85A044F3E6C72DAA29DDE716096FA372E341E4AFA9A534D8",
+      "bytes": 15926
+    },
+    {
+      "path": "electron-p0/renderer/settingsBootstrap.ts",
+      "sha256": "7E6B1F411DBB86C8E664B669B32E110FE76F60F236689E4CB38FD7C714DDDC67",
+      "bytes": 1582
+    },
+    {
+      "path": "electron-p0/tests/design-07-style.test.ts",
+      "sha256": "B4CD3DF7FAD7395819C793E30203353F8FBADCB2EE209CDED876C5B3AFD26D36",
+      "bytes": 9990
+    },
+    {
+      "path": "electron-p0/tests/settings-bootstrap.test.tsx",
+      "sha256": "783B3391BF4C7A7CD60E125A725659CDF5001C0EC99102B1F83C3E8082BE9833",
+      "bytes": 8183
+    },
+    {
+      "path": "src/dashboard/design07Layout.test.ts",
+      "sha256": "F5294620EE1C5D3A1BDCDC27F5E5D111AD8ED61D7847AF86F82384CCBD6C8048",
+      "bytes": 3334
+    },
+    {
+      "path": "src/dashboard/design07Layout.ts",
+      "sha256": "433EDB73DC51322227BBFF755A452176ED976B21DE01108D398225DD43DE8109",
+      "bytes": 1893
+    }
+  ]
+}

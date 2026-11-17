@@ -14,6 +14,7 @@
 .onboarding-dialog { display: grid; width: min(620px, 100%); max-height: calc(100dvh - 48px); grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-floating); color: var(--text-secondary); background: var(--widget-bg); box-shadow: var(--shadow-floating); }
 .onboarding-dialog > header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 15px 18px; border-bottom: 1px solid var(--divider); }
 .onboarding-dialog__brand { display: flex; align-items: center; gap: 7px; color: var(--accent-hover); font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+.onboarding-dialog__brand .brand-logo__wordmark { height: 30px; max-width: 210px; border-radius: 7px; }
 .onboarding-dialog__progress { display: flex; gap: 5px; }
 .onboarding-dialog__progress span { width: 24px; height: 4px; border-radius: 999px; background: var(--divider); }
 .onboarding-dialog__progress span.is-active { background: var(--accent); }

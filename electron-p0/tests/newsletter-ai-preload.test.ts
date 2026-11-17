@@ -43,7 +43,21 @@ it('registers every named channel in Main and disposes candidate bytes with the 
   const main=readFileSync('electron-p0/main/main.mts','utf8')
   // When / Then
   expect(main).toContain("for(const action of NEWSLETTER_AI_ACTIONS)ipcMain.handle(`p2:newsletter:ai:${action}`")
-  expect(main).toContain("window.on('closed',()=>{newsletterAiCandidates.dispose();newsletterAiAuthority.disposeOwner(window.webContents.id);})")
-  expect(main).toContain("window.webContents.on('will-navigate',()=>{newsletterAiCandidates.dispose();newsletterAiAuthority.disposeOwner(window.webContents.id);})")
-  expect(main).toContain("window.webContents.on('render-process-gone',()=>{newsletterAiCandidates.dispose();newsletterAiAuthority.disposeOwner(window.webContents.id);})")
+  const capture=main.split('\n').find(line=>line.includes('const newsletterAiOwnerId=window.webContents.id;'))
+  const cleanup=main.split('\n').find(line=>line.includes("window.on('closed',()=>{newsletterAiCandidates.dispose();"))
+  if(!capture||!cleanup)throw Error('Newsletter owner capture or cleanup registration missing')
+  expect(main).toContain('sessionId:`newsletter-${newsletterAiOwnerId}`')
+  const callbacks=new Map<string,()=>void>(),dispose=vi.fn(),revoke=vi.fn()
+  let destroyed=false
+  const register=(name:string,callback:()=>void)=>{callbacks.set(name,callback)}
+  const window={on:register,webContents:{get id(){if(destroyed)throw Error('Destroyed webContents must not be accessed');return 71},on:register}}
+  runInNewContext(capture+'\n'+cleanup,{window,app:{on:register},newsletterAiCandidates:{dispose},newsletterAiAuthority:{disposeOwner:revoke}})
+  destroyed=true
+  for(const name of ['closed','will-navigate','render-process-gone','before-quit']){
+    const callback=callbacks.get(name)
+    if(!callback)throw Error(`Missing cleanup for ${name}`)
+    callback()
+  }
+  expect(dispose).toHaveBeenCalledTimes(4)
+  expect(revoke.mock.calls).toEqual([[71],[71],[71]])
 })

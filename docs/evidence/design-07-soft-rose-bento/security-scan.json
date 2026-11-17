@@ -1,0 +1,11 @@
+{
+  "schema": "design07-evidence-security-scan-v1",
+  "scope": "intended tracked evidence under docs/evidence/design-07-soft-rose-bento",
+  "secretScanner": "best-effort regex and manual image inspection",
+  "dedicatedScannerAvailability": {"gitleaks": false, "trufflehog": false, "detect-secrets": false},
+  "results": {"credentialLikeAssignments": 0, "emailAddresses": 0, "phoneNumbers": 0, "confirmedResidentIds": 0, "confirmedSecrets": 0},
+  "falsePositives": "Four resident-ID-shaped matches were reviewed as commit/manifest hashes or machine-generated identifiers, not personal identifiers.",
+  "screenshots": "Manually inspected; only synthetic/local QA content was visible.",
+  "limitations": ["No dedicated secret scanner was installed.", "OCR tooling was unavailable; screenshot review was manual."],
+  "verdict": "NO SENSITIVE DATA DETECTED WITH DOCUMENTED LIMITATIONS"
+}

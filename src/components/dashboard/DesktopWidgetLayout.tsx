@@ -31,14 +31,16 @@ export function DesktopWidgetLayout({ widgets, width, compact, editing, selected
       <CompactWorkspaceNotices>
         <GridLayout
           autoSize={false}
-          className={`workspace-grid desktop-widget-grid${editing ? " is-editing" : ""}`}
-          dragConfig={{ enabled: editing && !compact, handle: ".widget-frame__drag", cancel: ".react-resizable-handle, button, textarea, input, select, a" }}
+          className={`workspace-grid desktop-widget-grid${editing ? " is-editing" : ""}${compact ? " is-compact" : ""}`}
+          dragConfig={{ enabled: editing && !compact, handle: ".widget-frame__drag", cancel: ".react-resizable-handle, button:not(.widget-frame__drag), textarea, input, select, a" }}
           gridConfig={{ cols: 12, rowHeight: metrics.rowHeight, margin: [metrics.margin, metrics.margin], containerPadding: null, maxRows: 40 }}
           layout={layout}
           resizeConfig={{ enabled: editing && !compact, handles: ["se"] }}
           style={{ height: metrics.contentHeight }}
           width={width}
-          onLayoutChange={onLayoutChange}
+          // Automatic compaction is presentation; only a completed user edit is saved.
+          onDragStop={(next) => { if (editing && !compact) onLayoutChange(next); }}
+          onResizeStop={(next) => { if (editing && !compact) onLayoutChange(next); }}
         >
           {widgets.filter((widget) => widget.visible).sort((a, b) => a.y - b.y || a.x - b.x).map((widget) => (
             <div key={widget.id} data-widget-type={widget.type} data-grid-height={widget.h} data-grid-width={widget.w} tabIndex={-1}>

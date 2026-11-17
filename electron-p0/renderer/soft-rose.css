@@ -5,6 +5,9 @@
 .electron-soft-rose .workspace-shell{padding-top:76px;padding-bottom:120px}
 .electron-soft-rose .rose-surface-header{position:absolute;top:12px;left:24px;right:24px;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;padding-right:240px;color:#243246;font-size:15px;min-height:40px}
 .electron-soft-rose .rose-surface-header span{font-size:12px;color:#626874}
+.electron-soft-rose .rose-surface-header .brand-logo{font-size:initial}
+.electron-soft-rose .rose-surface-header .brand-logo__wordmark{height:32px;max-width:220px;border-radius:8px}
+.electron-soft-rose .rose-settings-brand{display:flex;margin-bottom:18px}
 .electron-soft-rose .workspace-toolbar{top:12px;left:auto;right:24px;transform:none;max-width:calc(100vw - 48px);background:#fffdfd;border-color:#e9dde2;box-shadow:0 3px 10px #24324608;backdrop-filter:none}
 .electron-soft-rose .workspace-shell .widget-frame{border:1px solid #e9dde2;border-radius:18px;background:#fffdfd;box-shadow:0 3px 12px #24324608;backdrop-filter:none}
 .electron-soft-rose .workspace-shell .widget-frame__header{color:#243246}
