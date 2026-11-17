@@ -1,0 +1,36 @@
+{
+  "schema": "design07-qa-summary-v1",
+  "verdict": "PASS",
+  "sourceHead": "78bba7c8ad41c06799a679bc45291b82d9657151",
+  "sourceManifestSha256": "A4A4225752127368FBDCD68222E776D996F911AF8D4A60E03297DD016DA6C693",
+  "states": 8,
+  "screenshots": 9,
+  "automatedVisualChecks": {"overlaps": 0, "dockCollisions": 0, "toolbarCollisions": 0, "criticalContentClips": 0, "horizontalOverflow": 0},
+  "settingsRegression": {
+    "absentFileAppliesBento": true,
+    "strictModeDuplicateInitialization": false,
+    "validCustomPositionPreserved": true,
+    "hiddenStatePreserved": true,
+    "offOnDataPreserved": true,
+    "resetUsesLegacyDesk": true,
+    "corruptSettingsPreserved": true,
+    "readFailureDistinguished": true,
+    "dragAndResizePersisted": true,
+    "dragAndResizePersistedAt980": true
+  },
+  "staticValidation": {
+    "focusedSuites": "9 passed / 68 tests",
+    "rootTypeScript": "PASS",
+    "electronTestsTypeScript": "PASS",
+    "rootBuild": "PASS",
+    "electronBuild": "PASS",
+    "gitDiffCheck": "PASS"
+  },
+  "independentVisualReview": "2 APPROVE / 0 REVISE",
+  "packaging": "NOT RUN",
+  "nativeAttachment": "DEFERRED / NOT RUN",
+  "notes": [
+    "Two earlier QA-harness profile-launch incidents were diagnosed and corrected without product-code changes.",
+    "Only the fresh final10 evidence set is authoritative for this verdict."
+  ]
+}

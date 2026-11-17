@@ -1,0 +1,121 @@
+{
+  "schema": "design07-evidence-manifest-v1",
+  "generatedAt": "2026-11-17T14:58:35.3853604+09:00",
+  "sourceHead": "78bba7c8ad41c06799a679bc45291b82d9657151",
+  "sourceManifestSha256": "A4A4225752127368FBDCD68222E776D996F911AF8D4A60E03297DD016DA6C693",
+  "authoritativeSet": "fresh-gui-final10",
+  "manifestSelfExcluded": true,
+  "fileCount": 22,
+  "files": [
+    {
+      "path": "baseline-image-diff.json",
+      "bytes": 10173,
+      "sha256": "795A150B057CCB062ACC6D76E18E141D5149E7A4AA635ECB7B384521D9B80DBE"
+    },
+    {
+      "path": "before-after-image-diff.json",
+      "bytes": 10173,
+      "sha256": "795A150B057CCB062ACC6D76E18E141D5149E7A4AA635ECB7B384521D9B80DBE"
+    },
+    {
+      "path": "before-approved-soft-rose-1440x900.png",
+      "bytes": 912531,
+      "sha256": "B8313B14BD4BFBB1C1FAC8AA35FD1A17DE259181B11869CC15DFC8DA6478A88A"
+    },
+    {
+      "path": "build-artifact-manifest.json",
+      "bytes": 29818,
+      "sha256": "1327DD597EC48FEABBA959F449A09BDF0939F1E30246254F4CB65699570A6A88"
+    },
+    {
+      "path": "design07-1280x720-edit.png",
+      "bytes": 416777,
+      "sha256": "2EC8AB429EAD991572A6F57722C4F1864E56743872C3344CC9E6564E6DA7F001"
+    },
+    {
+      "path": "design07-1280x720-view.png",
+      "bytes": 459492,
+      "sha256": "26A777DFDCFE67861570A4769D4C2F2BDB7286B91E9E6BB443247E1E4659AFC7"
+    },
+    {
+      "path": "design07-1366x768-edit.png",
+      "bytes": 469509,
+      "sha256": "1A939FC26CF882BAC18DAD75F1482D8999C63BBD858BF11B79EE0BBB361C7A19"
+    },
+    {
+      "path": "design07-1366x768-view.png",
+      "bytes": 503434,
+      "sha256": "544E46BF297DF354B22BA80EE0D8C8CCBD677650989B6BCA16CAABEF3B593299"
+    },
+    {
+      "path": "design07-1440x900-edit-hover-focus.png",
+      "bytes": 564096,
+      "sha256": "5848539AA20925FEA5C78149B2B0EA1E3B09EF137CE3AC6876BCB038090A6DAF"
+    },
+    {
+      "path": "design07-1440x900-edit.png",
+      "bytes": 558804,
+      "sha256": "99F55A9F084AFB77172B34C23903A7B812ACFD6282CDC788286080708F3FD265"
+    },
+    {
+      "path": "design07-1440x900-view.png",
+      "bytes": 575668,
+      "sha256": "AEB66856DC811C4710F1502BC47AF4165501F38ED095788E672223007530DA61"
+    },
+    {
+      "path": "design07-980x700-edit.png",
+      "bytes": 359418,
+      "sha256": "20225B91EC7DB2D73F93E56DE00692BCB541FCABF8F4F30C2AE3797773EAE417"
+    },
+    {
+      "path": "design07-980x700-view.png",
+      "bytes": 330088,
+      "sha256": "5787016B16CA6A942FB4D0E0DADFCE5F557F1210DAC4D8CF5F0295A4ABA5A90B"
+    },
+    {
+      "path": "gui-qa-report.json",
+      "bytes": 71204,
+      "sha256": "402A70AF49EA992DBA398E882316F4163F4CEEC5D741B38B3F9438C99E6D1A41"
+    },
+    {
+      "path": "independent-visual-review.json",
+      "bytes": 587,
+      "sha256": "4E2F89D9CCA762B1D1E1D72BDE8A2A9C21BB99BB4E068872CDFC4BAE1A0C4CF3"
+    },
+    {
+      "path": "launch-preflight-6fc90686-c68b-42d1-8fef-9e01cb6beca6.json",
+      "bytes": 478,
+      "sha256": "0F04A4C64B5CB28631EDC95A307CB6D80EE4D8237A74872595075149404C7B4C"
+    },
+    {
+      "path": "launch-preflight-86867d77-80ec-4268-9add-ef0a509ecd9a.json",
+      "bytes": 478,
+      "sha256": "29470E0226AAF53D01FBDA4B7FD4C56ED32599FCB8775A4DCB183D5925BEF76B"
+    },
+    {
+      "path": "launch-preflight-f266ca7b-5b3b-4689-aca7-e7a56399d20f.json",
+      "bytes": 478,
+      "sha256": "5A22F376312BAABCA449D697C86295F725A3B15D72D62CDCDB5BB26176B927B4"
+    },
+    {
+      "path": "qa-summary.json",
+      "bytes": 1355,
+      "sha256": "39CEB21AB0EE7687D9001D366C509AF0D0961F15EECAEE1D2B3A559670494845"
+    },
+    {
+      "path": "security-scan.json",
+      "bytes": 883,
+      "sha256": "27DB4C01155A4D628D9E4B4E9158FC54C6902F1ABAF9AFEF6B0F77D5F89F260D"
+    },
+    {
+      "path": "source-candidate-manifest.json",
+      "bytes": 1949,
+      "sha256": "A4A4225752127368FBDCD68222E776D996F911AF8D4A60E03297DD016DA6C693"
+    },
+    {
+      "path": "startup-probe.json",
+      "bytes": 341,
+      "sha256": "8B707C9B9727E9530B1ACBA4AE8AB507900B6870FE8EF0911E893940527326E6"
+    }
+  ]
+}

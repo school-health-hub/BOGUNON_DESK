@@ -37,8 +37,7 @@ import { MemoWidget } from '../../src/widgets/MemoWidget';
 import { WidgetSessionProvider,useWidgetSession } from '../../src/dashboard/WidgetSessionContext';
 import { DesktopPanelProvider } from '../../src/components/desktop/DesktopPanelContext';
 import { createDefaultDashboardLayout } from '../../src/dashboard/layouts';
-import { createDefaultDockLayout, parseDockLayoutValue } from '../../src/dock/storage';
-import { parseDashboardLayoutValue } from '../../src/dashboard/storage';
+import { loadBootstrappedSettings } from './settingsBootstrap';
 import { hideWidget, restoreWidget } from '../../src/dashboard/layoutTransforms';
 import { isCanonicalDeskLayout, mergeRenderedGridLayout, resolveDeskGeometry } from '../../src/dashboard/deskGeometry';
 import { applyPreset, calculateDashboardGridMetrics, useElementWidth, useViewportHeight, useViewportWidth } from '../../src/components/dashboard/dashboardCanvasSupport';
@@ -65,13 +64,12 @@ export function P0App() {
   const [error,setError] = useState(false);
   useEffect(()=>{
     let active=true;
-    void Promise.all([window.electronP0.info(),window.electronP0.readSettings()]).then(([info,s])=>{
-      if(!active)return;
+    void window.electronP0.info().then(info=>{
       if(info.appId!=='kr.sungandi.schoolhealthdesk.electronp0')throw Error('Wrong PoC identity');
-      const layout=s?parseDashboardLayoutValue(s.dashboard):createDefaultDashboardLayout();
-      const dock=s?parseDockLayoutValue(s.dock):createDefaultDockLayout();
-      if(!layout||!dock)throw Error('Invalid saved PoC layout');
-      setInitial({layout,dock,info});
+      return loadBootstrappedSettings(window.electronP0).then(settings=>({info,settings}));
+    }).then(({info,settings})=>{
+      if(!active)return;
+      setInitial({...settings,info});
     }).catch(()=>{if(active)setError(true)});
     return ()=>{active=false};
   },[]);
@@ -106,6 +104,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   const [editing,setEditing] = useState(false), [panel,setPanel] = useState<DashboardEditorPanel>(null);
   const [selected,setSelected] = useState<string | null>(null), [active,setActive] = useState<DesktopActionId>('home');
   const settingsHandoffRef=useRef(false);
+  const initialPersistence=useRef({layout:initial.layout,dock:initial.dock});
   const [notice,setNotice] = useState<string | null>(null);
   const portalPending=useRef(false),dashboardLive=useRef(true);
   useEffect(()=>{dashboardLive.current=true;return()=>{dashboardLive.current=false;};},[]);
@@ -115,6 +114,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   const rows=visible.reduce((max,w)=>Math.max(max,w.y+w.h),1);
   const metrics=calculateDashboardGridMetrics(vh,rows,geometry.dense?geometry:undefined);
   useEffect(()=>{
+    if(layout===initialPersistence.current.layout&&dock===initialPersistence.current.dock)return;
     let active=true;setStatus('저장 중');
     void window.electronP0.writeSettings({version:1,dashboard:layout,dock}).then(()=>{if(active)setStatus('PoC 설정 저장됨')}).catch(()=>{if(active)setStatus('저장 실패 — 현재 배치를 유지하고 다시 시도해 주세요')});
     return ()=>{active=false};

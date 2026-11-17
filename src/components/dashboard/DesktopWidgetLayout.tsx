@@ -31,7 +31,7 @@ export function DesktopWidgetLayout({ widgets, width, compact, editing, selected
       <CompactWorkspaceNotices>
         <GridLayout
           autoSize={false}
-          className={`workspace-grid desktop-widget-grid${editing ? " is-editing" : ""}`}
+          className={`workspace-grid desktop-widget-grid${editing ? " is-editing" : ""}${compact ? " is-compact" : ""}`}
           dragConfig={{ enabled: editing && !compact, handle: ".widget-frame__drag", cancel: ".react-resizable-handle, button, textarea, input, select, a" }}
           gridConfig={{ cols: 12, rowHeight: metrics.rowHeight, margin: [metrics.margin, metrics.margin], containerPadding: null, maxRows: 40 }}
           layout={layout}

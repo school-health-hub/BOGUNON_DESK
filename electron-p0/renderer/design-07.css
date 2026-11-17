@@ -1,0 +1,301 @@
+body.electron-soft-rose.design-07-candidate {
+  --d07-cream-50: #fffdf9;
+  --d07-cream-100: #fff9f2;
+  --d07-cream-200: #f8eee4;
+  --d07-cream-300: #efdfd2;
+  --d07-rose-50: #fff5f7;
+  --d07-rose-100: #fde8ee;
+  --d07-rose-200: #f7ced9;
+  --d07-rose-500: #c96888;
+  --d07-rose-700: #8c3f5c;
+  --d07-lavender-100: #f1eafd;
+  --d07-lavender-200: #dfd2f4;
+  --d07-coral-100: #ffe5dc;
+  --d07-coral-200: #ffcbbb;
+  --d07-navy-200: #c5d1dc;
+  --d07-navy-500: #587087;
+  --d07-navy-700: #34495f;
+  --d07-navy-900: #1f2b3a;
+  --d07-canvas: linear-gradient(145deg, var(--d07-cream-50) 0%, var(--d07-rose-50) 48%, var(--d07-lavender-100) 100%);
+  --d07-summary-fill: rgb(255 253 249 / 80%);
+  --d07-dense-fill: rgb(255 253 249 / 97%);
+  --d07-info-fill: rgb(250 247 255 / 88%);
+  --d07-rim: rgb(255 255 255 / 86%);
+  --d07-boundary: rgb(197 209 220 / 78%);
+  --d07-contact-shadow: 0 2px 5px rgb(140 63 92 / 10%);
+  --d07-ambient-shadow: 0 18px 38px rgb(88 73 104 / 13%);
+  --d07-focus: 0 0 0 2px var(--d07-rose-700), 0 0 0 5px var(--d07-cream-50);
+  --d07-layer-widget: 10;
+  --d07-layer-edit: 20;
+  --d07-layer-dock: 30;
+  --d07-layer-toolbar: 40;
+  --d07-layer-inspector: 50;
+  --d07-motion: 150ms cubic-bezier(.2, .8, .2, 1);
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell:is(.is-view-mode, .is-edit-mode) {
+  color: var(--d07-navy-900);
+  background: var(--d07-canvas);
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell:is(.is-view-mode, .is-edit-mode) .workspace-dashboard {
+  padding: 24px; padding-bottom: calc(24px + var(--desktop-dock-height, 72px));
+  scrollbar-gutter: stable; overscroll-behavior: contain;
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .workspace-toolbar {
+  z-index: var(--d07-layer-toolbar);
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .workspace-toolbar {
+  top: 12px; right: auto; left: 50%;
+  width: max-content; max-width: calc(100vw - 32px); transform: translateX(-50%);
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .workspace-toolbar__actions {
+  width: auto; flex-flow: row nowrap;
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .workspace-toolbar .toolbar-button,
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .workspace-toolbar .toolbar-button.is-icon-only {
+  width: auto;
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .workspace-editor-panel {
+  z-index: var(--d07-layer-inspector);
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid {
+  gap: 16px;
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid > .react-grid-item {
+  z-index: var(--d07-layer-widget);
+  padding: 8px;
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid .widget-frame {
+  --design-07-widget-fill: var(--d07-info-fill);
+  color: var(--d07-navy-900);
+  border: 1px solid var(--d07-rim);
+  border-radius: 22px;
+  background: var(--design-07-widget-fill);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 76%), var(--d07-contact-shadow), var(--d07-ambient-shadow);
+  backdrop-filter: blur(14px) saturate(112%);
+  transition: border-color var(--d07-motion), box-shadow var(--d07-motion), transform var(--d07-motion);
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid .widget-frame[data-widget-family="primary"],
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="quick-memo"] .widget-frame,
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="quick-launcher"] .widget-frame,
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="upcoming-schedule"] .widget-frame {
+  --design-07-widget-fill: var(--d07-dense-fill);
+  border-color: var(--d07-boundary);
+  backdrop-filter: blur(4px) saturate(104%);
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="today-summary"] .widget-frame,
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="clock"] .widget-frame {
+  --design-07-widget-fill: var(--d07-summary-fill);
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="dday"] .widget-frame {
+  --design-07-widget-fill: rgb(241 234 253 / 90%);
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="priority-task"] .widget-frame,
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="notifications"] .widget-frame {
+  --design-07-widget-fill: rgb(255 245 241 / 92%);
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid .widget-frame__body > :is(.panel, .widget-surface) {
+  padding: 16px;
+  color: var(--d07-navy-900);
+  background: transparent;
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="meal"] .widget-frame__body > .meal-panel,
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="weather"] .widget-frame__body > .weather-panel,
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="clock"] .widget-frame__body > .date-card { padding: 8px 12px; }
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid :is([data-widget-type="meal"], [data-widget-type="weather"]) .panel__header { min-height: 16px; margin-bottom: 2px; }
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="meal"] :is(.meal-state, .workspace-data-notice),
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="weather"] :is(.weather-state, .workspace-data-notice) { min-height: 0; margin: 0; padding-top: 0; font-size: 11px; line-height: 1.35; }
+
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-view-mode .desktop-widget-grid [data-widget-type="weather"] .widget-frame__body > .weather-panel { padding: 4px 10px; }
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-view-mode .desktop-widget-grid [data-widget-type="weather"] .panel__header { min-height: 14px; margin-bottom: 0; }
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-view-mode .desktop-widget-grid [data-widget-type="weather"] .weather-state { line-height: 1.25; }
+
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="clock"] .widget-frame__body > .date-card,
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="weather"] .widget-frame__body > .weather-panel { padding: 34px 10px 6px; }
+
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="clock"] .date-card__eyebrow { padding-inline: 24px; overflow: hidden; font-size: 10px; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
+
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="clock"] .date-card__body { gap: 0; padding-top: 1px; }
+
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="clock"] .date-card__date { margin-top: 0; font-size: 10px; line-height: 1.15; white-space: nowrap; }
+
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="clock"] .date-card__time { font-size: 20px; line-height: 1.05; }
+
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="weather"] .weather-panel .panel__title { padding-inline: 24px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="weather"] .weather-state { overflow: visible; }
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid.is-compact .widget-frame__drag,
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid.is-compact .react-resizable-handle { display: none; }
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid :is([data-widget-type="monthly-calendar"], [data-widget-type="weekly-schedule"], [data-widget-type="today-tasks"]) .widget-frame__body > :is(.panel, .widget-surface) {
+  padding: 20px 24px;
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid :is(.panel__title, h2, h3) {
+  color: var(--d07-navy-900);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid :is(p, li, small, time) {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid .react-grid-item:is(.react-draggable-dragging, .react-resizable-resizing) {
+  z-index: var(--d07-layer-edit);
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid .widget-frame:is(.is-selected, :focus-within) {
+  border-color: var(--d07-rose-700);
+  box-shadow: var(--d07-focus), var(--d07-contact-shadow), var(--d07-ambient-shadow);
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid .widget-frame__chrome button:focus-visible,
+body.electron-soft-rose.design-07-candidate .workspace-shell .dock button:focus-visible {
+  outline: 2px solid var(--d07-rose-700);
+  outline-offset: 3px;
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .dock-zone {
+  z-index: var(--d07-layer-dock);
+  margin-bottom: 12px;
+  pointer-events: none;
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .dock {
+  min-height: var(--desktop-dock-height, 72px);
+  gap: var(--desktop-dock-gap, 8px);
+  padding: 10px 14px;
+  border: 1px solid var(--d07-rim);
+  border-radius: 24px;
+  background: rgb(255 253 249 / 86%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 82%), var(--d07-contact-shadow), 0 20px 42px rgb(88 73 104 / 17%);
+  backdrop-filter: blur(16px) saturate(112%);
+  pointer-events: auto;
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .dock button {
+  color: var(--d07-navy-700);
+  transition: color var(--d07-motion), transform var(--d07-motion);
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .dock button:hover {
+  color: var(--d07-rose-700);
+  transform: translateY(-2px);
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .dock button:active {
+  transform: translateY(1px);
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .dock button.is-active .dock__icon {
+  box-shadow: inset 0 0 0 1px var(--d07-rose-200), 0 4px 12px rgb(140 63 92 / 14%);
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell.card-flat .desktop-widget-grid .widget-frame,
+body.electron-soft-rose.design-07-candidate .workspace-shell.card-flat .dock {
+  border-color: var(--d07-navy-200);
+  background: var(--d07-cream-50);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+@media (max-width: 1100px) {
+  body.electron-soft-rose.design-07-candidate .workspace-shell:is(.is-view-mode, .is-edit-mode) .workspace-dashboard {
+    padding: 16px;
+    padding-bottom: calc(16px + var(--desktop-dock-height, 72px));
+  }
+
+  body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="today-tasks"] .panel__header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="today-tasks"] .panel__title-wrap {
+    width: 100%;
+    padding-right: 28px;
+  }
+
+  body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="today-tasks"] .panel__title {
+    word-break: keep-all;
+    overflow-wrap: normal;
+    white-space: nowrap;
+  }
+
+  body.electron-soft-rose.design-07-candidate .workspace-shell.is-view-mode .desktop-widget-grid [data-widget-type="monthly-calendar"] .widget-frame.is-viewing, body.electron-soft-rose.design-07-candidate .workspace-shell.is-view-mode .desktop-widget-grid [data-widget-type="monthly-calendar"] .widget-frame__body { height: auto; }
+  body.electron-soft-rose.design-07-candidate .workspace-shell.is-view-mode .desktop-widget-grid [data-widget-type="monthly-calendar"] .calendar-panel { min-height: 360px; padding: 8px 10px; }
+  body.electron-soft-rose.design-07-candidate .workspace-shell.is-view-mode .desktop-widget-grid [data-widget-type="monthly-calendar"] .calendar-grid { min-height: 240px; }
+
+  body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="weather"] .widget-frame__body > .weather-panel { padding: 6px 8px 4px; }
+  body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="weather"] .panel__header { min-height: 20px; margin-bottom: 0; padding-left: 28px; padding-right: 0; }
+  body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="weather"] .weather-state { line-height: 1.2; }
+  body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="weather"] .workspace-data-notice { padding: 0; font-size: 11px; line-height: 1.2; }
+  body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="weather"] .weather-panel .panel__icon { display: none; }
+  body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="weather"] .weather-panel .panel__title {
+    padding-inline: 0; overflow: visible; line-height: 1.2;
+    text-overflow: clip; white-space: nowrap; word-break: keep-all; overflow-wrap: normal;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid .widget-frame,
+  body.electron-soft-rose.design-07-candidate .workspace-shell .dock button,
+  body.electron-soft-rose.design-07-candidate .workspace-shell .dock button:hover,
+  body.electron-soft-rose.design-07-candidate .workspace-shell .dock button:active,
+  body.electron-soft-rose.design-07-candidate .workspace-shell .dock button:focus-visible {
+    transition: none;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid .widget-frame,
+  body.electron-soft-rose.design-07-candidate .workspace-shell .dock {
+    --design-07-widget-fill: var(--d07-cream-50);
+    border-color: var(--d07-navy-200);
+    background: var(--d07-cream-50);
+    backdrop-filter: none;
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid .widget-frame,
+  body.electron-soft-rose.design-07-candidate .workspace-shell .dock {
+    --design-07-widget-fill: var(--d07-cream-50);
+    border-color: var(--d07-navy-200);
+    background: var(--d07-cream-50);
+  }
+}
+
+@media (forced-colors: active) {
+  body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid .widget-frame,
+  body.electron-soft-rose.design-07-candidate .workspace-shell .dock {
+    border: 1px solid CanvasText;
+    background: Canvas;
+    box-shadow: none;
+  }
+
+  body.electron-soft-rose.design-07-candidate .workspace-shell :is(button, [tabindex]):focus-visible {
+    outline: 2px solid Highlight;
+  }
+}

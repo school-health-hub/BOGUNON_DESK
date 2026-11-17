@@ -649,3 +649,145 @@ remains. Dock active marker, accessible name, hover and keyboard tooltip stay in
 - 입고·사용·폐기는 합성 데이터에만 적용하며 사유와 양수를 요구한다. 모든 변경은 Electron 격리 프로필의 inventory 전용 JSON에 원자적으로 저장하고 최근 정상본을 backup으로 보존한다.
 - Purchase Helper 연결은 권위 ID와 기본단위 수량을 전달할 수 있는 읽기 전용 후보 interface만 확인한다. 자동 구매·입고 반영이나 Purchase session 변경은 하지 않는다.
 - 기존 Pretendard, muted navy/mint, shared surface/border/text 토큰과 40px control target을 유지한다. 원격 이미지, 신규 animation, 새로운 전역 navigation은 추가하지 않는다.
+
+## DESIGN-07 Soft Rose Bento workspace contract — 2026-11-17
+
+This contract is the authority for the isolated DESIGN-07 Electron candidate before
+any UI implementation. It extracts spatial and material grammar from the approved
+Soft Rose direction; it does not copy a reference screen, brand, wording, imagery,
+or layout. Existing widget IDs, data and persistence contracts, actions, ARIA names,
+and application semantics remain authoritative. New assets, fonts, icon packages,
+dependencies, sidebar navigation, marketing copy, and decorative characters are out
+of scope.
+
+### Candidate scope and terminal CSS authority
+
+- The exact candidate root marker is
+  `body.electron-soft-rose.design-07-candidate`. DESIGN-07 material applies to every
+  saved layout rendered under that marker; only the new Bento coordinates are
+  first-run-only.
+- A dedicated DESIGN-07 Electron stylesheet is imported last, after
+  `td2-workspace.css`, and is the terminal presentation authority for this candidate.
+  Every styling selector must include the exact candidate root. Bare `:root`, `body`,
+  `.widget-frame`, `.react-grid-item`, `.dock`, and `.dock-zone` selectors are
+  prohibited. The only exception is a documented keyframe or custom-property
+  declaration that cannot style an element by itself.
+- Do not use `!important`, broad shared-CSS edits, inline hardcoded color scatter, or
+  new dependencies to win the cascade. Positive computed-style checks must prove the
+  candidate root receives the terminal values; negative checks must prove ordinary
+  Electron, non-candidate workspace, dialog, and tool surfaces are unchanged.
+- Existing Pretendard remains the font stack and existing Lucide components remain
+  the icon source. No downloaded font, raster decoration, replacement icon set, or
+  reference asset is introduced.
+
+### Palette and semantic token ramps
+
+All values below become candidate-scoped custom properties and map to the existing
+canvas, `WidgetFrame`, inner sheet, control, status, and Dock families. Status error,
+warning, and success semantics retain their existing accessible meanings.
+
+| Ramp | 50 | 100 | 200 | 300 | 500 | 700 | 900 | Primary mapping |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| cream | `#fffdf9` | `#fff9f2` | `#f8eee4` | `#efdfd2` | `#d6bca9` | `#9a7766` | `#4d3933` | canvas light, dense sheet, warm rim |
+| rose | `#fff5f7` | `#fde8ee` | `#f7ced9` | `#eca9bc` | `#c96888` | `#8c3f5c` | `#3e2531` | candidate accent, selection, focus |
+| lavender | `#faf7ff` | `#f1eafd` | `#dfd2f4` | `#c6afe7` | `#9875c2` | `#684c8c` | `#30263f` | ambient tint, D-Day/information family |
+| coral | `#fff5f1` | `#ffe5dc` | `#ffcbbb` | `#f5a088` | `#d96b52` | `#963f31` | `#442722` | priority/attention accent, never sole status cue |
+| navy | `#f4f7fa` | `#e4ebf1` | `#c5d1dc` | `#9bafc1` | `#587087` | `#34495f` | `#1f2b3a` | primary ink, secondary ink, structural contrast |
+
+- Canonical text tokens are navy-900 primary, navy-700 secondary, and navy-500
+  muted on cream-50/100 surfaces. Rose-700 is the interactive accent; rose-900 or
+  navy-900 is used where rose-700 does not meet contrast. Coral and lavender are
+  supporting families, not replacements for explicit labels or ARIA state.
+- Typography maps onto the existing Pretendard family: 12px auxiliary, 13px dense
+  body, 14px body/control, 16px widget title, 20px section metric, and 28–32px focal
+  value. Use 400/500/600/700 weights already available; body text never drops below
+  12px and essential controls never use the auxiliary size.
+
+### Spacing, shape, and reusable surface tiers
+
+- Desktop workspace gutter is exactly `24px`; the Bento grid gap is exactly `16px`.
+  Standard widget padding is `16px`, increasing to `20px` where content density
+  permits. Large calendar/week/task widgets use `20–24px`; compact small widgets may
+  retain `16px` but never compress below the existing usable control/content limits.
+- Widget and Dock shelf radii are role-based `20–24px`; dense inner work sheets use
+  `16–20px`; controls retain the established smaller control radius and minimum hit
+  target. Radius does not encode state and does not change saved geometry.
+- `summary-glass` is selective: today summary and other brief, glanceable information
+  may use warm-white alpha `0.74–0.84`, a 1px light rim, restrained `12–16px` blur,
+  and one soft ambient shadow. Text and controls sit on a sufficiently opaque local
+  layer when needed for contrast.
+- `work-sheet` is the default for dense calendar, weekly schedule, tasks, memo,
+  launcher, upcoming schedule, and any table/list/editor region: cream-white alpha
+  `0.94–0.98` (near-opaque), no content-obscuring background texture, and no blur
+  stacking on nested sheets. Small clock/weather/D-Day/meal/priority/notification
+  frames may take a subtle family tint, while their dense rows remain near-opaque.
+- The rim is one quiet 1px highlight/border, not a glowing double outline. Elevation
+  uses one contact shadow plus at most one low-chroma ambient shadow; no stacked
+  bloom, loud gradient, continuous float, or ornamental animation. Hover may change
+  rim/elevation subtly; pressed state returns toward the canvas by 1px.
+
+### Bento families, Dock, and interaction states
+
+- Large family (3): `monthly-calendar`, `weekly-schedule`, `today-tasks`. Medium
+  family (4): `today-summary`, `quick-memo`, `quick-launcher`,
+  `upcoming-schedule`. Small family (6): `clock`, `priority-task`, `dday`,
+  `notifications`, `meal`, `weather`. The family controls padding, type hierarchy,
+  surface tier, and internal scrolling only; IDs, visibility, min/max size, content,
+  and persistence remain unchanged.
+- View state is calm and content-first: drag/resize affordances are absent, but
+  existing actions, tooltips, focus order, and interactive content remain available.
+  Edit state exposes the existing selection, drag, resize, visibility, and exit
+  affordances with a rose focus/selection ring and non-color cues. Edit decoration
+  must not cover titles, content, or handles and must not shift persisted geometry.
+- The existing bottom-center floating Dock remains the only global launcher shelf.
+  Preserve item IDs, order/action contracts, icons, active dot, tooltip, focus,
+  keyboard behavior, and the reserved non-overlap row. Use the same restrained glass
+  vocabulary with `24px` shelf radius, compact internal spacing, and existing
+  48px/42px target behavior. Do not add a fixed left sidebar, SaaS shell, permanent
+  labels, or new navigation/copy.
+
+### Responsive, scrolling, and accessibility contract
+
+- The exact validation matrix is four Electron **content viewport** sizes at renderer
+  zoom 1.0—`1440×900`, `1366×768`, `1280×720`, and `980×700`—each in View and Edit,
+  for 8 states total. Native outer bounds are recorded separately and must never be
+  substituted for `innerWidth`/`innerHeight` or layout-width measurements.
+- At every matrix state, the 24px outer gutter and 16px logical gap remain the target;
+  compact projection may reduce outer breathing room only where existing responsive
+  rules require it. No page-level horizontal overflow, widget overlap, clipped
+  essential control/text, or Dock/final-content collision is acceptable. Edit
+  drag/resize availability is measured from actual dashboard/container width.
+- Workspace scrolling is the primary vertical fallback at short heights. Calendar,
+  lists, memo, and dense work sheets may use one intentional internal scroll region
+  only where their existing content contract requires it. Never add nested scrolling
+  merely to force the desktop matrix to fit; scrollbars must remain keyboard- and
+  pointer-reachable and must not hide focus rings.
+- Korean/CJK labels use `word-break: keep-all` with `overflow-wrap: anywhere` as the
+  emergency fallback. Preserve full accessible names and title/tooltip disclosure
+  for deliberate truncation. Dates, counts, and action labels may not be silently
+  elided when essential to the task.
+- All interactive states retain a visible `:focus-visible` ring equivalent to at
+  least 2px rose-700 plus separation from the surface; forced-colors uses system
+  outlines. Text and essential icon/control boundaries target WCAG AA contrast
+  (4.5:1 normal text, 3:1 large text and UI boundaries). State is never conveyed by
+  color, blur, or elevation alone.
+- Layer order is tokenized: canvas `0`, widgets `10`, selected/edit affordances `20`,
+  floating Dock `30`, nonmodal panels `40`, modal backdrop `80`, modal/dialog `90`,
+  tooltip/drag preview `100`. A widget or its internal scroll region must not create
+  a stacking context that rises above the Dock, panels, or modal surfaces.
+
+### Resilience, accepted debt, and deferrals
+
+- `prefers-reduced-transparency: reduce`, the existing Flat appearance, and missing
+  `backdrop-filter` use opaque cream-50/100 fills (`0.98–1.0`), a navy-200 boundary,
+  no backdrop blur, and the same readable hierarchy. Unsupported backdrop filtering
+  must be a visual fallback, never a missing-card state.
+- `prefers-reduced-motion: reduce` removes candidate transforms and nonessential
+  transitions. Otherwise hover/press feedback is limited to existing short motion;
+  there is no ambient or decorative motion.
+- Accepted debt for this candidate is limited to using existing widget DOM and
+  existing responsive/scroll primitives. It does not justify hidden content,
+  contrast exceptions, a copied layout, schema/registry changes, or cascade leakage.
+- Native Desktop Attachment **OPTION C is DEFERRED / NOT RUN**. DESIGN-07 is ordinary
+  Electron compositing only: no WorkerW, `SetParent`, Explorer manipulation, native
+  attachment probe, or desktop-mode claim.

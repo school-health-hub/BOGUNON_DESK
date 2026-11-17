@@ -1,0 +1,10 @@
+{
+  "schema": "design07-independent-visual-review-v1",
+  "evidenceSet": "fresh-gui-final10",
+  "sourceManifestSha256": "A4A4225752127368FBDCD68222E776D996F911AF8D4A60E03297DD016DA6C693",
+  "reviewers": [
+    {"id": "visual_a_default", "verdict": "APPROVE", "scope": "all 9 PNGs plus gui-qa-report.json", "blockingFindings": []},
+    {"id": "visual_b_default", "verdict": "APPROVE", "confidence": "HIGH", "scope": "all 9 PNGs plus gui-qa-report.json", "blockingFindings": []}
+  ],
+  "summary": "Both independent reviewers approved the fresh final10 set with no blocking visual defect."
+}

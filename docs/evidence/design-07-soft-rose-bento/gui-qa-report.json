@@ -1,0 +1,2599 @@
+{
+  "generatedUtc": "2026-11-17T05:51:16.681Z",
+  "sourceHead": "78bba7c8ad41c06799a679bc45291b82d9657151",
+  "sourceManifestSha256": "A4A4225752127368FBDCD68222E776D996F911AF8D4A60E03297DD016DA6C693",
+  "runId": "f266ca7b-5b3b-4689-aca7-e7a56399d20f",
+  "qaRoot": "F:\\BOGUNON_DEV\\qa\\design-07\\20261117-e4185f95-e7bf-426c-9b15-56b34915f115\\runner-temp\\qa-profile",
+  "states": [
+    {
+      "width": 1440,
+      "height": 900,
+      "mode": "View",
+      "file": "design07-1440x900-view.png",
+      "native": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "width": 1456,
+          "height": 965
+        },
+        "content": {
+          "x": 8,
+          "y": 57,
+          "width": 1440,
+          "height": 900
+        },
+        "zoom": 1,
+        "actual": {
+          "width": 1440,
+          "height": 900,
+          "dpr": 1
+        }
+      },
+      "metrics": {
+        "inner": {
+          "width": 1440,
+          "height": 900,
+          "dpr": 1
+        },
+        "bodyClass": "electron-soft-rose design-07-candidate",
+        "settingsWidgets": [
+          {
+            "id": "widget-clock",
+            "type": "clock",
+            "x": 0,
+            "y": 0,
+            "w": 2,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-weather",
+            "type": "weather",
+            "x": 2,
+            "y": 0,
+            "w": 2,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-today-summary",
+            "type": "today-summary",
+            "x": 4,
+            "y": 0,
+            "w": 5,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-dday",
+            "type": "dday",
+            "x": 9,
+            "y": 0,
+            "w": 3,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-monthly-calendar",
+            "type": "monthly-calendar",
+            "x": 0,
+            "y": 2,
+            "w": 6,
+            "h": 5,
+            "visible": true
+          },
+          {
+            "id": "widget-today-tasks",
+            "type": "today-tasks",
+            "x": 6,
+            "y": 2,
+            "w": 3,
+            "h": 5,
+            "visible": true
+          },
+          {
+            "id": "widget-priority-task",
+            "type": "priority-task",
+            "x": 9,
+            "y": 2,
+            "w": 3,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-meal",
+            "type": "meal",
+            "x": 9,
+            "y": 4,
+            "w": 3,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-weekly-schedule",
+            "type": "weekly-schedule",
+            "x": 0,
+            "y": 7,
+            "w": 6,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-quick-memo",
+            "type": "quick-memo",
+            "x": 6,
+            "y": 7,
+            "w": 3,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-quick-launcher",
+            "type": "quick-launcher",
+            "x": 9,
+            "y": 7,
+            "w": 3,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-upcoming-schedule",
+            "type": "upcoming-schedule",
+            "x": 0,
+            "y": 10,
+            "w": 5,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-notifications",
+            "type": "notifications",
+            "x": 9,
+            "y": 10,
+            "w": 3,
+            "h": 3,
+            "visible": false
+          }
+        ],
+        "visibleDomCount": 12,
+        "widgetTypes": [
+          "clock",
+          "weather",
+          "today-summary",
+          "dday",
+          "monthly-calendar",
+          "today-tasks",
+          "priority-task",
+          "meal",
+          "weekly-schedule",
+          "quick-memo",
+          "quick-launcher",
+          "upcoming-schedule"
+        ],
+        "overlaps": [],
+        "dockCollisions": [],
+        "toolbarCollisions": [],
+        "criticalContentClips": [],
+        "calendarFrame": {
+          "x": 46,
+          "y": 264,
+          "width": 654,
+          "height": 291.09375,
+          "top": 264,
+          "right": 700,
+          "bottom": 555.09375,
+          "left": 46
+        },
+        "calendarLastDays": [
+          {
+            "day": 29,
+            "visible": true,
+            "rect": {
+              "x": 77,
+              "y": 508.453125,
+              "width": 20,
+              "height": 18,
+              "top": 508.453125,
+              "right": 97,
+              "bottom": 526.453125,
+              "left": 77
+            }
+          },
+          {
+            "day": 30,
+            "visible": true,
+            "rect": {
+              "x": 162.84375,
+              "y": 508.453125,
+              "width": 20,
+              "height": 18,
+              "top": 508.453125,
+              "right": 182.84375,
+              "bottom": 526.453125,
+              "left": 162.84375
+            }
+          }
+        ],
+        "weatherContent": {
+          "text": "날씨·급식은 이 Electron 실행본에 연결되어 있지 않습니다.",
+          "rect": {
+            "x": 286,
+            "y": 142.25,
+            "width": 174,
+            "height": 31.6875,
+            "top": 142.25,
+            "right": 460,
+            "bottom": 173.9375,
+            "left": 286
+          },
+          "frameRect": {
+            "x": 274,
+            "y": 116,
+            "width": 198,
+            "height": 72,
+            "top": 116,
+            "right": 472,
+            "bottom": 188,
+            "left": 274
+          },
+          "scrollHeight": 32,
+          "clientHeight": 32
+        },
+        "todayTasksTitle": {
+          "text": "오늘의 보건업무",
+          "rect": {
+            "x": 777,
+            "y": 287.875,
+            "width": 91.921875,
+            "height": 20.25,
+            "top": 287.875,
+            "right": 868.921875,
+            "bottom": 308.125,
+            "left": 777
+          },
+          "clientWidth": 92,
+          "scrollWidth": 92,
+          "lineCount": 1
+        },
+        "todayTasksBadge": {
+          "text": "BOGUNON 연동",
+          "rect": {
+            "x": 930.78125,
+            "y": 286,
+            "width": 85.21875,
+            "height": 24,
+            "top": 286,
+            "right": 1016,
+            "bottom": 310,
+            "left": 930.78125
+          },
+          "visible": true
+        },
+        "documentHorizontalOverflow": false,
+        "shellHorizontalOverflow": false,
+        "dashboard": {
+          "x": 0,
+          "y": 64,
+          "width": 1440,
+          "height": 716,
+          "top": 64,
+          "right": 1440,
+          "bottom": 780,
+          "left": 0,
+          "clientWidth": 1430,
+          "scrollWidth": 1430,
+          "clientHeight": 716,
+          "scrollHeight": 1131,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "dock": {
+          "x": 445,
+          "y": 792,
+          "width": 550,
+          "height": 96,
+          "top": 792,
+          "right": 995,
+          "bottom": 888,
+          "left": 445,
+          "position": "static",
+          "visible": true
+        },
+        "clippedTitles": [],
+        "unnaturalTitleWraps": [],
+        "gridClass": "react-grid-layout workspace-grid desktop-widget-grid",
+        "dragHandleCount": 0,
+        "visibleDragHandleCount": 0,
+        "resizeHandleCount": 12,
+        "visibleResizeHandleCount": 0,
+        "summaryMaterial": {
+          "background": "rgba(0, 0, 0, 0) linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(255, 246, 250, 0.48)) repeat scroll 0% 0% / auto padding-box border-box",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "backdropFilter": "blur(14px) saturate(1.12)",
+          "color": "rgb(31, 43, 58)",
+          "borderRadius": "20px",
+          "boxShadow": "rgba(255, 255, 255, 0.96) 0px 1px 0px 0px inset, rgba(255, 255, 255, 0.54) 1px 0px 0px 0px inset, rgba(116, 74, 94, 0.08) 0px -1px 0px 0px inset, rgba(77, 41, 58, 0.12) 0px 2px 3px 0px, rgba(77, 41, 58, 0.1) 0px 8px 16px 0px, rgba(75, 40, 62, 0.21) 0px 24px 42px 0px",
+          "overflowY": "hidden"
+        },
+        "denseMaterial": {
+          "background": "rgba(0, 0, 0, 0) linear-gradient(145deg, rgba(255, 255, 255, 0.86), rgba(255, 247, 251, 0.72)) repeat scroll 0% 0% / auto padding-box border-box",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "backdropFilter": "blur(4px) saturate(1.04)",
+          "color": "rgb(31, 43, 58)",
+          "borderRadius": "18px",
+          "boxShadow": "rgba(255, 255, 255, 0.96) 0px 1px 0px 0px inset, rgba(255, 255, 255, 0.54) 1px 0px 0px 0px inset, rgba(116, 74, 94, 0.08) 0px -1px 0px 0px inset, rgba(77, 41, 58, 0.12) 0px 2px 3px 0px, rgba(77, 41, 58, 0.1) 0px 8px 16px 0px, rgba(75, 40, 62, 0.14) 0px 24px 42px 0px",
+          "overflowY": "hidden"
+        }
+      }
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "mode": "Edit",
+      "file": "design07-1440x900-edit.png",
+      "native": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "width": 1456,
+          "height": 965
+        },
+        "content": {
+          "x": 8,
+          "y": 57,
+          "width": 1440,
+          "height": 900
+        },
+        "zoom": 1,
+        "actual": {
+          "width": 1440,
+          "height": 900,
+          "dpr": 1
+        }
+      },
+      "metrics": {
+        "inner": {
+          "width": 1440,
+          "height": 900,
+          "dpr": 1
+        },
+        "bodyClass": "electron-soft-rose design-07-candidate",
+        "settingsWidgets": [
+          {
+            "id": "widget-clock",
+            "type": "clock",
+            "x": 0,
+            "y": 0,
+            "w": 2,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-weather",
+            "type": "weather",
+            "x": 2,
+            "y": 0,
+            "w": 2,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-today-summary",
+            "type": "today-summary",
+            "x": 4,
+            "y": 0,
+            "w": 5,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-dday",
+            "type": "dday",
+            "x": 9,
+            "y": 0,
+            "w": 3,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-monthly-calendar",
+            "type": "monthly-calendar",
+            "x": 0,
+            "y": 2,
+            "w": 6,
+            "h": 5,
+            "visible": true
+          },
+          {
+            "id": "widget-today-tasks",
+            "type": "today-tasks",
+            "x": 6,
+            "y": 2,
+            "w": 3,
+            "h": 5,
+            "visible": true
+          },
+          {
+            "id": "widget-priority-task",
+            "type": "priority-task",
+            "x": 9,
+            "y": 2,
+            "w": 3,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-meal",
+            "type": "meal",
+            "x": 9,
+            "y": 4,
+            "w": 3,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-weekly-schedule",
+            "type": "weekly-schedule",
+            "x": 0,
+            "y": 7,
+            "w": 6,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-quick-memo",
+            "type": "quick-memo",
+            "x": 6,
+            "y": 7,
+            "w": 3,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-quick-launcher",
+            "type": "quick-launcher",
+            "x": 9,
+            "y": 7,
+            "w": 3,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-upcoming-schedule",
+            "type": "upcoming-schedule",
+            "x": 0,
+            "y": 10,
+            "w": 5,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-notifications",
+            "type": "notifications",
+            "x": 9,
+            "y": 10,
+            "w": 3,
+            "h": 3,
+            "visible": false
+          }
+        ],
+        "visibleDomCount": 12,
+        "widgetTypes": [
+          "clock",
+          "weather",
+          "today-summary",
+          "dday",
+          "monthly-calendar",
+          "today-tasks",
+          "priority-task",
+          "meal",
+          "weekly-schedule",
+          "quick-memo",
+          "quick-launcher",
+          "upcoming-schedule"
+        ],
+        "overlaps": [],
+        "dockCollisions": [],
+        "toolbarCollisions": [],
+        "criticalContentClips": [],
+        "calendarFrame": {
+          "x": 46,
+          "y": 316,
+          "width": 654,
+          "height": 355,
+          "top": 316,
+          "right": 700,
+          "bottom": 671,
+          "left": 46
+        },
+        "calendarLastDays": [
+          {
+            "day": 29,
+            "visible": true,
+            "rect": {
+              "x": 77,
+              "y": 613.25,
+              "width": 24,
+              "height": 24,
+              "top": 613.25,
+              "right": 101,
+              "bottom": 637.25,
+              "left": 77
+            }
+          },
+          {
+            "day": 30,
+            "visible": true,
+            "rect": {
+              "x": 162.84375,
+              "y": 613.25,
+              "width": 24,
+              "height": 24,
+              "top": 613.25,
+              "right": 186.84375,
+              "bottom": 637.25,
+              "left": 162.84375
+            }
+          }
+        ],
+        "weatherContent": {
+          "text": "날씨·급식은 이 Electron 실행본에 연결되어 있지 않습니다.",
+          "rect": {
+            "x": 286,
+            "y": 224,
+            "width": 174,
+            "height": 33.6875,
+            "top": 224,
+            "right": 460,
+            "bottom": 257.6875,
+            "left": 286
+          },
+          "frameRect": {
+            "x": 274,
+            "y": 162,
+            "width": 198,
+            "height": 124,
+            "top": 162,
+            "right": 472,
+            "bottom": 286,
+            "left": 274
+          },
+          "scrollHeight": 34,
+          "clientHeight": 34
+        },
+        "todayTasksTitle": {
+          "text": "오늘의 보건업무",
+          "rect": {
+            "x": 788,
+            "y": 339.875,
+            "width": 91.921875,
+            "height": 20.25,
+            "top": 339.875,
+            "right": 879.921875,
+            "bottom": 360.125,
+            "left": 788
+          },
+          "clientWidth": 92,
+          "scrollWidth": 92,
+          "lineCount": 1
+        },
+        "todayTasksBadge": {
+          "text": "BOGUNON 연동",
+          "rect": {
+            "x": 930.78125,
+            "y": 338,
+            "width": 85.21875,
+            "height": 24,
+            "top": 338,
+            "right": 1016,
+            "bottom": 362,
+            "left": 930.78125
+          },
+          "visible": true
+        },
+        "documentHorizontalOverflow": false,
+        "shellHorizontalOverflow": false,
+        "dashboard": {
+          "x": 0,
+          "y": 116,
+          "width": 1440,
+          "height": 664,
+          "top": 116,
+          "right": 1440,
+          "bottom": 780,
+          "left": 0,
+          "clientWidth": 1430,
+          "scrollWidth": 1430,
+          "clientHeight": 664,
+          "scrollHeight": 1131,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "dock": {
+          "x": 445,
+          "y": 792,
+          "width": 550,
+          "height": 96,
+          "top": 792,
+          "right": 995,
+          "bottom": 888,
+          "left": 445,
+          "position": "static",
+          "visible": true
+        },
+        "clippedTitles": [],
+        "unnaturalTitleWraps": [],
+        "gridClass": "react-grid-layout workspace-grid desktop-widget-grid is-editing",
+        "dragHandleCount": 12,
+        "visibleDragHandleCount": 12,
+        "resizeHandleCount": 12,
+        "visibleResizeHandleCount": 12,
+        "summaryMaterial": {
+          "background": "rgba(0, 0, 0, 0) linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(255, 246, 250, 0.48)) repeat scroll 0% 0% / auto padding-box border-box",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "backdropFilter": "blur(12px) saturate(1.12)",
+          "color": "rgb(31, 43, 58)",
+          "borderRadius": "20px",
+          "boxShadow": "rgba(255, 255, 255, 0.96) 0px 1px 0px 0px inset, rgba(255, 255, 255, 0.54) 1px 0px 0px 0px inset, rgba(116, 74, 94, 0.08) 0px -1px 0px 0px inset, rgba(77, 41, 58, 0.12) 0px 2px 3px 0px, rgba(77, 41, 58, 0.1) 0px 8px 16px 0px, rgba(75, 40, 62, 0.21) 0px 24px 42px 0px",
+          "overflowY": "visible"
+        },
+        "denseMaterial": {
+          "background": "rgba(0, 0, 0, 0) linear-gradient(145deg, rgba(255, 255, 255, 0.86), rgba(255, 247, 251, 0.72)) repeat scroll 0% 0% / auto padding-box border-box",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "backdropFilter": "blur(4px) saturate(1.04)",
+          "color": "rgb(31, 43, 58)",
+          "borderRadius": "18px",
+          "boxShadow": "rgba(255, 255, 255, 0.96) 0px 1px 0px 0px inset, rgba(255, 255, 255, 0.54) 1px 0px 0px 0px inset, rgba(116, 74, 94, 0.08) 0px -1px 0px 0px inset, rgba(77, 41, 58, 0.12) 0px 2px 3px 0px, rgba(77, 41, 58, 0.1) 0px 8px 16px 0px, rgba(75, 40, 62, 0.14) 0px 24px 42px 0px",
+          "overflowY": "visible"
+        }
+      }
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "mode": "View",
+      "file": "design07-1366x768-view.png",
+      "native": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "width": 1382,
+          "height": 833
+        },
+        "content": {
+          "x": 8,
+          "y": 57,
+          "width": 1366,
+          "height": 768
+        },
+        "zoom": 1,
+        "actual": {
+          "width": 1366,
+          "height": 768,
+          "dpr": 1
+        }
+      },
+      "metrics": {
+        "inner": {
+          "width": 1366,
+          "height": 768,
+          "dpr": 1
+        },
+        "bodyClass": "electron-soft-rose design-07-candidate",
+        "settingsWidgets": [
+          {
+            "id": "widget-clock",
+            "type": "clock",
+            "x": 0,
+            "y": 0,
+            "w": 2,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-weather",
+            "type": "weather",
+            "x": 2,
+            "y": 0,
+            "w": 2,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-today-summary",
+            "type": "today-summary",
+            "x": 4,
+            "y": 0,
+            "w": 5,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-dday",
+            "type": "dday",
+            "x": 9,
+            "y": 0,
+            "w": 3,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-monthly-calendar",
+            "type": "monthly-calendar",
+            "x": 0,
+            "y": 2,
+            "w": 6,
+            "h": 5,
+            "visible": true
+          },
+          {
+            "id": "widget-today-tasks",
+            "type": "today-tasks",
+            "x": 6,
+            "y": 2,
+            "w": 3,
+            "h": 5,
+            "visible": true
+          },
+          {
+            "id": "widget-priority-task",
+            "type": "priority-task",
+            "x": 9,
+            "y": 2,
+            "w": 3,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-meal",
+            "type": "meal",
+            "x": 9,
+            "y": 4,
+            "w": 3,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-weekly-schedule",
+            "type": "weekly-schedule",
+            "x": 0,
+            "y": 7,
+            "w": 6,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-quick-memo",
+            "type": "quick-memo",
+            "x": 6,
+            "y": 7,
+            "w": 3,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-quick-launcher",
+            "type": "quick-launcher",
+            "x": 9,
+            "y": 7,
+            "w": 3,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-upcoming-schedule",
+            "type": "upcoming-schedule",
+            "x": 0,
+            "y": 10,
+            "w": 5,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-notifications",
+            "type": "notifications",
+            "x": 9,
+            "y": 10,
+            "w": 3,
+            "h": 3,
+            "visible": false
+          }
+        ],
+        "visibleDomCount": 12,
+        "widgetTypes": [
+          "clock",
+          "weather",
+          "today-summary",
+          "dday",
+          "monthly-calendar",
+          "today-tasks",
+          "priority-task",
+          "meal",
+          "weekly-schedule",
+          "quick-memo",
+          "quick-launcher",
+          "upcoming-schedule"
+        ],
+        "overlaps": [],
+        "dockCollisions": [],
+        "toolbarCollisions": [],
+        "criticalContentClips": [],
+        "calendarFrame": {
+          "x": 42,
+          "y": 232,
+          "width": 623,
+          "height": 236.96875,
+          "top": 232,
+          "right": 665,
+          "bottom": 468.96875,
+          "left": 42
+        },
+        "calendarLastDays": [
+          {
+            "day": 29,
+            "visible": true,
+            "rect": {
+              "x": 73,
+              "y": 427.75,
+              "width": 20,
+              "height": 18,
+              "top": 427.75,
+              "right": 93,
+              "bottom": 445.75,
+              "left": 73
+            }
+          },
+          {
+            "day": 30,
+            "visible": true,
+            "rect": {
+              "x": 154.421875,
+              "y": 427.75,
+              "width": 20,
+              "height": 18,
+              "top": 427.75,
+              "right": 174.421875,
+              "bottom": 445.75,
+              "left": 154.421875
+            }
+          }
+        ],
+        "weatherContent": {
+          "text": "날씨·급식은 이 Electron 실행본에 연결되어 있지 않습니다.",
+          "rect": {
+            "x": 270,
+            "y": 132.25,
+            "width": 167,
+            "height": 31.6875,
+            "top": 132.25,
+            "right": 437,
+            "bottom": 163.9375,
+            "left": 270
+          },
+          "frameRect": {
+            "x": 258,
+            "y": 106,
+            "width": 191,
+            "height": 72,
+            "top": 106,
+            "right": 449,
+            "bottom": 178,
+            "left": 258
+          },
+          "scrollHeight": 32,
+          "clientHeight": 32
+        },
+        "todayTasksTitle": {
+          "text": "오늘의 보건업무",
+          "rect": {
+            "x": 738,
+            "y": 255.875,
+            "width": 91.921875,
+            "height": 20.25,
+            "top": 255.875,
+            "right": 829.921875,
+            "bottom": 276.125,
+            "left": 738
+          },
+          "clientWidth": 92,
+          "scrollWidth": 92,
+          "lineCount": 1
+        },
+        "todayTasksBadge": {
+          "text": "BOGUNON 연동",
+          "rect": {
+            "x": 878.78125,
+            "y": 254,
+            "width": 85.21875,
+            "height": 24,
+            "top": 254,
+            "right": 964,
+            "bottom": 278,
+            "left": 878.78125
+          },
+          "visible": true
+        },
+        "documentHorizontalOverflow": false,
+        "shellHorizontalOverflow": false,
+        "dashboard": {
+          "x": 0,
+          "y": 64,
+          "width": 1366,
+          "height": 584,
+          "top": 64,
+          "right": 1366,
+          "bottom": 648,
+          "left": 0,
+          "clientWidth": 1356,
+          "scrollWidth": 1356,
+          "clientHeight": 584,
+          "scrollHeight": 953,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "dock": {
+          "x": 408,
+          "y": 660,
+          "width": 550,
+          "height": 96,
+          "top": 660,
+          "right": 958,
+          "bottom": 756,
+          "left": 408,
+          "position": "static",
+          "visible": true
+        },
+        "clippedTitles": [],
+        "unnaturalTitleWraps": [],
+        "gridClass": "react-grid-layout workspace-grid desktop-widget-grid",
+        "dragHandleCount": 0,
+        "visibleDragHandleCount": 0,
+        "resizeHandleCount": 12,
+        "visibleResizeHandleCount": 0,
+        "summaryMaterial": {
+          "background": "rgba(0, 0, 0, 0) linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(255, 246, 250, 0.48)) repeat scroll 0% 0% / auto padding-box border-box",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "backdropFilter": "blur(14px) saturate(1.12)",
+          "color": "rgb(31, 43, 58)",
+          "borderRadius": "20px",
+          "boxShadow": "rgba(255, 255, 255, 0.96) 0px 1px 0px 0px inset, rgba(255, 255, 255, 0.54) 1px 0px 0px 0px inset, rgba(116, 74, 94, 0.08) 0px -1px 0px 0px inset, rgba(77, 41, 58, 0.12) 0px 2px 3px 0px, rgba(77, 41, 58, 0.1) 0px 8px 16px 0px, rgba(75, 40, 62, 0.21) 0px 24px 42px 0px",
+          "overflowY": "hidden"
+        },
+        "denseMaterial": {
+          "background": "rgba(0, 0, 0, 0) linear-gradient(145deg, rgba(255, 255, 255, 0.86), rgba(255, 247, 251, 0.72)) repeat scroll 0% 0% / auto padding-box border-box",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "backdropFilter": "blur(4px) saturate(1.04)",
+          "color": "rgb(31, 43, 58)",
+          "borderRadius": "18px",
+          "boxShadow": "rgba(255, 255, 255, 0.96) 0px 1px 0px 0px inset, rgba(255, 255, 255, 0.54) 1px 0px 0px 0px inset, rgba(116, 74, 94, 0.08) 0px -1px 0px 0px inset, rgba(77, 41, 58, 0.12) 0px 2px 3px 0px, rgba(77, 41, 58, 0.1) 0px 8px 16px 0px, rgba(75, 40, 62, 0.14) 0px 24px 42px 0px",
+          "overflowY": "hidden"
+        }
+      }
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "mode": "Edit",
+      "file": "design07-1366x768-edit.png",
+      "native": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "width": 1382,
+          "height": 833
+        },
+        "content": {
+          "x": 8,
+          "y": 57,
+          "width": 1366,
+          "height": 768
+        },
+        "zoom": 1,
+        "actual": {
+          "width": 1366,
+          "height": 768,
+          "dpr": 1
+        }
+      },
+      "metrics": {
+        "inner": {
+          "width": 1366,
+          "height": 768,
+          "dpr": 1
+        },
+        "bodyClass": "electron-soft-rose design-07-candidate",
+        "settingsWidgets": [
+          {
+            "id": "widget-clock",
+            "type": "clock",
+            "x": 0,
+            "y": 0,
+            "w": 2,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-weather",
+            "type": "weather",
+            "x": 2,
+            "y": 0,
+            "w": 2,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-today-summary",
+            "type": "today-summary",
+            "x": 4,
+            "y": 0,
+            "w": 5,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-dday",
+            "type": "dday",
+            "x": 9,
+            "y": 0,
+            "w": 3,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-monthly-calendar",
+            "type": "monthly-calendar",
+            "x": 0,
+            "y": 2,
+            "w": 6,
+            "h": 5,
+            "visible": true
+          },
+          {
+            "id": "widget-today-tasks",
+            "type": "today-tasks",
+            "x": 6,
+            "y": 2,
+            "w": 3,
+            "h": 5,
+            "visible": true
+          },
+          {
+            "id": "widget-priority-task",
+            "type": "priority-task",
+            "x": 9,
+            "y": 2,
+            "w": 3,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-meal",
+            "type": "meal",
+            "x": 9,
+            "y": 4,
+            "w": 3,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-weekly-schedule",
+            "type": "weekly-schedule",
+            "x": 0,
+            "y": 7,
+            "w": 6,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-quick-memo",
+            "type": "quick-memo",
+            "x": 6,
+            "y": 7,
+            "w": 3,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-quick-launcher",
+            "type": "quick-launcher",
+            "x": 9,
+            "y": 7,
+            "w": 3,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-upcoming-schedule",
+            "type": "upcoming-schedule",
+            "x": 0,
+            "y": 10,
+            "w": 5,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-notifications",
+            "type": "notifications",
+            "x": 9,
+            "y": 10,
+            "w": 3,
+            "h": 3,
+            "visible": false
+          }
+        ],
+        "visibleDomCount": 12,
+        "widgetTypes": [
+          "clock",
+          "weather",
+          "today-summary",
+          "dday",
+          "monthly-calendar",
+          "today-tasks",
+          "priority-task",
+          "meal",
+          "weekly-schedule",
+          "quick-memo",
+          "quick-launcher",
+          "upcoming-schedule"
+        ],
+        "overlaps": [],
+        "dockCollisions": [],
+        "toolbarCollisions": [],
+        "criticalContentClips": [],
+        "calendarFrame": {
+          "x": 42,
+          "y": 284,
+          "width": 623,
+          "height": 289,
+          "top": 284,
+          "right": 665,
+          "bottom": 573,
+          "left": 42
+        },
+        "calendarLastDays": [
+          {
+            "day": 29,
+            "visible": true,
+            "rect": {
+              "x": 73,
+              "y": 581.25,
+              "width": 24,
+              "height": 24,
+              "top": 581.25,
+              "right": 97,
+              "bottom": 605.25,
+              "left": 73
+            }
+          },
+          {
+            "day": 30,
+            "visible": true,
+            "rect": {
+              "x": 154.421875,
+              "y": 581.25,
+              "width": 24,
+              "height": 24,
+              "top": 581.25,
+              "right": 178.421875,
+              "bottom": 605.25,
+              "left": 154.421875
+            }
+          }
+        ],
+        "weatherContent": {
+          "text": "날씨·급식은 이 Electron 실행본에 연결되어 있지 않습니다.",
+          "rect": {
+            "x": 270,
+            "y": 218.359375,
+            "width": 167,
+            "height": 31.640625,
+            "top": 218.359375,
+            "right": 437,
+            "bottom": 250,
+            "left": 270
+          },
+          "frameRect": {
+            "x": 258,
+            "y": 158,
+            "width": 191,
+            "height": 100,
+            "top": 158,
+            "right": 449,
+            "bottom": 258,
+            "left": 258
+          },
+          "scrollHeight": 32,
+          "clientHeight": 32
+        },
+        "todayTasksTitle": {
+          "text": "오늘의 보건업무",
+          "rect": {
+            "x": 749,
+            "y": 307.875,
+            "width": 91.921875,
+            "height": 20.25,
+            "top": 307.875,
+            "right": 840.921875,
+            "bottom": 328.125,
+            "left": 749
+          },
+          "clientWidth": 92,
+          "scrollWidth": 92,
+          "lineCount": 1
+        },
+        "todayTasksBadge": {
+          "text": "BOGUNON 연동",
+          "rect": {
+            "x": 878.78125,
+            "y": 306,
+            "width": 85.21875,
+            "height": 24,
+            "top": 306,
+            "right": 964,
+            "bottom": 330,
+            "left": 878.78125
+          },
+          "visible": true
+        },
+        "documentHorizontalOverflow": false,
+        "shellHorizontalOverflow": false,
+        "dashboard": {
+          "x": 0,
+          "y": 116,
+          "width": 1366,
+          "height": 532,
+          "top": 116,
+          "right": 1366,
+          "bottom": 648,
+          "left": 0,
+          "clientWidth": 1356,
+          "scrollWidth": 1356,
+          "clientHeight": 532,
+          "scrollHeight": 953,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "dock": {
+          "x": 408,
+          "y": 660,
+          "width": 550,
+          "height": 96,
+          "top": 660,
+          "right": 958,
+          "bottom": 756,
+          "left": 408,
+          "position": "static",
+          "visible": true
+        },
+        "clippedTitles": [],
+        "unnaturalTitleWraps": [],
+        "gridClass": "react-grid-layout workspace-grid desktop-widget-grid is-editing",
+        "dragHandleCount": 12,
+        "visibleDragHandleCount": 12,
+        "resizeHandleCount": 12,
+        "visibleResizeHandleCount": 12,
+        "summaryMaterial": {
+          "background": "rgba(0, 0, 0, 0) linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(255, 246, 250, 0.48)) repeat scroll 0% 0% / auto padding-box border-box",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "backdropFilter": "blur(12px) saturate(1.12)",
+          "color": "rgb(31, 43, 58)",
+          "borderRadius": "20px",
+          "boxShadow": "rgba(255, 255, 255, 0.96) 0px 1px 0px 0px inset, rgba(255, 255, 255, 0.54) 1px 0px 0px 0px inset, rgba(116, 74, 94, 0.08) 0px -1px 0px 0px inset, rgba(77, 41, 58, 0.12) 0px 2px 3px 0px, rgba(77, 41, 58, 0.1) 0px 8px 16px 0px, rgba(75, 40, 62, 0.21) 0px 24px 42px 0px",
+          "overflowY": "visible"
+        },
+        "denseMaterial": {
+          "background": "rgba(0, 0, 0, 0) linear-gradient(145deg, rgba(255, 255, 255, 0.86), rgba(255, 247, 251, 0.72)) repeat scroll 0% 0% / auto padding-box border-box",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "backdropFilter": "blur(4px) saturate(1.04)",
+          "color": "rgb(31, 43, 58)",
+          "borderRadius": "18px",
+          "boxShadow": "rgba(255, 255, 255, 0.96) 0px 1px 0px 0px inset, rgba(255, 255, 255, 0.54) 1px 0px 0px 0px inset, rgba(116, 74, 94, 0.08) 0px -1px 0px 0px inset, rgba(77, 41, 58, 0.12) 0px 2px 3px 0px, rgba(77, 41, 58, 0.1) 0px 8px 16px 0px, rgba(75, 40, 62, 0.14) 0px 24px 42px 0px",
+          "overflowY": "visible"
+        }
+      }
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "mode": "View",
+      "file": "design07-1280x720-view.png",
+      "native": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "width": 1296,
+          "height": 785
+        },
+        "content": {
+          "x": 8,
+          "y": 57,
+          "width": 1280,
+          "height": 720
+        },
+        "zoom": 1,
+        "actual": {
+          "width": 1280,
+          "height": 720,
+          "dpr": 1
+        }
+      },
+      "metrics": {
+        "inner": {
+          "width": 1280,
+          "height": 720,
+          "dpr": 1
+        },
+        "bodyClass": "electron-soft-rose design-07-candidate",
+        "settingsWidgets": [
+          {
+            "id": "widget-clock",
+            "type": "clock",
+            "x": 0,
+            "y": 0,
+            "w": 2,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-weather",
+            "type": "weather",
+            "x": 2,
+            "y": 0,
+            "w": 2,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-today-summary",
+            "type": "today-summary",
+            "x": 4,
+            "y": 0,
+            "w": 5,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-dday",
+            "type": "dday",
+            "x": 9,
+            "y": 0,
+            "w": 3,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-monthly-calendar",
+            "type": "monthly-calendar",
+            "x": 0,
+            "y": 2,
+            "w": 6,
+            "h": 5,
+            "visible": true
+          },
+          {
+            "id": "widget-today-tasks",
+            "type": "today-tasks",
+            "x": 6,
+            "y": 2,
+            "w": 3,
+            "h": 5,
+            "visible": true
+          },
+          {
+            "id": "widget-priority-task",
+            "type": "priority-task",
+            "x": 9,
+            "y": 2,
+            "w": 3,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-meal",
+            "type": "meal",
+            "x": 9,
+            "y": 4,
+            "w": 3,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-weekly-schedule",
+            "type": "weekly-schedule",
+            "x": 0,
+            "y": 7,
+            "w": 6,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-quick-memo",
+            "type": "quick-memo",
+            "x": 6,
+            "y": 7,
+            "w": 3,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-quick-launcher",
+            "type": "quick-launcher",
+            "x": 9,
+            "y": 7,
+            "w": 3,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-upcoming-schedule",
+            "type": "upcoming-schedule",
+            "x": 0,
+            "y": 10,
+            "w": 5,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-notifications",
+            "type": "notifications",
+            "x": 9,
+            "y": 10,
+            "w": 3,
+            "h": 3,
+            "visible": false
+          }
+        ],
+        "visibleDomCount": 12,
+        "widgetTypes": [
+          "clock",
+          "weather",
+          "today-summary",
+          "dday",
+          "monthly-calendar",
+          "today-tasks",
+          "priority-task",
+          "meal",
+          "weekly-schedule",
+          "quick-memo",
+          "quick-launcher",
+          "upcoming-schedule"
+        ],
+        "overlaps": [],
+        "dockCollisions": [],
+        "toolbarCollisions": [],
+        "criticalContentClips": [],
+        "calendarFrame": {
+          "x": 42,
+          "y": 230,
+          "width": 580,
+          "height": 232.875,
+          "top": 230,
+          "right": 622,
+          "bottom": 462.875,
+          "left": 42
+        },
+        "calendarLastDays": [
+          {
+            "day": 29,
+            "visible": true,
+            "rect": {
+              "x": 73,
+              "y": 422.0625,
+              "width": 18,
+              "height": 18,
+              "top": 422.0625,
+              "right": 91,
+              "bottom": 440.0625,
+              "left": 73
+            }
+          },
+          {
+            "day": 30,
+            "visible": true,
+            "rect": {
+              "x": 148.28125,
+              "y": 422.0625,
+              "width": 18,
+              "height": 18,
+              "top": 422.0625,
+              "right": 166.28125,
+              "bottom": 440.0625,
+              "left": 148.28125
+            }
+          }
+        ],
+        "weatherContent": {
+          "text": "날씨·급식은 이 Electron 실행본에 연결되어 있지 않습니다.",
+          "rect": {
+            "x": 256,
+            "y": 132.25,
+            "width": 152,
+            "height": 46.53125,
+            "top": 132.25,
+            "right": 408,
+            "bottom": 178.78125,
+            "left": 256
+          },
+          "frameRect": {
+            "x": 244,
+            "y": 106,
+            "width": 176,
+            "height": 72,
+            "top": 106,
+            "right": 420,
+            "bottom": 178,
+            "left": 244
+          },
+          "scrollHeight": 47,
+          "clientHeight": 47
+        },
+        "todayTasksTitle": {
+          "text": "오늘의 보건업무",
+          "rect": {
+            "x": 695,
+            "y": 253.875,
+            "width": 91.921875,
+            "height": 20.25,
+            "top": 253.875,
+            "right": 786.921875,
+            "bottom": 274.125,
+            "left": 695
+          },
+          "clientWidth": 92,
+          "scrollWidth": 92,
+          "lineCount": 1
+        },
+        "todayTasksBadge": {
+          "text": "BOGUNON 연동",
+          "rect": {
+            "x": 813.78125,
+            "y": 252,
+            "width": 85.21875,
+            "height": 24,
+            "top": 252,
+            "right": 899,
+            "bottom": 276,
+            "left": 813.78125
+          },
+          "visible": true
+        },
+        "documentHorizontalOverflow": false,
+        "shellHorizontalOverflow": false,
+        "dashboard": {
+          "x": 0,
+          "y": 64,
+          "width": 1280,
+          "height": 536,
+          "top": 64,
+          "right": 1280,
+          "bottom": 600,
+          "left": 0,
+          "clientWidth": 1270,
+          "scrollWidth": 1270,
+          "clientHeight": 536,
+          "scrollHeight": 940,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "dock": {
+          "x": 365,
+          "y": 612,
+          "width": 550,
+          "height": 96,
+          "top": 612,
+          "right": 915,
+          "bottom": 708,
+          "left": 365,
+          "position": "static",
+          "visible": true
+        },
+        "clippedTitles": [],
+        "unnaturalTitleWraps": [],
+        "gridClass": "react-grid-layout workspace-grid desktop-widget-grid",
+        "dragHandleCount": 0,
+        "visibleDragHandleCount": 0,
+        "resizeHandleCount": 12,
+        "visibleResizeHandleCount": 0,
+        "summaryMaterial": {
+          "background": "rgba(0, 0, 0, 0) linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(255, 246, 250, 0.48)) repeat scroll 0% 0% / auto padding-box border-box",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "backdropFilter": "blur(14px) saturate(1.12)",
+          "color": "rgb(31, 43, 58)",
+          "borderRadius": "20px",
+          "boxShadow": "rgba(255, 255, 255, 0.96) 0px 1px 0px 0px inset, rgba(255, 255, 255, 0.54) 1px 0px 0px 0px inset, rgba(116, 74, 94, 0.08) 0px -1px 0px 0px inset, rgba(77, 41, 58, 0.12) 0px 2px 3px 0px, rgba(77, 41, 58, 0.1) 0px 8px 16px 0px, rgba(75, 40, 62, 0.21) 0px 24px 42px 0px",
+          "overflowY": "hidden"
+        },
+        "denseMaterial": {
+          "background": "rgba(0, 0, 0, 0) linear-gradient(145deg, rgba(255, 255, 255, 0.86), rgba(255, 247, 251, 0.72)) repeat scroll 0% 0% / auto padding-box border-box",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "backdropFilter": "blur(4px) saturate(1.04)",
+          "color": "rgb(31, 43, 58)",
+          "borderRadius": "18px",
+          "boxShadow": "rgba(255, 255, 255, 0.96) 0px 1px 0px 0px inset, rgba(255, 255, 255, 0.54) 1px 0px 0px 0px inset, rgba(116, 74, 94, 0.08) 0px -1px 0px 0px inset, rgba(77, 41, 58, 0.12) 0px 2px 3px 0px, rgba(77, 41, 58, 0.1) 0px 8px 16px 0px, rgba(75, 40, 62, 0.14) 0px 24px 42px 0px",
+          "overflowY": "hidden"
+        }
+      }
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "mode": "Edit",
+      "file": "design07-1280x720-edit.png",
+      "native": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "width": 1296,
+          "height": 785
+        },
+        "content": {
+          "x": 8,
+          "y": 57,
+          "width": 1280,
+          "height": 720
+        },
+        "zoom": 1,
+        "actual": {
+          "width": 1280,
+          "height": 720,
+          "dpr": 1
+        }
+      },
+      "metrics": {
+        "inner": {
+          "width": 1280,
+          "height": 720,
+          "dpr": 1
+        },
+        "bodyClass": "electron-soft-rose design-07-candidate",
+        "settingsWidgets": [
+          {
+            "id": "widget-clock",
+            "type": "clock",
+            "x": 0,
+            "y": 0,
+            "w": 2,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-weather",
+            "type": "weather",
+            "x": 2,
+            "y": 0,
+            "w": 2,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-today-summary",
+            "type": "today-summary",
+            "x": 4,
+            "y": 0,
+            "w": 5,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-dday",
+            "type": "dday",
+            "x": 9,
+            "y": 0,
+            "w": 3,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-monthly-calendar",
+            "type": "monthly-calendar",
+            "x": 0,
+            "y": 2,
+            "w": 6,
+            "h": 5,
+            "visible": true
+          },
+          {
+            "id": "widget-today-tasks",
+            "type": "today-tasks",
+            "x": 6,
+            "y": 2,
+            "w": 3,
+            "h": 5,
+            "visible": true
+          },
+          {
+            "id": "widget-priority-task",
+            "type": "priority-task",
+            "x": 9,
+            "y": 2,
+            "w": 3,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-meal",
+            "type": "meal",
+            "x": 9,
+            "y": 4,
+            "w": 3,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-weekly-schedule",
+            "type": "weekly-schedule",
+            "x": 0,
+            "y": 7,
+            "w": 6,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-quick-memo",
+            "type": "quick-memo",
+            "x": 6,
+            "y": 7,
+            "w": 3,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-quick-launcher",
+            "type": "quick-launcher",
+            "x": 9,
+            "y": 7,
+            "w": 3,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-upcoming-schedule",
+            "type": "upcoming-schedule",
+            "x": 0,
+            "y": 10,
+            "w": 5,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-notifications",
+            "type": "notifications",
+            "x": 9,
+            "y": 10,
+            "w": 3,
+            "h": 3,
+            "visible": false
+          }
+        ],
+        "visibleDomCount": 12,
+        "widgetTypes": [
+          "clock",
+          "weather",
+          "today-summary",
+          "dday",
+          "monthly-calendar",
+          "today-tasks",
+          "priority-task",
+          "meal",
+          "weekly-schedule",
+          "quick-memo",
+          "quick-launcher",
+          "upcoming-schedule"
+        ],
+        "overlaps": [],
+        "dockCollisions": [],
+        "toolbarCollisions": [],
+        "criticalContentClips": [],
+        "calendarFrame": {
+          "x": 42,
+          "y": 282,
+          "width": 580,
+          "height": 284,
+          "top": 282,
+          "right": 622,
+          "bottom": 566,
+          "left": 42
+        },
+        "calendarLastDays": [
+          {
+            "day": 29,
+            "visible": true,
+            "rect": {
+              "x": 73,
+              "y": 525.328125,
+              "width": 24,
+              "height": 24,
+              "top": 525.328125,
+              "right": 97,
+              "bottom": 549.328125,
+              "left": 73
+            }
+          },
+          {
+            "day": 30,
+            "visible": true,
+            "rect": {
+              "x": 148.28125,
+              "y": 525.328125,
+              "width": 24,
+              "height": 24,
+              "top": 525.328125,
+              "right": 172.28125,
+              "bottom": 549.328125,
+              "left": 148.28125
+            }
+          }
+        ],
+        "weatherContent": {
+          "text": "날씨·급식은 이 Electron 실행본에 연결되어 있지 않습니다.",
+          "rect": {
+            "x": 256,
+            "y": 217.453125,
+            "width": 152,
+            "height": 30.546875,
+            "top": 217.453125,
+            "right": 408,
+            "bottom": 248,
+            "left": 256
+          },
+          "frameRect": {
+            "x": 244,
+            "y": 158,
+            "width": 176,
+            "height": 98,
+            "top": 158,
+            "right": 420,
+            "bottom": 256,
+            "left": 244
+          },
+          "scrollHeight": 31,
+          "clientHeight": 31
+        },
+        "todayTasksTitle": {
+          "text": "오늘의 보건업무",
+          "rect": {
+            "x": 706,
+            "y": 305.875,
+            "width": 91.921875,
+            "height": 20.25,
+            "top": 305.875,
+            "right": 797.921875,
+            "bottom": 326.125,
+            "left": 706
+          },
+          "clientWidth": 92,
+          "scrollWidth": 92,
+          "lineCount": 1
+        },
+        "todayTasksBadge": {
+          "text": "BOGUNON 연동",
+          "rect": {
+            "x": 813.78125,
+            "y": 304,
+            "width": 85.21875,
+            "height": 24,
+            "top": 304,
+            "right": 899,
+            "bottom": 328,
+            "left": 813.78125
+          },
+          "visible": true
+        },
+        "documentHorizontalOverflow": false,
+        "shellHorizontalOverflow": false,
+        "dashboard": {
+          "x": 0,
+          "y": 116,
+          "width": 1280,
+          "height": 484,
+          "top": 116,
+          "right": 1280,
+          "bottom": 600,
+          "left": 0,
+          "clientWidth": 1270,
+          "scrollWidth": 1270,
+          "clientHeight": 484,
+          "scrollHeight": 940,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "dock": {
+          "x": 365,
+          "y": 612,
+          "width": 550,
+          "height": 96,
+          "top": 612,
+          "right": 915,
+          "bottom": 708,
+          "left": 365,
+          "position": "static",
+          "visible": true
+        },
+        "clippedTitles": [],
+        "unnaturalTitleWraps": [],
+        "gridClass": "react-grid-layout workspace-grid desktop-widget-grid is-editing",
+        "dragHandleCount": 12,
+        "visibleDragHandleCount": 12,
+        "resizeHandleCount": 12,
+        "visibleResizeHandleCount": 12,
+        "summaryMaterial": {
+          "background": "rgba(0, 0, 0, 0) linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(255, 246, 250, 0.48)) repeat scroll 0% 0% / auto padding-box border-box",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "backdropFilter": "blur(12px) saturate(1.12)",
+          "color": "rgb(31, 43, 58)",
+          "borderRadius": "20px",
+          "boxShadow": "rgba(255, 255, 255, 0.96) 0px 1px 0px 0px inset, rgba(255, 255, 255, 0.54) 1px 0px 0px 0px inset, rgba(116, 74, 94, 0.08) 0px -1px 0px 0px inset, rgba(77, 41, 58, 0.12) 0px 2px 3px 0px, rgba(77, 41, 58, 0.1) 0px 8px 16px 0px, rgba(75, 40, 62, 0.21) 0px 24px 42px 0px",
+          "overflowY": "visible"
+        },
+        "denseMaterial": {
+          "background": "rgba(0, 0, 0, 0) linear-gradient(145deg, rgba(255, 255, 255, 0.86), rgba(255, 247, 251, 0.72)) repeat scroll 0% 0% / auto padding-box border-box",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "backdropFilter": "blur(4px) saturate(1.04)",
+          "color": "rgb(31, 43, 58)",
+          "borderRadius": "18px",
+          "boxShadow": "rgba(255, 255, 255, 0.96) 0px 1px 0px 0px inset, rgba(255, 255, 255, 0.54) 1px 0px 0px 0px inset, rgba(116, 74, 94, 0.08) 0px -1px 0px 0px inset, rgba(77, 41, 58, 0.12) 0px 2px 3px 0px, rgba(77, 41, 58, 0.1) 0px 8px 16px 0px, rgba(75, 40, 62, 0.14) 0px 24px 42px 0px",
+          "overflowY": "visible"
+        }
+      }
+    },
+    {
+      "width": 980,
+      "height": 700,
+      "mode": "View",
+      "file": "design07-980x700-view.png",
+      "native": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "width": 996,
+          "height": 765
+        },
+        "content": {
+          "x": 8,
+          "y": 57,
+          "width": 980,
+          "height": 700
+        },
+        "zoom": 1,
+        "actual": {
+          "width": 980,
+          "height": 700,
+          "dpr": 1
+        }
+      },
+      "metrics": {
+        "inner": {
+          "width": 980,
+          "height": 700,
+          "dpr": 1
+        },
+        "bodyClass": "electron-soft-rose design-07-candidate",
+        "settingsWidgets": [
+          {
+            "id": "widget-clock",
+            "type": "clock",
+            "x": 0,
+            "y": 0,
+            "w": 2,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-weather",
+            "type": "weather",
+            "x": 2,
+            "y": 0,
+            "w": 2,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-today-summary",
+            "type": "today-summary",
+            "x": 4,
+            "y": 0,
+            "w": 5,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-dday",
+            "type": "dday",
+            "x": 9,
+            "y": 0,
+            "w": 3,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-monthly-calendar",
+            "type": "monthly-calendar",
+            "x": 0,
+            "y": 2,
+            "w": 6,
+            "h": 5,
+            "visible": true
+          },
+          {
+            "id": "widget-today-tasks",
+            "type": "today-tasks",
+            "x": 6,
+            "y": 2,
+            "w": 3,
+            "h": 5,
+            "visible": true
+          },
+          {
+            "id": "widget-priority-task",
+            "type": "priority-task",
+            "x": 9,
+            "y": 2,
+            "w": 3,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-meal",
+            "type": "meal",
+            "x": 9,
+            "y": 4,
+            "w": 3,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-weekly-schedule",
+            "type": "weekly-schedule",
+            "x": 0,
+            "y": 7,
+            "w": 6,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-quick-memo",
+            "type": "quick-memo",
+            "x": 6,
+            "y": 7,
+            "w": 3,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-quick-launcher",
+            "type": "quick-launcher",
+            "x": 9,
+            "y": 7,
+            "w": 3,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-upcoming-schedule",
+            "type": "upcoming-schedule",
+            "x": 0,
+            "y": 10,
+            "w": 5,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-notifications",
+            "type": "notifications",
+            "x": 9,
+            "y": 10,
+            "w": 3,
+            "h": 3,
+            "visible": false
+          }
+        ],
+        "visibleDomCount": 12,
+        "widgetTypes": [
+          "clock",
+          "weather",
+          "today-summary",
+          "dday",
+          "monthly-calendar",
+          "today-tasks",
+          "priority-task",
+          "meal",
+          "weekly-schedule",
+          "quick-memo",
+          "quick-launcher",
+          "upcoming-schedule"
+        ],
+        "overlaps": [],
+        "dockCollisions": [],
+        "toolbarCollisions": [],
+        "criticalContentClips": [],
+        "calendarFrame": {
+          "x": 24,
+          "y": 366.046875,
+          "width": 922,
+          "height": 362,
+          "top": 366.046875,
+          "right": 946,
+          "bottom": 728.046875,
+          "left": 24
+        },
+        "calendarLastDays": [
+          {
+            "day": 29,
+            "visible": true,
+            "rect": {
+              "x": 41,
+              "y": 683.90625,
+              "width": 18,
+              "height": 18,
+              "top": 683.90625,
+              "right": 59,
+              "bottom": 701.90625,
+              "left": 41
+            }
+          },
+          {
+            "day": 30,
+            "visible": true,
+            "rect": {
+              "x": 169.140625,
+              "y": 683.90625,
+              "width": 18,
+              "height": 18,
+              "top": 683.90625,
+              "right": 187.140625,
+              "bottom": 701.90625,
+              "left": 169.140625
+            }
+          }
+        ],
+        "weatherContent": {
+          "text": "날씨·급식은 이 Electron 실행본에 연결되어 있지 않습니다.",
+          "rect": {
+            "x": 513,
+            "y": 114.25,
+            "width": 421,
+            "height": 16.84375,
+            "top": 114.25,
+            "right": 934,
+            "bottom": 131.09375,
+            "left": 513
+          },
+          "frameRect": {
+            "x": 501,
+            "y": 88,
+            "width": 445,
+            "height": 72,
+            "top": 88,
+            "right": 946,
+            "bottom": 160,
+            "left": 501
+          },
+          "scrollHeight": 17,
+          "clientHeight": 17
+        },
+        "todayTasksTitle": {
+          "text": "오늘의 보건업무",
+          "rect": {
+            "x": 71,
+            "y": 783.921875,
+            "width": 91.921875,
+            "height": 20.25,
+            "top": 783.921875,
+            "right": 162.921875,
+            "bottom": 804.171875,
+            "left": 71
+          },
+          "clientWidth": 92,
+          "scrollWidth": 92,
+          "lineCount": 1
+        },
+        "todayTasksBadge": {
+          "text": "BOGUNON 연동",
+          "rect": {
+            "x": 357.78125,
+            "y": 782.046875,
+            "width": 85.21875,
+            "height": 24,
+            "top": 782.046875,
+            "right": 443,
+            "bottom": 806.046875,
+            "left": 357.78125
+          },
+          "visible": true
+        },
+        "documentHorizontalOverflow": false,
+        "shellHorizontalOverflow": false,
+        "dashboard": {
+          "x": 0,
+          "y": 64,
+          "width": 980,
+          "height": 532,
+          "top": 64,
+          "right": 980,
+          "bottom": 596,
+          "left": 0,
+          "clientWidth": 970,
+          "scrollWidth": 970,
+          "clientHeight": 532,
+          "scrollHeight": 1532,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "dock": {
+          "x": 269,
+          "y": 608,
+          "width": 442,
+          "height": 80,
+          "top": 608,
+          "right": 711,
+          "bottom": 688,
+          "left": 269,
+          "position": "static",
+          "visible": true
+        },
+        "clippedTitles": [],
+        "unnaturalTitleWraps": [],
+        "gridClass": "react-grid-layout workspace-grid desktop-widget-grid",
+        "dragHandleCount": 0,
+        "visibleDragHandleCount": 0,
+        "resizeHandleCount": 12,
+        "visibleResizeHandleCount": 0,
+        "summaryMaterial": {
+          "background": "rgba(0, 0, 0, 0) linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(255, 246, 250, 0.48)) repeat scroll 0% 0% / auto padding-box border-box",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "backdropFilter": "blur(14px) saturate(1.12)",
+          "color": "rgb(31, 43, 58)",
+          "borderRadius": "20px",
+          "boxShadow": "rgba(255, 255, 255, 0.96) 0px 1px 0px 0px inset, rgba(255, 255, 255, 0.54) 1px 0px 0px 0px inset, rgba(116, 74, 94, 0.08) 0px -1px 0px 0px inset, rgba(77, 41, 58, 0.12) 0px 2px 3px 0px, rgba(77, 41, 58, 0.1) 0px 8px 16px 0px, rgba(75, 40, 62, 0.21) 0px 24px 42px 0px",
+          "overflowY": "hidden"
+        },
+        "denseMaterial": {
+          "background": "rgba(0, 0, 0, 0) linear-gradient(145deg, rgba(255, 255, 255, 0.86), rgba(255, 247, 251, 0.72)) repeat scroll 0% 0% / auto padding-box border-box",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "backdropFilter": "blur(4px) saturate(1.04)",
+          "color": "rgb(31, 43, 58)",
+          "borderRadius": "18px",
+          "boxShadow": "rgba(255, 255, 255, 0.96) 0px 1px 0px 0px inset, rgba(255, 255, 255, 0.54) 1px 0px 0px 0px inset, rgba(116, 74, 94, 0.08) 0px -1px 0px 0px inset, rgba(77, 41, 58, 0.12) 0px 2px 3px 0px, rgba(77, 41, 58, 0.1) 0px 8px 16px 0px, rgba(75, 40, 62, 0.14) 0px 24px 42px 0px",
+          "overflowY": "hidden"
+        }
+      }
+    },
+    {
+      "width": 980,
+      "height": 700,
+      "mode": "Edit",
+      "file": "design07-980x700-edit.png",
+      "native": {
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "width": 996,
+          "height": 765
+        },
+        "content": {
+          "x": 8,
+          "y": 57,
+          "width": 980,
+          "height": 700
+        },
+        "zoom": 1,
+        "actual": {
+          "width": 980,
+          "height": 700,
+          "dpr": 1
+        }
+      },
+      "metrics": {
+        "inner": {
+          "width": 980,
+          "height": 700,
+          "dpr": 1
+        },
+        "bodyClass": "electron-soft-rose design-07-candidate",
+        "settingsWidgets": [
+          {
+            "id": "widget-clock",
+            "type": "clock",
+            "x": 0,
+            "y": 0,
+            "w": 2,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-weather",
+            "type": "weather",
+            "x": 2,
+            "y": 0,
+            "w": 2,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-today-summary",
+            "type": "today-summary",
+            "x": 4,
+            "y": 0,
+            "w": 5,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-dday",
+            "type": "dday",
+            "x": 9,
+            "y": 0,
+            "w": 3,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-monthly-calendar",
+            "type": "monthly-calendar",
+            "x": 0,
+            "y": 2,
+            "w": 6,
+            "h": 5,
+            "visible": true
+          },
+          {
+            "id": "widget-today-tasks",
+            "type": "today-tasks",
+            "x": 6,
+            "y": 2,
+            "w": 3,
+            "h": 5,
+            "visible": true
+          },
+          {
+            "id": "widget-priority-task",
+            "type": "priority-task",
+            "x": 9,
+            "y": 2,
+            "w": 3,
+            "h": 2,
+            "visible": true
+          },
+          {
+            "id": "widget-meal",
+            "type": "meal",
+            "x": 9,
+            "y": 4,
+            "w": 3,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-weekly-schedule",
+            "type": "weekly-schedule",
+            "x": 0,
+            "y": 7,
+            "w": 6,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-quick-memo",
+            "type": "quick-memo",
+            "x": 6,
+            "y": 7,
+            "w": 3,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-quick-launcher",
+            "type": "quick-launcher",
+            "x": 9,
+            "y": 7,
+            "w": 3,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-upcoming-schedule",
+            "type": "upcoming-schedule",
+            "x": 0,
+            "y": 10,
+            "w": 5,
+            "h": 3,
+            "visible": true
+          },
+          {
+            "id": "widget-notifications",
+            "type": "notifications",
+            "x": 9,
+            "y": 10,
+            "w": 3,
+            "h": 3,
+            "visible": false
+          }
+        ],
+        "visibleDomCount": 12,
+        "widgetTypes": [
+          "clock",
+          "weather",
+          "today-summary",
+          "dday",
+          "monthly-calendar",
+          "today-tasks",
+          "priority-task",
+          "meal",
+          "weekly-schedule",
+          "quick-memo",
+          "quick-launcher",
+          "upcoming-schedule"
+        ],
+        "overlaps": [],
+        "dockCollisions": [],
+        "toolbarCollisions": [],
+        "criticalContentClips": [],
+        "calendarFrame": {
+          "x": 34,
+          "y": 270,
+          "width": 438,
+          "height": 274,
+          "top": 270,
+          "right": 472,
+          "bottom": 544,
+          "left": 34
+        },
+        "calendarLastDays": [
+          {
+            "day": 29,
+            "visible": true,
+            "rect": {
+              "x": 65,
+              "y": 505.328125,
+              "width": 24,
+              "height": 24,
+              "top": 505.328125,
+              "right": 89,
+              "bottom": 529.328125,
+              "left": 65
+            }
+          },
+          {
+            "day": 30,
+            "visible": true,
+            "rect": {
+              "x": 120,
+              "y": 505.328125,
+              "width": 24,
+              "height": 24,
+              "top": 505.328125,
+              "right": 144,
+              "bottom": 529.328125,
+              "left": 120
+            }
+          }
+        ],
+        "weatherContent": {
+          "text": "날씨·급식은 이 Electron 실행본에 연결되어 있지 않습니다.",
+          "rect": {
+            "x": 199,
+            "y": 178,
+            "width": 108,
+            "height": 52.75,
+            "top": 178,
+            "right": 307,
+            "bottom": 230.75,
+            "left": 199
+          },
+          "frameRect": {
+            "x": 189,
+            "y": 150,
+            "width": 128,
+            "height": 94,
+            "top": 150,
+            "right": 317,
+            "bottom": 244,
+            "left": 189
+          },
+          "scrollHeight": 53,
+          "clientHeight": 53
+        },
+        "todayTasksTitle": {
+          "text": "오늘의 보건업무",
+          "rect": {
+            "x": 556,
+            "y": 293.875,
+            "width": 91.921875,
+            "height": 20.25,
+            "top": 293.875,
+            "right": 647.921875,
+            "bottom": 314.125,
+            "left": 556
+          },
+          "clientWidth": 92,
+          "scrollWidth": 92,
+          "lineCount": 1
+        },
+        "todayTasksBadge": {
+          "text": "BOGUNON 연동",
+          "rect": {
+            "x": 524,
+            "y": 322,
+            "width": 85.21875,
+            "height": 24,
+            "top": 322,
+            "right": 609.21875,
+            "bottom": 346,
+            "left": 524
+          },
+          "visible": true
+        },
+        "documentHorizontalOverflow": false,
+        "shellHorizontalOverflow": false,
+        "dashboard": {
+          "x": 0,
+          "y": 116,
+          "width": 980,
+          "height": 480,
+          "top": 116,
+          "right": 980,
+          "bottom": 596,
+          "left": 0,
+          "clientWidth": 970,
+          "scrollWidth": 970,
+          "clientHeight": 480,
+          "scrollHeight": 882,
+          "overflowX": "auto",
+          "overflowY": "auto"
+        },
+        "dock": {
+          "x": 269,
+          "y": 608,
+          "width": 442,
+          "height": 80,
+          "top": 608,
+          "right": 711,
+          "bottom": 688,
+          "left": 269,
+          "position": "static",
+          "visible": true
+        },
+        "clippedTitles": [],
+        "unnaturalTitleWraps": [],
+        "gridClass": "react-grid-layout workspace-grid desktop-widget-grid is-editing",
+        "dragHandleCount": 12,
+        "visibleDragHandleCount": 12,
+        "resizeHandleCount": 12,
+        "visibleResizeHandleCount": 12,
+        "summaryMaterial": {
+          "background": "rgba(0, 0, 0, 0) linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(255, 246, 250, 0.48)) repeat scroll 0% 0% / auto padding-box border-box",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "backdropFilter": "blur(12px) saturate(1.12)",
+          "color": "rgb(31, 43, 58)",
+          "borderRadius": "20px",
+          "boxShadow": "rgba(255, 255, 255, 0.96) 0px 1px 0px 0px inset, rgba(255, 255, 255, 0.54) 1px 0px 0px 0px inset, rgba(116, 74, 94, 0.08) 0px -1px 0px 0px inset, rgba(77, 41, 58, 0.12) 0px 2px 3px 0px, rgba(77, 41, 58, 0.1) 0px 8px 16px 0px, rgba(75, 40, 62, 0.21) 0px 24px 42px 0px",
+          "overflowY": "visible"
+        },
+        "denseMaterial": {
+          "background": "rgba(0, 0, 0, 0) linear-gradient(145deg, rgba(255, 255, 255, 0.86), rgba(255, 247, 251, 0.72)) repeat scroll 0% 0% / auto padding-box border-box",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "backdropFilter": "blur(4px) saturate(1.04)",
+          "color": "rgb(31, 43, 58)",
+          "borderRadius": "18px",
+          "boxShadow": "rgba(255, 255, 255, 0.96) 0px 1px 0px 0px inset, rgba(255, 255, 255, 0.54) 1px 0px 0px 0px inset, rgba(116, 74, 94, 0.08) 0px -1px 0px 0px inset, rgba(77, 41, 58, 0.12) 0px 2px 3px 0px, rgba(77, 41, 58, 0.1) 0px 8px 16px 0px, rgba(75, 40, 62, 0.14) 0px 24px 42px 0px",
+          "overflowY": "visible"
+        }
+      }
+    }
+  ],
+  "settings": {
+    "absentFileBento": true,
+    "strictModeIdleWriteChurn": false,
+    "customPositionPreserved": true,
+    "hiddenStatePreserved": true,
+    "offOnDataPreserved": true,
+    "resetLegacyDesk": true,
+    "corruptPreserved": true,
+    "readFailureDistinguished": true,
+    "dragPersisted": true,
+    "resizePersisted": true,
+    "edit980DragPersisted": true,
+    "edit980ResizePersisted": true
+  }
+}
