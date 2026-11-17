@@ -16,6 +16,12 @@ const current = (): GridProps => {
 };
 const item = { i: "widget-clock", x: 1, y: 27, w: 2, h: 3 };
 
+it("keeps an already permitted shared drag-handle selector unchanged", () => {
+  const cancel = "button:not(.widget-frame__drag), textarea, input, select, a";
+  render(<GridLayout width={900} layout={[item]} dragConfig={{cancel}}><div key={item.i}/></GridLayout>);
+  expect(current().dragConfig?.cancel).toBe(cancel);
+});
+
 it("does not persist automatic compaction after visibility or width changes", () => {
   const save = vi.fn();
   const view = render(<GridLayout width={900} layout={[item]} onLayoutChange={save}><div key={item.i} /></GridLayout>);
