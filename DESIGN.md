@@ -678,6 +678,43 @@ remains. Dock active marker, accessible name, hover and keyboard tooltip stay in
   content viewports, real toggle/save/relaunch and synthetic memo preservation.
   New captures must agree with DOM geometry; older UX-09 evidence is baseline only.
 
+## UX-11 — widget selection polish and native DPI
+
+The shared drawer owns a small, scoped switch baseline in
+`WidgetLibraryDrawer.css`: a 48×48 target, 38×22 track, 16×16 knob, Navy ON/OFF
+contrast and a visible keyboard outline. Import it with the shared component so
+ordinary frontend use never depends on Electron CSS. Do not reintroduce visible
+ON/OFF captions. Existing, more-specific Electron candidate rules retain their
+Soft Rose geometry, colors, focus and card layout; no global token changes.
+
+Persist widget geometry only after a direct drag/resize completion in editable,
+noncompact mode. Grid mount, automatic compaction, visibility and viewport
+callbacks must never overwrite saved coordinates. Keep the existing canonical
+display projection and deliberate visibility materialization unchanged; do not
+reset custom layouts. The drag-handle button is exempt from the ordinary-control
+drag cancellation selector. Electron forwarding remains exactly-once.
+
+This small polish supersedes only UX-10's visible ON/OFF captions and vertical
+spacing. Keep the existing named/described `role=switch`, controlled checked
+state, track/knob position, rose ON / cream OFF surfaces, focus outline and 48×48
+hit target. Visible ON/OFF captions beneath switches are removed; group counts,
+all 13 labels/descriptions/order and 560/960px container thresholds remain.
+
+The measured UX-10 baseline has 120px cards, 16px padding, 24px section spacing
+and 12px heading bottom margin. UX-11 uses a 108px minimum (content may grow),
+14px vertical / 16px horizontal card padding, 20px section spacing and 10px
+heading bottom margin. Preserve the existing 14px titles, 12px descriptions,
+line heights, keep-all wrapping, 12px row gap, horizontal geometry and tokens.
+No content is hidden, clipped or shrunk to achieve density.
+
+Verify actual Windows scaling at 125% and 150%, monitor scaleFactor and renderer
+DPR with zoom=1, DIP/physical bounds, physical PNG dimensions and work-area fit.
+CSS zoom or simulated DPR is not native evidence. Exact targets that cannot fit
+1920×1080 including frame/taskbar are NOT RUN, with measured alternatives named
+separately. Restore original 100% / 1920×1080 after the freshly approved temporary
+change. Use only isolated synthetic profiles; preserve IDs/geometry/hidden flags,
+memo/Dock, existing actions/parser/schema and Main/preload/IPC. OPTION C stays deferred.
+
 ## DESIGN-07 Soft Rose Bento workspace contract — 2026-11-17
 
 This contract is the authority for the isolated DESIGN-07 Electron candidate before

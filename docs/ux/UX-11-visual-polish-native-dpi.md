@@ -1,7 +1,7 @@
 # UX-11 — Widget Selection Visual Polish and Windows DPI QA
 
 ## Status and baseline
-- **Status:** implementation / QA instructions saved; product changes **NOT RUN**.
+- **Status:** implemented and validated within the documented limits; see [final validation](../qa/UX-11-widget-selection-polish.md). No integration or deployment.
 - Repository: `school-health-hub/BOGUNON_DESK`.
 - Base: `design/ux-10-widget-selection-grid@f36a32e5b8e8e2190e60ad3929a0f4b8c388b796`.
 - Branch: `design/ux-11-polish-dpi-qa` (independent).

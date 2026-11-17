@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import { useId } from "react";
+import "./WidgetLibraryDrawer.css";
 import { widgetDefinitions, widgetLibraryCategories } from "../../dashboard/widgetRegistry";
 import type { WidgetLayout, WidgetType } from "../../dashboard/types";
 
@@ -43,7 +44,6 @@ export function WidgetLibraryDrawer({ widgets, onClose, onHide, onRestore }: Wid
                   </div>
                   <button role="switch" aria-label={`${definition.title} 표시`} aria-describedby={`${libraryId}-${definition.type}-description`} aria-checked={inUse} type="button" onClick={() => inUse ? onHide(definition.type) : onRestore(definition.type)}>
                     <span className="widget-library__track" aria-hidden="true"><span /></span>
-                    <span className="widget-library__state" aria-hidden="true">{inUse ? "ON" : "OFF"}</span>
                   </button>
                 </article>
               );

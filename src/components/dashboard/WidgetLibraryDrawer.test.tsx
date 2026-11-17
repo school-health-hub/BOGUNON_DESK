@@ -18,7 +18,9 @@ it("shows every registered widget as a named controlled switch in its category",
   for (const definition of widgetDefinitions) {
     const control = screen.getByRole("switch", { name: `${definition.title} 표시` });
     expect(control.getAttribute("aria-checked")).toBe(String(layout.widgets.some(widget => widget.type === definition.type && widget.visible)));
-    expect(screen.getByText(definition.description)).toBeTruthy();
+    const description = screen.getByText(definition.description);
+    expect(control.getAttribute("aria-describedby")).toBe(description.id);
+    expect(control.textContent).toBe("");
   }
   for (const category of widgetLibraryCategories) {
     const group = screen.getByRole("region", { name: category.title });
