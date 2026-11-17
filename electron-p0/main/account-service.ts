@@ -4,14 +4,21 @@ import {AccountVault,type AccountEntries} from './account-vault.js';
 import {accountFetch,type AccountConfig} from './account-network.js';
 import {createAccountClient,type AccountClient} from './account-sdk.js';
 import {AccountLoopback,type AccountReturn} from './account-loopback.js';
-type Ports={vault:AccountVault;config:AccountConfig|null;fetch:typeof fetch;open:(url:string)=>Promise<void>;client?:typeof createAccountClient;loopback?:()=>AccountLoopback;now?:()=>number};
+type Ports={vault:AccountVault;config:AccountConfig|null;fetch:typeof fetch;open:(url:string)=>Promise<void>;client?:typeof createAccountClient;loopback?:()=>AccountLoopback;now?:()=>number;logoutDeadlineMs?:number};
+const LOGOUT_DEADLINE_MS=10000;
+class AccountDeadlineError extends Error{}
+async function withDeadline<T>(operation:Promise<T>,milliseconds=LOGOUT_DEADLINE_MS):Promise<T>{
+ let timer:ReturnType<typeof setTimeout>|undefined;
+ try{return await Promise.race([operation,new Promise<never>((_resolve,reject)=>{timer=setTimeout(()=>reject(new AccountDeadlineError()),milliseconds);})]);}
+ finally{clearTimeout(timer);}
+}
 const userDto=(value:unknown):AccountUser=>{const u=value as {id:unknown;email?:unknown;user_metadata?:Record<string,unknown>};if(!u||typeof u.id!=='string'||!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(u.id))throw Error();const label=(v:unknown)=>typeof v==='string'&&v.length<=256&&!/[\x00-\x1f\x7f]/.test(v)?v:null;return {id:u.id,email:label(u.email),displayName:label(u.user_metadata?.full_name??u.user_metadata?.name)};};
 export class AccountService{
- private state:AccountState;private epoch=0;private client:AccountClient|null=null;private items:AccountEntries={};private network:AbortController|null=null;private revocation:AbortController|null=null;private loopback:AccountLoopback|null=null;private timer:ReturnType<typeof setTimeout>|undefined;private initial:Promise<void>|undefined;private pending:Promise<void>|undefined;private logoutJob:Promise<void>|undefined;private disposed=false;
+ private state:AccountState;private epoch=0;private client:AccountClient|null=null;private items:AccountEntries={};private revocationItems:AccountEntries|undefined;private network:AbortController|null=null;private revocation:AbortController|null=null;private loopback:AccountLoopback|null=null;private timer:ReturnType<typeof setTimeout>|undefined;private initial:Promise<void>|undefined;private pending:Promise<void>|undefined;private logoutJob:Promise<void>|undefined;private disposed=false;
  constructor(private ports:Ports){this.state={status:'signedOut',configured:!!ports.config,secureStorage:ports.vault.available,revision:0,user:null,school:null,schoolStatus:'none',message:!ports.config?'기존 Supabase 공개 클라이언트 빌드 설정이 필요합니다.':!ports.vault.available?'Windows 보안 저장소를 사용할 수 없습니다.':''};}
  private publish(patch:Partial<AccountState>){this.state={...this.state,...patch,revision:this.state.revision+1};}
  private fresh(ticket:number){if(this.disposed||ticket!==this.epoch)throw Error('Canceled account operation');}
- private reset(){this.epoch++;clearTimeout(this.timer);this.loopback?.close();this.loopback=null;this.network?.abort();this.network=null;this.revocation?.abort();this.revocation=null;void this.client?.stop();this.client=null;this.items={};}
+ private reset(){this.epoch++;clearTimeout(this.timer);this.loopback?.close();this.loopback=null;this.network?.abort();this.network=null;this.revocation?.abort();this.revocation=null;void this.client?.stop();this.client=null;this.items={};this.revocationItems=undefined;}
  private async makeClient(){const ticket=this.epoch;this.items=await this.ports.vault.read();this.fresh(ticket);this.network=new AbortController();
   const storage={getItem:async(key:string)=>{this.fresh(ticket);return this.items[key]??null;},setItem:async(key:string,value:string)=>{this.fresh(ticket);const next={...this.items,[key]:value};await this.ports.vault.write(next,()=>this.fresh(ticket));this.fresh(ticket);this.items=next;},removeItem:async(key:string)=>{this.fresh(ticket);const next={...this.items};delete next[key];await this.ports.vault.write(next,()=>this.fresh(ticket));this.fresh(ticket);this.items=next;}};
   this.client=(this.ports.client??createAccountClient)(this.ports.config!,storage,accountFetch(this.ports.config!,this.ports.fetch,this.network.signal));return this.client;
@@ -41,14 +48,19 @@ export class AccountService{
  async cancel(message='계정 로그인을 취소했거나 대기 시간이 만료됐습니다. 기존 로컬 학교와 업무는 유지됩니다.'){
   if(this.state.status!=='signingIn')return structuredClone(this.state);this.reset();try{await this.ports.vault.write({});this.publish({status:'signedOut',user:null,school:null,schoolStatus:'none',message});}catch{this.publish({status:'storageError',user:null,school:null,schoolStatus:'none',message:'이 PC의 로그인 임시 정보를 지우지 못했습니다. 연결 해제를 다시 시도하세요.'});}return structuredClone(this.state);
  }
- async signOut(){await this.initialize();if(this.logoutJob){await this.logoutJob;return structuredClone(this.state);}const previous={...this.items},wasSignedIn=!!this.state.user;this.reset();this.publish({status:'signedOut',user:null,school:null,schoolStatus:'none',message:'이 PC에서 연결을 해제하는 중입니다.'});
-  this.logoutJob=(async()=>{try{await this.ports.vault.write({});this.publish({message:'이 PC에서 로그아웃했습니다. 확인해 적용한 로컬 학교·주소·업무는 유지됩니다.'});}catch{this.publish({status:'storageError',message:'보안 저장소에서 세션을 지우지 못했습니다. 현재 서버 접근은 차단됐지만 재시작 전 연결 해제를 다시 시도해야 합니다.'});return;}
-   if(wasSignedIn&&this.ports.config){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);this.revocation=controller;try{const memory={...previous},client=(this.ports.client??createAccountClient)(this.ports.config,{getItem:async k=>memory[k]??null,setItem:async(k,v)=>{memory[k]=v;},removeItem:async k=>{delete memory[k];}},async(input,init)=>{const url=typeof input==='string'?input:input instanceof URL?input.href:input.url;if(new URL(url).pathname!=='/auth/v1/logout')throw Error();return accountFetch(this.ports.config!,this.ports.fetch,controller.signal)(input,init);});const result=await client.logout();void client.stop();if(result.error)throw Error();}catch{if(!this.disposed)this.publish({message:'이 PC에서는 로그아웃했습니다. 네트워크상 서버 세션 폐기는 확인하지 못했습니다.'});}finally{clearTimeout(timer);if(this.revocation===controller)this.revocation=null;}}
+ async signOut(){await this.initialize();if(this.logoutJob){await this.logoutJob;return structuredClone(this.state);}const previous={...(this.revocationItems??this.items)},wasSignedIn=!!this.state.user||Object.keys(previous).length>0,deadline=this.ports.logoutDeadlineMs??LOGOUT_DEADLINE_MS;this.reset();this.revocationItems=Object.keys(previous).length>0?previous:undefined;this.publish({status:'signingOut',user:null,school:null,schoolStatus:'none',message:'이 PC의 보안 저장소와 서버 세션 연결을 해제하는 중입니다.'});
+  this.logoutJob=(async()=>{try{await withDeadline(this.ports.vault.write({}),deadline);}catch{this.items={...previous};this.publish({status:'storageError',message:'보안 저장소에서 세션 삭제를 확인하지 못했습니다. 앱은 계속 사용할 수 있으며 로그아웃을 다시 시도해 주세요.'});return;}
+   if(!wasSignedIn||!this.ports.config){this.revocationItems=undefined;this.publish({status:'signedOut',message:'이 PC에서 로그아웃했습니다. 확인해 적용한 로컬 학교·주소·업무는 유지됩니다.'});return;}
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),deadline);this.revocation=controller;
+   const memory={...previous},client=(this.ports.client??createAccountClient)(this.ports.config,{getItem:async k=>memory[k]??null,setItem:async(k,v)=>{memory[k]=v;},removeItem:async k=>{delete memory[k];}},async(input,init)=>{const url=typeof input==='string'?input:input instanceof URL?input.href:input.url;if(new URL(url).pathname!=='/auth/v1/logout')throw Error();return accountFetch(this.ports.config!,this.ports.fetch,controller.signal)(input,init);});
+   try{const result=await withDeadline(client.logout(),deadline);if(result.error)throw result.error;this.revocationItems=undefined;this.publish({status:'signedOut',message:'이 PC와 서버 세션에서 로그아웃했습니다. 확인해 적용한 로컬 학교·주소·업무는 유지됩니다.'});}
+   catch{if(!this.disposed)this.publish({status:'temporaryError',message:'이 PC의 로그인 정보는 삭제했지만 서버 세션 폐기는 확인하지 못했습니다. 네트워크를 확인한 뒤 로그아웃을 다시 시도할 수 있습니다.'});}
+   finally{void client.stop().catch(()=>{});clearTimeout(timer);if(this.revocation===controller)this.revocation=null;}
   })();try{await this.logoutJob;}finally{this.logoutJob=undefined;}return structuredClone(this.state);
  }
  schoolSnapshot(revision:number){if(this.state.status!=='signedIn'||this.state.revision!==revision||!this.state.user||!this.state.school)throw Error('Account school is not current');return {userId:this.state.user.id,school:structuredClone(this.state.school)};}
  guardSchool(revision:number,userId:string,school:SchoolInfo){const current=this.schoolSnapshot(revision);if(current.userId!==userId||JSON.stringify(current.school)!==JSON.stringify(school))throw Error();}
  suspend(){if(this.disposed)return;this.reset();this.initial=undefined;this.publish({status:'signedOut',user:null,school:null,schoolStatus:'none',message:'화면 연결이 바뀌어 계정 상태를 다시 확인합니다.'});}
  dispose(){this.disposed=true;this.reset();this.state={...this.state,user:null,school:null,status:'signedOut'};}
- async flush(){await this.pending;await this.logoutJob;await this.ports.vault.flush();}
+ async flush(){try{await withDeadline(Promise.allSettled([this.pending,this.logoutJob,this.ports.vault.flush()]),this.ports.logoutDeadlineMs??LOGOUT_DEADLINE_MS);}catch(error){if(!(error instanceof AccountDeadlineError))throw error;}}
 }
