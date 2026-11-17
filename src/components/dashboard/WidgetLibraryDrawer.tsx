@@ -5,10 +5,11 @@ import type { WidgetLayout, WidgetType } from "../../dashboard/types";
 type WidgetLibraryDrawerProps = {
   readonly widgets: readonly WidgetLayout[];
   readonly onClose: () => void;
+  readonly onHide: (type: WidgetType) => void;
   readonly onRestore: (type: WidgetType) => void;
 };
 
-export function WidgetLibraryDrawer({ widgets, onClose, onRestore }: WidgetLibraryDrawerProps) {
+export function WidgetLibraryDrawer({ widgets, onClose, onHide, onRestore }: WidgetLibraryDrawerProps) {
   const visibleTypes = new Set(widgets.filter((widget) => widget.visible).map((widget) => widget.type));
 
   return (
@@ -38,8 +39,8 @@ export function WidgetLibraryDrawer({ widgets, onClose, onRestore }: WidgetLibra
                     <strong>{definition.title}</strong>
                     <p>{definition.description}</p>
                   </div>
-                  <button disabled={inUse} type="button" onClick={() => onRestore(definition.type)}>
-                    {inUse ? "사용 중" : "추가"}
+                  <button aria-pressed={inUse} type="button" onClick={() => inUse ? onHide(definition.type) : onRestore(definition.type)}>
+                    {inUse ? "숨기기" : "표시"}
                   </button>
                 </article>
               );

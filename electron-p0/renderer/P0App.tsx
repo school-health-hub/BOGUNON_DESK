@@ -14,13 +14,10 @@ import type {InventoryPurchaseRequest} from './purchase/inventoryPurchase';
 import {LocalWorkspaceStatus} from './local-tasks/LocalNotices';
 import {LocalWorkspaceProvider} from './adapters/workspace';
 import {LocalTasksPanel,type LocalTaskRequest} from './local-tasks/LocalTasksPanel';
-import {ShoppingCart,FileText,Search,Database,Wallet,BriefcaseBusiness,FolderOpen,Calculator,Command,Plus,CalendarDays} from 'lucide-react';
 import {SurfaceDialog} from './SurfaceDialog';
 import {QuickMemoSurface} from './QuickMemoSurface';
 import {SurfaceSettings} from './SurfaceSettings';
-import {ToolCard} from './ToolCard';
 import {InventoryLocalQa} from './inventory-local-qa/InventoryLocalQa';
-import {InventoryEntryButtons} from './inventory-preview/InventoryEntryButtons';
 import { PurchaseSession } from './purchase/PurchaseSession';
 import { PersistentMemoProvider } from './adapters/PersistentMemo';
 import { SyntheticIpcSample } from './SyntheticIpcSample';
@@ -46,6 +43,8 @@ import type { DockLayout } from '../../src/dock/types';
 import type { DesktopActionId } from '../../src/desktop/types';
 import type { DashboardEditorPanel } from '../../src/components/dashboard/useDesktopNavigation';
 import { BrandLogo } from '../../src/branding/BrandLogo';
+import { ToolboxMenu } from './toolbox/ToolboxMenu';
+import type { ToolId } from './toolbox/toolDefinitions';
 const WorkspaceProductHost=lazy(()=>import('./WorkspaceProductHost'));
 const School04Entry=import.meta.env.DEV&&import.meta.env.ELECTRON_P0_PUBLIC_SCHOOL04_LOCAL==='1'?lazy(()=>import('./school-workspace-dev/School04Entry')):null;
 const School03Entry=import.meta.env.DEV&&import.meta.env.ELECTRON_P0_PUBLIC_SCHOOL03_LOCAL==='1'?lazy(()=>import('./school-workspace-dev/School03Entry')):null;
@@ -157,6 +156,34 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
     if(id==='purchase-helper'){setPurchaseOpen(true);setActive('home');setPanel(null);setNotice(null);return;}
     if(['home','settings','quick-memo','toolbox','work-folder'].includes(id)){if(id==='settings')settingsHandoffRef.current=false;setActive(id);setPanel(null);setEditing(false);setNotice(null)}else excluded();
   };
+  const openNewsletter=()=>{setActive('home');setNewsletterLoaded(true);setNewsletterOpen(true);};
+  const openDashboardEditor=(target:Exclude<DashboardEditorPanel,null>)=>{setActive('home');setSelected(null);setEditing(true);setPanel(target);};
+  const hideWidgetType=(type:DashboardLayout['widgets'][number]['type'])=>setLayout(current=>{
+    const rendered=resolveDeskGeometry(current,vw).widgets;
+    const target=rendered.find(widget=>widget.type===type);
+    return target===undefined?current:hideWidget({...current,widgets:rendered},target.id);
+  });
+  const runTool=(id:ToolId)=>{
+    switch(id){
+      case 'school-health-room':setWorkspaceOpen(true);return;
+      case 'newsletter':openNewsletter();return;
+      case 'inventory-local':setActive('home');setInventoryMode('local');setInventoryOpen(true);return;
+      case 'inventory-preview':setActive('home');setInventoryMode('preview');setInventoryOpen(true);return;
+      case 'inventory-qa':setInventoryOpen(false);setInventoryQaOpen(true);return;
+      case 'education-video':setActive('home');setEducationVideoOpen(true);return;
+      case 'official-document':setActive('home');setOfficialDocumentOpen(true);return;
+      case 'purchase-helper':setActive('home');setPurchaseOpen(true);return;
+      case 'school-admin':setActive('home');setAdminOpen(true);return;
+      case 'record-helper':setActive('home');setRecordOpen(true);return;
+      case 'local-calendar':openUtility('calendar');return;
+      case 'local-tasks':setActive('home');openTasks();return;
+      case 'quick-add':openUtility('quick-add');return;
+      case 'work-folder':navigate('work-folder');return;
+      case 'calculator':openUtility('calculator');return;
+      case 'command-palette':openUtility('palette');return;
+      case 'finance':setActive('home');setFinanceOpen(true);return;
+    }
+  };
   return <WidgetSessionProvider><LocalCalendarProvider><LocalWorkspaceProvider><PersistentMemoProvider><DesktopPanelProvider notify={setNotice} openInbox={()=>openTasks()} openBogunonTask={async id=>openTasks({id})} openQuickAddEventForDate={date=>openUtility('calendar',{date})} openQuickAddFromMemo={title=>openUtility('quick-add',{title})} openQuickMemoUrl={async url=>{try{await openMemoUrl(url);}catch(e){setNotice(e instanceof Error?e.message:'링크를 열지 못했습니다.');}}} runDesktopAction={async id=>navigate(id)} workFolderFavorites={folders.snapshot?.favorites??[]} openWorkFolderFavorite={async folder=>{const message=await folders.open(folder.id);if(message)setNotice(message);}}>
     <div inert={workspaceOpen} hidden={recordOpen||newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen||financeOpen||adminOpen} style={{display:recordOpen||newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen||financeOpen||adminOpen?"none":undefined}} className={`app-shell workspace-shell ${isCanonicalDeskLayout(layout)?'is-floating-b':''} ${editing?'is-edit-mode':'is-view-mode'} bg-${layout.appearance.background} card-${layout.appearance.cardStyle} corner-${layout.appearance.cornerStyle}`}>
       <header className="rose-surface-header"><BrandLogo/><SurfaceDate/><span>Electron 전용 로컬 업무 저장 · 계정·AI 연결은 별도 설정</span></header>
@@ -169,13 +196,13 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
       <main ref={ref} aria-label="보건실 업무 위젯 작업 공간" className={`dashboard workspace-dashboard${metrics.requiresScroll?' is-scrollable':''}${geometry.dense?' is-dense-desk':''}`}>
         {width!==null&&<DesktopWidgetLayout widgets={geometry.widgets} width={Math.max(320,width)} compact={width<900} editing={editing} selectedId={selected} metrics={metrics} onSelect={setSelected} onHide={id=>setLayout(hideWidget({...layout,widgets:geometry.widgets},id))} onLayoutChange={next=>{if(editing&&width>=900)setLayout(current=>mergeRenderedGridLayout(current,resolveDeskGeometry(current,vw).widgets,next))}}/>}
       </main>
-      {editing&&panel==='library'&&<WidgetLibraryDrawer widgets={layout.widgets} onClose={()=>setPanel(null)} onRestore={type=>setLayout(restoreWidget({...layout,widgets:geometry.widgets},type))}/>}
+      {editing&&panel==='library'&&<WidgetLibraryDrawer widgets={layout.widgets} onClose={()=>setPanel(null)} onHide={hideWidgetType} onRestore={type=>setLayout(restoreWidget({...layout,widgets:geometry.widgets},type))}/>}
       {editing&&panel==='appearance'&&<AppearancePanel appearance={layout.appearance} onClose={()=>setPanel(null)} onUpdate={appearance=>setLayout({...layout,appearance})}/>}
       {editing&&panel==='presets'&&<PresetSelector currentPresetId={layout.presetId} onClose={()=>setPanel(null)} onApply={id=>setLayout(applyPreset(layout,id,window.confirm))}/>}
       {editing&&panel==='dock'&&<DockEditor dockLayout={dock} onClose={()=>setPanel(null)} onUpdate={setDock}/>}
       {active==='quick-memo'&&<QuickMemoSurface onClose={()=>navigate('home')}><MemoWidget/></QuickMemoSurface>}
       {active!=='home'&&active!=='quick-memo'&&<SurfaceDialog key={active} modal={active==='settings'||active==='work-folder'} shouldRestoreFocus={()=>active!=='settings'||!settingsHandoffRef.current} title={active==='settings'?'설정':active==='work-folder'?'업무 폴더':'업무 도구'} onClose={()=>navigate('home')}>
-        {active==='work-folder'?<WorkFoldersContent state={folders} onClose={()=>navigate('home')}/>:active==='settings'?<SurfaceSettings school={<SchoolProfileSettings/>} ai={<AiSettings/>} saveStatus={status} appearance={<AppearancePanel appearance={layout.appearance} onClose={()=>navigate('home')} onUpdate={appearance=>setLayout({...layout,appearance})}/>} widgets={<WidgetLibraryDrawer widgets={layout.widgets} onClose={()=>navigate('home')} onRestore={type=>setLayout(restoreWidget({...layout,widgets:geometry.widgets},type))}/>} dock={<DockEditor dockLayout={dock} onClose={()=>navigate('home')} onUpdate={setDock}/>} about={<><button type="button" onClick={()=>{settingsHandoffRef.current=true;setActive("home");setNewsletterLoaded(true);setNewsletterOpen(true);}}>보건소식지 제작소</button><SyntheticIpcSample/><p>앱 ID: {info?.appId}</p><p>PoC 저장 위치: {info?.userData}</p><p>소스: {info?.sourceSha}</p><p>Electron: {info?.electron}</p><p>자동 업데이트 없음 · BOGUNON 계정은 등록 학교 읽기 · AI 연결은 별도 설정</p></>}/>:<><div className="p0-tools-grid"><ToolCard icon={BriefcaseBusiness} label="우리 보건실 · 학교 공유" description="선택적 공동 업무 · 개인 자료와 별도" onClick={()=>setWorkspaceOpen(true)}/><ToolCard icon={CalendarDays} label="독립 로컬 일정" description="월간 달력·종일·시간 일정 · 서버 전송 없음" onClick={()=>openUtility('calendar')}/><ToolCard icon={Calculator} label="업무 계산기" description="일반·퍼센트·날짜·단위 변환" onClick={()=>openUtility('calculator')}/><ToolCard icon={Command} label="명령 팔레트" description="지원하는 기능 검색 · Ctrl K" onClick={()=>openUtility('palette')}/><ToolCard icon={Plus} label="빠른 추가 · 로컬 업무" description="제목·수행일·마감일을 이 PC에 저장" onClick={()=>openUtility('quick-add')}/><ToolCard icon={FolderOpen} label="업무 폴더 · 즐겨찾기" description="로컬 폴더 등록·정렬·탐색기 열기" onClick={()=>navigate('work-folder')}/><ToolCard icon={FileText} label="생기부 도우미 · 세션 전용" description="활동보고서·비식별 검토·ChatGPT 초안" onClick={()=>{setActive('home');setRecordOpen(true);}}/><ToolCard icon={BriefcaseBusiness} label="학교 행정 업무 도우미" description="공식 시스템 바로가기·복무 초안·Excel 검토" onClick={()=>{setActive('home');setAdminOpen(true);}}/><ToolCard icon={Wallet} label="MY FINANCE · 암호화 로컬" description="수입·세금·투자·자산 · Windows SQLCipher·DPAPI" onClick={()=>{setActive('home');setFinanceOpen(true);}}/><ToolCard icon={FileText} label="일정·업무 — 로컬 저장" description="업무·마감·완료 관리와 Dashboard 동기화" onClick={()=>{setActive('home');openTasks();}}/><ToolCard icon={ShoppingCart} label="품의 도우미 · 세션 전용" description="품목 계산과 품의문 작성" onClick={()=>{setActive("home");setPurchaseOpen(true);}}/><ToolCard icon={Search} label="교육영상 Finder" description="YouTube 검색 · 합성 체험 · 로컬 보관함" onClick={()=>{setActive('home');setEducationVideoOpen(true);}}/><ToolCard icon={FileText} label="공문작업실 · 로컬 초안" description="공문 편집과 파일 가져오기·저장" onClick={()=>{setActive('home');setOfficialDocumentOpen(true);}}/>{import.meta.env.DEV&&<ToolCard icon={Database} label="물품관리 — 로컬 QA" description="개발 전용 격리 환경 연결" onClick={()=>{setInventoryOpen(false);setInventoryQaOpen(true);}}/>}<InventoryEntryButtons onSelect={mode=>{setActive('home');setInventoryMode(mode);setInventoryOpen(true);}}/></div></>}
+        {active==='work-folder'?<WorkFoldersContent state={folders} onClose={()=>navigate('home')}/>:active==='settings'?<SurfaceSettings school={<SchoolProfileSettings/>} ai={<AiSettings/>} saveStatus={status} appearance={<AppearancePanel appearance={layout.appearance} onClose={()=>navigate('home')} onUpdate={appearance=>setLayout({...layout,appearance})}/>} widgets={<WidgetLibraryDrawer widgets={layout.widgets} onClose={()=>navigate('home')} onHide={hideWidgetType} onRestore={type=>setLayout(restoreWidget({...layout,widgets:geometry.widgets},type))}/>} dock={<DockEditor dockLayout={dock} onClose={()=>navigate('home')} onUpdate={setDock}/>} about={<><button type="button" onClick={()=>{settingsHandoffRef.current=true;openNewsletter();}}>보건소식지 제작소</button><SyntheticIpcSample/><p>앱 ID: {info?.appId}</p><p>PoC 저장 위치: {info?.userData}</p><p>소스: {info?.sourceSha}</p><p>Electron: {info?.electron}</p><p>자동 업데이트 없음 · BOGUNON 계정은 등록 학교 읽기 · AI 연결은 별도 설정</p></>}/>:<ToolboxMenu onRun={runTool} onOpenWorkspaceEditor={openDashboardEditor}/>}
       </SurfaceDialog>}
       {notice&&<div className="p0-notice" role="status">{notice}<button onClick={()=>setNotice(null)}>닫기</button></div>}
       <span className="p0-save" role="status" data-p0-save>{status}</span>

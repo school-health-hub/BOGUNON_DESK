@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "validatedAt": "2026-11-17T16:00:00+09:00",
+  "branch": "design/ux-09-workspace-customization",
+  "baseHead": "41d37b5a5e582a73067d5db5c55be296194fbe6c",
+  "verdict": "PASS",
+  "sourceFiles": [
+    { "path": "electron-p0/renderer/P0App.tsx", "sha256": "bfcf47b6a459d6a2cba6c3ca8b7fc8ab249751c4cf6d7fac4142d43307946438" },
+    { "path": "electron-p0/renderer/ToolCard.tsx", "sha256": "635195332344d9255c58c3732e03dcd18a04c12b95664bc3b55f56e5bd776ce2" },
+    { "path": "electron-p0/renderer/main.tsx", "sha256": "fb763c27ad457308f0ffe4bfd16e06d85f8f988475ef7fb4d927279d9d7b5032" },
+    { "path": "electron-p0/renderer/toolbox/ToolboxMenu.tsx", "sha256": "346a4e812b612933b2fdf41161cb4e82870050bfdd8a431e0d30f123e18c384d" },
+    { "path": "electron-p0/renderer/toolbox/toolDefinitions.ts", "sha256": "14a006dd0e789af7d106ef3ae62cf195f0f0f3ac45c0dacb202d45d827e68066" },
+    { "path": "electron-p0/renderer/ux-09.css", "sha256": "569a6ea99c14a10420dca558a0b1a9542880c180742407e8e9651f0dce505a44" },
+    { "path": "electron-p0/tests/desktop-utilities-routing.test.tsx", "sha256": "5a458d63f8193d62c45ed6e706015ab48065d5fb176ce9f65ddef7dbe84af864" },
+    { "path": "electron-p0/tests/ux09-toolbox.test.tsx", "sha256": "4ae4793183d09e544227296da8bab735c039dd1b0068eb2690d606f1fafc8632" },
+    { "path": "scripts/qa/ux09-workspace-customization.mjs", "sha256": "1af89061a32e2f970488aa96c128c560df60bcde454e32e1ce53c255ad7364fc" },
+    { "path": "src/components/dashboard/DashboardCanvas.tsx", "sha256": "55633eb6365de6260a6aad44f81040163ee384956a1f697ef39b89da6844b836" },
+    { "path": "src/components/dashboard/WidgetLibraryDrawer.tsx", "sha256": "89d079068cbb3d655716c266da5c0e83fc0bd73b7efd50dd414dda3f3fd63984" },
+    { "path": "src/components/dashboard/WidgetLibraryDrawer.test.tsx", "sha256": "4f4ac91c1aff20ee311c46fe5173391b4d65b609f733769d1d8cbff021041b21" }
+  ],
+  "helperArtifacts": [
+    { "path": "tools/purchase-excel-cli/target/debug/purchase-excel-cli.exe", "sha256": "1c0baac98e410b66c4723427f156b0dd2ceb06c0ec6fa63e02f396d1be0e5048", "committed": false },
+    { "path": "tools/official-document-cli/target/debug/official-document-cli.exe", "sha256": "ed88b9c383159984fb1f588eae7ac663fd1ed196e796a3cdb997c34cb847e51b", "committed": false },
+    { "path": "tools/record-helper-cli/target/debug/record-helper-cli.exe", "sha256": "ccf26d1d53d19d428aa28cf7806ce562591769fb40d5dda4684a5caa8af79d31", "committed": false },
+    { "path": "build/record-helper-cli/record-helper-cli.exe", "sha256": "ccf26d1d53d19d428aa28cf7806ce562591769fb40d5dda4684a5caa8af79d31", "committed": false },
+    { "path": "build/purchase-ocr/manifest.json", "sha256": "292eae775abff7f1e863cc71b81ee9dab20a85820be003316dce0577c90c04c4", "committed": false }
+  ],
+  "guiEvidence": {
+    "runId": "f667df91-00b6-4337-b89c-a04e65fdecfa",
+    "reportSha256": "b5a9062ec65a05e656dd94b205d6126306e0451425b369dab4ed1b72a7d28c99",
+    "screenshots": [
+      { "size": "1440x900", "sha256": "9cb024dbeae65a839eae12ff9a6b02e81d36d6adf48fe2e3b962fa1bfd3c3d7f" },
+      { "size": "1366x768", "sha256": "05d35dfe1c86e38c89fcb268a54193f6263429534fcaf7b4141de8a1c9734473" },
+      { "size": "1280x720", "sha256": "e1c2b1437f71e2c3c4ab905db9031b61bd56d0eb8d68d83b37fd3aaed34a4a66" },
+      { "size": "980x700", "sha256": "80452883828e40fc8cce81632430931758440f698c3c02cf16e30e28cf868cb0" },
+      { "size": "widget-library-980x700", "sha256": "574eefdfd60755620f4b3ddb39907a11e9924fb6decbd20e21641b75b560fad4" }
+    ]
+  },
+  "checks": [
+    { "command": "npm run electron:p0:test", "result": "156 files passed; 1037 tests passed; 3 skipped; 0 failed" },
+    { "command": "npm exec -- tsc --noEmit", "result": "PASS" },
+    { "command": "npm run electron:p0:build", "result": "PASS" },
+    { "command": "git diff --check", "result": "PASS" },
+    { "command": "lint", "result": "NOT RUN — no dedicated lint script" }
+  ],
+  "recoveredFailureCause": "The isolated worktree lacked Record and Official Document helper binaries after the preparation pipeline stopped. A global CARGO_TARGET_DIR retry compiled into F: while the existing build scripts intentionally resolve tools/*/target paths. Running the approved preparation script without that override generated the expected local artifacts and changed the same six test files from failure to 55 PASS / 2 SKIP without product-source changes."
+}
