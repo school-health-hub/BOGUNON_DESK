@@ -24,7 +24,7 @@ test("BRAND-01 official logo is consistent in the Windows Electron product", asy
       const icon = nativeImage.createFromPath(`${electronApp.getAppPath()}\\app-icon.png`);
       return { empty: icon.isEmpty(), size: icon.getSize(), title: BrowserWindow.getAllWindows()[0].getTitle() };
     });
-    expect(iconStatus).toEqual({ empty: false, size: { width: 256, height: 256 }, title: "BOGUNON DESK ELECTRON P0" });
+    expect(iconStatus).toEqual({ empty: false, size: { width: 256, height: 256 }, title: "BOGUNON DESK" });
 
     const headerLogo = page.locator(".rose-surface-header .brand-logo");
     await expect(headerLogo).toHaveAttribute("aria-label", "BOGUNON DESK");
@@ -37,9 +37,9 @@ test("BRAND-01 official logo is consistent in the Windows Electron product", asy
     await page.getByRole("button", { name: "설정", exact: true }).click();
     await page.getByRole("dialog", { name: "설정", exact: true }).getByRole("button", { name: "앱 정보", exact: true }).click();
     await expect(page.getByRole("dialog", { name: "설정", exact: true }).getByRole("img", { name: "BOGUNON DESK" })).toBeVisible();
-    await page.locator("p").filter({ hasText: "PoC 저장 위치:" }).evaluate((element) => {
-      element.textContent = "PoC 저장 위치: [격리 QA 경로 비식별 처리]";
-    });
+    await expect(page.getByText("BOGUNON DESK 2.0", { exact: true })).toBeVisible();
+    await expect(page.getByText("내부 베타 · 버전 2.0.0-beta.1", { exact: true })).toBeVisible();
+    await expect(page.getByText("고급 진단 정보", { exact: true })).toBeVisible();
     await page.screenshot({ path: join(evidenceDir, "settings-about-1440x900.png") });
     await page.keyboard.press("Escape");
 

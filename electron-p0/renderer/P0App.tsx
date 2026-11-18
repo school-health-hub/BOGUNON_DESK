@@ -20,7 +20,7 @@ import {SurfaceSettings} from './SurfaceSettings';
 import {InventoryLocalQa} from './inventory-local-qa/InventoryLocalQa';
 import { PurchaseSession } from './purchase/PurchaseSession';
 import { PersistentMemoProvider } from './adapters/PersistentMemo';
-import { SyntheticIpcSample } from './SyntheticIpcSample';
+import { ProductAbout } from './ProductAbout';
 import { useEffect, useRef, useState, lazy, Suspense } from 'react';
 import type { P0Info } from '../protocol';
 import { DesktopWidgetLayout } from '../../src/components/dashboard/DesktopWidgetLayout';
@@ -72,8 +72,8 @@ export function P0App() {
     }).catch(()=>{if(active)setError(true)});
     return ()=>{active=false};
   },[]);
-  if(error)return <main role="alert">PoC 설정을 읽지 못했습니다. 기존 파일을 보존하고 앱을 다시 열어 주세요.</main>;
-  if(!initial)return <main role="status">ELECTRON-P0를 불러오는 중입니다…</main>;
+  if(error)return <main role="alert">앱 설정을 읽지 못했습니다. 기존 파일을 보존하고 앱을 다시 열어 주세요.</main>;
+  if(!initial)return <main role="status">BOGUNON DESK를 불러오는 중입니다…</main>;
   return <SchoolProfileProvider><P0Dashboard initial={initial}/></SchoolProfileProvider>;
 }
 function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:DockLayout;info:P0Info}}) {
@@ -99,7 +99,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   const [workspaceOpen,setWorkspaceOpen]=useState(false);
   const [dock,setDock] = useState(initial.dock);
   const info=initial.info;
-  const [status,setStatus] = useState('PoC 설정 준비됨');
+  const [status,setStatus] = useState('설정 준비됨');
   const [editing,setEditing] = useState(false), [panel,setPanel] = useState<DashboardEditorPanel>(null);
   const [selected,setSelected] = useState<string | null>(null), [active,setActive] = useState<DesktopActionId>('home');
   const settingsHandoffRef=useRef(false);
@@ -115,7 +115,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   useEffect(()=>{
     if(layout===initialPersistence.current.layout&&dock===initialPersistence.current.dock)return;
     let active=true;setStatus('저장 중');
-    void window.electronP0.writeSettings({version:1,dashboard:layout,dock}).then(()=>{if(active)setStatus('PoC 설정 저장됨')}).catch(()=>{if(active)setStatus('저장 실패 — 현재 배치를 유지하고 다시 시도해 주세요')});
+    void window.electronP0.writeSettings({version:1,dashboard:layout,dock}).then(()=>{if(active)setStatus('설정 저장됨')}).catch(()=>{if(active)setStatus('저장 실패 — 현재 배치를 유지하고 다시 시도해 주세요')});
     return ()=>{active=false};
   },[layout,dock]);
   const dropBlocked=(target:DropTarget)=>{
@@ -141,7 +141,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
     const editor=(target:DashboardEditorPanel)=>{setActive('home');setSelected(null);setEditing(true);setPanel(target);};
     await runElectronCommand(id,{openLocalCalendar:()=>openUtility('calendar'),openQuickAdd:()=>openUtility('quick-add'),runDesktopAction:async action=>{if(action==='calculator')openUtility('calculator');else navigate(action);},openWorkspaceEditor:target=>editor(target==='workspace'?null:target),openWidgetLibrary:()=>editor('library')});
   };
-  const excluded=()=>setNotice('이 기능은 ELECTRON-P0 범위에 포함되지 않습니다. 로그인·업무·금융 데이터에 연결하지 않습니다.');
+  const excluded=()=>setNotice('이 기능은 현재 베타 버전에서 사용할 수 없습니다. 로그인·업무·금융 데이터에 연결하지 않습니다.');
   const navigate=(id:DesktopActionId)=>{
     if(id==='work-portal'){
       if(portalPending.current||utilityBlocked()||utilityRef.current||document.querySelector('[role="dialog"][aria-modal="true"]')){setNotice('현재 작업이나 대화상자를 먼저 정리해 주세요. 기존 입력은 유지됩니다.');return;}
@@ -192,7 +192,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
       {!School04Entry&&!School03Entry&&School02Entry&&<Suspense fallback={null}><School02Entry/></Suspense>}
       {!School04Entry&&!School03Entry&&!School02Entry&&SchoolWorkspaceDevEntry&&<Suspense fallback={null}><SchoolWorkspaceDevEntry/></Suspense>}
       <LocalWorkspaceStatus onOpen={()=>openTasks()}/><LocalCalendarStatus onOpen={()=>openUtility('calendar')}/>
-      <DashboardToolbar activePanel={panel} isEditing={editing} onOpenPanel={p=>setPanel(panel===p?null:p)} onOpenQuickAdd={()=>openUtility('quick-add')} onReset={()=>{if(window.confirm('PoC 배치만 기본값으로 되돌릴까요?'))setLayout(createDefaultDashboardLayout())}} onToggleEdit={()=>{setEditing(!editing);setPanel(null);setSelected(null);setActive('home')}}/>
+      <DashboardToolbar activePanel={panel} isEditing={editing} onOpenPanel={p=>setPanel(panel===p?null:p)} onOpenQuickAdd={()=>openUtility('quick-add')} onReset={()=>{if(window.confirm('현재 화면 배치만 기본값으로 되돌릴까요?'))setLayout(createDefaultDashboardLayout())}} onToggleEdit={()=>{setEditing(!editing);setPanel(null);setSelected(null);setActive('home')}}/>
       <main ref={ref} aria-label="보건실 업무 위젯 작업 공간" className={`dashboard workspace-dashboard${metrics.requiresScroll?' is-scrollable':''}${geometry.dense?' is-dense-desk':''}`}>
         {width!==null&&<DesktopWidgetLayout widgets={geometry.widgets} width={Math.max(320,width)} compact={width<900} editing={editing} selectedId={selected} metrics={metrics} onSelect={setSelected} onHide={id=>setLayout(hideWidget({...layout,widgets:geometry.widgets},id))} onLayoutChange={next=>{if(editing&&width>=900)setLayout(current=>mergeRenderedGridLayout(current,resolveDeskGeometry(current,vw).widgets,next))}}/>}
       </main>
@@ -202,7 +202,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
       {editing&&panel==='dock'&&<DockEditor dockLayout={dock} onClose={()=>setPanel(null)} onUpdate={setDock}/>}
       {active==='quick-memo'&&<QuickMemoSurface onClose={()=>navigate('home')}><MemoWidget/></QuickMemoSurface>}
       {active!=='home'&&active!=='quick-memo'&&<SurfaceDialog key={active} modal={active==='settings'||active==='work-folder'} shouldRestoreFocus={()=>active!=='settings'||!settingsHandoffRef.current} title={active==='settings'?'설정':active==='work-folder'?'업무 폴더':'업무 도구'} onClose={()=>navigate('home')}>
-        {active==='work-folder'?<WorkFoldersContent state={folders} onClose={()=>navigate('home')}/>:active==='settings'?<SurfaceSettings school={<SchoolProfileSettings/>} ai={<AiSettings/>} saveStatus={status} appearance={<AppearancePanel appearance={layout.appearance} onClose={()=>navigate('home')} onUpdate={appearance=>setLayout({...layout,appearance})}/>} widgets={<WidgetLibraryDrawer widgets={layout.widgets} onClose={()=>navigate('home')} onHide={hideWidgetType} onRestore={type=>setLayout(restoreWidget({...layout,widgets:geometry.widgets},type))}/>} dock={<DockEditor dockLayout={dock} onClose={()=>navigate('home')} onUpdate={setDock}/>} about={<><button type="button" onClick={()=>{settingsHandoffRef.current=true;openNewsletter();}}>보건소식지 제작소</button><SyntheticIpcSample/><p>앱 ID: {info?.appId}</p><p>PoC 저장 위치: {info?.userData}</p><p>소스: {info?.sourceSha}</p><p>Electron: {info?.electron}</p><p>자동 업데이트 없음 · BOGUNON 계정은 등록 학교 읽기 · AI 연결은 별도 설정</p></>}/>:<ToolboxMenu onRun={runTool} onOpenWorkspaceEditor={openDashboardEditor}/>}
+        {active==='work-folder'?<WorkFoldersContent state={folders} onClose={()=>navigate('home')}/>:active==='settings'?<SurfaceSettings school={<SchoolProfileSettings/>} ai={<AiSettings/>} saveStatus={status} appearance={<AppearancePanel appearance={layout.appearance} onClose={()=>navigate('home')} onUpdate={appearance=>setLayout({...layout,appearance})}/>} widgets={<WidgetLibraryDrawer widgets={layout.widgets} onClose={()=>navigate('home')} onHide={hideWidgetType} onRestore={type=>setLayout(restoreWidget({...layout,widgets:geometry.widgets},type))}/>} dock={<DockEditor dockLayout={dock} onClose={()=>navigate('home')} onUpdate={setDock}/>} about={<ProductAbout info={info} onOpenNewsletter={()=>{settingsHandoffRef.current=true;openNewsletter();}}/>}/>:<ToolboxMenu onRun={runTool} onOpenWorkspaceEditor={openDashboardEditor}/>}
       </SurfaceDialog>}
       {notice&&<div className="p0-notice" role="status">{notice}<button onClick={()=>setNotice(null)}>닫기</button></div>}
       <span className="p0-save" role="status" data-p0-save>{status}</span>

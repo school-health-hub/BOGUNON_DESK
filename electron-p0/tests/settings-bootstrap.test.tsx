@@ -55,7 +55,8 @@ function setup(readSettings: () => Promise<P0Settings | null>, appId = 'kr.sunga
   vi.stubGlobal('electronP0', {
     info: async () => ({
       appId,
-      productName: 'BOGUNON DESK ELECTRON P0',
+      productName: 'BOGUNON DESK',
+      version: '2.0.0-beta.1',
       userData: '/synthetic-profile',
       sourceSha: 'synthetic',
       electron: 'synthetic',
@@ -155,7 +156,7 @@ it('does not write settings while mounting a valid saved dashboard', async () =>
   expect(writeSettings).not.toHaveBeenCalled();
 });
 
-it('shows settings ready instead of loading after a saved dashboard mounts', async () => {
+it('shows a user-facing settings status instead of a PoC label after a saved dashboard mounts', async () => {
   // Given
   setup(async () => validSettings());
 
@@ -164,7 +165,7 @@ it('shows settings ready instead of loading after a saved dashboard mounts', asy
   await screen.findByTestId('dashboard-widget-ids');
 
   // Then
-  expect(document.querySelector('[data-p0-save]')?.textContent).toBe('PoC 설정 준비됨');
+  expect(document.querySelector('[data-p0-save]')?.textContent).toBe('설정 준비됨');
 });
 
 it('performs the first-run write once under StrictMode', async () => {
