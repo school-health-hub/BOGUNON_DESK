@@ -39,7 +39,9 @@ body.electron-soft-rose.design-07-candidate .workspace-shell:is(.is-view-mode, .
 }
 
 body.electron-soft-rose.design-07-candidate .workspace-shell:is(.is-view-mode, .is-edit-mode) .workspace-dashboard {
-  padding: 24px; padding-bottom: calc(24px + var(--desktop-dock-height, 72px));
+  height: calc(100% - var(--desktop-dock-height, 72px) - 24px);
+  padding: 24px;
+  scroll-padding-bottom: 24px;
   scrollbar-gutter: stable; overscroll-behavior: contain;
 }
 
@@ -67,9 +69,13 @@ body.electron-soft-rose.design-07-candidate .workspace-shell .workspace-editor-p
 
 body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid {
   gap: 16px;
+  overflow-x: clip;
 }
 
+/* RGL placement interpolation can overflow the resized workspace for 200ms.
+   Snap geometry only; widget surface and Dock interaction motion are unchanged. */
 body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid > .react-grid-item {
+  transition: none;
   z-index: var(--d07-layer-widget);
   padding: 8px;
 }
@@ -221,8 +227,9 @@ body.electron-soft-rose.design-07-candidate .workspace-shell.card-flat .dock {
 
 @media (max-width: 1100px) {
   body.electron-soft-rose.design-07-candidate .workspace-shell:is(.is-view-mode, .is-edit-mode) .workspace-dashboard {
+    height: calc(100% - var(--desktop-dock-height, 72px) - 24px);
     padding: 16px;
-    padding-bottom: calc(16px + var(--desktop-dock-height, 72px));
+    scroll-padding-bottom: 16px;
   }
 
   body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="today-tasks"] .panel__header {
@@ -299,3 +306,28 @@ body.electron-soft-rose.design-07-candidate .workspace-shell.card-flat .dock {
     outline: 2px solid Highlight;
   }
 }
+
+
+/* Keep editor chrome outside intrinsic widget content; small cards scroll instead of compressing controls. */
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid :is([data-widget-type="weekly-schedule"], [data-widget-type="quick-memo"], [data-widget-type="quick-launcher"]) .widget-frame__body > .panel { overflow: auto; scroll-padding-block: 8px; }
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="quick-memo"] .memo-panel { display: flex; flex-direction: column; align-items: stretch; }
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="quick-memo"] .memo-panel > fieldset { display: block; height: auto; overflow: visible; }
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="quick-memo"] .quick-memo-editor.is-widget { display: flex; flex: 0 0 auto; flex-direction: column; height: auto; overflow: visible; }
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="quick-memo"] .quick-memo-editor.is-widget textarea { height: 64px; min-height: 64px; scroll-margin-block: 8px; }
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="quick-launcher"] .quick-launcher { display: flex; flex-direction: column; align-items: stretch; }
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="quick-launcher"] .quick-launcher__actions { grid-template-columns: repeat(auto-fit, minmax(min(100%, 112px), 1fr)); }
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="quick-launcher"] .quick-launcher__folders { overflow: visible; }
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid :is([data-widget-type="clock"], [data-widget-type="weekly-schedule"], [data-widget-type="quick-memo"], [data-widget-type="quick-launcher"]) .widget-frame { display: grid; grid-template-rows: 34px minmax(0, 1fr); }
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid :is([data-widget-type="clock"], [data-widget-type="weekly-schedule"], [data-widget-type="quick-memo"], [data-widget-type="quick-launcher"]) .widget-frame__chrome { position: relative; inset: auto; margin: 6px 6px 0; }
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid :is([data-widget-type="clock"], [data-widget-type="weekly-schedule"], [data-widget-type="quick-memo"], [data-widget-type="quick-launcher"]) .widget-frame__body { min-height: 0; }
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="clock"] .widget-frame__body > .date-card { padding: 3px 6px; overflow: auto; }
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="clock"] .date-card__eyebrow { padding-inline: 0; gap: 4px; overflow: visible; font-size: 10px; line-height: 12px; }
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="clock"] .date-card__eyebrow svg { width: 10px; height: 10px; flex: 0 0 auto; }
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="clock"] .date-card__body { flex: 0 0 auto; gap: 0; padding: 0; }
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="clock"] .date-card__time { margin: 0; line-height: 22px; }
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="clock"] .date-card__date { margin: 0; line-height: 14px; overflow: visible; }
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid :is([data-widget-type="quick-memo"], [data-widget-type="quick-launcher"]) .panel > * { flex: 0 0 auto; }
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="quick-memo"] .quick-memo-editor.is-widget > * { flex: 0 0 auto; }
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="quick-memo"] .memo-panel > .panel__header { flex-wrap: wrap; gap: 6px; }
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="quick-memo"] .memo-panel .panel__title { white-space: nowrap; }
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="quick-memo"] .memo-panel .quick-memo-actions button { white-space: nowrap; }

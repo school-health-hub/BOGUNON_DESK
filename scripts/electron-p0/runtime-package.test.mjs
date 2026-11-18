@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile,mkdtemp,mkdir,copyFile,rm,readdir,stat} from 'node:fs/promises';
+import {readFile,writeFile,mkdtemp,mkdir,copyFile,rm,readdir,stat} from 'node:fs/promises';
 import {join,dirname,posix,resolve,normalize,win32} from 'node:path';
 import {tmpdir} from 'node:os';
 import {execFileSync} from 'node:child_process';
@@ -11,7 +11,7 @@ import {createPackage,listPackage,extractFile} from '@electron/asar';
 import ts from 'typescript';
 
 const config=JSON.parse(await readFile('electron-p0/builder.json','utf8'));
-const root='build/electron-p0-app';
+const root=process.env.ELECTRON_P0_RUNTIME_ROOT??'build/electron-p0-app';
 async function walk(dir,prefix=''){
  const files=[];
  for(const entry of await readdir(dir,{withFileTypes:true})){
@@ -53,6 +53,17 @@ test('builder selection archives the complete Main/Preload relative runtime grap
   const files=new Set(listPackage(archive).map(file=>file.replaceAll('\\','/').replace(/^\//,'')));
   const read=file=>extractFile(archive,normalize(file)).toString('utf8');
   const graph=verifyRuntime(files,read);
+  const testFiles=[...files].filter(file=>/^main\/.*\.test\.(?:js|mjs|cjs)$/.test(file));
+  const evidence=process.env.ELECTRON_P0_PACKAGE_EVIDENCE;
+  if(evidence){
+   await mkdir(evidence,{recursive:true});
+   await copyFile(archive,join(evidence,'app.asar'));
+   await writeFile(join(evidence,'inventory.json'),JSON.stringify({appDir,selectedFiles:selected.toSorted(),archiveEntries:[...files].sort(),runtime:[...graph].sort(),testFiles},null,2));
+  }
+  assert.deepEqual(testFiles,[],'Compiled Main tests must not ship in the actual ASAR');
+  for(const required of ['main/main.mjs','preload/preload.cjs','newsletter-ai-protocol.js','main/newsletter-ai-asset-storage.js','protocol.js','account-protocol.js','chatgpt-protocol.js','tray.png','app-icon.png']){
+   assert(files.has(required),`Required packaged file: ${required}`);
+  }
   assert(graph.has('inventory-qa-protocol.js'),'Main must use the Inventory protocol');
   assert(graph.has('protocol.js'));
   assert(graph.has('local-tasks.js'),'Task contract must ship with its Main store');

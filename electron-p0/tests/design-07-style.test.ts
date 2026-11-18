@@ -42,6 +42,10 @@ describe("DESIGN-07 terminal candidate stylesheet", () => {
     expect(getComputedStyle(document.body).getPropertyValue("--d07-canvas")).not.toBe("");
   });
 
+  it("clips stale resize geometry at the grid boundary until the measured width settles", () => {
+    expect(stylesheet).toContain("overflow-x: clip");
+  });
+
   it("declares distinct summary and dense tiers plus resilient fallbacks", () => {
     expect(stylesheet).toContain("--d07-summary-fill: rgb(255 253 249 / 80%)");
     expect(stylesheet).toContain("--d07-dense-fill: rgb(255 253 249 / 97%)");
@@ -67,11 +71,17 @@ describe("DESIGN-07 terminal candidate stylesheet", () => {
   });
 
   it("reserves content space for the existing bottom Dock without changing its runtime contract", () => {
-    expect(stylesheet).toContain("padding-bottom: calc(24px + var(--desktop-dock-height, 72px))");
+    expect(stylesheet).toContain("height: calc(100% - var(--desktop-dock-height, 72px) - 24px)");
+    expect(stylesheet).toContain("scroll-padding-bottom: 24px");
     expect(stylesheet).toContain("z-index: var(--d07-layer-dock)");
     expect(stylesheet).toContain("border-radius: 24px");
     const dockSource = readFileSync("src/dock/AppDock.tsx", "utf8");
     expect(dockSource).not.toContain("design-07");
+  });
+
+  it("keeps weekly schedule content below editor chrome and scrollable at saved compact sizes", () => {
+    expect(stylesheet).toMatch(/data-widget-type="weekly-schedule"[\s\S]*\.widget-frame__body > \.panel \{ overflow: auto/);
+    expect(stylesheet).toMatch(/is-edit-mode[\s\S]*data-widget-type="weekly-schedule"[\s\S]*grid-template-rows: 34px minmax\(0, 1fr\)/);
   });
 
   it("keeps the open customization inspector above its toolbar controls", () => {

@@ -1,3 +1,13 @@
+## INT-03 — viewport reflow hardening
+
+- Electron Dashboard outer RGL placement elements snap to the current viewport without
+  animating transform/width/height. The previous 200ms placement transition briefly
+  pushed responsive cards outside the workspace during window resizing. Widget surface,
+  button and Dock interaction transitions remain unchanged.
+- This is a presentation-only rule in the existing DESIGN-07 scope. Preserve all saved
+  widget IDs, x/y/w/h, visibility, memo and settings; automatic reflow must never save
+  coordinates. Keep the vertical workspace scrollbar and all content accessible.
+
 ## Approved B implementation — desktop floating surface
 
 ## SCHOOL WORKSPACE operational UI — Pass 1 (2026-11-09)
@@ -856,3 +866,13 @@ warning, and success semantics retain their existing accessible meanings.
 - Native Desktop Attachment **OPTION C is DEFERRED / NOT RUN**. DESIGN-07 is ordinary
   Electron compositing only: no WorkerW, `SetParent`, Explorer manipulation, native
   attachment probe, or desktop-mode claim.
+
+### INT-03 local edit-content accessibility
+
+Clock, Quick Memo and Quick Launcher reserve a separate34px editor-chrome row,
+without changing stored card geometry. Memo and Launcher use one intentional
+panel scroll owner when their intrinsic controls do not fit; controls must not
+shrink into overlapping rows or disappear behind an overflow-hidden ancestor.
+Clock uses compact readable content beneath the editor chrome. Closing widget
+information returns keyboard focus to its existing settings trigger. Validate
+actual focus/caret and bottom traversal, not only zero page horizontal overflow.

@@ -19,3 +19,27 @@ it('uses actual grid content width rather than padded/scrollbar parent width and
  act(()=>report([{target:ref.current!,contentRect:new DOMRectReadOnly(0,0,0,100),borderBoxSize:[],contentBoxSize:[],devicePixelContentBoxSize:[]}],{} as ResizeObserver));expect(screen.getByTestId('grid').dataset.width).toBe('841');
  view.unmount();expect(disconnect).toHaveBeenCalledOnce();expect(ref.current).toBeNull();
 });
+
+it('remeasures the grid synchronously when the Electron content viewport resizes',()=>{
+ vi.stubGlobal('ResizeObserver',class{observe(){}disconnect(){}});
+ const view=render(<GridLayout width={964} children={<div key="clock"/>} layout={[]} dragConfig={{cancel:'button'}}/>);
+ const grid=screen.getByTestId('grid');
+ Object.defineProperty(grid,'clientWidth',{configurable:true,get:()=>841});
+
+ act(()=>window.dispatchEvent(new Event('resize')));
+
+ expect(grid.dataset.width).toBe('841');
+ view.unmount();
+});
+
+it('remeasures before paint when the measured dashboard width prop changes',()=>{
+ vi.stubGlobal('ResizeObserver',class{observe(){}disconnect(){}});
+ const view=render(<GridLayout width={964} children={<div key="clock"/>} layout={[]} dragConfig={{cancel:'button'}}/>);
+ const grid=screen.getByTestId('grid');
+ Object.defineProperty(grid,'clientWidth',{configurable:true,get:()=>841});
+
+ view.rerender(<GridLayout width={884} children={<div key="clock"/>} layout={[]} dragConfig={{cancel:'button'}}/>);
+
+ expect(grid.dataset.width).toBe('841');
+ view.unmount();
+});

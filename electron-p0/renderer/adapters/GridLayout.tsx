@@ -12,10 +12,17 @@ export function GridLayout(props: ComponentProps<typeof ExistingGridLayout>) {
   useLayoutEffect(()=>{
     const element=grid.current;if(!element)return;
     const update=(width:number)=>{if(Number.isFinite(width)&&width>0)setContentWidth(width);};
-    update(element.clientWidth);
+    const updateFromElement=()=>update(element.clientWidth);
+    updateFromElement();
     const observer=new ResizeObserver(([entry])=>{if(entry)update(entry.contentRect.width);});
-    observer.observe(element);return()=>observer.disconnect();
+    observer.observe(element);
+    window.addEventListener('resize',updateFromElement);
+    return()=>{observer.disconnect();window.removeEventListener('resize',updateFromElement);};
   },[]);
+  useLayoutEffect(()=>{
+    const width=grid.current?.clientWidth;
+    if(width!==undefined&&width>0)setContentWidth(width);
+  },[props.width]);
   const cancel=props.dragConfig?.cancel?.replace(/\bbutton\b(?!:not\(\.widget-frame__drag\))/g,'button:not(.widget-frame__drag)');
   // Visibility/viewport changes may compact the rendered grid. Only an explicit
   // drag/resize completion may replace the user's persisted coordinates.

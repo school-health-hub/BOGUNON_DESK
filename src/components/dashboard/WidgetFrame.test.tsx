@@ -1,5 +1,7 @@
+// @vitest-environment jsdom
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { WidgetLayout } from "../../dashboard/types";
 import { WidgetFrame } from "./WidgetFrame";
 
@@ -10,7 +12,7 @@ vi.mock("../../dashboard/widgetRegistry", () => ({
       title: "날짜·시계",
       description: "현재 날짜와 시간을 표시합니다.",
       category: "basic",
-      component: () => <div>시계 내용</div>,
+      component: () => <button type="button">시계 내용</button>,
       icon: () => null,
       defaultSize: { w: 3, h: 2 },
       minW: 2,
@@ -61,4 +63,26 @@ describe("WidgetFrame visual modes", () => {
     expect(markup).toContain("날짜·시계 설정 보기");
     expect(markup).toContain("날짜·시계 숨기기");
   });
+});
+
+afterEach(cleanup);
+
+it.each(["close", "Escape"])("returns widget information focus to its trigger after %s", (method) => {
+  render(<WidgetFrame isEditing isSelected={false} widget={widget} onHide={() => undefined} onSelect={() => undefined} />);
+  const trigger = screen.getByRole("button", { name: "날짜·시계 설정 보기" });
+  trigger.focus();
+  fireEvent.click(trigger);
+  const close = screen.getByRole("button", { name: "위젯 정보 닫기" });
+  close.focus();
+  if (method === "close") fireEvent.click(close);
+  else fireEvent.keyDown(close, { key: "Escape" });
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(document.activeElement).toBe(trigger);
+});
+it("reveals the whole focused content control without changing widget geometry", async () => {
+  const reveal = vi.fn();
+  Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: reveal });
+  render(<WidgetFrame isEditing isSelected={false} widget={widget} onHide={() => undefined} onSelect={() => undefined} />);
+  screen.getByRole("button", { name: "시계 내용" }).focus();
+  await waitFor(() => expect(reveal).toHaveBeenCalledWith({ block: "nearest", inline: "nearest", behavior: "instant" }));
 });

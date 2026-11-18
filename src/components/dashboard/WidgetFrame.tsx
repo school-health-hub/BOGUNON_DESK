@@ -1,5 +1,5 @@
 import { GripVertical, Settings, X } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { widgetRegistry } from "../../dashboard/widgetRegistry";
 import type { WidgetLayout, WidgetType } from "../../dashboard/types";
 
@@ -29,6 +29,11 @@ type WidgetFrameProps = {
 
 export function WidgetFrame({ isEditing, isSelected, widget, onHide, onSelect }: WidgetFrameProps) {
   const detailsId = useId();
+  const settingsTrigger = useRef<HTMLButtonElement>(null);
+  const closeSettings = () => {
+    setIsSettingsOpen(false);
+    settingsTrigger.current?.focus();
+  };
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const definition = widgetRegistry[widget.type];
   const WidgetComponent = definition.component;
@@ -44,6 +49,17 @@ export function WidgetFrame({ isEditing, isSelected, widget, onHide, onSelect }:
       className={`widget-frame ${isEditing ? "is-editing" : "is-viewing"}${isSelected ? " is-selected" : ""}${isSettingsOpen ? " has-settings-open" : ""}`}
       aria-label={definition.title}
       data-widget-family={widgetFamilyByType[widget.type]}
+      onFocusCapture={(event) => {
+        if (widget.type !== "clock" && widget.type !== "quick-memo" && widget.type !== "quick-launcher") return;
+        const control = event.target;
+        if (!(control instanceof HTMLElement) || !control.closest(".widget-frame__body")) return;
+        // Native textarea focus can expose only its caret, leaving other controls clipped.
+        requestAnimationFrame(() => {
+          if (control.isConnected && document.activeElement === control) {
+            control.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
+          }
+        });
+      }}
       onPointerDown={() => {
         if (isEditing) onSelect();
       }}
@@ -56,6 +72,7 @@ export function WidgetFrame({ isEditing, isSelected, widget, onHide, onSelect }:
           <div className="widget-frame__actions">
             <button
               type="button"
+              ref={settingsTrigger}
               aria-controls={detailsId}
               aria-expanded={isSettingsOpen}
               aria-label={`${definition.title} 설정 보기`}
@@ -74,7 +91,7 @@ export function WidgetFrame({ isEditing, isSelected, widget, onHide, onSelect }:
               role="dialog"
               aria-label={`${definition.title} 위젯 정보`}
               onKeyDown={(event) => {
-                if (event.key === "Escape") setIsSettingsOpen(false);
+                if (event.key === "Escape") { event.stopPropagation(); closeSettings(); }
               }}
             >
               <header>
@@ -82,7 +99,7 @@ export function WidgetFrame({ isEditing, isSelected, widget, onHide, onSelect }:
                   <span>{categoryLabel}</span>
                   <strong>{definition.title}</strong>
                 </div>
-                <button type="button" aria-label="위젯 정보 닫기" onClick={() => setIsSettingsOpen(false)}>
+                <button type="button" aria-label="위젯 정보 닫기" onClick={closeSettings}>
                   <X size={14} />
                 </button>
               </header>

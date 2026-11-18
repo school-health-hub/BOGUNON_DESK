@@ -7,6 +7,7 @@
   },
   "files": [
     "main/**",
+    "!main/newsletter-ai-asset-storage.test.js",
     "preload/**",
     "protocol.js",
     "purchase-image-protocol.js",
