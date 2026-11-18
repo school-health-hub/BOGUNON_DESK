@@ -1,0 +1,27 @@
+{
+  "product": "BOGUNON DESK",
+  "version": "2.0.0-beta.1",
+  "platform": "Windows x64",
+  "sourceSha": "d03a58fa7f73411aa2cdb9ebd31c0d8527e21947",
+  "purpose": "internal release candidate review; no public distribution approval",
+  "qaToolsBranch": "codex/beta1-native-qa-tools",
+  "qaToolsSha": "50d2b0d8c374c18e011bd4f3f9967fbfbb567b80",
+  "artifacts": [
+    {
+      "kind": "Portable",
+      "file": "BOGUNON-DESK-2.0.0-beta.1-auth-config-win-x64.exe",
+      "bytes": 195843364,
+      "sha256": "2050489BC1E1B5E980B9AA1C0846B2771612ECA7000EF99EC773FC9BF4C19B90",
+      "originalSha256": "2050489BC1E1B5E980B9AA1C0846B2771612ECA7000EF99EC773FC9BF4C19B90",
+      "lastWriteTimeUtc": "2026-11-18T09:52:24.8626654Z"
+    },
+    {
+      "kind": "NSIS",
+      "file": "BOGUNON-DESK-Setup-2.0.0-beta.1-x64.exe",
+      "bytes": 214869617,
+      "sha256": "760FE269C6DD6FF516200F621568B02FC5259B2E88CDDA6DF6F794932EB25E51",
+      "originalSha256": "760FE269C6DD6FF516200F621568B02FC5259B2E88CDDA6DF6F794932EB25E51",
+      "lastWriteTimeUtc": "2026-11-18T16:46:14.8048631Z"
+    }
+  ]
+}
