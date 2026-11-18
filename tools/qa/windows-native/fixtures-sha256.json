@@ -1,0 +1,27 @@
+[
+  {
+    "file": "1-official.odt",
+    "bytes": 8299,
+    "sha256": "99BBC5E4A58747731CB4C18BDFB10A2B04DB38599486A3EE0D6114F9634B557E"
+  },
+  {
+    "file": "2-record.pdf",
+    "bytes": 586,
+    "sha256": "68D748E0BA934B26E993451C492E5DB0BB70F571E2ADCE255EC2DE73CD587AE5"
+  },
+  {
+    "file": "3-purchase.csv",
+    "bytes": 55,
+    "sha256": "5A7010CF837A2451868D7E57DC76A97A963F3C9C81286266920C8959C6742976"
+  },
+  {
+    "file": "4-purchase.xlsx",
+    "bytes": 6063,
+    "sha256": "D12739C7CEAC7F6EA1CCCF27FE7692C78299A26DC70F814AFBF70700F5F68935"
+  },
+  {
+    "file": "5-purchase.pdf",
+    "bytes": 643,
+    "sha256": "AAE3109E5FF4B4F817FCCB42AB00D10DAD24AE6D7DB3F0130B4FFAF0BFF31C6B"
+  }
+]

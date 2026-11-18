@@ -1,0 +1,3 @@
+# 합성 fixture 바이트와 PowerShell BOM을 보존한다.
+* -text
+fixtures/* binary

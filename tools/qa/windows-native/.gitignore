@@ -1,0 +1,9 @@
+# QA 결과 및 인증 자료는 이 코드 경로에서 보존하지 않는다.
+temp/
+results/
+screenshots/
+outputs/
+logs/
+*.log
+*.zip
+*.exe
