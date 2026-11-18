@@ -99,7 +99,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   const [workspaceOpen,setWorkspaceOpen]=useState(false);
   const [dock,setDock] = useState(initial.dock);
   const info=initial.info;
-  const [status,setStatus] = useState('불러오는 중');
+  const [status,setStatus] = useState('PoC 설정 준비됨');
   const [editing,setEditing] = useState(false), [panel,setPanel] = useState<DashboardEditorPanel>(null);
   const [selected,setSelected] = useState<string | null>(null), [active,setActive] = useState<DesktopActionId>('home');
   const settingsHandoffRef=useRef(false);

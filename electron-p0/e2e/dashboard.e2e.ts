@@ -13,7 +13,7 @@ test('real Electron: secure bridge, original dashboard/dock, navigation, edit an
    console.log('P1B_DIAGNOSTIC '+JSON.stringify(await diagnose(app)));throw error;
   }
   await expect(page.locator('[data-widget-type="clock"]')).toBeVisible();
-  await expect(page.locator('[data-p0-save]')).toHaveText('PoC 설정 저장됨');console.log('P0: dashboard and settings ready');await page.screenshot({path:'artifacts/electron-p0-e2e/dashboard-initial.png'});
+  await expect(page.locator('[data-p0-save]')).toHaveText('PoC 설정 준비됨');console.log('P0: dashboard and settings ready');await page.screenshot({path:'artifacts/electron-p0-e2e/dashboard-initial.png'});
   expect(await page.evaluate(()=>({keys:Object.keys(window.electronP0),node:typeof (window as unknown as {require:unknown}).require}))).toEqual({keys:['info','readSettings','writeSettings'],node:'undefined'});
   const info=await page.evaluate(()=>window.electronP0.info());expect(info.appId).toBe('kr.sungandi.schoolhealthdesk.electronp0');expect(info.userData).toContain(id);
   await page.getByRole('button',{name:'설정',exact:true}).click();await expect(page.getByRole('heading',{name:'PoC 설정'})).toBeVisible();
@@ -54,7 +54,7 @@ await page.getByRole('button',{name:'홈으로'}).click();
   await page.getByRole('button',{name:'완료',exact:true}).click();await expect(page.locator('[data-p0-save]')).toHaveText('PoC 설정 저장됨');
   const saved=await page.evaluate(()=>window.electronP0.readSettings());
   const rejected=await page.evaluate(async()=>{try{await window.electronP0.writeSettings({version:1,dashboard:null,dock:null});return false}catch{return true}});expect(rejected).toBe(true);expect(await page.evaluate(()=>window.electronP0.readSettings())).toEqual(saved);expect(await page.evaluate(()=>window.electronWork.memo.read())).toEqual({ok:true,data:{version:1,text:'합성 메모 수정 — 재실행 확인'}});
-  await app.close();app=await launch(id);page=await app.firstWindow();await expect(page.locator('[data-p0-save]')).toHaveText('PoC 설정 저장됨');
+  await app.close();app=await launch(id);page=await app.firstWindow();await expect(page.locator('[data-p0-save]')).toHaveText('PoC 설정 준비됨');
   expect(await page.evaluate(()=>window.electronP0.readSettings())).toEqual(saved);expect(await page.evaluate(()=>window.electronWork.memo.read())).toEqual({ok:true,data:{version:1,text:'합성 메모 수정 — 재실행 확인'}});await expect(page.locator('[data-widget-type="clock"]')).toHaveCount(0);await expect(page.locator('.workspace-shell')).toHaveClass(/bg-mint/);await expect(page.locator('[data-dock-item="online-health-room"]')).toHaveCount(0);
   await page.getByRole('button',{name:'빠른 메모',exact:true}).click();
   await expect(page.getByRole('dialog',{name:'빠른 메모'}).getByLabel('빠른 메모 입력',{exact:true})).toHaveValue('합성 메모 수정 — 재실행 확인');
@@ -77,7 +77,7 @@ await page.getByRole('button',{name:'홈으로'}).click();
   await expect.poll(()=>app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isVisible())).toBe(false);
   await app.evaluate(({Menu,BrowserWindow})=>{const item=Menu.getApplicationMenu()!.items[0].submenu!.items[0];item.click(item,BrowserWindow.getAllWindows()[0],{} as never);});
   await expect.poll(()=>app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isVisible())).toBe(true);
-  await app.close();app=await launch(id);await app.firstWindow();await expect((await app.firstWindow()).locator('[data-p0-save]')).toHaveText('PoC 설정 저장됨');
+  await app.close();app=await launch(id);await app.firstWindow();await expect((await app.firstWindow()).locator('[data-p0-save]')).toHaveText('PoC 설정 준비됨');
   expect(await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].getNormalBounds())).toEqual(bounds);
   expect(await app.evaluate(({Menu})=>Menu.getApplicationMenu()!.items[0].submenu!.items[2].checked)).toBe(true);
   await app.evaluate(({Menu,BrowserWindow})=>{const item=Menu.getApplicationMenu()!.items[0].submenu!.items[2];item.click(item,BrowserWindow.getAllWindows()[0],{} as never);});

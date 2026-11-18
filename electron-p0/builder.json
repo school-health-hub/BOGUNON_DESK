@@ -51,7 +51,7 @@
       }
     ],
     "icon": "src-tauri/icons/icon.ico",
-    "signAndEditExecutable": false,
+    "signExecutable": false,
     "extraResources": [
       {
         "from": "build/my-finance-cli",

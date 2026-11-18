@@ -155,6 +155,18 @@ it('does not write settings while mounting a valid saved dashboard', async () =>
   expect(writeSettings).not.toHaveBeenCalled();
 });
 
+it('shows settings ready instead of loading after a saved dashboard mounts', async () => {
+  // Given
+  setup(async () => validSettings());
+
+  // When
+  render(<P0App />);
+  await screen.findByTestId('dashboard-widget-ids');
+
+  // Then
+  expect(document.querySelector('[data-p0-save]')?.textContent).toBe('PoC 설정 준비됨');
+});
+
 it('performs the first-run write once under StrictMode', async () => {
   // Given
   const readSettings = vi.fn(async () => null);
