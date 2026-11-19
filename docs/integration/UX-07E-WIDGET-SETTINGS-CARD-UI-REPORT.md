@@ -82,7 +82,7 @@
 - 물리 모니터 2대에서 투명 Palette가 각각 생성됐다. 빈 영역에는 실제 Edge/YouTube 및 Windows 바탕화면이 그대로 보였다.
 - OS hit-test에서 빈 영역 좌표는 Electron이 아니라 아래 Edge 창에 속하는 것으로 확인돼 클릭 통과가 PASS했다.
 - Palette 카드의 `위젯 선택` 영역은 실제 클릭을 받아 편집 도구가 표시돼 위젯 영역 입력이 PASS했다.
-- 빠른 메모는 콘텐츠가 실제 높이를 초과할 때만 내부 스크롤을 제공했고, 빈 Palette에는 불필요한 전체 화면 스크롤이나 Dashboard 컨테이너가 없었다.
+- 빠른 메모는 콘텐츠가 실제 높이를 초과할 때만 내부 스크롤을 제공했다. 빠른 실행의 1px 반올림 overflow는 Palette 범위에서 보정하고 `scrollHeight <= clientHeight`를 실제 Electron E2E로 고정했다.
 - Dock 단일화, 모니터별 위젯 소유권, 설정 draft/취소/저장과 포커스 복원 E2E를 함께 재실행해 기존 계약을 보존했다.
 
 ### 최신 검증 결과
@@ -94,7 +94,7 @@
 - `git diff --check`: `PASS`
 - 전용 lint script: `NOT RUN` — 기존과 동일하게 정의되지 않았다.
 - 투명 캔버스 캡처: `artifacts/ux-07e-widget-settings/palette-transparent-canvas.png`
-  - SHA-256: `70159C599485EA24F557E98F35DB77E82F6724D74431FDCA507754A36786915E`
+  - SHA-256: `4F3D6353818A59EEC202681AF8FDB5F4E893F5163D31725FD4E17A50CA40B679`
   - Git-ignored 로컬 QA 증거이며 제품 커밋에는 포함하지 않는다.
 
 ### 보호 결과와 판정

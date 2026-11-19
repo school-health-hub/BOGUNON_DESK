@@ -44,6 +44,10 @@ test('Desktop Palette paints only widget and Dock surfaces over a transparent ca
       expect(canvas.before.content).toBe('none');
       expect(canvas.after.content).toBe('none');
       expect(canvas.dashboardCount).toBe(0);
+      const quickLauncher=page.locator('[data-widget-type="quick-launcher"] .quick-launcher');
+      if(await quickLauncher.count()){
+        expect(await quickLauncher.evaluate(element=>element.scrollHeight)).toBeLessThanOrEqual(await quickLauncher.evaluate(element=>element.clientHeight));
+      }
     }
     const emptyPixelAlpha=await app.evaluate(async({BrowserWindow})=>Promise.all(BrowserWindow.getAllWindows()
       .filter(window=>window.webContents.getURL().includes('/renderer/palette/'))
