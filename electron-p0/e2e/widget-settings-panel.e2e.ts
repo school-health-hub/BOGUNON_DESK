@@ -56,7 +56,9 @@ test("UX-07E widget settings: card panel stages monitor changes and restores foc
     await expect(confirmation).toBeVisible();
     await confirmation.getByRole("button", { name: "계속 편집" }).click();
     await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "위젯 설정 닫기" })).toBeFocused();
     await source.keyboard.press("Escape");
+    await expect(confirmation).toBeVisible();
     await confirmation.getByRole("button", { name: "변경 취소하고 닫기" }).click();
     await expect(dialog).toHaveCount(0);
     await expect(trigger).toBeFocused();
@@ -72,8 +74,16 @@ test("UX-07E widget settings: card panel stages monitor changes and restores foc
     let destination = await ownerPage(pages, widgetId);
     await destination.getByRole("button", { name: "위젯 편집" }).click();
     const destinationTrigger = destination.getByRole("button", { name: "빠른 메모 설정 보기" });
-    await destinationTrigger.click();
+    await expect(destination.locator('[data-widget-type="quick-memo"]')).toBeVisible();
+    await expect(destinationTrigger).toBeVisible();
+    await expect(destinationTrigger).toHaveAttribute("aria-expanded", "false");
+    // Palette hit testing follows the real Windows cursor. Playwright's synthetic
+    // mouse click does not move that cursor between monitor windows, so exercise
+    // the same accessible button through its native keyboard activation instead.
+    await destinationTrigger.focus();
+    await destination.keyboard.press("Enter");
     const returnDialog = destination.getByRole("dialog", { name: "빠른 메모 위젯 설정" });
+    await expect(returnDialog).toBeVisible();
     await returnDialog.getByLabel("표시 모니터").selectOption(current);
     await returnDialog.getByRole("button", { name: "저장", exact: true }).click();
     await expect.poll(async () => (await source.evaluate(() => window.electronPalette.readSurface())).ownedWidgetIds.includes(widgetId)).toBe(true);
