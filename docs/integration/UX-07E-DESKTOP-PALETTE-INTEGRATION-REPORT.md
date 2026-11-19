@@ -81,6 +81,26 @@ content. QA logs and the isolated profile remain under the approved F: QA root.
 - `git diff --check`: PASS.
 - Dedicated lint script: NOT RUN because the repository does not define one.
 
+## Portable QA candidate
+
+- Product source: `f7244b56e380d433581818750ca9d9e58273b8ce`.
+- Candidate: `BOGUNON-DESK-2.0.0-beta.1-ux07e-win-x64.exe`.
+- Size: `195,461,078` bytes.
+- SHA-256: `D0114161BAF58082D515173964AB68B22EC70DCBFA2F5C82426663008644C226`.
+- The ASAR contains the Desktop Palette controller, lifecycle/domain/mode modules,
+  Palette preload, renderer JavaScript/CSS, and renderer entry point.
+- First launch with an isolated QA profile created two physical-display Palette
+  windows without an automatic Workspace duplicate. The primary display restored
+  the widget profile and the secondary display remained an empty selectable Palette.
+- Workspace opened from the running app, closed independently while both Palette
+  windows remained, and the application then completed an explicit `완전 종료`
+  with zero candidate processes remaining.
+- A second launch with the same isolated profile restored two Palette windows, the
+  primary widget ownership, and the empty secondary profile. The relaunch QA process
+  tree was removed after the restoration check, leaving zero candidate processes.
+- The installed beta and NSIS package were not replaced. This candidate is for the
+  next Portable/install QA decision only.
+
 The product build emitted existing bundle-size and missing-public-auth warnings. GUI
 stderr also reported the existing Electron safe-storage deprecation and listener
 budget warnings; neither produced a runtime failure during the Palette scenarios.
