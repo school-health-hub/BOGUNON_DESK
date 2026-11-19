@@ -1,9 +1,16 @@
 import {expect,it,vi} from 'vitest';
+import {readFileSync} from 'node:fs';
 import {createPaletteFailureGate,DesktopPaletteLifecycle,desktopPaletteOptions} from '../main/desktop-palette';
 import {clipPaletteRegions} from '../main/desktop-surface-controller';
 
 it('creates a transparent frameless non-taskbar palette without WorkerW attachment',()=>{
   expect(desktopPaletteOptions({x:-1920,y:0,width:1920,height:1040})).toMatchObject({x:-1920,y:0,width:1920,height:1040,transparent:true,frame:false,skipTaskbar:true,alwaysOnTop:false,show:false});
+});
+
+it('keeps the Palette canvas and inherited Workspace material fully transparent',()=>{
+  const stylesheet=readFileSync('electron-p0/renderer/palette/palette.css','utf8');
+  expect(stylesheet).toMatch(/body\.desktop-palette-root\s+\.desktop-palette\.workspace-shell[^{}]*\{[^{}]*background\s*:\s*transparent\s*!important/);
+  expect(stylesheet).toMatch(/body\.desktop-palette-root\s+\.desktop-palette\.workspace-shell::before\s*,\s*body\.desktop-palette-root\s+\.desktop-palette\.workspace-shell::after[^{}]*\{[^{}]*content\s*:\s*none\s*!important/);
 });
 
 it('clicks through empty space and enables input only for declared regions',()=>{

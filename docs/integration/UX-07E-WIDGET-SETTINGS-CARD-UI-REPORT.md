@@ -64,3 +64,43 @@
 ## 판정
 
 **PASS — 승인된 위젯 설정창 UI·UX 개선 범위 내**
+
+## Desktop Palette 투명 캔버스 회귀 수정
+
+### 원인과 수정
+
+- Palette `BrowserWindow`의 `transparent: true`, `frame: false`, `skipTaskbar: true` 설정은 정상적으로 유지되고 있었다.
+- Palette 루트가 카드 스타일 재사용을 위해 `workspace-shell`을 함께 사용하면서, 일반 Workspace 전용 `design-07.css` 캔버스 배경과 `dashboard.css`의 전체 화면 `::before`/`::after` 재질 레이어까지 상속한 것이 원인이었다.
+- Palette 전용 최종 스타일에서 루트 배경을 투명으로 고정하고 두 재질 가상 요소를 제거했다. 일반 Workspace의 Soft Rose 캔버스와 위젯 카드 스타일은 변경하지 않았다.
+- Palette는 계속 모니터별 독립 `x/y/w/h` 배치 렌더러를 사용하며 일반 Dashboard의 `.workspace-dashboard` 컨테이너를 렌더링하지 않는다.
+
+### 회귀 검증
+
+- 새 정적 계약 테스트는 수정 전 RED, 수정 후 GREEN으로 확인했다.
+- 새 실제 Electron E2E는 두 Palette 각각의 `html`, `body`, `#root`, Palette 루트 배경이 투명이고 배경 이미지가 없으며, `::before`/`::after`가 생성되지 않음을 확인했다.
+- 각 Palette의 빈 좌상단 1×1 픽셀을 실제 `BrowserWindow.capturePage()`로 측정해 알파값 `0`을 확인했다.
+- 물리 모니터 2대에서 투명 Palette가 각각 생성됐다. 빈 영역에는 실제 Edge/YouTube 및 Windows 바탕화면이 그대로 보였다.
+- OS hit-test에서 빈 영역 좌표는 Electron이 아니라 아래 Edge 창에 속하는 것으로 확인돼 클릭 통과가 PASS했다.
+- Palette 카드의 `위젯 선택` 영역은 실제 클릭을 받아 편집 도구가 표시돼 위젯 영역 입력이 PASS했다.
+- 빠른 메모는 콘텐츠가 실제 높이를 초과할 때만 내부 스크롤을 제공했고, 빈 Palette에는 불필요한 전체 화면 스크롤이나 Dashboard 컨테이너가 없었다.
+- Dock 단일화, 모니터별 위젯 소유권, 설정 draft/취소/저장과 포커스 복원 E2E를 함께 재실행해 기존 계약을 보존했다.
+
+### 최신 검증 결과
+
+- 집중 Vitest: `21 PASS / 0 FAIL`
+- 실제 Electron Playwright: `2 PASS / 0 FAIL`
+- TypeScript: 루트 + Electron 3개 설정 `4/4 PASS`
+- Electron 제품 빌드: `PASS`
+- `git diff --check`: `PASS`
+- 전용 lint script: `NOT RUN` — 기존과 동일하게 정의되지 않았다.
+- 투명 캔버스 캡처: `artifacts/ux-07e-widget-settings/palette-transparent-canvas.png`
+  - SHA-256: `70159C599485EA24F557E98F35DB77E82F6724D74431FDCA507754A36786915E`
+  - Git-ignored 로컬 QA 증거이며 제품 커밋에는 포함하지 않는다.
+
+### 보호 결과와 판정
+
+- 설치된 Beta, 기존 사용자 프로필, UX-07D/E 원본, 다른 worktree 및 Windows Shell은 변경하지 않았다.
+- WorkerW, Progman, SetParent 및 Shell 조작은 수행하지 않았다.
+- QA Electron 프로세스는 정상 종료됐고 잔여 Electron 프로세스는 `0`이었다.
+
+**PASS — Desktop Palette 투명 캔버스 및 실제 빈 영역 클릭 통과 회귀 수정 범위 내**
