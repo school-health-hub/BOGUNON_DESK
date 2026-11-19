@@ -1,3 +1,11 @@
+## Desktop Palette — open-space starter layout (2026-11-19)
+
+- A genuinely new Desktop Palette profile starts with only `날짜·시계`, `오늘의 보건실`, and `빠른 메모`. The remaining ten registered widgets stay available through `+ 위젯 추가`; they are not deleted and are never auto-duplicated onto another monitor.
+- The three starter cards use compact, registry-valid geometry in the upper-right portion of the primary work area. This leaves the conventional left-side Windows icon area and most of the desktop unobstructed. The single Dock remains at the selected monitor's lower center.
+- This policy applies only when a monitor profile does not yet exist, or when a truly empty primary profile receives its first layout. Existing monitor profiles retain their exact owned widget IDs, visibility, x/y/w/h, dormant state, and Dock preference without migration or automatic save.
+- Secondary monitors start empty and independently acquire widgets through the existing one-owner move/claim contract. Widget data remains shared; only monitor ownership and geometry are per-profile.
+- Empty Palette pixels remain transparent and click-through. Explorer, desktop icon positions, WorkerW/Progman, and Windows Shell settings are outside this feature and must not be changed.
+
 ## INT-03 — viewport reflow hardening
 
 - Electron Dashboard outer RGL placement elements snap to the current viewport without

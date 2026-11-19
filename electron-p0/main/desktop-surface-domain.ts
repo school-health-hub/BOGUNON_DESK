@@ -6,6 +6,13 @@ export type ConnectedProfile=Readonly<{profileKey:string;ownedWidgetIds:readonly
 export type ReconciledDesktopProfiles=Readonly<{document:DesktopSurfaceDocument;displayProfiles:ReadonlyMap<number,ConnectedProfile>} >;
 type LayoutWidget=Readonly<{id:string;type:string;x:number;y:number;w:number;h:number;visible:boolean}>;
 
+export const paletteStarterWidgetIds=['widget-clock','widget-today-summary','widget-quick-memo'] as const;
+const paletteStarterGeometry:Readonly<Record<(typeof paletteStarterWidgetIds)[number],Readonly<{x:number;y:number;w:number;h:number}>>>= {
+  'widget-clock':{x:10,y:0,w:2,h:2},
+  'widget-today-summary':{x:6,y:0,w:4,h:2},
+  'widget-quick-memo':{x:9,y:2,w:3,h:2},
+};
+
 const record=(value:unknown):value is Record<string,unknown>=>typeof value==='object'&&value!==null&&!Array.isArray(value);
 const layoutWidgets=(layout:unknown):readonly LayoutWidget[]=>{
   if(!record(layout)||!Array.isArray(layout.widgets))return [];
@@ -19,6 +26,18 @@ const maskVisibility=(layout:unknown,ownedIds:ReadonlySet<string>):unknown=>{
   if(!record(layout)||!Array.isArray(layout.widgets))return layout;
   return {...layout,widgets:layout.widgets.map(widget=>record(widget)&&typeof widget.id==='string'&&typeof widget.visible==='boolean'?{...widget,visible:widget.visible&&ownedIds.has(widget.id)}:widget)};
 };
+const starterWidgetIds=(layout:unknown):readonly string[]=>{
+  const available=new Set(layoutWidgets(layout).map(widget=>widget.id));
+  return paletteStarterWidgetIds.filter(id=>available.has(id));
+};
+const starterLayout=(layout:unknown):unknown=>{
+  if(!record(layout)||!Array.isArray(layout.widgets))return layout;
+  return {...layout,widgets:layout.widgets.map(widget=>{
+    if(!record(widget)||typeof widget.id!=='string')return widget;
+    const geometry=paletteStarterGeometry[widget.id as keyof typeof paletteStarterGeometry];
+    return geometry?{...widget,...geometry,visible:true}:{...widget,visible:false};
+  })};
+};
 const fingerprint=(display:DisplaySnapshot)=>`${display.label.normalize('NFKC').trim().toLowerCase()}|${display.workArea.width}x${display.workArea.height}|${display.scaleFactor}`;
 const profileKey=(identity:string,displayId:number)=>`monitor:${createHash('sha256').update(`${identity}|${displayId}`).digest('hex').slice(0,20)}`;
 const identity=(display:DisplaySnapshot):MonitorIdentity=>({fingerprint:fingerprint(display),label:display.label,lastDisplayId:display.id,workArea:{...display.workArea},scaleFactor:display.scaleFactor});
@@ -28,14 +47,14 @@ export function reconcileDesktopProfiles(document:DesktopSurfaceDocument,display
   const profiles:Record<string,DesktopSurfaceProfile>=Object.fromEntries(Object.entries(document.profiles).map(([key,value])=>[key,{...value,dormant:true}]));
   const used=new Set<string>(),mapping=new Map<number,ConnectedProfile>();
   const primary=displays.find(display=>display.primary)??displays[0];
-  const allWidgetIds=layoutWidgets(baseLayout).map(widget=>widget.id);
+  const initialWidgetIds=starterWidgetIds(baseLayout);
   for(const display of displays){
     const candidates=Object.entries(profiles).filter(([key,value])=>!used.has(key)&&value.monitor.fingerprint===fingerprint(display));
     const exact=Object.entries(profiles).find(([key,value])=>!used.has(key)&&value.monitor.lastDisplayId===display.id),matched=exact??(candidates.length===1?candidates[0]:undefined);
     const key=matched?.[0]??profileKey(fingerprint(display),display.id);
     const existing=matched?.[1];
-    const owned=existing?.ownedWidgetIds??(display.id===primary?.id?allWidgetIds:[]);
-    const sourceLayout=existing?.layout??baseLayout;
+    const owned=existing?.ownedWidgetIds??(display.id===primary?.id?initialWidgetIds:[]);
+    const sourceLayout=existing?.layout??(display.id===primary?.id?starterLayout(baseLayout):baseLayout);
     const next=existing?{...existing,dormant:false,monitor:identity(display)}:profile(display,maskVisibility(sourceLayout,new Set(owned)),owned,updatedAt);
     profiles[key]=next;used.add(key);
     mapping.set(display.id,{profileKey:key,ownedWidgetIds:[...next.ownedWidgetIds],layout:next.layout,dockVisible:false});
@@ -73,8 +92,9 @@ export function writeProfileLayout(document:DesktopSurfaceDocument,profileKeyVal
   const current=document.profiles[profileKeyValue];if(!current)throw new Error('Unknown monitor profile');
   const hasOwner=Object.values(document.profiles).some(profileValue=>profileValue.ownedWidgetIds.length>0);
   const initialize=document.dockProfileKey===profileKeyValue&&!hasOwner;
-  const owned=initialize?layoutWidgets(layout).map(widget=>widget.id):current.ownedWidgetIds;
-  return{...document,profiles:{...document.profiles,[profileKeyValue]:{...current,ownedWidgetIds:owned,layout:maskVisibility(layout,new Set(owned)),updatedAt}}};
+  const owned=initialize?starterWidgetIds(layout):current.ownedWidgetIds;
+  const sourceLayout=initialize?starterLayout(layout):layout;
+  return{...document,profiles:{...document.profiles,[profileKeyValue]:{...current,ownedWidgetIds:owned,layout:maskVisibility(sourceLayout,new Set(owned)),updatedAt}}};
 }
 
 export function selectDockProfile(input:Readonly<{preferredProfileKey:string|null;connectedProfileKeys:readonly string[];primaryProfileKey:string|null}>):Readonly<{activeProfileKey:string|null;preferredProfileKey:string|null}>{

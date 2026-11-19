@@ -3,7 +3,7 @@ import {mkdtemp,readFile,writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {DesktopSurfaceModeStore} from '../main/desktop-surface-mode';
-import {reconcileDesktopProfiles,moveWidgetOwnership,selectDockProfile,projectLayoutInsideWorkArea} from '../main/desktop-surface-domain';
+import {reconcileDesktopProfiles,moveWidgetOwnership,selectDockProfile,projectLayoutInsideWorkArea,writeProfileLayout} from '../main/desktop-surface-domain';
 
 it('treats only an absent sidecar as the palette default without writing',async()=>{
   const root=await mkdtemp(join(tmpdir(),'surface-mode-'));
@@ -34,13 +34,51 @@ const displays=[
   {id:22,label:'Secondary',primary:false,workArea:{x:-1920,y:0,width:1920,height:1040},scaleFactor:1.25},
 ] as const;
 
-it('assigns all existing widgets to the primary profile and keeps a new secondary empty',async()=>{
+it('starts a new primary profile with only the compact core widgets and keeps a new secondary empty',async()=>{
   const root=await mkdtemp(join(tmpdir(),'surface-topology-'));
-  const reconciled=reconcileDesktopProfiles(await new DesktopSurfaceModeStore(root).read(),displays,{version:1,appearance:{background:'blue-gray',cardStyle:'default',cornerStyle:'soft'},widgets:Array.from({length:13},(_,index)=>({id:`widget-${index}`,type:'clock',x:0,y:index*2,w:2,h:2,visible:true}))},'2026-11-19T00:00:00.000Z');
+  const layout={version:1,appearance:{background:'blue-gray',cardStyle:'default',cornerStyle:'soft'},widgets:[
+    {id:'widget-clock',type:'clock',x:8,y:0,w:2,h:2,visible:true},
+    {id:'widget-today-summary',type:'today-summary',x:8,y:10,w:4,h:2,visible:true},
+    {id:'widget-quick-memo',type:'quick-memo',x:0,y:9,w:5,h:3,visible:true},
+    ...Array.from({length:10},(_,index)=>({id:`widget-extra-${index}`,type:'clock',x:index%12,y:index+12,w:2,h:2,visible:true})),
+  ]};
+  const reconciled=reconcileDesktopProfiles(await new DesktopSurfaceModeStore(root).read(),displays,layout,'2026-11-19T00:00:00.000Z');
   const primary=reconciled.displayProfiles.get(11),secondary=reconciled.displayProfiles.get(22);
-  expect(primary?.ownedWidgetIds).toHaveLength(13);
+  expect(primary?.ownedWidgetIds).toEqual(['widget-clock','widget-today-summary','widget-quick-memo']);
+  const primaryWidgets=(primary?.layout as typeof layout).widgets;
+  expect(primaryWidgets.find(widget=>widget.id==='widget-clock')).toMatchObject({x:10,y:0,w:2,h:2,visible:true});
+  expect(primaryWidgets.find(widget=>widget.id==='widget-today-summary')).toMatchObject({x:6,y:0,w:4,h:2,visible:true});
+  expect(primaryWidgets.find(widget=>widget.id==='widget-quick-memo')).toMatchObject({x:9,y:2,w:3,h:2,visible:true});
+  expect(primaryWidgets.filter(widget=>widget.visible).map(widget=>widget.id)).toEqual(['widget-clock','widget-today-summary','widget-quick-memo']);
   expect(secondary?.ownedWidgetIds).toEqual([]);
   expect(reconciled.document.dockProfileKey).toBe(primary?.profileKey);
+});
+
+it('preserves every saved coordinate, size, visibility and ownership for existing monitor profiles',()=>{
+  const layout={version:1,appearance:{background:'blue-gray',cardStyle:'default',cornerStyle:'soft'},widgets:[
+    {id:'widget-clock',type:'clock',x:1,y:4,w:5,h:3,visible:false},
+    {id:'widget-monthly-calendar',type:'monthly-calendar',x:6,y:7,w:6,h:8,visible:true},
+  ]};
+  const initial=reconcileDesktopProfiles({version:2,mode:'palette',dockProfileKey:null,profiles:{}},[displays[0]],layout,'2026-11-19T00:00:00.000Z');
+  const profileKey=initial.displayProfiles.get(11)?.profileKey;if(!profileKey)throw new Error('Missing primary profile');
+  const saved={...initial.document,profiles:{...initial.document.profiles,[profileKey]:{...initial.document.profiles[profileKey]!,ownedWidgetIds:['widget-clock','widget-monthly-calendar'],layout}}};
+  const reconciled=reconcileDesktopProfiles(saved,[displays[0]],layout,'2026-11-19T00:01:00.000Z');
+  expect(reconciled.document.profiles[profileKey]?.ownedWidgetIds).toEqual(['widget-clock','widget-monthly-calendar']);
+  expect(reconciled.document.profiles[profileKey]?.layout).toEqual(layout);
+});
+
+it('uses the same compact starter contract when an empty primary profile receives its first layout',()=>{
+  const layout={version:1,appearance:{background:'blue-gray',cardStyle:'default',cornerStyle:'soft'},widgets:[
+    {id:'widget-clock',type:'clock',x:0,y:8,w:3,h:2,visible:true},
+    {id:'widget-today-summary',type:'today-summary',x:3,y:8,w:5,h:2,visible:true},
+    {id:'widget-quick-memo',type:'quick-memo',x:0,y:10,w:4,h:3,visible:true},
+    {id:'widget-monthly-calendar',type:'monthly-calendar',x:4,y:10,w:8,h:7,visible:true},
+  ]};
+  const profileKey='monitor:primary';
+  const document={version:2 as const,mode:'palette' as const,dockProfileKey:profileKey,profiles:{[profileKey]:{visible:true,layout:null,ownedWidgetIds:[],monitor:{fingerprint:'primary',label:'Primary',lastDisplayId:11,workArea:{x:0,y:0,width:1920,height:1040},scaleFactor:1},dormant:false,updatedAt:'2026-11-19T00:00:00.000Z'}}};
+  const written=writeProfileLayout(document,profileKey,layout,'2026-11-19T00:01:00.000Z');
+  expect(written.profiles[profileKey]?.ownedWidgetIds).toEqual(['widget-clock','widget-today-summary','widget-quick-memo']);
+  expect((written.profiles[profileKey]?.layout as typeof layout).widgets.filter(widget=>widget.visible).map(widget=>widget.id)).toEqual(['widget-clock','widget-today-summary','widget-quick-memo']);
 });
 
 it('moves ownership without duplicating a widget and preserves dormant profiles',async()=>{
@@ -73,12 +111,17 @@ it('keeps hidden widget state while moving another widget between monitors',asyn
 
 it('supports one, two, and three displays without duplicating widget ownership',async()=>{
   const root=await mkdtemp(join(tmpdir(),'surface-counts-'));
-  const layout={version:1,appearance:{background:'blue-gray',cardStyle:'default',cornerStyle:'soft'},widgets:Array.from({length:13},(_,index)=>({id:`widget-${index}`,type:'clock',x:0,y:index,w:2,h:2,visible:true}))};
+  const layout={version:1,appearance:{background:'blue-gray',cardStyle:'default',cornerStyle:'soft'},widgets:[
+    {id:'widget-clock',type:'clock',x:0,y:0,w:2,h:2,visible:true},
+    {id:'widget-today-summary',type:'today-summary',x:2,y:0,w:4,h:2,visible:true},
+    {id:'widget-quick-memo',type:'quick-memo',x:6,y:0,w:3,h:2,visible:true},
+    ...Array.from({length:10},(_,index)=>({id:`widget-extra-${index}`,type:'clock',x:0,y:index+2,w:2,h:2,visible:true})),
+  ]};
   const third={id:33,label:'Portrait',primary:false,workArea:{x:1920,y:-200,width:1200,height:1800},scaleFactor:1.5} as const;
   for(const topology of [[displays[0]],displays,[...displays,third]]){
     const result=reconcileDesktopProfiles(await new DesktopSurfaceModeStore(root).read(),topology,layout,'2026-11-19T00:00:00.000Z');
     const ids=[...result.displayProfiles.values()].flatMap(value=>value.ownedWidgetIds);
-    expect(ids).toHaveLength(13);expect(new Set(ids)).toHaveLength(13);
+    expect(ids).toHaveLength(3);expect(new Set(ids)).toHaveLength(3);
     expect([...result.displayProfiles.values()].filter(value=>value.dockVisible)).toHaveLength(1);
   }
 });
