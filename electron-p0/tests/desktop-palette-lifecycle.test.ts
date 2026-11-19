@@ -1,5 +1,5 @@
 import {expect,it,vi} from 'vitest';
-import {DesktopPaletteLifecycle,desktopPaletteOptions} from '../main/desktop-palette';
+import {createPaletteFailureGate,DesktopPaletteLifecycle,desktopPaletteOptions} from '../main/desktop-palette';
 import {clipPaletteRegions} from '../main/desktop-surface-controller';
 
 it('creates a transparent frameless non-taskbar palette without WorkerW attachment',()=>{
@@ -18,4 +18,12 @@ it('clicks through empty space and enables input only for declared regions',()=>
 
 it('clips partially visible hit regions and ignores fully off-screen widgets',()=>{
   expect(clipPaletteRegions([{x:-10,y:5,width:30,height:20},{x:0,y:120,width:20,height:20}],{width:100,height:100})).toEqual([{x:0,y:5,width:20,height:20}]);
+});
+
+it('injects one Palette creation failure only for an explicit QA profile',()=>{
+  const gate=createPaletteFailureGate({qa:true,value:'once'});
+  expect(gate.consume()).toBe(true);
+  expect(gate.consume()).toBe(false);
+  expect(createPaletteFailureGate({qa:false,value:'once'}).consume()).toBe(false);
+  expect(createPaletteFailureGate({qa:true,value:'1'}).consume()).toBe(false);
 });

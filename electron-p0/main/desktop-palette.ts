@@ -1,5 +1,10 @@
 import type {Rectangle} from 'electron';
 type PaletteWindow={isDestroyed():boolean;isVisible():boolean;showInactive():void;hide():void;setIgnoreMouseEvents(ignore:boolean,options?:{readonly forward:boolean}):void;destroy():void};
+export type PaletteFailureGate={consume():boolean};
+export const createPaletteFailureGate=({qa,value}:Readonly<{qa:boolean;value?:string}>):PaletteFailureGate=>{
+  let pending=qa&&value==='once';
+  return{consume:()=>{if(!pending)return false;pending=false;return true;}};
+};
 export const desktopPaletteOptions=(workArea:Rectangle)=>({...workArea,transparent:true,frame:false,skipTaskbar:true,alwaysOnTop:false,show:false,backgroundColor:'#00000000',hasShadow:false,focusable:true,resizable:false,movable:false} as const);
 export class DesktopPaletteLifecycle{
   private quitting=false;private interactive=false;

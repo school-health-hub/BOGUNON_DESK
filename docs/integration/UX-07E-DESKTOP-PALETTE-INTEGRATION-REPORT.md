@@ -60,8 +60,11 @@ school PC with two physical 1920×1080 displays (renderer zoom 1.0).
 - Physical display disconnect/reconnect: **NOT RUN** because it requires equipment
   manipulation. Synthetic 1/2/3-display, DPI/metrics-change, dormant-profile, display
   ID recovery, and reconnection cases passed automated tests.
-- Palette-creation failure injection: **NOT RUN** in the packaged GUI. The fallback
-  path was verified statically and through controller tests.
+- Palette-creation failure injection: PASS in an isolated QA profile. A one-shot,
+  QA-profile-gated failure was consumed before any per-display window was created;
+  Workspace opened automatically, the saved Palette document remained intact, and
+  `바탕화면 다시 표시` created both physical-display Palette windows on retry. The
+  injection value was process-only and was not written to settings.
 
 The GUI evidence was observed live. Captures containing the surrounding school
 desktop were not committed or transferred because they could expose unrelated local
@@ -87,6 +90,6 @@ budget warnings; neither produced a runtime failure during the Palette scenarios
 - Installed beta, user profile, authentication data, original UX-07D/E branches,
   protected worktrees, and other dirty work were not changed.
 - The QA profile used synthetic memo/schedule data only.
-- A physical hot-plug/reconnect pass and a controlled Palette-start failure GUI pass
-  remain recommended before a production rollout. They do not invalidate the tested
-  two-display integration candidate, but remain explicit release conditions.
+- A physical hot-plug/reconnect pass remains recommended as compatibility QA before a
+  production rollout. It does not invalidate the tested two-display integration
+  candidate and is not a blocker for the Portable QA candidate.

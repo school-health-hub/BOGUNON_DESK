@@ -5,7 +5,7 @@ import type {P0Settings,IpcResult,MemoDocument} from '../protocol.js';
 import type {DesktopSurfaceDocument,DesktopSurfaceMode} from '../desktop-surface-protocol.js';
 import type {PaletteRect,PaletteSurface,PaletteWidgetAction} from '../palette-protocol.js';
 import {assertSender,resourceAllowed} from './policy.js';
-import {desktopPaletteOptions,DesktopPaletteLifecycle} from './desktop-palette.js';
+import {desktopPaletteOptions,DesktopPaletteLifecycle,type PaletteFailureGate} from './desktop-palette.js';
 import type {DesktopSurfaceModeStore} from './desktop-surface-mode.js';
 import type {LocalEventStore} from './local-events.js';
 import type {LocalTaskStore} from './local-tasks.js';
@@ -13,7 +13,7 @@ import type {MemoStore} from './memo-ipc.js';
 import {moveWidgetOwnership,reconcileDesktopProfiles,setWidgetVisible,writeProfileLayout,type DisplaySnapshot} from './desktop-surface-domain.js';
 
 type Entry={displayId:number;profileKey:string;dockVisible:boolean;window:BrowserWindow;lifecycle:DesktopPaletteLifecycle;ready:boolean;regions:readonly PaletteRect[]};
-type Ports={renderer:string;dev?:string;workspace:BrowserWindow;layout:{read():Promise<P0Settings|null>};mode:DesktopSurfaceModeStore;events:LocalEventStore;tasks:LocalTaskStore;memo:MemoStore;quitting:()=>boolean};
+type Ports={renderer:string;dev?:string;workspace:BrowserWindow;layout:{read():Promise<P0Settings|null>};mode:DesktopSurfaceModeStore;events:LocalEventStore;tasks:LocalTaskStore;memo:MemoStore;failureGate?:PaletteFailureGate;quitting:()=>boolean};
 const ok=<T>(data:T):IpcResult<T>=>({ok:true,data});
 const storageError=<T>(message:string):IpcResult<T>=>({ok:false,error:{code:'STORAGE_ERROR',message,retryable:true}});
 export const clipPaletteRegions=(values:readonly unknown[],bounds:Readonly<{width:number;height:number}>):readonly PaletteRect[]=>values.map(value=>{if(!value||typeof value!=='object')throw new Error('Invalid region');const {x,y,width,height}=value as Record<string,unknown>;if(![x,y,width,height].every(Number.isFinite)||Number(width)<=0||Number(height)<=0)throw new Error('Invalid region');const left=Math.max(0,Number(x)),top=Math.max(0,Number(y)),right=Math.min(bounds.width,Number(x)+Number(width)),bottom=Math.min(bounds.height,Number(y)+Number(height));return right>left&&bottom>top?{x:left,y:top,width:right-left,height:bottom-top}:null;}).filter((region):region is PaletteRect=>region!==null);
@@ -67,6 +67,7 @@ export class DesktopSurfaceController{
     const reconciled=reconcileDesktopProfiles(this.document,snapshots,settings?.dashboard??null,new Date().toISOString());
     if(JSON.stringify(reconciled.document)!==JSON.stringify(this.document)){await this.ports.mode.write(reconciled.document);this.document=reconciled.document;}
     for(const [id,entry] of this.entries)if(!ids.has(id)){entry.lifecycle.beginQuit();this.entries.delete(id);}
+    if(this.ports.failureGate?.consume())throw new Error('QA-injected Desktop Palette creation failure');
     await Promise.all(displays.map(async display=>{
       const connected=reconciled.displayProfiles.get(display.id);if(!connected)return;
       const existing=this.entries.get(display.id);if(existing){existing.profileKey=connected.profileKey;existing.dockVisible=connected.dockVisible;existing.window.setBounds(display.workArea);existing.regions=[];existing.lifecycle.setInteractive(false);existing.lifecycle.show();existing.window.webContents.send('p0:palette:surface-changed');return;}
