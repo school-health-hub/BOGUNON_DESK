@@ -73,6 +73,8 @@ import {EducationVideoLibraryStore,createEducationVideoHandlers} from './educati
 import {InventoryStore,InventoryConflict} from './inventory-store.js';
 import { createSampleHandler, SAMPLE_SUMMARY_CHANNEL } from './sample-ipc.js';
 import { assertSender, resourceAllowed } from './policy.js';
+import {DesktopSurfaceModeStore} from './desktop-surface-mode.js';
+import {DesktopSurfaceController} from './desktop-surface-controller.js';
 if (app.commandLine.hasSwitch('no-sandbox') || app.commandLine.hasSwitch('disable-web-security')) throw new Error('Unsafe Electron launch flags denied');
 app.setName(PRODUCT_NAME);
 const testRun = process.env.ELECTRON_P0_TEST_RUN;
@@ -98,6 +100,7 @@ if (!app.requestSingleInstanceLock()) app.quit();
 else {
   void app.whenReady().then(async()=>{
   const desktopStore=new SettingsStore<DesktopState>(join(userData,'poc-settings'),'desktop.json',validateDesktop);
+  const desktopSurfaceStore=new DesktopSurfaceModeStore(join(userData,'poc-settings'));
   let desktop=await desktopStore.read().catch(()=>null)??desktopDefaults();
   let tray:Tray|null=null;
   let timer:ReturnType<typeof setTimeout>|undefined;
@@ -112,6 +115,7 @@ else {
   isolated.webRequest.onBeforeRequest((details,callback)=>callback({cancel:!resourceAllowed(details.url,renderer,dev ? new URL(dev).origin : undefined)}));
   const window = new BrowserWindow({ title:PRODUCT_NAME,icon:join(app.getAppPath(),'app-icon.png'),...fitBounds(desktop.bounds,screen.getAllDisplays().map(d=>d.workArea)),show:false,
     webPreferences:{ preload:join(app.getAppPath(),'preload','preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webviewTag:false,session:isolated,webSecurity:true } });
+  const desktopSurface=new DesktopSurfaceController({renderer,dev,workspace:window,layout:store,mode:desktopSurfaceStore,events:eventStore,tasks:taskStore,memo:memoStore,quitting:()=>quitting});
   // Closed renderer remains offline. Optional QA provider lives OUTSIDE product app.
   const workspaceProduct=await registerWorkspaceProduct(ipcMain,window.webContents,url,{packaged:app.isPackaged,isolated:qaPaths.qa,mode:process.env.SCHOOL_WORKSPACE_MODE,nodeEnv:process.env.NODE_ENV,runId:testRun,h1OptIn:process.env.SCHOOL_H1_OPT_IN==='isolated-h1'},async()=>{
     const moduleUrl=pathToFileURL(join(app.getAppPath(),'..',process.env.SCHOOL_WORKSPACE_MODE==='hosted-test'?'school-h1-qa':'school05-qa','provider.mjs')).href;
@@ -211,6 +215,8 @@ else {
     if (channel === 'p0:read-settings') return store.read();
     return store.write(args[0]);
   });
+  ipcMain.handle('p0:desktop-surface:read',(event,...args:unknown[])=>{assertSender(event,window.webContents,url);if(args.length)throw Error('Invalid Desktop Surface request');return desktopSurface.read();});
+  ipcMain.handle('p0:desktop-surface:write',async(event,mode:unknown,...args:unknown[])=>{assertSender(event,window.webContents,url);if(args.length||mode!=='window'&&mode!=='palette')throw Error('Invalid Desktop Surface mode');return desktopSurface.setMode(mode);});
   for(const [action,handler] of Object.entries(createPurchaseSettingsHandlers(window.webContents,url,purchaseSettingsStore)))ipcMain.handle(`p2:purchase:settings:${action}`,handler);
   const officialService=new OfficialDocumentService(app.isPackaged?join(process.resourcesPath,'official-document-cli',process.platform==='win32'?'official-document-cli.exe':'official-document-cli'):join(app.getAppPath(),'../../tools/official-document-cli/target/debug',process.platform==='win32'?'official-document-cli.exe':'official-document-cli'),join(userData,'work-data','official-import-tmp'));
   const officialFiles=createOfficialDocumentHandlers(window.webContents,url,{service:officialService,
@@ -367,10 +373,13 @@ else {
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
-  const quit=()=>{if(quitting)return;quitting=true;instructorFiles.dispose();accountHandlers.dispose();fileDrop.dispose();workFolderHandlers.dispose();recordHandlers.dispose();finderCompat.dispose();finderV2Export.dispose();finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();aiService.dispose();inventoryQa.close();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([instructorFiles.flush(),accountHandlers.flush(),fileDrop.flush(),workFoldersStore.flush(),recordHandlers.flush(),finderSearch.flush(),finderV2Export.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),memoStore.flush(),taskStore.flush(),eventStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>workspaceProduct.dispose()).finally(()=>{tray?.destroy();app.quit();});};
+  const quit=()=>{if(quitting)return;quitting=true;desktopSurface.beginQuit();instructorFiles.dispose();accountHandlers.dispose();fileDrop.dispose();workFolderHandlers.dispose();recordHandlers.dispose();finderCompat.dispose();finderV2Export.dispose();finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();aiService.dispose();inventoryQa.close();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([instructorFiles.flush(),accountHandlers.flush(),fileDrop.flush(),workFoldersStore.flush(),recordHandlers.flush(),finderSearch.flush(),finderV2Export.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),desktopSurfaceStore.flush(),memoStore.flush(),taskStore.flush(),eventStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>workspaceProduct.dispose()).finally(()=>{tray?.destroy();app.quit();});};
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
-      {label:'창 열기',click:show},{label:'최소화',click:()=>window.minimize()},
+      {label:'업무 창 열기',click:show},
+      {label:'바탕화면 다시 표시',click:()=>{void desktopSurface.setMode('palette').catch(show);}},
+      {label:'일반 창으로 복구',click:()=>{void desktopSurface.setMode('window').then(show).catch(show);}},
+      {label:'최소화',click:()=>window.minimize()},
       {label:'닫을 때 트레이로 숨기기',type:'checkbox',checked:desktop.closeBehavior==='tray',enabled:tray!==null,click:async item=>{desktop.closeBehavior=item.checked?'tray':'quit';await persist();refreshMenu();}},
       {type:'separator'},{label:'완전 종료',click:quit}
     ];
@@ -384,10 +393,11 @@ else {
   const adjust=()=>{const bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));window.setBounds(bounds);changed();};
   screen.on('display-added',adjust);screen.on('display-removed',adjust);screen.on('display-metrics-changed',adjust);
   app.on('second-instance',show);
-  window.once('ready-to-show',()=>{if(desktop.maximized)window.maximize();window.show();});
-  window.on('close',event=>{if(quitting)return;event.preventDefault();if(desktop.closeBehavior==='tray'&&tray){capture();window.hide();void persist().then(ok=>{if(!ok)show();});}else quit();});
+  window.once('ready-to-show',()=>{if(desktop.maximized)window.maximize();if(!desktopSurface.isPaletteMode())window.show();});
+  window.on('close',event=>{if(quitting)return;event.preventDefault();if(desktopSurface.isPaletteMode()){capture();window.hide();void persist().then(ok=>{if(!ok)show();});}else if(desktop.closeBehavior==='tray'&&tray){capture();window.hide();void persist().then(ok=>{if(!ok)show();});}else quit();});
   app.on('before-quit',event=>{if(!quitting){event.preventDefault();quit();}});
   app.on('window-all-closed',quit);
   await window.loadURL(url);
+  await desktopSurface.start().catch(()=>{if(!window.isDestroyed()){window.show();window.focus();}});
   }).catch((error: unknown)=>{ console.error('Electron P0 startup failed:', error instanceof Error ? error.message : 'unknown'); app.exit(1); });
 }

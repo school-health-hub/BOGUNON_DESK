@@ -25,4 +25,4 @@ export default defineConfig({root,base:'./',envDir:root,envPrefix:'ELECTRON_P0_P
  {find:/^.*\/meal\/MealDataContext$/,replacement:fixture('meal')},
  {find:/^.*\/weather\/WeatherDataContext$/,replacement:fixture('weather')},
  {find:/^.*\/desktop\/actions$/,replacement:fixture('actions')},
-]},server:{host:'127.0.0.1',port:5174,strictPort:true,fs:{allow:[fileURLToPath(new URL('..',import.meta.url))]}},build:{rollupOptions:{input:{app:fileURLToPath(new URL('./renderer/index.html',import.meta.url)),exportWorker:fileURLToPath(new URL('./renderer/export-worker.html',import.meta.url))}},outDir:'../../build/electron-p0-app/renderer',emptyOutDir:true}});
+]},server:{host:'127.0.0.1',port:5174,strictPort:true,fs:{allow:[fileURLToPath(new URL('..',import.meta.url))]}},build:{rollupOptions:{input:{app:fileURLToPath(new URL('./renderer/index.html',import.meta.url)),palette:fileURLToPath(new URL('./renderer/palette/index.html',import.meta.url)),exportWorker:fileURLToPath(new URL('./renderer/export-worker.html',import.meta.url))}},outDir:'../../build/electron-p0-app/renderer',emptyOutDir:true}});

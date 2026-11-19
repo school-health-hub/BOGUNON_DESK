@@ -156,6 +156,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
     if(id==='purchase-helper'){setPurchaseOpen(true);setActive('home');setPanel(null);setNotice(null);return;}
     if(['home','settings','quick-memo','toolbox','work-folder'].includes(id)){if(id==='settings')settingsHandoffRef.current=false;setActive(id);setPanel(null);setEditing(false);setNotice(null)}else excluded();
   };
+  useEffect(()=>window.electronP0.onOpenSettings?.(()=>navigate('settings')),[navigate]);
   const openNewsletter=()=>{setActive('home');setNewsletterLoaded(true);setNewsletterOpen(true);};
   const openDashboardEditor=(target:Exclude<DashboardEditorPanel,null>)=>{setActive('home');setSelected(null);setEditing(true);setPanel(target);};
   const hideWidgetType=(type:DashboardLayout['widgets'][number]['type'])=>setLayout(current=>{

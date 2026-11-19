@@ -876,3 +876,32 @@ shrink into overlapping rows or disappear behind an overflow-hidden ancestor.
 Clock uses compact readable content beneath the editor chrome. Closing widget
 information returns keyboard focus to its existing settings trigger. Validate
 actual focus/caret and bottom traversal, not only zero page horizontal overflow.
+
+## UX-07E Desktop Palette product contract
+
+- Desktop Palette is the default presentation for a new profile. It uses one
+  transparent, frameless Electron window per connected display, while the existing
+  Workspace remains the sole owner of authentication, files, AI, and business IPC.
+  The Palette preload exposes only layout, widget data, and Workspace-launch actions.
+- Widget data remains global. Only ownership, visibility, geometry, monitor identity,
+  and update time are stored per monitor profile. The 13 registry IDs never change,
+  and automatic duplication across monitors is prohibited. A new primary profile
+  receives the default set; a new secondary profile starts empty.
+- Monitor profiles are matched by the current display ID first and by a unique
+  hardware/work-area fingerprint only as a recovery path. Disconnected profiles stay
+  dormant. Reconnection restores the stored owner, visibility, position, and size;
+  ambiguous identities are not silently merged.
+- There is exactly one Floating Dock. Its selected monitor is stored independently
+  from widget ownership. If that monitor is unavailable, the Dock is projected to a
+  connected display without overwriting the saved preference.
+- Work-area projection is temporary. It keeps widget titles and controls reachable
+  after display or DPI changes, but persisted geometry changes only after an explicit
+  drag, resize, arrange, move, hide/show, or edit completion action. Cancel restores
+  the edit checkpoint.
+- Closing the Workspace does not close the Palette. Explicit application exit closes
+  both. If Palette creation fails, the ordinary Workspace is shown as the safe
+  fallback, and the tray retains actions to open Workspace, retry Palette, or recover
+  to the ordinary window.
+- This integration does not use WorkerW, Progman, `SetParent`, Explorer manipulation,
+  or Windows Shell attachment. Empty Palette areas use Electron click-through and
+  interactive widget/Dock regions temporarily receive pointer input.

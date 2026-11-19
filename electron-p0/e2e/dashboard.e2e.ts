@@ -14,7 +14,7 @@ test('real Electron: secure bridge, original dashboard/dock, navigation, edit an
   }
   await expect(page.locator('[data-widget-type="clock"]')).toBeVisible();
   await expect(page.locator('[data-p0-save]')).toHaveText('설정 준비됨');console.log('P0: dashboard and settings ready');await page.screenshot({path:'artifacts/electron-p0-e2e/dashboard-initial.png'});
-  expect(await page.evaluate(()=>({keys:Object.keys(window.electronP0),node:typeof (window as unknown as {require:unknown}).require}))).toEqual({keys:['info','readSettings','writeSettings'],node:'undefined'});
+  expect(await page.evaluate(()=>({keys:Object.keys(window.electronP0),node:typeof (window as unknown as {require:unknown}).require}))).toEqual({keys:['info','readSettings','writeSettings','desktopSurface','onOpenSettings'],node:'undefined'});
   const info=await page.evaluate(()=>window.electronP0.info());expect(info.appId).toBe('kr.sungandi.schoolhealthdesk.electronp0');expect(info.userData).toContain(id);
   await page.getByRole('button',{name:'설정',exact:true}).click();await expect(page.getByRole('heading',{name:'설정',exact:true})).toBeVisible();
   const beforeSample=await page.evaluate(()=>window.electronP0.readSettings());

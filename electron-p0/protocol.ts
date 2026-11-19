@@ -3,6 +3,7 @@ import type {AdminBridge} from './admin-protocol.js';
 import type {FinanceBridge} from './finance-protocol.js';
 import type {LocalTaskDocument,LocalTaskLoad} from './local-tasks.js';
 import type {InventoryQaApi} from './inventory-qa-protocol.js';
+import type {DesktopSurfaceBridge} from './desktop-surface-protocol.js';
 export const NEWSLETTER_COMPATIBILITY_MESSAGE='이 프로젝트는 현재 버전에서 지원하지 않는 편집 요소를 포함하고 있습니다. 데이터 손실을 방지하기 위해 열기와 저장을 중단했습니다. 최신 버전에서 다시 열어 주세요.';
 import type { PurchaseItem,PurchaseOutputColumnId,PurchaseSettlement } from './renderer/purchase/purchase/types.js';
 import type { PurchaseAnalysisResult, PurchaseColumnMapping } from './renderer/purchase/purchase/types.js';
@@ -15,6 +16,8 @@ export interface P0Bridge {
   info(): Promise<P0Info>;
   readSettings(): Promise<P0Settings | null>;
   writeSettings(settings: P0Settings): Promise<void>;
+  readonly desktopSurface:DesktopSurfaceBridge;
+  onOpenSettings(listener:()=>void):()=>void;
 }
 
 // Feature contracts are explicit; no channel or filesystem path is accepted from renderer.

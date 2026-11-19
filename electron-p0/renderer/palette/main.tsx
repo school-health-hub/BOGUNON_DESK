@@ -1,0 +1,15 @@
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
+import '../../../src/styles/base.css';
+import '../../../src/styles/dashboard.css';
+import '../../../src/styles/components.css';
+import '../../../src/styles/desktop-workspace.css';
+import '../p0.css';import '../soft-rose.css';import '../td2-workspace.css';import '../design-07.css';import './palette.css';
+import type {WorkBridge} from '../../protocol';
+import {PaletteApp} from './PaletteApp';
+const limited={events:{load:()=>window.electronPalette.readEvents()},tasks:{load:()=>window.electronPalette.readTasks()},memo:{read:()=>window.electronPalette.readMemo(),write:(document:Parameters<typeof window.electronPalette.writeMemo>[0])=>window.electronPalette.writeMemo(document)}};
+Object.defineProperty(window,'electronWork',{value:limited as unknown as WorkBridge,writable:false,configurable:false});
+document.body.classList.add('electron-soft-rose','design-07-candidate','desktop-palette-root');
+createRoot(document.getElementById('root')!).render(<React.StrictMode><PaletteApp/></React.StrictMode>);

@@ -9,6 +9,8 @@ const bridge: P0Bridge = Object.freeze({
   info: () => ipcRenderer.invoke('p0:info'),
   readSettings: () => ipcRenderer.invoke('p0:read-settings'),
   writeSettings: (settings: P0Settings) => ipcRenderer.invoke('p0:write-settings',settings),
+  desktopSurface:Object.freeze({read:()=>ipcRenderer.invoke('p0:desktop-surface:read'),write:(mode:import('../desktop-surface-protocol.js').DesktopSurfaceMode)=>ipcRenderer.invoke('p0:desktop-surface:write',mode)}),
+  onOpenSettings:(listener:()=>void)=>{const callback=()=>listener();ipcRenderer.on('p0:open-settings',callback);return()=>ipcRenderer.removeListener('p0:open-settings',callback);},
 });
 contextBridge.exposeInMainWorld('electronP0',bridge);
 
