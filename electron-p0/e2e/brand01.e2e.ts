@@ -38,7 +38,7 @@ test("BRAND-01 official logo is consistent in the Windows Electron product", asy
     await page.getByRole("dialog", { name: "설정", exact: true }).getByRole("button", { name: "앱 정보", exact: true }).click();
     await expect(page.getByRole("dialog", { name: "설정", exact: true }).getByRole("img", { name: "BOGUNON DESK" })).toBeVisible();
     await expect(page.getByText("BOGUNON DESK 2.0", { exact: true })).toBeVisible();
-    await expect(page.getByText("내부 베타 · 버전 2.0.0-beta.1", { exact: true })).toBeVisible();
+    await expect(page.getByText("내부 베타 · 버전 2.0.0-beta.2", { exact: true })).toBeVisible();
     await expect(page.getByText("고급 진단 정보", { exact: true })).toBeVisible();
     await page.screenshot({ path: join(evidenceDir, "settings-about-1440x900.png") });
     await page.keyboard.press("Escape");

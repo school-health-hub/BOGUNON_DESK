@@ -56,7 +56,7 @@ function setup(readSettings: () => Promise<P0Settings | null>, appId = 'kr.sunga
     info: async () => ({
       appId,
       productName: 'BOGUNON DESK',
-      version: '2.0.0-beta.1',
+      version: '2.0.0-beta.2',
       userData: '/synthetic-profile',
       sourceSha: 'synthetic',
       electron: 'synthetic',
