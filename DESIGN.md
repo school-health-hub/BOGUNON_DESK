@@ -905,3 +905,32 @@ actual focus/caret and bottom traversal, not only zero page horizontal overflow.
 - This integration does not use WorkerW, Progman, `SetParent`, Explorer manipulation,
   or Windows Shell attachment. Empty Palette areas use Electron click-through and
   interactive widget/Dock regions temporarily receive pointer input.
+
+## UX-07E widget settings card panel
+
+- The Palette widget settings surface is one reusable modal panel, not a per-widget
+  collection of small popovers. It keeps a compact fixed header and fixed action
+  footer while the card-section body owns the only scroll region.
+- Header anatomy is icon, widget title, one-line purpose, current monitor, and an
+  accessible close control. The footer contains `취소` and `저장`; save is enabled
+  only when the draft differs from the persisted widget ownership or visibility.
+- Body sections use the existing Soft Rose material: cream/rose near-opaque cards,
+  18–20px radii, one quiet rim, contact plus ambient shadow, navy ink, Pretendard,
+  and rose focus/selection. The sections are `내용 설정`, `표시 방식`,
+  `모니터 및 배치`, optional widget-specific guidance, and `도움말`. A section is
+  omitted when it has no meaningful content; no inert controls are invented.
+- The first supported widgets are `quick-memo`, `upcoming-schedule`,
+  `weekly-schedule`, `quick-launcher`, `dday`, and `today-tasks`. Their content cards
+  explain the existing data/action contract; this change does not add widget-data
+  keys, schema versions, or replacement storage.
+- Monitor ownership and visibility remain a staged draft. Opening, selecting a
+  monitor, toggling display, Escape, or closing the panel must not write layout.
+  Save applies the existing Palette move/show/hide actions; cancel preserves the
+  original x/y/w/h and ownership. Save failure keeps the draft and reports an error.
+- Escape and close request confirmation only when the draft is dirty. Closing returns
+  focus to the invoking widget settings button when it still exists, otherwise to a
+  visible Palette edit control. Keyboard focus stays within the modal while open.
+- At short heights and narrow work areas, header/footer remain visible and the body
+  scrolls without horizontal overflow. CJK labels use `word-break: keep-all` with
+  emergency wrapping. Modal layering remains above Palette widgets, edit controls,
+  menus, and Dock without changing their saved geometry or hit regions.

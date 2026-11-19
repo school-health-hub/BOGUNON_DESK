@@ -16,10 +16,13 @@ type Props = {
   readonly onLayoutChange: (layout: Layout) => void;
   readonly onHide: (id: string) => void;
   readonly onSelect: (id: string) => void;
+  readonly onOpenSettings?: (id: string, trigger: HTMLButtonElement) => void;
+  readonly settingsEnabled?: (widget: WidgetLayout) => boolean;
+  readonly settingsWidgetId?: string | null;
 };
 
 /** Composition boundary: existing widgets retain their data/providers and actions. */
-export function DesktopWidgetLayout({ widgets, width, compact, editing, selectedId, metrics, onLayoutChange, onHide, onSelect }: Props) {
+export function DesktopWidgetLayout({ widgets, width, compact, editing, selectedId, metrics, onLayoutChange, onHide, onSelect, onOpenSettings, settingsEnabled, settingsWidgetId = null }: Props) {
   const { state } = useWorkspaceData();
   const layout = useMemo(() => toGridLayout(widgets, editing && !compact), [widgets, editing, compact]);
   return (
@@ -44,8 +47,8 @@ export function DesktopWidgetLayout({ widgets, width, compact, editing, selected
         >
           {widgets.filter((widget) => widget.visible).sort((a, b) => a.y - b.y || a.x - b.x).map((widget) => (
             <div key={widget.id} data-widget-type={widget.type} data-grid-height={widget.h} data-grid-width={widget.w} tabIndex={-1}>
-              <WidgetFrame isEditing={editing} isSelected={selectedId === widget.id} widget={widget}
-                onHide={() => onHide(widget.id)} onSelect={() => onSelect(widget.id)} />
+              <WidgetFrame externalSettingsId={settingsEnabled?.(widget) ? "widget-settings-panel" : undefined} externalSettingsOpen={settingsWidgetId === widget.id} isEditing={editing} isSelected={selectedId === widget.id} widget={widget}
+                onHide={() => onHide(widget.id)} onOpenSettings={onOpenSettings === undefined || settingsEnabled?.(widget) === false ? undefined : (trigger) => onOpenSettings(widget.id, trigger)} onSelect={() => onSelect(widget.id)} />
             </div>
           ))}
         </GridLayout>

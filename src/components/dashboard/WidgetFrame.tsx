@@ -20,14 +20,17 @@ const widgetFamilyByType = {
 } as const satisfies Record<WidgetType, "primary" | "utility" | "info">;
 
 type WidgetFrameProps = {
+  readonly externalSettingsId?: string;
+  readonly externalSettingsOpen?: boolean;
   readonly isEditing: boolean;
   readonly isSelected: boolean;
   readonly widget: WidgetLayout;
   readonly onHide: () => void;
+  readonly onOpenSettings?: (trigger: HTMLButtonElement) => void;
   readonly onSelect: () => void;
 };
 
-export function WidgetFrame({ isEditing, isSelected, widget, onHide, onSelect }: WidgetFrameProps) {
+export function WidgetFrame({ externalSettingsId, externalSettingsOpen = false, isEditing, isSelected, widget, onHide, onOpenSettings, onSelect }: WidgetFrameProps) {
   const detailsId = useId();
   const settingsTrigger = useRef<HTMLButtonElement>(null);
   const closeSettings = () => {
@@ -46,7 +49,7 @@ export function WidgetFrame({ isEditing, isSelected, widget, onHide, onSelect }:
 
   return (
     <section
-      className={`widget-frame ${isEditing ? "is-editing" : "is-viewing"}${isSelected ? " is-selected" : ""}${isSettingsOpen ? " has-settings-open" : ""}`}
+      className={`widget-frame ${isEditing ? "is-editing" : "is-viewing"}${isSelected ? " is-selected" : ""}${isSettingsOpen || externalSettingsOpen ? " has-settings-open" : ""}`}
       aria-label={definition.title}
       data-widget-family={widgetFamilyByType[widget.type]}
       onFocusCapture={(event) => {
@@ -73,10 +76,13 @@ export function WidgetFrame({ isEditing, isSelected, widget, onHide, onSelect }:
             <button
               type="button"
               ref={settingsTrigger}
-              aria-controls={detailsId}
-              aria-expanded={isSettingsOpen}
+              aria-controls={externalSettingsId ?? detailsId}
+              aria-expanded={isSettingsOpen || externalSettingsOpen}
               aria-label={`${definition.title} 설정 보기`}
-              onClick={() => setIsSettingsOpen((current) => !current)}
+              onClick={(event) => {
+                if (onOpenSettings !== undefined) onOpenSettings(event.currentTarget);
+                else setIsSettingsOpen((current) => !current);
+              }}
             >
               <Settings size={14} />
             </button>
@@ -84,7 +90,7 @@ export function WidgetFrame({ isEditing, isSelected, widget, onHide, onSelect }:
               <X size={14} />
             </button>
           </div>
-          {isSettingsOpen && (
+          {isSettingsOpen && onOpenSettings === undefined && (
             <div
               className="widget-frame__settings-panel"
               id={detailsId}

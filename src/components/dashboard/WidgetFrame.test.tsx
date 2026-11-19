@@ -86,3 +86,13 @@ it("reveals the whole focused content control without changing widget geometry",
   screen.getByRole("button", { name: "시계 내용" }).focus();
   await waitFor(() => expect(reveal).toHaveBeenCalledWith({ block: "nearest", inline: "nearest", behavior: "instant" }));
 });
+it("delegates settings to a shared panel without opening the legacy popover", () => {
+  const open = vi.fn();
+  render(<WidgetFrame externalSettingsId="widget-settings-panel" isEditing isSelected={false} widget={widget} onHide={() => undefined} onOpenSettings={open} onSelect={() => undefined} />);
+  const trigger = screen.getByRole("button", { name: "날짜·시계 설정 보기" });
+  fireEvent.click(trigger);
+  expect(open).toHaveBeenCalledTimes(1);
+  expect(open.mock.calls[0]?.[0]).toBeInstanceOf(HTMLButtonElement);
+  expect(trigger.getAttribute("aria-controls")).toBe("widget-settings-panel");
+  expect(screen.queryByRole("dialog")).toBeNull();
+});
