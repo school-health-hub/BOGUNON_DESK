@@ -3,7 +3,7 @@
 Date: 2026-11-20
 Branch: `codex/design-polish-cream-bento`
 Baseline: `296390df0633ca53e299ed706f1db8249ddaccd2`
-Packaged product source: `00e4e05d20b6d957d17417cd5e6b0be27be1c40b`
+Packaged product source: `dc5c25dd5dd3662c1476814bde6607d37b2b3207`
 Internal QA version: `2.0.0-beta.3`
 Verdict: **CONDITIONAL — candidate ready for the user's final design review; not approved for external distribution.**
 
@@ -13,37 +13,37 @@ The existing Bento layout, 13 widget IDs, Palette ownership and coordinates, Doc
 
 Palette remains transparent outside its cards. The summary and clock cards use a 96% warm fill; the memo card uses 98%. The compact memo no longer shows the outer fieldset scrollbar. A long synthetic memo still scrolls inside its textarea. The three-widget Palette default is intentional; it does not migrate or overwrite an existing Workspace's widget visibility.
 
-The official-document, Inventory, Finder, Purchase, Newsletter and AI connection screens replace several development labels with Korean explanations. Security and cost notices remain. No product workflow, save format, auth path, or external AI call was changed.
+The official-document, Inventory, Finder, Purchase, Newsletter and AI connection screens replace several development labels with Korean explanations. Workspace, memo, optional-data and finance notices also remove the remaining user-facing Electron labels. Security and cost notices remain. No product workflow, save format, auth path, or external AI call was changed.
 
-Tracked product and test changes: `DESIGN.md`; `electron-p0/package.json`; `electron-p0/renderer/design-polish.css`, `main.tsx`, `palette/main.tsx`, `ai/AiTools.tsx`, `ai/ChatGptSettings.tsx`, `inventory-preview/InventoryHost.tsx`, `purchase/PurchaseSession.tsx`, `purchase/usePurchaseSettings.ts`; `electron-p0/tests/design-polish-style.test.ts`, `official-document-files-ui.test.tsx`, `purchase-settings-ui.test.tsx`; `src/education-video/EducationVideoFinder.tsx`, `src/inventory-management/InventoryWorkspace.tsx`, `src/newsletter/NewsletterStudio.tsx`, `src/official-document/OfficialDocumentWorkspace.tsx`. This report is the only additional tracked document.
+Tracked product and test changes: `DESIGN.md`; `electron-p0/package.json`; `electron-p0/renderer/design-polish.css`, `main.tsx`, `P0App.tsx`, `palette/main.tsx`, `adapters/NewsletterProjectControls.tsx`, `adapters/PersistentMemo.tsx`, `ai/AiTools.tsx`, `ai/ChatGptSettings.tsx`, `finance/FinanceHost.tsx`, `inventory-preview/InventoryHost.tsx`, `local-tasks/LocalNotices.tsx`, `purchase/PurchaseSession.tsx`, `purchase/usePurchaseSettings.ts`; `electron-p0/tests/design-polish-style.test.ts`, `official-document-files-ui.test.tsx`, `purchase-settings-ui.test.tsx`, `widget-state-notices.test.tsx`; `src/education-video/EducationVideoFinder.tsx`, `src/inventory-management/InventoryWorkspace.tsx`, `src/newsletter/NewsletterStudio.tsx`, `src/official-document/OfficialDocumentWorkspace.tsx`. This report is the only additional tracked document.
 
 ## Focused verification
 
 | Check | Result |
 | --- | --- |
 | TypeScript, root and three Electron configs | 4/4 PASS |
-| Focused Vitest | 57/57 PASS after updating one stale official-document label assertion; eight other files had passed in the preceding run |
+| Focused Vitest | 57/57 PASS for the visual and module changes; 26/26 PASS for the later copy-only changes |
 | Runtime package contract | 3/3 PASS |
 | Electron product build with public auth configuration | PASS; build metadata source SHA matches the packaged product source and `dirty=false` |
 | `git diff --check` | PASS |
 | Lint | NOT RUN; no dedicated lint script |
 | Actual Electron renderer GUI | Palette, Dock, Workspace, six modules and settings captured; 980×700 Workspace and Purchase horizontal overflow 0 px |
 | Packaged ASAR | Main, Preload, Palette and Workspace, account config and tray present; compiled test files 0 |
-| New Portable | Actual Windows launch PASS: two Palette windows, three default widgets and one Dock on primary display |
+| New Portable | Actual Windows launch PASS: two Palette windows, three default widgets and one Dock on primary display; isolated QA profile was created |
 | Packaged `win-unpacked` app | Palette and Workspace launch PASS from the packaged ASAR; isolated QA profile |
 | Complex real wallpaper and desktop icon text behind the new cards | CONDITIONAL; computed opacity and synthetic backdrop comparison checked, but no privacy-safe unobstructed physical desktop capture |
 | NSIS installation, beta.2 replacement, external distribution | NOT RUN by design |
 
-The first focused run found one old test expecting `ELECTRON LOCAL`. The product now correctly says `이 PC에서 작성`; the expectation was updated and that test file passed 8/8 on rerun. This was an assertion change caused by the approved copy change, not a product runtime failure.
+The first focused run found one old test expecting `ELECTRON LOCAL`. The product now correctly says `이 PC에서 작성`; the expectation was updated and that test file passed 8/8 on rerun. This was an assertion change caused by the approved copy change, not a product runtime failure. The first final package smoke script selected the intentionally empty secondary Palette and reported no Dock; selecting the primary Palette corrected this QA harness error, and the package smoke passed.
 
 ## Candidate artifacts
 
-F: candidate directory: `F:\BOGUNON_DEV\design-polish-cream-bento-candidate`.
+F: final candidate directory: `F:\BOGUNON_DEV\design-polish-cream-bento-final-candidate`. An earlier QA draft is preserved separately in `F:\BOGUNON_DEV\design-polish-cream-bento-candidate` and must not be distributed.
 
 | File | Bytes | SHA-256 |
 | --- | ---: | --- |
-| `release/BOGUNON-DESK-2.0.0-beta.3-win-x64.exe` | 195,462,023 | `D4C0DDE2E630DAF81EC49A8AE2051143806645BA877B63FE791684B2F9AC2A5E` |
-| `release/BOGUNON-DESK-Setup-2.0.0-beta.3-x64.exe` | 214,021,208 | `B8D370F1186443B94B4A4EEA52C84A20BCB17F2CC1B6EE247DA5E2DAD4CE1F6F` |
+| `release/BOGUNON-DESK-2.0.0-beta.3-win-x64.exe` | 195,468,281 | `589E3D92115785C34F42AE54B3DAAD85084FE3B49CB85FEE2A526233774413CF` |
+| `release/BOGUNON-DESK-Setup-2.0.0-beta.3-x64.exe` | 214,022,161 | `8D71489C98336F1C532298A801526EDBEC50B6044C0D331CCEB525AC58F2CBE0` |
 
 Both are unsigned internal QA files. `SHA256SUMS.txt` is beside the files. The configured Windows appId, productName, user profile name and per-user NSIS settings were retained. The installed beta.2 was neither replaced nor removed.
 
