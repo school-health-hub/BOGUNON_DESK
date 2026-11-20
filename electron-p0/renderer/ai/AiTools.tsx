@@ -15,7 +15,7 @@ export function AiSettings(){
  return <section className="electron-ai" aria-label="AI 연결 설정"><h2>AI 연결</h2><p>공문·소식지·교육영상 찾기에서 사용합니다. API 키와 원고는 앱 설정 파일이나 로그에 기록하지 않습니다.</p>
   <fieldset disabled={busy}><legend>API 계정 연결</legend><label>AI 제공자<select value={provider} onChange={e=>setProvider(e.target.value as AiProvider)}><option value="openai">OpenAI API</option><option value="gemini">Gemini API</option></select></label>
   <p>본인 API 키를 클립보드에 복사한 뒤 연결하세요. 앱이 키를 읽은 뒤 클립보드에서 지우며, 이 화면에 다시 표시하지 않습니다. API 사용 요금은 ChatGPT 구독과 별도입니다.</p>
-  <label><input type="checkbox" checked={remember} disabled={!state?.secureStorage} onChange={e=>setRemember(e.target.checked)}/>이 PC에 Windows 암호화로 연결 보관</label><p>{state?.secureStorage?'보관을 선택하지 않으면 앱 종료 시 연결이 사라지고 기존 Electron 저장 연결도 제거됩니다.':'안전한 영구 저장을 사용할 수 없어 세션 연결만 가능합니다.'}</p>
+  <label><input type="checkbox" checked={remember} disabled={!state?.secureStorage} onChange={e=>setRemember(e.target.checked)}/>이 PC에 Windows 암호화로 연결 보관</label><p>{state?.secureStorage?'보관을 선택하지 않으면 앱 종료 시 연결이 사라지고 이전에 저장한 연결도 제거됩니다.':'안전한 영구 저장을 사용할 수 없어 세션 연결만 가능합니다.'}</p>
   <button type="button" onClick={()=>void run(async()=>read(await api.connectFromClipboard({provider,remember})))}>클립보드 API Key로 연결</button>
   <button type="button" disabled={!state?.stored} onClick={()=>void run(async()=>read(await api.restore()))}>저장 연결 불러와 확인</button>
   </fieldset>

@@ -19,6 +19,6 @@ export function MemoWidget(){
   <fieldset disabled={state.busy} style={{border:0,padding:0,margin:0,minWidth:0,minHeight:0,height:'100%',overflow:'auto'}}>
    {state.ready?<QuickMemoEditor id={`electron-quick-memo-${id}`} memo={state.text} mode="widget" onChange={state.setText} onCreateTask={openQuickAddFromMemo} onNotice={notify} onOpenUrl={openQuickMemoUrl}/>:<button type="button" onClick={()=>void state.load()}>메모 다시 불러오기</button>}
   </fieldset>
-  <p role="status" data-memo-status title="Electron 전용 로컬 메모 · 저장 버튼을 눌러 보관하세요.">{state.status}</p>
+  <p role="status" data-memo-status title="메모는 이 PC에 저장됩니다. 저장 버튼을 눌러 보관하세요.">{state.status}</p>
  </Panel>;
 }

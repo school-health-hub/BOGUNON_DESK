@@ -10,5 +10,5 @@ export function FinanceHost({onClose}:{onClose:()=>void}){
  },[]);
  if(error||availability&&!availability.available)return <section className="electron-finance-blocked"><h1>MY FINANCE</h1><p role="alert">{error||availability?.reason}</p><p>기존 Tauri 데이터는 읽거나 변경하지 않습니다. SQLCipher·Windows DPAPI를 사용할 수 있을 때만 연결합니다.</p><button type="button" onClick={onClose}>보건 업무로</button></section>;
  if(!availability)return <p role="status">MY FINANCE 암호화 엔진을 확인하는 중…</p>;
- return <div className="electron-finance-host"><p className="electron-finance-isolation">Electron 전용 금융 저장소 · 기존 Tauri 금융 데이터 자동 읽기·이전 없음 · 외부 전송 없음</p><Suspense fallback={<p role="status">MY FINANCE를 불러오는 중…</p>}><FinanceScreen onClose={onClose}/></Suspense></div>;
+ return <div className="electron-finance-host"><p className="electron-finance-isolation">금융 자료는 이 PC에 별도 저장됩니다. 이전 앱의 자료는 자동으로 가져오지 않으며 외부로 전송하지 않습니다.</p><Suspense fallback={<p role="status">MY FINANCE를 불러오는 중…</p>}><FinanceScreen onClose={onClose}/></Suspense></div>;
 }
