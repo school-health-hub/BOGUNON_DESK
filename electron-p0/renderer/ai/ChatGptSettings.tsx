@@ -10,9 +10,9 @@ export function ChatGptSettings(){
  useEffect(()=>{mounted.current=true;if(api)void api.status().then(r=>{if(mounted.current)setState(read(r));}).catch(()=>{if(mounted.current)setNotice('ChatGPT 상태를 확인하지 못했습니다.');});return()=>{mounted.current=false;epoch.current++;if(owned.current)void api?.cancel();};},[api]);
  async function run(work:()=>Promise<ChatGptStatus|null>){if(!api||busy)return;const generation=++epoch.current;owned.current=true;setBusy(true);setNotice('');try{const next=await work();if(mounted.current&&generation===epoch.current&&next)setState(next);}catch(e){if(mounted.current&&generation===epoch.current)setNotice(e instanceof Error?e.message:'요청을 완료하지 못했습니다.');}finally{owned.current=false;if(mounted.current&&generation===epoch.current){setBusy(false);void api.status().then(r=>{if(mounted.current&&generation===epoch.current&&r.ok)setState(r.data);});}}}
  if(!api)return <section><h3>ChatGPT 계정 · 이 실행본 미지원</h3><p>ChatGPT 연결 helper가 제공되지 않는 실행본입니다.</p></section>;
- return <section aria-label="ChatGPT 계정 연결"><h3>ChatGPT 계정</h3><p>공식 Sign in with ChatGPT · 기존 Tauri 인증정보를 가져오지 않습니다. API Key 연결과 별도로 관리합니다.</p>
+ return <section aria-label="ChatGPT 계정 연결"><h3>ChatGPT 계정</h3><p>공식 ChatGPT 로그인으로 연결합니다. 이전 앱의 인증 정보는 자동으로 가져오지 않으며, API 키 연결과 별도로 관리합니다.</p>
  <p role="status">{state?labels[state.phase]:'상태 확인 중'}{state?.identity?` · ${state.identity}`:''}</p><p>{state?.notice}</p>
- <p>ChatGPT plan/credits 사용은 계정·워크스페이스 권한과 한도에 따릅니다. 로그인·모델 조회 성공은 AI 호출 성공을 의미하지 않습니다.</p>
+ <p>사용량과 한도는 연결한 ChatGPT 계정의 요금제와 권한에 따릅니다. 로그인이나 모델 조회만으로 생성 사용이 보장되지는 않습니다.</p>
  <button type="button" disabled={busy||!state?.supported} onClick={()=>{setState(old=>old?{...old,phase:'authenticating'}:old);void run(async()=>read(await api.signIn()));}}>Continue with ChatGPT · 연결·재인증</button>
  <button type="button" disabled={busy||!state?.supported} onClick={()=>void run(async()=>read(await api.refreshModels()))}>ChatGPT 모델 목록 새로고침</button>
  {state?.models.length? <label>ChatGPT 모델<select aria-label="ChatGPT 모델" disabled={busy} value={state.model??''} onChange={e=>void run(async()=>read(await api.selectModel({model:e.target.value})))}>{state.models.map(m=><option key={m.id} value={m.id}>{m.label}</option>)}</select></label>:null}

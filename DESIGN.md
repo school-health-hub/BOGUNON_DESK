@@ -942,3 +942,18 @@ actual focus/caret and bottom traversal, not only zero page horizontal overflow.
   scrolls without horizontal overflow. CJK labels use `word-break: keep-all` with
   emergency wrapping. Modal layering remains above Palette widgets, edit controls,
   menus, and Dock without changing their saved geometry or hit regions.
+## Soft Rose Glass · Cream Bento release polish — 2026-11-20
+
+- Preserve the bright cream Workspace canvas, the existing 13-widget Bento geometry,
+  Palette ownership and saved positions, and the single Floating Dock. Rose is the
+  interactive accent; mint and lavender remain secondary information tints.
+- Palette summary cards use a near-opaque cream text surface when desktop icons or
+  wallpaper are visible beneath them. Empty pixels between cards stay transparent
+  and click-through. Dense memo content remains scrollable only when it overflows.
+- Workspace and business modules share the existing DESIGN-07 cream, rose, navy,
+  rim, radius, shadow and focus tokens. The polish stylesheet is scoped to the
+  Electron candidate and to named module roots; it does not alter Tauri or the
+  underlying document, authentication, storage, or IPC contracts.
+- Module headers, primary actions, inputs and section cards use the same hierarchy:
+  dark readable title, restrained rose action, warm near-white work sheet, and a
+  quiet border. Safety and storage limits remain visible in plain Korean.

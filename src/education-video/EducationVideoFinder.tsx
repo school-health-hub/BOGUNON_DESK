@@ -87,10 +87,10 @@ export function EducationVideoFinder({ onClose,renderAiTools,searchBridge,compat
     return <main className="ev-finder">
  <header className="ev-header"><div>
  <button type="button" onClick={onClose}><ArrowLeft size={16}/>보건 업무로</button>
- <span className="ev-eyebrow">BOGUNON DESK · PHASE 1</span>
- <h1>AI 교육영상 Finder <small>v1.1</small></h1>
+ <span className="ev-eyebrow">보건교육 자료</span>
+ <h1>교육영상 찾기</h1>
  <p>교육에 맞는 영상을 비교하고, 선생님의 안내문으로 정리하세요.</p>
- </div><span className="ev-mock-badge">{mode==='youtube'?'YouTube 공식 API 검색':'합성 Mock 전용'}</span></header>
+ </div><span className="ev-mock-badge">{mode==='youtube'?'YouTube 검색':'체험용 검색'}</span></header>
  {mode==='mock'&&<div className="ev-mock-note"><strong>실제 YouTube 검색 결과가 아닙니다.</strong>
  모든 제목·채널·영상 ID·공식 채널 예시는 합성 데이터입니다. 링크는 실제 영상으로 확인되지 않았으며, 안내문에도 Mock 표시가 포함됩니다.</div>}
  {renderAiTools?.([education.educationTitle,education.target,education.schedule,education.instructions,message].filter(Boolean).join('\n'))}
@@ -104,7 +104,7 @@ export function EducationVideoFinder({ onClose,renderAiTools,searchBridge,compat
  {mode==='youtube'&&<label className="ev-confirm"><input type="checkbox" checked={consent} disabled={searchBusy||connectionBusy} onChange={e=>setConsent(e.target.checked)}/>학생·교직원 개인정보 없는 검색어를 YouTube에 전송하는 데 동의합니다.</label>}
  <button className="ev-primary" type="submit" disabled={searchBusy||connectionBusy}><Search size={17}/>{searchBusy?'YouTube 검색 중…':mode==='youtube'?'YouTube 영상 검색':'Mock 영상 검색'}</button>{searchBusy&&<button type="button" onClick={cancelSearch}>영상 검색 취소</button>}
  </form></section>
- <p role="status" className="ev-notice">{notice || (mode==='youtube'?'YouTube 전용 Key를 등록하고 검색어 전송에 동의해 검색하세요. 실제 API 권한은 요청 시 확인합니다.':'Mock 검색과 기본 안내문은 로컬에서 동작합니다. AI 보조는 전송 전 별도 확인합니다.')}</p>
+ <p role="status" className="ev-notice">{notice || (mode==='youtube'?'YouTube 검색용 키를 등록하고 검색어 전송에 동의해 주세요. 연결 권한은 검색할 때 확인합니다.':'체험용 검색 결과는 이 PC에서 표시됩니다. AI 보조 기능은 전송 전에 별도로 확인합니다.')}</p>
  <div className="ev-layout"><div>
  <div className="ev-filters" aria-label="영상 길이 범위">
  {[{ value: 3, label: '희망 길이 ±3분' }, { value: 5, label: '±5분' }, { value: null, label: `전체 보기 (${videos.length}개)` }].map(option => <button type="button" key={option.label} aria-pressed={windowMinutes === option.value} onClick={() => setWindow(option.value)}>{option.label}</button>)}<span>가까운 길이순</span>

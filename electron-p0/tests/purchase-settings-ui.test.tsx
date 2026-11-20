@@ -18,13 +18,13 @@ function setup(seed?:Partial<PurchaseSettingsDocument>){
  vi.stubGlobal('electronWork',{purchase:{settings,pickCsv:()=>h.pick(event),cancelCsv:()=>h.cancel(event),mapCsv:(r:unknown)=>h.map(event,r),pickExcel:()=>h.pick(event),cancelExcel:()=>h.cancel(event),mapExcel:(r:unknown)=>h.map(event,r),copy}});
  return {settings,save,copy,get document(){return document;}};
 }
-async function ready(){await screen.findByText('Purchase 설정을 이 PC에서 불러왔습니다.');}
+async function ready(){await screen.findByText('품의 설정을 이 PC에서 불러왔습니다.');}
 function edit(label:string,value:string){const input=screen.getByLabelText(label);fireEvent.focus(input);fireEvent.change(input,{target:{value}});fireEvent.keyDown(input,{key:'Enter'});fireEvent.blur(input);}
 function manual(){fireEvent.click(screen.getByRole('button',{name:'품목 추가'}));edit('1행 품명','합성 원본 품목');edit('1행 수량','2');edit('1행 단가','100');}
 function openDraft(){manual();fireEvent.click(screen.getByRole('tab',{name:'품의문 작성'}));fireEvent.click(screen.getByRole('button',{name:'품의문 초안 만들기'}));fireEvent.change(screen.getByLabelText('품의 제목'),{target:{value:'보존할 합성 원고'}});}
 
 it('saves a template after acknowledgement and restores it on remount without persisting items/draft',async()=>{
- const api=setup(),view=render(<PurchaseSession open onClose={vi.fn()}/>);await ready();expect(screen.getByLabelText('Purchase 설정 상태').closest('[role="dialog"]')).toBeTruthy();openDraft();
+ const api=setup(),view=render(<PurchaseSession open onClose={vi.fn()}/>);await ready();expect(screen.getByLabelText('품의 설정 상태').closest('[role="dialog"]')).toBeTruthy();openDraft();
  fireEvent.click(screen.getByRole('button',{name:'템플릿 저장'}));fireEvent.change(screen.getByLabelText('품의문 템플릿 이름'),{target:{value:'합성 새 양식'}});fireEvent.click(screen.getByRole('button',{name:'저장'}));await screen.findByText('품의문 템플릿을 저장했습니다.');
  expect(api.document.draftTemplates[0].name).toBe('합성 새 양식');expect((screen.getByLabelText('품의 제목') as HTMLInputElement).value).toBe('보존할 합성 원고');expect((screen.getByLabelText('품의문 템플릿') as HTMLSelectElement).value).toBe('default');
  expect(Object.keys(api.save.mock.calls[0][0]).sort()).toEqual(['draftTemplates','importTemplates','outputColumns','revision','version']);
@@ -44,7 +44,7 @@ it('persists output selection/order on acknowledgement, restores it and keeps a 
 });
 it('preserves current items/draft on canceled or confirmed settings reset',async()=>{
  const api=setup({draftTemplates:[draft]});render(<PurchaseSession open onClose={vi.fn()}/>);await ready();openDraft();fireEvent.click(screen.getByRole('button',{name:'가져오기 설정'}));const confirm=vi.spyOn(window,'confirm').mockReturnValue(false);
- fireEvent.click(screen.getByRole('button',{name:'Purchase 설정 초기화'}));expect(api.save).not.toHaveBeenCalled();confirm.mockReturnValue(true);fireEvent.click(screen.getByRole('button',{name:'Purchase 설정 초기화'}));await waitFor(()=>expect(api.document.draftTemplates).toEqual([]));expect((screen.getByLabelText('품의 제목') as HTMLInputElement).value).toBe('보존할 합성 원고');fireEvent.click(screen.getByRole('tab',{name:'품목내역'}));expect((screen.getByLabelText('1행 품명') as HTMLInputElement).value).toBe('합성 원본 품목');
+ fireEvent.click(screen.getByRole('button',{name:'품의 설정 초기화'}));expect(api.save).not.toHaveBeenCalled();confirm.mockReturnValue(true);fireEvent.click(screen.getByRole('button',{name:'품의 설정 초기화'}));await waitFor(()=>expect(api.document.draftTemplates).toEqual([]));expect((screen.getByLabelText('품의 제목') as HTMLInputElement).value).toBe('보존할 합성 원고');fireEvent.click(screen.getByRole('tab',{name:'품목내역'}));expect((screen.getByLabelText('1행 품명') as HTMLInputElement).value).toBe('합성 원본 품목');
 });
 it('keeps failed template/column changes editable and never announces a failed write as saved',async()=>{
  const api=setup();api.save.mockRejectedValue(Error('합성 쓰기 실패'));render(<PurchaseSession open onClose={vi.fn()}/>);await ready();

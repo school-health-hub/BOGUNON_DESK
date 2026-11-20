@@ -16,6 +16,7 @@ import './td2-workspace.css';
 import './design-07.css';
 import './ux-09.css';
 import './ux-10.css';
+import './design-polish.css';
 document.body.classList.add('electron-soft-rose');
 document.body.classList.add('design-07-candidate');
 import { P0App } from './P0App';

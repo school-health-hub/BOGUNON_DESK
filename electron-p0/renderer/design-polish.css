@@ -1,0 +1,208 @@
+/* Release polish: scoped to the Electron Soft Rose candidate and its named surfaces. */
+body.electron-soft-rose.design-07-candidate {
+  --polish-cream: var(--d07-cream-50);
+  --polish-rose: var(--d07-rose-700);
+  --polish-rose-soft: var(--d07-rose-100);
+  --polish-border: var(--d07-rose-200);
+  --polish-ink: var(--d07-navy-900);
+  --polish-sheet: var(--d07-dense-fill);
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid .widget-frame__body :is(button, input, textarea, select):focus-visible,
+body.electron-soft-rose.design-07-candidate .td2-workspace :is(button, input, textarea, select):focus-visible,
+body.electron-soft-rose.design-07-candidate .td2-record-workspace :is(button, input, textarea, select):focus-visible {
+  outline: 2px solid var(--polish-rose);
+  outline-offset: 2px;
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid .widget-frame:hover {
+  border-color: var(--polish-border);
+}
+
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid .widget-frame__body :is(button[aria-pressed="true"], button[aria-selected="true"]) {
+  border-color: var(--polish-rose);
+  background: var(--polish-rose-soft);
+  color: var(--polish-ink);
+}
+
+/* The Palette canvas stays transparent. Only the individual card material changes. */
+body.electron-soft-rose.design-07-candidate.desktop-palette-root .desktop-palette.workspace-shell .desktop-widget-grid [data-widget-type="today-summary"] .widget-frame,
+body.electron-soft-rose.design-07-candidate.desktop-palette-root .desktop-palette.workspace-shell .desktop-widget-grid [data-widget-type="clock"] .widget-frame {
+  --design-07-widget-fill: rgb(255 253 249 / 96%);
+  border-color: var(--polish-border);
+  backdrop-filter: blur(12px) saturate(108%);
+}
+
+body.desktop-palette-root .desktop-palette [data-widget-type="today-summary"] .widget-frame__body > :is(.panel, .widget-surface) {
+  background: var(--polish-sheet);
+  border-radius: 16px;
+}
+
+body.electron-soft-rose.design-07-candidate.desktop-palette-root .desktop-palette.workspace-shell .desktop-widget-grid [data-widget-type="quick-memo"] .widget-frame {
+  --design-07-widget-fill: rgb(255 253 249 / 98%);
+}
+
+body.electron-soft-rose.design-07-candidate.desktop-palette-root .desktop-palette.workspace-shell .desktop-widget-grid [data-widget-type="quick-memo"] .widget-frame__body > .memo-panel {
+  padding: 8px 10px;
+}
+
+body.electron-soft-rose.design-07-candidate.desktop-palette-root .desktop-palette.workspace-shell .desktop-widget-grid [data-widget-type="quick-memo"] .memo-panel > .panel__header {
+  margin-bottom: 6px;
+}
+
+/* The frame supplies a 100% inline fieldset height, which overflows a compact card. */
+body.electron-soft-rose.design-07-candidate.desktop-palette-root .desktop-palette.workspace-shell .desktop-widget-grid [data-widget-type="quick-memo"] .memo-panel > fieldset {
+  height: auto !important;
+  overflow: visible !important;
+}
+
+body.electron-soft-rose.design-07-candidate.desktop-palette-root .desktop-palette.workspace-shell .desktop-widget-grid [data-widget-type="quick-memo"] .quick-memo-editor.is-widget {
+  display: grid;
+  grid-template-rows: 48px auto;
+  gap: 6px;
+  height: auto;
+  min-height: 0;
+  flex: 0 0 auto;
+}
+
+body.electron-soft-rose.design-07-candidate.desktop-palette-root .desktop-palette.workspace-shell .desktop-widget-grid [data-widget-type="quick-memo"] .memo-panel > p {
+  margin-top: 4px;
+}
+
+body.electron-soft-rose.design-07-candidate.desktop-palette-root .desktop-palette.workspace-shell .desktop-widget-grid [data-widget-type="quick-memo"] .quick-memo-editor.is-widget textarea {
+  height: 48px;
+  min-height: 48px;
+  overflow-y: auto;
+}
+
+body.desktop-palette-root .desktop-palette [data-widget-type="quick-memo"] .widget-content {
+  overflow-y: auto;
+  scrollbar-gutter: auto;
+}
+
+/* Work modules keep their own controls and layout, with one common material. */
+body.electron-soft-rose.design-07-candidate :is(
+  .td2-workspace[data-workspace="official"],
+  .td2-workspace[data-workspace="inventory"],
+  .td2-workspace[data-workspace="finder"],
+  .td2-workspace[data-workspace="newsletter"]
+) {
+  color: var(--polish-ink);
+  background: var(--d07-canvas);
+}
+
+body.electron-soft-rose.design-07-candidate :is(
+  .td2-workspace[data-workspace="official"],
+  .td2-workspace[data-workspace="inventory"],
+  .td2-workspace[data-workspace="finder"],
+  .td2-workspace[data-workspace="newsletter"]
+) :is(input, select, textarea) {
+  border-color: var(--d07-boundary);
+  border-radius: 10px;
+  background: var(--polish-cream);
+  color: var(--polish-ink);
+}
+
+body.electron-soft-rose.design-07-candidate :is(
+  .td2-workspace[data-workspace="official"],
+  .td2-workspace[data-workspace="inventory"],
+  .td2-workspace[data-workspace="finder"],
+  .td2-workspace[data-workspace="newsletter"]
+) :is(button, label) {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+body.electron-soft-rose.design-07-candidate .td2-workspace[data-workspace="official"] :is(.od-header, .od-paper, .od-ai-workflow),
+body.electron-soft-rose.design-07-candidate .td2-workspace[data-workspace="inventory"] :is(.inventory-local-mode, .inventory-management-panel),
+body.electron-soft-rose.design-07-candidate .td2-workspace[data-workspace="finder"] :is(.ev-header, .ev-search, .ev-library),
+body.electron-soft-rose.design-07-candidate .td2-workspace[data-workspace="newsletter"] :is(.newsletter-file-toolbar, .newsletter-safeguards) {
+  border-color: var(--d07-rim);
+  border-radius: 20px;
+  background: var(--polish-sheet);
+  box-shadow: var(--d07-contact-shadow), var(--d07-ambient-shadow);
+}
+
+body.electron-soft-rose.design-07-candidate .td2-workspace[data-workspace="official"] :is(.od-actions button:first-child, .od-header button:hover),
+body.electron-soft-rose.design-07-candidate .td2-workspace[data-workspace="finder"] .ev-primary,
+body.electron-soft-rose.design-07-candidate .td2-workspace[data-workspace="newsletter"] :is(.newsletter-primary-action, .newsletter-file-toolbar button[type="submit"]),
+body.electron-soft-rose.design-07-candidate .purchase-helper-panel .purchase-helper-tabs button[aria-selected="true"] {
+  background: var(--polish-rose-soft);
+  border-color: var(--polish-border);
+  color: var(--polish-rose);
+}
+
+body.electron-soft-rose.design-07-candidate .td2-workspace[data-workspace="newsletter"] .newsletter-product-host {
+  --newsletter-paper: var(--polish-cream);
+  --newsletter-paper-deep: var(--d07-rose-50);
+  --newsletter-ink: var(--polish-ink);
+  --newsletter-body: var(--polish-ink);
+  --newsletter-line: var(--d07-rim);
+  background: var(--d07-canvas);
+  color: var(--polish-ink);
+}
+
+body.electron-soft-rose.design-07-candidate .td2-workspace[data-workspace="newsletter"] .newsletter-product-host .newsletter-file-toolbar {
+  border-color: var(--d07-rim);
+  background: var(--polish-sheet);
+}
+
+body.electron-soft-rose.design-07-candidate .td2-workspace[data-workspace="newsletter"] .newsletter-primary-action {
+  border-color: var(--polish-rose) !important;
+  background: var(--polish-rose) !important;
+  color: var(--polish-cream) !important;
+}
+
+body.electron-soft-rose.design-07-candidate .td2-workspace[data-workspace="finder"] .ev-finder,
+body.electron-soft-rose.design-07-candidate .td2-workspace[data-workspace="inventory"] .inventory-workspace {
+  background: var(--d07-canvas);
+  color: var(--polish-ink);
+}
+
+body.electron-soft-rose.design-07-candidate .purchase-helper-panel {
+  border-color: var(--d07-rim);
+  border-radius: 22px;
+  background: var(--polish-cream);
+  box-shadow: var(--d07-contact-shadow), var(--d07-ambient-shadow);
+}
+
+body.electron-soft-rose.design-07-candidate .purchase-helper-panel__header,
+body.electron-soft-rose.design-07-candidate .purchase-helper-panel__toolbar,
+body.electron-soft-rose.design-07-candidate .purchase-helper-dropzone {
+  background: var(--polish-sheet);
+}
+
+body.electron-soft-rose.design-07-candidate .purchase-helper-panel__header {
+  padding: 16px 20px;
+}
+
+body.electron-soft-rose.design-07-candidate .td2-record-workspace .record-helper-backdrop {
+  background: var(--d07-canvas);
+}
+
+body.electron-soft-rose.design-07-candidate .td2-record-workspace .record-helper-panel {
+  border: 1px solid var(--d07-rim);
+  border-radius: 22px;
+  background: var(--polish-cream);
+  box-shadow: var(--d07-contact-shadow), var(--d07-ambient-shadow);
+}
+
+body.electron-soft-rose.design-07-candidate .td2-record-workspace :is(.record-helper-panel > header, .record-helper-panel__toolbar, .record-helper-panel__privacy) {
+  background: var(--polish-sheet);
+}
+
+body.electron-soft-rose.design-07-candidate .td2-record-workspace :is(.record-helper-panel > header, .record-helper-panel__toolbar) {
+  padding-inline: 20px;
+}
+
+body.electron-soft-rose.design-07-candidate .td2-record-workspace :is(.record-helper-panel > header span, .record-helper-panel__privacy) {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+@media (max-width: 980px) {
+  body.electron-soft-rose.design-07-candidate .purchase-helper-panel__header,
+  body.electron-soft-rose.design-07-candidate .td2-record-workspace :is(.record-helper-panel > header, .record-helper-panel__toolbar) {
+    padding-inline: 12px;
+  }
+}

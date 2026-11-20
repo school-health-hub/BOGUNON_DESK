@@ -41,7 +41,7 @@ it('uses the common branded workspace header while preserving clean, confirmed-d
  expect(header.classList.contains('td2-workspace-header')).toBe(true);
  expect(header.classList.contains('od-header')).toBe(true);
  expect(screen.getByRole('heading',{name:'공문작업실'})).toBeTruthy();
- expect(screen.getByText('ELECTRON LOCAL')).toBeTruthy();
+  expect(screen.getByText('이 PC에서 작성')).toBeTruthy();
  expect(header.querySelector('.brand-logo')).toBeTruthy();
  fireEvent.click(screen.getByRole('button',{name:'보건 업무로'}));
  expect(cleanClose).toHaveBeenCalledOnce();

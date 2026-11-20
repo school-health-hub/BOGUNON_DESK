@@ -102,7 +102,7 @@ export function NewsletterStudio({ onClose,closeRequest,onCloseRequestResolved,r
     <NewsletterProjectControls onBusyChange={setProjectBusy} document={document} head={head} onLoaded={loaded} onSaved={stored} onPreview={setPreview}/>
     </div>
     {preview!==null&&<p role="status">이전 revision 미리보기입니다. 복구를 확인하기 전에는 현재 원고가 변경되지 않습니다. 이미지는 복구 후 다시 연결해 주세요.</p>}
-    <details className="newsletter-safeguards"><summary>저장·출력 안전 안내</summary><p>Electron 편집·미리보기 전용 · WIP 디자인은 승인된 최종 디자인이 아닙니다. PNG/PDF는 독립 검증 후 저장하며 기존 Tauri 원고 저장소는 연결하지 않습니다.</p><p>JSON에는 원고·디자인·승인 상태를 보존하며 이미지 원본은 포함하지 않습니다. 다시 열 때 같은 이미지 파일을 선택하면 SHA-256으로 연결합니다.</p></details>
+    <details className="newsletter-safeguards"><summary>저장·출력 안전 안내</summary><p>PNG·PDF 출력 전 미리보기를 확인하세요. 이전 프로그램에 저장한 원고는 이 화면에 자동으로 연결되지 않습니다.</p><p>JSON에는 원고·디자인·승인 상태를 보존하며 이미지 원본은 포함하지 않습니다. 다시 열 때 같은 이미지 파일을 선택하면 SHA-256으로 연결합니다.</p></details>
     {message.length > 0 && <p role="status">{message}</p>}
     {shown!==undefined&&preview===null&&!creating&&shown.design.designSchemaVersion===2&&<UserImageImportPanel design={shown.design} images={images} topicTitles={shown.project.topics.map(topic=>topic.title)} onApply={(design,nextImages)=>{setDocument({project:shown.project,design});setImages(nextImages);setSession(current=>current+1);setMessage("ChatGPT 사용자 가져오기 이미지를 A4와 주제 카드에 배치했습니다. 최종 출력 승인은 대기 상태입니다.")}}/>}
     {shown!==undefined&&preview===null&&!creating&&<NewsletterAiProductionPanel document={shown} currentAssets={images} bridge={window.electronWork?.newsletter?.ai} onOpenSettings={onOpenAiSettings} onApply={(value,assets)=>{setDocument(value);if(assets!==undefined)setImages(assets);setSession(current=>current+1);setMessage('선택한 AI 후보를 새 revision으로 적용했습니다. 출처와 승인 대기 이미지를 계속 검토해 주세요.')}}/>}
