@@ -207,3 +207,35 @@ body.electron-soft-rose.design-07-candidate .td2-record-workspace :is(.record-he
     padding-inline: 12px;
   }
 }
+
+/* Keep the saved weekly slot; size containment must not collapse an empty week. */
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="weekly-schedule"] .widget-frame {
+  display: grid;
+  height: 100% !important;
+  min-height: 0 !important;
+  grid-template-rows: minmax(0, 1fr);
+}
+body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="weekly-schedule"] .widget-frame {
+  grid-template-rows: 34px minmax(0, 1fr);
+}
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="weekly-schedule"] .widget-frame__body {
+  height: auto !important;
+  min-height: 0;
+}
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="weekly-schedule"] .week-panel {
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  scroll-padding-block: 8px;
+}
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="weekly-schedule"] .week-grid {
+  flex: 0 0 auto;
+}
+body.electron-soft-rose.design-07-candidate .workspace-shell .desktop-widget-grid [data-widget-type="weekly-schedule"] .week-schedule-list {
+  flex: 0 0 auto;
+}
+@media (max-width: 1100px) {
+  body.electron-soft-rose.design-07-candidate .workspace-shell.is-view-mode .desktop-widget-grid [data-widget-type="weekly-schedule"] :is(.widget-frame, .week-panel) {
+    height: auto !important;
+  }
+}
