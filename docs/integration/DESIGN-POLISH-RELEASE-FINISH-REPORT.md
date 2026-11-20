@@ -15,6 +15,8 @@ Palette remains transparent outside its cards. The summary and clock cards use a
 
 The official-document, Inventory, Finder, Purchase, Newsletter and AI connection screens replace several development labels with Korean explanations. Security and cost notices remain. No product workflow, save format, auth path, or external AI call was changed.
 
+Tracked product and test changes: `DESIGN.md`; `electron-p0/package.json`; `electron-p0/renderer/design-polish.css`, `main.tsx`, `palette/main.tsx`, `ai/AiTools.tsx`, `ai/ChatGptSettings.tsx`, `inventory-preview/InventoryHost.tsx`, `purchase/PurchaseSession.tsx`, `purchase/usePurchaseSettings.ts`; `electron-p0/tests/design-polish-style.test.ts`, `official-document-files-ui.test.tsx`, `purchase-settings-ui.test.tsx`; `src/education-video/EducationVideoFinder.tsx`, `src/inventory-management/InventoryWorkspace.tsx`, `src/newsletter/NewsletterStudio.tsx`, `src/official-document/OfficialDocumentWorkspace.tsx`. This report is the only additional tracked document.
+
 ## Focused verification
 
 | Check | Result |
