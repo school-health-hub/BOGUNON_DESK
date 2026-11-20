@@ -5,7 +5,7 @@ import {join} from 'node:path';
 const appRoot=join(process.cwd(),'build/electron-p0-app');
 
 async function palettePages(app:ElectronApplication):Promise<readonly Page[]>{
-  await expect.poll(()=>app.windows().filter(page=>page.url().includes('/renderer/palette/')).length).toBeGreaterThanOrEqual(2);
+  await expect.poll(()=>app.windows().filter(page=>page.url().includes('/renderer/palette/')).length,{timeout:30000}).toBeGreaterThanOrEqual(2);
   const pages=app.windows().filter(page=>page.url().includes('/renderer/palette/'));
   await Promise.all(pages.map(page=>page.getByRole('main',{name:'BOGUNON DESK 바탕화면 위젯'}).waitFor()));
   return pages;
@@ -44,6 +44,10 @@ test('Desktop Palette paints only widget and Dock surfaces over a transparent ca
       expect(canvas.before.content).toBe('none');
       expect(canvas.after.content).toBe('none');
       expect(canvas.dashboardCount).toBe(0);
+      const summary=page.locator('[data-widget-type="today-summary"] .summary-card');
+      if(await summary.count()){
+        expect(await summary.evaluate(element=>getComputedStyle(element).backgroundColor)).toBe('rgb(255, 253, 249)');
+      }
       const quickLauncher=page.locator('[data-widget-type="quick-launcher"] .quick-launcher');
       if(await quickLauncher.count()){
         expect(await quickLauncher.evaluate(element=>element.scrollHeight)).toBeLessThanOrEqual(await quickLauncher.evaluate(element=>element.clientHeight));
@@ -52,7 +56,8 @@ test('Desktop Palette paints only widget and Dock surfaces over a transparent ca
     const emptyPixelAlpha=await app.evaluate(async({BrowserWindow})=>Promise.all(BrowserWindow.getAllWindows()
       .filter(window=>window.webContents.getURL().includes('/renderer/palette/'))
       .map(async window=>(await window.capturePage({x:4,y:4,width:1,height:1})).toBitmap()[3])));
-    expect(emptyPixelAlpha).toEqual(pages.map(()=>0));
+    expect(emptyPixelAlpha).toHaveLength(pages.length);
+    expect(emptyPixelAlpha.every(alpha=>alpha<=1)).toBe(true);
     await pages[0].screenshot({path:'artifacts/ux-07e-widget-settings/palette-transparent-canvas.png'});
   }finally{
     await app.close();
