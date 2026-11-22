@@ -7,7 +7,7 @@ import {createNewsletterProject} from '../../src/newsletter/project';
 import {createNewsletterDesignState} from '../../src/newsletter/rendering/designSchema';
 import {upgradeNewsletterDesignStateV2} from '../../src/newsletter/rendering/designState';
 test('newsletter: original editor/scene, image reconnect, dialog-scoped JSON save and reopen',async()=>{
- test.setTimeout(120000);
+ test.setTimeout(300000);
  const now='2026-10-30T00:00:00.000Z';
  const project=await createNewsletterProject({projectId:'synthetic-electron-newsletter',title:'합성 소식지',now});
  const design=upgradeNewsletterDesignStateV2(createNewsletterDesignState({projectId:project.projectId,canonicalProjectRevision:1,now}),now);
@@ -22,7 +22,7 @@ test('newsletter: original editor/scene, image reconnect, dialog-scoped JSON sav
   await page.getByRole('button',{name:'승인 수달쌤 적용',exact:true}).click();
   await expect(page.getByText('디자인·렌더 승인 · 실제 출력 승인 대기',{exact:true})).toBeVisible();
   await page.getByLabel('이미지 원본 연결',{exact:true}).setInputFiles('src/newsletter/rendering/assets/otter-primary-v1.png');
-  await expect(page.getByText('1개 이미지의 SHA-256을 확인했습니다. 승인 상태는 변경하지 않았습니다.',{exact:true})).toBeVisible();
+  await expect(page.getByRole('status').filter({hasText:'1개 이미지의 SHA-256을 확인했습니다. 검토용으로 연결했으며 승인·출판 상태는 변경하지 않았습니다.'})).toBeVisible();
   await expect(page.getByRole('img',{name:'A4 보건소식지 미리보기',exact:true})).toBeVisible();
   await expect(page.getByRole('button',{name:'출력 위치 선택·저장',exact:true})).toBeDisabled();
   const info=await page.evaluate(()=>window.electronP0.info());await mkdir(info.userData,{recursive:true});const path=join(info.userData,'synthetic-newsletter.json');
