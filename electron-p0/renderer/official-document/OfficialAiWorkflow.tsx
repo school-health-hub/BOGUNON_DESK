@@ -52,7 +52,7 @@ export function OfficialAiWorkflow({context,onSettings}:{context:OfficialWorkflo
    return reply.text;
   }});
   if(prepared.status!=='ready')return;
-  locked.current=true;owned.current={cancel:()=>{void bridge.cancel().catch(()=>{});}};setBusy(true);setReview(null);setNotice('Main에서 계정·모델·전송 내용을 다시 확인합니다. 이전 원고와 AI 결과는 유지합니다.');
+  locked.current=true;owned.current={cancel:()=>{void bridge.cancel().catch(()=>{});}};setBusy(true);setReview(null);setNotice('전송 전에 연결 계정·모델·원고 내용을 다시 확인합니다. 이전 원고와 AI 결과는 유지합니다.');
   try{
    const response=await prepared.gate.confirm();
    if(!live.current||epoch.current!==token||captured.version!==current.current.version)return;

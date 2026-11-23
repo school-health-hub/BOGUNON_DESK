@@ -38,7 +38,7 @@ export function AiAssistant({tool,source,onSettings,active=true}:{tool:AiTool;so
  const evaluation=evaluateOfficialDocumentOutbound(prompt);
  const send=async()=>{
   if(!active||!api||busy||!confirmed||!evaluation.canConfirm)return;
-  const token=++epoch.current;owned.current=true;cancelOwned.current=()=>{void (route==='chatgpt'?chatgpt!:api).cancel();};setBusy(true);setNotice('Main에서 제공자·모델과 전송 내용을 최종 확인해 주세요.');
+  const token=++epoch.current;owned.current=true;cancelOwned.current=()=>{void (route==='chatgpt'?chatgpt!:api).cancel();};setBusy(true);setNotice('전송 전에 연결 서비스·모델과 원고 내용을 다시 확인해 주세요.');
   try{const result=read(await (route==='chatgpt'?chatgpt!:api).generate({tool,prompt}));if(!mounted.current||token!==epoch.current)return;
    if(result){setText(result.text);setNotice('AI 응답을 받았습니다. 사실·개인정보를 검토한 뒤 필요한 부분만 복사해 기존 편집기에 반영하세요.');}else setNotice('외부 전송을 취소했습니다. 기존 원고와 이전 응답은 유지됩니다.');
   }catch(error){if(mounted.current&&token===epoch.current)setNotice(error instanceof Error?error.message:'AI 요청에 실패했습니다. 기존 원고는 유지됩니다.');}

@@ -22,10 +22,10 @@ it('opens read-only preview and only loads a restored record after confirmed bac
  vi.stubGlobal('electronWork',{newsletter:{projects:api}});const onLoaded=vi.fn(),onPreview=vi.fn();
  render(<NewsletterProjectControls document={doc} head={record.head} onLoaded={onLoaded} onSaved={vi.fn()} onPreview={onPreview}/>);document.querySelector('details')!.open=true;
  await waitFor(()=>expect(screen.getByLabelText('불러올 프로젝트 ID')).toHaveProperty('value',doc.project.projectId));
- fireEvent.click(screen.getByRole('button',{name:'revision 이력 조회'}));await screen.findByRole('button',{name:'revision 1 미리보기'});
- fireEvent.click(screen.getByRole('button',{name:'revision 1 미리보기'}));await waitFor(()=>expect(onPreview).toHaveBeenCalledWith(preview));expect(onLoaded).not.toHaveBeenCalled();
- fireEvent.click(screen.getByRole('button',{name:'미리 본 revision 복구'}));await screen.findByText('복구를 취소했습니다.');expect(onLoaded).not.toHaveBeenCalled();
- fireEvent.click(screen.getByRole('button',{name:'revision 1 미리보기'}));await screen.findByRole('button',{name:'미리 본 revision 복구'});fireEvent.click(screen.getByRole('button',{name:'미리 본 revision 복구'}));await waitFor(()=>expect(onLoaded).toHaveBeenCalledWith(record));expect(api.preview).toHaveBeenCalledTimes(2);
+ fireEvent.click(screen.getByRole('button',{name:'저장 이력 보기'}));await screen.findByRole('button',{name:'저장 단계 1 미리보기'});
+ fireEvent.click(screen.getByRole('button',{name:'저장 단계 1 미리보기'}));await waitFor(()=>expect(onPreview).toHaveBeenCalledWith(preview));expect(onLoaded).not.toHaveBeenCalled();
+ fireEvent.click(screen.getByRole('button',{name:'미리 본 내용 복원'}));await screen.findByText('복구를 취소했습니다.');expect(onLoaded).not.toHaveBeenCalled();
+ fireEvent.click(screen.getByRole('button',{name:'저장 단계 1 미리보기'}));await screen.findByRole('button',{name:'미리 본 내용 복원'});fireEvent.click(screen.getByRole('button',{name:'미리 본 내용 복원'}));await waitFor(()=>expect(onLoaded).toHaveBeenCalledWith(record));expect(api.preview).toHaveBeenCalledTimes(2);
 });
 
 it('clears prior save success when an external document detaches the saved head',async()=>{
@@ -39,9 +39,9 @@ it('clears prior save success when an external document detaches the saved head'
  if(details===null)throw new Error('Project controls missing');
  details.open=true;
  fireEvent.click(screen.getByRole('button',{name:'프로젝트 내부 저장'}));
- await screen.findByText('프로젝트 저장됨 · revision 2');
+ await screen.findByText('프로젝트를 저장했습니다 · 저장 단계 2');
 
  view.rerender(<NewsletterProjectControls {...callbacks} document={doc} head={null}/>);
 
- expect(screen.queryByText('프로젝트 저장됨 · revision 2')).toBeNull();
+ expect(screen.queryByText('프로젝트를 저장했습니다 · 저장 단계 2')).toBeNull();
 });
