@@ -16,9 +16,17 @@ export type UpdateFeedConfig = Readonly<{
   channel:'beta'|'stable';
   manifestUrl:string;
   publicKeyPem:string;
+  publisherSubject?:string;
 }>;
 
 const versionPattern=/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
+const githubFeedPath=/^\/([A-Za-z0-9-]+)\/([A-Za-z0-9._-]+)\/releases\/download\/updates-(beta|stable)\/bogunon-update\.json$/;
+export function githubUpdateRepository(feed:UpdateFeedConfig):Readonly<{owner:string;repo:string}>|null{
+  const url=new URL(feed.manifestUrl);
+  if(url.hostname!=='github.com')return null;
+  const match=githubFeedPath.exec(url.pathname);
+  return match?{owner:match[1],repo:match[2]}:null;
+}
 const parseVersion=(value:string):{core:bigint[];pre:string[]}|null=>{
   if(value.length>80)return null;
   const match=versionPattern.exec(value);
@@ -51,11 +59,13 @@ export function validateUpdateFeed(input:unknown):UpdateFeedConfig|null{
   if(item.enabled!==true)return null;
   if(item.channel!=='beta'&&item.channel!=='stable')return null;
   if(typeof item.manifestUrl!=='string'||typeof item.publicKeyPem!=='string')return null;
+  if(item.publisherSubject!==undefined&&(typeof item.publisherSubject!=='string'||!/^CN=[^\r\n\u0000-\u001f]{3,250}$/.test(item.publisherSubject)))return null;
   try{
     const url=new URL(item.manifestUrl);
     if(url.protocol!=='https:'||url.username||url.password||url.hash||url.search||url.port&&url.port!=='443')return null;
+    if(url.hostname==='github.com'&&(!githubFeedPath.test(url.pathname)||!url.pathname.includes(`/updates-${item.channel}/`)))return null;
     if(createPublicKey(item.publicKeyPem).asymmetricKeyType!=='ed25519')return null;
-    return {enabled:true,channel:item.channel,manifestUrl:url.href,publicKeyPem:item.publicKeyPem};
+    return {enabled:true,channel:item.channel,manifestUrl:url.href,publicKeyPem:item.publicKeyPem,...(typeof item.publisherSubject==='string'?{publisherSubject:item.publisherSubject}:{})};
   }catch{return null;}
 }
 
@@ -66,6 +76,8 @@ export function verifyUpdateManifest(input:unknown,feed:UpdateFeedConfig,current
   let target:URL;try{target=new URL(item.url);}catch{throw new Error('허용되지 않은 업데이트 파일 주소입니다.');}
   const origin=new URL(feed.manifestUrl).origin;
   if(target.protocol!=='https:'||target.origin!==origin||target.username||target.password||target.search||target.hash||!target.pathname.endsWith('.exe'))throw new Error('허용되지 않은 업데이트 파일 주소입니다.');
+  const github=githubUpdateRepository(feed);
+  if(github&&target.pathname!==`/${github.owner}/${github.repo}/releases/download/v${item.version}/BOGUNON-DESK-Setup-${item.version}-x64.exe`)throw new Error('허용되지 않은 업데이트 파일 주소입니다.');
   const payload=JSON.stringify([item.schema,item.channel,item.version,item.notes,item.url,item.size,item.sha256.toLowerCase()]);
   const signature=Buffer.from(item.signature,'base64');
   if(signature.length!==64||!verify(null,Buffer.from(payload),feed.publicKeyPem,signature))throw new Error('업데이트 서명을 확인하지 못했습니다.');

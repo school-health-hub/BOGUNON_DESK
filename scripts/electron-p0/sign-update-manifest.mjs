@@ -11,6 +11,10 @@ const keyText=process.env.BOGUNON_UPDATE_SIGN_KEY;
 if(config.enabled!==true||!keyText)throw new Error('A configured public update key and a separate private signing key are required.');
 const base=new URL(baseUrl),feed=new URL(config.manifestUrl);
 if(base.protocol!=='https:'||base.origin!==feed.origin||base.username||base.password||base.search||base.hash)throw new Error('The update URL must use the configured HTTPS origin.');
+if(feed.hostname==='github.com'){
+  const match=/^\/([A-Za-z0-9-]+)\/([A-Za-z0-9._-]+)\/releases\/download\/updates-(beta|stable)\/bogunon-update\.json$/.exec(feed.pathname);
+  if(!match||base.pathname!==`/${match[1]}/${match[2]}/releases/download/v${product.version}/`)throw new Error('The GitHub Release must match the configured repository and product version.');
+}
 if(basename(installerPath)!==`BOGUNON-DESK-Setup-${product.version}-x64.exe`)throw new Error('NSIS file name does not match the product version.');
 const privateKey=createPrivateKey(keyText),publicKey=createPublicKey(privateKey).export({type:'spki',format:'pem'}).toString();
 if(publicKey.trim()!==String(config.publicKeyPem).trim())throw new Error('Private key does not match the app public key.');

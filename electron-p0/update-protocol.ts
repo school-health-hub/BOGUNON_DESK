@@ -1,8 +1,9 @@
 export type UpdateState = Readonly<{
-  phase:'unavailable'|'idle'|'checking'|'current'|'available'|'downloading'|'ready'|'failed';
+  phase:'unavailable'|'idle'|'checking'|'current'|'available'|'downloading'|'ready'|'installing'|'failed';
   currentVersion:string;
   nextVersion?:string;
   notes?:string;
   progress?:number;
+  installSupported?:boolean;
   message?:string;
 }>;

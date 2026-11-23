@@ -15,7 +15,7 @@ export type P0Info = Readonly<{ appId: string; productName: string; version: str
 export type P0UpdateState=import('./update-protocol.js').UpdateState;
 export interface P0Bridge {
   info(): Promise<P0Info>;
-  updates:Readonly<{status():Promise<P0UpdateState>;check():Promise<P0UpdateState>;download():Promise<P0UpdateState>;cancel():Promise<P0UpdateState>;onState(listener:(state:P0UpdateState)=>void):()=>void}>;
+  updates:Readonly<{status():Promise<P0UpdateState>;check():Promise<P0UpdateState>;download():Promise<P0UpdateState>;cancel():Promise<P0UpdateState>;install():Promise<P0UpdateState>;onState(listener:(state:P0UpdateState)=>void):()=>void}>;
   readSettings(): Promise<P0Settings | null>;
   writeSettings(settings: P0Settings): Promise<void>;
   readonly desktopSurface:DesktopSurfaceBridge;

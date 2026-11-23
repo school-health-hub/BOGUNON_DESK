@@ -7,7 +7,7 @@ import type { P0Bridge, P0Settings, WorkBridge, SyntheticSummaryRequest, MemoDoc
 if (!process.sandboxed || !process.contextIsolated) throw new Error('PoC requires a sandboxed isolated preload');
 const bridge: P0Bridge = Object.freeze({
   info: () => ipcRenderer.invoke('p0:info'),
-  updates:Object.freeze({status:()=>ipcRenderer.invoke('p0:update:status'),check:()=>ipcRenderer.invoke('p0:update:check'),download:()=>ipcRenderer.invoke('p0:update:download'),cancel:()=>ipcRenderer.invoke('p0:update:cancel'),onState:(listener:(state:import('../protocol.js').P0UpdateState)=>void)=>{const callback=(_event:IpcRendererEvent,state:import('../protocol.js').P0UpdateState)=>listener(state);ipcRenderer.on('p0:update:state',callback);return()=>ipcRenderer.removeListener('p0:update:state',callback);}}),
+  updates:Object.freeze({status:()=>ipcRenderer.invoke('p0:update:status'),check:()=>ipcRenderer.invoke('p0:update:check'),download:()=>ipcRenderer.invoke('p0:update:download'),cancel:()=>ipcRenderer.invoke('p0:update:cancel'),install:()=>ipcRenderer.invoke('p0:update:install'),onState:(listener:(state:import('../protocol.js').P0UpdateState)=>void)=>{const callback=(_event:IpcRendererEvent,state:import('../protocol.js').P0UpdateState)=>listener(state);ipcRenderer.on('p0:update:state',callback);return()=>ipcRenderer.removeListener('p0:update:state',callback);}}),
   readSettings: () => ipcRenderer.invoke('p0:read-settings'),
   writeSettings: (settings: P0Settings) => ipcRenderer.invoke('p0:write-settings',settings),
   desktopSurface:Object.freeze({read:()=>ipcRenderer.invoke('p0:desktop-surface:read'),write:(mode:import('../desktop-surface-protocol.js').DesktopSurfaceMode)=>ipcRenderer.invoke('p0:desktop-surface:write',mode)}),

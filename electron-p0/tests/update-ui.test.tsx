@@ -28,3 +28,13 @@ it('keeps download consent separate and explains unsigned-install restriction',a
   expect(await screen.findByText(/현재 미서명 QA 후보는 앱에서 자동 설치하지 않습니다/)).toBeTruthy();
   expect(screen.queryByRole('button',{name:'업데이트 설치하고 다시 시작'})).toBeNull();
 });
+it('offers a separate install action only for a trusted ready installer',async()=>{
+  const ready:P0UpdateState={phase:'ready',currentVersion:info.version,nextVersion:'2.0.0-beta.6',progress:100,installSupported:true,message:'서명 확인 대기'};
+  const install=vi.fn(async():Promise<P0UpdateState>=>({...ready,phase:'installing'}));
+  vi.stubGlobal('electronP0',{updates:{status:async()=>ready,onState:()=>()=>{},install,check:vi.fn(),download:vi.fn(),cancel:vi.fn()}});
+  render(<ProductAbout info={info} onOpenNewsletter={()=>{}}/>);
+  const button=await screen.findByRole('button',{name:'업데이트 설치하기'});
+  expect(install).not.toHaveBeenCalled();
+  fireEvent.click(button);
+  await waitFor(()=>expect(install).toHaveBeenCalledTimes(1));
+});

@@ -1,4 +1,4 @@
-import {afterEach,describe,expect,it} from 'vitest';
+import {afterEach,describe,expect,it,vi} from 'vitest';
 import {createHash,generateKeyPairSync,sign} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {mkdir,mkdtemp,readdir,readFile,rm,writeFile} from 'node:fs/promises';
@@ -8,6 +8,8 @@ import {UpdateService} from '../main/update-service.js';
 
 const {privateKey,publicKey}=generateKeyPairSync('ed25519');
 const feed:UpdateFeedConfig={enabled:true,channel:'beta',manifestUrl:'https://updates.example.org/beta/latest.json',publicKeyPem:publicKey.export({type:'spki',format:'pem'}).toString()};
+const githubFeed:UpdateFeedConfig={...feed,manifestUrl:'https://github.com/school-health-hub/BOGUNON_DESK/releases/download/updates-beta/bogunon-update.json'};
+const githubInstaller='https://github.com/school-health-hub/BOGUNON_DESK/releases/download/v2.0.0-beta.6/BOGUNON-DESK-Setup-2.0.0-beta.6-x64.exe';
 const current='2.0.0-beta.5';
 const payload=Buffer.from('synthetic QA installer, never executable');
 const sha256=createHash('sha256').update(payload).digest('hex');
@@ -18,6 +20,13 @@ const manifest=(version='2.0.0-beta.6',overrides:Record<string,unknown>={})=>{
 };
 
 describe('signed update contract',()=>{
+  it('accepts only the configured public GitHub channel and a version-matched release asset',()=>{
+    expect(validateUpdateFeed(githubFeed)).not.toBeNull();
+    expect(verifyUpdateManifest(manifest('2.0.0-beta.6',{url:githubInstaller}),githubFeed,current).url).toBe(githubInstaller);
+    expect(()=>verifyUpdateManifest(manifest('2.0.0-beta.6',{url:'https://github.com/other/repo/releases/download/v2.0.0-beta.6/setup.exe'}),githubFeed,current)).toThrow('주소');
+    expect(()=>verifyUpdateManifest(manifest('2.0.0-beta.6',{url:'https://github.com/school-health-hub/BOGUNON_DESK/releases/download/v2.0.0-beta.7/setup.exe'}),githubFeed,current)).toThrow('주소');
+    expect(validateUpdateFeed({...githubFeed,manifestUrl:'https://github.com/school-health-hub/BOGUNON_DESK/releases/download/other/bogunon-update.json'})).toBeNull();
+  });
   it('orders prereleases, stable versions and equal versions without downgrade',()=>{
     expect(compareUpdateVersions('2.0.0-beta.6',current)).toBe(1);
     expect(compareUpdateVersions('2.0.0','2.0.0-beta.99')).toBe(1);
@@ -64,6 +73,41 @@ describe('isolated update lifecycle',()=>{
     expect(seen).toContain('downloading:100');
     expect(seen).toContain('ready:100');
   });
+  it('follows only bounded GitHub HTTPS asset redirects without forwarding credentials',async()=>{
+    const base=process.env.UPDATE_QA_TEMP;if(!base)throw new Error('Set UPDATE_QA_TEMP');
+    root=await mkdtemp(join(base,'github-'));
+    const signed=manifest('2.0.0-beta.6',{url:githubInstaller});
+    const cdn='https://release-assets.githubusercontent.com/asset?token=synthetic';
+    const calls:{readonly url:string;readonly redirect:RequestRedirect|undefined;readonly headers:HeadersInit|undefined}[]=[];
+    const fetcher=(async(url:string,init?:RequestInit)=>{
+      calls.push({url,redirect:init?.redirect,headers:init?.headers});
+      if(url===githubFeed.manifestUrl||url===githubInstaller)return new Response(null,{status:302,headers:{location:cdn}});
+      if(url===cdn)return new Response(calls.length===2?JSON.stringify(signed):payload);
+      throw Error('unexpected URL');
+    }) as typeof fetch;
+    const service=new UpdateService({currentVersion:current,feed:githubFeed,cacheDir:root,enabled:true,emit:()=>{},fetcher});
+    expect((await service.check()).phase).toBe('available');
+    expect((await service.download()).phase).toBe('ready');
+    expect(calls).toHaveLength(4);
+    expect(calls.every(call=>call.redirect==='manual'&&call.headers===undefined)).toBe(true);
+  });
+  it.each(['http://release-assets.githubusercontent.com/asset','https://evil.example/asset','https://github.com/other/repo/releases/download/v2/setup.exe'])('rejects an unsafe GitHub redirect to %s',async location=>{
+    const base=process.env.UPDATE_QA_TEMP;if(!base)throw new Error('Set UPDATE_QA_TEMP');
+    root=await mkdtemp(join(base,'github-block-'));
+    const fetcher=(async()=>new Response(null,{status:302,headers:{location}})) as typeof fetch;
+    const service=new UpdateService({currentVersion:current,feed:githubFeed,cacheDir:root,enabled:true,emit:()=>{},fetcher});
+    expect((await service.check()).phase).toBe('failed');
+    expect(await readdir(root)).toEqual([]);
+  });
+  it('stops a GitHub redirect loop after three hops',async()=>{
+    const base=process.env.UPDATE_QA_TEMP;if(!base)throw new Error('Set UPDATE_QA_TEMP');
+    root=await mkdtemp(join(base,'github-loop-'));
+    let calls=0;
+    const fetcher=(async()=>{calls++;return new Response(null,{status:302,headers:{location:'https://release-assets.githubusercontent.com/asset'}});}) as typeof fetch;
+    const service=new UpdateService({currentVersion:current,feed:githubFeed,cacheDir:root,enabled:true,emit:()=>{},fetcher});
+    expect((await service.check()).phase).toBe('failed');
+    expect(calls).toBe(4);
+  });
   it('rejects a damaged file and allows retry without keeping a partial installer',async()=>{
     let corrupted=true;
     const base=process.env.UPDATE_QA_TEMP;if(!base)throw new Error('Set UPDATE_QA_TEMP');
@@ -97,6 +141,49 @@ describe('isolated update lifecycle',()=>{
     expect((await service.download()).phase).toBe('idle');
     expect(await readdir(root!)).toEqual([]);
   });
+  it('keeps unsigned updates downloaded but blocks installer launch',async()=>{
+    const service=await setup();
+    await service.check();await service.download();
+    expect((await service.install()).phase).toBe('ready');
+    expect(service.status().message).toContain('서명');
+  });
+  it('requires a valid publisher, unchanged hash and explicit save confirmation before launch',async()=>{
+    const base=process.env.UPDATE_QA_TEMP;if(!base)throw new Error('Set UPDATE_QA_TEMP');
+    root=await mkdtemp(join(base,'install-'));
+    const signedFeed={...feed,publisherSubject:'CN=BOGUNON QA'};
+    let trusted=true,confirmed=false;
+    const verifySignature=vi.fn(async()=>trusted);
+    const confirmClose=vi.fn(async()=>confirmed);
+    const launchInstaller=vi.fn(async()=>{});
+    const service=new UpdateService({currentVersion:current,feed:signedFeed,cacheDir:root,enabled:true,emit:()=>{},fetcher:(async(url:string)=>new Response(url===feed.manifestUrl?JSON.stringify(manifest()):payload)) as typeof fetch,verifySignature,confirmClose,launchInstaller});
+    await service.check();expect((await service.download()).phase).toBe('ready');
+    trusted=false;expect((await service.install()).phase).toBe('ready');expect(launchInstaller).not.toHaveBeenCalled();
+    trusted=true;expect((await service.install()).phase).toBe('ready');expect(confirmClose).toHaveBeenCalledTimes(1);expect(launchInstaller).not.toHaveBeenCalled();
+    confirmed=true;expect((await service.install()).phase).toBe('installing');expect(launchInstaller).toHaveBeenCalledTimes(1);
+  });
+  it('refuses a cached installer altered after download',async()=>{
+    const base=process.env.UPDATE_QA_TEMP;if(!base)throw new Error('Set UPDATE_QA_TEMP');
+    root=await mkdtemp(join(base,'install-tamper-'));
+    const launchInstaller=vi.fn(async()=>{});
+    const service=new UpdateService({currentVersion:current,feed:{...feed,publisherSubject:'CN=BOGUNON QA'},cacheDir:root,enabled:true,emit:()=>{},fetcher:(async(url:string)=>new Response(url===feed.manifestUrl?JSON.stringify(manifest()):payload)) as typeof fetch,verifySignature:async()=>true,confirmClose:async()=>true,launchInstaller});
+    await service.check();await service.download();
+    const names=await readdir(root);await writeFile(join(root,names[0]),'tampered');
+    expect((await service.install()).phase).toBe('ready');expect(launchInstaller).not.toHaveBeenCalled();
+  });
+  it('does not start two installers when installation is requested twice',async()=>{
+    const base=process.env.UPDATE_QA_TEMP;if(!base)throw new Error('Set UPDATE_QA_TEMP');
+    root=await mkdtemp(join(base,'install-once-'));
+    let release:()=>void=()=>{};
+    const gate=new Promise<void>(resolve=>{release=resolve;});
+    const verifySignature=vi.fn(async()=>{await gate;return true;});
+    const launchInstaller=vi.fn(async()=>{});
+    const service=new UpdateService({currentVersion:current,feed:{...feed,publisherSubject:'CN=BOGUNON QA'},cacheDir:root,enabled:true,emit:()=>{},fetcher:(async(url:string)=>new Response(url===feed.manifestUrl?JSON.stringify(manifest()):payload)) as typeof fetch,verifySignature,confirmClose:async()=>true,launchInstaller});
+    await service.check();await service.download();
+    const first=service.install();const second=service.install();
+    release();await Promise.all([first,second]);
+    expect(verifySignature).toHaveBeenCalledTimes(2);
+    expect(launchInstaller).toHaveBeenCalledTimes(1);
+  });
   it('cancels an in-flight download and leaves no partial file',async()=>{
     const base=process.env.UPDATE_QA_TEMP;if(!base)throw new Error('Set UPDATE_QA_TEMP');
     root=await mkdtemp(join(base,'update-'));
@@ -118,5 +205,19 @@ describe('isolated update lifecycle',()=>{
     const signed=verifyUpdateManifest(JSON.parse(await readFile(output,'utf8')),feed,current);
     expect(signed.sha256).toBe(sha256);
     expect(signed.size).toBe(payload.byteLength);
+  });
+  it('signs only the matching versioned GitHub Release asset',async()=>{
+    const base=process.env.UPDATE_QA_TEMP;if(!base)throw new Error('Set UPDATE_QA_TEMP');
+    root=await mkdtemp(join(base,'github-signer-'));
+    await mkdir(join(root,'config'));await mkdir(join(root,'electron-p0'));
+    await writeFile(join(root,'config','production-electron-update.json'),JSON.stringify(githubFeed));
+    await writeFile(join(root,'electron-p0','package.json'),JSON.stringify({version:'2.0.0-beta.6'}));
+    const installer=join(root,'BOGUNON-DESK-Setup-2.0.0-beta.6-x64.exe'),notes=join(root,'notes.txt'),output=join(root,'bogunon-update.json');
+    await writeFile(installer,payload);await writeFile(notes,'합성 QA 변경 사항');
+    const script=resolve('scripts/electron-p0/sign-update-manifest.mjs');
+    const env={...process.env,BOGUNON_UPDATE_SIGN_KEY:privateKey.export({type:'pkcs8',format:'pem'}).toString()};
+    expect(()=>execFileSync(process.execPath,[script,installer,'https://github.com/other/repo/releases/download/v2.0.0-beta.6/',notes,output],{cwd:root,env,stdio:'pipe'})).toThrow();
+    execFileSync(process.execPath,[script,installer,'https://github.com/school-health-hub/BOGUNON_DESK/releases/download/v2.0.0-beta.6/',notes,output],{cwd:root,env});
+    expect(verifyUpdateManifest(JSON.parse(await readFile(output,'utf8')),githubFeed,current).url).toBe(githubInstaller);
   });
 });

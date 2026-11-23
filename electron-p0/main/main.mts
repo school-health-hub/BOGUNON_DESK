@@ -78,6 +78,7 @@ import {DesktopSurfaceModeStore} from './desktop-surface-mode.js';
 import {OnboardingStore} from './onboarding.js';
 import {DesktopSurfaceController} from './desktop-surface-controller.js';
 import {readUpdateFeed,UpdateService} from './update-service.js';
+import {verifyWindowsUpdateSignature} from './update-signature.js';
 import {createPaletteFailureGate} from './desktop-palette.js';
 if (app.commandLine.hasSwitch('no-sandbox') || app.commandLine.hasSwitch('disable-web-security')) throw new Error('Unsafe Electron launch flags denied');
 app.setName(PRODUCT_NAME);
@@ -127,8 +128,8 @@ else {
     webPreferences:{ preload:join(app.getAppPath(),'preload','preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webviewTag:false,session:isolated,webSecurity:true } });
   const desktopSurface=new DesktopSurfaceController({renderer,dev,workspace:window,layout:store,mode:desktopSurfaceStore,events:eventStore,tasks:taskStore,memo:memoStore,failureGate:createPaletteFailureGate({qa:qaPaths.qa,value:process.env.ELECTRON_P0_QA_FAIL_PALETTE}),onboardingComplete:()=>onboardingComplete,quitting:()=>quitting});
   const updateFeed=await readUpdateFeed(join(app.getAppPath(),'update-config.json'));
-  const updates=new UpdateService({currentVersion:app.getVersion(),feed:updateFeed,cacheDir:join(userData,'update-downloads'),enabled:app.isPackaged&&process.platform==='win32'&&!process.env.PORTABLE_EXECUTABLE_FILE,emit:state=>{if(!window.isDestroyed())window.webContents.send('p0:update:state',state);}});
-  for(const action of ['status','check','download','cancel'] as const)ipcMain.handle(`p0:update:${action}`,(event,...args:unknown[])=>{assertSender(event,window.webContents,url);if(args.length)throw new Error('Invalid update request');return updates[action]();});
+  const updates=new UpdateService({currentVersion:app.getVersion(),feed:updateFeed,cacheDir:join(userData,'update-downloads'),enabled:app.isPackaged&&process.platform==='win32'&&!process.env.PORTABLE_EXECUTABLE_FILE,emit:state=>{if(!window.isDestroyed())window.webContents.send('p0:update:state',state);},verifySignature:verifyWindowsUpdateSignature,confirmClose:async()=>{const result=await dialog.showMessageBox(window,{type:'question',title:'BOGUNON DESK 업데이트',message:'저장하지 않은 작업을 모두 저장했나요?',detail:'설치를 시작하면 BOGUNON DESK가 종료됩니다. 저장하지 않은 입력이 있다면 계속 작업을 선택해 먼저 저장해 주세요.',buttons:['계속 작업','저장 완료, 설치'],defaultId:0,cancelId:0});return result.response===1;},launchInstaller:async path=>{const error=await shell.openPath(path);if(error)throw new Error('Windows에서 설치 프로그램을 열지 못했습니다.');quit();}});
+  for(const action of ['status','check','download','cancel','install'] as const)ipcMain.handle(`p0:update:${action}`,(event,...args:unknown[])=>{assertSender(event,window.webContents,url);if(args.length)throw new Error('Invalid update request');return updates[action]();});
   app.on('before-quit',()=>updates.cancel());
   // Closed renderer remains offline. Optional QA provider lives OUTSIDE product app.
   const workspaceProduct=await registerWorkspaceProduct(ipcMain,window.webContents,url,{packaged:app.isPackaged,isolated:qaPaths.qa,mode:process.env.SCHOOL_WORKSPACE_MODE,nodeEnv:process.env.NODE_ENV,runId:testRun,h1OptIn:process.env.SCHOOL_H1_OPT_IN==='isolated-h1'},async()=>{
