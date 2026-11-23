@@ -27,6 +27,12 @@
 .electron-soft-rose .rose-dialog button{font:inherit;min-height:44px;border:1px solid #8a7680;border-radius:10px;background:#fffdfd;color:#243246;padding:8px 12px;cursor:pointer}
 .electron-soft-rose .rose-dialog button:hover:not(:disabled){background:#fff0f5}
 .electron-soft-rose .rose-dialog button:disabled{background:#e2e8ed;color:#475569;cursor:not-allowed;opacity:1}
+.electron-soft-rose .product-update{margin:20px 0;padding:18px;border:1px solid #e9dde2;border-radius:16px;background:#fff9fb}
+.electron-soft-rose .product-update h3{margin:0 0 8px;font-size:18px;color:#713149}
+.electron-soft-rose .product-update p{margin:8px 0;line-height:1.55}
+.electron-soft-rose .product-update-notes{white-space:pre-wrap}
+.electron-soft-rose .product-update-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.electron-soft-rose .product-update-actions .product-update-primary{background:#8a3f5b;color:#fff;border-color:#8a3f5b}
 .electron-soft-rose .rose-dialog button[aria-pressed=true]{background:#f7dce4;color:#8a3f5b;border-color:#8a3f5b}
 .electron-soft-rose .p0-tool-card{min-height:104px;text-align:left;border-color:#e9dde2!important;border-radius:16px!important;padding:20px!important}
 .electron-soft-rose .p0-tool-card svg{color:#8a3f5b}

@@ -10,6 +10,7 @@ run(['node_modules/vite/bin/vite.js','build','--config','electron-p0/vite.instru
 run(['node_modules/vite/bin/vite.js','build','--config','electron-p0/vite.config.ts']);
 await mkdir('build/electron-p0-app',{recursive:true});
 await copyFile('electron-p0/package.json','build/electron-p0-app/package.json');
+await copyFile('config/production-electron-update.json','build/electron-p0-app/update-config.json');
 const {parseAccountConfig}=await import('../../build/electron-p0-app/main/account-network.js');
 const production=JSON.parse(await readFile('config/production-supabase.json','utf8'));
 const {loadEnv}=await import('vite');

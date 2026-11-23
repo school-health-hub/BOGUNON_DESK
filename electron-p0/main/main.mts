@@ -77,6 +77,7 @@ import { assertSender, resourceAllowed } from './policy.js';
 import {DesktopSurfaceModeStore} from './desktop-surface-mode.js';
 import {OnboardingStore} from './onboarding.js';
 import {DesktopSurfaceController} from './desktop-surface-controller.js';
+import {readUpdateFeed,UpdateService} from './update-service.js';
 import {createPaletteFailureGate} from './desktop-palette.js';
 if (app.commandLine.hasSwitch('no-sandbox') || app.commandLine.hasSwitch('disable-web-security')) throw new Error('Unsafe Electron launch flags denied');
 app.setName(PRODUCT_NAME);
@@ -125,6 +126,10 @@ else {
   const window = new BrowserWindow({ title:PRODUCT_NAME,icon:join(app.getAppPath(),'app-icon.png'),...fitBounds(desktop.bounds,screen.getAllDisplays().map(d=>d.workArea)),show:false,
     webPreferences:{ preload:join(app.getAppPath(),'preload','preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webviewTag:false,session:isolated,webSecurity:true } });
   const desktopSurface=new DesktopSurfaceController({renderer,dev,workspace:window,layout:store,mode:desktopSurfaceStore,events:eventStore,tasks:taskStore,memo:memoStore,failureGate:createPaletteFailureGate({qa:qaPaths.qa,value:process.env.ELECTRON_P0_QA_FAIL_PALETTE}),onboardingComplete:()=>onboardingComplete,quitting:()=>quitting});
+  const updateFeed=await readUpdateFeed(join(app.getAppPath(),'update-config.json'));
+  const updates=new UpdateService({currentVersion:app.getVersion(),feed:updateFeed,cacheDir:join(userData,'update-downloads'),enabled:app.isPackaged&&process.platform==='win32'&&!process.env.PORTABLE_EXECUTABLE_FILE,emit:state=>{if(!window.isDestroyed())window.webContents.send('p0:update:state',state);}});
+  for(const action of ['status','check','download','cancel'] as const)ipcMain.handle(`p0:update:${action}`,(event,...args:unknown[])=>{assertSender(event,window.webContents,url);if(args.length)throw new Error('Invalid update request');return updates[action]();});
+  app.on('before-quit',()=>updates.cancel());
   // Closed renderer remains offline. Optional QA provider lives OUTSIDE product app.
   const workspaceProduct=await registerWorkspaceProduct(ipcMain,window.webContents,url,{packaged:app.isPackaged,isolated:qaPaths.qa,mode:process.env.SCHOOL_WORKSPACE_MODE,nodeEnv:process.env.NODE_ENV,runId:testRun,h1OptIn:process.env.SCHOOL_H1_OPT_IN==='isolated-h1'},async()=>{
     const moduleUrl=pathToFileURL(join(app.getAppPath(),'..',process.env.SCHOOL_WORKSPACE_MODE==='hosted-test'?'school-h1-qa':'school05-qa','provider.mjs')).href;
@@ -424,5 +429,6 @@ else {
   await window.loadURL(url);
   await desktopSurface.start().catch(()=>{if(!window.isDestroyed()){window.show();window.focus();}});
   if(!onboardingComplete&&!window.isDestroyed()){window.show();window.focus();}
+  if(updates.status().phase==='idle')setTimeout(()=>{if(!quitting)void updates.check();},30000).unref();
   }).catch((error: unknown)=>{ console.error('Electron P0 startup failed:', error instanceof Error ? error.message : 'unknown'); app.exit(1); });
 }
