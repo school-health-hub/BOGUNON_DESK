@@ -11,12 +11,13 @@ export const APP_ID = 'kr.sungandi.schoolhealthdesk.electronp0';
 export const PRODUCT_NAME = 'BOGUNON DESK';
 export const PROFILE_NAME = 'BOGUNON-DESK-ELECTRON-P0';
 export type P0Settings = Readonly<{ version: 1; dashboard: unknown; dock: unknown }>;
-export type P0Info = Readonly<{ appId: string; productName: string; version: string; userData: string; sourceSha: string; electron: string }>;
+export type P0Info = Readonly<{ appId: string; productName: string; version: string; userData: string; sourceSha: string; electron: string; onboardingComplete?: boolean }>;
 export interface P0Bridge {
   info(): Promise<P0Info>;
   readSettings(): Promise<P0Settings | null>;
   writeSettings(settings: P0Settings): Promise<void>;
   readonly desktopSurface:DesktopSurfaceBridge;
+  completeOnboarding?(mode:'window'|'palette'):Promise<void>;
   onOpenSettings(listener:()=>void):()=>void;
 }
 

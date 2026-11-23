@@ -20,7 +20,7 @@ import {createWorkFolderHandlers} from './work-folders-ipc.js';
 import {createRecordHelperHandlers} from './record-helper-ipc.js';
 import {createFinderCompatHandlers} from './finder-compat-ipc.js';
 import {PurchaseSettingsStore,createPurchaseSettingsHandlers} from './purchase-settings.js';
-import {realpathSync} from 'node:fs';
+import {existsSync,realpathSync} from 'node:fs';
 import {qaProfilePaths} from './qa-profile.js';
 import {tmpdir} from 'node:os';
 import {FinderSearchService,createFinderSearchHandlers} from './finder-search.js';
@@ -57,8 +57,9 @@ import { ExcelService } from './purchase-excel.js';
 import { createExcelHandlers } from './purchase-excel-ipc.js';
 import { createPurchaseImportHandlers } from './purchase-import.js';
 import { createPurchaseClipboardHandler } from './purchase-clipboard.js';
-import { app, BrowserWindow, ipcMain, session, Menu, Tray, nativeImage, screen, dialog, clipboard, ClipboardItem, safeStorage, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, session, Menu, Tray, nativeImage, screen, dialog, clipboard, ClipboardItem, safeStorage, shell, type IpcMainEvent } from 'electron';
 import { join } from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { APP_ID, PRODUCT_NAME, PROFILE_NAME } from '../protocol.js';
@@ -74,6 +75,7 @@ import {InventoryStore,InventoryConflict} from './inventory-store.js';
 import { createSampleHandler, SAMPLE_SUMMARY_CHANNEL } from './sample-ipc.js';
 import { assertSender, resourceAllowed } from './policy.js';
 import {DesktopSurfaceModeStore} from './desktop-surface-mode.js';
+import {OnboardingStore} from './onboarding.js';
 import {DesktopSurfaceController} from './desktop-surface-controller.js';
 import {createPaletteFailureGate} from './desktop-palette.js';
 if (app.commandLine.hasSwitch('no-sandbox') || app.commandLine.hasSwitch('disable-web-security')) throw new Error('Unsafe Electron launch flags denied');
@@ -102,6 +104,12 @@ else {
   void app.whenReady().then(async()=>{
   const desktopStore=new SettingsStore<DesktopState>(join(userData,'poc-settings'),'desktop.json',validateDesktop);
   const desktopSurfaceStore=new DesktopSurfaceModeStore(join(userData,'poc-settings'));
+  const onboardingStore=new OnboardingStore(join(userData,'poc-settings'));
+  const hadUserData=existsSync(join(userData,'poc-settings','layout.json'))||existsSync(join(userData,'poc-settings','desktop.json'))||existsSync(join(userData,'poc-settings','desktop-surface.json'))||existsSync(join(userData,'work-data'));
+  const savedOnboarding=await onboardingStore.read();
+  // Legacy UUID E2E profiles predate the guide; explicit QA profiles exercise first-run UX.
+  let onboardingComplete=savedOnboarding?.completed??(hadUserData||Boolean(testRun&&!qaPaths.qa));
+  if(!savedOnboarding)await onboardingStore.write(onboardingComplete);
   let desktop=await desktopStore.read().catch(()=>null)??desktopDefaults();
   let tray:Tray|null=null;
   let timer:ReturnType<typeof setTimeout>|undefined;
@@ -155,7 +163,21 @@ else {
   accountSession.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));accountSession.setPermissionCheckHandler(()=>false);accountSession.on('will-download',event=>event.preventDefault());accountSession.allowNTLMCredentialsForDomains('');
   accountSession.webRequest.onBeforeRequest((details,callback)=>callback({cancel:!accountConfig||!allowedAccountRequest(details.url,details.method,accountConfig.origin)}));
   const accountService=new AccountService({config:accountConfig,vault:new AccountVault(join(userData,'work-data','bogunon-account'),{available:process.platform==='win32'&&safeStorage.isEncryptionAvailable(),encrypt:text=>safeStorage.encryptString(text),decrypt:bytes=>safeStorage.decryptString(bytes)}),fetch:(input,init)=>accountSession.fetch(input instanceof URL?input.href:input,init),open:target=>shell.openExternal(target,{activate:true})});
-  const accountHandlers=createAccountHandlers(window.webContents,url,accountService,schoolStore,async(message,detail)=>(await dialog.showMessageBox(window,{type:'question',message,detail,buttons:['취소','확인 후 진행'],defaultId:0,cancelId:0})).response===1);
+  let accountReviewPending=false;
+  const reviewAccount=async(kind:import('../account-protocol.js').AccountReview['kind'],message:string,detail:string):Promise<boolean>=>{
+    if(accountReviewPending||window.webContents.isDestroyed())return false;
+    accountReviewPending=true;
+    const id=randomUUID();
+    return new Promise<boolean>(resolve=>{
+      const finish=(accepted:boolean)=>{clearTimeout(timer);ipcMain.removeListener('p2:account:review-response',answer);window.webContents.removeListener('destroyed',destroyed);accountReviewPending=false;resolve(accepted);};
+      const answer=(event:IpcMainEvent,input:unknown)=>{try{assertSender(event,window.webContents,url);}catch{return;}if(!input||typeof input!=='object'||Array.isArray(input))return;const value=input as Record<string,unknown>;if(value.id!==id||typeof value.accepted!=='boolean')return;finish(value.accepted);};
+      const destroyed=()=>finish(false);
+      const timer=setTimeout(()=>finish(false),120_000);
+      ipcMain.on('p2:account:review-response',answer);window.webContents.once('destroyed',destroyed);
+      window.webContents.send('p2:account:review',{id,kind,message,detail});
+    });
+  };
+  const accountHandlers=createAccountHandlers(window.webContents,url,accountService,schoolStore,reviewAccount);
   for(const [action,handler] of Object.entries(accountHandlers))if(action!=='dispose'&&action!=='flush'&&action!=='invalidate')ipcMain.handle(`p2:account:${action}`,handler);
   window.on('closed',accountHandlers.dispose);window.webContents.on('will-navigate',accountHandlers.invalidate);window.webContents.on('render-process-gone',accountHandlers.invalidate);
   const aiSession=session.fromPartition('ai-api-egress');
@@ -212,11 +234,12 @@ else {
   for (const channel of ['p0:info','p0:read-settings','p0:write-settings']) ipcMain.handle(channel,async(event,...args: unknown[])=>{
     assertSender(event,window.webContents,url);
     if (args.length !== (channel === 'p0:write-settings' ? 1 : 0)) throw new Error('Invalid PoC IPC arguments');
-    if (channel === 'p0:info') return {appId:APP_ID,productName:PRODUCT_NAME,version:app.getVersion(),userData,sourceSha:meta.sourceSha,electron:process.versions.electron,...(qaPaths.qa?{qaProfile:{root:qaPaths.root,appData:app.getPath('appData'),sessionData:app.getPath('sessionData'),stores:['poc-settings','work-data/local-tasks','work-data/local-events','work-data/purchase-settings','work-data/quick-memo','work-data/work-folders','work-data/drop-import-tmp','work-data/education-video','work-data/school-profile','work-data/bogunon-account','work-data/school-admin','work-data/inventory','work-data/ai','work-data/chatgpt','work-data/my-finance','work-data/youtube-search','work-data/newsletter-projects','work-data/newsletter-ai-assets','work-data/official-import-tmp','work-data/purchase-import-tmp'].map(p=>join(userData,p))}}:{})};
+    if (channel === 'p0:info') return {appId:APP_ID,productName:PRODUCT_NAME,version:app.getVersion(),userData,sourceSha:meta.sourceSha,electron:process.versions.electron,onboardingComplete,...(qaPaths.qa?{qaProfile:{root:qaPaths.root,appData:app.getPath('appData'),sessionData:app.getPath('sessionData'),stores:['poc-settings','work-data/local-tasks','work-data/local-events','work-data/purchase-settings','work-data/quick-memo','work-data/work-folders','work-data/drop-import-tmp','work-data/education-video','work-data/school-profile','work-data/bogunon-account','work-data/school-admin','work-data/inventory','work-data/ai','work-data/chatgpt','work-data/my-finance','work-data/youtube-search','work-data/newsletter-projects','work-data/newsletter-ai-assets','work-data/official-import-tmp','work-data/purchase-import-tmp'].map(p=>join(userData,p))}}:{})};
     if (channel === 'p0:read-settings') return store.read();
     return store.write(args[0]);
   });
   ipcMain.handle('p0:desktop-surface:read',(event,...args:unknown[])=>{assertSender(event,window.webContents,url);if(args.length)throw Error('Invalid Desktop Surface request');return desktopSurface.read();});
+  ipcMain.handle('p0:onboarding:complete',async(event,mode:unknown,...args:unknown[])=>{assertSender(event,window.webContents,url);if(args.length||mode!=='window'&&mode!=='palette')throw Error('Invalid onboarding choice');await desktopSurface.setMode(mode);await onboardingStore.write(true);onboardingComplete=true;});
   ipcMain.handle('p0:desktop-surface:write',async(event,mode:unknown,...args:unknown[])=>{assertSender(event,window.webContents,url);if(args.length||mode!=='window'&&mode!=='palette')throw Error('Invalid Desktop Surface mode');return desktopSurface.setMode(mode);});
   for(const [action,handler] of Object.entries(createPurchaseSettingsHandlers(window.webContents,url,purchaseSettingsStore)))ipcMain.handle(`p2:purchase:settings:${action}`,handler);
   const officialService=new OfficialDocumentService(app.isPackaged?join(process.resourcesPath,'official-document-cli',process.platform==='win32'?'official-document-cli.exe':'official-document-cli'):join(app.getAppPath(),'../../tools/official-document-cli/target/debug',process.platform==='win32'?'official-document-cli.exe':'official-document-cli'),join(userData,'work-data','official-import-tmp'));
@@ -400,5 +423,6 @@ else {
   app.on('window-all-closed',quit);
   await window.loadURL(url);
   await desktopSurface.start().catch(()=>{if(!window.isDestroyed()){window.show();window.focus();}});
+  if(!onboardingComplete&&!window.isDestroyed()){window.show();window.focus();}
   }).catch((error: unknown)=>{ console.error('Electron P0 startup failed:', error instanceof Error ? error.message : 'unknown'); app.exit(1); });
 }

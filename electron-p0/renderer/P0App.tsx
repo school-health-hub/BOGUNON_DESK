@@ -17,6 +17,7 @@ import {LocalTasksPanel,type LocalTaskRequest} from './local-tasks/LocalTasksPan
 import {SurfaceDialog} from './SurfaceDialog';
 import {QuickMemoSurface} from './QuickMemoSurface';
 import {SurfaceSettings} from './SurfaceSettings';
+import {FirstRunOnboarding} from './FirstRunOnboarding';
 import {InventoryLocalQa} from './inventory-local-qa/InventoryLocalQa';
 import { PurchaseSession } from './purchase/PurchaseSession';
 import { PersistentMemoProvider } from './adapters/PersistentMemo';
@@ -97,6 +98,8 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   const [inventoryMode,setInventoryMode]=useState<'local'|'preview'>('local');
   const [layout,setLayout] = useState(initial.layout);
   const [workspaceOpen,setWorkspaceOpen]=useState(false);
+  const [onboardingOpen,setOnboardingOpen]=useState(initial.info.onboardingComplete===false);
+  const [settingsStartCategory,setSettingsStartCategory]=useState<'appearance'|'school'>('appearance');
   const [dock,setDock] = useState(initial.dock);
   const info=initial.info;
   const [status,setStatus] = useState('설정 준비됨');
@@ -203,13 +206,14 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
       {editing&&panel==='dock'&&<DockEditor dockLayout={dock} onClose={()=>setPanel(null)} onUpdate={setDock}/>}
       {active==='quick-memo'&&<QuickMemoSurface onClose={()=>navigate('home')}><MemoWidget/></QuickMemoSurface>}
       {active!=='home'&&active!=='quick-memo'&&<SurfaceDialog key={active} modal={active==='settings'||active==='work-folder'} shouldRestoreFocus={()=>active!=='settings'||!settingsHandoffRef.current} title={active==='settings'?'설정':active==='work-folder'?'업무 폴더':'업무 도구'} onClose={()=>navigate('home')}>
-        {active==='work-folder'?<WorkFoldersContent state={folders} onClose={()=>navigate('home')}/>:active==='settings'?<SurfaceSettings school={<SchoolProfileSettings/>} ai={<AiSettings/>} saveStatus={status} appearance={<AppearancePanel appearance={layout.appearance} onClose={()=>navigate('home')} onUpdate={appearance=>setLayout({...layout,appearance})}/>} widgets={<WidgetLibraryDrawer widgets={layout.widgets} onClose={()=>navigate('home')} onHide={hideWidgetType} onRestore={type=>setLayout(restoreWidget({...layout,widgets:geometry.widgets},type))}/>} dock={<DockEditor dockLayout={dock} onClose={()=>navigate('home')} onUpdate={setDock}/>} about={<ProductAbout info={info} onOpenNewsletter={()=>{settingsHandoffRef.current=true;openNewsletter();}}/>}/>:<ToolboxMenu onRun={runTool} onOpenWorkspaceEditor={openDashboardEditor}/>}
+        {active==='work-folder'?<WorkFoldersContent state={folders} onClose={()=>navigate('home')}/>:active==='settings'?<SurfaceSettings initialCategory={settingsStartCategory} school={<SchoolProfileSettings/>} ai={<AiSettings/>} saveStatus={status} appearance={<AppearancePanel appearance={layout.appearance} onClose={()=>navigate('home')} onUpdate={appearance=>setLayout({...layout,appearance})}/>} widgets={<WidgetLibraryDrawer widgets={layout.widgets} onClose={()=>navigate('home')} onHide={hideWidgetType} onRestore={type=>setLayout(restoreWidget({...layout,widgets:geometry.widgets},type))}/>} dock={<DockEditor dockLayout={dock} onClose={()=>navigate('home')} onUpdate={setDock}/>} about={<ProductAbout info={info} onOpenNewsletter={()=>{settingsHandoffRef.current=true;openNewsletter();}}/>}/>:<ToolboxMenu onRun={runTool} onOpenWorkspaceEditor={openDashboardEditor}/>}
       </SurfaceDialog>}
       {notice&&<div className="p0-notice" role="status">{notice}<button onClick={()=>setNotice(null)}>닫기</button></div>}
       <span className="p0-save" role="status" data-p0-save>{status}</span>
       <div className="dock-zone"><AppDock activeActionId={active} dockLayout={dock} onAction={navigate}/></div>
     </div>
-    <SchoolInitialSetup/>
+    {initial.info.onboardingComplete!==false&&<SchoolInitialSetup/>}
+    {onboardingOpen&&<FirstRunOnboarding onComplete={async(mode,openAccount)=>{if(!window.electronP0.completeOnboarding)throw Error('시작 안내를 저장할 수 없습니다.');await window.electronP0.completeOnboarding(mode);setOnboardingOpen(false);if(openAccount){setSettingsStartCategory('school');setActive('settings');}}}/>}
     {aiSettingsOpen&&<SurfaceDialog title="AI 연결" onClose={()=>setAiSettingsOpen(false)}><AiSettings/></SurfaceDialog>}
     {adminOpen&&<Suspense fallback={<p role="status">학교 행정 업무를 불러오는 중…</p>}><WorkspaceShell name="school-admin"><SchoolAdmin onClose={()=>setAdminOpen(false)}/></WorkspaceShell></Suspense>}
     {financeOpen&&<Suspense fallback={<p role="status">MY FINANCE를 불러오는 중…</p>}><WorkspaceShell name="finance"><FinanceHost onClose={()=>setFinanceOpen(false)}/></WorkspaceShell></Suspense>}

@@ -31,7 +31,7 @@ export function SchoolProfileSettings({showAddresses=true}:{showAddresses?:boole
  const run=async(operation:(token:number)=>Promise<void>)=>{if(running.current)return;running.current=true;setBusy(true);const token=++epoch.current;try{await operation(token);}catch(e){if(mounted.current&&token===epoch.current)setNotice(e instanceof Error?e.message:'학교 설정에 실패했습니다.');}finally{running.current=false;if(mounted.current){setBusy(false);setSearching(false);}}};
  const clearSearch=()=>{epoch.current++;setSearch(null);void api.cancel();};
  return <section className="school-profile" aria-label="공통 학교 프로필" aria-busy={busy||state.loading}>
-  <h2>학교 선택</h2><p>이 Electron 프로필에서 학교명·학교코드·시도교육청코드를 한 번 저장해 행정 런처에서 재사용합니다.</p>
+  <h2>학교 선택</h2><p>이 PC에서 사용할 학교 정보를 설정합니다. 선택한 학교는 업무 주소를 확인할 때 참고하며, 기존 주소와 업무 자료는 자동으로 바뀌지 않습니다.</p>
   <BogunonAccount local={state.data} onSchoolApplied={state.refresh}/>
   {current?<p><strong>현재 학교: {current.schoolName}</strong><br/>{current.officeName} · 교육청 {current.officeCode} · 학교 {current.schoolCode}</p>:<p>아직 학교를 선택하지 않았습니다.</p>}
   {showAddresses&&<SchoolSystemAddresses school={current??null} blocked={!!state.data?.recovered||busy||state.loading}/>}
@@ -40,7 +40,7 @@ export function SchoolProfileSettings({showAddresses=true}:{showAddresses?:boole
   <form onSubmit={event=>{event.preventDefault();void run(async token=>{setSearching(true);setSearch(null);setNotice('NEIS에 학교 이름만 전송해 조회하는 중…');const result=read(await api.search({name:name.trim(),officeCode:office}));if(!mounted.current||token!==epoch.current)return;setSearch(result);setNotice(result.results.length?'결과를 확인하고 학교 선택 버튼을 눌러 주세요. 검색만으로 학교를 변경하지 않습니다.':'조회 결과가 없습니다. 교육청과 학교 이름을 확인해 주세요.');});}}>
    <div className="school-profile-fields"><label>시도교육청<select value={office} disabled={busy} onChange={e=>{clearSearch();setOffice(e.target.value as OfficeCode|'');}}><option value="">전체 교육청</option>{Object.entries(EDUCATION_OFFICES).map(([code,label])=><option key={code} value={code}>{label}</option>)}</select></label>
    <label>학교명<input value={name} minLength={2} maxLength={60} disabled={busy} placeholder="학교 이름만 입력" onChange={e=>{clearSearch();setName(e.target.value);}}/></label></div>
-   <p>NEIS 교육정보 개방 API · 인증키 없는 공개 조회(최대 5건)입니다. 학교·교육청·소재지를 확인하세요. 학생·교직원 정보는 입력하지 마세요.</p>
+   <p>학교 이름을 공개 학교 정보에서 조회합니다(최대 5건). 학교·교육청·소재지를 확인하세요. 학생·교직원 정보는 입력하지 마세요.</p>
    <button type="submit" disabled={busy||name.trim().length<2}>NEIS 학교 검색</button>{searching&&<button type="button" onClick={()=>{epoch.current++;void api.cancel();setSearch(null);setNotice('학교 검색 취소를 요청했습니다. 기존 학교는 유지됩니다.');}}>학교 검색 취소</button>}
   </form>
   <p role="status">{notice}</p>
