@@ -2,15 +2,18 @@ import {createHash,createPrivateKey,createPublicKey,sign} from 'node:crypto';
 import {createReadStream} from 'node:fs';
 import {readFile,stat,writeFile} from 'node:fs/promises';
 import {basename} from 'node:path';
+import {readProtectedSigningKey} from './update-key-store.mjs';
 
 const [installerPath,baseUrl,notesPath,outputPath]=process.argv.slice(2);
 if(!installerPath||!baseUrl||!notesPath||!outputPath)throw new Error('Usage: sign-update-manifest.mjs <NSIS EXE> <HTTPS base URL> <notes.txt> <output.json>');
 const config=JSON.parse(await readFile('config/production-electron-update.json','utf8'));
 const product=JSON.parse(await readFile('electron-p0/package.json','utf8'));
-const keyText=process.env.BOGUNON_UPDATE_SIGN_KEY;
+const keyText=process.env.BOGUNON_UPDATE_SIGN_KEY??await readProtectedSigningKey();
 if(config.enabled!==true||!keyText)throw new Error('A configured public update key and a separate private signing key are required.');
 const base=new URL(baseUrl),feed=new URL(config.manifestUrl);
-if(base.protocol!=='https:'||base.origin!==feed.origin||base.username||base.password||base.search||base.hash)throw new Error('The update URL must use the configured HTTPS origin.');
+const releaseCatalog=/^\/repos\/([A-Za-z0-9-]+)\/([A-Za-z0-9._-]+)\/releases$/.exec(feed.hostname==='api.github.com'?feed.pathname:'');
+if(base.protocol!=='https:'||base.origin!==(releaseCatalog?'https://github.com':feed.origin)||base.username||base.password||base.search||base.hash)throw new Error('The update URL must use the configured HTTPS origin.');
+if(releaseCatalog&&base.pathname!==`/${releaseCatalog[1]}/${releaseCatalog[2]}/releases/download/v${product.version}/`)throw new Error('The GitHub Release must match the configured repository and product version.');
 if(feed.hostname==='github.com'){
   const match=/^\/([A-Za-z0-9-]+)\/([A-Za-z0-9._-]+)\/releases\/download\/updates-(beta|stable)\/bogunon-update\.json$/.exec(feed.pathname);
   if(!match||base.pathname!==`/${match[1]}/${match[2]}/releases/download/v${product.version}/`)throw new Error('The GitHub Release must match the configured repository and product version.');

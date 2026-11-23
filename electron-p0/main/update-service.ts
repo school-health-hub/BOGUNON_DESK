@@ -2,16 +2,42 @@ import {createHash,randomUUID} from 'node:crypto';
 import {createReadStream} from 'node:fs';
 import {mkdir,open,readFile,rename,rm,stat,writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
-import {compareUpdateVersions,githubUpdateRepository,validateUpdateFeed,verifyUpdateManifest,type UpdateFeedConfig,type UpdateManifest} from './update-contract.js';
+import {compareUpdateVersions,githubReleaseCatalog,githubUpdateRepository,validateUpdateFeed,verifyUpdateManifest,type UpdateFeedConfig,type UpdateManifest} from './update-contract.js';
 import type {UpdateState} from '../update-protocol.js';
 
 const MAX_MANIFEST_BYTES=64*1024;
+const MAX_RELEASE_CATALOG_BYTES=2*1024*1024;
+const readResponse=async(response:Response,limit:number):Promise<unknown>=>{
+  const reader=response.body!.getReader();let size=0;const chunks:Uint8Array[]=[];
+  for(;;){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>limit)throw new Error('업데이트 정보가 너무 큽니다.');chunks.push(value);}
+  return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+};
+const releaseManifestUrl=(feed:UpdateFeedConfig,entry:unknown,currentVersion:string):Readonly<{url:string;version:string}>|null=>{
+  const github=githubReleaseCatalog(feed);
+  if(!github||!Array.isArray(entry))throw new Error('GitHub 릴리스 목록 형식이 올바르지 않습니다.');
+  let latest:Record<string,unknown>|null=null,latestVersion='';
+  for(const item of entry){
+    if(!item||typeof item!=='object'||Array.isArray(item))continue;
+    const release=item as Record<string,unknown>;
+    if(release.draft!==false||release.prerelease!==(feed.channel==='beta')||typeof release.tag_name!=='string'||!release.tag_name.startsWith('v'))continue;
+    const version=release.tag_name.slice(1);
+    try{if(compareUpdateVersions(version,currentVersion)<=0||latest&&compareUpdateVersions(version,latestVersion)<=0)continue;}catch{continue;}
+    latest=release;latestVersion=version;
+  }
+  if(!latest)return null;
+  if(latest.immutable!==true||!Array.isArray(latest.assets))throw new Error('변경 불가능한 릴리스 자산을 확인하지 못했습니다.');
+  const base=`https://github.com/${github.owner}/${github.repo}/releases/download/v${latestVersion}/`;
+  for(const name of ['bogunon-update.json',`BOGUNON-DESK-Setup-${latestVersion}-x64.exe`]){
+    if(!latest.assets.some(asset=>asset&&typeof asset==='object'&&asset.name===name&&asset.state==='uploaded'&&asset.browser_download_url===base+name))throw new Error('릴리스의 업데이트 파일 구성이 올바르지 않습니다.');
+  }
+  return {url:base+'bogunon-update.json',version:latestVersion};
+};
 const request=async(url:string,feed:UpdateFeedConfig,signal:AbortSignal,fetcher:typeof fetch):Promise<Response>=>{
   const github=githubUpdateRepository(feed);
   let current=url;
   for(let redirects=0;redirects<=3;redirects++){
-    const response=await fetcher(current,{redirect:github?'manual':'error',cache:'no-store',credentials:'omit',referrerPolicy:'no-referrer',signal});
-    if(github&&[301,302,303,307,308].includes(response.status)){
+    const response=await fetcher(current,{redirect:github&&!current.startsWith('https://api.github.com/')?'manual':'error',cache:'no-store',credentials:'omit',referrerPolicy:'no-referrer',signal});
+    if(github&&!current.startsWith('https://api.github.com/')&&[301,302,303,307,308].includes(response.status)){
       const location=response.headers.get('location');
       await response.body?.cancel();
       if(!location||redirects===3)throw new Error('업데이트 다운로드 경로가 안전하지 않습니다.');
@@ -61,10 +87,18 @@ export class UpdateService{
     this.downloadedPath=null;
     this.set({phase:'checking',currentVersion});
     try{
-      const response=await request(feed.manifestUrl,feed,AbortSignal.any([controller.signal,AbortSignal.timeout(20000)]),this.options.fetcher??fetch);
-      const reader=response.body!.getReader();let size=0;const chunks:Uint8Array[]=[];
-      for(;;){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>MAX_MANIFEST_BYTES)throw new Error('업데이트 정보가 너무 큽니다.');chunks.push(value);}
-      const manifest=verifyUpdateManifest(JSON.parse(Buffer.concat(chunks).toString('utf8')),feed,currentVersion);
+      const signal=AbortSignal.any([controller.signal,AbortSignal.timeout(20000)]),fetcher=this.options.fetcher??fetch;
+      let manifestUrl=feed.manifestUrl,releaseVersion:string|undefined;
+      if(githubReleaseCatalog(feed)){
+        const response=await request(`${feed.manifestUrl}?per_page=100`,feed,signal,fetcher);
+        if(response.headers.get('link')?.includes('rel="next"'))throw new Error('GitHub 릴리스 목록이 너무 길어 업데이트를 확인할 수 없습니다.');
+        const release=releaseManifestUrl(feed,await readResponse(response,MAX_RELEASE_CATALOG_BYTES),currentVersion);
+        if(!release){this.candidate=null;return this.set({phase:'current',currentVersion,message:'최신 버전을 사용 중입니다.'});}
+        manifestUrl=release.url;releaseVersion=release.version;
+      }
+      const response=await request(manifestUrl,feed,signal,fetcher);
+      const manifest=verifyUpdateManifest(await readResponse(response,MAX_MANIFEST_BYTES),feed,currentVersion);
+      if(releaseVersion&&manifest.version!==releaseVersion)throw new Error('릴리스 버전과 서명된 업데이트 버전이 다릅니다.');
       if(manifest.schema===2)await this.observeVersion(manifest.version,feed.channel);
       if(compareUpdateVersions(manifest.version,currentVersion)===0){this.candidate=null;return this.set({phase:'current',currentVersion,message:'최신 버전을 사용 중입니다.'});}
       this.candidate=manifest;

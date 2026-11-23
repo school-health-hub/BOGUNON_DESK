@@ -24,8 +24,16 @@ export type UpdateFeedConfig = Readonly<{
 
 const versionPattern=/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
 const githubFeedPath=/^\/([A-Za-z0-9-]+)\/([A-Za-z0-9._-]+)\/releases\/download\/updates-(beta|stable)\/bogunon-update\.json$/;
+const githubCatalogPath=/^\/repos\/([A-Za-z0-9-]+)\/([A-Za-z0-9._-]+)\/releases$/;
+export function githubReleaseCatalog(feed:UpdateFeedConfig):Readonly<{owner:string;repo:string}>|null{
+  const url=new URL(feed.manifestUrl);
+  const match=url.hostname==='api.github.com'?githubCatalogPath.exec(url.pathname):null;
+  return match?{owner:match[1],repo:match[2]}:null;
+}
 export function githubUpdateRepository(feed:UpdateFeedConfig):Readonly<{owner:string;repo:string}>|null{
   const url=new URL(feed.manifestUrl);
+  const catalog=githubReleaseCatalog(feed);
+  if(catalog)return catalog;
   if(url.hostname!=='github.com')return null;
   const match=githubFeedPath.exec(url.pathname);
   return match?{owner:match[1],repo:match[2]}:null;
@@ -68,6 +76,7 @@ export function validateUpdateFeed(input:unknown):UpdateFeedConfig|null{
     const url=new URL(item.manifestUrl);
     if(url.protocol!=='https:'||url.username||url.password||url.hash||url.search||url.port&&url.port!=='443')return null;
     if(url.hostname==='github.com'&&(!githubFeedPath.test(url.pathname)||!url.pathname.includes(`/updates-${item.channel}/`)))return null;
+    if(url.hostname==='api.github.com'&&!githubCatalogPath.test(url.pathname))return null;
     if(createPublicKey(item.publicKeyPem).asymmetricKeyType!=='ed25519')return null;
     if(typeof item.nextPublicKeyPem==='string'&&(item.nextPublicKeyPem===item.publicKeyPem||createPublicKey(item.nextPublicKeyPem).asymmetricKeyType!=='ed25519'))return null;
     return {enabled:true,channel:item.channel,manifestUrl:url.href,publicKeyPem:item.publicKeyPem,...(typeof item.nextPublicKeyPem==='string'?{nextPublicKeyPem:item.nextPublicKeyPem}:{}),...(typeof item.publisherSubject==='string'?{publisherSubject:item.publisherSubject}:{})};
@@ -87,7 +96,7 @@ export function verifyUpdateManifest(input:unknown,feed:UpdateFeedConfig,current
     if(!Number.isFinite(issued)||!Number.isFinite(expires)||expires<=issued||expires-issued>30*24*60*60*1000||issued>now+5*60*1000||expires<=now)throw new Error('업데이트 정보가 만료됐거나 발행 시간이 올바르지 않습니다.');
   }
   let target:URL;try{target=new URL(item.url);}catch{throw new Error('허용되지 않은 업데이트 파일 주소입니다.');}
-  const origin=new URL(feed.manifestUrl).origin;
+  const origin=githubReleaseCatalog(feed)?'https://github.com':new URL(feed.manifestUrl).origin;
   if(target.protocol!=='https:'||target.origin!==origin||target.username||target.password||target.search||target.hash||!target.pathname.endsWith('.exe'))throw new Error('허용되지 않은 업데이트 파일 주소입니다.');
   const github=githubUpdateRepository(feed);
   if(github&&target.pathname!==`/${github.owner}/${github.repo}/releases/download/v${item.version}/BOGUNON-DESK-Setup-${item.version}-x64.exe`)throw new Error('허용되지 않은 업데이트 파일 주소입니다.');

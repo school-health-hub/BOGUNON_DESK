@@ -1,6 +1,6 @@
 {
-  "enabled": false,
+  "enabled": true,
   "channel": "beta",
-  "manifestUrl": "",
-  "publicKeyPem": ""
+  "manifestUrl": "https://api.github.com/repos/school-health-hub/BOGUNON_DESK/releases",
+  "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAjYnpoQ/nwP+a6SoJPNj6YKKSrCB8Wh744xT1SH4RXBo=\n-----END PUBLIC KEY-----\n"
 }

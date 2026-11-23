@@ -9,7 +9,10 @@ import {UpdateService} from '../main/update-service.js';
 const {privateKey,publicKey}=generateKeyPairSync('ed25519');
 const feed:UpdateFeedConfig={enabled:true,channel:'beta',manifestUrl:'https://updates.example.org/beta/latest.json',publicKeyPem:publicKey.export({type:'spki',format:'pem'}).toString()};
 const githubFeed:UpdateFeedConfig={...feed,manifestUrl:'https://github.com/school-health-hub/BOGUNON_DESK/releases/download/updates-beta/bogunon-update.json'};
+const catalogFeed:UpdateFeedConfig={...feed,manifestUrl:'https://api.github.com/repos/school-health-hub/BOGUNON_DESK/releases'};
 const githubInstaller='https://github.com/school-health-hub/BOGUNON_DESK/releases/download/v2.0.0-beta.6/BOGUNON-DESK-Setup-2.0.0-beta.6-x64.exe';
+const githubManifest='https://github.com/school-health-hub/BOGUNON_DESK/releases/download/v2.0.0-beta.6/bogunon-update.json';
+const catalogRelease=(overrides:Record<string,unknown>={})=>({tag_name:'v2.0.0-beta.6',draft:false,prerelease:true,immutable:true,assets:[{name:'bogunon-update.json',state:'uploaded',browser_download_url:githubManifest},{name:'BOGUNON-DESK-Setup-2.0.0-beta.6-x64.exe',state:'uploaded',browser_download_url:githubInstaller}],...overrides});
 const current='2.0.0-beta.5';
 const payload=Buffer.from('synthetic QA installer, never executable');
 const sha256=createHash('sha256').update(payload).digest('hex');
@@ -39,6 +42,8 @@ describe('signed update contract',()=>{
   });
   it('accepts only the configured public GitHub channel and a version-matched release asset',()=>{
     expect(validateUpdateFeed(githubFeed)).not.toBeNull();
+    expect(validateUpdateFeed(catalogFeed)).not.toBeNull();
+    expect(validateUpdateFeed({...catalogFeed,manifestUrl:'https://api.github.com/repos/other/BOGUNON_DESK/releases?token=secret'})).toBeNull();
     expect(verifyUpdateManifest(manifest('2.0.0-beta.6',{url:githubInstaller}),githubFeed,current).url).toBe(githubInstaller);
     expect(()=>verifyUpdateManifest(manifest('2.0.0-beta.6',{url:'https://github.com/other/repo/releases/download/v2.0.0-beta.6/setup.exe'}),githubFeed,current)).toThrow('주소');
     expect(()=>verifyUpdateManifest(manifest('2.0.0-beta.6',{url:'https://github.com/school-health-hub/BOGUNON_DESK/releases/download/v2.0.0-beta.7/setup.exe'}),githubFeed,current)).toThrow('주소');
@@ -72,6 +77,34 @@ describe('isolated update lifecycle',()=>{
     const service=new UpdateService({currentVersion:current,feed,cacheDir:root,enabled:true,emit:()=>{},fetcher});
     return service;
   };
+  it('discovers an immutable versioned GitHub Release and verifies its signed manifest before download',async()=>{
+    const base=process.env.UPDATE_QA_TEMP;if(!base)throw new Error('Set UPDATE_QA_TEMP');
+    root=await mkdtemp(join(base,'catalog-'));
+    const signed=manifestV2('2.0.0-beta.6',{url:githubInstaller});
+    const visited:string[]=[];
+    const fetcher=(async(url:string)=>{
+      visited.push(url);
+      if(url===`${catalogFeed.manifestUrl}?per_page=100`)return new Response(JSON.stringify([catalogRelease()]));
+      if(url===githubManifest)return new Response(JSON.stringify(signed));
+      if(url===githubInstaller)return new Response(payload);
+      throw Error('Unexpected release URL');
+    }) as typeof fetch;
+    const service=new UpdateService({currentVersion:current,feed:catalogFeed,cacheDir:root,enabled:true,emit:()=>{},fetcher});
+    expect((await service.check()).phase).toBe('available');
+    expect((await service.download()).phase).toBe('ready');
+    expect(visited).toEqual([`${catalogFeed.manifestUrl}?per_page=100`,githubManifest,githubInstaller]);
+  });
+  it.each([
+    ['mutable release',{immutable:false},manifestV2('2.0.0-beta.6',{url:githubInstaller})],
+    ['missing signed asset',{assets:[]},manifestV2('2.0.0-beta.6',{url:githubInstaller})],
+    ['mismatched signed version',{},manifestV2('2.0.0-beta.7',{url:'https://github.com/school-health-hub/BOGUNON_DESK/releases/download/v2.0.0-beta.7/BOGUNON-DESK-Setup-2.0.0-beta.7-x64.exe'})]
+  ])('rejects %s from release discovery',async(_label,overrides,signed)=>{
+    const base=process.env.UPDATE_QA_TEMP;if(!base)throw new Error('Set UPDATE_QA_TEMP');
+    root=await mkdtemp(join(base,'catalog-reject-'));
+    const fetcher=(async(url:string)=>new Response(url.startsWith('https://api.github.com/')?JSON.stringify([catalogRelease(overrides)]):JSON.stringify(signed))) as typeof fetch;
+    const service=new UpdateService({currentVersion:current,feed:catalogFeed,cacheDir:root,enabled:true,emit:()=>{},fetcher});
+    expect((await service.check()).phase).toBe('failed');
+  });
   it('checks, downloads only after consent, verifies hash, and leaves unrelated files alone',async()=>{
     const base=process.env.UPDATE_QA_TEMP;if(!base)throw new Error('Set UPDATE_QA_TEMP');
     root=await mkdtemp(join(base,'update-'));
@@ -257,5 +290,16 @@ describe('isolated update lifecycle',()=>{
     expect(()=>execFileSync(process.execPath,[script,installer,'https://github.com/other/repo/releases/download/v2.0.0-beta.6/',notes,output],{cwd:root,env,stdio:'pipe'})).toThrow();
     execFileSync(process.execPath,[script,installer,'https://github.com/school-health-hub/BOGUNON_DESK/releases/download/v2.0.0-beta.6/',notes,output],{cwd:root,env});
     expect(verifyUpdateManifest(JSON.parse(await readFile(output,'utf8')),githubFeed,current).url).toBe(githubInstaller);
+  });
+  it('signs versioned assets when the feed discovers immutable GitHub Releases',async()=>{
+    const base=process.env.UPDATE_QA_TEMP;if(!base)throw new Error('Set UPDATE_QA_TEMP');
+    root=await mkdtemp(join(base,'catalog-signer-'));
+    await mkdir(join(root,'config'));await mkdir(join(root,'electron-p0'));
+    await writeFile(join(root,'config','production-electron-update.json'),JSON.stringify(catalogFeed));
+    await writeFile(join(root,'electron-p0','package.json'),JSON.stringify({version:'2.0.0-beta.6'}));
+    const installer=join(root,'BOGUNON-DESK-Setup-2.0.0-beta.6-x64.exe'),notes=join(root,'notes.txt'),output=join(root,'bogunon-update.json');
+    await writeFile(installer,payload);await writeFile(notes,'합성 QA 변경 사항');
+    execFileSync(process.execPath,[resolve('scripts/electron-p0/sign-update-manifest.mjs'),installer,'https://github.com/school-health-hub/BOGUNON_DESK/releases/download/v2.0.0-beta.6/',notes,output],{cwd:root,env:{...process.env,BOGUNON_UPDATE_SIGN_KEY:privateKey.export({type:'pkcs8',format:'pem'}).toString()}});
+    expect(verifyUpdateManifest(JSON.parse(await readFile(output,'utf8')),catalogFeed,current).url).toBe(githubInstaller);
   });
 });
