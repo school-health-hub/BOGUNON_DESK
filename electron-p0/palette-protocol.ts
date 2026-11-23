@@ -13,6 +13,7 @@ export interface PaletteBridge{
   beginEdit():Promise<void>;
   finishEdit(commit:boolean):Promise<PaletteSurface>;
   onSurfaceChanged(listener:()=>void):()=>void;
+  onSettingsActive(listener:(active:boolean)=>void):()=>void;
   readSettings():Promise<P0Settings|null>;
   ready():Promise<void>;
   setHitRegions(regions:readonly PaletteRect[]):Promise<void>;

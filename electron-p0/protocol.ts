@@ -18,7 +18,9 @@ export interface P0Bridge {
   writeSettings(settings: P0Settings): Promise<void>;
   readonly desktopSurface:DesktopSurfaceBridge;
   completeOnboarding?(mode:'window'|'palette'):Promise<void>;
-  onOpenSettings(listener:()=>void):()=>void;
+  onOpenSettings(listener:(returnToPalette:boolean)=>void):()=>void;
+  settingsReady?():Promise<void>;
+  settingsDismissed?(keepWorkspace?:boolean):Promise<void>;
 }
 
 // Feature contracts are explicit; no channel or filesystem path is accepted from renderer.

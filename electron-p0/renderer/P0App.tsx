@@ -100,6 +100,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   const [workspaceOpen,setWorkspaceOpen]=useState(false);
   const [onboardingOpen,setOnboardingOpen]=useState(initial.info.onboardingComplete===false);
   const [settingsStartCategory,setSettingsStartCategory]=useState<'appearance'|'school'>('appearance');
+  const [paletteSettingsReturn,setPaletteSettingsReturn]=useState<boolean|null>(null);
   const [dock,setDock] = useState(initial.dock);
   const info=initial.info;
   const [status,setStatus] = useState('설정 준비됨');
@@ -159,7 +160,9 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
     if(id==='purchase-helper'){setPurchaseOpen(true);setActive('home');setPanel(null);setNotice(null);return;}
     if(['home','settings','quick-memo','toolbox','work-folder'].includes(id)){if(id==='settings')settingsHandoffRef.current=false;setActive(id);setPanel(null);setEditing(false);setNotice(null)}else excluded();
   };
-  useEffect(()=>window.electronP0.onOpenSettings?.(()=>navigate('settings')),[navigate]);
+  useEffect(()=>window.electronP0.onOpenSettings?.(returnToPalette=>{setPaletteSettingsReturn(returnToPalette);navigate('settings');}),[navigate]);
+  useEffect(()=>{if(active==='settings')void window.electronP0.settingsReady?.();},[active]);
+  const closeSettings=()=>{void (window.electronP0.settingsDismissed?.()??Promise.resolve()).then(()=>{setPaletteSettingsReturn(null);navigate('home');}).catch(()=>setNotice('설정 화면을 닫지 못했습니다. 다시 시도해 주세요.'));};
   const openNewsletter=()=>{setActive('home');setNewsletterLoaded(true);setNewsletterOpen(true);};
   const openDashboardEditor=(target:Exclude<DashboardEditorPanel,null>)=>{setActive('home');setSelected(null);setEditing(true);setPanel(target);};
   const hideWidgetType=(type:DashboardLayout['widgets'][number]['type'])=>setLayout(current=>{
@@ -189,7 +192,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
     }
   };
   return <WidgetSessionProvider><LocalCalendarProvider><LocalWorkspaceProvider><PersistentMemoProvider><DesktopPanelProvider notify={setNotice} openInbox={()=>openTasks()} openBogunonTask={async id=>openTasks({id})} openQuickAddEventForDate={date=>openUtility('calendar',{date})} openQuickAddFromMemo={title=>openUtility('quick-add',{title})} openQuickMemoUrl={async url=>{try{await openMemoUrl(url);}catch(e){setNotice(e instanceof Error?e.message:'링크를 열지 못했습니다.');}}} runDesktopAction={async id=>navigate(id)} workFolderFavorites={folders.snapshot?.favorites??[]} openWorkFolderFavorite={async folder=>{const message=await folders.open(folder.id);if(message)setNotice(message);}}>
-    <div inert={workspaceOpen} hidden={recordOpen||newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen||financeOpen||adminOpen} style={{display:recordOpen||newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen||financeOpen||adminOpen?"none":undefined}} className={`app-shell workspace-shell ${isCanonicalDeskLayout(layout)?'is-floating-b':''} ${editing?'is-edit-mode':'is-view-mode'} bg-${layout.appearance.background} card-${layout.appearance.cardStyle} corner-${layout.appearance.cornerStyle}`}>
+    <div inert={workspaceOpen} hidden={recordOpen||newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen||financeOpen||adminOpen||paletteSettingsReturn===true} style={{display:recordOpen||newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen||financeOpen||adminOpen||paletteSettingsReturn===true?"none":undefined}} className={`app-shell workspace-shell ${isCanonicalDeskLayout(layout)?'is-floating-b':''} ${editing?'is-edit-mode':'is-view-mode'} bg-${layout.appearance.background} card-${layout.appearance.cardStyle} corner-${layout.appearance.cornerStyle}`}>
       <header className="rose-surface-header"><BrandLogo/><SurfaceDate/><span>업무 자료는 이 PC에 저장 · 계정과 AI 연결은 별도 설정</span></header>
       {School04Entry&&<Suspense fallback={null}><School04Entry/></Suspense>}
       {!School04Entry&&School03Entry&&<Suspense fallback={null}><School03Entry/></Suspense>}
@@ -205,14 +208,14 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
       {editing&&panel==='presets'&&<PresetSelector currentPresetId={layout.presetId} onClose={()=>setPanel(null)} onApply={id=>setLayout(applyPreset(layout,id,window.confirm))}/>}
       {editing&&panel==='dock'&&<DockEditor dockLayout={dock} onClose={()=>setPanel(null)} onUpdate={setDock}/>}
       {active==='quick-memo'&&<QuickMemoSurface onClose={()=>navigate('home')}><MemoWidget/></QuickMemoSurface>}
-      {active!=='home'&&active!=='quick-memo'&&<SurfaceDialog key={active} modal={active==='settings'||active==='work-folder'} shouldRestoreFocus={()=>active!=='settings'||!settingsHandoffRef.current} title={active==='settings'?'설정':active==='work-folder'?'업무 폴더':'업무 도구'} onClose={()=>navigate('home')}>
-        {active==='work-folder'?<WorkFoldersContent state={folders} onClose={()=>navigate('home')}/>:active==='settings'?<SurfaceSettings initialCategory={settingsStartCategory} school={<SchoolProfileSettings/>} ai={<AiSettings/>} saveStatus={status} appearance={<AppearancePanel appearance={layout.appearance} onClose={()=>navigate('home')} onUpdate={appearance=>setLayout({...layout,appearance})}/>} widgets={<WidgetLibraryDrawer widgets={layout.widgets} onClose={()=>navigate('home')} onHide={hideWidgetType} onRestore={type=>setLayout(restoreWidget({...layout,widgets:geometry.widgets},type))}/>} dock={<DockEditor dockLayout={dock} onClose={()=>navigate('home')} onUpdate={setDock}/>} about={<ProductAbout info={info} onOpenNewsletter={()=>{settingsHandoffRef.current=true;openNewsletter();}}/>}/>:<ToolboxMenu onRun={runTool} onOpenWorkspaceEditor={openDashboardEditor}/>}
+      {active!=='home'&&active!=='quick-memo'&&<SurfaceDialog key={active} modal={active==='settings'||active==='work-folder'} shouldRestoreFocus={()=>active!=='settings'||!settingsHandoffRef.current} title={active==='settings'?'설정':active==='work-folder'?'업무 폴더':'업무 도구'} onClose={active==='settings'?closeSettings:()=>navigate('home')}>
+        {active==='work-folder'?<WorkFoldersContent state={folders} onClose={()=>navigate('home')}/>:active==='settings'?<SurfaceSettings initialCategory={settingsStartCategory} school={<SchoolProfileSettings/>} ai={<AiSettings/>} saveStatus={status} appearance={<AppearancePanel appearance={layout.appearance} onClose={closeSettings} onUpdate={appearance=>setLayout({...layout,appearance})}/>} widgets={<WidgetLibraryDrawer widgets={layout.widgets} onClose={closeSettings} onHide={hideWidgetType} onRestore={type=>setLayout(restoreWidget({...layout,widgets:geometry.widgets},type))}/>} dock={<DockEditor dockLayout={dock} onClose={closeSettings} onUpdate={setDock}/>} about={<ProductAbout info={info} onOpenNewsletter={()=>{settingsHandoffRef.current=true;void (window.electronP0.settingsDismissed?.(true)??Promise.resolve()).then(()=>{setPaletteSettingsReturn(null);openNewsletter();});}}/>}/>:<ToolboxMenu onRun={runTool} onOpenWorkspaceEditor={openDashboardEditor}/>}
       </SurfaceDialog>}
       {notice&&<div className="p0-notice" role="status">{notice}<button onClick={()=>setNotice(null)}>닫기</button></div>}
       <span className="p0-save" role="status" data-p0-save>{status}</span>
       <div className="dock-zone"><AppDock activeActionId={active} dockLayout={dock} onAction={navigate}/></div>
     </div>
-    {initial.info.onboardingComplete!==false&&<SchoolInitialSetup/>}
+    {initial.info.onboardingComplete!==false&&paletteSettingsReturn===null&&<SchoolInitialSetup/>}
     {onboardingOpen&&<FirstRunOnboarding onComplete={async(mode,openAccount)=>{if(!window.electronP0.completeOnboarding)throw Error('시작 안내를 저장할 수 없습니다.');await window.electronP0.completeOnboarding(mode);setOnboardingOpen(false);if(openAccount){setSettingsStartCategory('school');setActive('settings');}}}/>}
     {aiSettingsOpen&&<SurfaceDialog title="AI 연결" onClose={()=>setAiSettingsOpen(false)}><AiSettings/></SurfaceDialog>}
     {adminOpen&&<Suspense fallback={<p role="status">학교 행정 업무를 불러오는 중…</p>}><WorkspaceShell name="school-admin"><SchoolAdmin onClose={()=>setAdminOpen(false)}/></WorkspaceShell></Suspense>}

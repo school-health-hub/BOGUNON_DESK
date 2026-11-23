@@ -2,7 +2,7 @@ import type {SchoolQuery,SchoolSelection} from '../school-protocol.js';
 import type {AdminDocument,AdminEnvironment,AdminSystem,LeaveDraft,AdminMapping,AdminSelection} from '../admin-protocol.js';
 import type {FinanceIdentity,IncomeRecord,Phase2Data} from '../finance-protocol.js';
 import type {InventoryQaApi} from '../inventory-qa-protocol.js';
-import { contextBridge, ipcRenderer, webUtils } from 'electron';
+import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron';
 import type { P0Bridge, P0Settings, WorkBridge, SyntheticSummaryRequest, MemoDocument, NewsletterExportRequest, NewsletterProjectsBridge, PurchaseClipboardRequest, PurchaseCsvMappingRequest, PurchaseExportRequest, SettlementRequest, EdufineRequest, EducationVideoLibraryItem,InventoryDocument,OfficialDocumentSave,AiConnect,AiRequest } from '../protocol.js';
 if (!process.sandboxed || !process.contextIsolated) throw new Error('PoC requires a sandboxed isolated preload');
 const bridge: P0Bridge = Object.freeze({
@@ -11,7 +11,9 @@ const bridge: P0Bridge = Object.freeze({
   writeSettings: (settings: P0Settings) => ipcRenderer.invoke('p0:write-settings',settings),
   desktopSurface:Object.freeze({read:()=>ipcRenderer.invoke('p0:desktop-surface:read'),write:(mode:import('../desktop-surface-protocol.js').DesktopSurfaceMode)=>ipcRenderer.invoke('p0:desktop-surface:write',mode)}),
   completeOnboarding:(mode:'window'|'palette')=>ipcRenderer.invoke('p0:onboarding:complete',mode),
-  onOpenSettings:(listener:()=>void)=>{const callback=()=>listener();ipcRenderer.on('p0:open-settings',callback);return()=>ipcRenderer.removeListener('p0:open-settings',callback);},
+  onOpenSettings:(listener:(returnToPalette:boolean)=>void)=>{const callback=(_event:IpcRendererEvent,returnToPalette:unknown)=>listener(returnToPalette===true);ipcRenderer.on('p0:open-settings',callback);return()=>ipcRenderer.removeListener('p0:open-settings',callback);},
+  settingsReady:()=>ipcRenderer.invoke('p0:settings:ready'),
+  settingsDismissed:(keepWorkspace=false)=>ipcRenderer.invoke('p0:settings:dismissed',keepWorkspace),
 });
 contextBridge.exposeInMainWorld('electronP0',bridge);
 

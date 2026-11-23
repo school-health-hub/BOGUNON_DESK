@@ -31,15 +31,20 @@ export class DesktopSurfaceController{
   private readonly entries=new Map<number,Entry>();
   private readonly editCheckpoints=new Map<number,DesktopSurfaceDocument>();
   private readonly paletteUrl:string;
+  private readonly workspaceUrl:string;
   private readonly isolated:Electron.Session;
   private timer:ReturnType<typeof setInterval>|undefined;
+  private settingsHandoff:{returnToPalette:boolean}|null=null;
+  private readonly workspaceHidden=()=>this.clearSettingsHandoff();
   private readonly topologyChanged=()=>{if(this.document.mode==='palette')void this.reconcile();};
   constructor(private readonly ports:Ports){
     this.paletteUrl=ports.dev?new URL('palette/index.html',ports.dev).href:pathToFileURL(join(ports.renderer,'palette','index.html')).href;
+    this.workspaceUrl=ports.dev??pathToFileURL(join(ports.renderer,'index.html')).href;
     this.isolated=session.fromPartition('persist:electron-p0-palette');
     this.isolated.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));this.isolated.setPermissionCheckHandler(()=>false);this.isolated.on('will-download',event=>event.preventDefault());
     this.isolated.webRequest.onBeforeRequest((details,callback)=>callback({cancel:!resourceAllowed(details.url,ports.renderer,ports.dev?new URL(ports.dev).origin:undefined)}));
     screen.on('display-added',this.topologyChanged);screen.on('display-removed',this.topologyChanged);screen.on('display-metrics-changed',this.topologyChanged);
+    ports.workspace.on('hide',this.workspaceHidden);
     this.registerIpc();
   }
   async start():Promise<void>{this.document=await this.ports.mode.read();if(this.document.mode==='palette')await this.activatePalette();else this.activateWindow();}
@@ -83,6 +88,8 @@ export class DesktopSurfaceController{
   private resolve(event:IpcMainInvokeEvent):Entry{const entry=[...this.entries.values()].find(candidate=>candidate.window.webContents===event.sender&&!candidate.window.isDestroyed());if(!entry)throw new Error('Unknown Desktop Palette');assertSender(event,entry.window.webContents,this.paletteUrl);return entry;}
   private surface(entry:Entry):PaletteSurface{const current=this.document.profiles[entry.profileKey];if(!current)throw new Error('Desktop Palette profile unavailable');const connected=new Set([...this.entries.values()].map(value=>value.profileKey));return{profileKey:entry.profileKey,layout:structuredClone(current.layout),ownedWidgetIds:[...current.ownedWidgetIds],dockVisible:entry.dockVisible,profiles:Object.entries(this.document.profiles).map(([profileKey,value])=>({profileKey,label:value.monitor.label,connected:connected.has(profileKey),ownedWidgetIds:[...value.ownedWidgetIds]}))};}
   private broadcast():void{for(const entry of this.entries.values())if(!entry.window.isDestroyed())entry.window.webContents.send('p0:palette:surface-changed');}
+  private setSettingsActive(active:boolean):void{for(const entry of this.entries.values())if(!entry.window.isDestroyed())entry.window.webContents.send('p0:palette:settings-active',active);}
+  private clearSettingsHandoff():void{if(!this.settingsHandoff)return;this.settingsHandoff=null;this.setSettingsActive(false);}
   private routePointer():void{const point=screen.getCursorScreenPoint();for(const entry of this.entries.values()){if(entry.window.isDestroyed()||!entry.window.isVisible())continue;const bounds=entry.window.getBounds(),x=point.x-bounds.x,y=point.y-bounds.y;entry.lifecycle.setInteractive(entry.regions.some(region=>x>=region.x&&x<region.x+region.width&&y>=region.y&&y<region.y+region.height));}}
   private registerIpc():void{
     const handle=(name:string,run:(event:IpcMainInvokeEvent,args:readonly unknown[],entry:Entry)=>unknown)=>ipcMain.handle(`p0:palette:${name}`,(event,...args:unknown[])=>run(event,args,this.resolve(event)));
@@ -97,11 +104,13 @@ export class DesktopSurfaceController{
     handle('set-hit-regions',(_event,args,entry)=>{if(args.length!==1||!Array.isArray(args[0])||args[0].length>32)throw new Error('Invalid regions');entry.regions=clipPaletteRegions(args[0] as unknown[],entry.window.getContentBounds());});
     handle('set-interactive',(_event,args,entry)=>{if(args.length!==1||typeof args[0]!=='boolean')throw new Error('Invalid input mode');entry.lifecycle.setInteractive(args[0]);});
     handle('open-workspace',(_event,args)=>{if(args.length)throw new Error('Invalid arguments');this.ports.workspace.show();this.ports.workspace.focus();});
-    handle('open-settings',(_event,args)=>{if(args.length)throw new Error('Invalid arguments');this.ports.workspace.show();this.ports.workspace.focus();this.ports.workspace.webContents.send('p0:open-settings');});
+    handle('open-settings',(_event,args)=>{if(args.length)throw new Error('Invalid arguments');if(this.settingsHandoff)return;const returnToPalette=!this.ports.workspace.isVisible();this.settingsHandoff={returnToPalette};this.setSettingsActive(true);this.ports.workspace.webContents.send('p0:open-settings',returnToPalette);});
+    ipcMain.handle('p0:settings:ready',(event,...args:unknown[])=>{assertSender(event,this.ports.workspace.webContents,this.workspaceUrl);if(args.length)throw new Error('Invalid settings request');if(!this.settingsHandoff&&this.document.mode==='palette'){this.settingsHandoff={returnToPalette:false};this.setSettingsActive(true);}if(!this.settingsHandoff)return;this.ports.workspace.show();this.ports.workspace.focus();});
+    ipcMain.handle('p0:settings:dismissed',(event,...args:unknown[])=>{assertSender(event,this.ports.workspace.webContents,this.workspaceUrl);if(args.length!==1||typeof args[0]!=='boolean')throw new Error('Invalid settings request');const returnToPalette=this.settingsHandoff?.returnToPalette??false;if(returnToPalette&&!args[0]&&this.document.mode==='palette')this.ports.workspace.hide();this.clearSettingsHandoff();});
     handle('memo:read',async(_event,args)=>{if(args.length)throw new Error('Invalid arguments');try{return ok(await this.ports.memo.read());}catch{return storageError<MemoDocument>('메모를 불러오지 못했습니다.');}});
     handle('memo:write',async(_event,args)=>{if(args.length!==1)throw new Error('Invalid arguments');try{return ok(await this.ports.memo.write(args[0]));}catch{return storageError<MemoDocument>('메모를 저장하지 못했습니다.');}});
     handle('events:load',async(_event,args)=>{if(args.length)throw new Error('Invalid arguments');try{return ok(await this.ports.events.load());}catch{return storageError('일정을 불러오지 못했습니다.');}});
     handle('tasks:load',async(_event,args)=>{if(args.length)throw new Error('Invalid arguments');try{return ok(await this.ports.tasks.load());}catch{return storageError('업무를 불러오지 못했습니다.');}});
   }
-  beginQuit():void{if(this.timer)clearInterval(this.timer);this.timer=undefined;this.editCheckpoints.clear();screen.removeListener('display-added',this.topologyChanged);screen.removeListener('display-removed',this.topologyChanged);screen.removeListener('display-metrics-changed',this.topologyChanged);for(const entry of this.entries.values())entry.lifecycle.beginQuit();this.entries.clear();}
+  beginQuit():void{if(this.timer)clearInterval(this.timer);this.timer=undefined;this.editCheckpoints.clear();this.settingsHandoff=null;this.ports.workspace.removeListener('hide',this.workspaceHidden);screen.removeListener('display-added',this.topologyChanged);screen.removeListener('display-removed',this.topologyChanged);screen.removeListener('display-metrics-changed',this.topologyChanged);for(const entry of this.entries.values())entry.lifecycle.beginQuit();this.entries.clear();}
 }
