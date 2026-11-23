@@ -17,7 +17,7 @@
 
 - 공개키만 제품의 `config/production-electron-update.json`에 포함한다.
 - 공개키 DER SHA-256: `5bc159c4ba79ab4a5c0ebefd5162ac1b1226e361414335134f0cd73c73e383fb`
-- 개인키 원본: 현재 Windows 사용자 DPAPI 보호 파일 `C:\Users\sehwa\AppData\Local\BOGUNON-DESK-UPDATE-SIGNING\ed25519.dpapi`.
+- 개인키 원본: 현재 Windows 사용자 DPAPI 보호 파일 `%LOCALAPPDATA%\BOGUNON-DESK-UPDATE-SIGNING\ed25519.dpapi`.
 - 별도 암호화 복구 파일: `F:\BOGUNON_DEV\auto-update-06-key-backup-20261123\ed25519-recovery.json`; SHA-256 `4534E5D50142A1FB778F95900EE1B24EA55041EEF8E81F94094814A7D9BC8420`.
 - 복구 파일은 scrypt와 AES-256-GCM으로 암호화했고, 암호는 사용자가 Windows 로컬 입력창에 직접 입력했다. 암호와 개인키는 Git, 릴리스 자산, QA 로그에 기록하지 않는다.
 - F:는 같은 PC의 드라이브이므로 PC 분실까지 대비하려면 **승인된 별도 오프라인 위치**에 암호화 복구 파일을 추가 보관해야 한다. 해당 외부 백업은 아직 수행하지 않았다.
