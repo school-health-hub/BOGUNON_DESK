@@ -13,6 +13,7 @@ import type {MemoStore} from './memo-ipc.js';
 import {moveWidgetOwnership,reconcileDesktopProfiles,setWidgetVisible,writeProfileLayout,type DisplaySnapshot} from './desktop-surface-domain.js';
 
 type Entry={displayId:number;profileKey:string;dockVisible:boolean;window:BrowserWindow;lifecycle:DesktopPaletteLifecycle;ready:boolean;regions:readonly PaletteRect[]};
+type SettingsHandoff={returnToPalette:boolean;displayId?:number;restore?:{bounds:Electron.Rectangle;maximized:boolean;menuVisible:boolean;title:string}};
 type Ports={renderer:string;dev?:string;workspace:BrowserWindow;layout:{read():Promise<P0Settings|null>};mode:DesktopSurfaceModeStore;events:LocalEventStore;tasks:LocalTaskStore;memo:MemoStore;failureGate?:PaletteFailureGate;onboardingComplete:()=>boolean;quitting:()=>boolean};
 const ok=<T>(data:T):IpcResult<T>=>({ok:true,data});
 const storageError=<T>(message:string):IpcResult<T>=>({ok:false,error:{code:'STORAGE_ERROR',message,retryable:true}});
@@ -34,7 +35,7 @@ export class DesktopSurfaceController{
   private readonly workspaceUrl:string;
   private readonly isolated:Electron.Session;
   private timer:ReturnType<typeof setInterval>|undefined;
-  private settingsHandoff:{returnToPalette:boolean}|null=null;
+  private settingsHandoff:SettingsHandoff|null=null;
   private readonly workspaceHidden=()=>this.clearSettingsHandoff();
   private readonly topologyChanged=()=>{if(this.document.mode==='palette')void this.reconcile();};
   constructor(private readonly ports:Ports){
@@ -49,6 +50,7 @@ export class DesktopSurfaceController{
   }
   async start():Promise<void>{this.document=await this.ports.mode.read();if(this.document.mode==='palette')await this.activatePalette();else this.activateWindow();}
   isPaletteMode():boolean{return this.document.mode==='palette';}
+  isSettingsPresented():boolean{return this.settingsHandoff?.restore!==undefined;}
   read():DesktopSurfaceDocument{return structuredClone(this.document);}
   async setMode(mode:DesktopSurfaceMode):Promise<DesktopSurfaceDocument>{
     const next={...this.document,mode};await this.ports.mode.write(next);this.document=next;
@@ -89,7 +91,31 @@ export class DesktopSurfaceController{
   private surface(entry:Entry):PaletteSurface{const current=this.document.profiles[entry.profileKey];if(!current)throw new Error('Desktop Palette profile unavailable');const connected=new Set([...this.entries.values()].map(value=>value.profileKey));return{profileKey:entry.profileKey,layout:structuredClone(current.layout),ownedWidgetIds:[...current.ownedWidgetIds],dockVisible:entry.dockVisible,profiles:Object.entries(this.document.profiles).map(([profileKey,value])=>({profileKey,label:value.monitor.label,connected:connected.has(profileKey),ownedWidgetIds:[...value.ownedWidgetIds]}))};}
   private broadcast():void{for(const entry of this.entries.values())if(!entry.window.isDestroyed())entry.window.webContents.send('p0:palette:surface-changed');}
   private setSettingsActive(active:boolean):void{for(const entry of this.entries.values())if(!entry.window.isDestroyed())entry.window.webContents.send('p0:palette:settings-active',active);}
-  private clearSettingsHandoff():void{if(!this.settingsHandoff)return;this.settingsHandoff=null;this.setSettingsActive(false);}
+  private clearSettingsHandoff():void{
+    const handoff=this.settingsHandoff;if(!handoff)return;
+    this.settingsHandoff=null;
+    if(handoff.restore&&!this.ports.workspace.isDestroyed()){
+      const {bounds,maximized,menuVisible,title}=handoff.restore;
+      this.ports.workspace.setBounds(bounds);
+      if(maximized)this.ports.workspace.maximize();
+      this.ports.workspace.setMenuBarVisibility(menuVisible);
+      this.ports.workspace.setTitle(title);
+    }
+    this.setSettingsActive(false);
+  }
+  private presentSettings():void{
+    const handoff=this.settingsHandoff,window=this.ports.workspace;if(!handoff||window.isDestroyed())return;
+    if(!handoff.restore){
+      handoff.restore={bounds:window.getNormalBounds(),maximized:window.isMaximized(),menuVisible:window.isMenuBarVisible(),title:window.getTitle()};
+      const display=screen.getAllDisplays().find(value=>value.id===handoff.displayId)??screen.getDisplayMatching(window.getBounds());
+      const area=display.workArea,width=Math.min(860,area.width-32),height=Math.min(760,area.height-32);
+      if(window.isMaximized())window.unmaximize();
+      window.setBounds({x:area.x+Math.round((area.width-width)/2),y:area.y+Math.round((area.height-height)/2),width,height});
+      window.setMenuBarVisibility(false);
+      window.setTitle('BOGUNON DESK · 설정');
+    }
+    if(window.isMinimized())window.restore();window.show();window.focus();
+  }
   private routePointer():void{const point=screen.getCursorScreenPoint();for(const entry of this.entries.values()){if(entry.window.isDestroyed()||!entry.window.isVisible())continue;const bounds=entry.window.getBounds(),x=point.x-bounds.x,y=point.y-bounds.y;entry.lifecycle.setInteractive(entry.regions.some(region=>x>=region.x&&x<region.x+region.width&&y>=region.y&&y<region.y+region.height));}}
   private registerIpc():void{
     const handle=(name:string,run:(event:IpcMainInvokeEvent,args:readonly unknown[],entry:Entry)=>unknown)=>ipcMain.handle(`p0:palette:${name}`,(event,...args:unknown[])=>run(event,args,this.resolve(event)));
@@ -103,9 +129,9 @@ export class DesktopSurfaceController{
     handle('ready',(_event,args,entry)=>{if(args.length)throw new Error('Invalid arguments');entry.ready=true;entry.lifecycle.show();});
     handle('set-hit-regions',(_event,args,entry)=>{if(args.length!==1||!Array.isArray(args[0])||args[0].length>32)throw new Error('Invalid regions');entry.regions=clipPaletteRegions(args[0] as unknown[],entry.window.getContentBounds());});
     handle('set-interactive',(_event,args,entry)=>{if(args.length!==1||typeof args[0]!=='boolean')throw new Error('Invalid input mode');entry.lifecycle.setInteractive(args[0]);});
-    handle('open-workspace',(_event,args)=>{if(args.length)throw new Error('Invalid arguments');this.ports.workspace.show();this.ports.workspace.focus();});
-    handle('open-settings',(_event,args)=>{if(args.length)throw new Error('Invalid arguments');if(!this.ports.onboardingComplete()||this.settingsHandoff)return;const returnToPalette=!this.ports.workspace.isVisible();this.settingsHandoff={returnToPalette};this.setSettingsActive(true);this.ports.workspace.webContents.send('p0:open-settings',returnToPalette);});
-    ipcMain.handle('p0:settings:ready',(event,...args:unknown[])=>{assertSender(event,this.ports.workspace.webContents,this.workspaceUrl);if(args.length)throw new Error('Invalid settings request');if(!this.settingsHandoff&&this.document.mode==='palette'){this.settingsHandoff={returnToPalette:false};this.setSettingsActive(true);}if(!this.settingsHandoff)return;this.ports.workspace.show();this.ports.workspace.focus();});
+    handle('open-workspace',(_event,args)=>{if(args.length)throw new Error('Invalid arguments');if(this.settingsHandoff){this.ports.workspace.webContents.send('p0:settings:close-requested',true);return;}this.ports.workspace.show();this.ports.workspace.focus();});
+    handle('open-settings',(_event,args,entry)=>{if(args.length)throw new Error('Invalid arguments');if(!this.ports.onboardingComplete())return;if(this.settingsHandoff){if(this.settingsHandoff.restore)this.presentSettings();return;}const returnToPalette=!this.ports.workspace.isVisible();this.settingsHandoff={returnToPalette,displayId:entry.displayId};this.setSettingsActive(true);this.ports.workspace.webContents.send('p0:open-settings',returnToPalette);});
+    ipcMain.handle('p0:settings:ready',(event,...args:unknown[])=>{assertSender(event,this.ports.workspace.webContents,this.workspaceUrl);if(args.length)throw new Error('Invalid settings request');if(!this.settingsHandoff){this.settingsHandoff={returnToPalette:false};if(this.document.mode==='palette')this.setSettingsActive(true);}this.presentSettings();});
     ipcMain.handle('p0:settings:dismissed',(event,...args:unknown[])=>{assertSender(event,this.ports.workspace.webContents,this.workspaceUrl);if(args.length!==1||typeof args[0]!=='boolean')throw new Error('Invalid settings request');const returnToPalette=this.settingsHandoff?.returnToPalette??false;if(returnToPalette&&!args[0]&&this.document.mode==='palette')this.ports.workspace.hide();this.clearSettingsHandoff();});
     handle('memo:read',async(_event,args)=>{if(args.length)throw new Error('Invalid arguments');try{return ok(await this.ports.memo.read());}catch{return storageError<MemoDocument>('메모를 불러오지 못했습니다.');}});
     handle('memo:write',async(_event,args)=>{if(args.length!==1)throw new Error('Invalid arguments');try{return ok(await this.ports.memo.write(args[0]));}catch{return storageError<MemoDocument>('메모를 저장하지 못했습니다.');}});

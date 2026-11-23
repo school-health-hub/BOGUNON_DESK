@@ -21,6 +21,7 @@ export interface P0Bridge {
   readonly desktopSurface:DesktopSurfaceBridge;
   completeOnboarding?(mode:'window'|'palette'):Promise<void>;
   onOpenSettings(listener:(returnToPalette:boolean)=>void):()=>void;
+  onSettingsCloseRequested?(listener:(keepWorkspace:boolean)=>void):()=>void;
   settingsReady?():Promise<void>;
   settingsDismissed?(keepWorkspace?:boolean):Promise<void>;
 }

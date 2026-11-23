@@ -24,6 +24,10 @@
 .electron-soft-rose .rose-dialog-header{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px 24px;border-bottom:1px solid #e9dde2;flex-shrink:0}
 .electron-soft-rose .rose-dialog h1{margin:0;font-size:22px}
 .electron-soft-rose .rose-dialog-content{padding:24px;overflow:auto;min-height:0;overscroll-behavior:contain;overflow-wrap:anywhere;scroll-padding:16px}
+.electron-soft-rose .rose-overlay.settings-window-surface{padding:0;background:#fff9f5;overflow:hidden}
+.electron-soft-rose .settings-window-surface .rose-dialog{width:100%;height:100%;max-width:none;max-height:none;border:0;border-radius:0;box-shadow:none;background:#fff9f5}
+.electron-soft-rose .settings-window-surface .rose-dialog-header{background:#fffdfd}
+.electron-soft-rose .settings-window-surface .rose-dialog-content{flex:1;overflow:auto}
 .electron-soft-rose .rose-dialog button{font:inherit;min-height:44px;border:1px solid #8a7680;border-radius:10px;background:#fffdfd;color:#243246;padding:8px 12px;cursor:pointer}
 .electron-soft-rose .rose-dialog button:hover:not(:disabled){background:#fff0f5}
 .electron-soft-rose .rose-dialog button:disabled{background:#e2e8ed;color:#475569;cursor:not-allowed;opacity:1}

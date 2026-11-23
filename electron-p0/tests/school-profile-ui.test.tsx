@@ -19,7 +19,7 @@ async function setup(existing=true){
 }
 async function findSchool(scope:ReturnType<typeof within>){fireEvent.change(scope.getByLabelText('학교명'),{target:{value:'합성'}});fireEvent.click(scope.getByRole('button',{name:'NEIS 학교 검색'}));await scope.findByRole('button',{name:'학교 선택 · 합성중학교'});}
 it('connects initial setup to explicit NEIS selection and the shared launcher profile, without fake BOGUNON auth',async()=>{
- const h=await setup(false);try{render(<SchoolProfileProvider><SchoolInitialSetup/><SchoolLauncherProfile onConfigure={()=>{}}/></SchoolProfileProvider>);const dialog=await screen.findByRole('dialog',{name:'학교 초기 설정'}),scope=within(dialog);expect(scope.getByText(/이 실행본에는 BOGUNON 계정 연결이 없습니다/)).toBeTruthy();await findSchool(scope);expect((await h.store.load()).document.school).toBeNull();fireEvent.click(scope.getByRole('button',{name:'학교 선택 · 합성중학교'}));await scope.findByRole('button',{name:'학교 설정 마치기'});expect((await h.store.load()).document.school).toEqual(second);await scope.findByText('초기값: https://goe.neis.go.kr');const neisChoice=scope.getByLabelText('나이스 초기 주소 적용 선택') as HTMLInputElement;expect(neisChoice.checked).toBe(false);fireEvent.click(neisChoice);fireEvent.click(scope.getByRole('button',{name:'선택한 초기 주소 확인 후 적용'}));await scope.findByText('선택한 주소 저장을 완료했습니다. 학교·다른 환경·복무 초안·Excel 데이터는 유지했습니다.');expect((await h.admin.load()).document.systems.neis).toBe('https://goe.neis.go.kr/');expect((await h.admin.load()).document.systems.portal).toBe('https://school.synthetic.eduptl.kr/');fireEvent.click(scope.getByRole('button',{name:'학교 설정 마치기'}));await waitFor(()=>expect(screen.queryByRole('dialog')).toBeNull());expect(within(screen.getByRole('region',{name:'행정 런처 학교 프로필'})).getByText(second.schoolName)).toBeTruthy();expect(h.network).not.toHaveBeenCalled();
+ const h=await setup(false);try{render(<SchoolProfileProvider><SchoolInitialSetup/><SchoolLauncherProfile onConfigure={()=>{}}/></SchoolProfileProvider>);const dialog=await screen.findByRole('dialog',{name:'학교 초기 설정'}),scope=within(dialog);expect(scope.getByText(/이 PC에서 사용할 학교 정보를 설정합니다/)).toBeTruthy();await findSchool(scope);expect((await h.store.load()).document.school).toBeNull();fireEvent.click(scope.getByRole('button',{name:'학교 선택 · 합성중학교'}));await scope.findByRole('button',{name:'학교 설정 마치기'});expect((await h.store.load()).document.school).toEqual(second);await scope.findByText('초기값: https://goe.neis.go.kr');const neisChoice=scope.getByLabelText('나이스 초기 주소 적용 선택') as HTMLInputElement;expect(neisChoice.checked).toBe(false);fireEvent.click(neisChoice);fireEvent.click(scope.getByRole('button',{name:'선택한 초기 주소 확인 후 적용'}));await scope.findByText('선택한 주소 저장을 완료했습니다. 학교·다른 환경·복무 초안·Excel 데이터는 유지했습니다.');expect((await h.admin.load()).document.systems.neis).toBe('https://goe.neis.go.kr/');expect((await h.admin.load()).document.systems.portal).toBe('https://school.synthetic.eduptl.kr/');fireEvent.click(scope.getByRole('button',{name:'학교 설정 마치기'}));await waitFor(()=>expect(screen.queryByRole('dialog')).toBeNull());expect(within(screen.getByRole('region',{name:'행정 런처 학교 프로필'})).getByText(second.schoolName)).toBeTruthy();expect(h.network).not.toHaveBeenCalled();
  }finally{await h.cleanup();}
 });
 it('keeps original addresses, unsaved leave/URL text and real Excel review while the common school changes',async()=>{
@@ -36,6 +36,19 @@ it('preserves selected school when confirmation is canceled or storage fails, th
 });
 it('shows search failures and allows skip/retry without overwriting any profile',async()=>{
  const h=await setup(false);try{vi.spyOn(h.schoolApi,'search').mockResolvedValueOnce({ok:false,error:{code:'STORAGE_ERROR',retryable:true,message:'합성 NEIS 연결 실패'}});render(<SchoolProfileProvider><SchoolInitialSetup/></SchoolProfileProvider>);const dialog=await screen.findByRole('dialog');fireEvent.change(within(dialog).getByLabelText('학교명'),{target:{value:'합성'}});fireEvent.click(within(dialog).getByRole('button',{name:'NEIS 학교 검색'}));await screen.findByText('합성 NEIS 연결 실패');expect((await h.store.load()).document.school).toBeNull();fireEvent.click(screen.getByRole('button',{name:'나중에 설정'}));expect(screen.queryByRole('dialog')).toBeNull();
+ }finally{await h.cleanup();}
+});
+
+it('keeps a dismissed initial setup closed while settings temporarily suspend it',async()=>{
+ const h=await setup(false);try{
+  const view=render(<SchoolProfileProvider><SchoolInitialSetup suspended={false}/></SchoolProfileProvider>);
+  const dialog=await screen.findByRole('dialog',{name:'학교 초기 설정'});
+  fireEvent.click(within(dialog).getByRole('button',{name:'나중에 설정'}));
+  expect(screen.queryByRole('dialog',{name:'학교 초기 설정'})).toBeNull();
+  view.rerender(<SchoolProfileProvider><SchoolInitialSetup suspended/></SchoolProfileProvider>);
+  view.rerender(<SchoolProfileProvider><SchoolInitialSetup suspended={false}/></SchoolProfileProvider>);
+  expect(screen.queryByRole('dialog',{name:'학교 초기 설정'})).toBeNull();
+  expect((await h.store.load()).document.school).toBeNull();
  }finally{await h.cleanup();}
 });
 

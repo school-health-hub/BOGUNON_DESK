@@ -13,6 +13,7 @@ const bridge: P0Bridge = Object.freeze({
   desktopSurface:Object.freeze({read:()=>ipcRenderer.invoke('p0:desktop-surface:read'),write:(mode:import('../desktop-surface-protocol.js').DesktopSurfaceMode)=>ipcRenderer.invoke('p0:desktop-surface:write',mode)}),
   completeOnboarding:(mode:'window'|'palette')=>ipcRenderer.invoke('p0:onboarding:complete',mode),
   onOpenSettings:(listener:(returnToPalette:boolean)=>void)=>{const callback=(_event:IpcRendererEvent,returnToPalette:unknown)=>listener(returnToPalette===true);ipcRenderer.on('p0:open-settings',callback);return()=>ipcRenderer.removeListener('p0:open-settings',callback);},
+  onSettingsCloseRequested:(listener:(keepWorkspace:boolean)=>void)=>{const callback=(_event:IpcRendererEvent,keepWorkspace:unknown)=>listener(keepWorkspace===true);ipcRenderer.on('p0:settings:close-requested',callback);return()=>ipcRenderer.removeListener('p0:settings:close-requested',callback);},
   settingsReady:()=>ipcRenderer.invoke('p0:settings:ready'),
   settingsDismissed:(keepWorkspace=false)=>ipcRenderer.invoke('p0:settings:dismissed',keepWorkspace),
 });

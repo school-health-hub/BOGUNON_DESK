@@ -1,6 +1,6 @@
 {
   "name": "bogunon-desk-electron-p0",
-  "version": "2.0.0-beta.6",
+  "version": "2.0.0-beta.7",
   "private": true,
   "type": "module",
   "main": "main/main.mjs",

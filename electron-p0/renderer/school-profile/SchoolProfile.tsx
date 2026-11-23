@@ -16,10 +16,10 @@ export function SchoolProfileProvider({children}:{children:ReactNode}){
  const selected=async(input:SchoolSelection)=>{if(!api)throw Error('학교 연결이 없습니다.');const result=read(await api.select(input));if(mounted.current){generation.current++;setLoading(false);setData(result);setError('');}};
  return <Context.Provider value={{data,loading,error,refresh,selected}}>{children}</Context.Provider>;
 }
-export function SchoolInitialSetup(){
+export function SchoolInitialSetup({suspended=false}:{suspended?:boolean}={}){
  const state=useContext(Context),[dismissed,setDismissed]=useState(false),[started,setStarted]=useState(false);
  useEffect(()=>{if(state?.data&&!state.loading&&!state.error&&!state.data.document.school)setStarted(true);},[state?.data,state?.loading,state?.error]);
- if(!state?.data||state.loading||state.error||state.data.document.school&&!started||dismissed)return null;
+ if(!state?.data||state.loading||state.error||state.data.document.school&&!started||dismissed||suspended)return null;
  return <SurfaceDialog title="학교 초기 설정" onClose={()=>setDismissed(true)}><SchoolProfileSettings/><button type="button" onClick={()=>setDismissed(true)}>{state.data.document.school?'학교 설정 마치기':'나중에 설정'}</button><p>학교를 선택하지 않아도 기존 로컬 작업을 계속할 수 있습니다.</p></SurfaceDialog>;
 }
 export function SchoolProfileSettings({showAddresses=true}:{showAddresses?:boolean}={}){
