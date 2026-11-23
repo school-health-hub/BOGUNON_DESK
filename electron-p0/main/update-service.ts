@@ -1,6 +1,6 @@
 import {createHash,randomUUID} from 'node:crypto';
 import {createReadStream} from 'node:fs';
-import {mkdir,open,readFile,rename,rm,stat} from 'node:fs/promises';
+import {mkdir,open,readFile,rename,rm,stat,writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {compareUpdateVersions,githubUpdateRepository,validateUpdateFeed,verifyUpdateManifest,type UpdateFeedConfig,type UpdateManifest} from './update-contract.js';
 import type {UpdateState} from '../update-protocol.js';
@@ -47,7 +47,7 @@ export class UpdateService{
     fetcher?:typeof fetch;
     verifySignature?:(path:string,publisherSubject:string)=>Promise<boolean>;
     confirmClose?:()=>Promise<boolean>;
-    launchInstaller?:(path:string)=>Promise<void>;
+    launchInstaller?:(path:string,manifest:UpdateManifest)=>Promise<void>;
   }>){
     this.state={phase:options.enabled&&options.feed?'idle':'unavailable',currentVersion:options.currentVersion,message:options.enabled&&options.feed?undefined:'이 실행본에서는 앱 내 업데이트를 사용할 수 없습니다. 기존 설치 파일로 수동 업데이트해 주세요.'};
   }
@@ -65,6 +65,7 @@ export class UpdateService{
       const reader=response.body!.getReader();let size=0;const chunks:Uint8Array[]=[];
       for(;;){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>MAX_MANIFEST_BYTES)throw new Error('업데이트 정보가 너무 큽니다.');chunks.push(value);}
       const manifest=verifyUpdateManifest(JSON.parse(Buffer.concat(chunks).toString('utf8')),feed,currentVersion);
+      if(manifest.schema===2)await this.observeVersion(manifest.version,feed.channel);
       if(compareUpdateVersions(manifest.version,currentVersion)===0){this.candidate=null;return this.set({phase:'current',currentVersion,message:'최신 버전을 사용 중입니다.'});}
       this.candidate=manifest;
       return this.set({phase:'available',currentVersion,nextVersion:manifest.version,notes:manifest.notes});
@@ -105,21 +106,35 @@ export class UpdateService{
     this.installPending=true;
     const ready=this.state;
     try{
-      if(!feed?.publisherSubject||!verifySignature||!confirmClose||!launchInstaller)return this.set({...ready,message:'Windows 서명과 게시자 확인이 준비되지 않아 앱에서 설치할 수 없습니다. 검증된 설치 파일로 수동 업데이트해 주세요.'});
+      if(!feed||!confirmClose||!launchInstaller||this.candidate.schema!==2&&(!feed.publisherSubject||!verifySignature))return this.set({...ready,message:'설치 파일의 서명 검증이 준비되지 않아 앱에서 설치할 수 없습니다. 검증된 설치 파일로 수동 업데이트해 주세요.'});
+      verifyUpdateManifest(this.candidate,feed,currentVersion);
       if((await stat(this.downloadedPath)).size!==this.candidate.size||await this.hashFile(this.downloadedPath)!==this.candidate.sha256)return this.set({...ready,message:'다운로드 파일이 변경됐습니다. 다시 다운로드해 주세요.'});
-      if(!await verifySignature(this.downloadedPath,feed.publisherSubject))return this.set({...ready,message:'Windows 설치 파일의 서명 또는 게시자를 확인하지 못했습니다. 설치하지 않았습니다.'});
+      if(feed.publisherSubject&&(!verifySignature||!await verifySignature(this.downloadedPath,feed.publisherSubject)))return this.set({...ready,message:'Windows 설치 파일의 서명 또는 게시자를 확인하지 못했습니다. 설치하지 않았습니다.'});
       if(!await confirmClose())return this.set({...ready,message:'업데이트 설치를 취소했습니다. 기존 앱과 작업은 유지됩니다.'});
-      if((await stat(this.downloadedPath)).size!==this.candidate.size||await this.hashFile(this.downloadedPath)!==this.candidate.sha256||!await verifySignature(this.downloadedPath,feed.publisherSubject))return this.set({...ready,message:'설치 직전 파일 검증에 실패했습니다. 다시 다운로드해 주세요.'});
+      verifyUpdateManifest(this.candidate,feed,currentVersion);
+      if((await stat(this.downloadedPath)).size!==this.candidate.size||await this.hashFile(this.downloadedPath)!==this.candidate.sha256||feed.publisherSubject&&(!verifySignature||!await verifySignature(this.downloadedPath,feed.publisherSubject)))return this.set({...ready,message:'설치 직전 파일 검증에 실패했습니다. 다시 다운로드해 주세요.'});
       const installing=this.set({phase:'installing',currentVersion,nextVersion:this.candidate.version,notes:this.candidate.notes,progress:100,message:'설치 프로그램을 여는 중입니다. 저장된 작업을 유지합니다.'});
-      await launchInstaller(this.downloadedPath);
+      await launchInstaller(this.downloadedPath,this.candidate);
       return installing;
     }catch{return this.set({...ready,message:'설치 프로그램을 열지 못했습니다. 기존 앱은 계속 사용할 수 있습니다.'});}
     finally{this.installPending=false;}
   }
   private ready(manifest:UpdateManifest):UpdateState{
-    const installSupported=Boolean(this.options.feed?.publisherSubject&&this.options.verifySignature&&this.options.confirmClose&&this.options.launchInstaller);
-    return this.set({phase:'ready',currentVersion:this.options.currentVersion,nextVersion:manifest.version,notes:manifest.notes,progress:100,installSupported,message:installSupported?'다운로드와 파일 검증이 끝났습니다. 설치 전 Windows 서명과 저장 작업을 다시 확인합니다.':'다운로드와 파일 검증이 완료됐습니다. 서명된 설치본 검증 전에는 앱에서 자동 설치하지 않습니다.'});
+    const installSupported=Boolean((manifest.schema===2||this.options.feed?.publisherSubject&&this.options.verifySignature)&&this.options.confirmClose&&this.options.launchInstaller);
+    return this.set({phase:'ready',currentVersion:this.options.currentVersion,nextVersion:manifest.version,notes:manifest.notes,progress:100,installSupported,message:installSupported?'다운로드와 파일 검증이 끝났습니다. 설치 전 서명된 업데이트 정보와 파일 무결성을 다시 확인합니다.':'다운로드와 파일 검증이 완료됐습니다. 설치 신뢰 검증이 준비되기 전에는 앱에서 설치하지 않습니다.'});
   }
   private async hashFile(path:string):Promise<string>{const hash=createHash('sha256');for await(const chunk of createReadStream(path))hash.update(chunk);return hash.digest('hex');}
+  private async observeVersion(version:string,channel:UpdateFeedConfig['channel']):Promise<void>{
+    const path=join(this.options.cacheDir,`highest-${channel}.json`);
+    let previous:string|undefined;
+    try{const document=JSON.parse(await readFile(path,'utf8'));if(typeof document.version!=='string')throw Error('Invalid update watermark');previous=document.version;}
+    catch(error){if(!(error instanceof Error&&'code' in error&&error.code==='ENOENT'))throw new Error('저장된 업데이트 기준을 확인하지 못했습니다.');}
+    if(previous&&compareUpdateVersions(version,previous)<0)throw new Error('이전에 확인한 버전보다 오래된 업데이트 정보입니다.');
+    if(previous&&compareUpdateVersions(version,previous)===0)return;
+    await mkdir(this.options.cacheDir,{recursive:true});
+    const temporary=`${path}.${randomUUID()}.partial`;
+    try{await writeFile(temporary,JSON.stringify({version}),{flag:'wx'});await rename(temporary,path);}
+    finally{await rm(temporary,{force:true}).catch(()=>{});}
+  }
   downloaded():boolean{return this.downloadedPath!==null;}
 }

@@ -17,12 +17,13 @@ if(feed.hostname==='github.com'){
 }
 if(basename(installerPath)!==`BOGUNON-DESK-Setup-${product.version}-x64.exe`)throw new Error('NSIS file name does not match the product version.');
 const privateKey=createPrivateKey(keyText),publicKey=createPublicKey(privateKey).export({type:'spki',format:'pem'}).toString();
-if(publicKey.trim()!==String(config.publicKeyPem).trim())throw new Error('Private key does not match the app public key.');
+if(![config.publicKeyPem,config.nextPublicKeyPem].some(key=>typeof key==='string'&&publicKey.trim()===key.trim()))throw new Error('Private key does not match an app public key.');
 const notes=(await readFile(notesPath,'utf8')).trim(),size=(await stat(installerPath)).size;
 if(!notes||notes.length>2000||!Number.isSafeInteger(size)||size<1||size>1024*1024*1024)throw new Error('Invalid update notes or installer size.');
 const hash=createHash('sha256');for await(const chunk of createReadStream(installerPath))hash.update(chunk);
 const sha256=hash.digest('hex'),url=new URL(encodeURIComponent(basename(installerPath)),base).href;
-const payload={schema:1,channel:config.channel,version:product.version,notes,url,size,sha256};
-const signature=sign(null,Buffer.from(JSON.stringify([payload.schema,payload.channel,payload.version,payload.notes,payload.url,payload.size,payload.sha256])),privateKey).toString('base64');
+const issuedAt=new Date(),expiresAt=new Date(issuedAt.getTime()+30*24*60*60*1000);
+const payload={schema:2,channel:config.channel,version:product.version,notes,url,size,sha256,issuedAt:issuedAt.toISOString(),expiresAt:expiresAt.toISOString()};
+const signature=sign(null,Buffer.from(JSON.stringify([payload.schema,payload.channel,payload.version,payload.notes,payload.url,payload.size,payload.sha256,payload.issuedAt,payload.expiresAt])),privateKey).toString('base64');
 await writeFile(outputPath,JSON.stringify({...payload,signature},null,2)+'\n',{flag:'wx'});
 process.stdout.write(`Signed update manifest: ${basename(outputPath)} (${product.version})\n`);

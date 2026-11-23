@@ -18,8 +18,25 @@ const manifest=(version='2.0.0-beta.6',overrides:Record<string,unknown>={})=>{
   const signed=JSON.stringify([base.schema,base.channel,base.version,base.notes,base.url,base.size,base.sha256]);
   return {...base,signature:sign(null,Buffer.from(signed),privateKey).toString('base64')};
 };
+const manifestV2=(version='2.0.0-beta.6',overrides:Record<string,unknown>={},signingKey=privateKey)=>{
+  const issuedAt=new Date(Date.now()-60_000).toISOString();
+  const expiresAt=new Date(Date.now()+7*24*60*60*1000).toISOString();
+  const base={schema:2,channel:'beta',version,notes:'합성 QA 변경 사항',url:'https://updates.example.org/beta/setup.exe',size:payload.length,sha256,issuedAt,expiresAt,...overrides};
+  const signed=JSON.stringify([base.schema,base.channel,base.version,base.notes,base.url,base.size,base.sha256,base.issuedAt,base.expiresAt]);
+  return {...base,signature:sign(null,Buffer.from(signed),signingKey).toString('base64')};
+};
 
 describe('signed update contract',()=>{
+  it('binds release identity and freshness to the pinned signing key, including a staged rotation key',()=>{
+    const next=generateKeyPairSync('ed25519');
+    const rotatingFeed={...feed,nextPublicKeyPem:next.publicKey.export({type:'spki',format:'pem'}).toString()};
+    expect(validateUpdateFeed(rotatingFeed)).not.toBeNull();
+    expect(verifyUpdateManifest(manifestV2('2.0.0-beta.6',{},next.privateKey),rotatingFeed,current).schema).toBe(2);
+    expect(()=>verifyUpdateManifest(manifestV2('2.0.0-beta.6',{expiresAt:new Date(Date.now()-60_000).toISOString()}),feed,current)).toThrow('만료');
+    expect(()=>verifyUpdateManifest(manifestV2('2.0.0-beta.6',{url:'https://evil.example/setup.exe'}),feed,current)).toThrow('주소');
+    expect(()=>verifyUpdateManifest(manifestV2('2.0.0-beta.4'),feed,current)).toThrow('이전 버전');
+    expect(()=>verifyUpdateManifest(manifestV2('2.0.0-beta.6',{},next.privateKey),feed,current)).toThrow('서명');
+  });
   it('accepts only the configured public GitHub channel and a version-matched release asset',()=>{
     expect(validateUpdateFeed(githubFeed)).not.toBeNull();
     expect(verifyUpdateManifest(manifest('2.0.0-beta.6',{url:githubInstaller}),githubFeed,current).url).toBe(githubInstaller);
@@ -146,6 +163,27 @@ describe('isolated update lifecycle',()=>{
     await service.check();await service.download();
     expect((await service.install()).phase).toBe('ready');
     expect(service.status().message).toContain('서명');
+  });
+  it('permits installer handoff only for a fresh signed v2 manifest without an Authenticode publisher',async()=>{
+    const base=process.env.UPDATE_QA_TEMP;if(!base)throw new Error('Set UPDATE_QA_TEMP');
+    root=await mkdtemp(join(base,'v2-install-'));
+    const confirmClose=vi.fn(async()=>true);
+    const launchInstaller=vi.fn(async()=>{});
+    const service=new UpdateService({currentVersion:current,feed,cacheDir:root,enabled:true,emit:()=>{},fetcher:(async(url:string)=>new Response(url===feed.manifestUrl?JSON.stringify(manifestV2()):payload)) as typeof fetch,confirmClose,launchInstaller});
+    expect((await service.check()).phase).toBe('available');
+    const ready=await service.download();expect(ready.phase).toBe('ready');expect(ready.installSupported).toBe(true);
+    expect((await service.install()).phase).toBe('installing');
+    expect(confirmClose).toHaveBeenCalledTimes(1);
+    expect(launchInstaller).toHaveBeenCalledTimes(1);
+  });
+  it('rejects a previously superseded signed release after app restart',async()=>{
+    const base=process.env.UPDATE_QA_TEMP;if(!base)throw new Error('Set UPDATE_QA_TEMP');
+    root=await mkdtemp(join(base,'replay-'));
+    let offered='2.0.0-beta.7';
+    const options={currentVersion:current,feed,cacheDir:root,enabled:true,emit:()=>{},fetcher:(async()=>new Response(JSON.stringify(manifestV2(offered)))) as typeof fetch};
+    expect((await new UpdateService(options).check()).phase).toBe('available');
+    offered='2.0.0-beta.6';
+    expect((await new UpdateService(options).check()).phase).toBe('failed');
   });
   it('requires a valid publisher, unchanged hash and explicit save confirmation before launch',async()=>{
     const base=process.env.UPDATE_QA_TEMP;if(!base)throw new Error('Set UPDATE_QA_TEMP');
