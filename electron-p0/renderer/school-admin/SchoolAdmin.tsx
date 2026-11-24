@@ -7,6 +7,7 @@ import type {IpcResult} from '../../protocol';
 import {inspectOfficialDocumentPrivacy} from '../../../src/official-document/privacyGuard';
 import {formatWorkspaceDate} from '../../../src/workspace-data/workspaceDataAdapter';
 import './school-admin.css';
+import {SmartWorkLauncher} from './SmartWorkLauncher';
 const read=<T,>(value:IpcResult<T>):T=>{if(!value.ok)throw Object.assign(Error(value.error.message),{code:value.error.code});return value.data;};
 const blank=():LeaveDraft=>({id:crypto.randomUUID(),system:'neis',kind:'연가',startDate:formatWorkspaceDate(new Date()),endDate:formatWorkspaceDate(new Date()),startTime:'09:00',endTime:'18:00',reason:'',text:''});
 const defaults=(table:AdminTable,header:number):AdminColumn[]=>table.rows[header].slice(0,4).map((value,i)=>({label:`${value.trim()||'열'} (${i+1})`,sourceColumn:i,type:'text',required:i===0}));
@@ -50,6 +51,7 @@ export function SchoolAdmin({onClose}:{onClose:()=>void}){
  return <main className="school-admin" aria-busy={busy}><WorkspaceHeader title="학교 행정 업무 도우미" context="이 PC의 학교 설정 · 공식 로그인은 별도" description="바로가기 → 복무 초안 → Excel 검토 · 로그인과 제출은 직접 진행합니다." onBack={close} backDisabled={busy}/>
  <p className="admin-notice" role="status">{notice}</p>{locked&&<button disabled={busy} onClick={()=>{if(window.confirm('저장소의 최신 주소·양식을 다시 읽을까요? 작성 중인 복무 원고는 유지합니다.'))void run(load);}}>저장소 다시 읽기</button>}
  {busy&&<button type="button" onClick={()=>{void api.cancel();setNotice('취소를 요청했습니다. 진행 중인 파일 처리·전송 전 확인을 중단합니다. 이미 완료된 저장·복사는 취소되지 않습니다.');}}>진행 작업 취소</button>}
+ <SmartWorkLauncher api={api.smartLauncher}/>
  <section className="admin-card" aria-labelledby="admin-systems"><h2 id="admin-systems">1. 학교 업무 시스템</h2>
  <button type="button" disabled={busy||!document} onClick={()=>void run(async()=>{if(entryUrl!==(document?.launcher?.entryUrl??'')){setNotice('수정한 eVPN 접속 주소를 먼저 저장해 주세요.');focusSettings('evpn','entry');return;}const result=read(await api.openEvpn());if(result.status==='needs-configuration'){setNotice('eVPN 접속 공식 주소를 등록해 주세요.');focusSettings('evpn','entry');}else setNotice((result.status==='launched'?'eVPN 브라우저 실행 요청을 완료했습니다. 실제 연결과 인증서 로그인은 직접 진행하세요.':result.status==='blocked'?'eVPN의 안전하지 않은 이동을 차단했습니다. 주소 설정을 확인하세요.':'eVPN 접속 열기를 취소했습니다.')+('connection' in result&&result.connection?' '+result.connection.message:''));})}>eVPN 접속 페이지 열기</button>
  {api.checkSystem&&<button type="button" disabled={busy||!document} onClick={()=>checkSystem('evpn')}>eVPN 주소 연결 확인</button>}
