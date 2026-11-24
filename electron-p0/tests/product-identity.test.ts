@@ -8,7 +8,7 @@ const builder = JSON.parse(readFileSync('electron-p0/builder.json', 'utf8')) as 
 describe('INT-05B product identity', () => {
   it('uses the release product name and beta version in packaged metadata', () => {
     expect(electronPackage).toMatchObject({
-      version: '2.0.0-beta.7',
+      version: '2.0.0-beta.8',
       description: 'BOGUNON DESK 2.0 school health workspace',
     });
     expect(builder).toMatchObject({
