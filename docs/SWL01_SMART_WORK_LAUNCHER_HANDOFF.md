@@ -83,6 +83,8 @@ No real 업무포털, 나이스, K-에듀파인, or eVPN system was logged into 
 
 The earlier windowless run had two harness causes rather than a product rendering failure: the long QA path exceeded Chromium's GPU cache path limit, and direct shell launches let Electron inherit a closed stdout pipe, producing `EPIPE`. A short strict-child QA root plus `Start-Process` with persistent log-file handles produced a complete renderer. The first window remained hidden because `ready-to-show` was not observed; the product's existing second-instance recovery path displayed that same BrowserWindow. Once displayed, the renderer was `readyState=complete` and all remaining gates were exercised in the actual Windows Electron window.
 
+Evidence interpretation: the 980 result sampled the favorite aria-label before React's asynchronous refresh, while the filled-star screenshot and the 900 run's initial `즐겨찾기 제거` state prove the add; the 900 run then proves removal. The native-cancel test enabled recent history through the QA bridge, so the still-mounted UI retained its prior `기록 꺼짐` label, while the authoritative store result was `recentEnabled: true` and `recent: []` after cancellation.
+
 Runtime diagnostics recorded no fatal application error, but did record safeStorage deprecation and MaxListenersExceeded warnings.
 
 ## Windows flow observed at nominal 1440x900
