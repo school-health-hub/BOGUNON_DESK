@@ -37,6 +37,7 @@ import {recognizeImage,verifyOcrRuntime} from './purchase-image-ocr.js';
 import {SchoolProfileStore,createSchoolHandlers} from './school-profile.js';
 import {allowedSchoolUrl} from './school-network.js';
 import {AdminStore} from './admin-store.js';
+import {SmartLauncherStore} from './smart-launcher-store.js';
 import {createAdminHandlers} from './admin-ipc.js';
 import {FinanceProcess} from './finance-process.js';
 import {FinanceService,createFinanceHandlers} from './finance-ipc.js';
@@ -100,6 +101,7 @@ const workFoldersStore=new WorkFoldersStore(join(userData,'work-data','work-fold
 const educationVideoStore=new EducationVideoLibraryStore(join(userData,'work-data','education-video'));
 const schoolStore=new SchoolProfileStore(join(userData,'work-data','school-profile'));
 const adminStore=new AdminStore(join(userData,'work-data','school-admin'));
+const smartLauncherStore=new SmartLauncherStore(join(userData,'work-data','smart-launcher'));
 const inventoryStore=new InventoryStore(join(userData,'work-data','inventory'));
 let quitting = false;
 if (!app.requestSingleInstanceLock()) app.quit();
@@ -241,7 +243,7 @@ else {
   for (const channel of ['p0:info','p0:read-settings','p0:write-settings']) ipcMain.handle(channel,async(event,...args: unknown[])=>{
     assertSender(event,window.webContents,url);
     if (args.length !== (channel === 'p0:write-settings' ? 1 : 0)) throw new Error('Invalid PoC IPC arguments');
-    if (channel === 'p0:info') return {appId:APP_ID,productName:PRODUCT_NAME,version:app.getVersion(),userData,sourceSha:meta.sourceSha,electron:process.versions.electron,onboardingComplete,...(qaPaths.qa?{qaProfile:{root:qaPaths.root,appData:app.getPath('appData'),sessionData:app.getPath('sessionData'),stores:['poc-settings','work-data/local-tasks','work-data/local-events','work-data/purchase-settings','work-data/quick-memo','work-data/work-folders','work-data/drop-import-tmp','work-data/education-video','work-data/school-profile','work-data/bogunon-account','work-data/school-admin','work-data/inventory','work-data/ai','work-data/chatgpt','work-data/my-finance','work-data/youtube-search','work-data/newsletter-projects','work-data/newsletter-ai-assets','work-data/official-import-tmp','work-data/purchase-import-tmp'].map(p=>join(userData,p))}}:{})};
+    if (channel === 'p0:info') return {appId:APP_ID,productName:PRODUCT_NAME,version:app.getVersion(),userData,sourceSha:meta.sourceSha,electron:process.versions.electron,onboardingComplete,...(qaPaths.qa?{qaProfile:{root:qaPaths.root,appData:app.getPath('appData'),sessionData:app.getPath('sessionData'),stores:['poc-settings','work-data/local-tasks','work-data/local-events','work-data/purchase-settings','work-data/quick-memo','work-data/work-folders','work-data/drop-import-tmp','work-data/education-video','work-data/school-profile','work-data/bogunon-account','work-data/school-admin','work-data/smart-launcher','work-data/inventory','work-data/ai','work-data/chatgpt','work-data/my-finance','work-data/youtube-search','work-data/newsletter-projects','work-data/newsletter-ai-assets','work-data/official-import-tmp','work-data/purchase-import-tmp'].map(p=>join(userData,p))}}:{})};
     if (channel === 'p0:read-settings') return store.read();
     return store.write(args[0]);
   });
@@ -266,7 +268,7 @@ else {
   app.on('select-client-certificate',adminProbe.denyCertificate);
   const releaseAdminProbe=()=>app.removeListener('select-client-certificate',adminProbe.denyCertificate);
   window.on('closed',releaseAdminProbe);app.on('will-quit',releaseAdminProbe);
-  const adminHandlers=createAdminHandlers(window.webContents,url,{store:adminStore,excel:excelService,protectedRoot:userData,
+  const adminHandlers=createAdminHandlers(window.webContents,url,{store:adminStore,smartLauncher:smartLauncherStore,excel:excelService,protectedRoot:userData,
    school:async()=>(await schoolStore.load()).document.school,schoolProfile:()=>schoolStore.load(),
    inspect:(target,signal)=>inspectAdminConnection(adminProbe.fetch,target,signal),
    pick:async()=>{const r=await dialog.showOpenDialog(window,{title:'학교 행정 검토용 CSV/XLSX 선택',properties:['openFile','dontAddToRecent'],filters:[{name:'검토용 표',extensions:['csv','xlsx']}]});return r.canceled?undefined:r.filePaths[0];},
@@ -404,7 +406,7 @@ else {
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()&&!desktopSurface.isSettingsPresented()&&!desktopSurface.isToolPresented()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
-  const quit=()=>{if(quitting)return;quitting=true;desktopSurface.beginQuit();instructorFiles.dispose();accountHandlers.dispose();fileDrop.dispose();workFolderHandlers.dispose();recordHandlers.dispose();finderCompat.dispose();finderV2Export.dispose();finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();aiService.dispose();inventoryQa.close();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([instructorFiles.flush(),accountHandlers.flush(),fileDrop.flush(),workFoldersStore.flush(),recordHandlers.flush(),finderSearch.flush(),finderV2Export.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),desktopSurfaceStore.flush(),memoStore.flush(),taskStore.flush(),eventStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>workspaceProduct.dispose()).finally(()=>{tray?.destroy();app.quit();});};
+  const quit=()=>{if(quitting)return;quitting=true;desktopSurface.beginQuit();instructorFiles.dispose();accountHandlers.dispose();fileDrop.dispose();workFolderHandlers.dispose();recordHandlers.dispose();finderCompat.dispose();finderV2Export.dispose();finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();aiService.dispose();inventoryQa.close();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([instructorFiles.flush(),accountHandlers.flush(),fileDrop.flush(),workFoldersStore.flush(),recordHandlers.flush(),finderSearch.flush(),finderV2Export.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),smartLauncherStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),desktopSurfaceStore.flush(),memoStore.flush(),taskStore.flush(),eventStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>workspaceProduct.dispose()).finally(()=>{tray?.destroy();app.quit();});};
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
       {label:'업무 창 열기',click:show},

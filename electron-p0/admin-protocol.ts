@@ -66,7 +66,18 @@ export type AdminReview=Readonly<{id:string;generation:number;headers:readonly s
 export type AdminMapping=Readonly<{generation:number;headerRow:number;columns:readonly AdminColumn[]}>;
 export type AdminSelection=Readonly<{reviewId:string;rowIndexes:readonly number[]}>;
 export type AdminLaunchResult=Readonly<{status:'launched'|'canceled'|'blocked';connection?:import('./admin-connection.js').AdminConnectionCheck}>;
+export type SmartLauncherLaunchResult=(AdminLaunchResult|Readonly<{status:'needs-configuration';system?:AdminSystem;environment?:AdminEnvironment}>)&Readonly<{recentRecorded?:boolean;warning?:string}>;
+export type SmartLauncherBridge=Readonly<{
+ catalog():Promise<IpcResult<readonly import('./smart-work-launcher.js').WorkAction[]>>;
+ load():Promise<IpcResult<import('./smart-launcher-preferences.js').SmartLauncherPreferencesLoad>>;
+ toggleFavorite(id:import('./smart-work-launcher.js').WorkActionId,expectedRevision:number):Promise<IpcResult<import('./smart-launcher-preferences.js').SmartLauncherPreferencesLoad>>;
+ reorderFavorites(ids:readonly import('./smart-work-launcher.js').WorkActionId[],expectedRevision:number):Promise<IpcResult<import('./smart-launcher-preferences.js').SmartLauncherPreferencesLoad>>;
+ setRecentEnabled(enabled:boolean,expectedRevision:number):Promise<IpcResult<import('./smart-launcher-preferences.js').SmartLauncherPreferencesLoad>>;
+ clearRecent(expectedRevision:number):Promise<IpcResult<import('./smart-launcher-preferences.js').SmartLauncherPreferencesLoad>>;
+ launch(id:import('./smart-work-launcher.js').WorkActionId):Promise<IpcResult<SmartLauncherLaunchResult>>;
+}>;
 export type AdminBridge=Readonly<{
+ smartLauncher?:SmartLauncherBridge;
  schoolAddresses?():Promise<IpcResult<import('./school-launcher.js').SchoolAddressPreview>>;
  applySchoolAddresses?(request:import('./school-launcher.js').ApplySchoolAddresses):Promise<IpcResult<AdminLoad|null>>;
  close():Promise<IpcResult<null>>;load():Promise<IpcResult<AdminLoad>>;save(document:AdminDocument,expectedRevision:number):Promise<IpcResult<AdminLoad>>;
