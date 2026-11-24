@@ -1,9 +1,9 @@
-# SWL-01 Smart Work Launcher — CONDITIONAL / QA PENDING handoff
+# SWL-01 Smart Work Launcher — FINAL WINDOWS QA PASS handoff
 
 Date: 2026-11-24 (Asia/Seoul)
-Verdict: **CONDITIONAL / QA PENDING**
+Verdict: **PASS**
 
-Checkpoint note: this handoff authorizes only a preservation checkpoint with the message `wip(electron): preserve SWL-01 (QA pending)`. It is **not** feature approval, a merge to `main`, a pull request approval, a release, or a deployment. Exact `980x700`, exact `900x680`, and synthetic native launch-cancel QA remain pending.
+Closure note: the three remaining Windows gates were completed on 2026-11-24 using a strict-child synthetic QA profile. This PASS closes SWL-01 feature QA only; it is **not** a merge to `main`, a beta.10 integration, a pull request approval, a release, or a deployment.
 
 ## Frozen scope and Git state
 
@@ -15,7 +15,7 @@ Checkpoint note: this handoff authorizes only a preservation checkpoint with the
 - The frozen base is present on `origin/codex/rc2-logout-integration`. The conditional checkpoint is created from that base without modifying the RC2 branch/worktree or any other worktree; no reset, checkout, rebase, merge, stash, or clean is part of this handoff.
 - Pre-checkpoint working tree: 7 tracked files modified plus 9 new product/test files and this handoff document.
 
-This preservation checkpoint is conditional because exact `980x700`, exact `900x680`, and synthetic native launch-cancel checks are **NOT RUN**. A clean automated result and a successful nominal 1440-window walkthrough do not override those missing gates or constitute feature approval.
+The preserved implementation checkpoint is `356bb5358e89811b6ad166ced9b7843024a4b501`. Final Windows QA evidence is stored outside the repository under `F:\BOGUNON_QA\SWL01_FINAL_WINDOWS_QA_20261124`; Chromium profile state remains excluded from Git and evidence publication.
 
 ## Actual implementation
 
@@ -76,12 +76,12 @@ No real 업무포털, 나이스, K-에듀파인, or eVPN system was logged into 
 | Menu guide/no launch | **PASS for sole field-verified purchase action** | guide expanded to the five-part path; no browser/process was opened |
 | Favorite ordering (2+) | **PASS automated / NOT RUN GUI** | focused tests only |
 | Corrupt primary/backup recovery | **PASS automated / NOT RUN GUI** | focused tests only |
-| Exact 980x700 | **NOT RUN** | unified CUA had no exact resize API; later harnesses failed before obtaining a usable renderer/page |
-| Exact 900x680 | **NOT RUN** | same limitation/failure; no screenshot or layout/focus metric may be claimed |
-| Native launch cancel | **NOT RUN** | no operational address was configured and no external browser/site was opened |
+| Exact 980x700 | **PASS** | actual Windows outer bounds `980x700`; 20 actions, search, 3-item purchase filter, favorite mutation, verified guide, keyboard focus, and zero horizontal overflow confirmed; `screenshots/980x700-smart-launcher.png` |
+| Exact 900x680 | **PASS** | actual Windows outer bounds `900x680`; the same launcher flow remained reachable with scrolling and no horizontal clipping; `screenshots/900x680-smart-launcher.png` |
+| Native launch cancel | **PASS** | synthetic `https://synthetic.eduptl.kr/` only; native confirmation captured and physically canceled; result `status: canceled`, enabled recent history remained empty, no browser root or synthetic-URL process opened |
 | Real systems | **NOT RUN** | intentionally outside this QA |
 
-The final exact-size attempt used one authorized repository Playwright `_electron.launch`, a fresh strict-child QA root, and a 120-second timeout. `electron.launch` never returned and remained pending until the supervising command was interrupted. Per the stop rule, there was no retry. Earlier CDP attempts also failed before exact-size page validation (including a built renderer target unavailable failure). Therefore navigation, both exact sizes, screenshots, overlap/clipping/overflow metrics, Tab focus, menu-guide metrics, and page/console error capture at those sizes are all **NOT RUN**, not FAIL/PASS by inference.
+The earlier windowless run had two harness causes rather than a product rendering failure: the long QA path exceeded Chromium's GPU cache path limit, and direct shell launches let Electron inherit a closed stdout pipe, producing `EPIPE`. A short strict-child QA root plus `Start-Process` with persistent log-file handles produced a complete renderer. The first window remained hidden because `ready-to-show` was not observed; the product's existing second-instance recovery path displayed that same BrowserWindow. Once displayed, the renderer was `readyState=complete` and all remaining gates were exercised in the actual Windows Electron window.
 
 Runtime diagnostics recorded no fatal application error, but did record safeStorage deprecation and MaxListenersExceeded warnings.
 
@@ -111,20 +111,8 @@ Residual risk remains: the excluded `profile/` trees contain Chromium/Electron s
 
 ## Resume and recovery
 
-The conditional preservation checkpoint may be committed and pushed only to `codex/swl-01-smart-work-launcher`. Do not merge, release, or deploy it. To continue QA on the same Windows machine, from the exact worktree:
-
-```powershell
-Set-Location 'F:\BOGUNON_QA\SWL01_SMART_WORK_LAUNCHER'
-npm run electron:p0:build
-node 'F:\BOGUNON_QA\SWL01_WINDOWS_QA_20261124\logs\16-exact-size-playwright.mjs'
-```
-
-The existing runner is diagnostic evidence and previously hung at `_electron.launch`; before reuse, inspect/fix the harness launch contract rather than treating the same command as expected to pass. Use a fresh strict-child QA root, one launch, the repository Playwright Electron pattern, and the established stop rule. Capture and verify outer sizes exactly at `980x700` and `900x680`, launcher/card/detail/control visibility, overlap/clipping/horizontal overflow, keyboard focus, purchase guide/no-launch behavior, and page/console errors. Preserve new logs, screenshots, metrics, cleanup receipt, and a complete updated SHA-256 manifest.
-
-Then configure only a synthetic allowlisted official-format address and exercise the native confirmation **Cancel** path. Verify no external browser/site/process is opened and no recent item is recorded. Do not access a real system or use real credentials.
-
-After all three missing gates pass, rerun the focused 67-test command, the three Electron TypeScript commands, build, `git diff --check`, and the untracked whitespace scan. Re-audit the exact diff and a profile-excluded evidence package with a real secret scanner if available. Only then request feature approval and any separate merge/release action; the conditional checkpoint itself does not grant either.
+SWL-01 is ready for a separately approved beta.10 integration review. That review must consume this branch normally and must not imply main merge, release, or deployment approval. Real school systems, credentials, login, submission, and operational network access remain outside this PASS.
 
 ## DoneClaim
 
-**CONDITIONAL / QA PENDING.** Implementation, focused automation, build, nominal 1440-window interaction, isolated persistence, and the sole field-verified purchase guide are evidenced. Exact `980x700`, exact `900x680`, synthetic native launch cancel, real systems, secure evidence transfer, and receiving-PC restore are not complete. The approved action is limited to preserving this state in the named feature branch. This checkpoint is not feature approval, a `main` merge, a release, or a deployment.
+**PASS.** Implementation, 67 focused tests, build, nominal 1440 walkthrough, exact `980x700`, exact `900x680`, isolated persistence, favorite/search/filter/menu-guide behavior, and synthetic native confirmation cancellation are evidenced. Real systems, credentials, operational login, main integration, beta.10 integration, release, and deployment remain outside scope.
