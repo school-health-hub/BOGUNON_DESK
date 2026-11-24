@@ -37,9 +37,10 @@ describe.skipIf(process.platform!=='win32'||!root)('separate-identity NSIS updat
     expect((await service.download()).phase).toBe('ready');
     expect((await service.install()).phase).toBe('installing');
     let outcome='armed';
-    for(let attempt=0;attempt<600&&(!outcome||outcome==='armed');attempt++){
+    const terminal=(state:string)=>state.startsWith('installed:')||state==='rejected-hash'||/-failed$|-timeout$/.test(state);
+    for(let attempt=0;attempt<600&&!terminal(outcome);attempt++){
       outcome=await readFile(result,'utf8');
-      if(!outcome||outcome==='armed')await new Promise(resolve=>setTimeout(resolve,100));
+      if(!terminal(outcome))await new Promise(resolve=>setTimeout(resolve,100));
     }
     expect(outcome).toBe(`installed:${next}`);
     expect(version()).toBe(next);

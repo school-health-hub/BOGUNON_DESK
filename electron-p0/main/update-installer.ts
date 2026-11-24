@@ -18,10 +18,14 @@ $ErrorActionPreference='Stop'
 $state='launch-failed'
 try { [IO.File]::WriteAllText($env:BOGUNON_UPDATE_RESULT,'armed') } catch { exit 8 }
 try {
+  $state='parent-wait'
+  [IO.File]::WriteAllText($env:BOGUNON_UPDATE_RESULT,$state)
   try {
     $parent=[Diagnostics.Process]::GetProcessById([int]$env:BOGUNON_UPDATE_PARENT)
-    if (-not $parent.WaitForExit(120000)) { throw 'Parent did not exit' }
+    if (-not $parent.WaitForExit(120000)) { $state='parent-timeout'; throw 'Parent did not exit' }
   } catch [ArgumentException] {}
+  $state='installer-open'
+  [IO.File]::WriteAllText($env:BOGUNON_UPDATE_RESULT,$state)
   $stream=[IO.File]::Open($env:BOGUNON_UPDATE_INSTALLER,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read)
   try {
     $sha=[Security.Cryptography.SHA256]::Create()
@@ -30,20 +34,33 @@ try {
     if ($stream.Length -ne [long]::Parse($env:BOGUNON_UPDATE_SIZE) -or $digest -ne $env:BOGUNON_UPDATE_SHA256) {
       $state='rejected-hash'
     } else {
+      $state='installer-start'
+      [IO.File]::WriteAllText($env:BOGUNON_UPDATE_RESULT,$state)
       $start=[Diagnostics.ProcessStartInfo]::new($env:BOGUNON_UPDATE_INSTALLER)
       $start.UseShellExecute=$true
       $start.Arguments='/S'
       $start.WorkingDirectory=[IO.Path]::GetDirectoryName($env:BOGUNON_UPDATE_INSTALLER)
       $process=[Diagnostics.Process]::Start($start)
       if ($null -eq $process) { throw 'Installer did not start' }
+      $state='installer-running'
+      [IO.File]::WriteAllText($env:BOGUNON_UPDATE_RESULT,$state)
       $process.WaitForExit()
-      if ($process.ExitCode -ne 0) { $state='installer-failed' }
-      elseif (-not [IO.File]::Exists($env:BOGUNON_UPDATE_APP)) { $state='version-mismatch' }
-      elseif ([Diagnostics.FileVersionInfo]::GetVersionInfo($env:BOGUNON_UPDATE_APP).FileVersion -ne $env:BOGUNON_UPDATE_VERSION) { $state='version-mismatch' }
-      else { $state='installed:'+$env:BOGUNON_UPDATE_VERSION }
+      if ($process.ExitCode -ne 0) { $state='installer-exit-failed' }
+      else {
+        $state='version-verification'
+        [IO.File]::WriteAllText($env:BOGUNON_UPDATE_RESULT,$state)
+        if (-not [IO.File]::Exists($env:BOGUNON_UPDATE_APP) -or [Diagnostics.FileVersionInfo]::GetVersionInfo($env:BOGUNON_UPDATE_APP).FileVersion -ne $env:BOGUNON_UPDATE_VERSION) { $state='version-verification-failed' }
+        else { $state='installed:'+$env:BOGUNON_UPDATE_VERSION }
+      }
     }
   } finally { $stream.Dispose() }
-} catch { $state='launch-failed' }
+} catch {
+  if ($state -eq 'parent-wait') { $state='parent-wait-failed' }
+  elseif ($state -eq 'installer-open') { $state='installer-open-failed' }
+  elseif ($state -eq 'installer-start') { $state='installer-start-failed' }
+  elseif ($state -eq 'installer-running') { $state='installer-exit-failed' }
+  elseif ($state -eq 'version-verification') { $state='version-verification-failed' }
+}
 try { [IO.File]::WriteAllText($env:BOGUNON_UPDATE_RESULT,$state) } catch {}
 if ($state.StartsWith('installed:') -or ([IO.File]::Exists($env:BOGUNON_UPDATE_APP) -and [Diagnostics.FileVersionInfo]::GetVersionInfo($env:BOGUNON_UPDATE_APP).FileVersion -eq $env:BOGUNON_UPDATE_CURRENT)) {
   try {
@@ -62,13 +79,14 @@ export async function startVerifiedUpdateInstaller(input:InstallHandoff):Promise
   const environment=Object.fromEntries(Object.entries(process.env).filter(([key,value])=>allowed.has(key.toLowerCase())&&typeof value==='string'));
   const env={...environment,BOGUNON_UPDATE_INSTALLER:input.installerPath,BOGUNON_UPDATE_APP:input.applicationPath,BOGUNON_UPDATE_RESULT:input.resultPath,BOGUNON_UPDATE_PARENT:String(input.parentPid),BOGUNON_UPDATE_CURRENT:input.currentVersion,BOGUNON_UPDATE_VERSION:input.nextVersion,BOGUNON_UPDATE_SIZE:String(input.size),BOGUNON_UPDATE_SHA256:input.sha256};
   const command=Buffer.from(bootstrap,'utf16le').toString('base64');
+  const trampoline=Buffer.from('& ([ScriptBlock]::Create([Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($env:BOGUNON_UPDATE_BOOTSTRAP))))','utf16le').toString('base64');
   await rm(input.resultPath,{force:true});
-  const child=spawn(join(systemRoot,'System32','WindowsPowerShell','v1.0','powershell.exe'),['-NoProfile','-NonInteractive','-EncodedCommand',command],{env,stdio:'ignore',windowsHide:true});
+  const child=spawn(join(systemRoot,'System32','cmd.exe'),['/d','/c',`powershell.exe -NoProfile -NonInteractive -EncodedCommand ${trampoline}`],{cwd:join(systemRoot,'System32','WindowsPowerShell','v1.0'),env:{...env,BOGUNON_UPDATE_BOOTSTRAP:command},stdio:'ignore',windowsHide:true,detached:true});
   await new Promise<void>((resolve,reject)=>{child.once('error',reject);child.once('spawn',resolve);});
   for(let attempt=0;attempt<100;attempt++){
     try{
       const state=await readFile(input.resultPath,'utf8');
-      if(state==='armed'||state==='rejected-hash'||state.startsWith('installed:')){child.unref();return;}
+      if(['armed','parent-wait','installer-open','installer-start','installer-running','version-verification','rejected-hash'].includes(state)||state.startsWith('installed:')){child.unref();return;}
       throw new Error('Windows update helper could not prepare the installation');
     }catch(error){if(!(error instanceof Error&&'code' in error&&error.code==='ENOENT'))throw error;}
     if(child.exitCode!==null)throw new Error('Windows update helper exited before installation');
