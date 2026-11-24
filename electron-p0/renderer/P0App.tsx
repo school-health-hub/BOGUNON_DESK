@@ -101,12 +101,14 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   const [onboardingOpen,setOnboardingOpen]=useState(initial.info.onboardingComplete===false);
   const [settingsStartCategory,setSettingsStartCategory]=useState<'appearance'|'school'>('appearance');
   const [paletteSettingsReturn,setPaletteSettingsReturn]=useState<boolean|null>(null);
+  const [paletteTool,setPaletteTool]=useState<import('../palette-protocol').PaletteToolId|null>(null);
   const [dock,setDock] = useState(initial.dock);
   const info=initial.info;
   const [status,setStatus] = useState('설정 준비됨');
   const [editing,setEditing] = useState(false), [panel,setPanel] = useState<DashboardEditorPanel>(null);
   const [selected,setSelected] = useState<string | null>(null), [active,setActive] = useState<DesktopActionId>('home');
   const settingsHandoffRef=useRef(false);
+  const paletteToolShown=useRef(false);
   const closeSettingsRequestRef=useRef<(keepWorkspace:boolean)=>void>(()=>{});
   const initialPersistence=useRef({layout:initial.layout,dock:initial.dock});
   const [notice,setNotice] = useState<string | null>(null);
@@ -155,6 +157,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
       void api.openSystem('portal').then(result=>{if(!dashboardLive.current)return;if(!result.ok){setNotice(result.error.message);return;}if(result.data.status==='needs-configuration'){setActive('home');setAdminOpen(true);setNotice('현재 환경의 업무포털 주소를 확인·적용하거나 직접 등록해 주세요.');return;}setNotice(result.data.status==='launched'?'기본 브라우저에 저장된 업무포털 열기를 요청했습니다. 학교망·공식 로그인은 브라우저에서 확인하세요.':result.data.status==='blocked'?'허용하지 않는 업무포털 이동을 차단했습니다. 주소 설정을 확인하세요.':'업무포털 열기를 취소했습니다.');}).catch(()=>{if(dashboardLive.current)setNotice('업무포털 열기에 실패했습니다. 기존 주소를 유지합니다.');}).finally(()=>{portalPending.current=false;});return;
     }
     if(id==='calculator'){openUtility('calculator');return;}
+    if(id==='newsletter'){openNewsletter();return;}
     if(id==='record-helper'){setActive('home');setRecordOpen(true);return;}
     if(id==='today-tasks'||id==='inbox'){openTasks();return;}
     if(id==='official-document'){setOfficialDocumentOpen(true);setActive('home');setEditing(false);setPanel(null);setNotice(null);return;}
@@ -195,8 +198,15 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
       case 'finance':setActive('home');setFinanceOpen(true);return;
     }
   };
+  const runToolRef=useRef(runTool);
+  runToolRef.current=runTool;
+  useEffect(()=>{const unsubscribe=window.electronP0.onOpenTool((tool,returnToPalette)=>{if(returnToPalette){paletteToolShown.current=false;setPaletteTool(tool);}runToolRef.current(tool);});void window.electronP0.toolRendererReady?.();return unsubscribe;},[]);
+  const paletteToolOpen=paletteTool==='newsletter'?newsletterOpen:paletteTool==='official-document'?officialDocumentOpen:paletteTool==='purchase-helper'?purchaseOpen:paletteTool==='record-helper'?recordOpen:paletteTool==='inventory-local'?inventoryOpen:paletteTool==='education-video'?educationVideoOpen:false;
+  useEffect(()=>{if(!paletteTool||!paletteToolOpen||paletteToolShown.current)return;paletteToolShown.current=true;void window.electronP0.toolReady?.();},[paletteTool,paletteToolOpen]);
+  useEffect(()=>{if(!paletteTool||paletteToolOpen||!paletteToolShown.current)return;setPaletteTool(null);void window.electronP0.toolDismissed?.().catch(()=>setNotice('업무 창을 닫지 못했습니다. 다시 시도해 주세요.'));},[paletteTool,paletteToolOpen]);
+  useEffect(()=>window.electronP0.onToolCloseRequested?.(()=>{if(!paletteTool)return;switch(paletteTool){case 'newsletter':setNewsletterOpen(false);break;case 'official-document':setOfficialDocumentOpen(false);break;case 'purchase-helper':setPurchaseOpen(false);break;case 'record-helper':setRecordOpen(false);break;case 'inventory-local':setInventoryOpen(false);break;case 'education-video':setEducationVideoOpen(false);break;}}),[paletteTool]);
   return <WidgetSessionProvider><LocalCalendarProvider><LocalWorkspaceProvider><PersistentMemoProvider><DesktopPanelProvider notify={setNotice} openInbox={()=>openTasks()} openBogunonTask={async id=>openTasks({id})} openQuickAddEventForDate={date=>openUtility('calendar',{date})} openQuickAddFromMemo={title=>openUtility('quick-add',{title})} openQuickMemoUrl={async url=>{try{await openMemoUrl(url);}catch(e){setNotice(e instanceof Error?e.message:'링크를 열지 못했습니다.');}}} runDesktopAction={async id=>navigate(id)} workFolderFavorites={folders.snapshot?.favorites??[]} openWorkFolderFavorite={async folder=>{const message=await folders.open(folder.id);if(message)setNotice(message);}}>
-    <div inert={workspaceOpen} hidden={recordOpen||newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen||financeOpen||adminOpen||active==='settings'||paletteSettingsReturn===true} style={{display:recordOpen||newsletterOpen||educationVideoOpen||officialDocumentOpen||inventoryOpen||financeOpen||adminOpen||active==='settings'||paletteSettingsReturn===true?"none":undefined}} className={`app-shell workspace-shell ${isCanonicalDeskLayout(layout)?'is-floating-b':''} ${editing?'is-edit-mode':'is-view-mode'} bg-${layout.appearance.background} card-${layout.appearance.cardStyle} corner-${layout.appearance.cornerStyle}`}>
+    <div inert={workspaceOpen} hidden={recordOpen||newsletterOpen||educationVideoOpen||officialDocumentOpen||purchaseOpen||inventoryOpen||financeOpen||adminOpen||active==='settings'||paletteSettingsReturn===true} style={{display:recordOpen||newsletterOpen||educationVideoOpen||officialDocumentOpen||purchaseOpen||inventoryOpen||financeOpen||adminOpen||active==='settings'||paletteSettingsReturn===true?"none":undefined}} className={`app-shell workspace-shell ${isCanonicalDeskLayout(layout)?'is-floating-b':''} ${editing?'is-edit-mode':'is-view-mode'} bg-${layout.appearance.background} card-${layout.appearance.cardStyle} corner-${layout.appearance.cornerStyle}`}>
       <header className="rose-surface-header"><BrandLogo/><SurfaceDate/><span>업무 자료는 이 PC에 저장 · 계정과 AI 연결은 별도 설정</span></header>
       {School04Entry&&<Suspense fallback={null}><School04Entry/></Suspense>}
       {!School04Entry&&School03Entry&&<Suspense fallback={null}><School03Entry/></Suspense>}
@@ -219,7 +229,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
       <span className="p0-save" role="status" data-p0-save>{status}</span>
       <div className="dock-zone"><AppDock activeActionId={active} dockLayout={dock} onAction={navigate}/></div>
     </div>
-    {initial.info.onboardingComplete!==false&&<SchoolInitialSetup suspended={active==='settings'||paletteSettingsReturn!==null}/>}
+    {initial.info.onboardingComplete!==false&&<SchoolInitialSetup suspended={!workspaceOpen||active==='settings'||paletteSettingsReturn!==null}/>}
     {onboardingOpen&&<FirstRunOnboarding onComplete={async(mode,openAccount)=>{if(!window.electronP0.completeOnboarding)throw Error('시작 안내를 저장할 수 없습니다.');await window.electronP0.completeOnboarding(mode);setOnboardingOpen(false);if(openAccount){setSettingsStartCategory('school');setActive('settings');}}}/>}
     {aiSettingsOpen&&<SurfaceDialog title="AI 연결" onClose={()=>setAiSettingsOpen(false)}><AiSettings/></SurfaceDialog>}
     {adminOpen&&<Suspense fallback={<p role="status">학교 행정 업무를 불러오는 중…</p>}><WorkspaceShell name="school-admin"><SchoolAdmin onClose={()=>setAdminOpen(false)}/></WorkspaceShell></Suspense>}

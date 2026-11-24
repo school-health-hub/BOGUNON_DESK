@@ -46,7 +46,7 @@ export function DesktopWidgetLayout({ widgets, width, compact, editing, selected
           onResizeStop={(next) => { if (editing && !compact) onLayoutChange(next); }}
         >
           {widgets.filter((widget) => widget.visible).sort((a, b) => a.y - b.y || a.x - b.x).map((widget) => (
-            <div key={widget.id} data-widget-type={widget.type} data-grid-height={widget.h} data-grid-width={widget.w} tabIndex={-1}>
+            <div key={widget.id} data-widget-id={widget.id} data-widget-type={widget.type} data-grid-height={widget.h} data-grid-width={widget.w} tabIndex={-1}>
               <WidgetFrame externalSettingsId={settingsEnabled?.(widget) ? "widget-settings-panel" : undefined} externalSettingsOpen={settingsWidgetId === widget.id} isEditing={editing} isSelected={selectedId === widget.id} widget={widget}
                 onHide={() => onHide(widget.id)} onOpenSettings={onOpenSettings === undefined || settingsEnabled?.(widget) === false ? undefined : (trigger) => onOpenSettings(widget.id, trigger)} onSelect={() => onSelect(widget.id)} />
             </div>

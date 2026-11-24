@@ -32,6 +32,7 @@ const scheduleWidgets = [
   hidden(pick("notifications")),
   hidden(pick("meal")),
   hidden(pick("weather")),
+  hidden(pick("newsletter-shortcut")),
 ] as const satisfies readonly WidgetLayout[];
 
 const workWidgets = [
@@ -48,6 +49,7 @@ const workWidgets = [
   hidden(pick("weekly-schedule")),
   hidden(pick("meal")),
   hidden(pick("weather")),
+  hidden(pick("newsletter-shortcut")),
 ] as const satisfies readonly WidgetLayout[];
 
 const minimalWidgets = [
@@ -64,6 +66,7 @@ const minimalWidgets = [
   hidden(pick("notifications")),
   hidden(pick("meal")),
   hidden(pick("weather")),
+  hidden(pick("newsletter-shortcut")),
 ] as const satisfies readonly WidgetLayout[];
 
 export const dashboardPresets = [

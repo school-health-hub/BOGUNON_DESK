@@ -18,4 +18,5 @@ export const desktopActionRegistry = {
   "work-portal": { id: "work-portal", kind: "externalUrl", configured: false },
   "quick-memo": { id: "quick-memo", kind: "internal", target: "quick-memo" },
   settings: { id: "settings", kind: "internal", target: "settings" },
+  newsletter: { id: "newsletter", kind: "internal", target: "newsletter" },
 } as const satisfies Record<DesktopActionId, DesktopAction>;

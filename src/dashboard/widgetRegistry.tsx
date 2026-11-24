@@ -12,6 +12,7 @@ import {
   PanelsTopLeft,
   Utensils,
   CloudSun,
+  Newspaper,
 } from "lucide-react";
 import {
   CalendarWidget,
@@ -19,6 +20,7 @@ import {
   DdayWidget,
   MemoWidget,
   MealWidget,
+  NewsletterShortcutWidget,
   NotificationWidget,
   PriorityTaskWidget,
   QuickLauncherWidget,
@@ -32,6 +34,20 @@ import type { WidgetCategory, WidgetDefinition, WidgetType } from "./types";
 import { widgetTypes } from "./types";
 
 export const widgetRegistry = {
+  "newsletter-shortcut": {
+    type: "newsletter-shortcut",
+    title: "보건소식지 제작소",
+    description: "보건소식지 제작소를 열어 기존 작업을 이어갑니다.",
+    category: "work",
+    component: NewsletterShortcutWidget,
+    icon: Newspaper,
+    defaultSize: { w: 3, h: 2 },
+    minW: 3,
+    minH: 2,
+    maxW: 5,
+    maxH: 3,
+    singleton: true,
+  },
   clock: {
     type: "clock",
     title: "날짜·시계",

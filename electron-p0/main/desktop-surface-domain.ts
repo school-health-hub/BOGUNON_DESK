@@ -12,6 +12,7 @@ const paletteStarterGeometry:Readonly<Record<(typeof paletteStarterWidgetIds)[nu
   'widget-today-summary':{x:6,y:0,w:4,h:2},
   'widget-quick-memo':{x:9,y:2,w:3,h:2},
 };
+const newPaletteWidget=(id:string):LayoutWidget|undefined=>id==='widget-newsletter-shortcut'?{id,type:'newsletter-shortcut',x:0,y:15,w:3,h:2,visible:false}:undefined;
 
 const record=(value:unknown):value is Record<string,unknown>=>typeof value==='object'&&value!==null&&!Array.isArray(value);
 const layoutWidgets=(layout:unknown):readonly LayoutWidget[]=>{
@@ -72,7 +73,15 @@ export function moveWidgetOwnership(document:DesktopSurfaceDocument,widgetId:str
   for(const [key,value] of Object.entries(document.profiles)){
     const owned=value.ownedWidgetIds.filter(id=>id!==widgetId);
     const nextOwned=key===targetProfileKey?[...owned,widgetId]:owned;
-    const sourceLayout=key===targetProfileKey&&value.layout===null?seedLayout:value.layout;
+    let sourceLayout=key===targetProfileKey&&value.layout===null?seedLayout:value.layout;
+    if(key===targetProfileKey&&record(sourceLayout)&&Array.isArray(sourceLayout.widgets)&&!sourceLayout.widgets.some(widget=>record(widget)&&widget.id===widgetId)){
+      const added=newPaletteWidget(widgetId)??layoutWidgets(seedLayout).find(widget=>widget.id===widgetId);
+      if(added)sourceLayout={...sourceLayout,widgets:[...sourceLayout.widgets,added]};
+    }
+    if(key===targetProfileKey&&widgetId==='widget-monthly-calendar'&&record(sourceLayout)&&Array.isArray(sourceLayout.widgets)){
+      const previouslyOwned=Object.values(document.profiles).some(profileValue=>profileValue.ownedWidgetIds.includes(widgetId));
+      if(!previouslyOwned)sourceLayout={...sourceLayout,widgets:sourceLayout.widgets.map(widget=>record(widget)&&widget.id===widgetId?{...widget,w:4,h:5}:widget)};
+    }
     const widgets=layoutWidgets(sourceLayout),visible=new Set(widgets.filter(widget=>widget.visible&&widget.id!==widgetId).map(widget=>widget.id));
     if(key===targetProfileKey)visible.add(widgetId);
     profiles[key]={...value,ownedWidgetIds:nextOwned,layout:withVisibility(sourceLayout,visible),updatedAt:key===targetProfileKey||owned.length!==value.ownedWidgetIds.length?updatedAt:value.updatedAt};

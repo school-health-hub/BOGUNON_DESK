@@ -2,7 +2,7 @@ import { mkdir, open, readFile, rename, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { P0Settings } from '../protocol.js';
-const widgets = ['clock','today-summary','priority-task','monthly-calendar','today-tasks','quick-memo','quick-launcher','upcoming-schedule','dday','weekly-schedule','notifications','meal','weather'];
+const widgets = ['clock','today-summary','priority-task','monthly-calendar','today-tasks','quick-memo','quick-launcher','upcoming-schedule','dday','weekly-schedule','notifications','meal','weather','newsletter-shortcut'];
 const dockIds = ['home','online-health-room','bogunon','toolbox','official-document','aed-check','record-helper','checkup-tools','work-folder','quick-memo','settings'];
 function record(v: unknown): v is Record<string, unknown> { return !!v && typeof v === 'object' && !Array.isArray(v); }
 function keys(v: Record<string, unknown>, allowed: string[]) { return Object.keys(v).every(k => allowed.includes(k)); }
@@ -12,7 +12,7 @@ export function validateSettings(value: unknown): P0Settings {
   const bad = () => { throw new Error('Invalid PoC layout settings'); };
   if (!record(value) || !keys(value,['version','dashboard','dock']) || value.version !== 1) return bad();
   const d = value.dashboard, dock = value.dock;
-  if (!record(d) || !keys(d,['version','widgets','appearance','presetId','gridProfile']) || d.version !== 1 || !Array.isArray(d.widgets) || d.widgets.length > 13) return bad();
+  if (!record(d) || !keys(d,['version','widgets','appearance','presetId','gridProfile']) || d.version !== 1 || !Array.isArray(d.widgets) || d.widgets.length > widgets.length) return bad();
   if (d.presetId !== undefined && !choice(d.presetId,['default','schedule','work','minimal','desk'])) return bad();
   if (d.gridProfile !== undefined && d.gridProfile !== 'dense-desk-v2') return bad();
   const a = d.appearance;

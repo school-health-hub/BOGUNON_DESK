@@ -15,4 +15,5 @@ export const desktopComposition = {
   "quick-memo": { x: 6, y: 7, w: 3, h: 3 },
   "quick-launcher": { x: 9, y: 7, w: 3, h: 3 },
   notifications: { x: 9, y: 10, w: 3, h: 3 },
+  "newsletter-shortcut": { x: 0, y: 13, w: 3, h: 2 },
 } as const satisfies Readonly<Record<WidgetType, Pick<WidgetLayout, "x" | "y" | "w" | "h">>>;

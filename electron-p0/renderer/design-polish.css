@@ -59,20 +59,20 @@ body.electron-soft-rose.design-07-candidate.desktop-palette-root .desktop-palett
 
 body.electron-soft-rose.design-07-candidate.desktop-palette-root .desktop-palette.workspace-shell .desktop-widget-grid [data-widget-type="quick-memo"] .quick-memo-editor.is-widget {
   display: grid;
-  grid-template-rows: 48px auto;
-  gap: 6px;
+  grid-template-rows: 40px auto;
+  gap: 4px;
   height: auto;
   min-height: 0;
   flex: 0 0 auto;
 }
 
 body.electron-soft-rose.design-07-candidate.desktop-palette-root .desktop-palette.workspace-shell .desktop-widget-grid [data-widget-type="quick-memo"] .memo-panel > p {
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 body.electron-soft-rose.design-07-candidate.desktop-palette-root .desktop-palette.workspace-shell .desktop-widget-grid [data-widget-type="quick-memo"] .quick-memo-editor.is-widget textarea {
-  height: 48px;
-  min-height: 48px;
+  height: 40px;
+  min-height: 40px;
   overflow-y: auto;
 }
 

@@ -5,6 +5,7 @@ export type PaletteRect=Readonly<{x:number;y:number;width:number;height:number}>
 export type PaletteProfileSummary=Readonly<{profileKey:string;label:string;connected:boolean;ownedWidgetIds:readonly string[]}>;
 export type PaletteSurface=Readonly<{profileKey:string;layout:unknown|null;ownedWidgetIds:readonly string[];dockVisible:boolean;profiles:readonly PaletteProfileSummary[]}>;
 export type PaletteWidgetAction=Readonly<{action:'claim'|'move'|'hide'|'show';widgetId:string;targetProfileKey?:string}>;
+export type PaletteToolId='official-document'|'purchase-helper'|'record-helper'|'inventory-local'|'education-video'|'newsletter';
 export interface PaletteBridge{
   readSurface():Promise<PaletteSurface>;
   writeLayout(layout:unknown):Promise<PaletteSurface>;
@@ -20,6 +21,7 @@ export interface PaletteBridge{
   setInteractive(interactive:boolean):Promise<void>;
   openWorkspace():Promise<void>;
   openSettings():Promise<void>;
+  openTool(tool:PaletteToolId):Promise<void>;
   readMemo():Promise<IpcResult<MemoDocument>>;
   writeMemo(document:MemoDocument):Promise<IpcResult<MemoDocument>>;
   readEvents():Promise<IpcResult<EventLoad>>;

@@ -16,6 +16,7 @@ export const widgetTypes = [
   "notifications",
   "meal",
   "weather",
+  "newsletter-shortcut",
 ] as const;
 
 export type WidgetType = (typeof widgetTypes)[number];

@@ -4,6 +4,7 @@ import type {FinanceIdentity,IncomeRecord,Phase2Data} from '../finance-protocol.
 import type {InventoryQaApi} from '../inventory-qa-protocol.js';
 import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron';
 import type { P0Bridge, P0Settings, WorkBridge, SyntheticSummaryRequest, MemoDocument, NewsletterExportRequest, NewsletterProjectsBridge, PurchaseClipboardRequest, PurchaseCsvMappingRequest, PurchaseExportRequest, SettlementRequest, EdufineRequest, EducationVideoLibraryItem,InventoryDocument,OfficialDocumentSave,AiConnect,AiRequest } from '../protocol.js';
+import type {PaletteToolId} from '../palette-protocol.js';
 if (!process.sandboxed || !process.contextIsolated) throw new Error('PoC requires a sandboxed isolated preload');
 const bridge: P0Bridge = Object.freeze({
   info: () => ipcRenderer.invoke('p0:info'),
@@ -16,6 +17,11 @@ const bridge: P0Bridge = Object.freeze({
   onSettingsCloseRequested:(listener:(keepWorkspace:boolean)=>void)=>{const callback=(_event:IpcRendererEvent,keepWorkspace:unknown)=>listener(keepWorkspace===true);ipcRenderer.on('p0:settings:close-requested',callback);return()=>ipcRenderer.removeListener('p0:settings:close-requested',callback);},
   settingsReady:()=>ipcRenderer.invoke('p0:settings:ready'),
   settingsDismissed:(keepWorkspace=false)=>ipcRenderer.invoke('p0:settings:dismissed',keepWorkspace),
+  onOpenTool:(listener:(tool:PaletteToolId,returnToPalette:boolean)=>void)=>{const callback=(_event:IpcRendererEvent,tool:PaletteToolId,returnToPalette:unknown)=>listener(tool,returnToPalette===true);ipcRenderer.on('p0:open-tool',callback);return()=>ipcRenderer.removeListener('p0:open-tool',callback);},
+  toolRendererReady:()=>ipcRenderer.invoke('p0:tool:renderer-ready'),
+  onToolCloseRequested:(listener:()=>void)=>{const callback=()=>listener();ipcRenderer.on('p0:tool:close-requested',callback);return()=>ipcRenderer.removeListener('p0:tool:close-requested',callback);},
+  toolReady:()=>ipcRenderer.invoke('p0:tool:ready'),
+  toolDismissed:()=>ipcRenderer.invoke('p0:tool:dismissed'),
 });
 contextBridge.exposeInMainWorld('electronP0',bridge);
 

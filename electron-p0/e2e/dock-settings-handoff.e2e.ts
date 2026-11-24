@@ -25,7 +25,7 @@ test('Palette and Workspace Dock settings return to the invoking surface', async
     const palette = palettes[(await Promise.all(palettes.map(page => page.locator('.palette-dock-region').isVisible()))).findIndex(Boolean)];
     const workspace = app.windows().find(page => !page.url().includes('/palette/'));
     if (!palette || !workspace) throw Error('Palette or Workspace renderer unavailable');
-    expect(await workspace.evaluate(() => Object.keys(window.electronP0).sort())).toEqual(['completeOnboarding', 'desktopSurface', 'info', 'onOpenSettings', 'onSettingsCloseRequested', 'readSettings', 'settingsDismissed', 'settingsReady', 'updates', 'writeSettings'].sort());
+    expect(await workspace.evaluate(() => Object.keys(window.electronP0).sort())).toEqual(['completeOnboarding', 'desktopSurface', 'info', 'onOpenSettings', 'onSettingsCloseRequested', 'onOpenTool', 'onToolCloseRequested', 'toolRendererReady', 'toolReady', 'toolDismissed', 'readSettings', 'settingsDismissed', 'settingsReady', 'updates', 'writeSettings'].sort());
     expect(await workspace.evaluate(() => typeof (window as unknown as { require?: unknown }).require)).toBe('undefined');
     await expect(palette.getByRole('main', { name: 'BOGUNON DESK 바탕화면 위젯' })).toBeVisible();
     await palette.getByRole('button', { name: '위젯 편집' }).click();
@@ -81,9 +81,7 @@ test('Palette and Workspace Dock settings return to the invoking surface', async
     await palette.getByRole('button', { name: '취소' }).click();
     await palette.evaluate(() => window.electronPalette.openWorkspace());
     await expect(workspace.locator('.workspace-dashboard')).toBeVisible();
-    const schoolSetup = workspace.getByRole('dialog', { name: '학교 초기 설정' });
-    await expect(schoolSetup).toBeVisible();
-    await schoolSetup.getByRole('button', { name: '나중에 설정' }).click();
+    await expect(workspace.getByRole('dialog', { name: '학교 초기 설정' })).toHaveCount(0);
     await workspace.locator('.dock-zone [data-dock-item="settings"]').click();
     await expect(dialog).toBeVisible();
     await expect(workspace.locator('.workspace-dashboard')).toBeHidden();

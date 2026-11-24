@@ -22,4 +22,11 @@ describe('PoC-only atomic settings',()=>{
   await expect(new SettingsStore(root).read()).rejects.toThrow('preserved');expect(await readFile(join(root,'layout.json'),'utf8')).toBe('SYNTHETIC CORRUPT');
  });
  it('bounds settings and accepts only the existing schema',()=>{expect(validateSettings(settings())).toEqual(settings());expect(()=>validateSettings({...settings(),version:2})).toThrow();});
+ it('preserves legacy widget settings and saves the new hidden newsletter shortcut',async()=>{
+  const root=await mkdtemp(join(tmpdir(),'p0-newsletter-settings-')),store=new SettingsStore(root),legacy=settings();
+  await store.write(legacy);
+  const withShortcut={...legacy,dashboard:{...legacy.dashboard,widgets:[...legacy.dashboard.widgets,{id:'widget-newsletter-shortcut',type:'newsletter-shortcut',x:0,y:15,w:3,h:2,visible:false}]}};
+  await store.write(withShortcut);
+  expect(await new SettingsStore(root).read()).toEqual(withShortcut);
+ });
 });

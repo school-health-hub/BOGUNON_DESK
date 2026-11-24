@@ -21,6 +21,7 @@ export const defaultWidgetLayouts = [
   { id: "widget-notifications", type: "notifications", x: 9, y: 7, w: 3, h: 3, visible: true },
   { id: "widget-meal", type: "meal", x: 9, y: 10, w: 3, h: 3, visible: false },
   { id: "widget-weather", type: "weather", x: 9, y: 13, w: 3, h: 2, visible: false },
+  { id: "widget-newsletter-shortcut", type: "newsletter-shortcut", x: 0, y: 15, w: 3, h: 2, visible: false },
 ] as const satisfies readonly WidgetLayout[];
 
 export const deskWidgetLayouts = [
@@ -37,6 +38,7 @@ export const deskWidgetLayouts = [
   { id: "widget-notifications", type: "notifications", x: 8, y: 12, w: 4, h: 3, visible: false },
   { id: "widget-meal", type: "meal", x: 4, y: 7, w: 4, h: 2, visible: true },
   { id: "widget-weather", type: "weather", x: 10, y: 0, w: 2, h: 2, visible: true },
+  { id: "widget-newsletter-shortcut", type: "newsletter-shortcut", x: 0, y: 15, w: 3, h: 2, visible: false },
 ] as const satisfies readonly WidgetLayout[];
 
 const cloneWidgets = (widgets: readonly WidgetLayout[]): readonly WidgetLayout[] =>

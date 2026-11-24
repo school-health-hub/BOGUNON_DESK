@@ -398,12 +398,12 @@ else {
   for(const action of PROJECT_ACTIONS)ipcMain.handle(`p2:newsletter:projects:${action}`,createProjectHandler(action,window.webContents,url,projects,async info=>(await dialog.showMessageBox(window,{type:'warning',message:'미리 본 revision으로 원고를 복구할까요?',detail:`프로젝트 ${info.projectId} · 현재 revision ${info.currentRevision}\nrevision ${info.sourceRevision} 내용을 새 revision ${info.currentRevision+1}로 복구합니다.\n현재 편집 내용은 선택한 revision으로 대체됩니다. 기존 저장 이력은 보존하며 출력 승인 권한은 부여하지 않습니다.`,buttons:['취소','확인 후 복구'],defaultId:0,cancelId:0})).response===1,projectId=>newsletterAiAuthority.grant(newsletterAiOwnerId,`newsletter-${newsletterAiOwnerId}`,projectId)));
   // A prevented close only hides this live window. Terminal service cleanup
   // observes 'closed' (or quit/security disposal), never a tray-hide request.
-  const show=()=>{if(desktopSurface.isSettingsPresented()){window.webContents.send('p0:settings:close-requested',true);return;}if(window.isMinimized())window.restore();window.show();window.focus();};
+  const show=()=>{if(desktopSurface.isSettingsPresented()){window.webContents.send('p0:settings:close-requested',true);return;}if(desktopSurface.isToolPresented()){window.webContents.send('p0:tool:close-requested');return;}if(window.isMinimized())window.restore();window.show();window.focus();};
   const persist=async()=>{
     try{await desktopStore.write(desktop);return true;}
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
-  const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()&&!desktopSurface.isSettingsPresented()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
+  const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()&&!desktopSurface.isSettingsPresented()&&!desktopSurface.isToolPresented()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
   const quit=()=>{if(quitting)return;quitting=true;desktopSurface.beginQuit();instructorFiles.dispose();accountHandlers.dispose();fileDrop.dispose();workFolderHandlers.dispose();recordHandlers.dispose();finderCompat.dispose();finderV2Export.dispose();finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();aiService.dispose();inventoryQa.close();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([instructorFiles.flush(),accountHandlers.flush(),fileDrop.flush(),workFoldersStore.flush(),recordHandlers.flush(),finderSearch.flush(),finderV2Export.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),desktopSurfaceStore.flush(),memoStore.flush(),taskStore.flush(),eventStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>workspaceProduct.dispose()).finally(()=>{tray?.destroy();app.quit();});};
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
@@ -419,13 +419,13 @@ else {
   };
   try{const icon=nativeImage.createFromPath(join(app.getAppPath(),'tray.png'));if(icon.isEmpty())throw Error('No tray icon');tray=new Tray(icon);tray.setToolTip(PRODUCT_NAME);tray.on('double-click',show);}catch{desktop.closeBehavior='quit';}
   refreshMenu();
-  const changed=()=>{if(desktopSurface.isSettingsPresented())return;clearTimeout(timer);timer=setTimeout(()=>{if(desktopSurface.isSettingsPresented())return;capture();void persist();},250);};
+  const changed=()=>{if(desktopSurface.isSettingsPresented()||desktopSurface.isToolPresented())return;clearTimeout(timer);timer=setTimeout(()=>{if(desktopSurface.isSettingsPresented()||desktopSurface.isToolPresented())return;capture();void persist();},250);};
   window.on('move',changed);window.on('resize',changed);window.on('maximize',changed);window.on('unmaximize',changed);
   const adjust=()=>{const bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));window.setBounds(bounds);changed();};
   screen.on('display-added',adjust);screen.on('display-removed',adjust);screen.on('display-metrics-changed',adjust);
   app.on('second-instance',show);
   window.once('ready-to-show',()=>{if(desktop.maximized)window.maximize();if(!desktopSurface.isPaletteMode())window.show();});
-  window.on('close',event=>{if(quitting)return;event.preventDefault();if(desktopSurface.isSettingsPresented()){window.webContents.send('p0:settings:close-requested');return;}if(desktopSurface.isPaletteMode()){capture();window.hide();void persist().then(ok=>{if(!ok)show();});}else if(desktop.closeBehavior==='tray'&&tray){capture();window.hide();void persist().then(ok=>{if(!ok)show();});}else quit();});
+  window.on('close',event=>{if(quitting)return;event.preventDefault();if(desktopSurface.isSettingsPresented()){window.webContents.send('p0:settings:close-requested');return;}if(desktopSurface.isToolPresented()){window.webContents.send('p0:tool:close-requested');return;}if(desktopSurface.isPaletteMode()){capture();window.hide();void persist().then(ok=>{if(!ok)show();});}else if(desktop.closeBehavior==='tray'&&tray){capture();window.hide();void persist().then(ok=>{if(!ok)show();});}else quit();});
   app.on('before-quit',event=>{if(!quitting){event.preventDefault();quit();}});
   app.on('window-all-closed',quit);
   await window.loadURL(url);

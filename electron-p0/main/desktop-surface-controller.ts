@@ -3,7 +3,7 @@ import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import type {P0Settings,IpcResult,MemoDocument} from '../protocol.js';
 import type {DesktopSurfaceDocument,DesktopSurfaceMode} from '../desktop-surface-protocol.js';
-import type {PaletteRect,PaletteSurface,PaletteWidgetAction} from '../palette-protocol.js';
+import type {PaletteRect,PaletteSurface,PaletteWidgetAction,PaletteToolId} from '../palette-protocol.js';
 import {assertSender,resourceAllowed} from './policy.js';
 import {desktopPaletteOptions,DesktopPaletteLifecycle,type PaletteFailureGate} from './desktop-palette.js';
 import type {DesktopSurfaceModeStore} from './desktop-surface-mode.js';
@@ -14,6 +14,8 @@ import {moveWidgetOwnership,reconcileDesktopProfiles,setWidgetVisible,writeProfi
 
 type Entry={displayId:number;profileKey:string;dockVisible:boolean;window:BrowserWindow;lifecycle:DesktopPaletteLifecycle;ready:boolean;regions:readonly PaletteRect[]};
 type SettingsHandoff={returnToPalette:boolean;displayId?:number;restore?:{bounds:Electron.Rectangle;maximized:boolean;menuVisible:boolean;title:string}};
+type ToolHandoff={tool:PaletteToolId;displayId:number;restore?:SettingsHandoff['restore']};
+const paletteTools:readonly PaletteToolId[]=['official-document','purchase-helper','record-helper','inventory-local','education-video','newsletter'];
 type Ports={renderer:string;dev?:string;workspace:BrowserWindow;layout:{read():Promise<P0Settings|null>};mode:DesktopSurfaceModeStore;events:LocalEventStore;tasks:LocalTaskStore;memo:MemoStore;failureGate?:PaletteFailureGate;onboardingComplete:()=>boolean;quitting:()=>boolean};
 const ok=<T>(data:T):IpcResult<T>=>({ok:true,data});
 const storageError=<T>(message:string):IpcResult<T>=>({ok:false,error:{code:'STORAGE_ERROR',message,retryable:true}});
@@ -21,7 +23,7 @@ export const clipPaletteRegions=(values:readonly unknown[],bounds:Readonly<{widt
 const validatePaletteLayout=(value:unknown):unknown=>{
   if(!value||typeof value!=='object'||Array.isArray(value))throw new Error('Invalid Desktop Palette layout');
   const candidate=value as Record<string,unknown>,widgets=candidate.widgets;
-  if(candidate.version!==1||!Array.isArray(widgets)||widgets.length!==13||JSON.stringify(value).length>65536)throw new Error('Invalid Desktop Palette layout');
+  if(candidate.version!==1||!Array.isArray(widgets)||(widgets.length!==13&&widgets.length!==14)||JSON.stringify(value).length>65536)throw new Error('Invalid Desktop Palette layout');
   const ids=new Set<string>();
   for(const widget of widgets){if(!widget||typeof widget!=='object'||Array.isArray(widget))throw new Error('Invalid Desktop Palette widget');const item=widget as Record<string,unknown>;if(typeof item.id!=='string'||typeof item.type!=='string'||typeof item.visible!=='boolean'||![item.x,item.y,item.w,item.h].every(number=>typeof number==='number'&&Number.isInteger(number))||Number(item.x)<0||Number(item.y)<0||Number(item.w)<1||Number(item.h)<1||Number(item.x)+Number(item.w)>12||Number(item.y)+Number(item.h)>40||ids.has(item.id))throw new Error('Invalid Desktop Palette widget');ids.add(item.id);}
   return structuredClone(value);
@@ -36,7 +38,9 @@ export class DesktopSurfaceController{
   private readonly isolated:Electron.Session;
   private timer:ReturnType<typeof setInterval>|undefined;
   private settingsHandoff:SettingsHandoff|null=null;
-  private readonly workspaceHidden=()=>this.clearSettingsHandoff();
+  private toolHandoff:ToolHandoff|null=null;
+  private toolRendererReady=false;
+  private readonly workspaceHidden=()=>{this.clearSettingsHandoff();this.clearToolHandoff();};
   private readonly topologyChanged=()=>{if(this.document.mode==='palette')void this.reconcile();};
   constructor(private readonly ports:Ports){
     this.paletteUrl=ports.dev?new URL('palette/index.html',ports.dev).href:pathToFileURL(join(ports.renderer,'palette','index.html')).href;
@@ -51,6 +55,7 @@ export class DesktopSurfaceController{
   async start():Promise<void>{this.document=await this.ports.mode.read();if(this.document.mode==='palette')await this.activatePalette();else this.activateWindow();}
   isPaletteMode():boolean{return this.document.mode==='palette';}
   isSettingsPresented():boolean{return this.settingsHandoff?.restore!==undefined;}
+  isToolPresented():boolean{return this.toolHandoff?.restore!==undefined;}
   read():DesktopSurfaceDocument{return structuredClone(this.document);}
   async setMode(mode:DesktopSurfaceMode):Promise<DesktopSurfaceDocument>{
     const next={...this.document,mode};await this.ports.mode.write(next);this.document=next;
@@ -91,16 +96,13 @@ export class DesktopSurfaceController{
   private surface(entry:Entry):PaletteSurface{const current=this.document.profiles[entry.profileKey];if(!current)throw new Error('Desktop Palette profile unavailable');const connected=new Set([...this.entries.values()].map(value=>value.profileKey));return{profileKey:entry.profileKey,layout:structuredClone(current.layout),ownedWidgetIds:[...current.ownedWidgetIds],dockVisible:entry.dockVisible,profiles:Object.entries(this.document.profiles).map(([profileKey,value])=>({profileKey,label:value.monitor.label,connected:connected.has(profileKey),ownedWidgetIds:[...value.ownedWidgetIds]}))};}
   private broadcast():void{for(const entry of this.entries.values())if(!entry.window.isDestroyed())entry.window.webContents.send('p0:palette:surface-changed');}
   private setSettingsActive(active:boolean):void{for(const entry of this.entries.values())if(!entry.window.isDestroyed())entry.window.webContents.send('p0:palette:settings-active',active);}
+  private restoreWindow(restore:SettingsHandoff['restore']):void{if(!restore||this.ports.workspace.isDestroyed())return;const {bounds,maximized,menuVisible,title}=restore;this.ports.workspace.setBounds(bounds);if(maximized)this.ports.workspace.maximize();this.ports.workspace.setMenuBarVisibility(menuVisible);this.ports.workspace.setTitle(title);}
+  private clearToolHandoff():void{const handoff=this.toolHandoff;if(!handoff)return;this.toolHandoff=null;this.restoreWindow(handoff.restore);this.setSettingsActive(false);}
+  private presentTool():void{const handoff=this.toolHandoff,window=this.ports.workspace;if(!handoff||window.isDestroyed())return;if(!handoff.restore){handoff.restore={bounds:window.getNormalBounds(),maximized:window.isMaximized(),menuVisible:window.isMenuBarVisible(),title:window.getTitle()};const display=screen.getAllDisplays().find(value=>value.id===handoff.displayId)??screen.getDisplayMatching(window.getBounds());const area=display.workArea,width=Math.max(320,Math.min(1120,area.width-32)),height=Math.max(320,Math.min(800,area.height-32));if(window.isMaximized())window.unmaximize();window.setBounds({x:area.x+Math.round((area.width-width)/2),y:area.y+Math.round((area.height-height)/2),width,height});window.setMenuBarVisibility(false);window.setTitle(`BOGUNON DESK · ${handoff.tool==='newsletter'?'보건소식지 제작소':'업무 도구'}`);}if(window.isMinimized())window.restore();window.show();window.focus();}
   private clearSettingsHandoff():void{
     const handoff=this.settingsHandoff;if(!handoff)return;
     this.settingsHandoff=null;
-    if(handoff.restore&&!this.ports.workspace.isDestroyed()){
-      const {bounds,maximized,menuVisible,title}=handoff.restore;
-      this.ports.workspace.setBounds(bounds);
-      if(maximized)this.ports.workspace.maximize();
-      this.ports.workspace.setMenuBarVisibility(menuVisible);
-      this.ports.workspace.setTitle(title);
-    }
+    this.restoreWindow(handoff.restore);
     this.setSettingsActive(false);
   }
   private presentSettings():void{
@@ -129,14 +131,18 @@ export class DesktopSurfaceController{
     handle('ready',(_event,args,entry)=>{if(args.length)throw new Error('Invalid arguments');entry.ready=true;entry.lifecycle.show();});
     handle('set-hit-regions',(_event,args,entry)=>{if(args.length!==1||!Array.isArray(args[0])||args[0].length>32)throw new Error('Invalid regions');entry.regions=clipPaletteRegions(args[0] as unknown[],entry.window.getContentBounds());});
     handle('set-interactive',(_event,args,entry)=>{if(args.length!==1||typeof args[0]!=='boolean')throw new Error('Invalid input mode');entry.lifecycle.setInteractive(args[0]);});
-    handle('open-workspace',(_event,args)=>{if(args.length)throw new Error('Invalid arguments');if(this.settingsHandoff){this.ports.workspace.webContents.send('p0:settings:close-requested',true);return;}this.ports.workspace.show();this.ports.workspace.focus();});
+    handle('open-workspace',(_event,args)=>{if(args.length)throw new Error('Invalid arguments');if(this.settingsHandoff){this.ports.workspace.webContents.send('p0:settings:close-requested',true);return;}if(this.toolHandoff){this.ports.workspace.webContents.send('p0:tool:close-requested');return;}this.ports.workspace.show();this.ports.workspace.focus();});
     handle('open-settings',(_event,args,entry)=>{if(args.length)throw new Error('Invalid arguments');if(!this.ports.onboardingComplete())return;if(this.settingsHandoff){if(this.settingsHandoff.restore)this.presentSettings();return;}const returnToPalette=!this.ports.workspace.isVisible();this.settingsHandoff={returnToPalette,displayId:entry.displayId};this.setSettingsActive(true);this.ports.workspace.webContents.send('p0:open-settings',returnToPalette);});
     ipcMain.handle('p0:settings:ready',(event,...args:unknown[])=>{assertSender(event,this.ports.workspace.webContents,this.workspaceUrl);if(args.length)throw new Error('Invalid settings request');if(!this.settingsHandoff){this.settingsHandoff={returnToPalette:false};if(this.document.mode==='palette')this.setSettingsActive(true);}this.presentSettings();});
     ipcMain.handle('p0:settings:dismissed',(event,...args:unknown[])=>{assertSender(event,this.ports.workspace.webContents,this.workspaceUrl);if(args.length!==1||typeof args[0]!=='boolean')throw new Error('Invalid settings request');const returnToPalette=this.settingsHandoff?.returnToPalette??false;if(returnToPalette&&!args[0]&&this.document.mode==='palette')this.ports.workspace.hide();this.clearSettingsHandoff();});
+    handle('open-tool',(_event,args,entry)=>{if(args.length!==1||!paletteTools.includes(args[0] as PaletteToolId))throw new Error('Invalid Palette tool');if(!this.ports.onboardingComplete())return;if(this.settingsHandoff){this.presentSettings();return;}if(this.toolHandoff){if(this.ports.workspace.isVisible()){this.presentTool();return;}this.clearToolHandoff();}const tool=args[0] as PaletteToolId;if(this.ports.workspace.isVisible()){this.ports.workspace.webContents.send('p0:open-tool',tool,false);this.ports.workspace.focus();return;}this.toolHandoff={tool,displayId:entry.displayId};this.setSettingsActive(true);if(this.toolRendererReady)this.ports.workspace.webContents.send('p0:open-tool',tool,true);});
+    ipcMain.handle('p0:tool:renderer-ready',(event,...args:unknown[])=>{assertSender(event,this.ports.workspace.webContents,this.workspaceUrl);if(args.length)throw new Error('Invalid tool ready request');this.toolRendererReady=true;if(this.toolHandoff)this.ports.workspace.webContents.send('p0:open-tool',this.toolHandoff.tool,true);});
+    ipcMain.handle('p0:tool:ready',(event,...args:unknown[])=>{assertSender(event,this.ports.workspace.webContents,this.workspaceUrl);if(args.length||!this.toolHandoff)throw new Error('Invalid tool request');this.presentTool();});
+    ipcMain.handle('p0:tool:dismissed',(event,...args:unknown[])=>{assertSender(event,this.ports.workspace.webContents,this.workspaceUrl);if(args.length||!this.toolHandoff)throw new Error('Invalid tool request');if(this.document.mode==='palette')this.ports.workspace.hide();this.clearToolHandoff();});
     handle('memo:read',async(_event,args)=>{if(args.length)throw new Error('Invalid arguments');try{return ok(await this.ports.memo.read());}catch{return storageError<MemoDocument>('메모를 불러오지 못했습니다.');}});
     handle('memo:write',async(_event,args)=>{if(args.length!==1)throw new Error('Invalid arguments');try{return ok(await this.ports.memo.write(args[0]));}catch{return storageError<MemoDocument>('메모를 저장하지 못했습니다.');}});
     handle('events:load',async(_event,args)=>{if(args.length)throw new Error('Invalid arguments');try{return ok(await this.ports.events.load());}catch{return storageError('일정을 불러오지 못했습니다.');}});
     handle('tasks:load',async(_event,args)=>{if(args.length)throw new Error('Invalid arguments');try{return ok(await this.ports.tasks.load());}catch{return storageError('업무를 불러오지 못했습니다.');}});
   }
-  beginQuit():void{if(this.timer)clearInterval(this.timer);this.timer=undefined;this.editCheckpoints.clear();this.settingsHandoff=null;this.ports.workspace.removeListener('hide',this.workspaceHidden);screen.removeListener('display-added',this.topologyChanged);screen.removeListener('display-removed',this.topologyChanged);screen.removeListener('display-metrics-changed',this.topologyChanged);for(const entry of this.entries.values())entry.lifecycle.beginQuit();this.entries.clear();}
+  beginQuit():void{if(this.timer)clearInterval(this.timer);this.timer=undefined;this.editCheckpoints.clear();this.settingsHandoff=null;this.toolHandoff=null;this.ports.workspace.removeListener('hide',this.workspaceHidden);screen.removeListener('display-added',this.topologyChanged);screen.removeListener('display-removed',this.topologyChanged);screen.removeListener('display-metrics-changed',this.topologyChanged);for(const entry of this.entries.values())entry.lifecycle.beginQuit();this.entries.clear();}
 }

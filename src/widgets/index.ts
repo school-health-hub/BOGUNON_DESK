@@ -3,6 +3,7 @@ export { ClockWidget } from "./ClockWidget";
 export { DdayWidget } from "./DdayWidget";
 export { MemoWidget } from "./MemoWidget";
 export { MealWidget } from "./MealWidget";
+export { NewsletterShortcutWidget } from "./NewsletterShortcutWidget";
 export { NotificationWidget } from "./NotificationWidget";
 export { PriorityTaskWidget } from "./PriorityTaskWidget";
 export { QuickLauncherWidget } from "./QuickLauncherWidget";

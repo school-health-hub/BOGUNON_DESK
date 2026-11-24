@@ -4,6 +4,7 @@ import type {FinanceBridge} from './finance-protocol.js';
 import type {LocalTaskDocument,LocalTaskLoad} from './local-tasks.js';
 import type {InventoryQaApi} from './inventory-qa-protocol.js';
 import type {DesktopSurfaceBridge} from './desktop-surface-protocol.js';
+import type {PaletteToolId} from './palette-protocol.js';
 export const NEWSLETTER_COMPATIBILITY_MESSAGE='이 프로젝트는 현재 버전에서 지원하지 않는 편집 요소를 포함하고 있습니다. 데이터 손실을 방지하기 위해 열기와 저장을 중단했습니다. 최신 버전에서 다시 열어 주세요.';
 import type { PurchaseItem,PurchaseOutputColumnId,PurchaseSettlement } from './renderer/purchase/purchase/types.js';
 import type { PurchaseAnalysisResult, PurchaseColumnMapping } from './renderer/purchase/purchase/types.js';
@@ -24,6 +25,11 @@ export interface P0Bridge {
   onSettingsCloseRequested?(listener:(keepWorkspace:boolean)=>void):()=>void;
   settingsReady?():Promise<void>;
   settingsDismissed?(keepWorkspace?:boolean):Promise<void>;
+  onOpenTool(listener:(tool:PaletteToolId,returnToPalette:boolean)=>void):()=>void;
+  toolRendererReady?():Promise<void>;
+  onToolCloseRequested?(listener:()=>void):()=>void;
+  toolReady?():Promise<void>;
+  toolDismissed?():Promise<void>;
 }
 
 // Feature contracts are explicit; no channel or filesystem path is accepted from renderer.

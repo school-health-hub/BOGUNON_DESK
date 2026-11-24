@@ -17,6 +17,7 @@ const widgetFamilyByType = {
   notifications: "utility",
   meal: "info",
   weather: "info",
+  "newsletter-shortcut": "utility",
 } as const satisfies Record<WidgetType, "primary" | "utility" | "info">;
 
 type WidgetFrameProps = {
