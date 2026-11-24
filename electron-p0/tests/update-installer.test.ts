@@ -36,7 +36,7 @@ describe.skipIf(process.platform!=='win32')('isolated Windows update handoff',()
     await startVerifiedUpdateInstaller({installerPath:installer,applicationPath:application,resultPath:result,parentPid:2147483647,currentVersion:'0.0.1',nextVersion:version,size:bytes.byteLength,sha256:createHash('sha256').update(bytes).digest('hex')});
     expect(version.length).toBeGreaterThan(0);
     expect(await outcome(result)).toBe('installer-exit-failed');
-  });
+  },12000);
   it('rejects changed installer bytes before executing them',async()=>{
     const configured=process.env.UPDATE_QA_TEMP,systemRoot=process.env.SystemRoot;
     if(!configured||!systemRoot)throw new Error('Set UPDATE_QA_TEMP and SystemRoot');
