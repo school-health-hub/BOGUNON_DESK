@@ -1,0 +1,13 @@
+.desktop-palette.workspace-shell.is-view-mode .desktop-widget-grid [data-widget-type] .widget-frame.is-viewing {
+  background-color: color-mix(in srgb, var(--widget-bg, #fff) 94%, transparent);
+  color: var(--text-primary);
+}
+
+.desktop-palette .desktop-widget-grid :is(.panel__title, .workspace-data-notice, .meal-state) {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.desktop-palette .desktop-workspace-layout {
+  padding-inline: 0;
+  padding-block-start: 58px;
+}

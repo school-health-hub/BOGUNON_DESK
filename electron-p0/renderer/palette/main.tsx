@@ -7,6 +7,7 @@ import '../../../src/styles/dashboard.css';
 import '../../../src/styles/components.css';
 import '../../../src/styles/desktop-workspace.css';
 import '../p0.css';import '../soft-rose.css';import '../td2-workspace.css';import '../design-07.css';import './palette.css';import '../design-polish.css';
+import './desktop-board.css';
 import type {WorkBridge} from '../../protocol';
 import {PaletteApp} from './PaletteApp';
 const limited={events:{load:()=>window.electronPalette.readEvents()},tasks:{load:()=>window.electronPalette.readTasks()},memo:{read:()=>window.electronPalette.readMemo(),write:(document:Parameters<typeof window.electronPalette.writeMemo>[0])=>window.electronPalette.writeMemo(document)}};
