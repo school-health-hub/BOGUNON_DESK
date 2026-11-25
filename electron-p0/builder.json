@@ -18,6 +18,8 @@
     "local-tasks.js",
     "local-events.js",
     "admin-protocol.js",
+    "smart-work-launcher.js",
+    "smart-launcher-preferences.js",
     "school-protocol.js",
     "school-launcher.js",
     "account-protocol.js",
