@@ -29,7 +29,14 @@ test('synthetic newsletter creates actual A4 PNG and PDF', async () => {
   });
   try {
     await expect.poll(() => app.windows().some(page => page.url().includes('/palette/'))).toBe(true);
-    const palette = app.windows().find(page => page.url().includes('/palette/'));
+    const findDockPalette = async () => {
+      for (const page of app.windows()) {
+        if (page.url().includes('/palette/') && await page.locator('.palette-dock-region [data-dock-item="toolbox"]').count()) return page;
+      }
+      return undefined;
+    };
+    await expect.poll(async () => Boolean(await findDockPalette())).toBe(true);
+    const palette = await findDockPalette();
     const workspace = app.windows().find(page => !page.url().includes('/palette/'));
     if (!palette || !workspace) throw Error('Expected Palette and Workspace windows');
     await palette.locator('.palette-dock-region [data-dock-item="toolbox"]').evaluate(button => (button as HTMLElement).click());

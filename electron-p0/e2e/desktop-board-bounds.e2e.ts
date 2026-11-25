@@ -2,7 +2,7 @@ import { _electron as electron, expect, test } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 
 test('fits the Palette window to the connected Windows work area', async ({}, testInfo) => {
@@ -18,7 +18,7 @@ test('fits the Palette window to the connected Windows work area', async ({}, te
     timeout: 70_000,
     executablePath: createRequire(import.meta.url).resolve('electron/package.json').replace(/package\.json$/u, 'dist/electron.exe'),
     chromiumSandbox: true,
-    args: [join(process.cwd(), 'build/electron-p0-app')],
+    args: [resolve(process.env.BOARD_QA_APP_ROOT ?? 'build/electron-p0-app')],
     env: { ...process.env, RUNNER_TEMP: dirname(root), ELECTRON_P0_QA_PROFILE: '1', ELECTRON_P0_QA_ROOT: root, ELECTRON_P0_TEST_RUN: runId, ELECTRON_P0_DEV_URL: '' },
   });
   const app = await launch();
@@ -53,6 +53,29 @@ test('fits the Palette window to the connected Windows work area', async ({}, te
     await page.screenshot({ path: testInfo.outputPath('palette.png') });
     const workspace = app.windows().find(candidate => !candidate.url().includes('/renderer/palette/'));
     if (!workspace) throw new Error('Workspace window unavailable');
+    const qaEvent = await workspace.evaluate(async id => {
+      const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date());
+      const events = globalThis.window.electronWork.events;
+      if (!events) throw new Error('Calendar bridge unavailable');
+      return events.save({
+        event: { id, title: '응급 대응 절차 점검', startDate: today, endDate: today,
+          startTime: null, endTime: null, allDay: true, description: '', location: '', category: '교육' },
+        expectedRevision: 0, expectedUpdatedAt: null,
+      });
+    }, randomUUID());
+    expect(qaEvent.ok).toBe(true);
+    await window.evaluate(palette => palette.webContents.reload());
+    await expect(page.getByRole('main', { name: 'BOGUNON DESK 바탕화면 위젯' })).toBeVisible();
+    await page.evaluate(async () => {
+      for (const widgetId of ['widget-monthly-calendar', 'widget-meal', 'widget-notifications']) {
+        await globalThis.window.electronPalette.updateWidget({ action: 'claim', widgetId });
+      }
+    });
+    const calendar = page.locator('[data-widget-id="widget-monthly-calendar"]');
+    await expect(calendar.locator('.calendar-cell.is-today')).toBeVisible();
+    await expect(calendar.getByText('응급 대응 절차 점검', { exact: !process.env.BOARD_QA_APP_ROOT })).toBeVisible();
+    await calendar.screenshot({ path: testInfo.outputPath('monthly-calendar.png') });
+    await page.screenshot({ path: testInfo.outputPath('palette-populated.png') });
     const previous = await workspace.evaluate(() => globalThis.window.electronP0.desktopSurface.read());
     await page.evaluate(() => globalThis.window.electronPalette.openSettings());
     const placement = workspace.getByRole('region', { name: '화면 배치', exact: true });

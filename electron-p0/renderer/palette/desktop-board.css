@@ -11,3 +11,57 @@
   padding-inline: 0;
   padding-block-start: 58px;
 }
+
+.desktop-palette .palette-dock-region {
+  inset-inline: auto 22px;
+  bottom: 16px;
+  transform: none;
+  max-width: calc(100vw - 44px);
+}
+
+.desktop-palette .palette-dock-region .dock {
+  background-color: var(--d07-cream-50);
+  border-color: var(--d07-rose-200);
+}
+
+.desktop-palette [data-widget-type="monthly-calendar"] .calendar-weekday {
+  color: var(--d07-navy-900);
+  font-weight: 700;
+  background: var(--d07-cream-200);
+}
+
+.desktop-palette [data-widget-type="monthly-calendar"] .calendar-cell.is-today {
+  outline: 1px solid var(--d07-rose-700);
+  outline-offset: -1px;
+  background: var(--d07-rose-50);
+}
+
+.desktop-palette [data-widget-type="monthly-calendar"] .calendar-cell.is-today .calendar-date {
+  background: var(--d07-rose-700);
+  color: var(--d07-cream-50);
+}
+
+@media (min-width: 1301px), (min-height: 821px) {
+  .desktop-palette.workspace-shell.is-view-mode .desktop-widget-grid [data-widget-type="monthly-calendar"] .calendar-cell {
+    grid-template-rows: 18px minmax(0, 1fr);
+    padding-block: 1px;
+    gap: 1px;
+    overflow: hidden;
+  }
+
+  .desktop-palette.workspace-shell.is-view-mode .desktop-widget-grid [data-widget-type="monthly-calendar"] .calendar-date {
+    width: 17px;
+    height: 17px;
+    line-height: 1;
+  }
+
+  .desktop-palette.workspace-shell.is-view-mode .desktop-widget-grid [data-widget-type="monthly-calendar"] .calendar-event {
+    display: -webkit-box;
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-height: 11px;
+  }
+}
