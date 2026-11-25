@@ -232,6 +232,13 @@ body.electron-soft-rose.design-07-candidate .workspace-shell.card-flat .dock {
     scroll-padding-bottom: 16px;
   }
 
+  body.electron-soft-rose.design-07-candidate:not(.desktop-palette-root) .workspace-shell.is-view-mode .workspace-dashboard {
+    box-sizing: border-box;
+    height: calc(100% - var(--desktop-dock-height, 72px) - 8px);
+    padding-block-end: 8px;
+    scroll-padding-bottom: 8px;
+  }
+
   body.electron-soft-rose.design-07-candidate .workspace-shell.is-edit-mode .desktop-widget-grid [data-widget-type="today-tasks"] .panel__header {
     align-items: flex-start;
     flex-direction: column;
