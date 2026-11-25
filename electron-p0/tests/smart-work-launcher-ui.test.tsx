@@ -25,6 +25,9 @@ it('shows three primary systems while keeping the twenty detailed actions collap
  expect(screen.queryByRole('button',{name:'연가 신청'})).toBeNull();expect(screen.getByRole('button',{name:'나이스 세부 업무 펼치기'}).getAttribute('aria-expanded')).toBe('false');
  fireEvent.click(screen.getByRole('button',{name:'나이스 세부 업무 펼치기'}));expect(screen.getByRole('button',{name:'연가 신청'})).toBeTruthy();
  expect(screen.getAllByText('UNVERIFIED · 실제 메뉴 경로로 검증되지 않음')).toHaveLength(1);
+ fireEvent.click(screen.getByText('인증서 로그인·재접속 도움말'));
+ expect(screen.getByText(/비밀번호를 직접 입력하세요/)).toBeTruthy();
+ expect(api.launch).not.toHaveBeenCalled();
 });
 
 it('searches, filters, and keeps guide expansion separate from launch',async()=>{
