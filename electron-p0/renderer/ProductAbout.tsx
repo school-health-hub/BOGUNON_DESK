@@ -1,7 +1,6 @@
 import {useEffect,useState} from 'react';
 import type { P0Info } from '../protocol';
 import type { P0UpdateState } from '../protocol';
-import { SyntheticIpcSample } from './SyntheticIpcSample';
 
 type ProductAboutProps = Readonly<{
   info: P0Info;
@@ -29,7 +28,6 @@ export function ProductAbout({ info }: ProductAboutProps) {
       </div>
       {update?.phase==='ready'&&!update.installSupported&&<p>파일 검증이 끝났습니다. 현재 미서명 QA 후보는 앱에서 자동 설치하지 않습니다. 서명된 배포 체계가 준비되면 설치 기능을 제공합니다.</p>}
     </section>
-    <SyntheticIpcSample />
     <details>
       <summary>고급 진단 정보</summary>
       <dl>

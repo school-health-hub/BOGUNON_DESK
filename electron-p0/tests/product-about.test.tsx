@@ -22,4 +22,5 @@ it('shows the release identity while keeping machine diagnostics collapsed', () 
   const diagnostics = screen.getByText('고급 진단 정보').closest('details');
   expect(diagnostics?.hasAttribute('open')).toBe(false);
   expect(screen.queryByRole('button', { name: '보건소식지 제작소' })).toBeNull();
+  expect(screen.queryByRole('button', { name: '합성 IPC 확인' })).toBeNull();
 });

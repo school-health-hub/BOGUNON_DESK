@@ -62,7 +62,7 @@ export const toolDefinitions: readonly ToolDefinition[] = [
   { id: "school-health-room", group: "health", title: "우리 보건실", description: "학교 구성원과 함께 쓰는 보건실 업무 공간", keywords: ["공유", "학교"], icon: Stethoscope },
   { id: "newsletter", group: "health", title: "보건소식지 제작소", description: "월별 보건소식지 원고와 디자인을 준비합니다.", keywords: ["가정통신문", "소식지", "월간"], icon: Newspaper },
   { id: "inventory-local", group: "health", title: "물품관리", description: "보건실 물품의 수량과 사용 내역을 관리합니다.", keywords: ["재고", "소모품"], icon: PackageSearch },
-  { id: "inventory-preview", group: "health", title: "물품관리 미리보기", description: "예시 화면에서 물품관리 흐름을 확인합니다.", keywords: ["재고", "체험"], icon: PackageSearch },
+  { id: "inventory-preview", group: "health", title: "물품관리 미리보기", description: "예시 화면에서 물품관리 흐름을 확인합니다.", keywords: ["재고", "체험"], icon: PackageSearch, developmentOnly: true },
   { id: "inventory-qa", group: "health", title: "물품관리 점검 화면", description: "개발 전용 격리 환경에서 물품관리를 점검합니다.", keywords: ["재고", "qa", "개발"], icon: Database, developmentOnly: true },
   { id: "education-video", group: "health", title: "교육영상 찾기", description: "보건교육에 활용할 영상을 찾고 보관합니다.", keywords: ["유튜브", "교육", "영상"], icon: Search },
   { id: "official-document", group: "documents", title: "공문작업실", description: "공문을 가져와 편집하고 초안을 저장합니다.", keywords: ["공문", "문서"], icon: FileText },

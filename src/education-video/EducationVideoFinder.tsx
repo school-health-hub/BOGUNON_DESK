@@ -10,13 +10,15 @@ import { VideoResults } from './VideoResults';
 import { MessageEditor } from './MessageEditor';
 import './finder.css';
 const emptyEducation: Education = { educationTitle: '', target: '', schedule: '', instructions: '' };
-export function EducationVideoFinder({ onClose,renderAiTools,searchBridge,compatBridge }: {
+export function EducationVideoFinder({ onClose,renderAiTools,searchBridge,compatBridge,allowMockSearch=false }: {
     readonly onClose: () => void;
     readonly compatBridge?:FinderCompatBridge;
     readonly searchBridge?:FinderSearchBridge;
     readonly renderAiTools?:(text:string)=>ReactNode;
+    readonly allowMockSearch?:boolean;
 }) {
-    const [mode,setMode]=useState<'youtube'|'mock'>(searchBridge?'youtube':'mock');
+    const mockEnabled=import.meta.env.DEV&&allowMockSearch;
+    const [mode,setMode]=useState<'youtube'|'mock'>(mockEnabled&&!searchBridge?'mock':'youtube');
     const [provider,setProvider]=useState<FinderSearchStatus|null>(null),[connectionBusy,setConnectionBusy]=useState(false),[searchBusy,setSearchBusy]=useState(false),[consent,setConsent]=useState(false),[nextCursor,setNextCursor]=useState<string|null>(null);
     const searchEpoch=useRef(0),searching=useRef(false);
     useEffect(()=>()=>{searchEpoch.current++;void searchBridge?.cancel();},[searchBridge]);
@@ -49,7 +51,7 @@ export function EducationVideoFinder({ onClose,renderAiTools,searchBridge,compat
     const search = async (more=false) => {
         const error=validateConditions(conditions);if(error){setNotice(error);return;}
         if(searching.current||connectionBusy)return;
-        if(mode==='mock'){setSearched({...conditions});setVideos(searchMockVideos(conditions));setWindow(3);setNextCursor(null);setNotice('합성 Mock 결과 12개입니다. 실제 YouTube를 검색하지 않았습니다.');return;}
+        if(mode==='mock'){if(!mockEnabled){setNotice('이 검색 방식은 사용할 수 없습니다.');return;}setSearched({...conditions});setVideos(searchMockVideos(conditions));setWindow(3);setNextCursor(null);setNotice('합성 Mock 결과 12개입니다. 실제 YouTube를 검색하지 않았습니다.');return;}
         if(!searchBridge||!provider?.configured){setNotice('YouTube 검색 API 연결 설정에서 전용 API Key를 먼저 등록해 주세요.');return;}
         if(!consent){setNotice('개인정보 없는 검색어의 외부 전송에 동의해 주세요.');return;}
         if(more&&(!nextCursor||JSON.stringify(conditions)!==JSON.stringify(searched))){setNotice('검색 조건이 변경됐습니다. 새로 검색해 주세요.');return;}
@@ -96,7 +98,7 @@ export function EducationVideoFinder({ onClose,renderAiTools,searchBridge,compat
  {renderAiTools?.([education.educationTitle,education.target,education.schedule,education.instructions,message].filter(Boolean).join('\n'))}
  <section className="ev-search" aria-labelledby="ev-search-heading">
  <div className="ev-section-heading"><div><span className="ev-step">01</span><h2 id="ev-search-heading">교육 조건</h2></div></div>
- {searchBridge&&<><SearchConnection bridge={searchBridge} disabled={searchBusy} onStatus={value=>{setProvider(value);setNextCursor(null);}} onBusy={setConnectionBusy}/><label>검색 방식<select value={mode} disabled={searchBusy||connectionBusy} onChange={e=>{searchEpoch.current++;setMode(e.target.value as 'youtube'|'mock');setVideos([]);setSearched(null);setNextCursor(null);setConsent(false);setNotice('검색 방식을 변경했습니다. 보관함과 편집 내용은 유지됩니다.');}}><option value="youtube">실제 YouTube 검색</option><option value="mock">합성 Mock 체험 (외부 전송 없음)</option></select></label></>}
+ {searchBridge&&<><SearchConnection bridge={searchBridge} disabled={searchBusy} onStatus={value=>{setProvider(value);setNextCursor(null);}} onBusy={setConnectionBusy}/>{mockEnabled&&<label>검색 방식<select value={mode} disabled={searchBusy||connectionBusy} onChange={e=>{searchEpoch.current++;setMode(e.target.value==='mock'?'mock':'youtube');setVideos([]);setSearched(null);setNextCursor(null);setConsent(false);setNotice('검색 방식을 변경했습니다. 보관함과 편집 내용은 유지됩니다.');}}><option value="youtube">실제 YouTube 검색</option><option value="mock">합성 Mock 체험 (외부 전송 없음)</option></select></label>}</>}
  <form onSubmit={e => { e.preventDefault(); void search(); }}>
  <label>교육 주제<input disabled={searchBusy||connectionBusy} maxLength={100} value={conditions.topic} placeholder="예: 손씻기와 감염병 예방" onChange={e => {setConditions({ ...conditions, topic: e.target.value });setConsent(false);setNextCursor(null);}}/></label>
  <label>검색 대상<input disabled={searchBusy||connectionBusy} maxLength={100} value={conditions.target} placeholder="예: 초등학교 3~4학년" onChange={e => {setConditions({ ...conditions, target: e.target.value });setConsent(false);setNextCursor(null);}}/></label>

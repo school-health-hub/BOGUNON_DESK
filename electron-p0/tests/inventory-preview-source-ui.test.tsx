@@ -25,8 +25,9 @@ describe("InventoryManagementPanel", () => {
 
   it("renders the synthetic boundary, summary, list, and selected item detail", async () => {
     renderPanel();
-    expect(await screen.findByText("합성 데이터 전용 화면")).toBeTruthy();
-    expect(screen.getByText(/실제 학교 재고나 서버에는 저장되지 않습니다/)).toBeTruthy();
+    expect(await screen.findByText("저장되지 않는 미리보기")).toBeTruthy();
+    expect(screen.getByText(/실제 물품 목록이나 서버에 저장되지 않습니다/)).toBeTruthy();
+    expect(screen.queryByText(/preview_only|persisted:false/)).toBeNull();
     expect(screen.getByRole("region", { name: "재고 요약" })).toBeTruthy();
     expect(screen.getByRole("table")).toBeTruthy();
     expect(screen.getByRole("complementary", { name: /합성 멸균 거즈 상세/ })).toBeTruthy();

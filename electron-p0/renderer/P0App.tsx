@@ -188,7 +188,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
       case 'school-health-room':setWorkspaceOpen(true);return;
       case 'newsletter':openNewsletter();return;
       case 'inventory-local':setActive('home');setInventoryMode('local');setInventoryOpen(true);return;
-      case 'inventory-preview':setActive('home');setInventoryMode('preview');setInventoryOpen(true);return;
+      case 'inventory-preview':if(import.meta.env.DEV){setActive('home');setInventoryMode('preview');setInventoryOpen(true);}return;
       case 'inventory-qa':setInventoryOpen(false);setInventoryQaOpen(true);return;
       case 'education-video':setActive('home');setEducationVideoOpen(true);return;
       case 'official-document':setActive('home');setOfficialDocumentOpen(true);return;

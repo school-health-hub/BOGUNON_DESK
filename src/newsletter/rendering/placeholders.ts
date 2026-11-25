@@ -39,6 +39,6 @@ function icon(kind: NewsletterPlaceholderKind, color: string): string {
 
 export function newsletterPlaceholderDataUrl(kind: NewsletterPlaceholderKind): string {
   const [background, color] = COLORS[kind]
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="260" viewBox="0 0 320 260"><rect width="320" height="260" rx="28" fill="${background}"/>${icon(kind, color)}<rect x="80" y="224" width="160" height="24" rx="12" fill="#ffffff" opacity=".86"/><text x="160" y="241" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="${color}" text-anchor="middle">QA PLACEHOLDER</text></svg>`
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="260" viewBox="0 0 320 260"><rect width="320" height="260" rx="28" fill="${background}"/>${icon(kind, color)}<rect x="80" y="224" width="160" height="24" rx="12" fill="#ffffff" opacity=".86"/><text x="160" y="241" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="${color}" text-anchor="middle">이미지를 넣어 주세요</text></svg>`
   return `data:image/svg+xml,${encodeURIComponent(svg)}`
 }

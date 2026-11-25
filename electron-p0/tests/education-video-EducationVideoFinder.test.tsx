@@ -12,7 +12,7 @@ afterEach(()=>{cleanup();save.mockClear();exportFile.mockReset();});
 const search=(topic:string)=>{fireEvent.change(screen.getByLabelText('교육 주제'),{target:{value:topic}});fireEvent.change(screen.getByLabelText('검색 대상'),{target:{value:'학생'}});fireEvent.click(screen.getByRole('button',{name:'Mock 영상 검색'}));};
 describe('Finder workflow',()=>{
  it('preserves notes and teacher message when selecting saved video again',async()=>{
-  render(<EducationVideoFinder onClose={()=>{}}/>);search('손씻기');
+  render(<EducationVideoFinder onClose={()=>{}} allowMockSearch/>);search('손씻기');
   fireEvent.click(screen.getAllByRole('button',{name:/선택$/})[0]);
   fireEvent.change(screen.getByLabelText('교육 일시 또는 시청 기간'),{target:{value:'이번주'}});
   fireEvent.change(screen.getByLabelText('안내사항'),{target:{value:'확인'}});
@@ -26,14 +26,14 @@ describe('Finder workflow',()=>{
   expect(save.mock.calls[1][0].notes).toBe('보호할 메모');expect(save.mock.calls[1][0].message).toBe('교사 수정문');
  });
  it('requires complete information and teacher confirmation before copy',async()=>{
- render(<EducationVideoFinder onClose={()=>{}}/>);search('손씻기');
+ render(<EducationVideoFinder onClose={()=>{}} allowMockSearch/>);search('손씻기');
  fireEvent.click(screen.getAllByRole('button',{name:/선택$/})[0]);
  fireEvent.click(screen.getByRole('button',{name:'안내문 생성'}));
  expect(screen.getByRole('status').textContent).toContain('교육 일시');
  expect(screen.getByRole('button',{name:'안내문 복사'}).hasAttribute('disabled')).toBe(true);
  });
  it('saves selected new video without hidden old metadata',async()=>{
- render(<EducationVideoFinder onClose={()=>{}}/>);await waitFor(()=>expect(screen.getByRole('status')).toBeTruthy());
+ render(<EducationVideoFinder onClose={()=>{}} allowMockSearch/>);await waitFor(()=>expect(screen.getByRole('status')).toBeTruthy());
  search('손씻기');fireEvent.click(screen.getAllByRole('button',{name:/선택$/})[0]);
  fireEvent.change(screen.getByLabelText('교육 일시 또는 시청 기간'),{target:{value:'이번주'}});
  fireEvent.change(screen.getByLabelText('안내사항'),{target:{value:'확인'}});
@@ -52,7 +52,7 @@ describe('Finder workflow',()=>{
 it('reports success only after native save completion and distinguishes cancel/error without a Blob download',async()=>{
  let complete!:(value:{status:'saved';fileName:string})=>void;
  exportFile.mockImplementationOnce(()=>new Promise(r=>{complete=r;})).mockResolvedValueOnce({status:'canceled'}).mockRejectedValueOnce(new Error('synthetic failure'));
- render(<EducationVideoFinder onClose={()=>{}}/>);await waitFor(()=>expect(screen.getByRole('button',{name:'내보내기'})).toBeTruthy());
+ render(<EducationVideoFinder onClose={()=>{}} allowMockSearch/>);await waitFor(()=>expect(screen.getByRole('button',{name:'내보내기'})).toBeTruthy());
  fireEvent.click(screen.getByRole('button',{name:'내보내기'}));await waitFor(()=>expect(exportFile).toHaveBeenCalledTimes(1));
  expect(screen.getByRole('status').textContent).not.toContain('저장했습니다');expect((screen.getByRole('button',{name:'내보내기'}) as HTMLButtonElement).disabled).toBe(true);
  complete({status:'saved',fileName:'synthetic.json'});await screen.findByText('라이브러리 JSON을 저장했습니다: synthetic.json');
