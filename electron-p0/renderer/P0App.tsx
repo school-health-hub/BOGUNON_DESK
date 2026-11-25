@@ -108,7 +108,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   const [onlineHealthRoom,setOnlineHealthRoom]=useState<import('../online-health-room-protocol.js').OnlineHealthRoomSettings>({enabled:false,url:''});
   useEffect(()=>{let live=true;const read=()=>void window.electronP0.onlineHealthRoom.read().then(value=>{if(live)setOnlineHealthRoom(value);}).catch(()=>{if(live)setNotice('온라인 보건실 설정을 읽지 못했습니다.');});read();const dispose=window.electronP0.onlineHealthRoom.onChanged(read);return()=>{live=false;dispose();};},[]);
   const info=initial.info;
-  const [status,setStatus] = useState('설정 준비됨');
+  const [status,setStatus] = useState('');
   const [editing,setEditing] = useState(false), [panel,setPanel] = useState<DashboardEditorPanel>(null);
   const [selected,setSelected] = useState<string | null>(null), [active,setActive] = useState<DesktopActionId>('home');
   const settingsHandoffRef=useRef(false);
@@ -232,7 +232,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
         {active==='work-folder'?<WorkFoldersContent state={folders} onClose={()=>navigate('home')}/>:active==='settings'?<SurfaceSettings initialCategory={settingsStartCategory} school={<SchoolProfileSettings/>} ai={<AiSettings/>} onlineHealthRoom={<OnlineHealthRoomSettings settings={onlineHealthRoom} onSaved={setOnlineHealthRoom}/>} saveStatus={status} appearance={<AppearancePanel appearance={layout.appearance} onClose={closeSettings} onUpdate={appearance=>setLayout({...layout,appearance})}/>} widgets={<WidgetLibraryDrawer widgets={layout.widgets} onClose={closeSettings} onHide={hideWidgetType} onRestore={type=>setLayout(restoreWidget({...layout,widgets:geometry.widgets},type))}/>} dock={<DockEditor dockLayout={onlineHealthRoomDock(dock,onlineHealthRoom.enabled)} onClose={closeSettings} onUpdate={setDock} managedVisibilityIds={['online-health-room']}/>} about={<ProductAbout info={info}/>}/>:<ToolboxMenu onRun={runTool} onOpenWorkspaceEditor={openDashboardEditor}/>}
       </SurfaceDialog>}
       {notice&&<div className="p0-notice" role="status">{notice}<button onClick={()=>setNotice(null)}>닫기</button></div>}
-      <span className="p0-save" role="status" data-p0-save>{status}</span>
+      {status&&<span className="p0-save" role="status" data-p0-save>{status}</span>}
       <div className="dock-zone"><AppDock activeActionId={active} dockLayout={onlineHealthRoomDock(dock,onlineHealthRoom.enabled)} onAction={navigate}/></div>
     </div>
     {initial.info.onboardingComplete!==false&&<SchoolInitialSetup suspended={!workspaceOpen||active==='settings'||paletteSettingsReturn!==null}/>}

@@ -10,20 +10,20 @@ export function AiSettings(){
  const [state,setState]=useState<AiStatus|null>(null),[provider,setProvider]=useState<AiProvider>('openai'),[remember,setRemember]=useState(false),[busy,setBusy]=useState(false),[notice,setNotice]=useState('');
  const active=useRef(true);
  useEffect(()=>{active.current=true;if(api)void api.status().then(result=>{if(active.current)setState(read(result));}).catch(()=>{if(active.current)setNotice('AI 연결 상태를 읽지 못했습니다.');});return()=>{active.current=false};},[api]);
- const run=async(operation:()=>Promise<AiStatus|null>)=>{if(busy)return;setBusy(true);try{const next=await operation();if(active.current){if(next)setState(next);setNotice(next?next.connected?'API 계정 모델 목록을 확인했습니다. 텍스트 호출은 전송 전 별도 확인합니다.':'API 연결을 해제했습니다.':'연결을 취소했습니다.');}}catch(error){if(active.current){setNotice(error instanceof Error?error.message:'AI 연결을 완료하지 못했습니다.');if(api)void api.status().then(result=>{if(active.current&&result.ok)setState(result.data);});}}finally{if(active.current)setBusy(false);}};
- if(!api)return <p>이 실행본은 Electron AI 연결을 지원하지 않습니다.</p>;
- return <section className="electron-ai" aria-label="AI 연결 설정"><h2>AI 연결</h2><p>공문·소식지·교육영상 찾기에서 사용합니다. API 키와 원고는 앱 설정 파일이나 로그에 기록하지 않습니다.</p>
+ const run=async(operation:()=>Promise<AiStatus|null>)=>{if(busy)return;setBusy(true);try{const next=await operation();if(active.current){if(next)setState(next);setNotice(next?next.connected?'연결과 모델 목록을 확인했습니다. 실제 생성은 별도로 확인해 주세요.':'AI 연결을 해제했습니다.':'연결을 취소했습니다.');}}catch{if(active.current){setNotice('연결하지 못했습니다. 키, 계정 권한과 인터넷 연결을 확인해 주세요.');if(api)void api.status().then(result=>{if(active.current&&result.ok)setState(result.data);});}}finally{if(active.current)setBusy(false);}};
+ if(!api)return <p>이 앱에서는 AI 연결을 사용할 수 없습니다. 로컬 업무 도구는 계속 사용할 수 있습니다.</p>;
+ return <section className="electron-ai" aria-label="AI 연결 설정"><h2>AI 연결</h2><p>업무 도구에서 AI 작성을 사용할 때 연결합니다. 키와 원고는 앱 설정 파일이나 로그에 기록하지 않습니다.</p>
   <fieldset disabled={busy}><legend>API 계정 연결</legend><label>AI 제공자<select value={provider} onChange={e=>setProvider(e.target.value as AiProvider)}><option value="openai">OpenAI API</option><option value="gemini">Gemini API</option></select></label>
-  <p>본인 API 키를 클립보드에 복사한 뒤 연결하세요. 앱이 키를 읽은 뒤 클립보드에서 지우며, 이 화면에 다시 표시하지 않습니다. API 사용 요금은 ChatGPT 구독과 별도입니다.</p>
+  <p>본인의 API 키를 복사한 뒤 연결하세요. 앱이 키를 읽고 클립보드에서 지웁니다. 사용 요금은 ChatGPT 구독과 별도입니다.</p>
   <label><input type="checkbox" checked={remember} disabled={!state?.secureStorage} onChange={e=>setRemember(e.target.checked)}/>이 PC에 Windows 암호화로 연결 보관</label><p>{state?.secureStorage?'보관을 선택하지 않으면 앱 종료 시 연결이 사라지고 이전에 저장한 연결도 제거됩니다.':'안전한 영구 저장을 사용할 수 없어 세션 연결만 가능합니다.'}</p>
-  <button type="button" onClick={()=>void run(async()=>read(await api.connectFromClipboard({provider,remember})))}>클립보드 API Key로 연결</button>
-  <button type="button" disabled={!state?.stored} onClick={()=>void run(async()=>read(await api.restore()))}>저장 연결 불러와 확인</button>
+  <button type="button" onClick={()=>void run(async()=>read(await api.connectFromClipboard({provider,remember})))}>복사한 API 키로 연결</button>
+  <button type="button" disabled={!state?.stored} onClick={()=>void run(async()=>read(await api.restore()))}>저장된 연결 확인</button>
   </fieldset>
   <p role="status">{state?.connected?`${state.provider} · ${state.model} 연결됨`:'API 미연결'}{state?.stored?' · 암호화된 연결 보관 중':''}</p>
   {state?.connected&&<label>계정에서 조회한 모델<select aria-label="AI 모델" value={state.model??''} disabled={busy} onChange={e=>void run(async()=>read(await api.selectModel({model:e.target.value})))}>{state.models.map(model=><option key={model.id} value={model.id}>{model.label}</option>)}</select></label>}
-  <p>조회된 모델이라도 텍스트 호출 권한·지원 여부는 실제 요청에서 확인합니다. 연결 확인은 유료 생성 성공을 의미하지 않습니다.</p>
+  <p>모델이 보여도 실제 생성 권한은 별도입니다. 생성 요청에는 요금이 발생할 수 있습니다.</p>
   <button type="button" disabled={busy} onClick={()=>void run(async()=>read(await api.disconnect()))}>로그아웃·저장 연결 삭제</button>{busy&&<button type="button" onClick={()=>void api.cancel()}>AI 연결 요청 취소</button>}
-  <p role="status">{notice}</p>
+  {notice&&<p role="status">{notice}</p>}
   <ChatGptSettings/>
  </section>;
 }

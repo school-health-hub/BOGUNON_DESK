@@ -34,7 +34,7 @@ describe("approved mascot editor action", () => {
     // When
     fireEvent.click(screen.getByRole("button", { name: "승인 수달쌤 적용" }))
     // Then
-    await waitFor(() => expect(view.container.querySelectorAll(".asset-status")[0]?.textContent).toContain("실제 출력 승인 대기"))
+    await waitFor(() => expect(view.container.querySelectorAll(".asset-status")[0]?.textContent).toContain("이미지 출력 승인 대기"))
     expect(design.designRevision).toBe(2)
     expect(design.assetManifest).toHaveLength(0)
   })

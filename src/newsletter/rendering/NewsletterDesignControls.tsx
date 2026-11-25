@@ -43,10 +43,10 @@ function LayoutFields({ ratio, accent, marker, onAccent, onMarker, onVariant, on
   readonly onRatio: (value: number) => void
 }) {
   return <>
-    <label>레이아웃 variant<select aria-label="레이아웃 variant" value={variantFromRatio(ratio)} onChange={(event) => onVariant(event.target.value as NewsletterLayoutVariant)}><option value="balanced">균형형</option><option value="image-focus">이미지 강조</option><option value="text-focus">텍스트 강조</option></select></label>
+    <label>레이아웃 유형<select aria-label="레이아웃 유형" value={variantFromRatio(ratio)} onChange={(event) => onVariant(event.target.value as NewsletterLayoutVariant)}><option value="balanced">균형형</option><option value="image-focus">이미지 강조</option><option value="text-focus">텍스트 강조</option></select></label>
     <label>이미지 비율 <output>{Math.round(ratio * 100)}%</output><input aria-label="이미지 텍스트 비율" type="range" min="25" max="50" value={Math.round(ratio * 100)} onChange={(event) => onRatio(Number(event.target.value) / 100)} /></label>
     <label>강조색<input aria-label="주제 강조색" type="color" value={accent} onChange={(event) => onAccent(event.target.value)} /></label>
-    <label>목록 marker<select aria-label="목록 marker" value={marker} onChange={(event) => onMarker(event.target.value as typeof marker)}><option value="source">원문 유지</option><option value="dot">점</option><option value="number">번호</option><option value="check">체크</option></select></label>
+    <label>목록 표시<select aria-label="목록 표시" value={marker} onChange={(event) => onMarker(event.target.value as typeof marker)}><option value="source">원문 유지</option><option value="dot">점</option><option value="number">번호</option><option value="check">체크</option></select></label>
   </>
 }
 

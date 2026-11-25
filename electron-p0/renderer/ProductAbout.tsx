@@ -26,9 +26,9 @@ export function ProductAbout({ info }: ProductAboutProps) {
         {update?.phase==='downloading'&&<button type="button" onClick={()=>run('cancel')}>다운로드 취소</button>}
         {update?.phase==='ready'&&update.installSupported&&<button type="button" className="product-update-primary" onClick={()=>run('install')}>업데이트 설치하기</button>}
       </div>
-      {update?.phase==='ready'&&!update.installSupported&&<p>파일 검증이 끝났습니다. 현재 미서명 QA 후보는 앱에서 자동 설치하지 않습니다. 서명된 배포 체계가 준비되면 설치 기능을 제공합니다.</p>}
+      {update?.phase==='ready'&&!update.installSupported&&<p>파일 검증이 끝났습니다. 이 실행본에서는 자동 설치를 지원하지 않습니다. 설치 파일을 직접 실행해 주세요.</p>}
     </section>
-    <details>
+    {import.meta.env.DEV&&<details>
       <summary>고급 진단 정보</summary>
       <dl>
         <dt>제품 식별자</dt><dd>{info.appId}</dd>
@@ -36,7 +36,6 @@ export function ProductAbout({ info }: ProductAboutProps) {
         <dt>소스 버전</dt><dd>{info.sourceSha}</dd>
         <dt>Electron</dt><dd>{info.electron}</dd>
       </dl>
-    </details>
-    <p>계정과 AI 연결은 설정에서 별도로 관리합니다.</p>
+    </details>}
   </div>;
 }

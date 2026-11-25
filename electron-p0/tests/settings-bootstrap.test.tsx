@@ -63,6 +63,8 @@ function setup(readSettings: () => Promise<P0Settings | null>, appId = 'kr.sunga
     }),
     readSettings,
     writeSettings,
+    onlineHealthRoom: { read: async () => ({ enabled: false, url: "" }), onChanged: () => () => {} },
+    onOpenTool: () => () => {},
   });
   vi.stubGlobal('electronWork', {
     purchase: { settings: undefined },
@@ -156,7 +158,7 @@ it('does not write settings while mounting a valid saved dashboard', async () =>
   expect(writeSettings).not.toHaveBeenCalled();
 });
 
-it('shows a user-facing settings status instead of a PoC label after a saved dashboard mounts', async () => {
+it('does not show a meaningless settings-ready status after a saved dashboard mounts', async () => {
   // Given
   setup(async () => validSettings());
 
@@ -165,7 +167,7 @@ it('shows a user-facing settings status instead of a PoC label after a saved das
   await screen.findByTestId('dashboard-widget-ids');
 
   // Then
-  expect(document.querySelector('[data-p0-save]')?.textContent).toBe('설정 준비됨');
+  expect(document.querySelector('[data-p0-save]')).toBeNull();
 });
 
 it('performs the first-run write once under StrictMode', async () => {

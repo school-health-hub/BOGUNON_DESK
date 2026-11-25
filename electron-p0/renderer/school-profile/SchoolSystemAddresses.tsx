@@ -13,7 +13,7 @@ export function SchoolSystemAddresses({school,revision,onApplied,onBusyChange,bl
  const matches=!!preview?.school&&preview.school.officeCode===school?.officeCode&&preview.school.schoolCode===school?.schoolCode;
  if(!api?.schoolAddresses)return <p>이 실행본에는 학교 초기 주소 확인·적용 연결이 없습니다. 기존 주소 설정을 사용하세요.</p>;
  return <section className="school-address-review" aria-label="학교 업무 주소 확인·적용" aria-busy={busy}>
-  <h3>적용된 업무 시스템 주소</h3><p>{preview?`${ADMIN_ENVIRONMENTS[preview.environment]} 주소 환경`:'주소를 확인하는 중입니다.'} · 초기값은 기관별 주소이며, 공용 로그인·인증 주소로 대체하지 않습니다.</p>
+  <h3>업무 시스템 주소</h3><p>{preview?`${ADMIN_ENVIRONMENTS[preview.environment]} 주소를 사용합니다.`:'주소를 확인하는 중입니다.'} 학교별 주소는 공용 로그인 주소로 바꾸지 않습니다.</p>
   <p>등록은 공식 최신성·학교망 접속 성공을 보증하지 않습니다. 특히 강원 주소는 기관 안내와 대조하세요. 미등록 K-에듀파인은 임의 생성하지 않습니다.</p>
   <button type="button" disabled={busy} onClick={()=>void refresh()}>학교 업무 주소 다시 확인</button>
   {blocked&&<p>진행 중인 작업 또는 저장하지 않은 주소·양식이 있습니다. 기존 입력을 저장하거나 확인한 뒤 주소 적용·열기를 진행하세요.</p>}
