@@ -61,7 +61,7 @@ test('builder selection archives the complete Main/Preload relative runtime grap
    await writeFile(join(evidence,'inventory.json'),JSON.stringify({appDir,selectedFiles:selected.toSorted(),archiveEntries:[...files].sort(),runtime:[...graph].sort(),testFiles},null,2));
   }
   assert.deepEqual(testFiles,[],'Compiled Main tests must not ship in the actual ASAR');
-  for(const required of ['main/main.mjs','main/update-contract.js','main/update-service.js','main/update-installer.js','preload/preload.cjs','newsletter-ai-protocol.js','main/newsletter-ai-asset-storage.js','protocol.js','update-protocol.js','update-config.json','account-protocol.js','chatgpt-protocol.js','tray.png','app-icon.png']){
+  for(const required of ['main/main.mjs','main/update-contract.js','main/update-service.js','main/update-installer.js','main/update-notice.js','preload/preload.cjs','preload/update-preload.cjs','renderer/update/index.html','newsletter-ai-protocol.js','main/newsletter-ai-asset-storage.js','protocol.js','update-protocol.js','update-config.json','account-protocol.js','chatgpt-protocol.js','tray.png','app-icon.png']){
    assert(files.has(required),`Required packaged file: ${required}`);
   }
   assert(graph.has('inventory-qa-protocol.js'),'Main must use the Inventory protocol');

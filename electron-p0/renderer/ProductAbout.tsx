@@ -5,10 +5,9 @@ import { SyntheticIpcSample } from './SyntheticIpcSample';
 
 type ProductAboutProps = Readonly<{
   info: P0Info;
-  onOpenNewsletter: () => void;
 }>;
 
-export function ProductAbout({ info, onOpenNewsletter }: ProductAboutProps) {
+export function ProductAbout({ info }: ProductAboutProps) {
   const [update,setUpdate]=useState<P0UpdateState|null>(null);
   const [dismissedVersion,setDismissedVersion]=useState<string|null>(null);
   useEffect(()=>{let active=true;void window.electronP0.updates.status().then(state=>{if(active)setUpdate(state);});const dispose=window.electronP0.updates.onState(state=>{if(active)setUpdate(state);});return()=>{active=false;dispose();};},[]);
@@ -17,7 +16,6 @@ export function ProductAbout({ info, onOpenNewsletter }: ProductAboutProps) {
     <h2>BOGUNON DESK 2.0</h2>
     <p>내부 베타 · 버전 {info.version}</p>
     <p>보건교사의 업무를 한곳에서 정리하는 Windows 데스크톱 작업 공간입니다.</p>
-    <button type="button" onClick={onOpenNewsletter}>보건소식지 제작소</button>
     <section className="product-update" aria-label="앱 업데이트">
       <h3>{update?.phase==='available'&&update.nextVersion!==dismissedVersion?'새 업데이트가 있어요!':'앱 업데이트'}</h3>
       <p>현재 버전 {info.version}{update?.nextVersion?` · 새 버전 ${update.nextVersion}`:''}</p>

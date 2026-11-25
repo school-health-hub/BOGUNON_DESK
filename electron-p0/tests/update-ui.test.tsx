@@ -10,7 +10,7 @@ afterEach(()=>{cleanup();vi.unstubAllGlobals();});
 it('shows a clear offline fallback without attempting a network call',async()=>{
   const check=vi.fn();
   vi.stubGlobal('electronP0',{updates:{status:async()=>({phase:'unavailable',currentVersion:info.version,message:'수동 업데이트를 이용해 주세요.'}),onState:()=>()=>{},check}});
-  render(<ProductAbout info={info} onOpenNewsletter={()=>{}}/>);
+  render(<ProductAbout info={info}/>);
   expect(await screen.findByText('수동 업데이트를 이용해 주세요.')).toBeTruthy();
   expect(check).not.toHaveBeenCalled();
   expect(screen.queryByRole('button',{name:'업데이트 받기'})).toBeNull();
@@ -20,7 +20,7 @@ it('keeps download consent separate and explains unsigned-install restriction',a
   const available:P0UpdateState={phase:'available',currentVersion:info.version,nextVersion:'2.0.0-beta.6',notes:'합성 변경 사항'};
   const download=vi.fn(async():Promise<P0UpdateState>=>({...available,phase:'ready',progress:100,message:'파일을 검증했습니다.'}));
   vi.stubGlobal('electronP0',{updates:{status:async()=>available,onState:()=>()=>{},download,check:vi.fn(),cancel:vi.fn()}});
-  render(<ProductAbout info={info} onOpenNewsletter={()=>{}}/>);
+  render(<ProductAbout info={info}/>);
   expect(await screen.findByText('새 업데이트가 있어요!')).toBeTruthy();
   expect(download).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button',{name:'업데이트 받기'}));
@@ -32,7 +32,7 @@ it('offers a separate install action only for a trusted ready installer',async()
   const ready:P0UpdateState={phase:'ready',currentVersion:info.version,nextVersion:'2.0.0-beta.6',progress:100,installSupported:true,message:'서명 확인 대기'};
   const install=vi.fn(async():Promise<P0UpdateState>=>({...ready,phase:'installing'}));
   vi.stubGlobal('electronP0',{updates:{status:async()=>ready,onState:()=>()=>{},install,check:vi.fn(),download:vi.fn(),cancel:vi.fn()}});
-  render(<ProductAbout info={info} onOpenNewsletter={()=>{}}/>);
+  render(<ProductAbout info={info}/>);
   const button=await screen.findByRole('button',{name:'업데이트 설치하기'});
   expect(install).not.toHaveBeenCalled();
   fireEvent.click(button);

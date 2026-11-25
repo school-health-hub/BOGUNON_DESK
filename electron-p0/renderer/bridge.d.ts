@@ -1,3 +1,3 @@
 import type { P0Bridge, WorkBridge } from '../protocol';
 import type {PaletteBridge} from '../palette-protocol';
-declare global { interface Window { electronP0: P0Bridge; electronWork: WorkBridge;electronPalette:PaletteBridge } }
+declare global { interface Window { electronP0: P0Bridge; electronWork: WorkBridge;electronPalette:PaletteBridge;electronUpdate:{status:()=>Promise<import('../update-protocol.js').UpdateState>;check:()=>Promise<import('../update-protocol.js').UpdateState>;download:()=>Promise<import('../update-protocol.js').UpdateState>;cancel:()=>Promise<import('../update-protocol.js').UpdateState>;install:()=>Promise<import('../update-protocol.js').UpdateState>;dismiss:()=>void;onState:(listener:(state:import('../update-protocol.js').UpdateState)=>void)=>()=>void} } }

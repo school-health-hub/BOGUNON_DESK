@@ -58,7 +58,7 @@ import { ExcelService } from './purchase-excel.js';
 import { createExcelHandlers } from './purchase-excel-ipc.js';
 import { createPurchaseImportHandlers } from './purchase-import.js';
 import { createPurchaseClipboardHandler } from './purchase-clipboard.js';
-import { app, BrowserWindow, ipcMain, session, Menu, Tray, nativeImage, screen, dialog, clipboard, ClipboardItem, safeStorage, shell, type IpcMainEvent } from 'electron';
+import { app, BrowserWindow, ipcMain, session, Menu, Tray, Notification, nativeImage, screen, dialog, clipboard, ClipboardItem, safeStorage, shell, type IpcMainEvent } from 'electron';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
@@ -81,6 +81,7 @@ import {DesktopSurfaceController} from './desktop-surface-controller.js';
 import {readUpdateFeed,UpdateService} from './update-service.js';
 import {verifyWindowsUpdateSignature} from './update-signature.js';
 import {startVerifiedUpdateInstaller} from './update-installer.js';
+import {UpdateNotice,UPDATE_CHECK_INTERVAL_MS} from './update-notice.js';
 import {createPaletteFailureGate} from './desktop-palette.js';
 if (app.commandLine.hasSwitch('no-sandbox') || app.commandLine.hasSwitch('disable-web-security')) throw new Error('Unsafe Electron launch flags denied');
 app.setName(PRODUCT_NAME);
@@ -131,8 +132,40 @@ else {
     webPreferences:{ preload:join(app.getAppPath(),'preload','preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webviewTag:false,session:isolated,webSecurity:true } });
   const desktopSurface=new DesktopSurfaceController({renderer,dev,workspace:window,layout:store,mode:desktopSurfaceStore,events:eventStore,tasks:taskStore,memo:memoStore,failureGate:createPaletteFailureGate({qa:qaPaths.qa,value:process.env.ELECTRON_P0_QA_FAIL_PALETTE}),onboardingComplete:()=>onboardingComplete,quitting:()=>quitting});
   const updateFeed=await readUpdateFeed(join(app.getAppPath(),'update-config.json'));
-  const updates=new UpdateService({currentVersion:app.getVersion(),feed:updateFeed,cacheDir:join(userData,'update-downloads'),enabled:app.isPackaged&&process.platform==='win32'&&!process.env.PORTABLE_EXECUTABLE_FILE,emit:state=>{if(!window.isDestroyed())window.webContents.send('p0:update:state',state);},verifySignature:verifyWindowsUpdateSignature,confirmClose:async()=>{const result=await dialog.showMessageBox(window,{type:'question',title:'BOGUNON DESK 업데이트',message:'저장하지 않은 작업을 모두 저장했나요?',detail:'설치를 시작하면 BOGUNON DESK가 종료됩니다. 저장하지 않은 입력이 있다면 계속 작업을 선택해 먼저 저장해 주세요.',buttons:['계속 작업','저장 완료, 설치'],defaultId:0,cancelId:0});return result.response===1;},launchInstaller:async(path,manifest)=>{await startVerifiedUpdateInstaller({installerPath:path,applicationPath:app.getPath('exe'),resultPath:join(userData,'update-downloads','last-install-result.txt'),parentPid:process.pid,currentVersion:app.getVersion(),nextVersion:manifest.version,size:manifest.size,sha256:manifest.sha256});quit();}});
-  for(const action of ['status','check','download','cancel','install'] as const)ipcMain.handle(`p0:update:${action}`,(event,...args:unknown[])=>{assertSender(event,window.webContents,url);if(args.length)throw new Error('Invalid update request');return updates[action]();});
+  const updateUrl=dev?`${dev}update/index.html`:pathToFileURL(join(renderer,'update','index.html')).href;
+  let updateWindow:BrowserWindow|null=null;
+  let activeNotification:Notification|null=null;
+  const updateSession=session.fromPartition('persist:electron-p0-update');
+  updateSession.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));
+  updateSession.setPermissionCheckHandler(()=>false);
+  updateSession.on('will-download',event=>event.preventDefault());
+  updateSession.webRequest.onBeforeRequest((details,callback)=>callback({cancel:!resourceAllowed(details.url,renderer,dev?new URL(dev).origin:undefined)}));
+  const openUpdate=()=>{if(updateWindow&&!updateWindow.isDestroyed()){if(updateWindow.isMinimized())updateWindow.restore();updateWindow.show();updateWindow.focus();return;}
+    updateWindow=new BrowserWindow({title:'BOGUNON DESK 업데이트',icon:join(app.getAppPath(),'app-icon.png'),width:520,height:410,minWidth:360,minHeight:330,show:false,autoHideMenuBar:true,webPreferences:{preload:join(app.getAppPath(),'preload','update-preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webviewTag:false,session:updateSession,webSecurity:true}});
+    const current=updateWindow;current.on('closed',()=>{if(updateWindow===current)updateWindow=null;});
+    current.webContents.setWindowOpenHandler(()=>({action:'deny'}));current.webContents.on('will-navigate',event=>event.preventDefault());
+    void current.loadURL(updateUrl).then(()=>{if(!current.isDestroyed()){current.show();current.focus();}}).catch(()=>{if(!current.isDestroyed())current.close();});
+  };
+  let updates:UpdateService;
+  let refreshUpdateMenu=()=>{};
+  let menuPhase='idle';
+  const notice=new UpdateNotice(join(userData,'update-downloads','last-notified.json'),version=>{
+    if(process.platform!=='win32'||!Notification.isSupported())return false;
+    try{const notification=new Notification({id:`bogunon-update-${version}`,title:'BOGUNON DESK 업데이트',body:`새로운 버전 ${version}이 준비됐어요. 클릭하면 업데이트를 시작할 수 있습니다.`,icon:nativeImage.createFromPath(join(app.getAppPath(),'app-icon.png'))});
+      notification.on('click',()=>{openUpdate();const state=updates.status();if(state.phase==='available')void updates.download();});
+      activeNotification=notification;
+      return new Promise<boolean>(resolve=>{
+        const finish=(shown:boolean)=>{clearTimeout(timeout);notification.removeListener('show',onShow);notification.removeListener('failed',onFailed);if(!shown)activeNotification=null;resolve(shown);};
+        const onShow=()=>finish(true),onFailed=()=>finish(false);
+        const timeout=setTimeout(()=>finish(false),5000);
+        notification.once('show',onShow);notification.once('failed',onFailed);try{notification.show();}catch{finish(false);}
+      });
+    }catch{return false;}
+  });
+  await notice.load();
+  updates=new UpdateService({currentVersion:app.getVersion(),feed:updateFeed,cacheDir:join(userData,'update-downloads'),enabled:app.isPackaged&&process.platform==='win32'&&!process.env.PORTABLE_EXECUTABLE_FILE,emit:state=>{if(!window.isDestroyed())window.webContents.send('p0:update:state',state);if(updateWindow&&!updateWindow.isDestroyed())updateWindow.webContents.send('p0:update:state',state);if(menuPhase!==state.phase){menuPhase=state.phase;refreshUpdateMenu();}void notice.observe(state).catch(()=>{});},verifySignature:verifyWindowsUpdateSignature,confirmClose:async()=>{const result=await dialog.showMessageBox(updateWindow&&!updateWindow.isDestroyed()?updateWindow:window,{type:'question',title:'BOGUNON DESK 업데이트',message:'저장하지 않은 작업을 모두 저장했나요?',detail:'설치를 시작하면 BOGUNON DESK가 종료됩니다. 저장하지 않은 입력이 있다면 계속 작업을 선택해 먼저 저장해 주세요.',buttons:['계속 작업','저장 완료, 설치'],defaultId:0,cancelId:0});return result.response===1;},launchInstaller:async(path,manifest)=>{await startVerifiedUpdateInstaller({installerPath:path,applicationPath:app.getPath('exe'),resultPath:join(userData,'update-downloads','last-install-result.txt'),parentPid:process.pid,currentVersion:app.getVersion(),nextVersion:manifest.version,size:manifest.size,sha256:manifest.sha256});quit();}});
+  for(const action of ['status','check','download','cancel','install'] as const)ipcMain.handle(`p0:update:${action}`,(event,...args:unknown[])=>{if(event.sender===window.webContents)assertSender(event,window.webContents,url);else if(updateWindow&&!updateWindow.isDestroyed())assertSender(event,updateWindow.webContents,updateUrl);else throw new Error('Update IPC caller denied');if(args.length)throw new Error('Invalid update request');return updates[action]();});
+  ipcMain.on('p0:update:dismiss',event=>{if(updateWindow&&!updateWindow.isDestroyed()){assertSender(event,updateWindow.webContents,updateUrl);updateWindow.close();}});
   app.on('before-quit',()=>updates.cancel());
   // Closed renderer remains offline. Optional QA provider lives OUTSIDE product app.
   const workspaceProduct=await registerWorkspaceProduct(ipcMain,window.webContents,url,{packaged:app.isPackaged,isolated:qaPaths.qa,mode:process.env.SCHOOL_WORKSPACE_MODE,nodeEnv:process.env.NODE_ENV,runId:testRun,h1OptIn:process.env.SCHOOL_H1_OPT_IN==='isolated-h1'},async()=>{
@@ -406,12 +439,15 @@ else {
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()&&!desktopSurface.isSettingsPresented()&&!desktopSurface.isToolPresented()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
-  const quit=()=>{if(quitting)return;quitting=true;desktopSurface.beginQuit();instructorFiles.dispose();accountHandlers.dispose();fileDrop.dispose();workFolderHandlers.dispose();recordHandlers.dispose();finderCompat.dispose();finderV2Export.dispose();finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();aiService.dispose();inventoryQa.close();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([instructorFiles.flush(),accountHandlers.flush(),fileDrop.flush(),workFoldersStore.flush(),recordHandlers.flush(),finderSearch.flush(),finderV2Export.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),smartLauncherStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),desktopSurfaceStore.flush(),memoStore.flush(),taskStore.flush(),eventStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>workspaceProduct.dispose()).finally(()=>{tray?.destroy();app.quit();});};
+  const quit=()=>{if(quitting)return;quitting=true;clearInterval(updateCheckTimer);activeNotification?.close();desktopSurface.beginQuit();instructorFiles.dispose();accountHandlers.dispose();fileDrop.dispose();workFolderHandlers.dispose();recordHandlers.dispose();finderCompat.dispose();finderV2Export.dispose();finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();aiService.dispose();inventoryQa.close();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([instructorFiles.flush(),accountHandlers.flush(),fileDrop.flush(),workFoldersStore.flush(),recordHandlers.flush(),finderSearch.flush(),finderV2Export.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),smartLauncherStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),desktopSurfaceStore.flush(),memoStore.flush(),taskStore.flush(),eventStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>workspaceProduct.dispose()).finally(()=>{tray?.destroy();app.quit();});};
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
       {label:'업무 창 열기',click:show},
       {label:'바탕화면 다시 표시',click:()=>{void desktopSurface.setMode('palette').catch(show);}},
       {label:'일반 창으로 복구',click:()=>{void desktopSurface.setMode('window').then(show).catch(show);}},
+      {type:'separator'},
+      {label:'업데이트 확인',click:()=>{openUpdate();const phase=updates.status().phase;if(phase!=='downloading'&&phase!=='ready'&&phase!=='installing')void updates.check();}},
+      ...(updates.status().phase==='available'||updates.status().phase==='ready'?[{label:'새 버전 설치하기',click:()=>{openUpdate();if(updates.status().phase==='available')void updates.download();}} satisfies Electron.MenuItemConstructorOptions]:[]),
       {label:'최소화',click:()=>window.minimize()},
       {label:'닫을 때 트레이로 숨기기',type:'checkbox',checked:desktop.closeBehavior==='tray',enabled:tray!==null,click:async item=>{desktop.closeBehavior=item.checked?'tray':'quit';await persist();refreshMenu();}},
       {type:'separator'},{label:'완전 종료',click:quit}
@@ -419,8 +455,11 @@ else {
     tray?.setContextMenu(Menu.buildFromTemplate(items));
     Menu.setApplicationMenu(Menu.buildFromTemplate([{label:'창',submenu:items}]));
   };
+  refreshUpdateMenu=refreshMenu;
   try{const icon=nativeImage.createFromPath(join(app.getAppPath(),'tray.png'));if(icon.isEmpty())throw Error('No tray icon');tray=new Tray(icon);tray.setToolTip(PRODUCT_NAME);tray.on('double-click',show);}catch{desktop.closeBehavior='quit';}
   refreshMenu();
+  const updateCheckTimer=setInterval(()=>{if(quitting)return;const phase=updates.status().phase;if(phase==='idle'||phase==='current'||phase==='available'||phase==='failed')void updates.check();},UPDATE_CHECK_INTERVAL_MS);
+  updateCheckTimer.unref();
   const changed=()=>{if(desktopSurface.isSettingsPresented()||desktopSurface.isToolPresented())return;clearTimeout(timer);timer=setTimeout(()=>{if(desktopSurface.isSettingsPresented()||desktopSurface.isToolPresented())return;capture();void persist();},250);};
   window.on('move',changed);window.on('resize',changed);window.on('maximize',changed);window.on('unmaximize',changed);
   const adjust=()=>{const bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));window.setBounds(bounds);changed();};
