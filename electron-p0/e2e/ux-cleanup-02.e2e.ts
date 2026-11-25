@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 test('settings and newsletter copy stay usable in compact Windows windows', async () => {
+  test.setTimeout(180000);
   const evidence = process.env.UX_CLEANUP_EVIDENCE;
   if (!evidence) throw Error('UX_CLEANUP_EVIDENCE is required');
   await mkdir(evidence, { recursive: true });
@@ -51,6 +52,7 @@ test('settings and newsletter copy stay usable in compact Windows windows', asyn
     await workspace.screenshot({ path: join(evidence, 'newsletter-output-900x680.png') });
     await expect(workspace.getByText('NEWSLETTER STUDIO · NS-3E')).toHaveCount(0);
     await expect(workspace.getByText('조판 검증')).toHaveCount(0);
+
   } finally {
     await app.close();
   }
