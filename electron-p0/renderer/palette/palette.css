@@ -9,6 +9,7 @@
 .palette-toolbox header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;color:var(--d07-navy-900)}
 .palette-toolbox button{border:1px solid var(--d07-rose-200);border-radius:12px;background:var(--d07-cream-100);color:var(--d07-navy-900);padding:10px;font:700 13px Pretendard,sans-serif}
 .palette-toolbox button:focus-visible{outline:3px solid var(--d07-rose-200)}
+.palette-link-notice{position:fixed;z-index:41;left:50%;bottom:104px;transform:translateX(-50%);display:flex;align-items:center;gap:12px;max-width:calc(100vw - 32px);padding:10px 14px;border:1px solid var(--d07-rose-200);border-radius:14px;background:var(--d07-cream-50);color:var(--d07-navy-900);box-shadow:var(--rose-float-shadow);font:600 13px Pretendard,sans-serif}.palette-link-notice button{display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:inherit;cursor:pointer}.palette-link-notice button:focus-visible{outline:3px solid var(--d07-rose-200)}
 .desktop-palette .newsletter-shortcut{display:flex;min-height:0;flex-direction:column;gap:8px}
 .desktop-palette .newsletter-shortcut p{margin:0;color:#514b55;line-height:1.4}
 .desktop-palette .newsletter-shortcut__open{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;margin-top:auto;border:1px solid var(--d07-rose-500);border-radius:10px;background:var(--d07-rose-100);color:var(--d07-navy-900);padding:7px 10px;font:700 13px Pretendard,sans-serif}

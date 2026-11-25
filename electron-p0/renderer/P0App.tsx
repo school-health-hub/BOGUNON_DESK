@@ -17,6 +17,8 @@ import {LocalTasksPanel,type LocalTaskRequest} from './local-tasks/LocalTasksPan
 import {SurfaceDialog} from './SurfaceDialog';
 import {QuickMemoSurface} from './QuickMemoSurface';
 import {SurfaceSettings} from './SurfaceSettings';
+import {OnlineHealthRoomSettings} from './OnlineHealthRoomSettings';
+import {onlineHealthRoomDock} from './online-health-room-dock';
 import {FirstRunOnboarding} from './FirstRunOnboarding';
 import {InventoryLocalQa} from './inventory-local-qa/InventoryLocalQa';
 import { PurchaseSession } from './purchase/PurchaseSession';
@@ -99,10 +101,12 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   const [layout,setLayout] = useState(initial.layout);
   const [workspaceOpen,setWorkspaceOpen]=useState(false);
   const [onboardingOpen,setOnboardingOpen]=useState(initial.info.onboardingComplete===false);
-  const [settingsStartCategory,setSettingsStartCategory]=useState<'appearance'|'school'>('appearance');
+  const [settingsStartCategory,setSettingsStartCategory]=useState<'appearance'|'school'|'onlineHealthRoom'>('appearance');
   const [paletteSettingsReturn,setPaletteSettingsReturn]=useState<boolean|null>(null);
   const [paletteTool,setPaletteTool]=useState<import('../palette-protocol').PaletteToolId|null>(null);
   const [dock,setDock] = useState(initial.dock);
+  const [onlineHealthRoom,setOnlineHealthRoom]=useState<import('../online-health-room-protocol.js').OnlineHealthRoomSettings>({enabled:false,url:''});
+  useEffect(()=>{let live=true;const read=()=>void window.electronP0.onlineHealthRoom.read().then(value=>{if(live)setOnlineHealthRoom(value);}).catch(()=>{if(live)setNotice('온라인 보건실 설정을 읽지 못했습니다.');});read();const dispose=window.electronP0.onlineHealthRoom.onChanged(read);return()=>{live=false;dispose();};},[]);
   const info=initial.info;
   const [status,setStatus] = useState('설정 준비됨');
   const [editing,setEditing] = useState(false), [panel,setPanel] = useState<DashboardEditorPanel>(null);
@@ -150,6 +154,8 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   };
   const excluded=()=>setNotice('이 기능은 현재 베타 버전에서 사용할 수 없습니다. 로그인·업무·금융 데이터에 연결하지 않습니다.');
   const navigate=(id:DesktopActionId)=>{
+    if(id==='bogunon'){setWorkspaceOpen(false);setActive('home');setPanel(null);setNotice(null);return;}
+    if(id==='online-health-room'){void window.electronP0.onlineHealthRoom.open().then(result=>{if(result==='needs-configuration'){setSettingsStartCategory('onlineHealthRoom');navigate('settings');}else if(result==='disabled')setNotice('온라인 보건실 사용을 켠 뒤 주소를 저장해 주세요.');}).catch(()=>setNotice('온라인 보건실을 열지 못했습니다. 주소와 기본 브라우저를 확인해 주세요.'));return;}
     if(id==='work-portal'){
       if(portalPending.current||utilityBlocked()||utilityRef.current||document.querySelector('[role="dialog"][aria-modal="true"]')){setNotice('현재 작업이나 대화상자를 먼저 정리해 주세요. 기존 입력은 유지됩니다.');return;}
       const api=window.electronWork.admin;if(!api){setNotice('학교 업무 시스템 연결이 없습니다.');return;}
@@ -164,7 +170,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
     if(id==='purchase-helper'){setPurchaseOpen(true);setActive('home');setPanel(null);setNotice(null);return;}
     if(['home','settings','quick-memo','toolbox','work-folder'].includes(id)){if(id==='settings')settingsHandoffRef.current=false;setActive(id);setPanel(null);setEditing(false);setNotice(null)}else excluded();
   };
-  useEffect(()=>window.electronP0.onOpenSettings?.(returnToPalette=>{setPaletteSettingsReturn(returnToPalette);navigate('settings');}),[navigate]);
+  useEffect(()=>window.electronP0.onOpenSettings?.((returnToPalette,category)=>{setPaletteSettingsReturn(returnToPalette);setSettingsStartCategory(category??'appearance');navigate('settings');}),[navigate]);
   useEffect(()=>{if(active==='settings')void window.electronP0.settingsReady?.();},[active]);
   const requestCloseSettings=(keepWorkspace:boolean)=>{void (window.electronP0.settingsDismissed?.(keepWorkspace)??Promise.resolve()).then(()=>{setPaletteSettingsReturn(null);navigate('home');}).catch(()=>setNotice('설정 화면을 닫지 못했습니다. 다시 시도해 주세요.'));};
   const closeSettings=()=>requestCloseSettings(false);
@@ -223,11 +229,11 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
       {editing&&panel==='dock'&&<DockEditor dockLayout={dock} onClose={()=>setPanel(null)} onUpdate={setDock}/>}
       {active==='quick-memo'&&<QuickMemoSurface onClose={()=>navigate('home')}><MemoWidget/></QuickMemoSurface>}
       {active!=='home'&&active!=='quick-memo'&&<SurfaceDialog key={active} modal={active==='settings'||active==='work-folder'} overlayClassName={active==='settings'?'settings-window-surface':''} shouldRestoreFocus={()=>active!=='settings'||!settingsHandoffRef.current} title={active==='settings'?'설정':active==='work-folder'?'업무 폴더':'업무 도구'} onClose={active==='settings'?closeSettings:()=>navigate('home')}>
-        {active==='work-folder'?<WorkFoldersContent state={folders} onClose={()=>navigate('home')}/>:active==='settings'?<SurfaceSettings initialCategory={settingsStartCategory} school={<SchoolProfileSettings/>} ai={<AiSettings/>} saveStatus={status} appearance={<AppearancePanel appearance={layout.appearance} onClose={closeSettings} onUpdate={appearance=>setLayout({...layout,appearance})}/>} widgets={<WidgetLibraryDrawer widgets={layout.widgets} onClose={closeSettings} onHide={hideWidgetType} onRestore={type=>setLayout(restoreWidget({...layout,widgets:geometry.widgets},type))}/>} dock={<DockEditor dockLayout={dock} onClose={closeSettings} onUpdate={setDock}/>} about={<ProductAbout info={info}/>}/>:<ToolboxMenu onRun={runTool} onOpenWorkspaceEditor={openDashboardEditor}/>}
+        {active==='work-folder'?<WorkFoldersContent state={folders} onClose={()=>navigate('home')}/>:active==='settings'?<SurfaceSettings initialCategory={settingsStartCategory} school={<SchoolProfileSettings/>} ai={<AiSettings/>} onlineHealthRoom={<OnlineHealthRoomSettings settings={onlineHealthRoom} onSaved={setOnlineHealthRoom}/>} saveStatus={status} appearance={<AppearancePanel appearance={layout.appearance} onClose={closeSettings} onUpdate={appearance=>setLayout({...layout,appearance})}/>} widgets={<WidgetLibraryDrawer widgets={layout.widgets} onClose={closeSettings} onHide={hideWidgetType} onRestore={type=>setLayout(restoreWidget({...layout,widgets:geometry.widgets},type))}/>} dock={<DockEditor dockLayout={onlineHealthRoomDock(dock,onlineHealthRoom.enabled)} onClose={closeSettings} onUpdate={setDock} managedVisibilityIds={['online-health-room']}/>} about={<ProductAbout info={info}/>}/>:<ToolboxMenu onRun={runTool} onOpenWorkspaceEditor={openDashboardEditor}/>}
       </SurfaceDialog>}
       {notice&&<div className="p0-notice" role="status">{notice}<button onClick={()=>setNotice(null)}>닫기</button></div>}
       <span className="p0-save" role="status" data-p0-save>{status}</span>
-      <div className="dock-zone"><AppDock activeActionId={active} dockLayout={dock} onAction={navigate}/></div>
+      <div className="dock-zone"><AppDock activeActionId={active} dockLayout={onlineHealthRoomDock(dock,onlineHealthRoom.enabled)} onAction={navigate}/></div>
     </div>
     {initial.info.onboardingComplete!==false&&<SchoolInitialSetup suspended={!workspaceOpen||active==='settings'||paletteSettingsReturn!==null}/>}
     {onboardingOpen&&<FirstRunOnboarding onComplete={async(mode,openAccount)=>{if(!window.electronP0.completeOnboarding)throw Error('시작 안내를 저장할 수 없습니다.');await window.electronP0.completeOnboarding(mode);setOnboardingOpen(false);if(openAccount){setSettingsStartCategory('school');setActive('settings');}}}/>}

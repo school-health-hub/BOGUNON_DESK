@@ -44,6 +44,18 @@
 .electron-soft-rose .rose-settings{display:grid;grid-template-columns:120px minmax(0,1fr);gap:24px}
 .electron-soft-rose .rose-settings nav{display:grid;align-content:start;gap:8px}
 .electron-soft-rose .rose-settings-content{min-width:0}
+.electron-soft-rose .online-health-room-settings{display:grid;gap:12px;padding:20px;border:1px solid #e9dde2;border-radius:16px;background:#fffdfd;box-shadow:0 3px 12px #24324608}
+.electron-soft-rose .online-health-room-settings h2{margin:0;color:#713149;font-size:20px}
+.electron-soft-rose .online-health-room-settings p{margin:0;line-height:1.6;word-break:keep-all}
+.electron-soft-rose .online-health-room-settings label{font-weight:600}
+.electron-soft-rose .online-health-room-toggle{display:flex;align-items:center;gap:10px}
+.electron-soft-rose .online-health-room-toggle input{width:18px;height:18px;accent-color:#8a3f5b}
+.electron-soft-rose .online-health-room-settings input[type=url]{width:100%;min-width:0;min-height:44px;padding:8px 12px;border:1px solid #8a7680;border-radius:10px;background:#fff;color:#243246;font:inherit}
+.electron-soft-rose .online-health-room-help{color:#626874;font-size:13px}
+.electron-soft-rose .online-health-room-actions{display:flex;flex-wrap:wrap;gap:10px}
+.electron-soft-rose .online-health-room-actions button{min-height:44px;padding:8px 14px;border:1px solid #8a7680;border-radius:10px;background:#fffdfd;color:#243246;font:inherit;cursor:pointer}
+.electron-soft-rose .online-health-room-actions button:nth-child(2){background:#8a3f5b;border-color:#8a3f5b;color:#fff}
+.electron-soft-rose .online-health-room-actions button:disabled{opacity:.55;cursor:not-allowed}
 .electron-soft-rose .rose-settings .workspace-editor-panel{position:static;inset:auto;transform:none;width:auto;max-width:none;max-height:none;box-shadow:none;border:0;padding:0;background:transparent;overflow:visible}
 .electron-soft-rose .rose-settings .workspace-editor-panel>header{display:none}
 .electron-soft-rose .rose-settings .workspace-editor-panel__body{max-height:none;overflow:visible}

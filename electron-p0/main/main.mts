@@ -81,6 +81,8 @@ import {DesktopSurfaceController} from './desktop-surface-controller.js';
 import {readUpdateFeed,UpdateService} from './update-service.js';
 import {verifyWindowsUpdateSignature} from './update-signature.js';
 import {startVerifiedUpdateInstaller} from './update-installer.js';
+import {OnlineHealthRoomService,validateOnlineHealthRoomSettings} from './online-health-room.js';
+import type {OnlineHealthRoomSettings} from '../online-health-room-protocol.js';
 import {UpdateNotice,UPDATE_CHECK_INTERVAL_MS} from './update-notice.js';
 import {createPaletteFailureGate} from './desktop-palette.js';
 if (app.commandLine.hasSwitch('no-sandbox') || app.commandLine.hasSwitch('disable-web-security')) throw new Error('Unsafe Electron launch flags denied');
@@ -130,7 +132,9 @@ else {
   isolated.webRequest.onBeforeRequest((details,callback)=>callback({cancel:!resourceAllowed(details.url,renderer,dev ? new URL(dev).origin : undefined)}));
   const window = new BrowserWindow({ title:PRODUCT_NAME,icon:join(app.getAppPath(),'app-icon.png'),...fitBounds(desktop.bounds,screen.getAllDisplays().map(d=>d.workArea)),show:false,
     webPreferences:{ preload:join(app.getAppPath(),'preload','preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webviewTag:false,session:isolated,webSecurity:true } });
-  const desktopSurface=new DesktopSurfaceController({renderer,dev,workspace:window,layout:store,mode:desktopSurfaceStore,events:eventStore,tasks:taskStore,memo:memoStore,failureGate:createPaletteFailureGate({qa:qaPaths.qa,value:process.env.ELECTRON_P0_QA_FAIL_PALETTE}),onboardingComplete:()=>onboardingComplete,quitting:()=>quitting});
+  const onlineHealthRoomStore=new SettingsStore<OnlineHealthRoomSettings>(join(userData,'poc-settings'),'online-health-room.json',validateOnlineHealthRoomSettings,4096);
+  const onlineHealthRoom=new OnlineHealthRoomService(onlineHealthRoomStore,target=>shell.openExternal(target,{activate:true}));
+  const desktopSurface=new DesktopSurfaceController({renderer,dev,workspace:window,layout:store,mode:desktopSurfaceStore,events:eventStore,tasks:taskStore,memo:memoStore,onlineHealthRoom,failureGate:createPaletteFailureGate({qa:qaPaths.qa,value:process.env.ELECTRON_P0_QA_FAIL_PALETTE}),onboardingComplete:()=>onboardingComplete,quitting:()=>quitting});
   const updateFeed=await readUpdateFeed(join(app.getAppPath(),'update-config.json'));
   const updateUrl=dev?`${dev}update/index.html`:pathToFileURL(join(renderer,'update','index.html')).href;
   let updateWindow:BrowserWindow|null=null;
@@ -279,6 +283,16 @@ else {
     if (channel === 'p0:info') return {appId:APP_ID,productName:PRODUCT_NAME,version:app.getVersion(),userData,sourceSha:meta.sourceSha,electron:process.versions.electron,onboardingComplete,...(qaPaths.qa?{qaProfile:{root:qaPaths.root,appData:app.getPath('appData'),sessionData:app.getPath('sessionData'),stores:['poc-settings','work-data/local-tasks','work-data/local-events','work-data/purchase-settings','work-data/quick-memo','work-data/work-folders','work-data/drop-import-tmp','work-data/education-video','work-data/school-profile','work-data/bogunon-account','work-data/school-admin','work-data/smart-launcher','work-data/inventory','work-data/ai','work-data/chatgpt','work-data/my-finance','work-data/youtube-search','work-data/newsletter-projects','work-data/newsletter-ai-assets','work-data/official-import-tmp','work-data/purchase-import-tmp'].map(p=>join(userData,p))}}:{})};
     if (channel === 'p0:read-settings') return store.read();
     return store.write(args[0]);
+  });
+  for(const action of ['read','save','test','open'] as const)ipcMain.handle(`p0:online-health-room:${action}`,async(event,...args:unknown[])=>{
+    assertSender(event,window.webContents,url);
+    if(args.length===(action==='save'||action==='test'?1:0)){
+      if(action==='read')return onlineHealthRoom.read();
+      if(action==='open')return onlineHealthRoom.open();
+      if(action==='test')return onlineHealthRoom.test(args[0]);
+      const saved=await onlineHealthRoom.save(args[0]);window.webContents.send('p0:online-health-room:changed');desktopSurface.notifyOnlineHealthRoomChanged();return saved;
+    }
+    throw Error('Invalid online health room request');
   });
   ipcMain.handle('p0:desktop-surface:read',(event,...args:unknown[])=>{assertSender(event,window.webContents,url);if(args.length)throw Error('Invalid Desktop Surface request');return desktopSurface.read();});
   ipcMain.handle('p0:onboarding:complete',async(event,mode:unknown,...args:unknown[])=>{assertSender(event,window.webContents,url);if(args.length||mode!=='window'&&mode!=='palette')throw Error('Invalid onboarding choice');await desktopSurface.setMode(mode);await onboardingStore.write(true);onboardingComplete=true;});
@@ -439,7 +453,7 @@ else {
     catch{desktop.closeBehavior='quit';refreshMenu();return false;}
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()&&!desktopSurface.isSettingsPresented()&&!desktopSurface.isToolPresented()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
-  const quit=()=>{if(quitting)return;quitting=true;clearInterval(updateCheckTimer);activeNotification?.close();desktopSurface.beginQuit();instructorFiles.dispose();accountHandlers.dispose();fileDrop.dispose();workFolderHandlers.dispose();recordHandlers.dispose();finderCompat.dispose();finderV2Export.dispose();finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();aiService.dispose();inventoryQa.close();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([instructorFiles.flush(),accountHandlers.flush(),fileDrop.flush(),workFoldersStore.flush(),recordHandlers.flush(),finderSearch.flush(),finderV2Export.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),smartLauncherStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),desktopSurfaceStore.flush(),memoStore.flush(),taskStore.flush(),eventStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>workspaceProduct.dispose()).finally(()=>{tray?.destroy();app.quit();});};
+  const quit=()=>{if(quitting)return;quitting=true;clearInterval(updateCheckTimer);activeNotification?.close();desktopSurface.beginQuit();instructorFiles.dispose();accountHandlers.dispose();fileDrop.dispose();workFolderHandlers.dispose();recordHandlers.dispose();finderCompat.dispose();finderV2Export.dispose();finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();aiService.dispose();inventoryQa.close();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([instructorFiles.flush(),accountHandlers.flush(),fileDrop.flush(),workFoldersStore.flush(),recordHandlers.flush(),finderSearch.flush(),finderV2Export.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),smartLauncherStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),onlineHealthRoomStore.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),desktopSurfaceStore.flush(),memoStore.flush(),taskStore.flush(),eventStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>workspaceProduct.dispose()).finally(()=>{tray?.destroy();app.quit();});};
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
       {label:'업무 창 열기',click:show},

@@ -7,6 +7,8 @@ export type PaletteSurface=Readonly<{profileKey:string;layout:unknown|null;owned
 export type PaletteWidgetAction=Readonly<{action:'claim'|'move'|'hide'|'show';widgetId:string;targetProfileKey?:string}>;
 export type PaletteToolId='official-document'|'purchase-helper'|'record-helper'|'inventory-local'|'education-video'|'newsletter';
 export interface PaletteBridge{
+  readOnlineHealthRoom():Promise<import('./online-health-room-protocol.js').OnlineHealthRoomSettings>;
+  openOnlineHealthRoom():Promise<import('./online-health-room-protocol.js').OnlineHealthRoomOpenResult>;
   readSurface():Promise<PaletteSurface>;
   writeLayout(layout:unknown):Promise<PaletteSurface>;
   updateWidget(action:PaletteWidgetAction):Promise<PaletteSurface>;
@@ -20,7 +22,7 @@ export interface PaletteBridge{
   setHitRegions(regions:readonly PaletteRect[]):Promise<void>;
   setInteractive(interactive:boolean):Promise<void>;
   openWorkspace():Promise<void>;
-  openSettings():Promise<void>;
+  openSettings(category?:'onlineHealthRoom'):Promise<void>;
   openTool(tool:PaletteToolId):Promise<void>;
   readMemo():Promise<IpcResult<MemoDocument>>;
   writeMemo(document:MemoDocument):Promise<IpcResult<MemoDocument>>;

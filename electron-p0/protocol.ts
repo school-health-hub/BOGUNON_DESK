@@ -16,12 +16,13 @@ export type P0Info = Readonly<{ appId: string; productName: string; version: str
 export type P0UpdateState=import('./update-protocol.js').UpdateState;
 export interface P0Bridge {
   info(): Promise<P0Info>;
+  onlineHealthRoom:Readonly<{read():Promise<import('./online-health-room-protocol.js').OnlineHealthRoomSettings>;save(value:import('./online-health-room-protocol.js').OnlineHealthRoomSettings):Promise<import('./online-health-room-protocol.js').OnlineHealthRoomSettings>;test(url:string):Promise<void>;open():Promise<import('./online-health-room-protocol.js').OnlineHealthRoomOpenResult>;onChanged(listener:()=>void):()=>void}>;
   updates:Readonly<{status():Promise<P0UpdateState>;check():Promise<P0UpdateState>;download():Promise<P0UpdateState>;cancel():Promise<P0UpdateState>;install():Promise<P0UpdateState>;onState(listener:(state:P0UpdateState)=>void):()=>void}>;
   readSettings(): Promise<P0Settings | null>;
   writeSettings(settings: P0Settings): Promise<void>;
   readonly desktopSurface:DesktopSurfaceBridge;
   completeOnboarding?(mode:'window'|'palette'):Promise<void>;
-  onOpenSettings(listener:(returnToPalette:boolean)=>void):()=>void;
+  onOpenSettings(listener:(returnToPalette:boolean,category?:'onlineHealthRoom')=>void):()=>void;
   onSettingsCloseRequested?(listener:(keepWorkspace:boolean)=>void):()=>void;
   settingsReady?():Promise<void>;
   settingsDismissed?(keepWorkspace?:boolean):Promise<void>;

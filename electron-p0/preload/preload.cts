@@ -8,12 +8,13 @@ import type {PaletteToolId} from '../palette-protocol.js';
 if (!process.sandboxed || !process.contextIsolated) throw new Error('PoC requires a sandboxed isolated preload');
 const bridge: P0Bridge = Object.freeze({
   info: () => ipcRenderer.invoke('p0:info'),
+  onlineHealthRoom:Object.freeze({read:()=>ipcRenderer.invoke('p0:online-health-room:read'),save:(value:import('../online-health-room-protocol.js').OnlineHealthRoomSettings)=>ipcRenderer.invoke('p0:online-health-room:save',value),test:(url:string)=>ipcRenderer.invoke('p0:online-health-room:test',url),open:()=>ipcRenderer.invoke('p0:online-health-room:open'),onChanged:(listener:()=>void)=>{const callback=()=>listener();ipcRenderer.on('p0:online-health-room:changed',callback);return()=>ipcRenderer.removeListener('p0:online-health-room:changed',callback);}}),
   updates:Object.freeze({status:()=>ipcRenderer.invoke('p0:update:status'),check:()=>ipcRenderer.invoke('p0:update:check'),download:()=>ipcRenderer.invoke('p0:update:download'),cancel:()=>ipcRenderer.invoke('p0:update:cancel'),install:()=>ipcRenderer.invoke('p0:update:install'),onState:(listener:(state:import('../protocol.js').P0UpdateState)=>void)=>{const callback=(_event:IpcRendererEvent,state:import('../protocol.js').P0UpdateState)=>listener(state);ipcRenderer.on('p0:update:state',callback);return()=>ipcRenderer.removeListener('p0:update:state',callback);}}),
   readSettings: () => ipcRenderer.invoke('p0:read-settings'),
   writeSettings: (settings: P0Settings) => ipcRenderer.invoke('p0:write-settings',settings),
   desktopSurface:Object.freeze({read:()=>ipcRenderer.invoke('p0:desktop-surface:read'),write:(mode:import('../desktop-surface-protocol.js').DesktopSurfaceMode)=>ipcRenderer.invoke('p0:desktop-surface:write',mode)}),
   completeOnboarding:(mode:'window'|'palette')=>ipcRenderer.invoke('p0:onboarding:complete',mode),
-  onOpenSettings:(listener:(returnToPalette:boolean)=>void)=>{const callback=(_event:IpcRendererEvent,returnToPalette:unknown)=>listener(returnToPalette===true);ipcRenderer.on('p0:open-settings',callback);return()=>ipcRenderer.removeListener('p0:open-settings',callback);},
+  onOpenSettings:(listener:(returnToPalette:boolean,category?:'onlineHealthRoom')=>void)=>{const callback=(_event:IpcRendererEvent,returnToPalette:unknown,category:unknown)=>listener(returnToPalette===true,category==='onlineHealthRoom'?category:undefined);ipcRenderer.on('p0:open-settings',callback);return()=>ipcRenderer.removeListener('p0:open-settings',callback);},
   onSettingsCloseRequested:(listener:(keepWorkspace:boolean)=>void)=>{const callback=(_event:IpcRendererEvent,keepWorkspace:unknown)=>listener(keepWorkspace===true);ipcRenderer.on('p0:settings:close-requested',callback);return()=>ipcRenderer.removeListener('p0:settings:close-requested',callback);},
   settingsReady:()=>ipcRenderer.invoke('p0:settings:ready'),
   settingsDismissed:(keepWorkspace=false)=>ipcRenderer.invoke('p0:settings:dismissed',keepWorkspace),

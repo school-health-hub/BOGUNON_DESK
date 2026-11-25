@@ -7,6 +7,7 @@ type DockEditorProps = {
   readonly dockLayout: DockLayout;
   readonly onClose: () => void;
   readonly onUpdate: (layout: DockLayout) => void;
+  readonly managedVisibilityIds?: readonly DockItemId[];
 };
 
 const moveItem = (layout: DockLayout, sourceId: DockItemId, targetId: DockItemId): DockLayout => {
@@ -20,7 +21,7 @@ const moveItem = (layout: DockLayout, sourceId: DockItemId, targetId: DockItemId
   return { version: DOCK_LAYOUT_VERSION, items };
 };
 
-export function DockEditor({ dockLayout, onClose, onUpdate }: DockEditorProps) {
+export function DockEditor({ dockLayout, onClose, onUpdate, managedVisibilityIds=[] }: DockEditorProps) {
   const [draggingId, setDraggingId] = useState<DockItemId | null>(null);
 
   return (
@@ -56,6 +57,7 @@ export function DockEditor({ dockLayout, onClose, onUpdate }: DockEditorProps) {
                 <input
                   type="checkbox"
                   checked={item.visible}
+                  disabled={managedVisibilityIds.includes(item.id)}
                   onChange={(event) => {
                     const items = dockLayout.items.map((candidate) =>
                       candidate.id === item.id ? { ...candidate, visible: event.currentTarget.checked } : candidate,

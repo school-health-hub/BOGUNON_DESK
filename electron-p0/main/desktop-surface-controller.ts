@@ -11,12 +11,13 @@ import type {LocalEventStore} from './local-events.js';
 import type {LocalTaskStore} from './local-tasks.js';
 import type {MemoStore} from './memo-ipc.js';
 import {moveWidgetOwnership,reconcileDesktopProfiles,setWidgetVisible,writeProfileLayout,type DisplaySnapshot} from './desktop-surface-domain.js';
+import type {OnlineHealthRoomService} from './online-health-room.js';
 
 type Entry={displayId:number;profileKey:string;dockVisible:boolean;window:BrowserWindow;lifecycle:DesktopPaletteLifecycle;ready:boolean;regions:readonly PaletteRect[]};
 type SettingsHandoff={returnToPalette:boolean;displayId?:number;restore?:{bounds:Electron.Rectangle;maximized:boolean;menuVisible:boolean;title:string}};
 type ToolHandoff={tool:PaletteToolId;displayId:number;restore?:SettingsHandoff['restore']};
 const paletteTools:readonly PaletteToolId[]=['official-document','purchase-helper','record-helper','inventory-local','education-video','newsletter'];
-type Ports={renderer:string;dev?:string;workspace:BrowserWindow;layout:{read():Promise<P0Settings|null>};mode:DesktopSurfaceModeStore;events:LocalEventStore;tasks:LocalTaskStore;memo:MemoStore;failureGate?:PaletteFailureGate;onboardingComplete:()=>boolean;quitting:()=>boolean};
+type Ports={renderer:string;dev?:string;workspace:BrowserWindow;layout:{read():Promise<P0Settings|null>};mode:DesktopSurfaceModeStore;events:LocalEventStore;tasks:LocalTaskStore;memo:MemoStore;onlineHealthRoom:Pick<OnlineHealthRoomService,'read'|'open'>;failureGate?:PaletteFailureGate;onboardingComplete:()=>boolean;quitting:()=>boolean};
 const ok=<T>(data:T):IpcResult<T>=>({ok:true,data});
 const storageError=<T>(message:string):IpcResult<T>=>({ok:false,error:{code:'STORAGE_ERROR',message,retryable:true}});
 export const clipPaletteRegions=(values:readonly unknown[],bounds:Readonly<{width:number;height:number}>):readonly PaletteRect[]=>values.map(value=>{if(!value||typeof value!=='object')throw new Error('Invalid region');const {x,y,width,height}=value as Record<string,unknown>;if(![x,y,width,height].every(Number.isFinite)||Number(width)<=0||Number(height)<=0)throw new Error('Invalid region');const left=Math.max(0,Number(x)),top=Math.max(0,Number(y)),right=Math.min(bounds.width,Number(x)+Number(width)),bottom=Math.min(bounds.height,Number(y)+Number(height));return right>left&&bottom>top?{x:left,y:top,width:right-left,height:bottom-top}:null;}).filter((region):region is PaletteRect=>region!==null);
@@ -57,6 +58,7 @@ export class DesktopSurfaceController{
   isSettingsPresented():boolean{return this.settingsHandoff?.restore!==undefined;}
   isToolPresented():boolean{return this.toolHandoff?.restore!==undefined;}
   read():DesktopSurfaceDocument{return structuredClone(this.document);}
+  notifyOnlineHealthRoomChanged():void{this.broadcast();}
   async setMode(mode:DesktopSurfaceMode):Promise<DesktopSurfaceDocument>{
     const next={...this.document,mode};await this.ports.mode.write(next);this.document=next;
     if(mode==='palette')await this.activatePalette();else this.activateWindow();
@@ -128,11 +130,13 @@ export class DesktopSurfaceController{
     handle('begin-edit',(event,args)=>{if(args.length)throw new Error('Invalid arguments');this.editCheckpoints.set(event.sender.id,structuredClone(this.document));});
     handle('finish-edit',async(event,args,entry)=>{if(args.length!==1||typeof args[0]!=='boolean')throw new Error('Invalid edit completion');const checkpoint=this.editCheckpoints.get(event.sender.id);this.editCheckpoints.delete(event.sender.id);if(args[0]===false&&checkpoint){await this.ports.mode.write(checkpoint);this.document=checkpoint;await this.reconcile();this.broadcast();}return this.surface(entry);});
     handle('read-settings',(_event,args)=>{if(args.length)throw new Error('Invalid arguments');return this.ports.layout.read();});
+    handle('read-online-health-room',(_event,args)=>{if(args.length)throw new Error('Invalid arguments');return this.ports.onlineHealthRoom.read();});
+    handle('open-online-health-room',(_event,args)=>{if(args.length)throw new Error('Invalid arguments');return this.ports.onlineHealthRoom.open();});
     handle('ready',(_event,args,entry)=>{if(args.length)throw new Error('Invalid arguments');entry.ready=true;entry.lifecycle.show();});
     handle('set-hit-regions',(_event,args,entry)=>{if(args.length!==1||!Array.isArray(args[0])||args[0].length>32)throw new Error('Invalid regions');entry.regions=clipPaletteRegions(args[0] as unknown[],entry.window.getContentBounds());});
     handle('set-interactive',(_event,args,entry)=>{if(args.length!==1||typeof args[0]!=='boolean')throw new Error('Invalid input mode');entry.lifecycle.setInteractive(args[0]);});
     handle('open-workspace',(_event,args)=>{if(args.length)throw new Error('Invalid arguments');if(this.settingsHandoff){this.ports.workspace.webContents.send('p0:settings:close-requested',true);return;}if(this.toolHandoff){this.ports.workspace.webContents.send('p0:tool:close-requested');return;}this.ports.workspace.show();this.ports.workspace.focus();});
-    handle('open-settings',(_event,args,entry)=>{if(args.length)throw new Error('Invalid arguments');if(!this.ports.onboardingComplete())return;if(this.settingsHandoff){if(this.settingsHandoff.restore)this.presentSettings();return;}const returnToPalette=!this.ports.workspace.isVisible();this.settingsHandoff={returnToPalette,displayId:entry.displayId};this.setSettingsActive(true);this.ports.workspace.webContents.send('p0:open-settings',returnToPalette);});
+    handle('open-settings',(_event,args,entry)=>{if(args.length>1||args.length===1&&args[0]!=='onlineHealthRoom')throw new Error('Invalid arguments');if(!this.ports.onboardingComplete())return;if(this.settingsHandoff){if(this.settingsHandoff.restore)this.presentSettings();return;}const returnToPalette=!this.ports.workspace.isVisible();this.settingsHandoff={returnToPalette,displayId:entry.displayId};this.setSettingsActive(true);this.ports.workspace.webContents.send('p0:open-settings',returnToPalette,args[0]);});
     ipcMain.handle('p0:settings:ready',(event,...args:unknown[])=>{assertSender(event,this.ports.workspace.webContents,this.workspaceUrl);if(args.length)throw new Error('Invalid settings request');if(!this.settingsHandoff){this.settingsHandoff={returnToPalette:false};if(this.document.mode==='palette')this.setSettingsActive(true);}this.presentSettings();});
     ipcMain.handle('p0:settings:dismissed',(event,...args:unknown[])=>{assertSender(event,this.ports.workspace.webContents,this.workspaceUrl);if(args.length!==1||typeof args[0]!=='boolean')throw new Error('Invalid settings request');const returnToPalette=this.settingsHandoff?.returnToPalette??false;if(returnToPalette&&!args[0]&&this.document.mode==='palette')this.ports.workspace.hide();this.clearSettingsHandoff();});
     handle('open-tool',(_event,args,entry)=>{if(args.length!==1||!paletteTools.includes(args[0] as PaletteToolId))throw new Error('Invalid Palette tool');if(!this.ports.onboardingComplete())return;if(this.settingsHandoff){this.presentSettings();return;}if(this.toolHandoff){if(this.ports.workspace.isVisible()){this.presentTool();return;}this.clearToolHandoff();}const tool=args[0] as PaletteToolId;if(this.ports.workspace.isVisible()){this.ports.workspace.webContents.send('p0:open-tool',tool,false);this.ports.workspace.focus();return;}this.toolHandoff={tool,displayId:entry.displayId};this.setSettingsActive(true);if(this.toolRendererReady)this.ports.workspace.webContents.send('p0:open-tool',tool,true);});
