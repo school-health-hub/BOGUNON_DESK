@@ -67,6 +67,7 @@ import { APP_ID, PRODUCT_NAME, PROFILE_NAME } from '../protocol.js';
 import { desktopDefaults, validateDesktop, fitBounds, type DesktopState } from './desktop.js';
 import { SettingsStore } from './settings.js';
 import { createNewsletterExportHandler, generateInOwnedWindow, callOwnedNewsletter } from './newsletter-export.js';
+import {showRoseConfirmation} from './rose-confirmation.js';
 import {NewsletterProjects} from './newsletter-projects.js';
 import {createProjectHandler,PROJECT_ACTIONS} from './newsletter-project-ipc.js';
 import { createNewsletterSaveHandler } from './newsletter-json.js';
@@ -393,7 +394,7 @@ else {
   const workFolderHandlers=createWorkFolderHandlers(window.webContents,url,workFoldersStore,{
    pick:async()=>{const r=await dialog.showOpenDialog(window,{title:'로컬 업무 폴더 등록',properties:['openDirectory','dontAddToRecent']});return r.canceled?undefined:r.filePaths[0];},
    openPath:path=>shell.openPath(path),openExternal:target=>shell.openExternal(target),
-   confirmRemove:async name=>(await dialog.showMessageBox(window,{type:'question',message:`${name} 즐겨찾기를 해제할까요?`,detail:'등록 목록에서만 제거하며 실제 폴더와 파일은 삭제하지 않습니다.',buttons:['취소','등록 해제'],defaultId:0,cancelId:0})).response===1,
+   confirmRemove:async name=>showRoseConfirmation(window,{title:'즐겨찾기 해제',message:`${name} 즐겨찾기를 등록 목록에서 해제할까요? 실제 폴더와 파일은 삭제되지 않습니다.`,action:'등록 해제'}),
   });
   for(const action of ['load','pick','rename','remove','reorder','open'] as const)ipcMain.handle(`p2:work-folders:${action}`,workFolderHandlers[action]);
   ipcMain.handle('p2:memo:open-url',workFolderHandlers.openMemoUrl);
@@ -439,12 +440,12 @@ else {
   }));
   ipcMain.handle('p2:newsletter:export',createNewsletterExportHandler(window.webContents,url,{
    generate:r=>generateInOwnedWindow(r,renderer,dev),
-   approve:async summary=>(await dialog.showMessageBox(window,{type:'question',message:'검증된 문서로 이번 출력을 저장할까요?',detail:summary+'\n이 확인은 자산 승인 상태를 변경하지 않습니다.',buttons:['취소','이번 출력 저장'],defaultId:0,cancelId:0})).response===1,
+   approve:async _summary=>showRoseConfirmation(window,{title:'보건소식지 저장',message:'현재 편집한 내용으로 파일을 저장할까요?',action:'저장하기'}),
    pick:async selection=>{if(selection==='card-pngs'){const r=await dialog.showOpenDialog(window,{title:'카드 PNG 새 묶음 폴더를 만들 위치',properties:['openDirectory']});return r.canceled?undefined:r.filePaths[0];}const png=selection==='a4-png';const r=await dialog.showSaveDialog(window,{title:'소식지 출력 저장',defaultPath:selection==='cards-pdf'?'newsletter-cards.pdf':png?'newsletter-a4.png':'newsletter-a4.pdf',filters:[{name:png?'PNG':'PDF',extensions:[png?'png':'pdf']}]});return r.canceled?undefined:r.filePath;},
    confirm:async()=>(await dialog.showMessageBox(window,{type:'warning',message:'선택한 출력 파일을 덮어쓸까요?',buttons:['취소','덮어쓰기'],defaultId:0,cancelId:0})).response===1,
   }));
   const projects=new NewsletterProjects(join(userData,'work-data','newsletter-projects'),async(json,barrier)=>{const normalized=await callOwnedNewsletter('validateStoredNewsletter',{json,barrier},renderer,dev);if(typeof normalized!=='string')throw Error('Invalid validated document');return normalized;});
-  for(const action of PROJECT_ACTIONS)ipcMain.handle(`p2:newsletter:projects:${action}`,createProjectHandler(action,window.webContents,url,projects,async info=>(await dialog.showMessageBox(window,{type:'warning',message:'미리 본 revision으로 원고를 복구할까요?',detail:`프로젝트 ${info.projectId} · 현재 revision ${info.currentRevision}\nrevision ${info.sourceRevision} 내용을 새 revision ${info.currentRevision+1}로 복구합니다.\n현재 편집 내용은 선택한 revision으로 대체됩니다. 기존 저장 이력은 보존하며 출력 승인 권한은 부여하지 않습니다.`,buttons:['취소','확인 후 복구'],defaultId:0,cancelId:0})).response===1,projectId=>newsletterAiAuthority.grant(newsletterAiOwnerId,`newsletter-${newsletterAiOwnerId}`,projectId)));
+  for(const action of PROJECT_ACTIONS)ipcMain.handle(`p2:newsletter:projects:${action}`,createProjectHandler(action,window.webContents,url,projects,async _info=>(await dialog.showMessageBox(window,{type:'warning',message:'미리 본 원고와 디자인으로 복구할까요?',detail:'현재 편집 내용은 선택한 저장 이력으로 바뀝니다. 다른 저장 이력은 남습니다. 이전 출력 승인은 복구되지 않으므로 출력 전 내용을 다시 확인해 주세요.',buttons:['취소','복구하기'],defaultId:0,cancelId:0})).response===1,projectId=>newsletterAiAuthority.grant(newsletterAiOwnerId,`newsletter-${newsletterAiOwnerId}`,projectId)));
   // A prevented close only hides this live window. Terminal service cleanup
   // observes 'closed' (or quit/security disposal), never a tray-hide request.
   const show=()=>{if(desktopSurface.isSettingsPresented()){window.webContents.send('p0:settings:close-requested',true);return;}if(desktopSurface.isToolPresented()){window.webContents.send('p0:tool:close-requested');return;}if(window.isMinimized())window.restore();window.show();window.focus();};

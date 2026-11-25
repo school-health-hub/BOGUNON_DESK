@@ -1,6 +1,6 @@
 import { expect, test, _electron as electron } from '@playwright/test';
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PDFDocument } from 'pdf-lib';
@@ -31,6 +31,8 @@ test('synthetic newsletter creates actual A4 PNG and PDF', async () => {
     await palette.locator('.palette-dock-region [data-dock-item="toolbox"]').evaluate(button => (button as HTMLElement).click());
     await palette.getByRole('button', { name: '보건소식지 제작소 열기' }).evaluate(button => (button as HTMLElement).click());
     await expect(workspace.getByRole('region', { name: '보건소식지 제작소' })).toBeVisible();
+    const contentSize=await app.evaluate(({BrowserWindow},url)=>{const owner=BrowserWindow.getAllWindows().find(window=>window.webContents.getURL()===url);owner?.setContentSize(900,680);return owner?.getContentSize();},workspace.url());
+    expect(contentSize).toEqual([900,680]);
 
     const now = '2026-11-25T00:00:00.000Z';
     const project = await createNewsletterProject({ projectId: 'ux-cleanup-03-output', title: '합성 보건소식지', now });
@@ -52,14 +54,48 @@ test('synthetic newsletter creates actual A4 PNG and PDF', async () => {
     await workspace.getByLabel('이미지 원본 연결').setInputFiles({ name: 'synthetic-approved.png', mimeType: 'image/png', buffer: png });
     const exportButton = workspace.getByRole('button', { name: '출력 위치 선택·저장' });
     await expect(exportButton).toBeEnabled();
+    const canceledDestination=join(evidence,`newsletter-canceled-${runId}.png`);
+    await app.evaluate(({dialog},path)=>{dialog.showSaveDialog=async()=>({canceled:false,filePath:path});},canceledDestination);
+    const confirmation = async () => {
+      await expect.poll(() => app.windows().some(page => page.url().startsWith('data:text/html')),{timeout:120000}).toBe(true);
+      const page=app.windows().find(page => page.url().startsWith('data:text/html'));
+      if (!page) throw Error('Expected Main-owned confirmation window');
+      await expect(page.getByRole('dialog',{name:'보건소식지 저장'})).toBeVisible();
+      await expect(page.locator('body')).not.toContainText(/synthetic-approved|SHA|revision|scene/i);
+      return page;
+    };
+    await workspace.getByLabel('출력 형식').selectOption('a4-png');
+    await exportButton.click();
+    const canceled=await confirmation();
+    await canceled.screenshot({path:join(evidence,'newsletter-confirmation-before-save.png')});
+    await expect(canceled.getByRole('button',{name:'취소'})).toBeFocused();
+    await canceled.keyboard.press('Shift+Tab');
+    await expect(canceled.getByRole('button',{name:'닫기'})).toBeFocused();
+    await canceled.keyboard.press('Shift+Tab');
+    await expect(canceled.getByRole('button',{name:'저장하기'})).toBeFocused();
+    await canceled.keyboard.press('Tab');
+    await expect(canceled.getByRole('button',{name:'닫기'})).toBeFocused();
+    await canceled.keyboard.press('Tab');
+    await expect(canceled.getByRole('button',{name:'취소'})).toBeFocused();
+    await canceled.keyboard.press('Escape').catch(error=>{if(!canceled.isClosed())throw error;});
+    await expect.poll(async()=>app.windows().some(page=>page.url().startsWith('data:text/html'))).toBe(false);
+    expect(await stat(canceledDestination).then(()=>true,()=>false)).toBe(false);
+    await expect.poll(()=>app.evaluate(({BrowserWindow})=>BrowserWindow.getFocusedWindow()?.webContents.getURL())).toBe(workspace.url());
+    await exportButton.click();
+    const closed=await confirmation();
+    await closed.getByRole('button',{name:'닫기'}).click();
+    await expect.poll(async()=>app.windows().some(page=>page.url().startsWith('data:text/html'))).toBe(false);
+    expect(await stat(canceledDestination).then(()=>true,()=>false)).toBe(false);
     for (const selection of ['a4-png', 'a4-pdf'] as const) {
-      const destination = join(evidence, selection === 'a4-png' ? 'newsletter-output.png' : 'newsletter-output.pdf');
+      const destination = join(evidence, selection === 'a4-png' ? `newsletter-output-${runId}.png` : `newsletter-output-${runId}.pdf`);
       await app.evaluate(({ dialog }, path) => {
-        dialog.showMessageBox = async () => ({ response: 1, checkboxChecked: false });
         dialog.showSaveDialog = async () => ({ canceled: false, filePath: path });
       }, destination);
       await workspace.getByLabel('출력 형식').selectOption(selection);
       await exportButton.click();
+      const review=await confirmation();
+      await review.getByRole('button',{name:'저장하기'}).focus();
+      await review.keyboard.press('Enter').catch(error=>{if(!review.isClosed())throw error;});
       await expect(workspace.locator('[data-export-status]')).toContainText('출력물을 저장했습니다.', { timeout: 120000 });
       const bytes = await readFile(destination);
       if (selection === 'a4-png') {
