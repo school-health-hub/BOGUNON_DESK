@@ -1,8 +1,15 @@
-import type {DesktopSurfaceDocument,DesktopSurfaceProfile,MonitorIdentity} from '../desktop-surface-protocol.js';
+import type {BoardPlacement,DesktopSurfaceDocument,DesktopSurfaceProfile,MonitorIdentity} from '../desktop-surface-protocol.js';
 import {SettingsStore} from './settings.js';
 
 const defaults=():DesktopSurfaceDocument=>({version:2,mode:'palette',profiles:{},dockProfileKey:null});
 const isRecord=(value:unknown):value is Record<string,unknown>=>!!value&&typeof value==='object'&&!Array.isArray(value);
+export function parseBoardPlacement(value: unknown): BoardPlacement {
+  if (!isRecord(value) || (value.preset !== 'shared' && value.preset !== 'dedicated')
+    || (value.target !== null && (typeof value.target !== 'string' || !/^[a-zA-Z0-9._:-]{1,160}$/.test(value.target)))
+    || typeof value.iconSpace !== 'number' || !Number.isInteger(value.iconSpace)
+    || value.iconSpace < 20 || value.iconSpace > 25) throw new Error('Invalid board placement');
+  return { preset: value.preset, target: value.target, iconSpace: value.iconSpace };
+}
 const monitor=(value:unknown):MonitorIdentity=>{
   if(!isRecord(value)||typeof value.fingerprint!=='string'||typeof value.label!=='string'||typeof value.lastDisplayId!=='number'||!Number.isInteger(value.lastDisplayId)||typeof value.scaleFactor!=='number'||!isRecord(value.workArea))throw new Error('Invalid monitor identity');
   const {x,y,width,height}=value.workArea;if(![x,y,width,height].every(Number.isFinite)||Number(width)<=0||Number(height)<=0)throw new Error('Invalid monitor work area');
@@ -18,7 +25,8 @@ export function validateDesktopSurfaceDocument(value:unknown):DesktopSurfaceDocu
     if(!/^[a-zA-Z0-9._:-]{1,160}$/.test(key)||!isRecord(profile)||typeof profile.visible!=='boolean'||!('layout'in profile)||!Array.isArray(profile.ownedWidgetIds)||!profile.ownedWidgetIds.every(id=>typeof id==='string')||typeof profile.dormant!=='boolean'||typeof profile.updatedAt!=='string')throw new Error('Invalid desktop surface profile');
     profiles[key]={visible:profile.visible,layout:structuredClone(profile.layout),ownedWidgetIds:[...new Set(profile.ownedWidgetIds)],monitor:monitor(profile.monitor),dormant:profile.dormant,updatedAt:profile.updatedAt};
   }
-  return {version:2,mode:value.mode,profiles,dockProfileKey:value.dockProfileKey};
+  return {version:2,mode:value.mode,profiles,dockProfileKey:value.dockProfileKey,
+    ...(value.boardPlacement === undefined ? {} : { boardPlacement: parseBoardPlacement(value.boardPlacement) })};
 }
 export class DesktopSurfaceModeStore{
   private readonly store:SettingsStore<DesktopSurfaceDocument>;

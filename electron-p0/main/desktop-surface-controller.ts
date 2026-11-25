@@ -13,6 +13,9 @@ import type {MemoStore} from './memo-ipc.js';
 import {moveWidgetOwnership,reconcileDesktopProfiles,setWidgetVisible,writeProfileLayout,type DisplaySnapshot} from './desktop-surface-domain.js';
 import type {OnlineHealthRoomService} from './online-health-room.js';
 
+import { desktopBoardBounds } from './desktop-board-bounds.js';
+import type { BoardPlacement } from '../desktop-surface-protocol.js';
+
 type Entry={displayId:number;profileKey:string;dockVisible:boolean;window:BrowserWindow;lifecycle:DesktopPaletteLifecycle;ready:boolean;regions:readonly PaletteRect[]};
 type SettingsHandoff={returnToPalette:boolean;displayId?:number;restore?:{bounds:Electron.Rectangle;maximized:boolean;menuVisible:boolean;title:string}};
 type ToolHandoff={tool:PaletteToolId;displayId:number;restore?:SettingsHandoff['restore']};
@@ -59,6 +62,16 @@ export class DesktopSurfaceController{
   isToolPresented():boolean{return this.toolHandoff?.restore!==undefined;}
   read():DesktopSurfaceDocument{return structuredClone(this.document);}
   notifyOnlineHealthRoomChanged():void{this.broadcast();}
+  async placeBoard(boardPlacement: BoardPlacement): Promise<DesktopSurfaceDocument> {
+    if (this.editCheckpoints.size > 0) throw new Error('Finish editing widgets before changing screen layout');
+    if (boardPlacement.target !== null && !Object.hasOwn(this.document.profiles, boardPlacement.target))
+      throw new Error('Unknown board monitor');
+    const next = { ...this.document, boardPlacement };
+    await this.ports.mode.write(next);
+    this.document = next;
+    if (this.isPaletteMode()) await this.reconcile();
+    return this.read();
+  }
   async setMode(mode:DesktopSurfaceMode):Promise<DesktopSurfaceDocument>{
     const next={...this.document,mode};await this.ports.mode.write(next);this.document=next;
     if(mode==='palette')await this.activatePalette();else this.activateWindow();
@@ -82,14 +95,29 @@ export class DesktopSurfaceController{
     if(JSON.stringify(reconciled.document)!==JSON.stringify(this.document)){await this.ports.mode.write(reconciled.document);this.document=reconciled.document;}
     for(const [id,entry] of this.entries)if(!ids.has(id)){entry.lifecycle.beginQuit();this.entries.delete(id);}
     if(this.ports.failureGate?.consume())throw new Error('QA-injected Desktop Palette creation failure');
+    const placement = this.document.boardPlacement;
+    const selected = placement?.preset === 'dedicated' && placement.target !== null
+      ? displays.find(display => reconciled.displayProfiles.get(display.id)?.profileKey === placement.target)
+      : undefined;
     await Promise.all(displays.map(async display=>{
-      const connected=reconciled.displayProfiles.get(display.id);if(!connected)return;
-      const existing=this.entries.get(display.id);if(existing){existing.profileKey=connected.profileKey;existing.dockVisible=connected.dockVisible;existing.window.setBounds(display.workArea);existing.regions=[];existing.lifecycle.setInteractive(false);existing.lifecycle.show();existing.window.webContents.send('p0:palette:surface-changed');return;}
+      const profileDisplayId = selected && display.id === selected.id ? primaryId
+        : selected && display.id === primaryId ? selected.id : display.id;
+      const connected=reconciled.displayProfiles.get(profileDisplayId);if(!connected)return;
+      const missingBoardTarget = placement?.preset === 'dedicated' && placement.target !== null && !selected;
+      const shared = displays.length === 1
+        || (display.id === primaryId && (placement?.preset === 'shared' || missingBoardTarget));
+      const bounds = shared ? desktopBoardBounds(display.workArea, 1, placement?.iconSpace) : display.workArea;
+      const existing=this.entries.get(display.id);
+      if (existing?.profileKey === connected.profileKey) {
+        existing.dockVisible=connected.dockVisible;existing.window.setBounds(bounds);existing.regions=[];existing.lifecycle.setInteractive(false);existing.lifecycle.show();existing.window.webContents.send('p0:palette:surface-changed');return;
+      }
+      if (existing) existing.lifecycle.beginQuit();
       const profileKey=connected.profileKey,profile=this.document.profiles[profileKey];if(profile?.visible===false)return;
-      const window=new BrowserWindow({...desktopPaletteOptions(display.workArea),title:`BOGUNON DESK Desktop Palette — ${display.label||display.id}`,webPreferences:{preload:join(app.getAppPath(),'preload','palette-preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webviewTag:false,webSecurity:true,session:this.isolated}});
+      const window=new BrowserWindow({...desktopPaletteOptions(bounds),title:`BOGUNON DESK Desktop Palette — ${display.label||display.id}`,webPreferences:{preload:join(app.getAppPath(),'preload','palette-preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webviewTag:false,webSecurity:true,session:this.isolated}});
       const entry:Entry={displayId:display.id,profileKey,dockVisible:connected.dockVisible,window,lifecycle:new DesktopPaletteLifecycle(window),ready:false,regions:[]};this.entries.set(display.id,entry);
       window.webContents.setWindowOpenHandler(()=>({action:'deny'}));window.webContents.on('will-navigate',event=>event.preventDefault());window.webContents.on('will-redirect',event=>event.preventDefault());window.webContents.on('will-attach-webview',event=>event.preventDefault());
-      window.on('closed',()=>{if(!this.ports.quitting())this.entries.delete(display.id);});window.once('ready-to-show',()=>entry.lifecycle.show());
+      const senderId = window.webContents.id;
+      window.on('closed',()=>{this.editCheckpoints.delete(senderId);if(this.entries.get(display.id)===entry)this.entries.delete(display.id);});window.once('ready-to-show',()=>entry.lifecycle.show());
       await window.loadURL(this.paletteUrl);
     }));
     if(!this.timer)this.timer=setInterval(()=>this.routePointer(),50);

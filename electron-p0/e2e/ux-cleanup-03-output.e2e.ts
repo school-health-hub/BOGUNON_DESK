@@ -2,6 +2,7 @@ import { expect, test, _electron as electron } from '@playwright/test';
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
+import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { PDFDocument } from 'pdf-lib';
 import { createNewsletterProject } from '../../src/newsletter/project';
@@ -19,6 +20,9 @@ test('synthetic newsletter creates actual A4 PNG and PDF', async () => {
   await mkdir(settings, { recursive: true });
   await writeFile(join(settings, 'onboarding.json'), JSON.stringify({ version: 1, completed: true }));
   const app = await electron.launch({
+    ...(process.platform === 'win32' ? {
+      executablePath: createRequire(import.meta.url).resolve('electron/package.json').replace(/package\.json$/u, 'dist/electron.exe'),
+    } : {}),
     chromiumSandbox: true,
     args: [join(process.cwd(), 'build/electron-p0-app')],
     env: { ...process.env, ELECTRON_P0_QA_PROFILE: '1', ELECTRON_P0_QA_ROOT: root, ELECTRON_P0_TEST_RUN: runId, ELECTRON_P0_DEV_URL: '' },

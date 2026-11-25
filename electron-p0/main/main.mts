@@ -76,7 +76,7 @@ import {EducationVideoLibraryStore,createEducationVideoHandlers} from './educati
 import {InventoryStore,InventoryConflict} from './inventory-store.js';
 import { createSampleHandler, SAMPLE_SUMMARY_CHANNEL } from './sample-ipc.js';
 import { assertSender, resourceAllowed } from './policy.js';
-import {DesktopSurfaceModeStore} from './desktop-surface-mode.js';
+import {DesktopSurfaceModeStore,parseBoardPlacement} from './desktop-surface-mode.js';
 import {OnboardingStore} from './onboarding.js';
 import {DesktopSurfaceController} from './desktop-surface-controller.js';
 import {readUpdateFeed,UpdateService} from './update-service.js';
@@ -296,6 +296,7 @@ else {
     throw Error('Invalid online health room request');
   });
   ipcMain.handle('p0:desktop-surface:read',(event,...args:unknown[])=>{assertSender(event,window.webContents,url);if(args.length)throw Error('Invalid Desktop Surface request');return desktopSurface.read();});
+  ipcMain.handle('p0:desktop-surface:place-board',(event,placement:unknown)=>{assertSender(event,window.webContents,url);return desktopSurface.placeBoard(parseBoardPlacement(placement));});
   ipcMain.handle('p0:onboarding:complete',async(event,mode:unknown,...args:unknown[])=>{assertSender(event,window.webContents,url);if(args.length||mode!=='window'&&mode!=='palette')throw Error('Invalid onboarding choice');await desktopSurface.setMode(mode);await onboardingStore.write(true);onboardingComplete=true;});
   ipcMain.handle('p0:desktop-surface:write',async(event,mode:unknown,...args:unknown[])=>{assertSender(event,window.webContents,url);if(args.length||mode!=='window'&&mode!=='palette')throw Error('Invalid Desktop Surface mode');return desktopSurface.setMode(mode);});
   for(const [action,handler] of Object.entries(createPurchaseSettingsHandlers(window.webContents,url,purchaseSettingsStore)))ipcMain.handle(`p2:purchase:settings:${action}`,handler);
