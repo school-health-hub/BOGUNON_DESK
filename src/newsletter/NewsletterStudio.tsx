@@ -10,21 +10,37 @@ import {NewsletterAiProductionPanel} from "./NewsletterAiProductionPanel"
 import {createNewsletterAiBaseline} from "./stagedAiProposal"
 import {UserImageImportPanel} from "./UserImageImportPanel"
 import "./newsletter-studio.css"
+import {SurfaceDialog} from "../../electron-p0/renderer/SurfaceDialog"
 
 export function NewsletterStudio({ onClose,closeRequest,onCloseRequestResolved,renderAiTools,onOpenAiSettings }: { readonly onClose: () => void;readonly closeRequest?:number;readonly onCloseRequestResolved?:(closed:boolean)=>void;readonly renderAiTools?:(text:string)=>ReactNode;readonly onOpenAiSettings?:()=>void }) {
   const [creating,setCreating]=useState(false)
   const [month,setMonth]=useState(()=>{const now=new Date();return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`})
   const [schoolType,setSchoolType]=useState<NewsletterSchoolType>('coed-high')
-  type Draft={key:number;document:StudioDocument;head:NewsletterHead|null;images:ReadonlyMap<string,Uint8Array>}
+  type Draft={key:number;document:StudioDocument;saved:string|null;head:NewsletterHead|null;images:ReadonlyMap<string,Uint8Array>}
   const [drafts,setDrafts]=useState<readonly Draft[]>([])
   const [draftKey,setDraftKey]=useState('')
   const draftSequence=useRef(0)
   const [head,setHead]=useState<NewsletterHead|null>(null)
   const [preview,setPreview]=useState<NewsletterPreview|null>(null)
   const [document, setDocument] = useState<StudioDocument>()
+  const [saved, setSaved] = useState<string|null>(null)
+  const [unapplied, setUnapplied] = useState(false)
+  const [confirmClose, setConfirmClose] = useState(false)
+  const [closeError, setCloseError] = useState("")
+  const currentJson = useMemo(() => document === undefined ? null : JSON.stringify(document), [document])
   const [session, setSession] = useState(0)
   const [images, setImages] = useState<ReadonlyMap<string, Uint8Array>>(new Map())
   const [message, setMessage] = useState("")
+  const finishClose = () => {
+    setConfirmClose(false);setCreating(false);onClose();onCloseRequestResolved?.(true)
+  }
+  const requestClose = () => {
+    if(busy||projectBusy){onCloseRequestResolved?.(false);return}
+    if(unapplied || (currentJson !== null && currentJson !== saved)){
+      setCloseError("");setConfirmClose(true);return
+    }
+    finishClose()
+  }
   useEffect(()=>{
     const bridge=window.electronWork?.newsletter?.ai
     if(document===undefined||bridge===undefined)return
@@ -56,16 +72,15 @@ export function NewsletterStudio({ onClose,closeRequest,onCloseRequestResolved,r
   useEffect(()=>{
     if(closeRequest===undefined||handledCloseRequest.current===closeRequest)return
     handledCloseRequest.current=closeRequest
-    if(busy||projectBusy){onCloseRequestResolved?.(false);return}
-    setCreating(false);onClose();onCloseRequestResolved?.(true)
-  },[busy,closeRequest,onClose,onCloseRequestResolved,projectBusy])
+    requestClose()
+  },[closeRequest, busy, projectBusy, unapplied, currentJson, saved, onClose, onCloseRequestResolved])
   const shown=preview===null?document:parseStudioDocument(JSON.parse(preview.document))
   const resolver = useMemo(() => shown === undefined ? undefined : createStudioAssetResolver(shown.design, images), [shown?.design, images])
   const reviewOnlyConnected = shown?.design.assetManifest.filter(asset => asset.approvalStatus === "reference-only" && asset.localReference !== undefined && images.has(asset.localReference)).length ?? 0
-  const archive=():Draft|undefined=>document===undefined?undefined:{key:++draftSequence.current,document,head,images}
-  const open = (value: StudioDocument): void => { const previous=archive();if(previous)setDrafts(current=>[...current,previous]);setHead(null);setPreview(null);setDocument(value); setImages(new Map()); setSession(value => value + 1); setMessage("문서를 열었습니다. 별도 이미지가 있으면 원본 파일을 선택해 주세요.") }
+  const archive=():Draft|undefined=>document===undefined?undefined:{key:++draftSequence.current,document,saved,head,images}
+  const open = (value: StudioDocument, persisted = true): void => { const previous=archive();if(previous)setDrafts(current=>[...current,previous]);setSaved(persisted?JSON.stringify(value):null);setUnapplied(false);setHead(null);setPreview(null);setDocument(value); setImages(new Map()); setSession(value => value + 1); setMessage("문서를 열었습니다. 별도 이미지가 있으면 원본 파일을 선택해 주세요.") }
   const loaded=(record:NewsletterProjectRecord):void=>{open(parseStudioDocument(JSON.parse(record.document)));setHead(record.head)}
-  const stored=(record:NewsletterProjectRecord):void=>{setDocument(parseStudioDocument(JSON.parse(record.document)));setSession(value=>value+1);setHead(record.head)}
+  const stored=(record:NewsletterProjectRecord):void=>{const value=parseStudioDocument(JSON.parse(record.document));setDocument(value);setSaved(JSON.stringify(value));setUnapplied(false);setSession(value=>value+1);setHead(record.head)}
   const perform = async (operation: () => Promise<void>): Promise<void> => {
     setBusy(true)
     try { await operation() }
@@ -74,18 +89,38 @@ export function NewsletterStudio({ onClose,closeRequest,onCloseRequestResolved,r
   }
   const startNew=()=>void perform(async()=>{
     const value=await createBlankNewsletter({month,schoolType,projectId:`newsletter-${crypto.randomUUID()}`,now:new Date().toISOString()})
-    open(value);setCreating(false);setMessage(document?'새 소식지를 만들었습니다. 주제와 원고는 직접 작성해 주세요. 이전 작업은 임시 보관했습니다.':'새 소식지를 만들었습니다. 주제와 원고는 직접 작성해 주세요.')
+    open(value,false);setCreating(false);setMessage(document?'새 소식지를 만들었습니다. 주제와 원고는 직접 작성해 주세요. 이전 작업은 임시 보관했습니다.':'새 소식지를 만들었습니다. 주제와 원고는 직접 작성해 주세요.')
   })
   const reopenDraft=()=>void perform(async()=>{
     const selected=drafts.find(value=>String(value.key)===draftKey);if(!selected)throw Error('임시 보관 작업을 선택해 주세요.')
     const parsed=parseStudioDocument(selected.document),previous=archive()
     setDrafts(current=>[...current.filter(value=>value.key!==selected.key),...(previous?[previous]:[])])
-    setDocument(parsed);setHead(selected.head);setImages(selected.images);setPreview(null);setSession(value=>value+1);setDraftKey('');setMessage('임시 보관한 원고와 이미지 연결을 다시 열었습니다.')
+    setDocument(parsed);setSaved(selected.saved);setUnapplied(false);setHead(selected.head);setImages(selected.images);setPreview(null);setSession(value=>value+1);setDraftKey('');setMessage('임시 보관한 원고와 이미지 연결을 다시 열었습니다.')
   })
+  const saveJson = async (leave: boolean) => {
+    if (document === undefined || unapplied || busy || projectBusy) return
+    setBusy(true);setCloseError("")
+    try {
+      const result = await window.electronWork.newsletter.saveJson({json:serializeStudioDocument(document)})
+      if (!result.ok) throw new Error(result.error.message)
+      if (!result.data.saved) {
+        if (leave) setCloseError("저장을 취소했습니다. 원고는 열려 있습니다.")
+        else setMessage("작업 파일 저장을 취소했습니다.")
+        return
+      }
+      setSaved(currentJson);setMessage("작업 파일을 저장했습니다.")
+      if (leave) finishClose()
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "작업 파일을 저장하지 못했습니다."
+      if (leave) setCloseError(detail)
+      else setMessage(detail)
+    } finally { setBusy(false) }
+  }
+  const keepEditing = () => {setConfirmClose(false);onCloseRequestResolved?.(false)}
   return <section className="newsletter-product-host" aria-label="보건소식지 제작소">
-    <header className="newsletter-file-toolbar"><div className="newsletter-title-group"><button type="button" disabled={busy||projectBusy} onClick={()=>{setCreating(false);onClose()}}>보건 업무로</button><div><span>문서 편집·미리보기·출력</span><h1>보건소식지 제작소</h1></div></div><div className="newsletter-file-actions"><button type="button" className="newsletter-primary-action" disabled={busy||projectBusy||creating||preview!==null} onClick={()=>setCreating(true)}>새 소식지 작성</button>
+    <header className="newsletter-file-toolbar"><div className="newsletter-title-group"><button type="button" disabled={busy||projectBusy} onClick={requestClose}>보건 업무로</button><div><span>문서 편집·미리보기·출력</span><h1>보건소식지 제작소</h1></div></div><div className="newsletter-file-actions"><button type="button" className="newsletter-primary-action" disabled={busy||projectBusy||creating||preview!==null} onClick={()=>setCreating(true)}>새 소식지 작성</button>
       <label>작업 파일 열기<input aria-label="원고·디자인 작업 파일 열기" type="file" accept=".json,application/json" disabled={busy||projectBusy||creating||preview!==null} onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; if (file !== undefined) void perform(async () => open(parseStudioDocument(JSON.parse(await file.text())))) }} /></label>
-      <button type="button" disabled={document === undefined || busy || projectBusy || creating || preview!==null} onClick={() => { if (document !== undefined) void perform(async () => { const result = await window.electronWork.newsletter.saveJson({json:serializeStudioDocument(document)}); if(!result.ok)throw new Error(result.error.message);setMessage(result.data.saved?"작업 파일을 저장했습니다.":"작업 파일 저장을 취소했습니다."); }) }}>작업 파일 저장</button>
+      <button type="button" disabled={document === undefined || unapplied || busy || projectBusy || creating || preview!==null} onClick={() => void saveJson(false)}>작업 파일 저장</button>
       <label>이미지 연결<input aria-label="이미지 원본 연결" type="file" multiple accept="image/png,image/jpeg,image/webp" disabled={document === undefined || busy || projectBusy || creating || preview!==null} onChange={event => { const files = [...(event.target.files ?? [])]; event.target.value = ""; if (document !== undefined) void perform(async () => { setImages(await addStudioAssetFiles(document.design, images, files, {purpose:"review"})); setMessage(`${files.length}개 이미지 원본을 확인해 연결했습니다. 출판 승인 상태는 바뀌지 않았습니다.`) }) }} /></label></div>
     </header>
     {shown!==undefined&&<p role="note">이미지는 원본 파일이 일치할 때만 연결됩니다. 승인되지 않은 이미지는 최종 출력에 사용할 수 없습니다. 원본 파일이 없다면 다시 선택해 주세요.{reviewOnlyConnected>0&&<strong> 검토용 미승인 이미지 {reviewOnlyConnected}개 연결됨 · 출판 승인 대기</strong>}</p>}
@@ -106,6 +141,16 @@ export function NewsletterStudio({ onClose,closeRequest,onCloseRequestResolved,r
     {message.length > 0 && <p role="status">{message}</p>}
     {shown!==undefined&&preview===null&&!creating&&shown.design.designSchemaVersion===2&&<UserImageImportPanel design={shown.design} images={images} topicTitles={shown.project.topics.map(topic=>topic.title)} onApply={(design,nextImages)=>{setDocument({project:shown.project,design});setImages(nextImages);setSession(current=>current+1);setMessage("ChatGPT 사용자 가져오기 이미지를 A4와 주제 카드에 배치했습니다. 최종 출력 승인은 대기 상태입니다.")}}/>}
     {shown!==undefined&&preview===null&&!creating&&<NewsletterAiProductionPanel document={shown} currentAssets={images} bridge={window.electronWork?.newsletter?.ai} onOpenSettings={onOpenAiSettings} onApply={(value,assets)=>{setDocument(value);if(assets!==undefined)setImages(assets);setSession(current=>current+1);setMessage('선택한 AI 내용을 새 편집본에 적용했습니다. 이미지 출처와 승인 상태를 확인해 주세요.')}}/>}
-    {shown === undefined ? <p className="newsletter-empty">작업 파일을 열거나 새 소식지를 작성하세요. 이 PC에 저장한 프로젝트도 불러올 수 있습니다. 원고 없이 건강정보를 자동 생성하지 않습니다.</p> : fontReady ? <div inert={preview!==null||creating||busy||projectBusy}><NewsletterDesignEditor key={preview?.token??session} project={shown.project} initialDesign={shown.design} assetResolver={resolver} onChange={value=>{if(preview===null)setDocument(value)}} /></div> : <p role="status">한글 글꼴을 준비하는 중입니다…</p>}
+    {shown === undefined ? <p className="newsletter-empty">작업 파일을 열거나 새 소식지를 작성하세요. 이 PC에 저장한 프로젝트도 불러올 수 있습니다. 원고 없이 건강정보를 자동 생성하지 않습니다.</p> : fontReady ? <div inert={preview!==null||creating||busy||projectBusy}><NewsletterDesignEditor key={preview?.token??session} project={shown.project} initialDesign={shown.design} assetResolver={resolver} onUnappliedChange={setUnapplied} onChange={value=>{if(preview===null)setDocument(value)}} /></div> : <p role="status">한글 글꼴을 준비하는 중입니다…</p>}
+    {confirmClose&&<SurfaceDialog title="저장하지 않은 원고" onClose={keepEditing} closeDisabled={busy}>
+      <p>원고를 저장하고 나갈까요? 저장하지 않으면 이 앱을 실행 중일 때만 편집 내용이 남습니다.</p>
+      {unapplied&&<p>저장하려면 계속 편집을 선택한 뒤 원고 반영을 먼저 눌러 주세요.</p>}
+      {closeError&&<p role="alert">{closeError}</p>}
+      <div className="newsletter-file-actions">
+        <button type="button" disabled={busy} onClick={keepEditing}>계속 편집</button>
+        <button type="button" disabled={busy||unapplied||currentJson===null} onClick={()=>void saveJson(true)}>저장 후 나가기</button>
+        <button type="button" disabled={busy} onClick={finishClose}>저장하지 않고 나가기</button>
+      </div>
+    </SurfaceDialog>}
   </section>
 }

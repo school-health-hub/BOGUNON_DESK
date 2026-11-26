@@ -19,7 +19,7 @@ test('synthetic newsletter creates actual A4 PNG and PDF', async () => {
   const settings = join(root, 'test-runs', runId, 'user-data', 'poc-settings');
   await mkdir(settings, { recursive: true });
   await writeFile(join(settings, 'onboarding.json'), JSON.stringify({ version: 1, completed: true }));
-  const app = await electron.launch({
+  const launch = () => electron.launch({
     ...(process.platform === 'win32' ? {
       executablePath: createRequire(import.meta.url).resolve('electron/package.json').replace(/package\.json$/u, 'dist/electron.exe'),
     } : {}),
@@ -27,6 +27,7 @@ test('synthetic newsletter creates actual A4 PNG and PDF', async () => {
     args: [join(process.cwd(), 'build/electron-p0-app')],
     env: { ...process.env, ELECTRON_P0_QA_PROFILE: '1', ELECTRON_P0_QA_ROOT: root, ELECTRON_P0_TEST_RUN: runId, ELECTRON_P0_DEV_URL: '' },
   });
+  const app = await launch();
   try {
     await expect.poll(() => app.windows().some(page => page.url().includes('/palette/'))).toBe(true);
     const findDockPalette = async () => {
@@ -117,6 +118,74 @@ test('synthetic newsletter creates actual A4 PNG and PDF', async () => {
         expect(pdf.getPageCount()).toBe(1);
       }
       await writeFile(join(evidence, `${selection}-sha256.txt`), `${selection} ${bytes.length} ${createHash('sha256').update(bytes).digest('hex')}\n`);
+    }
+    const title = workspace.getByLabel('원고 제목', { exact: true }).first();
+    const edited = '미저장 보호 검증용 원고';
+    const leave = workspace.getByRole('button', { name: '보건 업무로' });
+    const guard = workspace.getByRole('dialog', { name: '저장하지 않은 원고', exact: true });
+    const studio = workspace.getByRole('region', { name: '보건소식지 제작소' });
+    const reopen = async () => {
+      await palette.locator('.palette-dock-region [data-dock-item="toolbox"]').evaluate(button => (button as HTMLElement).click());
+      await palette.getByRole('button', { name: '보건소식지 제작소 열기' }).evaluate(button => (button as HTMLElement).click());
+      await expect(studio).toBeVisible();
+    };
+    await title.fill(edited);
+    await leave.click();
+    await expect(guard.getByRole('button', { name: '저장 후 나가기' })).toBeDisabled();
+    await guard.screenshot({ path: join(evidence, 'unapplied-close.png') });
+    await guard.getByRole('button', { name: '계속 편집' }).click();
+    await expect(title).toHaveValue(edited);
+    await app.evaluate(({ BrowserWindow }, url) => {
+      BrowserWindow.getAllWindows().find(candidate => candidate.webContents.getURL() === url)?.close();
+    }, workspace.url());
+    await expect(guard).toBeVisible();
+    await guard.getByRole('button', { name: '저장하지 않고 나가기' }).click();
+    await expect(studio).toBeHidden();
+    await reopen();
+    await expect(title).toHaveValue(edited);
+    await workspace.getByRole('button', { name: '원고 반영', exact: true }).click();
+    await expect(workspace.getByRole('button', { name: '작업 파일 저장', exact: true })).toBeEnabled();
+    await leave.click();
+    const saveAndLeave = guard.getByRole('button', { name: '저장 후 나가기' });
+    await app.evaluate(({ dialog }) => { dialog.showSaveDialog = async () => ({ canceled: true, filePath: '' }); });
+    await saveAndLeave.click();
+    await expect(guard.getByRole('alert')).toContainText('저장을 취소했습니다', { timeout: 30_000 });
+    await app.evaluate(({ dialog }, path) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath: path }); }, join(evidence, 'nonexistent', 'draft.json'));
+    await saveAndLeave.click();
+    await expect(guard.getByRole('alert')).toBeVisible({ timeout: 30_000 });
+    await expect(guard.getByRole('alert')).not.toContainText('저장을 취소했습니다');
+    const savedPath = join(evidence, `save-and-leave-${runId}.json`);
+    await app.evaluate(({ dialog }, path) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath: path }); }, savedPath);
+    await saveAndLeave.click();
+    await expect(studio).toBeHidden({ timeout: 30_000 });
+    expect(await readFile(savedPath, 'utf8')).toContain(edited);
+    await app.close();
+    const restarted = await launch();
+    try {
+      const first = await restarted.firstWindow();
+      await expect.poll(async () => {
+        for (const candidate of restarted.windows()) {
+          if (!candidate.url().includes('/palette/')) continue;
+          if (await candidate.locator('.palette-dock-region [data-dock-item="toolbox"]').count()) return true;
+        }
+        return false;
+      }).toBe(true);
+      for (const candidate of restarted.windows()) {
+        if (!candidate.url().includes('/palette/')) continue;
+        const toolbox = candidate.locator('.palette-dock-region [data-dock-item="toolbox"]');
+        if (!await toolbox.count()) continue;
+        await toolbox.evaluate(button => (button as HTMLElement).click());
+        await candidate.getByRole('button', { name: '보건소식지 제작소 열기' }).evaluate(button => (button as HTMLElement).click());
+        break;
+      }
+      const reopenedWorkspace = restarted.windows().find(candidate => candidate.url().endsWith('/renderer/index.html')) ?? first;
+      await reopenedWorkspace.getByLabel('원고·디자인 작업 파일 열기').setInputFiles(savedPath);
+      await expect(reopenedWorkspace.getByLabel('원고 제목', { exact: true }).first()).toHaveValue(edited);
+      await reopenedWorkspace.getByRole('button', { name: '보건 업무로' }).click();
+      await expect(reopenedWorkspace.getByRole('region', { name: '보건소식지 제작소' })).toBeHidden();
+      await expect(reopenedWorkspace.getByRole('dialog', { name: '저장하지 않은 원고' })).toHaveCount(0);
+    } finally {
+      await restarted.close();
     }
   } finally {
     await app.close();

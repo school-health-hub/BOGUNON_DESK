@@ -31,7 +31,13 @@ it('creates a selected month/school issue, keeps drafts across close/reopen, and
  expect(screen.queryByRole('button',{name:'원고 편집'})).toBeNull();expect(saveJson).not.toHaveBeenCalled();
  fireEvent.click(screen.getByRole('button',{name:'새 소식지 작성'}));expect((screen.getByLabelText('작성 월') as HTMLInputElement).value).toBe('2027-03');fireEvent.click(screen.getByRole('button',{name:'새 소식지 만들기'}));
  await screen.findByRole('heading',{name:'2027년 3월 · 여학교 보건소식지'});fireEvent.click(screen.getByRole('button',{name:'원고 편집'}));await screen.findByRole('heading',{name:'합성 수정 원고'});
- fireEvent.click(screen.getByRole('button',{name:'보건 업무로'}));expect(onClose).toHaveBeenCalledTimes(1);
+ fireEvent.click(screen.getByRole('button',{name:'보건 업무로'}));
+ expect(onClose).not.toHaveBeenCalled();
+ fireEvent.click(screen.getByRole('button',{name:'계속 편집'}));
+ expect(screen.getByRole('heading',{name:'합성 수정 원고'})).toBeTruthy();
+ fireEvent.click(screen.getByRole('button',{name:'보건 업무로'}));
+ fireEvent.click(screen.getByRole('button',{name:'저장하지 않고 나가기'}));
+ expect(onClose).toHaveBeenCalledTimes(1);
  // Electron keeps the Studio mounted and hides its host when switching workspaces.
  view.rerender(<NewsletterStudio onClose={onClose}/>);expect(screen.getByRole('heading',{name:'합성 수정 원고'})).toBeTruthy();
  fireEvent.click(screen.getByRole('button',{name:'새 소식지 작성'}));fireEvent.change(screen.getByLabelText('학교 유형'),{target:{value:'boys-high'}});fireEvent.click(screen.getByRole('button',{name:'새 소식지 만들기'}));await screen.findByRole('heading',{name:'2027년 3월 · 남학교 보건소식지'});

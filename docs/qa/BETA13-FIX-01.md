@@ -1,0 +1,11 @@
+# BETA13-FIX-01
+
+Implementation base `9ae595a2a52adcc8794e885ffbd7d8bef62de5c7`. QA finding reference `1523548ba916ab123d77c6c0b506bc6a0c3387ea`.
+
+Newsletter previously hid the editor immediately on the return action and on a Palette tool-window close request. The editor now compares its current applied document with the last opened or successfully saved document and observes pending inputs from the child editor. A clean document closes immediately. The existing Soft Rose dialog offers continued editing, explicit JSON save and close, or leaving the editor with session state retained. Pending unapplied inputs require the existing Apply action before saving. Save cancel and failure leave the dialog and draft open. Closing without saving preserves the existing session-only behavior.
+
+Windows E2E passed against a production build with synthetic QA data, including editor and Palette-hosted native-window close requests, continuing editing, leaving without save and reopening in the same process, canceled and failed JSON saves, successful save and close, and reopening the saved file after a normal restart. The restored unchanged file closed without prompting. Existing Rose export confirmation and A4 PNG/PDF output and the dual-monitor Desk Settings/relaunch E2E passed.
+
+The 74 integration tests and eight local-calendar tests passed. The 11 Newsletter Studio/editor tests passed after updating the existing close expectation for the confirmation. TypeScript and Electron production build passed. The independent visual review passed Korean legibility and disabled-state clarity at the captured size. Continue and leave-without-save have similar visual emphasis in that capture.
+
+Local GUI evidence: `artifacts/newsletter-close-final/unapplied-close.png` and `artifacts/newsletter-close-final/newsletter-confirmation-before-save.png`. Actual JSON output was written in the synthetic QA evidence directory. The tested restart restores the saved file by opening it explicitly. Application-wide quit and its flush sequence retain existing behavior; an unsaved draft recovery flow after process exit is outside this fix. Installed beta.12, operating data and actual updater installation were outside QA.

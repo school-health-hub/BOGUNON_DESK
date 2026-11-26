@@ -19,7 +19,7 @@ import { useNewsletterAssets } from "./useNewsletterAssets"
 import { mascotQualityWarnings } from "./mascotQuality"
 import { assetExportPending, referencedDesignAssets, type NewsletterAssetResolver } from "./assetResolution"
 
-type EditorProps = { readonly project: NewsletterProject; readonly initialDesign: NewsletterDesignState; readonly assetResolver?: NewsletterAssetResolver; readonly onChange?: (value: { readonly project: NewsletterProject; readonly design: NewsletterDesignState }) => void }
+type EditorProps = { readonly project: NewsletterProject; readonly initialDesign: NewsletterDesignState; readonly assetResolver?: NewsletterAssetResolver; readonly onUnappliedChange?: (pending: boolean) => void; readonly onChange?: (value: { readonly project: NewsletterProject; readonly design: NewsletterDesignState }) => void }
 
 function useTextMeasurer(): TextMeasurer {
   return useMemo<TextMeasurer>(() => {
@@ -35,7 +35,7 @@ function useTextMeasurer(): TextMeasurer {
 
 const pageLabel=(id:string)=>id==="a4-page"?"A4 소식지":id==="card-cover"?"카드뉴스 표지":/^card-topic-(\d+)$/u.test(id)?`주제 카드 ${/^card-topic-(\d+)$/u.exec(id)?.[1]}`:"현재 페이지";
 
-export function NewsletterDesignEditor({ project: initialProject, initialDesign, assetResolver, onChange }: EditorProps) {
+export function NewsletterDesignEditor({ project: initialProject, initialDesign, assetResolver, onChange, onUnappliedChange }: EditorProps) {
   const [baselineInput] = useState({ project: initialProject, design: initialDesign })
   const [project, setProject] = useState(initialProject)
   const changeListener = useRef(onChange)
@@ -54,6 +54,7 @@ export function NewsletterDesignEditor({ project: initialProject, initialDesign,
   const [pendingCopy, setPendingCopy] = useState(0)
   const onApplyBusy = (busy: boolean) => setPendingCopy(count => count + (busy ? 1 : -1))
   const hasUnapplied=Object.values(drafts).some(Boolean)
+  useEffect(() => { onUnappliedChange?.(hasUnapplied || pendingCopy > 0) }, [hasUnapplied, pendingCopy, onUnappliedChange])
   const [upgradeCandidate, setUpgradeCandidate] = useState<NewsletterDesignStateV2>()
   const measureText = useTextMeasurer()
   const currentAssets = useNewsletterAssets(design, assetResolver)
