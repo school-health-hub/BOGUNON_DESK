@@ -10,6 +10,7 @@
     "!main/newsletter-ai-asset-storage.test.js",
     "preload/**",
     "protocol.js",
+    "desktop-surface-protocol.js",
     "update-protocol.js",
     "purchase-image-protocol.js",
     "chatgpt-protocol.js",
