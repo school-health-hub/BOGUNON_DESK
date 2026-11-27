@@ -23,6 +23,9 @@ export interface P0Bridge {
   readonly desktopSurface:DesktopSurfaceBridge;
   completeOnboarding?(mode:'window'|'palette'):Promise<void>;
   onOpenSettings(listener:(returnToPalette:boolean,category?:'onlineHealthRoom')=>void):()=>void;
+  onAppQuitRequested?(listener:(id:string)=>void):()=>void;
+  appQuitReady?():Promise<void>;
+  resolveAppQuit?(id:string,approved:boolean):Promise<void>;
   onSettingsCloseRequested?(listener:(keepWorkspace:boolean)=>void):()=>void;
   settingsReady?():Promise<void>;
   settingsDismissed?(keepWorkspace?:boolean):Promise<void>;

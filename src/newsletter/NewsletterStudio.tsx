@@ -12,7 +12,7 @@ import {UserImageImportPanel} from "./UserImageImportPanel"
 import "./newsletter-studio.css"
 import {SurfaceDialog} from "../../electron-p0/renderer/SurfaceDialog"
 
-export function NewsletterStudio({ onClose,closeRequest,onCloseRequestResolved,renderAiTools,onOpenAiSettings }: { readonly onClose: () => void;readonly closeRequest?:number;readonly onCloseRequestResolved?:(closed:boolean)=>void;readonly renderAiTools?:(text:string)=>ReactNode;readonly onOpenAiSettings?:()=>void }) {
+export function NewsletterStudio({ onClose,closeRequest,onCloseRequestResolved,exitingApp=false,renderAiTools,onOpenAiSettings }: { readonly onClose: () => void;readonly closeRequest?:number;readonly exitingApp?:boolean;readonly onCloseRequestResolved?:(closed:boolean)=>void;readonly renderAiTools?:(text:string)=>ReactNode;readonly onOpenAiSettings?:()=>void }) {
   const [creating,setCreating]=useState(false)
   const [month,setMonth]=useState(()=>{const now=new Date();return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`})
   const [schoolType,setSchoolType]=useState<NewsletterSchoolType>('coed-high')
@@ -27,6 +27,7 @@ export function NewsletterStudio({ onClose,closeRequest,onCloseRequestResolved,r
   const [unapplied, setUnapplied] = useState(false)
   const [confirmClose, setConfirmClose] = useState(false)
   const [closeError, setCloseError] = useState("")
+  const pendingDrafts=exitingApp&&drafts.some(draft=>JSON.stringify(draft.document)!==draft.saved);
   const currentJson = useMemo(() => document === undefined ? null : JSON.stringify(document), [document])
   const [session, setSession] = useState(0)
   const [images, setImages] = useState<ReadonlyMap<string, Uint8Array>>(new Map())
@@ -36,7 +37,7 @@ export function NewsletterStudio({ onClose,closeRequest,onCloseRequestResolved,r
   }
   const requestClose = () => {
     if(busy||projectBusy){onCloseRequestResolved?.(false);return}
-    if(unapplied || (currentJson !== null && currentJson !== saved)){
+    if(pendingDrafts || unapplied || (currentJson !== null && currentJson !== saved)){
       setCloseError("");setConfirmClose(true);return
     }
     finishClose()
@@ -57,7 +58,7 @@ export function NewsletterStudio({ onClose,closeRequest,onCloseRequestResolved,r
   },[document?.project.projectId,document?.design.designRevision])
   const [busy, setBusy] = useState(false)
   const [projectBusy,setProjectBusy]=useState(false)
-  const handledCloseRequest=useRef(closeRequest)
+  const handledCloseRequest=useRef(0)
   const [fontReady, setFontReady] = useState(typeof window.document.fonts === "undefined")
   useEffect(() => {
     if (window.document.fonts === undefined) return
@@ -73,7 +74,7 @@ export function NewsletterStudio({ onClose,closeRequest,onCloseRequestResolved,r
     if(closeRequest===undefined||handledCloseRequest.current===closeRequest)return
     handledCloseRequest.current=closeRequest
     requestClose()
-  },[closeRequest, busy, projectBusy, unapplied, currentJson, saved, onClose, onCloseRequestResolved])
+  },[closeRequest, busy, projectBusy, pendingDrafts, unapplied, currentJson, saved, onClose, onCloseRequestResolved])
   const shown=preview===null?document:parseStudioDocument(JSON.parse(preview.document))
   const resolver = useMemo(() => shown === undefined ? undefined : createStudioAssetResolver(shown.design, images), [shown?.design, images])
   const reviewOnlyConnected = shown?.design.assetManifest.filter(asset => asset.approvalStatus === "reference-only" && asset.localReference !== undefined && images.has(asset.localReference)).length ?? 0
@@ -143,12 +144,13 @@ export function NewsletterStudio({ onClose,closeRequest,onCloseRequestResolved,r
     {shown!==undefined&&preview===null&&!creating&&<NewsletterAiProductionPanel document={shown} currentAssets={images} bridge={window.electronWork?.newsletter?.ai} onOpenSettings={onOpenAiSettings} onApply={(value,assets)=>{setDocument(value);if(assets!==undefined)setImages(assets);setSession(current=>current+1);setMessage('선택한 AI 내용을 새 편집본에 적용했습니다. 이미지 출처와 승인 상태를 확인해 주세요.')}}/>}
     {shown === undefined ? <p className="newsletter-empty">작업 파일을 열거나 새 소식지를 작성하세요. 이 PC에 저장한 프로젝트도 불러올 수 있습니다. 원고 없이 건강정보를 자동 생성하지 않습니다.</p> : fontReady ? <div inert={preview!==null||creating||busy||projectBusy}><NewsletterDesignEditor key={preview?.token??session} project={shown.project} initialDesign={shown.design} assetResolver={resolver} onUnappliedChange={setUnapplied} onChange={value=>{if(preview===null)setDocument(value)}} /></div> : <p role="status">한글 글꼴을 준비하는 중입니다…</p>}
     {confirmClose&&<SurfaceDialog title="저장하지 않은 원고" onClose={keepEditing} closeDisabled={busy}>
-      <p>원고를 저장하고 나갈까요? 저장하지 않으면 이 앱을 실행 중일 때만 편집 내용이 남습니다.</p>
+      <p>원고를 저장하고 나갈까요? 저장하지 않으면 {exitingApp?"앱 종료와 함께 편집 내용이 사라집니다.":"이 앱을 실행 중일 때만 편집 내용이 남습니다."}</p>
+      {pendingDrafts&&<p>다른 미저장 임시 원고도 있습니다. 저장하려면 계속 편집을 선택하고 임시 작업을 하나씩 다시 열어 저장해 주세요.</p>}
       {unapplied&&<p>저장하려면 계속 편집을 선택한 뒤 원고 반영을 먼저 눌러 주세요.</p>}
       {closeError&&<p role="alert">{closeError}</p>}
       <div className="newsletter-file-actions">
         <button type="button" disabled={busy} onClick={keepEditing}>계속 편집</button>
-        <button type="button" disabled={busy||unapplied||currentJson===null} onClick={()=>void saveJson(true)}>저장 후 나가기</button>
+        <button type="button" disabled={busy||pendingDrafts||unapplied||currentJson===null} onClick={()=>void saveJson(true)}>저장 후 나가기</button>
         <button type="button" disabled={busy} onClick={finishClose}>저장하지 않고 나가기</button>
       </div>
     </SurfaceDialog>}

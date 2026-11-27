@@ -111,3 +111,25 @@ it('labels a SHA-matched reference-only reconnection as unapproved and preserves
  const missing=new File([],'missing.png');Object.defineProperty(missing,'arrayBuffer',{value:async()=>{throw Error('unavailable')}});fireEvent.change(screen.getByLabelText('이미지 원본 연결'),{target:{files:[missing]}});
  await screen.findByText(/원본을 다시 선택해 주세요: missing.png/);fireEvent.click(screen.getByRole('button',{name:'작업 파일 저장'}));await waitFor(()=>expect(JSON.parse(saved)).toEqual(doc));
 });
+
+it('requires explicit discard for archived unsaved work during app quit',async()=>{
+ const onClose=vi.fn(),resolved=vi.fn();
+ const saveJson=vi.fn();
+ vi.stubGlobal('electronWork',{newsletter:{projects:{list:async()=>({ok:true,data:[]})},saveJson}});
+ const view=render(<NewsletterStudio onClose={onClose} onCloseRequestResolved={resolved}/>);
+ fireEvent.click(screen.getByRole('button',{name:'새 소식지 작성'}));
+ fireEvent.click(screen.getByRole('button',{name:'새 소식지 만들기'}));
+ await screen.findByText(/새 소식지를 만들었습니다/);
+ fireEvent.click(screen.getByRole('button',{name:'원고 편집'}));
+ fireEvent.click(screen.getByRole('button',{name:'새 소식지 작성'}));
+ fireEvent.click(screen.getByRole('button',{name:'새 소식지 만들기'}));
+ await screen.findByLabelText('임시 보관 작업');
+ view.rerender(<NewsletterStudio onClose={onClose} onCloseRequestResolved={resolved} closeRequest={1} exitingApp/>);
+ await screen.findByText(/다른 미저장 임시 원고도 있습니다/);
+ expect((screen.getByRole('button',{name:'저장 후 나가기'}) as HTMLButtonElement).disabled).toBe(true);
+ fireEvent.click(screen.getByRole('button',{name:'계속 편집'}));
+ expect(resolved).toHaveBeenLastCalledWith(false);
+ expect(onClose).not.toHaveBeenCalled();
+ expect(screen.getByLabelText('임시 보관 작업')).toBeTruthy();
+ expect(saveJson).not.toHaveBeenCalled();
+});

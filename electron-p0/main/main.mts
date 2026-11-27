@@ -85,6 +85,7 @@ import {startVerifiedUpdateInstaller} from './update-installer.js';
 import {OnlineHealthRoomService,validateOnlineHealthRoomSettings} from './online-health-room.js';
 import type {OnlineHealthRoomSettings} from '../online-health-room-protocol.js';
 import {UpdateNotice,UPDATE_CHECK_INTERVAL_MS} from './update-notice.js';
+import {PendingDecision} from './pending-decision.js';
 import {createPaletteFailureGate} from './desktop-palette.js';
 if (app.commandLine.hasSwitch('no-sandbox') || app.commandLine.hasSwitch('disable-web-security')) throw new Error('Unsafe Electron launch flags denied');
 app.setName(PRODUCT_NAME);
@@ -145,9 +146,34 @@ else {
   updateSession.setPermissionCheckHandler(()=>false);
   updateSession.on('will-download',event=>event.preventDefault());
   updateSession.webRequest.onBeforeRequest((details,callback)=>callback({cancel:!resourceAllowed(details.url,renderer,dev?new URL(dev).origin:undefined)}));
+  const updateConsent=new PendingDecision();
+  const quitConsent=new PendingDecision();
+  let quitGuardReady=false;
+  let installingRequest=false;
+  let approvedInstallOwner:BrowserWindow|null=null;
+  window.webContents.on('render-process-gone',()=>{quitGuardReady=false;quitConsent.cancel();});
+  window.on('closed',()=>quitConsent.cancel());
+  ipcMain.handle('p0:quit:ready',(event,...args:unknown[])=>{
+    assertSender(event,window.webContents,url);
+    if(args.length)throw Error('Invalid quit guard registration');
+    quitGuardReady=true;
+  });
+  ipcMain.handle('p0:quit:resolve',(event,...args:unknown[])=>{
+    assertSender(event,window.webContents,url);
+    if(args.length!==2||!quitConsent.answer(args[0],args[1]))throw Error('Invalid or expired quit response');
+  });
+  const protectNewsletter=()=>{
+    if(window.isDestroyed()||!quitGuardReady)return Promise.resolve(true);
+    return quitConsent.request(id=>{
+      window.show();
+      window.focus();
+      window.webContents.send('p0:quit:request',id);
+    });
+  };
   const openUpdate=()=>{if(updateWindow&&!updateWindow.isDestroyed()){if(updateWindow.isMinimized())updateWindow.restore();updateWindow.show();updateWindow.focus();return;}
     updateWindow=new BrowserWindow({title:'BOGUNON DESK 업데이트',icon:join(app.getAppPath(),'app-icon.png'),width:520,height:410,minWidth:360,minHeight:330,show:false,autoHideMenuBar:true,webPreferences:{preload:join(app.getAppPath(),'preload','update-preload.cjs'),contextIsolation:true,sandbox:true,nodeIntegration:false,webviewTag:false,session:updateSession,webSecurity:true}});
-    const current=updateWindow;current.on('closed',()=>{if(updateWindow===current)updateWindow=null;});
+    const current=updateWindow;current.on('closed',()=>{if(updateWindow===current){updateConsent.cancel();updateWindow=null;}});
+    current.webContents.on('render-process-gone',()=>{if(updateWindow===current)updateConsent.cancel();});
     current.webContents.setWindowOpenHandler(()=>({action:'deny'}));current.webContents.on('will-navigate',event=>event.preventDefault());
     void current.loadURL(updateUrl).then(()=>{if(!current.isDestroyed()){current.show();current.focus();}}).catch(()=>{if(!current.isDestroyed())current.close();});
   };
@@ -168,10 +194,26 @@ else {
     }catch{return false;}
   });
   await notice.load();
-  updates=new UpdateService({currentVersion:app.getVersion(),feed:updateFeed,cacheDir:join(userData,'update-downloads'),enabled:app.isPackaged&&process.platform==='win32'&&!process.env.PORTABLE_EXECUTABLE_FILE,emit:state=>{if(!window.isDestroyed())window.webContents.send('p0:update:state',state);if(updateWindow&&!updateWindow.isDestroyed())updateWindow.webContents.send('p0:update:state',state);if(menuPhase!==state.phase){menuPhase=state.phase;refreshUpdateMenu();}void notice.observe(state).catch(()=>{});},verifySignature:verifyWindowsUpdateSignature,confirmClose:async()=>{const result=await dialog.showMessageBox(updateWindow&&!updateWindow.isDestroyed()?updateWindow:window,{type:'question',title:'BOGUNON DESK 업데이트',message:'저장하지 않은 작업을 모두 저장했나요?',detail:'설치를 시작하면 BOGUNON DESK가 종료됩니다. 저장하지 않은 입력이 있다면 계속 작업을 선택해 먼저 저장해 주세요.',buttons:['계속 작업','저장 완료, 설치'],defaultId:0,cancelId:0});return result.response===1;},launchInstaller:async(path,manifest)=>{await startVerifiedUpdateInstaller({installerPath:path,applicationPath:app.getPath('exe'),resultPath:join(userData,'update-downloads','last-install-result.txt'),parentPid:process.pid,currentVersion:app.getVersion(),nextVersion:manifest.version,size:manifest.size,sha256:manifest.sha256});quit();}});
-  for(const action of ['status','check','download','cancel','install'] as const)ipcMain.handle(`p0:update:${action}`,(event,...args:unknown[])=>{if(event.sender===window.webContents)assertSender(event,window.webContents,url);else if(updateWindow&&!updateWindow.isDestroyed())assertSender(event,updateWindow.webContents,updateUrl);else throw new Error('Update IPC caller denied');if(args.length)throw new Error('Invalid update request');return updates[action]();});
+  updates=new UpdateService({currentVersion:app.getVersion(),feed:updateFeed,cacheDir:join(userData,'update-downloads'),enabled:app.isPackaged&&process.platform==='win32'&&!process.env.PORTABLE_EXECUTABLE_FILE,emit:state=>{if(!window.isDestroyed())window.webContents.send('p0:update:state',state);if(updateWindow&&!updateWindow.isDestroyed())updateWindow.webContents.send('p0:update:state',state);if(menuPhase!==state.phase){menuPhase=state.phase;refreshUpdateMenu();}void notice.observe(state).catch(()=>{});},verifySignature:verifyWindowsUpdateSignature,confirmClose:async()=>{
+    if(quitting||quitConsent.id)return false;
+    openUpdate();
+    const owner=updateWindow;
+    if(!owner||owner.isDestroyed())return false;
+    const approved=await updateConsent.request(id=>{owner.webContents.send('p0:update:state',{...updates.status(),confirmationId:id});});
+    if(!approved||owner.isDestroyed()||quitting)return false;
+    owner.webContents.send('p0:update:state',updates.status());
+    if(!await protectNewsletter()||owner.isDestroyed()||quitting)return false;
+    approvedInstallOwner=owner;
+    return true;
+  },launchInstaller:async(path,manifest)=>{if(!approvedInstallOwner||approvedInstallOwner.isDestroyed()||quitting)throw Error('Update consent window unavailable');await startVerifiedUpdateInstaller({installerPath:path,applicationPath:app.getPath('exe'),resultPath:join(userData,'update-downloads','last-install-result.txt'),parentPid:process.pid,currentVersion:app.getVersion(),nextVersion:manifest.version,size:manifest.size,sha256:manifest.sha256});quit();}});
+  for(const action of ['status','check','download','cancel','install'] as const)ipcMain.handle(`p0:update:${action}`,(event,...args:unknown[])=>{if(event.sender===window.webContents)assertSender(event,window.webContents,url);else if(updateWindow&&!updateWindow.isDestroyed())assertSender(event,updateWindow.webContents,updateUrl);else throw new Error('Update IPC caller denied');if(args.length)throw new Error('Invalid update request');if(action==='status'&&event.sender===updateWindow?.webContents)return {...updates.status(),confirmationId:updateConsent.id};if(action!=='install')return updates[action]();if(quitting||quitConsent.id||installingRequest)return updates.status();installingRequest=true;return updates.install().finally(()=>{installingRequest=false;approvedInstallOwner=null;});});
+  ipcMain.handle('p0:update:confirm-install',(event,...args:unknown[])=>{
+    if(!updateWindow||updateWindow.isDestroyed())throw Error('Update confirmation window unavailable');
+    assertSender(event,updateWindow.webContents,updateUrl);
+    if(args.length!==2||!updateConsent.answer(args[0],args[1]))throw Error('Invalid or expired installation response');
+  });
   ipcMain.on('p0:update:dismiss',event=>{if(updateWindow&&!updateWindow.isDestroyed()){assertSender(event,updateWindow.webContents,updateUrl);updateWindow.close();}});
-  app.on('before-quit',()=>updates.cancel());
+  app.on('will-quit',()=>updates.cancel());
   // Closed renderer remains offline. Optional QA provider lives OUTSIDE product app.
   const workspaceProduct=await registerWorkspaceProduct(ipcMain,window.webContents,url,{packaged:app.isPackaged,isolated:qaPaths.qa,mode:process.env.SCHOOL_WORKSPACE_MODE,nodeEnv:process.env.NODE_ENV,runId:testRun,h1OptIn:process.env.SCHOOL_H1_OPT_IN==='isolated-h1'},async()=>{
     const moduleUrl=pathToFileURL(join(app.getAppPath(),'..',process.env.SCHOOL_WORKSPACE_MODE==='hosted-test'?'school-h1-qa':'school05-qa','provider.mjs')).href;
@@ -191,7 +233,7 @@ else {
   for(const[action,handler]of Object.entries(instructorFiles.handlers))ipcMain.handle('p2:instructor-files:'+action,handler);
   window.on('closed',()=>instructorFiles.dispose());window.webContents.on('will-navigate',()=>instructorFiles.dispose());window.webContents.on('render-process-gone',()=>instructorFiles.dispose());
   const disposeWorkspace=()=>{void workspaceProduct.dispose().catch(()=>undefined);};
-  window.on('closed',disposeWorkspace);window.webContents.on('will-navigate',disposeWorkspace);window.webContents.on('render-process-gone',disposeWorkspace);app.on('before-quit',disposeWorkspace);
+  window.on('closed',disposeWorkspace);window.webContents.on('will-navigate',disposeWorkspace);window.webContents.on('render-process-gone',disposeWorkspace);app.on('will-quit',disposeWorkspace);
   window.webContents.setWindowOpenHandler(()=>({action:'deny'}));
   window.webContents.on('will-navigate',event=>event.preventDefault());
   window.webContents.on('will-redirect',event=>event.preventDefault());
@@ -204,7 +246,7 @@ else {
   schoolSession.webRequest.onBeforeRequest((details,callback)=>callback({cancel:!allowedSchoolUrl(details.url)}));
   const schoolHandlers=createSchoolHandlers(window.webContents,url,{store:schoolStore,fetch:(target,init)=>schoolSession.fetch(target,init)});
   for(const [action,handler] of Object.entries(schoolHandlers))if(action!=='dispose'&&action!=='flush')ipcMain.handle(`p2:school:${action}`,handler);
-  window.on('closed',schoolHandlers.dispose);window.webContents.on('will-navigate',schoolHandlers.dispose);window.webContents.on('render-process-gone',schoolHandlers.dispose);app.on('before-quit',schoolHandlers.dispose);
+  window.on('closed',schoolHandlers.dispose);window.webContents.on('will-navigate',schoolHandlers.dispose);window.webContents.on('render-process-gone',schoolHandlers.dispose);app.on('will-quit',schoolHandlers.dispose);
   const accountConfig=parseAccountConfig(await readFile(join(app.getAppPath(),'account-config.json'),'utf8').then(JSON.parse).catch(()=>null));
   const accountSession=session.fromPartition('bogunon-account-egress');
   accountSession.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));accountSession.setPermissionCheckHandler(()=>false);accountSession.on('will-download',event=>event.preventDefault());accountSession.allowNTLMCredentialsForDomains('');
@@ -246,7 +288,7 @@ else {
   for(const [action,handler] of Object.entries(recordHandlers))if(action!=='dispose'&&action!=='flush')ipcMain.handle(`p2:record:${action}`,handler);
   window.on('closed',()=>recordHandlers.dispose());window.webContents.on('will-navigate',()=>recordHandlers.dispose());window.webContents.on('render-process-gone',()=>recordHandlers.dispose());
 
-  window.on('closed',()=>chatgptService.dispose());window.webContents.on('will-navigate',()=>chatgptService.dispose());window.webContents.on('render-process-gone',()=>chatgptService.dispose());app.on('before-quit',()=>chatgptService.dispose());
+  window.on('closed',()=>chatgptService.dispose());window.webContents.on('will-navigate',()=>chatgptService.dispose());window.webContents.on('render-process-gone',()=>chatgptService.dispose());app.on('will-quit',()=>chatgptService.dispose());
   const newsletterAiOwnerId=window.webContents.id;
   const newsletterAiCandidates=new NewsletterAiCandidateStore();
   const newsletterAiAssets=new NewsletterAiAssetStorage(join(userData,'work-data','newsletter-ai-assets'));
@@ -267,8 +309,8 @@ else {
   const newsletterAiConnections=new NewsletterAiConnectionRouter(newsletterAiLivePort,newsletterChatGptPort);
   const newsletterAiPort=createNewsletterAiComposition({qaProfile:qaPaths.qa,packaged:app.isPackaged,nodeEnv:process.env.NODE_ENV,mockOptIn:process.env.NEWSLETTER_AI_MOCK,seed:process.env.NEWSLETTER_AI_MOCK_SEED??testRun??'newsletter-windows-qa',live:newsletterAiConnections});
   for(const action of NEWSLETTER_AI_ACTIONS)ipcMain.handle(`p2:newsletter:ai:${action}`,createNewsletterAiHandler({action,contents:window.webContents,url,service:newsletterAiPort,store:newsletterAiCandidates,assets:newsletterAiAssets,authority:newsletterAiAuthority,sessionId:`newsletter-${newsletterAiOwnerId}`}));
-  window.on('closed',()=>{newsletterAiCandidates.dispose();newsletterAiAuthority.disposeOwner(newsletterAiOwnerId);});window.webContents.on('will-navigate',()=>{newsletterAiCandidates.dispose();newsletterAiAuthority.disposeOwner(newsletterAiOwnerId);});window.webContents.on('render-process-gone',()=>{newsletterAiCandidates.dispose();newsletterAiAuthority.disposeOwner(newsletterAiOwnerId);});app.on('before-quit',()=>newsletterAiCandidates.dispose());
-  window.on('closed',()=>aiService.dispose());window.webContents.on('will-navigate',()=>aiService.dispose());window.webContents.on('render-process-gone',()=>aiService.dispose());app.on('before-quit',()=>aiService.dispose());
+  window.on('closed',()=>{newsletterAiCandidates.dispose();newsletterAiAuthority.disposeOwner(newsletterAiOwnerId);});window.webContents.on('will-navigate',()=>{newsletterAiCandidates.dispose();newsletterAiAuthority.disposeOwner(newsletterAiOwnerId);});window.webContents.on('render-process-gone',()=>{newsletterAiCandidates.dispose();newsletterAiAuthority.disposeOwner(newsletterAiOwnerId);});app.on('will-quit',()=>newsletterAiCandidates.dispose());
+  window.on('closed',()=>aiService.dispose());window.webContents.on('will-navigate',()=>aiService.dispose());window.webContents.on('render-process-gone',()=>aiService.dispose());app.on('will-quit',()=>aiService.dispose());
   const financeWorker=new FinanceProcess(app.isPackaged?join(process.resourcesPath,'my-finance-cli','my-finance-cli.exe'):join(app.getAppPath(),'../../tools/my-finance-cli/target/debug/my-finance-cli.exe'),join(userData,'work-data','my-finance'));
   const financeService=new FinanceService({worker:financeWorker,protectedRoot:userData,
    pickBackup:async()=>{const r=await dialog.showOpenDialog(window,{title:'MY FINANCE 암호화 백업 선택',properties:['openFile','dontAddToRecent'],filters:[{name:'암호화 백업',extensions:['bgfnbk']}]});return r.canceled?undefined:r.filePaths[0];},
@@ -307,7 +349,7 @@ else {
    save:async()=>{const r=await dialog.showSaveDialog(window,{title:'검토한 공문을 새 ODT로 저장',defaultPath:'공문_초안.odt',filters:[{name:'OpenDocument Text',extensions:['odt']}],properties:['dontAddToRecent']});return r.canceled?undefined:r.filePath;},
    review:async()=>(await dialog.showMessageBox(window,{type:'question',message:'미리보기와 개인정보 경고를 확인하고 승인 템플릿으로 저장할까요?',detail:'새 파일만 저장합니다. 기존 파일을 선택하면 덮어쓰지 않고 거절합니다. 원본 서식과 표 구조 보존은 지원하지 않습니다.',buttons:['취소','검토 후 저장'],defaultId:0,cancelId:0})).response===1});
   ipcMain.handle('p2:official-document:pick',officialFiles.pick);ipcMain.handle('p2:official-document:save',officialFiles.save);ipcMain.handle('p2:official-document:cancel',officialFiles.cancel);
-  window.on('closed',officialFiles.dispose);app.on('before-quit',officialFiles.dispose);
+  window.on('closed',officialFiles.dispose);app.on('will-quit',officialFiles.dispose);
   const excelService=new ExcelService(app.isPackaged?join(process.resourcesPath,'purchase-excel-cli','purchase-excel-cli.exe'):join(app.getAppPath(),'../../tools/purchase-excel-cli/target/debug',process.platform==='win32'?'purchase-excel-cli.exe':'purchase-excel-cli'),join(userData,'work-data','purchase-import-tmp'));
   const adminProbeSession=session.fromPartition('admin-launcher-check');
   adminProbeSession.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));adminProbeSession.setPermissionCheckHandler(()=>false);
@@ -343,13 +385,13 @@ else {
    redact:(bytes,boxes)=>{const image=nativeImage.createFromBuffer(bytes);if(image.isEmpty())throw Error('Invalid image');const {width,height}=image.getSize();const copy=redactBitmap(image.toBitmap(),width,height,boxes);return {png:nativeImage.createFromBitmap(copy,{width,height,scaleFactor:1}).toPNG(),width,height};},
    review:async prepared=>(await dialog.showMessageBox(window,{type:'warning',message:`${prepared.provider} · ${prepared.model}에 이미지 ${prepared.images.length}장을 전송할까요?`,detail:'실제 학생·교직원·학교 개인정보나 배송지·연락처가 없는지 전송본을 확인하세요. API 이용료 또는 ChatGPT plan/credits 사용이 발생할 수 있습니다. 이미 전송된 이미지는 취소해도 회수되지 않습니다. 자동 재시도·다른 제공자 전환은 하지 않습니다.\n\n'+prepared.images.map((image,i)=>`${i+1}. ${image.name} · 가림 ${image.redactions}곳 · SHA-256 ${image.sha256}`).join('\n'),buttons:['취소','확인 후 이미지 전송'],defaultId:0,cancelId:0})).response===1});
   for(const [action,handler] of Object.entries(createPurchaseAiHandlers(window.webContents,url,purchaseAi)))ipcMain.handle(`p2:purchase:images:ai:${action}`,handler);
-  window.on('closed',()=>purchaseAi?.dispose());window.webContents.on('will-navigate',()=>purchaseAi?.dispose());window.webContents.on('render-process-gone',()=>purchaseAi?.dispose());app.on('before-quit',()=>purchaseAi?.dispose());
+  window.on('closed',()=>purchaseAi?.dispose());window.webContents.on('will-navigate',()=>purchaseAi?.dispose());window.webContents.on('render-process-gone',()=>purchaseAi?.dispose());app.on('will-quit',()=>purchaseAi?.dispose());
   ipcMain.handle('p2:purchase:images:preview',imageImport.preview);
   ipcMain.handle('p2:purchase:images:pick',imageImport.pick);ipcMain.handle('p2:purchase:images:analyze',imageImport.analyze);ipcMain.handle('p2:purchase:images:cancel',imageImport.cancel);
-  window.on('closed',imageImport.dispose);window.webContents.on('will-navigate',imageImport.dispose);window.webContents.on('render-process-gone',imageImport.dispose);app.on('before-quit',imageImport.dispose);
+  window.on('closed',imageImport.dispose);window.webContents.on('will-navigate',imageImport.dispose);window.webContents.on('render-process-gone',imageImport.dispose);app.on('will-quit',imageImport.dispose);
   const purchaseExport=createPurchaseExportHandler(window.webContents,url,{review:async summary=>(await dialog.showMessageBox(window,{type:'question',message:'선택 품목·수량·단가·합계를 확인하고 출력할까요?',detail:summary,buttons:['취소','확인 후 저장 위치 선택'],defaultId:0,cancelId:0})).response===1,generate:(request,signal)=>excelService.generateExport(request,signal),pick:async format=>{const r=await dialog.showSaveDialog(window,{title:'구매 품목 출력 저장',defaultPath:purchaseExportFileName(format),filters:[{name:format==='csv'?'CSV':'Excel',extensions:[format]}],properties:['dontAddToRecent']});return r.canceled?undefined:r.filePath;},confirm:async()=>(await dialog.showMessageBox(window,{type:'warning',message:'선택한 기존 파일을 덮어쓸까요?',detail:'저장 직전에 변경 여부를 다시 확인합니다. 다른 프로그램에서 편집 중이면 취소하고 새 파일로 저장해 주세요.',buttons:['취소','덮어쓰기'],defaultId:0,cancelId:0})).response===1});
   ipcMain.handle('p2:purchase:export',purchaseExport.handle);
-  window.on('closed',purchaseExport.dispose);app.on('before-quit',purchaseExport.dispose);
+  window.on('closed',purchaseExport.dispose);app.on('will-quit',purchaseExport.dispose);
   const specialOutputs=(['settlement','edufine'] as const).map(kind=>{
    const preview=createSpecialPreview(window.webContents,url,kind,excelService);
    const output=createPurchaseExportHandler<SpecialOutput>(window.webContents,url,{
@@ -359,7 +401,7 @@ else {
     confirm:async()=>(await dialog.showMessageBox(window,{type:'warning',message:'선택한 기존 XLSX를 덮어쓸까요?',detail:'저장 직전에 변경을 다시 검사합니다. 외부 편집 중이면 새 파일을 선택해 주세요.',buttons:['취소','덮어쓰기'],defaultId:0,cancelId:0})).response===1,
    },{validate:value=>validateSpecialOutput(value,kind),summary:specialSummary});
    ipcMain.handle(`p2:purchase:${kind}:preview`,preview.handle);ipcMain.handle(`p2:purchase:${kind}:export`,output.handle);
-   const dispose=()=>{preview.dispose();output.dispose();};window.on('closed',dispose);app.on('before-quit',dispose);
+   const dispose=()=>{preview.dispose();output.dispose();};window.on('closed',dispose);app.on('will-quit',dispose);
    return {dispose,flush:()=>output.flush()};
   });
   const excelHandlers=createExcelHandlers(window.webContents,url,async()=>{const dropped=dropSelections.take('excel');if(dropped)return dropped[0];const r=await dialog.showOpenDialog(window,{title:'Purchase Helper Excel 가져오기',properties:['openFile'],filters:[{name:'Excel',extensions:['xlsx','xls']}]});return r.canceled?undefined:r.filePaths[0];},excelService);
@@ -367,12 +409,12 @@ else {
   ipcMain.handle('p2:purchase:pdf:pick',pdfHandlers.pick);
   ipcMain.handle('p2:purchase:pdf:cancel',pdfHandlers.cancel);
   ipcMain.handle('p2:purchase:pdf:map',pdfHandlers.map);
-  window.on('closed',pdfHandlers.dispose);app.on('before-quit',pdfHandlers.dispose);
+  window.on('closed',pdfHandlers.dispose);app.on('will-quit',pdfHandlers.dispose);
   ipcMain.handle('p2:purchase:excel:pick',excelHandlers.pick);
   ipcMain.handle('p2:purchase:excel:cancel',excelHandlers.cancel);
   ipcMain.handle('p2:purchase:excel:map',excelHandlers.map);
   window.on('closed',excelHandlers.dispose);
-  app.on('before-quit',excelHandlers.dispose);
+  app.on('will-quit',excelHandlers.dispose);
   const purchaseImport=createPurchaseImportHandlers(window.webContents,url,async()=>{const dropped=dropSelections.take('csv');if(dropped)return dropped[0];const result=await dialog.showOpenDialog(window,{title:'Purchase Helper CSV 가져오기',properties:['openFile'],filters:[{name:'CSV',extensions:['csv']}]});return result.canceled?undefined:result.filePaths[0];});
   const fileDrop=createFileDropHandlers(window.webContents,url,join(userData,'work-data','drop-import-tmp'),dropSelections,{
    official:event=>officialFiles.pick(event) as Promise<import('../protocol.js').IpcResult<import('../protocol.js').OfficialDocumentImported|null>>,
@@ -413,7 +455,7 @@ else {
    reviewSearch:async(query,page)=>(await dialog.showMessageBox(window,{type:'warning',message:`YouTube 공식 API로 교육영상을 검색할까요? (${page}/3페이지)`,detail:`전송할 검색어: ${query}\n\n검색어에 학생·교직원 개인정보가 없는지 확인하세요. 보관함·메모·원고는 전송하지 않습니다. YouTube Data API 할당량이 사용됩니다. 자동 추가 검색·다른 제공자 전환은 없습니다.`,buttons:['취소','검색어 외부 전송'],defaultId:0,cancelId:0})).response===1,
    openExternal:target=>shell.openExternal(target,{activate:true}),library:async()=>(await educationVideoStore.load()).library});
   for(const [action,handler] of Object.entries(createFinderSearchHandlers(window.webContents,url,finderSearch)))ipcMain.handle(`p2:education-video:search:${action}`,handler);
-  window.on('closed',()=>finderSearch.dispose());window.webContents.on('will-navigate',()=>finderSearch.dispose());window.webContents.on('render-process-gone',()=>finderSearch.dispose());app.on('before-quit',()=>finderSearch.dispose());
+  window.on('closed',()=>finderSearch.dispose());window.webContents.on('will-navigate',()=>finderSearch.dispose());window.webContents.on('render-process-gone',()=>finderSearch.dispose());app.on('will-quit',()=>finderSearch.dispose());
   const educationVideoHandlers=createEducationVideoHandlers(window.webContents,url,educationVideoStore);
   ipcMain.handle('p2:education-video:load',educationVideoHandlers.load);
   ipcMain.handle('p2:education-video:save',educationVideoHandlers.save);
@@ -457,6 +499,10 @@ else {
   };
   const capture=()=>{if(!window.isDestroyed()&&!window.isMinimized()&&!desktopSurface.isSettingsPresented()&&!desktopSurface.isToolPresented()){desktop.bounds=fitBounds(window.getNormalBounds(),screen.getAllDisplays().map(d=>d.workArea));desktop.maximized=window.isMaximized();}};
   const quit=()=>{if(quitting)return;quitting=true;clearInterval(updateCheckTimer);activeNotification?.close();desktopSurface.beginQuit();instructorFiles.dispose();accountHandlers.dispose();fileDrop.dispose();workFolderHandlers.dispose();recordHandlers.dispose();finderCompat.dispose();finderV2Export.dispose();finderSearch.dispose();purchaseAi?.dispose();chatgptService.dispose();aiService.dispose();inventoryQa.close();imageImport.dispose();schoolHandlers.dispose();adminHandlers.dispose();officialFiles.dispose();educationVideoExport.dispose();specialOutputs.forEach(o=>o.dispose());purchaseExport.dispose();excelHandlers.dispose();pdfHandlers.dispose();clearTimeout(timer);capture();void persist().then(()=>Promise.all([instructorFiles.flush(),accountHandlers.flush(),fileDrop.flush(),workFoldersStore.flush(),recordHandlers.flush(),finderSearch.flush(),finderV2Export.flush(),chatgptService.flush(),imageImport.flush(),adminStore.flush(),smartLauncherStore.flush(),schoolStore.flush(),financeService.close(),store.flush(),onlineHealthRoomStore.flush(),purchaseSettingsStore.flush(),desktopStore.flush(),desktopSurfaceStore.flush(),memoStore.flush(),taskStore.flush(),eventStore.flush(),educationVideoStore.flush(),educationVideoExport.flush(),inventoryStore.flush(),projects.flush(),excelService.flush(),officialService.flush(),purchaseExport.flush(),...specialOutputs.map(o=>o.flush())])).finally(()=>workspaceProduct.dispose()).finally(()=>{tray?.destroy();app.quit();});};
+  const requestQuit=()=>{
+    if(quitting||quitConsent.id||installingRequest)return;
+    void protectNewsletter().then(approved=>{if(approved)quit();});
+  };
   const refreshMenu=()=>{
     const items:Electron.MenuItemConstructorOptions[]=[
       {label:'업무 창 열기',click:show},
@@ -467,7 +513,7 @@ else {
       ...(updates.status().phase==='available'||updates.status().phase==='ready'?[{label:'새 버전 설치하기',click:()=>{openUpdate();if(updates.status().phase==='available')void updates.download();}} satisfies Electron.MenuItemConstructorOptions]:[]),
       {label:'최소화',click:()=>window.minimize()},
       {label:'닫을 때 트레이로 숨기기',type:'checkbox',checked:desktop.closeBehavior==='tray',enabled:tray!==null,click:async item=>{desktop.closeBehavior=item.checked?'tray':'quit';await persist();refreshMenu();}},
-      {type:'separator'},{label:'완전 종료',click:quit}
+      {type:'separator'},{label:'완전 종료',click:requestQuit}
     ];
     tray?.setContextMenu(Menu.buildFromTemplate(items));
     Menu.setApplicationMenu(Menu.buildFromTemplate([{label:'창',submenu:items}]));
@@ -483,8 +529,8 @@ else {
   screen.on('display-added',adjust);screen.on('display-removed',adjust);screen.on('display-metrics-changed',adjust);
   app.on('second-instance',show);
   window.once('ready-to-show',()=>{if(desktop.maximized)window.maximize();if(!desktopSurface.isPaletteMode())window.show();});
-  window.on('close',event=>{if(quitting)return;event.preventDefault();if(desktopSurface.isSettingsPresented()){window.webContents.send('p0:settings:close-requested');return;}if(desktopSurface.isToolPresented()){window.webContents.send('p0:tool:close-requested');return;}if(desktopSurface.isPaletteMode()){capture();window.hide();void persist().then(ok=>{if(!ok)show();});}else if(desktop.closeBehavior==='tray'&&tray){capture();window.hide();void persist().then(ok=>{if(!ok)show();});}else quit();});
-  app.on('before-quit',event=>{if(!quitting){event.preventDefault();quit();}});
+  window.on('close',event=>{if(quitting)return;event.preventDefault();if(desktopSurface.isSettingsPresented()){window.webContents.send('p0:settings:close-requested');return;}if(desktopSurface.isToolPresented()){window.webContents.send('p0:tool:close-requested');return;}if(desktopSurface.isPaletteMode()){capture();window.hide();void persist().then(ok=>{if(!ok)show();});}else if(desktop.closeBehavior==='tray'&&tray){capture();window.hide();void persist().then(ok=>{if(!ok)show();});}else requestQuit();});
+  app.on('before-quit',event=>{if(!quitting){event.preventDefault();requestQuit();}});
   app.on('window-all-closed',quit);
   await window.loadURL(url);
   await desktopSurface.start().catch(()=>{if(!window.isDestroyed()){window.show();window.focus();}});

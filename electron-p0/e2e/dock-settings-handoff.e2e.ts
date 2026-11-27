@@ -25,7 +25,7 @@ test('Palette and Workspace Dock settings return to the invoking surface', async
     const palette = palettes[(await Promise.all(palettes.map(page => page.locator('.palette-dock-region').isVisible()))).findIndex(Boolean)];
     const workspace = app.windows().find(page => !page.url().includes('/palette/'));
     if (!palette || !workspace) throw Error('Palette or Workspace renderer unavailable');
-    expect(await workspace.evaluate(() => Object.keys(window.electronP0).sort())).toEqual(['completeOnboarding', 'desktopSurface', 'info', 'onlineHealthRoom', 'onOpenSettings', 'onSettingsCloseRequested', 'onOpenTool', 'onToolCloseRequested', 'toolRendererReady', 'toolReady', 'toolDismissed', 'readSettings', 'settingsDismissed', 'settingsReady', 'updates', 'writeSettings'].sort());
+    expect(await workspace.evaluate(() => Object.keys(window.electronP0).sort())).toEqual(['appQuitReady', 'onAppQuitRequested', 'resolveAppQuit', 'completeOnboarding', 'desktopSurface', 'info', 'onlineHealthRoom', 'onOpenSettings', 'onSettingsCloseRequested', 'onOpenTool', 'onToolCloseRequested', 'toolRendererReady', 'toolReady', 'toolDismissed', 'readSettings', 'settingsDismissed', 'settingsReady', 'updates', 'writeSettings'].sort());
     expect(await workspace.evaluate(() => typeof (window as unknown as { require?: unknown }).require)).toBe('undefined');
     await expect(palette.getByRole('main', { name: 'BOGUNON DESK 바탕화면 위젯' })).toBeVisible();
     await palette.getByRole('button', { name: '위젯 편집' }).click();

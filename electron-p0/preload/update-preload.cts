@@ -8,5 +8,6 @@ contextBridge.exposeInMainWorld('electronUpdate',Object.freeze({
   cancel:()=>ipcRenderer.invoke('p0:update:cancel') as Promise<UpdateState>,
   install:()=>ipcRenderer.invoke('p0:update:install') as Promise<UpdateState>,
   dismiss:()=>ipcRenderer.send('p0:update:dismiss'),
+  confirmInstall:(id:string,approved:boolean)=>ipcRenderer.invoke('p0:update:confirm-install',id,approved) as Promise<void>,
   onState:(listener:(state:UpdateState)=>void)=>{const callback=(_event:IpcRendererEvent,state:UpdateState)=>listener(state);ipcRenderer.on('p0:update:state',callback);return()=>ipcRenderer.removeListener('p0:update:state',callback);},
 }));

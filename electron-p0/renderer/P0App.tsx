@@ -93,6 +93,24 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
   const [newsletterOpen,setNewsletterOpen]=useState(false);
   const [newsletterLoaded,setNewsletterLoaded]=useState(false);
   const [newsletterCloseRequest,setNewsletterCloseRequest]=useState(0);
+  const [appQuitId,setAppQuitId]=useState<string|null>(null);
+  const newsletterLoadedRef=useRef(newsletterLoaded);
+  newsletterLoadedRef.current=newsletterLoaded;
+  useEffect(()=>{
+    const dispose=window.electronP0.onAppQuitRequested?.(id=>{
+      if(!newsletterLoadedRef.current){void window.electronP0.resolveAppQuit?.(id,true);return;}
+      setNewsletterOpen(true);
+      setAppQuitId(id);
+      setNewsletterCloseRequest(value=>value+1);
+    });
+    void window.electronP0.appQuitReady?.();
+    return dispose;
+  },[]);
+  const resolveAppQuit=(approved:boolean)=>{
+    if(!appQuitId)return;
+    setAppQuitId(null);
+    void window.electronP0.resolveAppQuit?.(appQuitId,approved);
+  };
   const [educationVideoOpen,setEducationVideoOpen]=useState(false);
   const [officialDocumentOpen,setOfficialDocumentOpen]=useState(false);
   const [recordOpen,setRecordOpen]=useState(false);
@@ -243,7 +261,7 @@ function P0Dashboard({initial}:{readonly initial:{layout:DashboardLayout;dock:Do
     {financeOpen&&<Suspense fallback={<p role="status">MY FINANCE를 불러오는 중…</p>}><WorkspaceShell name="finance"><FinanceHost onClose={()=>setFinanceOpen(false)}/></WorkspaceShell></Suspense>}
     {taskRequest&&<LocalTasksPanel request={taskRequest} onClose={()=>setTaskRequest(null)}/>}
     <WorkspaceShell name="purchase" overlay><PurchaseSession dropped={dropped?.target==='purchase-helper'?dropped:undefined} onDropFilesDone={ids=>{if(!dropped)return;const files=dropped.files.filter(f=>!ids.includes(f.id));if(!files.length)void window.electronWork.fileDrop?.cancel({token:dropped.token});setDropped(current=>current?.token===dropped.token?(files.length?{...current,files}:undefined):current);}} incoming={purchaseIncoming} onIncomingApplied={id=>setPurchaseIncoming(current=>current?.id===id?null:current)} open={purchaseOpen} onClose={()=>{if(dropped?.target==='purchase-helper')clearDropped();setPurchaseOpen(false);}}/></WorkspaceShell>
-    <div hidden={!newsletterOpen} inert={!newsletterOpen} style={{display:newsletterOpen?undefined:"none"}}>{newsletterLoaded&&<Suspense fallback={<p role="status">소식지 불러오는 중…</p>}><WorkspaceShell name="newsletter"><NewsletterStudio closeRequest={newsletterCloseRequest} renderAiTools={text=><AiAssistant active={newsletterOpen} tool="newsletter" source={text} onSettings={()=>setAiSettingsOpen(true)}/>} onOpenAiSettings={()=>setAiSettingsOpen(true)} onClose={()=>setNewsletterOpen(false)}/></WorkspaceShell></Suspense>}</div>
+    <div hidden={!newsletterOpen} inert={!newsletterOpen} style={{display:newsletterOpen?undefined:"none"}}>{newsletterLoaded&&<Suspense fallback={<p role="status">소식지 불러오는 중…</p>}><WorkspaceShell name="newsletter"><NewsletterStudio closeRequest={newsletterCloseRequest} exitingApp={appQuitId!==null} onCloseRequestResolved={resolveAppQuit} renderAiTools={text=><AiAssistant active={newsletterOpen} tool="newsletter" source={text} onSettings={()=>setAiSettingsOpen(true)}/>} onOpenAiSettings={()=>setAiSettingsOpen(true)} onClose={()=>setNewsletterOpen(false)}/></WorkspaceShell></Suspense>}</div>
     {recordOpen&&<Suspense fallback={<main role="status">생기부 도우미를 불러오는 중…</main>}><RecordHelperHost dropped={dropped?.target==='record-helper'?dropped:undefined} onDropDone={()=>setDropped(current=>current?.token===dropped?.token?undefined:current)} settingsOpen={aiSettingsOpen} onOpenAiSettings={()=>setAiSettingsOpen(true)} onClose={()=>{if(dropped?.target==='record-helper')clearDropped();setRecordOpen(false);}}/></Suspense>}
     {educationVideoOpen&&<Suspense fallback={<main role="status">교육영상 Finder를 불러오는 중…</main>}><WorkspaceShell name="finder"><EducationVideoFinder compatBridge={window.electronWork.educationVideo.compat} searchBridge={window.electronWork.educationVideo.searchProvider} renderAiTools={text=><AiAssistant tool="finder" source={text} onSettings={()=>setAiSettingsOpen(true)}/>} onClose={()=>setEducationVideoOpen(false)}/></WorkspaceShell></Suspense>}
     {officialDocumentOpen&&<Suspense fallback={<main role="status">공문작업실을 불러오는 중…</main>}><WorkspaceShell name="official"><OfficialDocumentWorkspace dropped={dropped?.target==='official-document'?dropped:undefined} onDropDone={()=>setDropped(current=>current?.token===dropped?.token?undefined:current)} renderAiWorkflow={context=><WorkspaceDisclosure title="AI 초안·수정·요약 — 전송 전 내용 검토"><OfficialAiWorkflow key={context.sessionId} context={context} onSettings={()=>setAiSettingsOpen(true)}/></WorkspaceDisclosure>} onClose={()=>{if(dropped?.target==='official-document')clearDropped();setOfficialDocumentOpen(false);}}/></WorkspaceShell></Suspense>}
