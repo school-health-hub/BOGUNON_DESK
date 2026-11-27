@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { defaultBoardPlacement, type BoardPlacement, type DesktopSurfaceBridge, type DesktopSurfaceDocument } from '../desktop-surface-protocol';
+import { defaultBoardPlacement, legacyBoardPlacement, type BoardPlacement, type DesktopSurfaceBridge, type DesktopSurfaceDocument } from '../desktop-surface-protocol';
 
 export function BoardPlacementSettings({ bridge }: { readonly bridge: DesktopSurfaceBridge }) {
   const [document, setDocument] = useState<DesktopSurfaceDocument>();
@@ -11,7 +11,7 @@ export function BoardPlacementSettings({ bridge }: { readonly bridge: DesktopSur
     void bridge.read().then(value => {
       if (!active) return;
       setDocument(value);
-      setDraft(value.boardPlacement ?? defaultBoardPlacement);
+      setDraft(value.boardPlacement ?? legacyBoardPlacement);
     }).catch(() => { if (active) setStatus('화면 배치를 불러오지 못했습니다.'); });
     return () => { active = false; };
   }, [bridge]);
@@ -48,7 +48,7 @@ export function BoardPlacementSettings({ bridge }: { readonly bridge: DesktopSur
       <p>미리보기 · {draft.preset === 'shared' ? `왼쪽 ${draft.iconSpace}% 바탕화면 / 오른쪽 ${100 - draft.iconSpace}% 업무 보드` : '선택한 화면에 업무 보드'}</p>
       <p>이 설정은 BOGUNON DESK 배치에만 적용됩니다.</p>
       <button type="button" onClick={() => void apply()}>적용</button>
-      <button type="button" onClick={() => { setDraft(document?.boardPlacement ?? defaultBoardPlacement); setStatus('변경을 취소했습니다.'); }}>취소</button>
+      <button type="button" onClick={() => { setDraft(document?.boardPlacement ?? legacyBoardPlacement); setStatus('변경을 취소했습니다.'); }}>취소</button>
       <button type="button" onClick={() => setDraft(defaultBoardPlacement)}>기본 배치 복원</button>
     </fieldset>
     <p role="status">{status}</p>

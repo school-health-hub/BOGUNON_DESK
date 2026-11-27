@@ -1134,9 +1134,9 @@
   line-height: 0;
   transition: filter var(--desktop-motion-fast) ease-out, box-shadow var(--desktop-motion-fast) ease-out;
 }
-.dock button:is([data-dock-item="home"], [data-dock-item="toolbox"], [data-dock-item="quick-memo"]) .dock__icon { background: var(--desktop-dock-tile-mint); }
-.dock button:is([data-dock-item="online-health-room"], [data-dock-item="work-folder"], [data-dock-item="official-document"], [data-dock-item="settings"]) .dock__icon { background: var(--desktop-dock-tile-blue); }
-.dock button:is([data-dock-item="bogunon"], [data-dock-item="aed-check"], [data-dock-item="record-helper"], [data-dock-item="checkup-tools"]) .dock__icon { background: var(--desktop-dock-tile-lavender); }
+.dock :is(button, li):is([data-dock-item="home"], [data-dock-item="toolbox"], [data-dock-item="quick-memo"]) .dock__icon { background: var(--desktop-dock-tile-mint); }
+.dock :is(button, li):is([data-dock-item="online-health-room"], [data-dock-item="work-folder"], [data-dock-item="official-document"], [data-dock-item="settings"]) .dock__icon { background: var(--desktop-dock-tile-blue); }
+.dock :is(button, li):is([data-dock-item="bogunon"], [data-dock-item="aed-check"], [data-dock-item="record-helper"], [data-dock-item="checkup-tools"]) .dock__icon { background: var(--desktop-dock-tile-lavender); }
 .dock button:hover .dock__icon,
 .dock button:focus-visible .dock__icon { filter: saturate(1.08) brightness(1.03); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88), 0 5px 12px rgba(35, 76, 84, 0.13); }
 .dock__tooltip {

@@ -61,7 +61,7 @@ export class DesktopSurfaceController{
   isSettingsPresented():boolean{return this.settingsHandoff?.restore!==undefined;}
   isToolPresented():boolean{return this.toolHandoff?.restore!==undefined;}
   read():DesktopSurfaceDocument{return structuredClone(this.document);}
-  notifyOnlineHealthRoomChanged():void{this.broadcast();}
+  notifySettingsChanged():void{this.broadcast();}
   async placeBoard(boardPlacement: BoardPlacement): Promise<DesktopSurfaceDocument> {
     if (this.editCheckpoints.size > 0) throw new Error('Finish editing widgets before changing screen layout');
     if (boardPlacement.target !== null && !Object.hasOwn(this.document.profiles, boardPlacement.target))

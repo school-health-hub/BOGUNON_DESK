@@ -44,7 +44,7 @@ test('fits the Palette window to the connected Windows work area', async ({}, te
     const window = await app.browserWindow(page);
     const bounds = await window.evaluate(palette => palette.getBounds());
     const { workArea, scaleFactor } = display.primary;
-    const inset = display.count === 1 ? Math.round(workArea.width * 0.22) : 0;
+    const inset = Math.round(workArea.width * 0.25);
     expect(bounds).toEqual({ ...workArea, x: workArea.x + inset, width: workArea.width - inset });
     await testInfo.attach('work-area.json', {
       body: JSON.stringify({ bounds, workArea, scaleFactor, displayCount: display.count, connectedMs, paletteWindowMs, readyMs: Math.round(performance.now() - started) }),
@@ -80,13 +80,14 @@ test('fits the Palette window to the connected Windows work area', async ({}, te
     await page.evaluate(() => globalThis.window.electronPalette.openSettings());
     const placement = workspace.getByRole('region', { name: '화면 배치', exact: true });
     const width = placement.getByLabel('바탕화면 아이콘 공간 너비');
-    await width.selectOption('25');
+    await width.selectOption('20');
     await placement.getByRole('button', { name: '취소', exact: true }).click();
-    await expect(width).toHaveValue('22');
-    await width.selectOption('25');
+    await expect(width).toHaveValue('25');
+    await width.selectOption('20');
     await placement.getByRole('button', { name: '기본 배치 복원', exact: true }).click();
-    await expect(width).toHaveValue('22');
-    await placement.getByRole('radio', { name: '바탕화면과 함께 사용' }).check();
+    await expect(width).toHaveValue('25');
+    await expect(placement.getByRole('radio', { name: '바탕화면과 함께 사용' })).toBeChecked();
+    await width.selectOption('20');
     await width.selectOption('25');
     await workspace.screenshot({ path: testInfo.outputPath('board-settings.png') });
     await placement.getByRole('button', { name: '적용', exact: true }).click();

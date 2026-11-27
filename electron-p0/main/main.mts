@@ -283,7 +283,8 @@ else {
     if (args.length !== (channel === 'p0:write-settings' ? 1 : 0)) throw new Error('Invalid PoC IPC arguments');
     if (channel === 'p0:info') return {appId:APP_ID,productName:PRODUCT_NAME,version:app.getVersion(),userData,sourceSha:meta.sourceSha,electron:process.versions.electron,onboardingComplete,...(qaPaths.qa?{qaProfile:{root:qaPaths.root,appData:app.getPath('appData'),sessionData:app.getPath('sessionData'),stores:['poc-settings','work-data/local-tasks','work-data/local-events','work-data/purchase-settings','work-data/quick-memo','work-data/work-folders','work-data/drop-import-tmp','work-data/education-video','work-data/school-profile','work-data/bogunon-account','work-data/school-admin','work-data/smart-launcher','work-data/inventory','work-data/ai','work-data/chatgpt','work-data/my-finance','work-data/youtube-search','work-data/newsletter-projects','work-data/newsletter-ai-assets','work-data/official-import-tmp','work-data/purchase-import-tmp'].map(p=>join(userData,p))}}:{})};
     if (channel === 'p0:read-settings') return store.read();
-    return store.write(args[0]);
+    await store.write(args[0]);
+    desktopSurface.notifySettingsChanged();
   });
   for(const action of ['read','save','test','open'] as const)ipcMain.handle(`p0:online-health-room:${action}`,async(event,...args:unknown[])=>{
     assertSender(event,window.webContents,url);
@@ -291,7 +292,7 @@ else {
       if(action==='read')return onlineHealthRoom.read();
       if(action==='open')return onlineHealthRoom.open();
       if(action==='test')return onlineHealthRoom.test(args[0]);
-      const saved=await onlineHealthRoom.save(args[0]);window.webContents.send('p0:online-health-room:changed');desktopSurface.notifyOnlineHealthRoomChanged();return saved;
+      const saved=await onlineHealthRoom.save(args[0]);window.webContents.send('p0:online-health-room:changed');desktopSurface.notifySettingsChanged();return saved;
     }
     throw Error('Invalid online health room request');
   });

@@ -1,6 +1,7 @@
-import { CalendarDays, Clock3 } from "lucide-react";
+import { Clock3 } from "lucide-react";
 import { PRODUCT_NAME } from "../branding";
 import { useWidgetSession } from "../dashboard/WidgetSessionContext";
+import "./clock-widget.css";
 
 const dateFormatter = new Intl.DateTimeFormat("ko-KR", {
   year: "numeric",
@@ -20,11 +21,11 @@ export function ClockWidget() {
   const { now } = useWidgetSession();
 
   return (
-    <section className="date-card widget-surface" aria-label="현재 날짜와 시간">
-      <div className="date-card__eyebrow"><CalendarDays size={15} /> {PRODUCT_NAME}</div>
-      <div className="date-card__body">
-        <p className="date-card__date">{dateFormatter.format(now)}</p>
-        <p className="date-card__time"><Clock3 size={19} /> {timeFormatter.format(now)}</p>
+    <section className="time-card widget-surface" aria-label="현재 날짜와 시간">
+      <div className="time-card__content">
+        <p className="time-card__label"><Clock3 size={12} aria-hidden="true" />{PRODUCT_NAME}</p>
+        <time className="time-card__time" dateTime={now.toISOString()}>{timeFormatter.format(now)}</time>
+        <p className="time-card__date">{dateFormatter.format(now)}</p>
       </div>
     </section>
   );

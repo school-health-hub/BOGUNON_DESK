@@ -1,0 +1,120 @@
+
+.dock-editor .dock-editor__preview {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--d07-rose-200, var(--divider));
+  border-radius: 12px;
+  background: var(--d07-cream-50, var(--workspace-bg));
+}
+.dock-editor__preview h3 { margin: 0 0 5px; font-size: var(--text-sm); }
+.dock-editor__preview p { margin: 0; color: var(--text-secondary); }
+.dock-editor__preview-scroll { max-width: 100%; overflow-x: auto; padding: 4px; }
+.dock-editor .dock-editor__preview-list.dock {
+  position: static;
+  display: inline-flex;
+  width: max-content;
+  max-width: none;
+  gap: 5px;
+  margin: 0;
+  padding: 5px;
+  list-style: none;
+  transform: none;
+}
+.dock-editor__preview-list li { color: var(--text-secondary); }
+.dock-editor__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.dock-editor .dock-editor__list { gap: 2px; }
+.dock-editor .dock-editor__list article {
+  grid-template-columns: 24px 20px minmax(0, 15rem) auto;
+  justify-content: start;
+  min-height: 34px;
+  gap: 8px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+}
+.dock-editor .dock-editor__list article[data-visible="false"] {
+  color: var(--text-secondary, var(--navy-700));
+  background: var(--surface-muted);
+}
+.dock-editor__list article[data-visible="false"] > svg { opacity: .65; }
+.dock-editor .dock-editor__drag {
+  width: 24px;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  box-shadow: none;
+}
+.dock-editor__drag:hover { background: var(--d07-rose-50, var(--surface-muted)); }
+.dock-editor__drag:active { cursor: grabbing; }
+.dock-editor :is(input, button, .dock-editor__preview-scroll):focus-visible {
+  outline: 2px solid var(--d07-rose-700, var(--accent));
+  outline-offset: 2px;
+}
+.dock-editor .dock-editor__visibility {
+  display: grid;
+  grid-template-columns: 2.5em 36px;
+  gap: 6px;
+  align-items: center;
+  cursor: pointer;
+}
+.dock-editor .dock-editor__visibility > span { font-size: var(--text-xs); }
+.dock-editor .dock-editor__visibility input {
+  appearance: none;
+  display: grid;
+  width: 36px;
+  height: 22px;
+  padding: 2px;
+  margin: 0;
+  align-items: center;
+  border: 1px solid var(--navy-500);
+  border-radius: 999px;
+  background: var(--surface-muted);
+}
+.dock-editor__visibility input::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--navy-500);
+}
+.dock-editor .dock-editor__visibility input:checked {
+  justify-items: end;
+  border-color: var(--d07-rose-700, var(--accent-hover));
+  background: var(--d07-rose-700, var(--accent-hover));
+}
+.dock-editor__visibility input:checked::before { background: white; }
+.dock-editor__visibility input:disabled { opacity: .55; cursor: not-allowed; }
+@media (forced-colors: active) {
+  .dock-editor__visibility input::before { background: CanvasText; }
+  .dock-editor__visibility input:checked::before { background: Highlight; }
+}
+
+.electron-soft-rose .rose-settings .dock-editor.workspace-editor-panel > header {
+  display: flex;
+  gap: 8px;
+}
+.electron-soft-rose .rose-settings .dock-editor .dock-editor__drag:not(:disabled) {
+  border: 0;
+  color: var(--text-secondary);
+  background: transparent;
+}
+.electron-soft-rose .rose-settings .dock-editor .dock-editor__drag:is(:hover, :focus-visible) {
+  background: var(--d07-rose-50);
+}
+
+.electron-soft-rose .rose-settings .dock-editor > header button:not(:disabled) {
+  flex: none;
+  display: grid;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0;
+  place-items: center;
+}

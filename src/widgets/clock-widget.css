@@ -1,0 +1,55 @@
+.time-card.widget-surface {
+  container-type: inline-size;
+  display: grid;
+  align-items: center;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  background: color-mix(in srgb, var(--d07-cream-50, var(--widget-bg)) 90%, var(--d07-rose-100, var(--widget-bg)));
+}
+
+.time-card__content {
+  display: grid;
+  min-width: 0;
+  align-content: center;
+  gap: clamp(2px, 2cqi, 6px);
+  padding: clamp(5px, 4cqi, 14px);
+}
+
+.time-card__label,
+.time-card__date {
+  margin: 0;
+  font-size: clamp(10px, 7cqi, 13px);
+  line-height: 1.25;
+  word-break: keep-all;
+}
+
+.time-card__label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--d07-rose-700, var(--navy-700));
+  font-weight: 650;
+  letter-spacing: .04em;
+}
+
+.time-card__label svg { flex: none; }
+
+.time-card__time {
+  color: var(--text-primary, var(--navy-950));
+  font-size: clamp(16px, 18cqi, 38px);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.04;
+  white-space: nowrap;
+}
+
+.time-card__date { color: var(--text-secondary, var(--navy-700)); }
+
+@container (max-width: 110px) {
+  .time-card__label svg { display: none; }
+}
+
+@container (max-width: 130px) {
+  .time-card__label { font-size: 9px; letter-spacing: 0; }
+}

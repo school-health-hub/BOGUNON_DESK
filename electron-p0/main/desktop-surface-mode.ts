@@ -1,7 +1,7 @@
-import type {BoardPlacement,DesktopSurfaceDocument,DesktopSurfaceProfile,MonitorIdentity} from '../desktop-surface-protocol.js';
+import {defaultBoardPlacement,type BoardPlacement,type DesktopSurfaceDocument,type DesktopSurfaceProfile,type MonitorIdentity} from '../desktop-surface-protocol.js';
 import {SettingsStore} from './settings.js';
 
-const defaults=():DesktopSurfaceDocument=>({version:2,mode:'palette',profiles:{},dockProfileKey:null});
+const defaults=():DesktopSurfaceDocument=>({version:2,mode:'palette',profiles:{},dockProfileKey:null,boardPlacement:defaultBoardPlacement});
 const isRecord=(value:unknown):value is Record<string,unknown>=>!!value&&typeof value==='object'&&!Array.isArray(value);
 export function parseBoardPlacement(value: unknown): BoardPlacement {
   if (!isRecord(value) || (value.preset !== 'shared' && value.preset !== 'dedicated')

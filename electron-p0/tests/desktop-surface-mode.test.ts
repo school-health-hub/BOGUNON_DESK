@@ -8,7 +8,7 @@ import {reconcileDesktopProfiles,moveWidgetOwnership,selectDockProfile,projectLa
 it('treats only an absent sidecar as the palette default without writing',async()=>{
   const root=await mkdtemp(join(tmpdir(),'surface-mode-'));
   const store=new DesktopSurfaceModeStore(root);
-  expect(await store.read()).toMatchObject({version:2,mode:'palette',profiles:{},dockProfileKey:null});
+  expect(await store.read()).toMatchObject({version:2,mode:'palette',profiles:{},dockProfileKey:null,boardPlacement:{preset:'shared',target:null,iconSpace:25}});
   await expect(readFile(join(root,'desktop-surface.json'))).rejects.toMatchObject({code:'ENOENT'});
 });
 
@@ -143,4 +143,18 @@ it('keeps one Dock and temporarily projects inaccessible widgets without rewriti
   const projected=projectLayoutInsideWorkArea([stored],{maxRows:12,dockRows:2});
   expect(projected[0]).toMatchObject({id:stored.id,y:6});
   expect(stored.y).toBe(38);
+});
+
+it('keeps an existing sidecar without placement on the legacy layout and preserves a saved dedicated target',async()=>{
+  const root=await mkdtemp(join(tmpdir(),'surface-existing-'));
+  const store=new DesktopSurfaceModeStore(root);
+  const layout={version:1,appearance:{background:'blue-gray',cardStyle:'default',cornerStyle:'soft'},widgets:[]};
+  const initial={version:2,mode:'palette',profiles:{},dockProfileKey:null} as const;
+  const existing=reconcileDesktopProfiles(initial,displays,layout,'2026-11-19T00:00:00.000Z').document;
+  await store.write(existing);
+  expect(await store.read()).toEqual(existing);
+  expect((await store.read()).boardPlacement).toBeUndefined();
+  const dedicated={...existing,boardPlacement:{preset:'dedicated',target:existing.dockProfileKey,iconSpace:21}} as const;
+  await store.write(dedicated);
+  expect(await new DesktopSurfaceModeStore(root).read()).toEqual(dedicated);
 });
